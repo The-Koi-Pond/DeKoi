@@ -6,9 +6,7 @@ export function Waterline() {
   return (
     <header className="waterline">
       <div className="brand">
-        <svg className="mark" viewBox="0 0 64 64" aria-hidden="true">
-          <use href="#koi-mark" style={{ color: "var(--koi)" }} />
-        </svg>
+        <img className="mark" src="/koi-mark.svg" alt="" />
       </div>
       <div className="wordmark">De-Koi</div>
       <div className="ripple-search">

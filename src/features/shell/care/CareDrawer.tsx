@@ -60,9 +60,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       >
         <div className="care-head">
           <div className="top">
-            <svg viewBox="0 0 64 64" aria-hidden="true">
-              <use href="#koi-mark" style={{ color: "var(--koi)" }} />
-            </svg>
+            <img src="/koi-mark.svg" alt="" style={{ width: 26, height: 26 }} />
             <h2>Pond Care</h2>
             <div
               className="x"

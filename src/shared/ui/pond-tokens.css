@@ -132,3 +132,14 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- sumi-e koi watermark (koi-bg.svg) ---- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/koi-bg.svg') no-repeat center / cover;
+  opacity: 0.04;
+}
