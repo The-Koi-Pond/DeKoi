@@ -3,7 +3,7 @@ export const POND_SURFACE_LABEL = 'Pond'
 
 export type BubbleThreadKind = 'bubbles'
 export type BubbleThreadMode = 'direct' | 'group'
-export type BubbleMessageOrigin = 'manual' | 'generated' | 'imported' | 'sample'
+export type BubbleMessageOrigin = 'manual' | 'generated' | 'imported' | 'placeholder' | 'sample'
 
 export type BubbleMessageAuthor =
   | {
