@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeKoi Developer Docs</title>
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>DeKoi</strong>
+          <span>Developer docs</span>
+        </div>
+        <nav class="nav" aria-label="Documentation">
+          <a href="./index.html" aria-current="page">Overview</a>
+          <a href="./getting-started.html">Getting started</a>
+          <a href="./run-build.html">Run and build</a>
+          <a href="./architecture.html">Architecture</a>
+          <a href="./modules.html">Modules</a>
+          <a href="./impact-areas.html">Impact areas</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <p class="eyebrow">Start here</p>
+        <h1>How this repo is put together and how to work in it without widening impact.</h1>
+        <p class="lead">
+          DeKoi is currently a fresh React, TypeScript, and Vite seed. These migrated developer docs preserve the
+          intended layered architecture while the new implementation catches up: React owns the user interface,
+          TypeScript engine modules own product behavior, and future host layers should own privileged capabilities.
+        </p>
+        <div class="callout">
+          <strong>Migration note:</strong> these docs were ported from user-owned developer documentation and rewritten
+          with DeKoi terms. Treat deeper architecture pages as a validation queue until the new codebase implements the
+          referenced layers.
+        </div>
+
+        <section class="grid" aria-label="Main docs">
+          <article class="panel">
+            <h3>Getting started</h3>
+            <p>
+              Use the first-session path for coding agents and developers: run docs, learn the repo, run the app, test
+              workflows, and fix bugs.
+            </p>
+            <p><a href="./getting-started.html">Open getting started</a></p>
+          </article>
+          <article class="panel">
+            <h3>Run and build</h3>
+            <p>
+              Install dependencies, start the Vite app, serve the developer docs, run the build check, and run lint.
+            </p>
+            <p><a href="./run-build.html">Open run guide</a></p>
+          </article>
+          <article class="panel">
+            <h3>Architecture</h3>
+            <p>
+              Review the dependency direction between React, shared runtime adapters, TypeScript engine layers, embedded
+              Tauri commands, HTTP dispatch, and Rust crates.
+            </p>
+            <p><a href="./architecture.html">Open architecture guide</a></p>
+          </article>
+          <article class="panel">
+            <h3>Modules</h3>
+            <p>Find each folder's owner, what it is allowed to touch, and where new work belongs.</p>
+            <p><a href="./modules.html">Open module guide</a></p>
+          </article>
+          <article class="panel">
+            <h3>Impact areas</h3>
+            <p>
+              Use impact maps before fixing bugs or adding features so related callers and checks are accounted for.
+            </p>
+            <p><a href="./impact-areas.html">Open impact guide</a></p>
+          </article>
+        </section>
+
+        <h2>Current Tech Stack</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Stack</th>
+              <th>Current refactor role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Webview UI</td>
+              <td>React 19, TypeScript 6, Vite 8.</td>
+              <td>
+                <code>src/features</code> owns the first visible surface. <code>src/engine</code> owns the first
+                React-free product records.
+              </td>
+            </tr>
+            <tr>
+              <td>Client state and data loading</td>
+              <td>React state first. Dedicated data loading and app stores are not selected yet.</td>
+              <td>
+                The first slice should prove Bubbles locally before adding provider, storage, or runtime complexity.
+              </td>
+            </tr>
+            <tr>
+              <td>Product engine</td>
+              <td>
+                React-free TypeScript model modules, then storage schemas after the names settle.
+              </td>
+              <td>
+                <code>src/engine</code> currently defines Bubbles, Companions, Personas, Lorebooks, and Ripples.
+              </td>
+            </tr>
+            <tr>
+              <td>Desktop, local, and hostable capabilities</td>
+              <td>
+                Future Tauri/native capabilities.
+              </td>
+              <td>
+                Native storage, secrets, filesystem access, provider transport, and imports should stay behind explicit
+                runtime boundaries when they are added.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Refactor Coverage</h2>
+        <div class="grid">
+          <div class="panel">
+            <h3>Shell and feature split</h3>
+            <p>
+              The app shell lives under <code>src/app</code>. Product surfaces live under <code>src/features</code>,
+              including Bubbles, VN, future adventure systems, media assets, libraries, settings, integrations, onboarding, and Pond Guide.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Engine split</h3>
+            <p>
+              Engine code is separated into contracts, capabilities, pure helpers, repositories, generation building
+              blocks, helper runtime, generation lifecycle, standalone guide entry, and mode-owned services.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Pond Guide path</h3>
+            <p>
+              Pond Guide is not hidden inside Bubbles. The shell opens
+              <code>features/shell/pond-guide</code>, which calls <code>engine/pond-guide</code>, <code>shared/api/pond-guide-api</code>,
+              and the Rust <code>pond_guide_prompt</code> command.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Native capability split</h3>
+            <p>
+              <code>src-tauri</code> is split into thin command facades plus focused crates for core helpers, security,
+              storage, assets, LLM transport, and integrations. The same focused Rust modules back the embedded Tauri
+              commands and hostable HTTP dispatch.
+            </p>
+          </div>
+        </div>
+
+        <h2>Core Shape</h2>
+        <pre class="mermaid">
+flowchart LR
+  UI[React app and features]
+  API[shared/api runtime adapters]
+  Engine[TypeScript engine use cases]
+  Ports[engine capability ports]
+  Commands[Rust Tauri commands<br/>or HTTP dispatch]
+  Crates[Rust capability crates]
+
+  UI --> API
+  UI --> Engine
+  Engine --> Ports
+  API --> Commands
+  Commands --> Crates
+  Ports -. implemented by .-> API
+        </pre>
+
+        <h2>Rules That Keep Changes Small</h2>
+        <div class="grid">
+          <div class="panel">
+            <h3>One owner</h3>
+            <p>
+              Every behavior belongs to React UI, the TypeScript engine, or Rust capability code. Do not duplicate
+              ownership across layers.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Mode separation</h3>
+            <p>
+              Bubbles is the first active surface. VN is reserved next. Future adventure systems should stay separate
+              until DeKoi has native records and storage.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Explicit imports</h3>
+            <p>
+              Import owner modules and public feature APIs. Avoid deep imports into another feature's private files, and
+              keep embedded Tauri or hostable HTTP calls behind shared API wrappers.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Root fixes</h3>
+            <p>Fix broken contracts or owners. Do not add fake success paths, broad fallbacks, or UI-only patches.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Before a change:</strong> identify the owner, expected impact area, dependent callers, and checks. If
+          a shared layer changes, verify every mode or feature that depends on that layer.
+        </div>
+
+        <p class="footer">
+          These docs are static. Open <code>docs/developer/index.html</code> directly, or run
+          <code>pnpm docs:dev</code> from the repo root.
+        </p>
+      </main>
+    </div>
+    <script type="module" src="./shared.js"></script>
+  </body>
+</html>

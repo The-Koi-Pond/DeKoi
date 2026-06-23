@@ -37,3 +37,8 @@ pnpm build
   it does not belong here.
 
 See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process.
+See [SURFACE_LABELS.md](./SURFACE_LABELS.md) for the first DeKoi-owned naming
+map.
+See [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) for the first native product records.
+See [docs/developer/index.html](./docs/developer/index.html) for migrated
+developer docs that still need validation against the new implementation.

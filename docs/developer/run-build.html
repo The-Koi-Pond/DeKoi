@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Run and Build DeKoi</title>
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>DeKoi</strong>
+          <span>Developer docs</span>
+        </div>
+        <nav class="nav" aria-label="Documentation">
+          <a href="./index.html">Overview</a>
+          <a href="./getting-started.html">Getting started</a>
+          <a href="./run-build.html" aria-current="page">Run and build</a>
+          <a href="./architecture.html">Architecture</a>
+          <a href="./modules.html">Modules</a>
+          <a href="./impact-areas.html">Impact areas</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <p class="eyebrow">Local development</p>
+        <h1>Run the current DeKoi seed before adding native host layers.</h1>
+        <p class="lead">
+          DeKoi currently runs as a Vite, React, and TypeScript app. Tauri, native storage, hostable runtime,
+          provider transport, and import/export commands are future work.
+        </p>
+
+        <div class="callout">
+          <strong>Migration note:</strong> older developer docs referenced Tauri commands. Those commands are not part
+          of this fresh seed yet. Use the commands on this page for the current repo.
+        </div>
+
+        <h2>Prerequisites</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Why it is needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Node.js</td>
+              <td>Runs Vite, TypeScript, and the package manager.</td>
+            </tr>
+            <tr>
+              <td>pnpm</td>
+              <td>Installs dependencies and runs repo scripts.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Install Dependencies</h2>
+        <pre><code>pnpm install</code></pre>
+
+        <h2>Run The App</h2>
+        <p>Start the Vite development server:</p>
+        <pre><code>pnpm dev</code></pre>
+        <p>Open the URL printed by Vite. By default this is usually <code>http://localhost:5173/</code>.</p>
+
+        <h2>Run The Developer Docs</h2>
+        <p>Serve this static documentation set:</p>
+        <pre><code>pnpm docs:dev</code></pre>
+        <p>Open <code>http://127.0.0.1:4174/</code>.</p>
+
+        <h2>Build Check</h2>
+        <p>Run the production frontend build:</p>
+        <pre><code>pnpm build</code></pre>
+
+        <h2>Lint Check</h2>
+        <p>Run ESLint over source files:</p>
+        <pre><code>pnpm lint</code></pre>
+
+        <h2>Current Manual QA</h2>
+        <div class="grid">
+          <div class="panel">
+            <h3>Bubbles preview</h3>
+            <p>Confirm the Pond rail, active Bubble thread, Companions, Lorebooks, and Ripple Dock all render.</p>
+          </div>
+          <div class="panel">
+            <h3>Responsive layout</h3>
+            <p>Check desktop and narrow widths. Text should remain readable and panels should stack cleanly.</p>
+          </div>
+          <div class="panel">
+            <h3>Static model proof</h3>
+            <p>Confirm the visible sample data comes from <code>src/engine/sample-bubbles.ts</code>.</p>
+          </div>
+        </div>
+
+        <h2>Future Native Host Work</h2>
+        <p>
+          When Tauri is added, document its commands here only after the scripts exist in <code>package.json</code> and
+          the native host has been verified locally.
+        </p>
+
+        <p class="footer">
+          These docs are static. Open <code>docs/developer/index.html</code> directly, or run
+          <code>pnpm docs:dev</code> from the repo root.
+        </p>
+      </main>
+    </div>
+    <script type="module" src="./shared.js"></script>
+  </body>
+</html>

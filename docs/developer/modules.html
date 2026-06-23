@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeKoi Modules</title>
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>DeKoi</strong>
+          <span>Developer docs</span>
+        </div>
+        <nav class="nav" aria-label="Documentation">
+          <a href="./index.html">Overview</a>
+          <a href="./getting-started.html">Getting started</a>
+          <a href="./run-build.html">Run and build</a>
+          <a href="./architecture.html">Architecture</a>
+          <a href="./modules.html" aria-current="page">Modules</a>
+          <a href="./impact-areas.html">Impact areas</a>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <p class="eyebrow">Module guide</p>
+        <h1>Where code lives, what it touches, and what depends on it.</h1>
+        <p class="lead">
+          Use this page before adding files or moving logic. The right home is the one that makes the dependency
+          direction obvious.
+        </p>
+
+        <h2>Top-Level Source Folders</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owner</th>
+              <th>Touches</th>
+              <th>Impact area when changed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/app</code></td>
+              <td>React bootstrap and shell.</td>
+              <td>App providers, startup effects, layout shell.</td>
+              <td>Whole UI startup, provider wiring, modal/shell behavior.</td>
+            </tr>
+            <tr>
+              <td><code>src/features</code></td>
+              <td>Feature-owned React UI.</td>
+              <td>Feature hooks, components, UI stores, feature API facades.</td>
+              <td>The feature's screens and user workflows.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared</code></td>
+              <td>Frontend shared layer.</td>
+              <td>Generic UI, browser helpers, shared stores, runtime adapters.</td>
+              <td>Every feature that imports the shared primitive.</td>
+            </tr>
+            <tr>
+              <td><code>src/engine</code></td>
+              <td>React-free product engine.</td>
+              <td>Domain rules, modes, generation, helper modules, repositories, contracts.</td>
+              <td>Product behavior and every UI path using that engine service.</td>
+            </tr>
+            <tr>
+              <td><code>src-tauri</code></td>
+              <td>Tauri host, hostable Rust runtime, and Rust capabilities.</td>
+              <td>Commands, HTTP server/dispatch, state, storage, assets, provider transport, integrations.</td>
+              <td>Native execution, remote runtime behavior, data persistence, provider calls, bundling.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Feature Modules</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Purpose</th>
+              <th>Primary dependencies</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>features/catalog/bubbles</code></td>
+              <td>Bubbles data hooks, mutations, folders, storage-facing types, and query keys.</td>
+              <td>Storage API, Bubbles engine contracts, public runtime consumers.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/companions</code></td>
+              <td>
+                Companions library data, editors, import/create flows, maker flows, and card updates.
+              </td>
+              <td>Storage API, avatar API, character contracts, generation helpers.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/personas</code></td>
+              <td>Persona panel/editor/modals, imports, data hooks, and query keys.</td>
+              <td>
+                Storage API, avatar API, persona contracts. Shared persona data hooks are exported from
+                <code>features/catalog/personas/index.ts</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/sprites</code></td>
+              <td>Shared sprite query keys, types, and React Query hooks for character and persona sprite owners.</td>
+              <td>
+                Image generation API sprite commands, character and persona editors, runtime ripples, future adventure systems, and Bubbles
+                settings consumers.
+              </td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/lorebooks</code></td>
+              <td>Lorebook library data, editor, entries, import flow, and query keys.</td>
+              <td>Storage API, import API, lorebook contracts.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/presets</code>, <code>features/catalog/bubble-presets</code></td>
+              <td>Prompt preset editors, choice selection, Bubbles preset data hooks, and query keys.</td>
+              <td>Storage API, prompt contracts, generation preview.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/connections</code></td>
+              <td>Provider connection data hooks, folders, tests, types, and query keys.</td>
+              <td>Storage API, LLM API, provider contracts.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/keepers</code></td>
+              <td>Keeper configuration data, tools, debug/review surfaces, custom tools, and regex scripts.</td>
+              <td>Keeper storage hooks, engine contracts, generation results.</td>
+            </tr>
+            <tr>
+              <td><code>features/catalog/gallery</code>, <code>features/catalog/knowledge</code></td>
+              <td>Generated image gallery hooks and knowledge source upload/list/read hooks.</td>
+              <td>Image generation API, storage API, integration utilities, helper runtime knowledge routing.</td>
+            </tr>
+            <tr>
+              <td><code>features/runtime/generation</code></td>
+              <td>Generation hook that binds UI state and capability adapters to engine generation services.</td>
+              <td>Engine generation, catalog Bubbles keys, shared API adapters, helper/ripples stores.</td>
+            </tr>
+            <tr>
+              <td><code>features/runtime/ripples</code></td>
+              <td>Ripples API, Ripple snapshot bridge, store, display helpers, and patching/controller hooks.</td>
+              <td>Storage API, Ripple snapshot API, mode runtime consumers, shared stores.</td>
+            </tr>
+            <tr>
+              <td><code>features/runtime/visuals</code></td>
+              <td>
+                Shared visual primitives such as sprites, weather, pinned images, world info, sprite placement, and
+                display modes.
+              </td>
+              <td>Shared UI, asset URLs, mode-provided state.</td>
+            </tr>
+            <tr>
+              <td><code>features/runtime/ripples</code></td>
+              <td>Ripple Dock panels for companions, personas, quests, and Ripples.</td>
+              <td>Ripples API, shared stores, mode state.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/shared/Bubbles-ui</code></td>
+              <td>Shared transcript, message, input, branch, settings, overlay, gallery, and quick-switcher UI.</td>
+              <td>Catalog Bubbles data, runtime visuals, generation replay, shared components.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/shared/scene-ui</code></td>
+              <td>Shared scene banner UI used by mode surfaces.</td>
+              <td>Shared components and mode-provided scene state.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/Bubbles</code></td>
+              <td>
+                Bubbles surface, setup wizard, recent Bubbles, autonomous effects, echo chamber, and normal
+                Bubbles UI.
+              </td>
+              <td>Bubbles surface engine, runtime generation, catalog Bubbles data, shared Bubbles UI.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/VN</code></td>
+              <td>VN screen surfaces, HUD, choices, encounters, scene UI, and VN Ripple Dock panels.</td>
+              <td>VN surface engine, runtime visuals/generation, catalog resources, shared Bubbles/scene UI.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/game</code></td>
+              <td>Game screen, party UI, world UI, mechanics UI, future adventure hooks, stores, and game API facade.</td>
+              <td>Future adventure surface engine, media assets, runtime systems, catalog resources, shared Bubbles UI.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/media-assets</code></td>
+              <td>Managed game asset browser and editor UI.</td>
+              <td>Assets API, local file API, game asset helpers.</td>
+            </tr>
+            <tr>
+              <td><code>features/modes/router</code></td>
+              <td>
+                Mode surface composition plus shared active-Bubbles workflow, pagination, swipes, overlays, and mode
+                switching.
+              </td>
+              <td>Concrete mode public surfaces, catalog Bubbles data, runtime systems, and mode metadata.</td>
+            </tr>
+            <tr>
+              <td><code>features/shell/settings</code>, <code>features/shell/connections</code></td>
+              <td>
+                Settings panels, provider connection management, themes, profile import, assets, TTS
+                configuration, and admin reset orchestration.
+              </td>
+              <td>Catalog connection/Bubbles APIs, settings/storage APIs, integration APIs, profile API.</td>
+            </tr>
+            <tr>
+              <td><code>features/shell/pond-guide</code></td>
+              <td>Pond Guide standalone assistant surface.</td>
+              <td>engine guide entry contract, guide API, catalog connections/personas, shared Bubbles UI.</td>
+            </tr>
+            <tr>
+              <td><code>features/shell/imports</code>, <code>features/shell/bot-browser</code></td>
+              <td>Import modals, progress flows, bot browser integration panels, and API facade.</td>
+              <td>Import API, storage APIs, Tauri channels, bot browser commands.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>features/shell/spotify</code>, <code>features/shell/onboarding</code>,
+                <code>features/shell/notifications</code>
+              </td>
+              <td>Spotify mini player, first-run onboarding tutorial UI, and app-level notification bubbles.</td>
+              <td>Integration utility API, app shell, mode stores, shared playback/events UI.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>App And Shared Modules</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owns</th>
+              <th>Do not put here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/app/shell</code></td>
+              <td>
+                Desktop app chrome, titlebar, sidebar, panel routing, detail route registry, mode surface placement.
+              </td>
+              <td>Mode-specific product rules or provider transport.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/providers</code></td>
+              <td>Application-level providers and theme injection.</td>
+              <td>Feature screens or mode orchestration.</td>
+            </tr>
+            <tr>
+              <td><code>src/app/startup</code></td>
+              <td>Startup-only browser synchronization.</td>
+              <td>Long-running feature effects.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared/components</code></td>
+              <td>Generic UI atoms and modals reused by multiple features.</td>
+              <td>Feature-specific workflows.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared/hooks</code></td>
+              <td>Generic frontend hooks such as TTS, translation, page activity, and regex application.</td>
+              <td>Feature cache ownership.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared/lib</code></td>
+              <td>
+                Frontend-only deterministic helpers for display, assets, markdown, command text, formatting, and browser
+                URLs.
+              </td>
+              <td>Engine mode orchestration or Rust-only IO.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared/stores</code></td>
+              <td>UI/session Zustand stores shared across feature surfaces.</td>
+              <td>Persistent domain records that belong in storage or engine contracts.</td>
+            </tr>
+            <tr>
+              <td><code>src/shared/types/generated</code></td>
+              <td>Generated TypeScript bindings from Rust boundary DTOs.</td>
+              <td>Hand-authored product contracts.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Engine Modules</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owns</th>
+              <th>Do not put here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>engine/contracts</code></td>
+              <td>Types, schemas, constants.</td>
+              <td>Runtime orchestration or adapters.</td>
+            </tr>
+            <tr>
+              <td><code>engine/core</code></td>
+              <td>Small primitives such as result, IDs, clock, JSON helpers.</td>
+              <td>Feature or mode rules.</td>
+            </tr>
+            <tr>
+              <td><code>engine/capabilities</code></td>
+              <td>TypeScript interfaces for Rust-backed capabilities.</td>
+              <td>Tauri invoke calls or concrete implementations.</td>
+            </tr>
+            <tr>
+              <td><code>engine/shared</code></td>
+              <td>Pure deterministic helpers reused across domains.</td>
+              <td>Storage calls, providers, UI imports, mode orchestration.</td>
+            </tr>
+            <tr>
+              <td><code>engine/repositories</code></td>
+              <td>Capability-backed repository wrappers.</td>
+              <td>React Query, Zustand, or direct Tauri calls.</td>
+            </tr>
+            <tr>
+              <td><code>engine/generation-core</code></td>
+              <td>Prompt, lorebook, regex, context fitting, provider-neutral LLM DTOs.</td>
+              <td>Mode-owned turn/scene/autonomous decisions.</td>
+            </tr>
+            <tr>
+              <td><code>engine/helpers-runtime</code></td>
+              <td>Helper execution, tools, knowledge, memory routing.</td>
+              <td>Bubbles, future adventure systems, or VN surface orchestration.</td>
+            </tr>
+            <tr>
+              <td><code>engine/generation</code></td>
+              <td>Generation lifecycle, streaming, replay, persistence.</td>
+              <td>Mode-specific prompt ownership.</td>
+            </tr>
+            <tr>
+              <td><code>engine/pond-guide</code></td>
+              <td>Pond Guide request/response contract and entry normalization.</td>
+              <td>React UI, concrete Tauri invokes, Rust helper execution.</td>
+            </tr>
+            <tr>
+              <td><code>engine/modes/Bubbles</code></td>
+              <td>Bubbles/autonomous/schedules/summaries/commands.</td>
+              <td>VN scene or future adventure turn logic.</td>
+            </tr>
+            <tr>
+              <td><code>engine/modes/VN</code></td>
+              <td>Scenes, VN encounters, scene memory, VN sprites.</td>
+              <td>Ripples, maps, game session repair.</td>
+            </tr>
+            <tr>
+              <td><code>engine/modes/game</code></td>
+              <td>Future adventure turns, prompts, mechanics, world, state, assets.</td>
+              <td>VN scene lifecycle or Bubbles schedules.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Rust Modules</h2>
+        <pre class="mermaid">
+flowchart LR
+  Tauri[src-tauri/src<br/>lib, app, state]
+  Server[src-tauri/src<br/>bin/dekoi-server, http_server, http_dispatch]
+  Commands[src-tauri/src/commands<br/>command facades]
+  Core[crates/core<br/>ids, paths, errors]
+  Security[crates/security<br/>path and network policy]
+  Storage[crates/storage<br/>local records and atomic writes]
+  Assets[crates/assets<br/>managed media and assets]
+  LLM[crates/llm<br/>provider transport]
+  Integrations[crates/integrations<br/>spotify, tts, translation]
+
+  Tauri --> Commands
+  Server --> Commands
+  Commands --> Storage
+  Commands --> Assets
+  Commands --> LLM
+  Commands --> Integrations
+  Storage --> Core
+  Security --> Core
+  Assets --> Storage
+  Assets --> Security
+  LLM --> Security
+  Integrations --> Security
+        </pre>
+
+        <h2>Shared API Modules</h2>
+        <p>
+          Files in <code>src/shared/api</code> are the bridge from frontend code to embedded Tauri commands and the
+          configured hostable Rust HTTP runtime. They should be typed and narrow. If business logic starts to grow here,
+          move it into the TypeScript engine or the owning feature. New feature code should call these wrappers instead
+          of importing <code>tauri-client.ts</code>, <code>@tauri-apps/api</code>, or calling the remote runtime with
+          raw <code>fetch</code> directly.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Adapter</th>
+              <th>Boundary</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>api-errors.ts</code></td>
+              <td>Shared API error and JSON repair request shapes.</td>
+            </tr>
+            <tr>
+              <td><code>assets-api.ts</code></td>
+              <td>Backgrounds, fonts, media assets, and asset browser commands.</td>
+            </tr>
+            <tr>
+              <td><code>avatar-api.ts</code></td>
+              <td>Companion/persona/NPC avatar upload and resolution commands.</td>
+            </tr>
+            <tr>
+              <td><code>download-payload.ts</code> and <code>file-payload.ts</code></td>
+              <td>Browser payload helpers for import/export and local file transfer.</td>
+            </tr>
+            <tr>
+              <td><code>export-api.ts</code></td>
+              <td>Character, persona, lorebook, prompt, and profile export commands.</td>
+            </tr>
+            <tr>
+              <td><code>image-generation-api.ts</code></td>
+              <td>
+                Image generation, owner-typed Companion/persona sprite commands, gallery, and avatar generation commands.
+              </td>
+            </tr>
+            <tr>
+              <td><code>import-api.ts</code></td>
+              <td>legacy and SillyTavern import commands plus bulk import channels.</td>
+            </tr>
+            <tr>
+              <td>
+                <code>integration-gateway.ts</code>, <code>integration-utility-api.ts</code>, <code>tts-api.ts</code>,
+                and <code>translation-api.ts</code>
+              </td>
+              <td>
+                TTS and translation command wrappers, Spotify gateway ports, knowledge sources, and
+                connection utilities.
+              </td>
+            </tr>
+            <tr>
+              <td><code>llm-api.ts</code></td>
+              <td>LLM complete, stream, cancel, models, and connection tests.</td>
+            </tr>
+            <tr>
+              <td><code>local-file-api.ts</code></td>
+              <td>Managed local file URL conversion and asset protocol helpers.</td>
+            </tr>
+            <tr>
+              <td><code>pond-guide-api.ts</code></td>
+              <td>Pond Guide command wrapper.</td>
+            </tr>
+            <tr>
+              <td><code>profile-api.ts</code></td>
+              <td>Profile export/import and profile file operations.</td>
+            </tr>
+            <tr>
+              <td><code>settings-assets-api.ts</code></td>
+              <td>Settings-facing background and font commands.</td>
+            </tr>
+            <tr>
+              <td><code>storage-api.ts</code></td>
+              <td>Typed entity CRUD, duplication, Bubbles helpers, and generic storage access.</td>
+            </tr>
+            <tr>
+              <td><code>remote-runtime.ts</code></td>
+              <td>
+                Remote runtime URL parsing, command allowlist, JSON invoke fetch, SSE LLM streaming, and remote stream
+                cancellation.
+              </td>
+            </tr>
+            <tr>
+              <td><code>tauri-client.ts</code></td>
+              <td>
+                Single invoke/listen helper layer that chooses embedded Tauri by default and remote HTTP for allowlisted
+                commands when Remote Runtime URL is configured.
+              </td>
+            </tr>
+            <tr>
+              <td><code>ripples-snapshot-api.ts</code></td>
+              <td>Ripple snapshot save/read commands for game and VN state history.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Rust Command Modules</h2>
+        <p>
+          <code>src-tauri/src/commands/storage.rs</code> registers focused implementation modules and thin command
+          facades. Keep new commands in the closest capability group.
+        </p>
+        <p>
+          Hostable runtime support belongs in <code>http_dispatch.rs</code> for JSON command reuse or
+          <code>http_server.rs</code> for dedicated routes such as LLM SSE streaming. Do not create a parallel command
+          implementation only for HTTP.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Owns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>admin</code>, <code>keepers</code>, <code>custom_tools</code></td>
+              <td>
+                Admin resets, Keeper records, custom tool execution, helper memory, cadence, and patch/toggle commands.
+              </td>
+            </tr>
+            <tr>
+              <td><code>bot_browser</code>, <code>ripple_snapshots</code></td>
+              <td>Bot browser proxy commands and Ripple snapshot persistence.</td>
+            </tr>
+            <tr>
+              <td><code>companions</code>, <code>Bubbles</code>, <code>prompts</code>, <code>knowledge</code></td>
+              <td>
+                Creative records, Bubbles memory/notes/branches/swipes, prompt data, and knowledge source persistence.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>avatars</code>, <code>backgrounds</code>, <code>fonts</code>, <code>media_assets</code>,
+                <code>images</code>, <code>lorebook_images</code>, <code>media_uploads</code>, <code>sprites</code>
+              </td>
+              <td>
+                Managed media, asset paths, image generation, uploads, sprite cleanup, and asset browser operations.
+              </td>
+            </tr>
+            <tr>
+              <td><code>exports</code>, <code>imports</code>, <code>profile</code></td>
+              <td>
+                legacy profile packages, SillyTavern imports, export payloads, ZIP handling, and profile asset
+                migration.
+              </td>
+            </tr>
+            <tr>
+              <td><code>generation</code>, <code>llm</code>, <code>http</code>, <code>translation</code></td>
+              <td>Provider transport, streaming, model lists, safe fetches, and translation calls.</td>
+            </tr>
+            <tr>
+              <td><code>integrations</code></td>
+              <td>Spotify, TTS, OAuth callback, and DJ guide playlist helpers.</td>
+            </tr>
+            <tr>
+              <td><code>pond-guide</code></td>
+              <td>Pond Guide's helper-runtime-backed prompt command and read-only creative library tool.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="footer">
+          Before moving code, check whether downstream imports should point to a public owner file, a lower-layer
+          helper, or a capability port.
+        </p>
+      </main>
+    </div>
+    <script type="module" src="./shared.js"></script>
+  </body>
+</html>
