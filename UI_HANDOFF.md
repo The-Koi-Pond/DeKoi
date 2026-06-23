@@ -59,7 +59,7 @@ Regions (class → role):
 
 | Region | Class | Lines | Contents |
 | --- | --- | --- | --- |
-| Top bar | `.waterline` | 86–124 | Brand mark, "De-Koi" wordmark, `.ripple-search` omni-search, `.pebbles` catalog buttons (Lore/Companions/Media/Connections + Pond Care), `.win-dots`. |
+| Top bar | `.waterline` | 86–124 | Brand mark, "DeKoi" wordmark, `.ripple-search` omni-search, `.pebbles` catalog buttons (Lore/Companions/Media/Connections + Pond Care), `.win-dots`. |
 | Mode dock | `.bank` | 140–209 | Vertical rail. `.dive` buttons (bubbles/vn/reserved — see §5.1) with hover `.tag` tooltips and `.on` indicator; `.cast-fab` (new chat); `.me` profile bubble. |
 | Chat list | `.shoal` | 211–291 | `.shoal-head` (title, search, action pills), `.shoal-meta`, scrollable `.shoal-list` of `.koi-card` entries grouped by `.group-label`. |
 | Main canvas | `.pond` | 293–403 | Sticky `.pond-banner`, centered `.pond-inner` containing: `.hero` (animated koi `.pond-eye`), `.pools` (3 organic blob cards), `.section-head` + `.current` (recent drifters), `.depths` (feature finder). |
@@ -215,7 +215,7 @@ the "local-first" direction without blocking the visual port.
 Follow `ARCHITECTURE.md` lanes. New/changed files:
 
 ```
-index.html                              add Google Fonts <link> + title "De-Koi — The Pond"
+index.html                              add Google Fonts <link> + title "DeKoi — The Pond"
 src/main.tsx                            import pond-tokens.css instead of index.css
 src/App.tsx                             shell + view switch (replaces current)
 src/index.css                           delete old light tokens (or empty out)
@@ -331,7 +331,7 @@ labels.
 
 ### Phase 1 — Tokens, fonts, sprite, shell skeleton
 
-- Add Google Fonts `<link>` to `index.html`; set `<title>De-Koi — The Pond</title>`.
+- Add Google Fonts `<link>` to `index.html`; set `<title>DeKoi — The Pond</title>`.
 - Create `src/shared/ui/pond-tokens.css` (§7 + base/caustics/grid/reduced-motion).
 - Import it from `src/main.tsx`; remove the old `index.css` light tokens and
   delete `src/App.css`.

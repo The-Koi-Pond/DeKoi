@@ -70,10 +70,8 @@ export function PondEye() {
         </div>
       </div>
 
-      <div className="core-mark">
-        <svg viewBox="0 0 64 64">
-          <use href="#koi-mark" style={{ color: 'var(--koi)' }} />
-        </svg>
+      <div className="core-mark" aria-hidden="true">
+        <img src="/logo.png" alt="" draggable="false" />
       </div>
     </div>
   )

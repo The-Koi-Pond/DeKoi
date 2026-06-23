@@ -114,8 +114,10 @@
   place-items: center;
 }
 
-.core-mark svg {
-  width: 64px;
-  height: 64px;
+.core-mark img {
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
   filter: drop-shadow(0 4px 14px rgba(244, 122, 53, 0.35));
+  user-select: none;
 }

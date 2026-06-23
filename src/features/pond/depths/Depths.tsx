@@ -14,7 +14,7 @@ export function Depths() {
         <div className="dic" aria-hidden="true">◉</div>
         <div>
           <h4>Sound the depths</h4>
-          <p>Search De-Koi by what you want to do, then dive to the surface that owns it.</p>
+          <p>Search DeKoi by what you want to do, then dive to the surface that owns it.</p>
         </div>
       </div>
       <div className="depths-search">

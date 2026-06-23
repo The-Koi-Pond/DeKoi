@@ -8,7 +8,7 @@ export function Waterline() {
       <div className="brand">
         <img className="mark" src="/koi-mark.svg" alt="" />
       </div>
-      <div className="wordmark">De-Koi</div>
+      <div className="wordmark">DeKoi</div>
       <div className="ripple-search">
         <span className="glyph" aria-hidden="true">
           ⌕

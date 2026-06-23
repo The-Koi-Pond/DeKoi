@@ -79,7 +79,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </div>
           </div>
           <p>
-            Tend the water De-Koi swims in. Changes settle instantly across
+            Tend the water DeKoi swims in. Changes settle instantly across
             every surface.
           </p>
         </div>
