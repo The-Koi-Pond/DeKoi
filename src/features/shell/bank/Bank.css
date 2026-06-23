@@ -1,0 +1,163 @@
+.bank {
+  grid-area: bank;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 12px;
+  border-right: 1px solid var(--reed-soft);
+  background: linear-gradient(180deg, rgba(13, 25, 31, 0.6), rgba(9, 19, 23, 0.6));
+  gap: 8px;
+}
+
+.bank-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 9.5px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--mist-dim);
+  margin-bottom: 6px;
+}
+
+.dive {
+  --c: var(--koi);
+  --c2: var(--koi-hot);
+  width: 54px;
+  height: 54px;
+  border-radius: 50% 50% 50% 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  background: var(--shallow);
+  border: 1px solid var(--reed-soft);
+  color: var(--mist);
+  transition: 0.22s cubic-bezier(0.3, 0.8, 0.4, 1);
+}
+
+.dive svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dive .tag {
+  position: absolute;
+  left: 64px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: var(--raise);
+  border: 1px solid var(--reed);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.18s;
+  z-index: 40;
+  box-shadow: 0 8px 24px -10px #000;
+}
+
+.dive .tag b {
+  display: block;
+  color: var(--foam);
+  font-weight: 600;
+}
+
+.dive .tag i {
+  font-style: normal;
+  color: var(--mist);
+  font-size: 10px;
+}
+
+.dive:hover {
+  transform: translateX(2px);
+  color: var(--c2);
+  border-color: var(--c);
+  box-shadow: 0 0 26px -8px var(--c);
+}
+
+.dive:hover .tag {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.dive.on {
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 28%, var(--shallow)), var(--shallow));
+  border-color: var(--c);
+  color: var(--c2);
+}
+
+.dive.on::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 26px;
+  border-radius: 4px;
+  background: var(--c);
+  box-shadow: 0 0 12px var(--c);
+}
+
+.dive.bubbles { --c: var(--koi); --c2: var(--koi-hot); }
+.dive.vn { --c: var(--jade); --c2: var(--jade-hot); }
+.dive.reserved { --c: var(--amber); --c2: var(--amber-hot); }
+
+.bank-spacer {
+  flex: 1;
+}
+
+.cast-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, var(--koi-hot), var(--koi-deep));
+  border: none;
+  cursor: pointer;
+  color: #0b1216;
+  font-size: 22px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 22px -8px rgba(244, 122, 53, 0.7);
+  transition: 0.2s;
+}
+
+.cast-fab:hover {
+  transform: scale(1.06) rotate(8deg);
+  box-shadow: 0 10px 30px -8px rgba(244, 122, 53, 0.9);
+}
+
+.cast-fab:active {
+  transform: scale(0.94);
+}
+
+.me {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #2a4a52, #16323a);
+  border: 1.5px solid var(--jade);
+  cursor: pointer;
+  position: relative;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: var(--belly);
+  font-family: var(--display);
+  font-weight: 600;
+}
+
+.me::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #52d273;
+  border: 2px solid var(--water);
+}

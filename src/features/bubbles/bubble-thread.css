@@ -1,0 +1,233 @@
+/* Pond-themed Bubble thread — replaces the old light-theme message surface */
+
+.bubble-thread {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 520px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--reed-soft);
+  background:
+    linear-gradient(90deg, rgba(39, 179, 170, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, var(--shallow), var(--abyss));
+  background-size: 34px 34px, auto;
+  overflow: hidden;
+}
+
+.bubble-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border-bottom: 1px solid var(--reed-soft);
+  background: rgba(9, 19, 23, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.bubble-back {
+  background: none;
+  border: none;
+  color: var(--jade);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--ui);
+  padding: 0;
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bubble-back:hover {
+  color: var(--jade-hot);
+}
+
+.bubble-header h2 {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--foam);
+}
+
+.bubble-header-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.storage-chip {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(39, 179, 170, 0.3);
+  border-radius: 999px;
+  color: var(--jade-hot);
+  background: rgba(39, 179, 170, 0.08);
+  font-size: 10.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.thread-meta {
+  font-size: 12px;
+  color: var(--mist);
+  margin-top: 4px;
+}
+
+.participant-stack {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: max-content;
+}
+
+.participant-stack span + span {
+  margin-right: -8px;
+}
+
+.participant-stack span {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--jade);
+  border-radius: 50%;
+  color: #0c1216;
+  background: linear-gradient(140deg, var(--jade-hot), var(--jade));
+  font-weight: 650;
+  font-size: 11px;
+}
+
+.message-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 524px;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.bubble-message {
+  width: min(72%, 620px);
+  padding: 11px 13px;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  background: var(--shallow);
+}
+
+.bubble-message-own {
+  align-self: flex-end;
+  border-color: rgba(244, 122, 53, 0.35);
+  background: rgba(244, 122, 53, 0.06);
+}
+
+.message-author {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: var(--jade-hot);
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.bubble-message-own .message-author {
+  color: var(--koi-hot);
+}
+
+.message-author span {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 9px;
+}
+
+.bubble-message p {
+  color: var(--foam);
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.bubble-composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 14px;
+  border-top: 1px solid var(--reed-soft);
+  background: rgba(9, 19, 23, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.bubble-composer textarea {
+  flex: 1;
+  min-height: 48px;
+  max-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  padding: 12px;
+  color: var(--foam);
+  background: var(--abyss);
+  font-family: var(--ui);
+  font-size: 13px;
+  outline: none;
+}
+
+.bubble-composer textarea::placeholder {
+  color: var(--mist-dim);
+}
+
+.bubble-composer textarea:focus {
+  border-color: var(--jade);
+}
+
+.composer-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.composer-actions button {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 550;
+  border: 1px solid transparent;
+  background: linear-gradient(140deg, var(--koi-hot), var(--koi-deep));
+  color: #0c1216;
+  transition: 0.2s;
+}
+
+.composer-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: var(--reed);
+  color: var(--mist-dim);
+}
+
+.composer-actions .reset-btn {
+  width: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--shallow);
+  border: 1px solid var(--reed-soft);
+  color: var(--mist);
+  font-size: 18px;
+}
+
+.composer-actions .reset-btn:hover {
+  color: var(--foam);
+  border-color: var(--reed);
+}

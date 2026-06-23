@@ -1,0 +1,121 @@
+.pond-eye {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 6px;
+  position: relative;
+}
+
+.pond-eye::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 40%, rgba(39, 179, 170, 0.1), rgba(14, 27, 33, 0.6) 70%);
+  box-shadow: inset 0 0 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+.pond-eye .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(39, 179, 170, 0.18);
+}
+
+.pond-eye .ring.r2 {
+  inset: 18px;
+  border-color: rgba(244, 122, 53, 0.12);
+}
+
+.pond-eye .ring.r3 {
+  inset: 38px;
+  border-color: rgba(39, 179, 170, 0.1);
+}
+
+.ripple-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(39, 179, 170, 0.4);
+  animation: ping 4.5s ease-out infinite;
+  opacity: 0;
+}
+
+@keyframes ping {
+  0% { transform: scale(0.45); opacity: 0.7; }
+  80% { opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.orbit {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+  animation: orbit var(--T, 24s) linear infinite;
+}
+
+.orbit.ccw {
+  animation-direction: reverse;
+}
+
+@keyframes orbit {
+  to { transform: rotate(360deg); }
+}
+
+.koi-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.koi-wrap .koi {
+  transform: translate(-50%, -50%) translateY(calc(-1 * var(--R, 70px)));
+  position: relative;
+}
+
+.orbit.ccw .koi-wrap .koi {
+  transform: translate(-50%, -50%) translateY(calc(-1 * var(--R, 70px))) scaleX(-1);
+}
+
+.koi-wrap svg {
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.koi-wrap .wake {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 14px;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(233, 241, 242, 0.5), transparent);
+  filter: blur(2px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+
+.koi-swimmer .tail {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+  animation: wiggle 0.7s ease-in-out infinite;
+}
+
+.core-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.core-mark svg {
+  width: 64px;
+  height: 64px;
+  filter: drop-shadow(0 4px 14px rgba(244, 122, 53, 0.35));
+}
