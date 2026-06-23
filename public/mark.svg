@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="DeKoi mark">
+  <rect width="96" height="96" rx="24" fill="#071113" />
+  <path d="M18 54c11-24 38-31 61-10-13 23-41 30-61 10Z" fill="#f27a45" />
+  <path d="M30 53c10-12 27-16 42-8-11 13-28 17-42 8Z" fill="#f5eadb" />
+  <path d="M21 54c-8-8-8-19 0-28 8 9 8 20 0 28Z" fill="#5fc7b6" />
+  <path d="M70 45c5-2 10-1 15 2-5 3-10 4-15 2Z" fill="#d9ae53" />
+  <circle cx="70" cy="44" r="3" fill="#071113" />
+  <path d="M18 68c17 6 38 5 56-4" fill="none" stroke="#315a58" stroke-width="4" stroke-linecap="round" />
+</svg>
