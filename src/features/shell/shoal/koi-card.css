@@ -121,3 +121,12 @@
   background: rgba(227, 165, 52, 0.14);
   color: var(--amber-hot);
 }
+
+/* Locked cards represent not-yet-navigable surfaces: dim and non-interactive. */
+.koi-card.locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.koi-card.locked:hover {
+  background: transparent;
+}

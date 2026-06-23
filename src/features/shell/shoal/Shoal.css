@@ -164,3 +164,13 @@
   color: var(--mist-dim);
   padding: 10px 8px 6px;
 }
+
+.pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.pill:disabled:hover {
+  color: var(--mist);
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+}

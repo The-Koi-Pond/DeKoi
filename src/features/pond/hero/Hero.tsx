@@ -17,11 +17,20 @@ export function Hero() {
       <div className="hero-cta">
         <button
           className="cta primary"
-          onClick={() => nav.setView({ kind: "bubble", threadId: "new" })}
+          onClick={() =>
+            nav.setView({ kind: "bubble", threadId: "first-pond" })
+          }
         >
           + Cast a line
         </button>
-        <button className="cta ghost">↻ Resume a current</button>
+        <button
+          className="cta ghost"
+          onClick={() =>
+            nav.setView({ kind: "bubble", threadId: "first-pond" })
+          }
+        >
+          ↻ Resume a current
+        </button>
       </div>
     </div>
   );

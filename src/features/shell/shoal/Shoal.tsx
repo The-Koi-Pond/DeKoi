@@ -1,9 +1,12 @@
 import { KoiCard } from "./KoiCard";
+import { useNav } from "../../../shared/ui/nav-context";
 import "./Shoal.css";
 
 export function Shoal() {
+  const nav = useNav();
+
   return (
-    <aside className="shoal">
+    <aside className="shoal" aria-label="The Shoal — saved threads">
       <div className="shoal-head">
         <div className="shoal-title">
           <h2>
@@ -21,15 +24,34 @@ export function Shoal() {
           <span className="count">5 swimming</span>
         </div>
         <div className="shoal-search">
-          <span className="glyph" aria-hidden="true">
+          <label
+            className="glyph"
+            aria-hidden="true"
+            htmlFor="shoal-search-input"
+          >
             ⌕
-          </span>
-          <input placeholder="Find a koi by name or marking…" />
+          </label>
+          <input
+            id="shoal-search-input"
+            type="search"
+            placeholder="Find a koi by name or marking…"
+          />
         </div>
         <div className="shoal-actions">
-          <button className="pill koi">＋ Cast a line</button>
-          <button className="pill">⬡ Net</button>
-          <button className="pill">◇ Catch</button>
+          <button
+            className="pill koi"
+            onClick={() =>
+              nav.setView({ kind: "bubble", threadId: "first-pond" })
+            }
+          >
+            ＋ Cast a line
+          </button>
+          <button className="pill" disabled title="Not stocked yet">
+            ⬡ Net
+          </button>
+          <button className="pill" disabled title="Not stocked yet">
+            ◇ Catch
+          </button>
         </div>
       </div>
       <div className="shoal-meta">

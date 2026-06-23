@@ -161,3 +161,20 @@
   background: #52d273;
   border: 2px solid var(--water);
 }
+
+/* Locked dives: not activatable — dim and drop the hover lift, but keep the
+   tooltip so the "surfacing soon" / "deep water" note still shows on hover. */
+.dive.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.dive.locked:hover {
+  transform: none;
+  color: var(--mist);
+  border-color: var(--reed-soft);
+  box-shadow: none;
+}
+.dive.locked:hover .tag {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}

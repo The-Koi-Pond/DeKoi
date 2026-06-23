@@ -1,5 +1,5 @@
 import { useNav } from "../../../shared/ui/nav-context";
-import type { SurfaceId } from "../../../engine/surfaces";
+import { SURFACES, type SurfaceId } from "../../../engine/surfaces";
 import "./koi-card.css";
 
 interface KoiCardProps {
@@ -11,6 +11,14 @@ interface KoiCardProps {
   online?: boolean;
 }
 
+// Avatar gradient per surface. Locked surfaces keep their color but render as
+// non-navigable status rows.
+const AVA_VARIANT: Record<SurfaceId, string> = {
+  bubbles: "k1",
+  vn: "k2",
+  reserved: "k3",
+};
+
 export function KoiCard({
   initials,
   name,
@@ -20,25 +28,33 @@ export function KoiCard({
   online,
 }: KoiCardProps) {
   const nav = useNav();
-  const avatarClass = `ava ${mode === "bubbles" ? "k1" : mode === "vn" ? "k2" : "k3"}`;
+  const meta = SURFACES[mode];
+  const locked = meta.locked;
 
   function handleClick() {
+    if (locked) return;
     nav.setSelectedSurface(mode);
-    if (mode === "bubbles")
-      nav.setView({ kind: "bubble", threadId: "existing" });
+    nav.setView({ kind: "bubble", threadId: "first-pond" });
   }
 
   return (
     <div
-      className={`koi-card${active ? " on" : ""}`}
-      onClick={handleClick}
+      className={`koi-card${active ? " on" : ""}${locked ? " locked" : ""}`}
       role="button"
-      tabIndex={0}
+      tabIndex={locked ? -1 : 0}
+      aria-disabled={locked || undefined}
+      aria-label={`${name} — ${meta.label}${locked ? ` (${meta.lockedNote})` : ""}`}
+      title={locked ? (meta.lockedNote ?? undefined) : undefined}
+      onClick={handleClick}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") handleClick();
+        if (locked) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
       }}
     >
-      <div className={avatarClass}>
+      <div className={`ava ${AVA_VARIANT[mode]}`}>
         {initials}
         <span className={`dot${online !== false ? " live" : " idle"}`} />
       </div>
@@ -46,9 +62,7 @@ export function KoiCard({
         <div className="kc-name">{name}</div>
         <div className="kc-sub">{sub}</div>
       </div>
-      <span className={`kc-mode ${mode}`}>
-        {mode === "bubbles" ? "Bubbles" : mode === "vn" ? "VN" : "Reserved"}
-      </span>
+      <span className={`kc-mode ${mode}`}>{meta.label}</span>
     </div>
   );
 }
