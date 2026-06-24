@@ -4,9 +4,6 @@ import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
-import type { CharacterRecord } from "../../../engine/character";
-import type { LorebookEntryRecord } from "../../../engine/lorebook";
-import type { PersonaRecord } from "../../../engine/persona";
 import type {
   ProviderConnectionKind,
   ProviderConnectionRecord,
@@ -42,17 +39,14 @@ interface CareDrawerProps {
   nav: NavContextType;
 }
 
-// Tab labels + their short descriptor. Water, Catalog, and Deep Water are live;
-// the remaining tabs keep lightweight placeholders until their surfaces exist.
+// Six settings-only tabs: all render real content or phase-appropriate placeholders.
 const CARE_TABS = [
-  { label: "Water", hint: "general" },
-  { label: "Light", hint: "look" },
-  { label: "Season", hint: "themes" },
-  { label: "Habitat", hint: "modules" },
-  { label: "Catalog", hint: "records" },
-  { label: "Stocking", hint: "import" },
-  { label: "Vitals", hint: "health" },
-  { label: "Deep water", hint: "advanced" },
+  { label: "General", hint: "basics" },
+  { label: "Appearance", hint: "look" },
+  { label: "Behavior", hint: "interaction" },
+  { label: "Generation", hint: "defaults" },
+  { label: "Connections", hint: "providers" },
+  { label: "Data & Backup", hint: "storage" },
 ] as const;
 
 // DeKoi-native surface ids for the Send-on-Enter segmented control.
@@ -62,27 +56,6 @@ const SEND_ON_ENTER_SURFACES = [
   { value: RESERVED, label: "Reserved" },
 ] as const;
 
-interface CharacterDraft {
-  displayName: string;
-  shortName: string;
-  summary: string;
-  description: string;
-  avatarUrl: string;
-}
-
-interface PersonaDraft {
-  displayName: string;
-  summary: string;
-  description: string;
-  avatarUrl: string;
-}
-
-interface LoreEntryDraft {
-  title: string;
-  body: string;
-  enabled: boolean;
-}
-
 interface ProviderConnectionDraft {
   kind: ProviderConnectionKind;
   label: string;
@@ -90,60 +63,12 @@ interface ProviderConnectionDraft {
   modelLabel: string;
 }
 
-const EMPTY_CHARACTER_DRAFT: CharacterDraft = {
-  displayName: "",
-  shortName: "",
-  summary: "",
-  description: "",
-  avatarUrl: "",
-};
-
-const EMPTY_PERSONA_DRAFT: PersonaDraft = {
-  displayName: "",
-  summary: "",
-  description: "",
-  avatarUrl: "",
-};
-
-const EMPTY_LORE_ENTRY_DRAFT: LoreEntryDraft = {
-  title: "",
-  body: "",
-  enabled: true,
-};
-
 const EMPTY_CONNECTION_DRAFT: ProviderConnectionDraft = {
   kind: "mock",
   label: "",
   summary: "",
   modelLabel: "",
 };
-
-function characterDraftFrom(record: CharacterRecord): CharacterDraft {
-  return {
-    displayName: record.displayName,
-    shortName: record.shortName ?? "",
-    summary: record.summary,
-    description: record.description,
-    avatarUrl: record.avatarUrl ?? "",
-  };
-}
-
-function personaDraftFrom(record: PersonaRecord): PersonaDraft {
-  return {
-    displayName: record.displayName,
-    summary: record.summary,
-    description: record.description,
-    avatarUrl: record.avatarUrl ?? "",
-  };
-}
-
-function loreEntryDraftFrom(record: LorebookEntryRecord): LoreEntryDraft {
-  return {
-    title: record.title,
-    body: record.body,
-    enabled: record.enabled,
-  };
-}
 
 function connectionDraftFrom(
   record: ProviderConnectionRecord,
@@ -158,15 +83,15 @@ function connectionDraftFrom(
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
-  const activeLorebook = nav.lorebooks[0] ?? null;
-  const messengerConnectionOptions = nav.providerConnections.map((connection) => ({
-    value: connection.id,
-    label: connection.label,
-  }));
+  const messengerConnectionOptions = nav.providerConnections.map(
+    (connection) => ({
+      value: connection.id,
+      label: connection.label,
+    }),
+  );
 
   // Local-only visual/demo settings. Product settings live in nav.appSettings.
   const [streamReplies, setStreamReplies] = useState(true);
-  const [spotifyPlayer, setSpotifyPlayer] = useState(false);
   const [rippleSpeed, setRippleSpeed] = useState(50);
   const [surfaceAllText, setSurfaceAllText] = useState(false);
   const [wheelNavigate, setWheelNavigate] = useState(false);
@@ -179,21 +104,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopHostBusy, setDesktopHostBusy] = useState(false);
   const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
-  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
-    null,
-  );
-  const [characterDraft, setCharacterDraft] = useState<CharacterDraft>(
-    EMPTY_CHARACTER_DRAFT,
-  );
-  const [editingPersonaId, setEditingPersonaId] = useState<string | null>(null);
-  const [personaDraft, setPersonaDraft] =
-    useState<PersonaDraft>(EMPTY_PERSONA_DRAFT);
-  const [editingLoreEntryId, setEditingLoreEntryId] = useState<string | null>(
-    null,
-  );
-  const [loreEntryDraft, setLoreEntryDraft] = useState<LoreEntryDraft>(
-    EMPTY_LORE_ENTRY_DRAFT,
-  );
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(
     null,
   );
@@ -241,7 +151,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   function handleUseLocalStorage() {
     setRuntimeUrl("");
     nav.setRemoteRuntimeUrl("");
-    setRuntimeHealth("Using desktop host storage when available; otherwise this browser session is temporary.");
+    setRuntimeHealth(
+      "Using desktop host storage when available; otherwise this browser session is temporary.",
+    );
   }
 
   function handleUseDesktopRuntime() {
@@ -330,114 +242,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     } finally {
       setDesktopStorageBusy(false);
     }
-  }
-
-  function resetCharacterDraft() {
-    setEditingCharacterId(null);
-    setCharacterDraft(EMPTY_CHARACTER_DRAFT);
-  }
-
-  function handleCharacterSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (editingCharacterId) {
-      nav.updateCharacter(editingCharacterId, characterDraft);
-      return;
-    }
-
-    const character = nav.createCharacter(characterDraft);
-    setEditingCharacterId(character.id);
-    setCharacterDraft(characterDraftFrom(character));
-  }
-
-  function editCharacter(character: CharacterRecord) {
-    setEditingCharacterId(character.id);
-    setCharacterDraft(characterDraftFrom(character));
-  }
-
-  function copyCharacter(characterId: string) {
-    const character = nav.duplicateCharacter(characterId);
-    if (!character) return;
-    editCharacter(character);
-  }
-
-  function removeCharacter(characterId: string) {
-    nav.deleteCharacter(characterId);
-    if (editingCharacterId === characterId) resetCharacterDraft();
-  }
-
-  function resetPersonaDraft() {
-    setEditingPersonaId(null);
-    setPersonaDraft(EMPTY_PERSONA_DRAFT);
-  }
-
-  function handlePersonaSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (editingPersonaId) {
-      nav.updatePersona(editingPersonaId, personaDraft);
-      return;
-    }
-
-    const persona = nav.createPersona(personaDraft);
-    setEditingPersonaId(persona.id);
-    setPersonaDraft(personaDraftFrom(persona));
-  }
-
-  function editPersona(persona: PersonaRecord) {
-    setEditingPersonaId(persona.id);
-    setPersonaDraft(personaDraftFrom(persona));
-  }
-
-  function copyPersona(personaId: string) {
-    const persona = nav.duplicatePersona(personaId);
-    if (!persona) return;
-    editPersona(persona);
-  }
-
-  function removePersona(personaId: string) {
-    nav.deletePersona(personaId);
-    if (editingPersonaId === personaId) resetPersonaDraft();
-  }
-
-  function resetLoreEntryDraft() {
-    setEditingLoreEntryId(null);
-    setLoreEntryDraft(EMPTY_LORE_ENTRY_DRAFT);
-  }
-
-  function handleLoreEntrySubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!activeLorebook) return;
-
-    if (editingLoreEntryId) {
-      nav.updateLorebookEntry(
-        activeLorebook.id,
-        editingLoreEntryId,
-        loreEntryDraft,
-      );
-      return;
-    }
-
-    const entry = nav.createLorebookEntry(activeLorebook.id, loreEntryDraft);
-    if (!entry) return;
-    setEditingLoreEntryId(entry.id);
-    setLoreEntryDraft(loreEntryDraftFrom(entry));
-  }
-
-  function editLoreEntry(entry: LorebookEntryRecord) {
-    setEditingLoreEntryId(entry.id);
-    setLoreEntryDraft(loreEntryDraftFrom(entry));
-  }
-
-  function copyLoreEntry(entryId: string) {
-    if (!activeLorebook) return;
-    const entry = nav.duplicateLorebookEntry(activeLorebook.id, entryId);
-    if (!entry) return;
-    editLoreEntry(entry);
-  }
-
-  function removeLoreEntry(entryId: string) {
-    if (!activeLorebook) return;
-    nav.deleteLorebookEntry(activeLorebook.id, entryId);
-    if (editingLoreEntryId === entryId) resetLoreEntryDraft();
   }
 
   function resetConnectionDraft() {
@@ -912,8 +716,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               onChange={handleLegacyFileChange}
             />
             <div className="help">
-              Supports previous thread export files. Converted records are
-              added as native Messenger threads.
+              Supports previous thread export files. Converted records are added
+              as native Messenger threads.
             </div>
           </div>
 
@@ -934,460 +738,180 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     );
   }
 
-  function renderCatalogManager() {
+  function renderConnectionManager() {
     return (
-      <div className="catalog-panel">
-        <section className="catalog-section" aria-labelledby="catalog-companions">
-          <div className="catalog-section-head">
-            <div>
-              <h3 id="catalog-companions">Companions</h3>
-              <span>{nav.characters.length} stocked</span>
-            </div>
-            <button type="button" onClick={resetCharacterDraft}>
-              New
-            </button>
+      <section
+        className="catalog-section"
+        aria-labelledby="catalog-connections"
+      >
+        <div className="catalog-section-head">
+          <div>
+            <h3 id="catalog-connections">Connections</h3>
+            <span>{nav.providerConnections.length} stocked</span>
+          </div>
+          <button type="button" onClick={resetConnectionDraft}>
+            New
+          </button>
+        </div>
+
+        <div className="catalog-list">
+          {nav.providerConnections.map((connection) => (
+            <article className="catalog-row" key={connection.id}>
+              <span>
+                <b>{connection.label}</b>
+                <small>
+                  {connection.summary || connection.kind}
+                  {connectionSecrets[connection.id]?.hasSecret
+                    ? " · key saved"
+                    : ""}
+                </small>
+              </span>
+              <span className="catalog-actions">
+                <button
+                  type="button"
+                  onClick={() => editConnection(connection)}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyConnection(connection.id)}
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  disabled={nav.providerConnections.length <= 1}
+                  onClick={() => removeConnection(connection.id)}
+                >
+                  Delete
+                </button>
+              </span>
+            </article>
+          ))}
+        </div>
+
+        <form className="catalog-form" onSubmit={handleConnectionSubmit}>
+          <div className="field">
+            <label htmlFor="connection-kind">Kind</label>
+            <select
+              className="pondsel"
+              id="connection-kind"
+              value={connectionDraft.kind}
+              onChange={(event) =>
+                setConnectionDraft((draft) => ({
+                  ...draft,
+                  kind: event.target.value as ProviderConnectionKind,
+                }))
+              }
+            >
+              <option value="mock">Mock</option>
+              <option value="remote-runtime">Remote runtime</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="connection-label">Label</label>
+            <input
+              className="pondinput"
+              id="connection-label"
+              value={connectionDraft.label}
+              onChange={(event) =>
+                setConnectionDraft((draft) => ({
+                  ...draft,
+                  label: event.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="connection-summary">Summary</label>
+            <input
+              className="pondinput"
+              id="connection-summary"
+              value={connectionDraft.summary}
+              onChange={(event) =>
+                setConnectionDraft((draft) => ({
+                  ...draft,
+                  summary: event.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="connection-model">Model label</label>
+            <input
+              className="pondinput"
+              id="connection-model"
+              value={connectionDraft.modelLabel}
+              onChange={(event) =>
+                setConnectionDraft((draft) => ({
+                  ...draft,
+                  modelLabel: event.target.value,
+                }))
+              }
+            />
           </div>
 
-          <div className="catalog-list">
-            {nav.characters.map((character) => (
-              <article className="catalog-row" key={character.id}>
-                <span>
-                  <b>{character.displayName}</b>
-                  <small>{character.summary || "No summary."}</small>
-                </span>
-                <span className="catalog-actions">
-                  <button type="button" onClick={() => editCharacter(character)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => copyCharacter(character.id)}>
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeCharacter(character.id)}
-                  >
-                    Delete
-                  </button>
-                </span>
-              </article>
-            ))}
-            {nav.characters.length === 0 && (
-              <p className="catalog-empty">No companions stocked.</p>
-            )}
+          <div className="field">
+            <label htmlFor="connection-secret">Provider key</label>
+            <input
+              className="pondinput"
+              id="connection-secret"
+              type="password"
+              autoComplete="off"
+              placeholder={
+                editingConnectionId
+                  ? "Stored only in the desktop host"
+                  : "Save the connection first"
+              }
+              value={connectionSecretInput}
+              onChange={(event) => setConnectionSecretInput(event.target.value)}
+              disabled={!editingConnectionId || connectionSecretBusy}
+            />
+            <div className="help">
+              Keys are not saved in DeKoi bundles or browser storage.
+            </div>
           </div>
 
-          <form className="catalog-form" onSubmit={handleCharacterSubmit}>
-            <div className="field">
-              <label htmlFor="character-display-name">Display name</label>
-              <input
-                className="pondinput"
-                id="character-display-name"
-                value={characterDraft.displayName}
-                onChange={(event) =>
-                  setCharacterDraft((draft) => ({
-                    ...draft,
-                    displayName: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="character-short-name">Short name</label>
-              <input
-                className="pondinput"
-                id="character-short-name"
-                value={characterDraft.shortName}
-                onChange={(event) =>
-                  setCharacterDraft((draft) => ({
-                    ...draft,
-                    shortName: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="character-summary">Summary</label>
-              <input
-                className="pondinput"
-                id="character-summary"
-                value={characterDraft.summary}
-                onChange={(event) =>
-                  setCharacterDraft((draft) => ({
-                    ...draft,
-                    summary: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="character-description">Description</label>
-              <textarea
-                className="pondarea"
-                id="character-description"
-                value={characterDraft.description}
-                onChange={(event) =>
-                  setCharacterDraft((draft) => ({
-                    ...draft,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="runtime-actions">
-              <button type="submit">
-                {editingCharacterId ? "Save companion" : "Create companion"}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="catalog-section" aria-labelledby="catalog-personas">
-          <div className="catalog-section-head">
-            <div>
-              <h3 id="catalog-personas">Personas</h3>
-              <span>{nav.personas.length} stocked</span>
-            </div>
-            <button type="button" onClick={resetPersonaDraft}>
-              New
-            </button>
-          </div>
-
-          <div className="catalog-list">
-            {nav.personas.map((persona) => (
-              <article className="catalog-row" key={persona.id}>
-                <span>
-                  <b>{persona.displayName}</b>
-                  <small>{persona.summary || "No summary."}</small>
-                </span>
-                <span className="catalog-actions">
-                  <button type="button" onClick={() => editPersona(persona)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => copyPersona(persona.id)}>
-                    Copy
-                  </button>
-                  <button type="button" onClick={() => removePersona(persona.id)}>
-                    Delete
-                  </button>
-                </span>
-              </article>
-            ))}
-            {nav.personas.length === 0 && (
-              <p className="catalog-empty">No personas stocked.</p>
-            )}
-          </div>
-
-          <form className="catalog-form" onSubmit={handlePersonaSubmit}>
-            <div className="field">
-              <label htmlFor="persona-display-name">Display name</label>
-              <input
-                className="pondinput"
-                id="persona-display-name"
-                value={personaDraft.displayName}
-                onChange={(event) =>
-                  setPersonaDraft((draft) => ({
-                    ...draft,
-                    displayName: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="persona-summary">Summary</label>
-              <input
-                className="pondinput"
-                id="persona-summary"
-                value={personaDraft.summary}
-                onChange={(event) =>
-                  setPersonaDraft((draft) => ({
-                    ...draft,
-                    summary: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="persona-description">Description</label>
-              <textarea
-                className="pondarea"
-                id="persona-description"
-                value={personaDraft.description}
-                onChange={(event) =>
-                  setPersonaDraft((draft) => ({
-                    ...draft,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="runtime-actions">
-              <button type="submit">
-                {editingPersonaId ? "Save persona" : "Create persona"}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="catalog-section" aria-labelledby="catalog-lore">
-          <div className="catalog-section-head">
-            <div>
-              <h3 id="catalog-lore">
-                {activeLorebook?.title ?? "Lorebook entries"}
-              </h3>
-              <span>{activeLorebook?.entries.length ?? 0} entries</span>
-            </div>
+          <div className="runtime-actions">
             <button
               type="button"
-              onClick={resetLoreEntryDraft}
-              disabled={!activeLorebook}
+              disabled={!editingConnectionId || connectionSecretBusy}
+              onClick={() => handleConnectionSecretCheck()}
             >
-              New
+              Check key
+            </button>
+            <button
+              type="button"
+              disabled={
+                !editingConnectionId ||
+                connectionSecretBusy ||
+                !connectionSecretInput.trim()
+              }
+              onClick={handleConnectionSecretSave}
+            >
+              Save key
+            </button>
+            <button
+              type="button"
+              disabled={!editingConnectionId || connectionSecretBusy}
+              onClick={handleConnectionSecretClear}
+            >
+              Clear key
             </button>
           </div>
 
-          <div className="catalog-list">
-            {activeLorebook?.entries.map((entry) => (
-              <article className="catalog-row" key={entry.id}>
-                <span>
-                  <b>{entry.title}</b>
-                  <small>{entry.enabled ? entry.body : "Disabled"}</small>
-                </span>
-                <span className="catalog-actions">
-                  <button type="button" onClick={() => editLoreEntry(entry)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => copyLoreEntry(entry.id)}>
-                    Copy
-                  </button>
-                  <button type="button" onClick={() => removeLoreEntry(entry.id)}>
-                    Delete
-                  </button>
-                </span>
-              </article>
-            ))}
-            {(!activeLorebook || activeLorebook.entries.length === 0) && (
-              <p className="catalog-empty">No lore entries stocked.</p>
-            )}
-          </div>
+          {connectionSecretStatus && (
+            <p className="bundle-status">{connectionSecretStatus}</p>
+          )}
 
-          <form className="catalog-form" onSubmit={handleLoreEntrySubmit}>
-            <div className="field">
-              <label htmlFor="lore-entry-title">Title</label>
-              <input
-                className="pondinput"
-                id="lore-entry-title"
-                disabled={!activeLorebook}
-                value={loreEntryDraft.title}
-                onChange={(event) =>
-                  setLoreEntryDraft((draft) => ({
-                    ...draft,
-                    title: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="lore-entry-body">Body</label>
-              <textarea
-                className="pondarea"
-                id="lore-entry-body"
-                disabled={!activeLorebook}
-                value={loreEntryDraft.body}
-                onChange={(event) =>
-                  setLoreEntryDraft((draft) => ({
-                    ...draft,
-                    body: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <label className="catalog-check">
-              <input
-                type="checkbox"
-                checked={loreEntryDraft.enabled}
-                onChange={(event) =>
-                  setLoreEntryDraft((draft) => ({
-                    ...draft,
-                    enabled: event.target.checked,
-                  }))
-                }
-              />
-              Enabled
-            </label>
-            <div className="runtime-actions">
-              <button type="submit" disabled={!activeLorebook}>
-                {editingLoreEntryId ? "Save entry" : "Create entry"}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="catalog-section" aria-labelledby="catalog-connections">
-          <div className="catalog-section-head">
-            <div>
-              <h3 id="catalog-connections">Connections</h3>
-              <span>{nav.providerConnections.length} stocked</span>
-            </div>
-            <button type="button" onClick={resetConnectionDraft}>
-              New
+          <div className="runtime-actions">
+            <button type="submit">
+              {editingConnectionId ? "Save connection" : "Create connection"}
             </button>
           </div>
-
-          <div className="catalog-list">
-            {nav.providerConnections.map((connection) => (
-              <article className="catalog-row" key={connection.id}>
-                <span>
-                  <b>{connection.label}</b>
-                  <small>
-                    {connection.summary || connection.kind}
-                    {connectionSecrets[connection.id]?.hasSecret
-                      ? " · key saved"
-                      : ""}
-                  </small>
-                </span>
-                <span className="catalog-actions">
-                  <button type="button" onClick={() => editConnection(connection)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => copyConnection(connection.id)}>
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    disabled={nav.providerConnections.length <= 1}
-                    onClick={() => removeConnection(connection.id)}
-                  >
-                    Delete
-                  </button>
-                </span>
-              </article>
-            ))}
-          </div>
-
-          <form className="catalog-form" onSubmit={handleConnectionSubmit}>
-            <div className="field">
-              <label htmlFor="connection-kind">Kind</label>
-              <select
-                className="pondsel"
-                id="connection-kind"
-                value={connectionDraft.kind}
-                onChange={(event) =>
-                  setConnectionDraft((draft) => ({
-                    ...draft,
-                    kind: event.target.value as ProviderConnectionKind,
-                  }))
-                }
-              >
-                <option value="mock">Mock</option>
-                <option value="remote-runtime">Remote runtime</option>
-              </select>
-            </div>
-            <div className="field">
-              <label htmlFor="connection-label">Label</label>
-              <input
-                className="pondinput"
-                id="connection-label"
-                value={connectionDraft.label}
-                onChange={(event) =>
-                  setConnectionDraft((draft) => ({
-                    ...draft,
-                    label: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="connection-summary">Summary</label>
-              <input
-                className="pondinput"
-                id="connection-summary"
-                value={connectionDraft.summary}
-                onChange={(event) =>
-                  setConnectionDraft((draft) => ({
-                    ...draft,
-                    summary: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="connection-model">Model label</label>
-              <input
-                className="pondinput"
-                id="connection-model"
-                value={connectionDraft.modelLabel}
-                onChange={(event) =>
-                  setConnectionDraft((draft) => ({
-                    ...draft,
-                    modelLabel: event.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="connection-secret">Provider key</label>
-              <input
-                className="pondinput"
-                id="connection-secret"
-                type="password"
-                autoComplete="off"
-                placeholder={
-                  editingConnectionId
-                    ? "Stored only in the desktop host"
-                    : "Save the connection first"
-                }
-                value={connectionSecretInput}
-                onChange={(event) =>
-                  setConnectionSecretInput(event.target.value)
-                }
-                disabled={!editingConnectionId || connectionSecretBusy}
-              />
-              <div className="help">
-                Keys are not saved in DeKoi bundles or browser storage.
-              </div>
-            </div>
-
-            <div className="runtime-actions">
-              <button
-                type="button"
-                disabled={!editingConnectionId || connectionSecretBusy}
-                onClick={() => handleConnectionSecretCheck()}
-              >
-                Check key
-              </button>
-              <button
-                type="button"
-                disabled={
-                  !editingConnectionId ||
-                  connectionSecretBusy ||
-                  !connectionSecretInput.trim()
-                }
-                onClick={handleConnectionSecretSave}
-              >
-                Save key
-              </button>
-              <button
-                type="button"
-                disabled={!editingConnectionId || connectionSecretBusy}
-                onClick={handleConnectionSecretClear}
-              >
-                Clear key
-              </button>
-            </div>
-
-            {connectionSecretStatus && (
-              <p className="bundle-status">{connectionSecretStatus}</p>
-            )}
-
-            <div className="runtime-actions">
-              <button type="submit">
-                {editingConnectionId ? "Save connection" : "Create connection"}
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
+        </form>
+      </section>
     );
   }
 
@@ -1424,8 +948,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </div>
           </div>
           <p>
-            Tend the water DeKoi swims in. Changes settle instantly across
-            every surface.
+            Settings for the whole pond — language, look, behavior, generation
+            defaults, providers, and your data.
           </p>
         </div>
 
@@ -1454,21 +978,34 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           {nav.careTab === 0 ? (
             <>
               <p className="care-intro">
-                Water settings shape how the whole pond behaves — language,
-                flow, and the small currents of everyday use.
+                Language and regional preferences for the whole pond.
               </p>
 
               <div className="field">
-                <label htmlFor="care-language">Language of the water</label>
+                <label htmlFor="care-language">Language</label>
                 <select className="pondsel" id="care-language">
                   <option>English</option>
                 </select>
                 <div className="help">
-                  English is the only current bundled for now. New languages
+                  English is the only bundled language for now. New languages
                   will surface here as they're stocked — without disturbing your
                   layout.
                 </div>
               </div>
+            </>
+          ) : nav.careTab === 1 ? (
+            <>
+              <p className="care-intro">
+                Change how the pond looks. Coming in the next phase.
+              </p>
+              <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 12 }}>
+                Accent, motion, density, and text size controls will appear
+                here.
+              </p>
+            </>
+          ) : nav.careTab === 2 ? (
+            <>
+              <p className="care-intro">How the pond responds to your touch.</p>
 
               <div className="toggle-row">
                 <div className="tl">
@@ -1479,17 +1016,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   checked={streamReplies}
                   onChange={setStreamReplies}
                   ariaLabel="Let replies ripple in"
-                />
-              </div>
-              <div className="toggle-row">
-                <div className="tl">
-                  <b>Spotify mini player</b>
-                  <i>a little music by the pond</i>
-                </div>
-                <Switch
-                  checked={spotifyPlayer}
-                  onChange={setSpotifyPlayer}
-                  ariaLabel="Spotify mini player"
                 />
               </div>
 
@@ -1592,67 +1118,129 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 />
               </div>
             </>
-          ) : nav.careTab === 4 ? (
-            renderCatalogManager()
-          ) : nav.careTab === 5 ? (
-            renderStockingTools()
-          ) : nav.careTab === 7 ? (
-            <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
+          ) : nav.careTab === 3 ? (
+            <>
               <p className="care-intro">
-                Deep Water controls which host stores DeKoi records and runtime calls.
+                Default generation parameters for new threads. Coming in the
+                next phase.
               </p>
+              <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 12 }}>
+                Temperature, max tokens, and top-p controls will appear here.
+              </p>
+            </>
+          ) : nav.careTab === 4 ? (
+            <>
+              {renderConnectionManager()}
+              <hr className="care-divider" />
+              <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
+                <p className="care-intro">Runtime host and storage mode.</p>
 
-              <div className="field">
-                <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
-                <input
-                  className="pondinput"
-                  id="remote-runtime-url"
-                  type="url"
-                  placeholder="http://127.0.0.1:7341 or desktop://runtime"
-                  value={runtimeUrl}
-                  onChange={(event) => setRuntimeUrl(event.target.value)}
-                />
-                <div className="help">
-                  Leave empty for desktop host storage inside Tauri. Browser-only sessions are temporary.
+                <div className="field">
+                  <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
+                  <input
+                    className="pondinput"
+                    id="remote-runtime-url"
+                    type="url"
+                    placeholder="http://127.0.0.1:7341 or desktop://runtime"
+                    value={runtimeUrl}
+                    onChange={(event) => setRuntimeUrl(event.target.value)}
+                  />
+                  <div className="help">
+                    Leave empty for desktop host storage inside Tauri.
+                    Browser-only sessions are temporary.
+                  </div>
                 </div>
-              </div>
 
-              <div className={`runtime-status ${nav.messengerStorageStatus}`}>
-                <b>
-                  {nav.messengerStorageMode === "remote"
-                    ? "Remote runtime"
-                    : nav.messengerStorageMode === "desktop"
+                <div className={`runtime-status ${nav.messengerStorageStatus}`}>
+                  <b>
+                    {nav.messengerStorageMode === "remote"
+                      ? "Remote runtime"
+                      : nav.messengerStorageMode === "desktop"
+                        ? "Desktop host"
+                        : "Storage unavailable"}
+                  </b>
+                  <span>{runtimeStatusMessage}</span>
+                </div>
+
+                <div className="runtime-status">
+                  <b>
+                    {desktopHostStatus?.hostKind === "tauri"
                       ? "Desktop host"
-                      : "Storage unavailable"}
-                </b>
-                <span>{runtimeStatusMessage}</span>
-              </div>
-
-              <div className="runtime-status">
-                <b>
-                  {desktopHostStatus?.hostKind === "tauri"
-                    ? "Desktop host"
-                    : "Browser host"}
-                </b>
-                <span>
-                  {desktopHostStatus?.message ??
-                    "Check whether native host capabilities are available."}
-                </span>
-              </div>
-
-              {desktopHostStatus && (
-                <div className="host-flags" aria-label="Desktop host readiness">
-                  <span className={desktopHostStatus.storageReady ? "on" : ""}>
-                    Storage
-                  </span>
-                  <span className={desktopHostStatus.secretsReady ? "on" : ""}>
-                    Secrets
-                  </span>
-                  <span className={desktopHostStatus.runtimeReady ? "on" : ""}>
-                    Runtime
+                      : "Browser host"}
+                  </b>
+                  <span>
+                    {desktopHostStatus?.message ??
+                      "Check whether native host capabilities are available."}
                   </span>
                 </div>
-              )}
+
+                {desktopHostStatus && (
+                  <div
+                    className="host-flags"
+                    aria-label="Desktop host readiness"
+                  >
+                    <span
+                      className={desktopHostStatus.storageReady ? "on" : ""}
+                    >
+                      Storage
+                    </span>
+                    <span
+                      className={desktopHostStatus.secretsReady ? "on" : ""}
+                    >
+                      Secrets
+                    </span>
+                    <span
+                      className={desktopHostStatus.runtimeReady ? "on" : ""}
+                    >
+                      Runtime
+                    </span>
+                  </div>
+                )}
+
+                <div className="field">
+                  <label>Messenger connection</label>
+                  <div
+                    className="help"
+                    style={{ marginTop: 0, marginBottom: 10 }}
+                  >
+                    New Messenger threads use this connection. Existing threads
+                    keep the connection they were created with.
+                  </div>
+                  <Seg
+                    options={messengerConnectionOptions}
+                    value={nav.appSettings.activeMessengerConnectionId}
+                    onChange={nav.setActiveMessengerConnectionId}
+                    ariaLabel="Messenger connection"
+                  />
+                </div>
+
+                <div className="runtime-actions">
+                  <button type="submit">Apply</button>
+                  <button type="button" onClick={handleRuntimeTest}>
+                    Test
+                  </button>
+                  <button type="button" onClick={handleUseLocalStorage}>
+                    Use host default
+                  </button>
+                  <button type="button" onClick={handleUseDesktopRuntime}>
+                    Use desktop
+                  </button>
+                  <button
+                    type="button"
+                    disabled={desktopHostBusy}
+                    onClick={handleDesktopHostCheck}
+                  >
+                    {desktopHostBusy ? "Checking host" : "Check host"}
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="care-intro">
+                Export, import, and manage your DeKoi data.
+              </p>
+              {renderStockingTools()}
 
               <div className="runtime-actions">
                 <button
@@ -1674,48 +1262,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               {desktopStorageStatus && (
                 <p className="bundle-status">{desktopStorageStatus}</p>
               )}
-
-              <div className="field">
-                <label>Messenger connection</label>
-                <div
-                  className="help"
-                  style={{ marginTop: 0, marginBottom: 10 }}
-                >
-                  New Messenger threads use this connection. Existing threads
-                  keep the connection they were created with.
-                </div>
-                <Seg
-                  options={messengerConnectionOptions}
-                  value={nav.appSettings.activeMessengerConnectionId}
-                  onChange={nav.setActiveMessengerConnectionId}
-                  ariaLabel="Messenger connection"
-                />
-              </div>
-
-              <div className="runtime-actions">
-                <button type="submit">Apply</button>
-                <button type="button" onClick={handleRuntimeTest}>
-                  Test
-                </button>
-                <button type="button" onClick={handleUseLocalStorage}>
-                  Use host default
-                </button>
-                <button type="button" onClick={handleUseDesktopRuntime}>
-                  Use desktop
-                </button>
-                <button
-                  type="button"
-                  disabled={desktopHostBusy}
-                  onClick={handleDesktopHostCheck}
-                >
-                  {desktopHostBusy ? "Checking host" : "Check host"}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 20 }}>
-              {CARE_TABS[nav.careTab].label} settings — coming soon.
-            </p>
+            </>
           )}
         </div>
       </aside>
