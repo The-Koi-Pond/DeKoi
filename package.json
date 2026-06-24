@@ -9,6 +9,8 @@
     "docs:dev": "vite docs/developer --host 127.0.0.1 --port 4174",
     "runtime:fixture": "node scripts/remote-runtime-fixture.mjs",
     "check:storage-contracts": "node scripts/check-storage-contracts.mjs",
+    "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "check": "pnpm check:storage-contracts && pnpm build && pnpm lint && pnpm check:rust",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

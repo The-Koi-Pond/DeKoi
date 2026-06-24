@@ -118,5 +118,3 @@ names, UI labels, and provider requests should stay DeKoi-native.
    higher-level UI flows.
 2. Move desktop storage into a dedicated capability module or crate once record
    repair, cleanup, or profile import makes `src-tauri/src/storage.rs` too broad.
-3. Wire `pnpm check:storage-contracts` into a broader repo check script once
-   the repo has one.

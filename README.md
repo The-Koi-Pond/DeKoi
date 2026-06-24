@@ -23,7 +23,13 @@ pnpm install
 pnpm dev
 ```
 
-## Build Check
+## Checks
+
+```sh
+pnpm check
+```
+
+For the frontend build only:
 
 ```sh
 pnpm build

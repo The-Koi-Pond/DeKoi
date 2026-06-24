@@ -115,6 +115,4 @@ The short version:
    provider transport.
 2. Add cleanup helpers for storage relationships that are currently enforced by
    higher-level UI flows.
-3. Wire `pnpm check:storage-contracts` into a broader repo check script once
-   the repo has one.
-4. Add legacy import only after native records and storage contracts are stable.
+3. Add legacy import only after native records and storage contracts are stable.
