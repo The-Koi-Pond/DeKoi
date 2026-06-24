@@ -74,6 +74,7 @@ import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
   type MessengerStorageMode,
+  type MessengerStorageSnapshot,
   type MessengerStorageStatus,
 } from "./runtime/messenger-storage";
 import {
@@ -98,7 +99,9 @@ import {
 } from "./runtime/provider-connection-storage";
 import {
   loadRippleStates,
-  saveRippleStates,
+  loadRippleStatesFromStorage,
+  saveRippleStatesToStorage,
+  type RippleStateStorageSnapshot,
 } from "./runtime/ripple-state-storage";
 import {
   readRemoteRuntimeUrl,
@@ -110,6 +113,22 @@ function createLocalId(prefix: string) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function mergeStorageResult(
+  messengerResult: Omit<MessengerStorageSnapshot, "threads">,
+  rippleResult: Omit<RippleStateStorageSnapshot, "states">,
+) {
+  if (messengerResult.status === "error") return messengerResult;
+  if (rippleResult.status === "error") {
+    return {
+      mode: "local" as const,
+      status: "error" as const,
+      message: rippleResult.message,
+    };
+  }
+
+  return messengerResult;
 }
 
 export default function App() {
@@ -144,12 +163,17 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
 
-    loadMessengerThreadsFromStorage(remoteRuntimeUrl).then((snapshot) => {
+    Promise.all([
+      loadMessengerThreadsFromStorage(remoteRuntimeUrl),
+      loadRippleStatesFromStorage(remoteRuntimeUrl),
+    ]).then(([messengerSnapshot, rippleSnapshot]) => {
       if (cancelled) return;
-      setMessengerThreads(snapshot.threads);
-      setMessengerStorageMode(snapshot.mode);
-      setMessengerStorageStatus(snapshot.status);
-      setMessengerStorageMessage(snapshot.message);
+      const storageResult = mergeStorageResult(messengerSnapshot, rippleSnapshot);
+      setMessengerThreads(messengerSnapshot.threads);
+      setRippleStates(rippleSnapshot.states);
+      setMessengerStorageMode(storageResult.mode);
+      setMessengerStorageStatus(storageResult.status);
+      setMessengerStorageMessage(storageResult.message);
       setStorageReady(true);
     });
 
@@ -164,15 +188,19 @@ export default function App() {
     const requestId = saveRequestId.current + 1;
     saveRequestId.current = requestId;
 
-    saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl).then(
-      (snapshot) => {
+    Promise.all([
+      saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
+      saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
+    ]).then(
+      ([messengerSnapshot, rippleSnapshot]) => {
         if (saveRequestId.current !== requestId) return;
-        setMessengerStorageMode(snapshot.mode);
-        setMessengerStorageStatus(snapshot.status);
-        setMessengerStorageMessage(snapshot.message);
+        const storageResult = mergeStorageResult(messengerSnapshot, rippleSnapshot);
+        setMessengerStorageMode(storageResult.mode);
+        setMessengerStorageStatus(storageResult.status);
+        setMessengerStorageMessage(storageResult.message);
       },
     );
-  }, [messengerThreads, remoteRuntimeUrl, storageReady]);
+  }, [messengerThreads, remoteRuntimeUrl, rippleStates, storageReady]);
 
   useEffect(() => {
     saveAppSettings(appSettings);
@@ -197,10 +225,6 @@ export default function App() {
   useEffect(() => {
     saveClassicThreads(classicThreads);
   }, [classicThreads]);
-
-  useEffect(() => {
-    saveRippleStates(rippleStates);
-  }, [rippleStates]);
 
   // Esc key closes CareDrawer
   useEffect(() => {

@@ -63,9 +63,9 @@ through Tauri commands:
 - `dekoi_runtime_health`
 - `dekoi_runtime_invoke`
 
-The desktop runtime currently provides durable Messenger-thread storage under
-the app data directory and fixture-style Messenger generation. It is a host
-contract bridge, not a real provider transport yet.
+The desktop runtime currently provides durable Messenger-thread and RippleState
+storage under the app data directory, plus fixture-style Messenger generation.
+It is a host contract bridge, not a real provider transport yet.
 
 ## Invoke Envelope
 
@@ -224,6 +224,11 @@ drops unknown companion drafts and surfaces a warning.
 
 ## Storage Commands
 
+Supported storage entities:
+
+- `messenger-threads`
+- `ripple-states`
+
 `storage_list`:
 
 ```json
@@ -237,6 +242,18 @@ drops unknown companion drafts and surfaces a warning.
 ```
 
 Returns an array of records.
+
+Example RippleState list:
+
+```json
+{
+  "command": "storage_list",
+  "args": {
+    "entity": "ripple-states",
+    "options": null
+  }
+}
+```
 
 `storage_create`:
 

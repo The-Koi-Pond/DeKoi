@@ -6,9 +6,11 @@ use std::{
 use tauri::Manager;
 
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
-const DESKTOP_RUNTIME_THREADS_FILE_NAME: &str = "dekoi-runtime-messenger-threads.json";
+const DESKTOP_RUNTIME_MESSENGER_THREADS_FILE_NAME: &str = "dekoi-runtime-messenger-threads.json";
+const DESKTOP_RUNTIME_RIPPLE_STATES_FILE_NAME: &str = "dekoi-runtime-ripple-states.json";
 const DESKTOP_RUNTIME_MARKER: &str = "de-koi-desktop";
 const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
+const RIPPLE_STATES_ENTITY: &str = "ripple-states";
 const LEGACY_BUBBLE_THREADS_ENTITY: &str = "bubble-threads";
 const PROVIDER_SECRET_SERVICE: &str = "com.xelvanas.dekoi.provider-key";
 
@@ -58,8 +60,18 @@ fn storage_bundle_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app_data_file_path(app, STORAGE_BUNDLE_FILE_NAME)
 }
 
-fn runtime_threads_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    app_data_file_path(app, DESKTOP_RUNTIME_THREADS_FILE_NAME)
+fn runtime_entity_file_name(entity: &str) -> Result<&'static str, String> {
+    match entity {
+        MESSENGER_THREADS_ENTITY => Ok(DESKTOP_RUNTIME_MESSENGER_THREADS_FILE_NAME),
+        RIPPLE_STATES_ENTITY => Ok(DESKTOP_RUNTIME_RIPPLE_STATES_FILE_NAME),
+        _ => Err(format!(
+            "Desktop runtime storage entity is not supported: {entity}"
+        )),
+    }
+}
+
+fn runtime_entity_path(app: &tauri::AppHandle, entity: &str) -> Result<PathBuf, String> {
+    app_data_file_path(app, runtime_entity_file_name(entity)?)
 }
 
 fn modified_at_ms(metadata: &fs::Metadata) -> Option<u64> {
@@ -156,8 +168,11 @@ fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String>
         .map_err(|error| format!("Could not save DeKoi runtime data. {error}"))
 }
 
-fn read_runtime_threads(app: &tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    let path = runtime_threads_path(app)?;
+fn read_runtime_records(
+    app: &tauri::AppHandle,
+    entity: &str,
+) -> Result<Vec<serde_json::Value>, String> {
+    let path = runtime_entity_path(app, entity)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -170,12 +185,13 @@ fn read_runtime_threads(app: &tauri::AppHandle) -> Result<Vec<serde_json::Value>
     Ok(value.as_array().cloned().unwrap_or_default())
 }
 
-fn write_runtime_threads(
+fn write_runtime_records(
     app: &tauri::AppHandle,
-    threads: Vec<serde_json::Value>,
+    entity: &str,
+    records: Vec<serde_json::Value>,
 ) -> Result<(), String> {
-    let path = runtime_threads_path(app)?;
-    write_json_file(&path, &serde_json::Value::Array(threads))
+    let path = runtime_entity_path(app, entity)?;
+    write_json_file(&path, &serde_json::Value::Array(records))
 }
 
 fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
@@ -206,16 +222,6 @@ fn runtime_entity(args: &serde_json::Map<String, serde_json::Value>) -> Result<&
     Ok(entity)
 }
 
-fn ensure_runtime_entity(entity: &str) -> Result<(), String> {
-    if entity == MESSENGER_THREADS_ENTITY {
-        return Ok(());
-    }
-
-    Err(format!(
-        "Desktop runtime storage entity is not supported: {entity}"
-    ))
-}
-
 fn storage_list(
     app: &tauri::AppHandle,
     args: &serde_json::Value,
@@ -225,9 +231,8 @@ fn storage_list(
     if entity == LEGACY_BUBBLE_THREADS_ENTITY {
         return Ok(serde_json::Value::Array(Vec::new()));
     }
-    ensure_runtime_entity(entity)?;
 
-    Ok(serde_json::Value::Array(read_runtime_threads(app)?))
+    Ok(serde_json::Value::Array(read_runtime_records(app, entity)?))
 }
 
 fn storage_create(
@@ -235,7 +240,8 @@ fn storage_create(
     args: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_create")?;
-    ensure_runtime_entity(runtime_entity(args)?)?;
+    let entity = runtime_entity(args)?;
+    let _ = runtime_entity_file_name(entity)?;
     let value = args
         .get("value")
         .and_then(|value| value.as_object())
@@ -251,10 +257,10 @@ fn storage_create(
     record.insert("id".to_string(), serde_json::Value::String(id.clone()));
 
     let next_record = serde_json::Value::Object(record);
-    let mut threads = read_runtime_threads(app)?;
-    threads.retain(|thread| read_string_field(thread, "id") != id);
-    threads.push(next_record.clone());
-    write_runtime_threads(app, threads)?;
+    let mut records = read_runtime_records(app, entity)?;
+    records.retain(|record| read_string_field(record, "id") != id);
+    records.push(next_record.clone());
+    write_runtime_records(app, entity, records)?;
 
     Ok(next_record)
 }
@@ -264,7 +270,8 @@ fn storage_update(
     args: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_update")?;
-    ensure_runtime_entity(runtime_entity(args)?)?;
+    let entity = runtime_entity(args)?;
+    let _ = runtime_entity_file_name(entity)?;
     let id = args
         .get("id")
         .and_then(|value| value.as_str())
@@ -278,11 +285,11 @@ fn storage_update(
         .and_then(|value| value.as_object())
         .ok_or_else(|| "storage_update requires args.patch.".to_string())?;
 
-    let mut threads = read_runtime_threads(app)?;
-    let existing = threads
+    let mut records = read_runtime_records(app, entity)?;
+    let existing = records
         .iter()
-        .find(|thread| read_string_field(thread, "id") == id)
-        .and_then(|thread| thread.as_object())
+        .find(|record| read_string_field(record, "id") == id)
+        .and_then(|record| record.as_object())
         .cloned()
         .unwrap_or_default();
     let mut record = existing;
@@ -292,9 +299,9 @@ fn storage_update(
     record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
     let next_record = serde_json::Value::Object(record);
 
-    threads.retain(|thread| read_string_field(thread, "id") != id);
-    threads.push(next_record.clone());
-    write_runtime_threads(app, threads)?;
+    records.retain(|record| read_string_field(record, "id") != id);
+    records.push(next_record.clone());
+    write_runtime_records(app, entity, records)?;
 
     Ok(next_record)
 }
@@ -304,7 +311,8 @@ fn storage_delete(
     args: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_delete")?;
-    ensure_runtime_entity(runtime_entity(args)?)?;
+    let entity = runtime_entity(args)?;
+    let _ = runtime_entity_file_name(entity)?;
     let id = args
         .get("id")
         .and_then(|value| value.as_str())
@@ -314,9 +322,9 @@ fn storage_delete(
         return Err("storage_delete requires args.id.".to_string());
     }
 
-    let mut threads = read_runtime_threads(app)?;
-    threads.retain(|thread| read_string_field(thread, "id") != id);
-    write_runtime_threads(app, threads)?;
+    let mut records = read_runtime_records(app, entity)?;
+    records.retain(|record| read_string_field(record, "id") != id);
+    write_runtime_records(app, entity, records)?;
 
     Ok(serde_json::json!({ "ok": true }))
 }
