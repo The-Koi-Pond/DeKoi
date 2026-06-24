@@ -19,7 +19,10 @@ import {
   sampleLorebook,
   samplePersona,
 } from "../../engine/sample-messenger";
-import { mockMessengerGenerationAdapter } from "../../runtime/mock-messenger-generation";
+import {
+  generateMessengerResponse,
+  selectMessengerGenerationRuntime,
+} from "../../runtime/messenger-generation";
 import "./messenger-thread.css";
 
 function getInitials(name: string) {
@@ -85,6 +88,7 @@ export function MessengerThread() {
         : nav.messengerStorageStatus === "error"
           ? "Local fallback"
           : "Saved locally";
+  const generationRuntime = selectMessengerGenerationRuntime();
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -119,7 +123,7 @@ export function MessengerThread() {
     setGenerationState({
       threadId: messengerThread.id,
       status: "generating",
-      message: "Generating a mock Messenger reply.",
+      message: `Generating through ${generationRuntime.label}.`,
     });
 
     try {
@@ -132,7 +136,7 @@ export function MessengerThread() {
         thread: threadWithUserMessage,
         userMessage,
       });
-      const response = await mockMessengerGenerationAdapter.generate(request);
+      const response = await generateMessengerResponse(request);
       const generatedMessages = response.messages
         .map((messageDraft) => {
           const companion = threadCompanions.find(
