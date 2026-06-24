@@ -80,6 +80,10 @@ function normalizeMessengerThread(value: unknown): MessengerThread | null {
       id,
       kind: "messenger",
       title: migrateLegacyTitle(candidate.title),
+      providerConnectionId:
+        typeof candidate.providerConnectionId === "string"
+          ? candidate.providerConnectionId
+          : null,
       messages,
     } as MessengerThread;
   }

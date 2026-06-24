@@ -8,6 +8,7 @@ export function createMessengerThread({
   id,
   lorebookIds = [],
   now,
+  providerConnectionId = null,
   title,
 }: {
   activePersonaId: string | null
@@ -15,6 +16,7 @@ export function createMessengerThread({
   id: string
   lorebookIds?: string[]
   now: string
+  providerConnectionId?: string | null
   title: string
 }): MessengerThread {
   return {
@@ -27,7 +29,7 @@ export function createMessengerThread({
     activePersonaId,
     lorebookIds,
     presetId: null,
-    providerConnectionId: null,
+    providerConnectionId,
     messages: [],
     createdAt: now,
     updatedAt: now,

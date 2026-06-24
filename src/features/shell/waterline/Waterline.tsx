@@ -1,5 +1,10 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { useNav } from "../../../shared/ui/nav-context";
+import {
+  getProviderConnectionById,
+  getProviderConnectionStatusLabel,
+  providerConnections,
+} from "../../../engine/provider-connection";
 import { sampleCompanions, sampleLorebook } from "../../../engine/sample-messenger";
 import {
   getMessengerThreadInitials,
@@ -16,6 +21,9 @@ export function Waterline() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [activeCatalog, setActiveCatalog] = useState<CatalogPanel | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
+  const activeConnection = getProviderConnectionById(
+    nav.appSettings.activeMessengerConnectionId,
+  );
   const threadResults = useMemo(() => {
     if (!normalizedQuery) return [];
 
@@ -120,9 +128,35 @@ export function Waterline() {
         <div className="pebble-panel" role="region" aria-label="Connections">
           <div className="pebble-panel-head">
             <b>Connections</b>
-            <span>{nav.messengerStorageMode}</span>
+            <span>{providerConnections.length} stocked</span>
           </div>
-          <p>{nav.messengerStorageMessage}</p>
+          <p>New Messenger threads use {activeConnection.label}.</p>
+          <div className="panel-list">
+            {providerConnections.map((connection) => {
+              const selected =
+                connection.id === nav.appSettings.activeMessengerConnectionId;
+
+              return (
+                <button
+                  type="button"
+                  className={`panel-row connection-row${
+                    selected ? " selected" : ""
+                  }`}
+                  aria-pressed={selected}
+                  key={connection.id}
+                  onClick={() => nav.setActiveMessengerConnectionId(connection.id)}
+                >
+                  <span className="connection-copy">
+                    <b>{connection.label}</b>
+                    <small>{connection.summary}</small>
+                  </span>
+                  <span className="connection-status">
+                    {getProviderConnectionStatusLabel(connection.status)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             className="panel-action"

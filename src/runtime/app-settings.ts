@@ -1,5 +1,10 @@
 import { MESSENGER, type SurfaceId } from "../engine/surfaces";
 import {
+  isProviderConnectionId,
+  LOCAL_MOCK_PROVIDER_CONNECTION_ID,
+  type ProviderConnectionId,
+} from "../engine/provider-connection";
+import {
   isMessengerGenerationRuntimeMode,
   type MessengerGenerationRuntimeMode,
 } from "./messenger-generation";
@@ -13,6 +18,7 @@ export interface AppSettings {
   surfaceStatus: string;
   shoalSortMode: ShoalSortMode;
   messengerGenerationMode: MessengerGenerationRuntimeMode;
+  activeMessengerConnectionId: ProviderConnectionId;
 }
 
 export type ShoalSortMode = "freshest" | "oldest" | "title";
@@ -23,6 +29,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   surfaceStatus: "",
   shoalSortMode: "freshest",
   messengerGenerationMode: "mock",
+  activeMessengerConnectionId: LOCAL_MOCK_PROVIDER_CONNECTION_ID,
 };
 
 function hasLocalStorage() {
@@ -69,6 +76,11 @@ export function loadAppSettings(): AppSettings {
       )
         ? parsed.messengerGenerationMode
         : DEFAULT_APP_SETTINGS.messengerGenerationMode,
+      activeMessengerConnectionId: isProviderConnectionId(
+        parsed.activeMessengerConnectionId,
+      )
+        ? parsed.activeMessengerConnectionId
+        : DEFAULT_APP_SETTINGS.activeMessengerConnectionId,
     };
   } catch {
     return DEFAULT_APP_SETTINGS;

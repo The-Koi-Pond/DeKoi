@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import { type MessengerMessage } from "../../engine/messenger";
+import { getProviderConnectionById } from "../../engine/provider-connection";
 import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
@@ -88,6 +89,10 @@ export function MessengerThread() {
           : "Saved locally";
   const generationRuntime = selectMessengerGenerationRuntime(
     nav.appSettings.messengerGenerationMode,
+  );
+  const threadConnection = getProviderConnectionById(
+    messengerThread?.providerConnectionId ??
+      nav.appSettings.activeMessengerConnectionId,
   );
 
   useEffect(() => {
@@ -242,6 +247,9 @@ export function MessengerThread() {
         <div className="messenger-header-tools">
           <span className="storage-chip" title={nav.messengerStorageMessage}>
             {storageLabel}
+          </span>
+          <span className="storage-chip" title={threadConnection.summary}>
+            {threadConnection.label}
           </span>
           <div className="participant-stack" aria-label="Thread participants">
             <span title={samplePersona.displayName}>

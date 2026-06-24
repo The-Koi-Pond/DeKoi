@@ -15,6 +15,7 @@ import {
   sampleLorebook,
   samplePersona,
 } from "./engine/sample-messenger";
+import type { ProviderConnectionId } from "./engine/provider-connection";
 import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
@@ -124,6 +125,7 @@ export default function App() {
       id: createLocalId("messenger-thread"),
       lorebookIds: [sampleLorebook.id],
       now,
+      providerConnectionId: appSettings.activeMessengerConnectionId,
       title: `New Messenger ${messengerThreads.length + 1}`,
     });
 
@@ -131,7 +133,7 @@ export default function App() {
     setSelectedSurface(MESSENGER);
     setView({ kind: "messenger", threadId: thread.id });
     return thread;
-  }, [messengerThreads.length]);
+  }, [appSettings.activeMessengerConnectionId, messengerThreads.length]);
 
   const updateMessengerThread = useCallback((thread: MessengerThread) => {
     setMessengerThreads((currentThreads) =>
@@ -225,6 +227,16 @@ export default function App() {
     [],
   );
 
+  const setActiveMessengerConnectionId = useCallback(
+    (activeMessengerConnectionId: ProviderConnectionId) => {
+      setAppSettings((currentSettings) => ({
+        ...currentSettings,
+        activeMessengerConnectionId,
+      }));
+    },
+    [],
+  );
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -253,6 +265,7 @@ export default function App() {
     setSurfaceStatus,
     setShoalSortMode,
     setMessengerGenerationMode,
+    setActiveMessengerConnectionId,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };
