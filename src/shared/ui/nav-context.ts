@@ -35,10 +35,13 @@ export type PondView =
   | { kind: "messenger"; threadId: string }
   | { kind: "companions"; characterId?: string; mode?: "new" }
   | { kind: "personas"; personaId?: string; mode?: "new" }
-  | { kind: "lorebooks" };
+  | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" };
+
+export type SideRailView = "shoal" | "lorebooks" | "people";
 
 export interface NavState {
   view: PondView;
+  sideRailView: SideRailView;
   selectedSurface: SurfaceId;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
@@ -58,6 +61,7 @@ export interface NavState {
 
 export interface NavContextType extends NavState {
   setView: (view: PondView) => void;
+  setSideRailView: (view: SideRailView) => void;
   setSelectedSurface: (surface: SurfaceId) => void;
   updateAppSettings: (patch: Partial<AppSettings>) => void;
   createCharacter: (input: CharacterRecordInput) => CharacterRecord;

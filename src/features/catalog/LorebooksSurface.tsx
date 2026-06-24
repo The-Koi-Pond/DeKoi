@@ -40,13 +40,22 @@ function draftToInput(draft: DraftState): LorebookEntryInput {
 
 export function LorebooksSurface() {
   const nav = useNav();
+  const routedLorebookId =
+    nav.view.kind === "lorebooks" ? nav.view.lorebookId : null;
+  const initialLorebookId =
+    routedLorebookId &&
+    nav.lorebooks.some((lorebook) => lorebook.id === routedLorebookId)
+      ? routedLorebookId
+      : nav.lorebooks[0]?.id ?? null;
   const [selectedLorebookId, setSelectedLorebookId] = useState<string | null>(
-    nav.lorebooks[0]?.id ?? null,
+    initialLorebookId,
   );
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [showEditor, setShowEditor] = useState(false);
-  const [showLorebookEditor, setShowLorebookEditor] = useState(false);
+  const [showLorebookEditor, setShowLorebookEditor] = useState(
+    nav.view.kind === "lorebooks" && nav.view.mode === "new-lorebook",
+  );
   const [lorebookDraft, setLorebookDraft] =
     useState<LorebookDraftState>(EMPTY_LOREBOOK_DRAFT);
 

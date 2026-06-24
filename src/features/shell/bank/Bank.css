@@ -105,6 +105,102 @@
 .dive.classic { --c: var(--jade); --c2: var(--jade-hot); }
 .dive.reserved { --c: var(--amber); --c2: var(--amber-hot); }
 
+.bank-divider {
+  width: 34px;
+  height: 1px;
+  margin: 6px 0;
+  background: linear-gradient(90deg, transparent, var(--reed), transparent);
+}
+
+.rail-tool {
+  --c: var(--jade);
+  --c2: var(--jade-hot);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid var(--reed-soft);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--mist);
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.rail-tool svg {
+  width: 21px;
+  height: 21px;
+}
+
+.rail-tool .tag {
+  position: absolute;
+  left: 56px;
+  top: 50%;
+  z-index: 40;
+  transform: translateY(-50%) translateX(-6px);
+  padding: 5px 10px;
+  border: 1px solid var(--reed);
+  border-radius: 8px;
+  background: var(--raise);
+  box-shadow: 0 8px 24px -10px #000;
+  font-size: 11.5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.18s;
+  white-space: nowrap;
+}
+
+.rail-tool .tag b {
+  display: block;
+  color: var(--foam);
+  font-weight: 600;
+}
+
+.rail-tool .tag i {
+  display: block;
+  color: var(--mist);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.rail-tool:hover,
+.rail-tool:focus-visible {
+  border-color: var(--c);
+  color: var(--c2);
+  outline: none;
+  transform: translateX(2px);
+  box-shadow: 0 0 22px -10px var(--c);
+}
+
+.rail-tool:hover .tag,
+.rail-tool:focus-visible .tag {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.rail-tool.on {
+  border-color: var(--c);
+  background: rgba(39, 179, 170, 0.12);
+  color: var(--c2);
+}
+
+.rail-tool.on::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 3px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--c);
+  box-shadow: 0 0 12px var(--c);
+  transform: translateY(-50%);
+}
+
+.rail-tool.lorebooks { --c: var(--amber); --c2: var(--amber-hot); }
+.rail-tool.people { --c: var(--jade); --c2: var(--jade-hot); }
+
 .bank-spacer {
   flex: 1;
 }
@@ -131,35 +227,6 @@
 
 .cast-fab:active {
   transform: scale(0.94);
-}
-
-.me {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-top: 4px;
-  background: linear-gradient(135deg, #2a4a52, #16323a);
-  border: 1.5px solid var(--jade);
-  cursor: pointer;
-  position: relative;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  color: var(--belly);
-  font-family: var(--display);
-  font-weight: 600;
-}
-
-.me::after {
-  content: '';
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #52d273;
-  border: 2px solid var(--water);
 }
 
 /* Locked dives: not activatable — dim and drop the hover lift, but keep the

@@ -8,6 +8,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
+import type { SideRailView } from "../../../shared/ui/nav-context";
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {
@@ -30,6 +31,40 @@ const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
         <path d="M6 3v6a6 6 0 0 0 12 0V3" />
         <path d="M6 21h12" />
         <path d="M12 15v6" />
+      </>
+    ),
+  },
+];
+
+const RAILS: {
+  view: Exclude<SideRailView, "shoal">;
+  label: string;
+  note: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    view: "lorebooks",
+    label: "Lorebooks",
+    note: "world notes",
+    icon: (
+      <>
+        <path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3-3z" />
+        <path d="M5 4v13" />
+        <path d="M9 8h5" />
+        <path d="M9 11h5" />
+      </>
+    ),
+  },
+  {
+    view: "people",
+    label: "Companions & Personas",
+    note: "character catalog",
+    icon: (
+      <>
+        <path d="M8.2 11.5a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z" />
+        <path d="M15.8 12.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
+        <path d="M3.8 20a4.7 4.7 0 0 1 8.8-2.3" />
+        <path d="M12.8 20a4 4 0 0 1 7.4-2.2" />
       </>
     ),
   },
@@ -114,31 +149,50 @@ export function Bank() {
         );
       })}
 
+      <div className="bank-divider" aria-hidden="true" />
+
+      {RAILS.map(({ view, label, note, icon }) => {
+        const isActive = nav.sideRailView === view;
+
+        return (
+          <button
+            key={view}
+            type="button"
+            className={`rail-tool ${view}${isActive ? " on" : ""}`}
+            title={label}
+            aria-label={label}
+            aria-pressed={isActive}
+            onClick={() => nav.setSideRailView(view)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden="true"
+            >
+              {icon}
+            </svg>
+            <span className="tag">
+              <b>{label}</b>
+              <i>{note}</i>
+            </span>
+          </button>
+        );
+      })}
+
       <div className="bank-spacer" />
       <button
         className="cast-fab"
         title="Cast a line — new chat"
         aria-label="Cast a line — new chat"
-        onClick={() => nav.createMessengerThread()}
+        onClick={() => {
+          nav.setSideRailView("shoal");
+          nav.createMessengerThread();
+        }}
       >
         +
       </button>
-      <div
-        className="me"
-        title="Your personas"
-        aria-label="Your personas"
-        role="button"
-        tabIndex={0}
-        onClick={() => nav.setView({ kind: "personas" })}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            nav.setView({ kind: "personas" });
-          }
-        }}
-      >
-        M
-      </div>
     </nav>
   );
 }

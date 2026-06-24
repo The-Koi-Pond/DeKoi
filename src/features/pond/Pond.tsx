@@ -37,7 +37,13 @@ export function Pond({ nav }: PondProps) {
   // pond home / messenger / classic views.
   if (inCompanions) return <CompanionsSurface />;
   if (inPersonas) return <PersonasSurface />;
-  if (inLorebooks) return <LorebooksSurface />;
+  if (inLorebooks) {
+    const key =
+      nav.view.kind === "lorebooks"
+        ? `${nav.view.lorebookId ?? "all"}:${nav.view.mode ?? "view"}`
+        : "lorebooks";
+    return <LorebooksSurface key={key} />;
+  }
 
   return (
     <main className="pond">

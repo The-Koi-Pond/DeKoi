@@ -28,6 +28,7 @@ const cancelIdle: (handle: IdleHandle) => void =
 import {
   NavContext,
   type PondView,
+  type SideRailView,
   type NavContextType,
 } from "./shared/ui/nav-context";
 import {
@@ -164,6 +165,7 @@ function mergeStorageResults(results: StorageResult[]) {
 
 export default function App() {
   const [view, setView] = useState<PondView>({ kind: "pond" });
+  const [sideRailView, setSideRailView] = useState<SideRailView>("shoal");
   const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(MESSENGER);
   const [characters, setCharacters] = useState(loadCharacterRecords);
   const [personas, setPersonas] = useState(loadPersonaRecords);
@@ -702,6 +704,7 @@ export default function App() {
   );
 
   const openClassicThread = useCallback((threadId: string) => {
+    setSideRailView("shoal");
     setSelectedSurface(CLASSIC);
     setView({ kind: "classic", threadId });
   }, []);
@@ -727,6 +730,7 @@ export default function App() {
     });
 
     setClassicThreads((currentThreads) => [thread, ...currentThreads]);
+    setSideRailView("shoal");
     setSelectedSurface(CLASSIC);
     setView({ kind: "classic", threadId: thread.id });
     return thread;
@@ -792,6 +796,7 @@ export default function App() {
   );
 
   const openMessengerThread = useCallback((threadId: string) => {
+    setSideRailView("shoal");
     setSelectedSurface(MESSENGER);
     setView({ kind: "messenger", threadId });
   }, []);
@@ -817,6 +822,7 @@ export default function App() {
     });
 
     setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
+    setSideRailView("shoal");
     setSelectedSurface(MESSENGER);
     setView({ kind: "messenger", threadId: thread.id });
     return thread;
@@ -1123,6 +1129,7 @@ export default function App() {
 
   const nav: NavContextType = {
     view,
+    sideRailView,
     selectedSurface,
     characters,
     personas,
@@ -1139,8 +1146,12 @@ export default function App() {
     careOpen,
     careTab,
     setView: useCallback((v: PondView) => setView(v), []),
+    setSideRailView: useCallback((v: SideRailView) => setSideRailView(v), []),
     setSelectedSurface: useCallback(
-      (s: SurfaceId) => setSelectedSurface(s),
+      (s: SurfaceId) => {
+        setSideRailView("shoal");
+        setSelectedSurface(s);
+      },
       [],
     ),
     createCharacter,
