@@ -1,8 +1,13 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { RemoteRuntimeHealthCheck } from "./remote-runtime";
+import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import type { RemoteRuntimeCommand } from "./runtime-commands";
+import {
+  DESKTOP_RUNTIME_URL,
+  isDesktopRuntimeUrl,
+} from "./runtime-target";
 
-export const DESKTOP_RUNTIME_URL = "desktop://runtime";
+export { DESKTOP_RUNTIME_URL, isDesktopRuntimeUrl };
+
 const DESKTOP_RUNTIME_MARKER = "de-koi-desktop";
 
 function asErrorMessage(error: unknown) {
@@ -12,10 +17,6 @@ function asErrorMessage(error: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-export function isDesktopRuntimeUrl(rawUrl: string) {
-  return rawUrl.trim().toLowerCase() === DESKTOP_RUNTIME_URL;
 }
 
 export async function checkDesktopRuntimeHealth(): Promise<RemoteRuntimeHealthCheck> {

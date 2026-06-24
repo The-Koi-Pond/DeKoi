@@ -152,7 +152,7 @@ import {
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
-} from "./runtime/remote-runtime";
+} from "./runtime/runtime-target";
 
 function createLocalId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {

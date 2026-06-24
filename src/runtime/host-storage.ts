@@ -1,11 +1,12 @@
 import { isTauri } from "@tauri-apps/api/core";
-import { invokeDesktopRuntime, isDesktopRuntimeUrl } from "./desktop-runtime";
+import { invokeDesktopRuntime } from "./desktop-runtime";
+import { invokeRemote } from "./remote-runtime";
+import { RUNTIME_COMMANDS, type StorageRuntimeCommand } from "./runtime-commands";
 import {
-  invokeRemote,
+  isDesktopRuntimeUrl,
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
-} from "./remote-runtime";
-import { RUNTIME_COMMANDS, type StorageRuntimeCommand } from "./runtime-commands";
+} from "./runtime-target";
 import type { HostStorageEntity } from "./storage-entities";
 
 export type HostStorageMode = "desktop" | "remote" | "unavailable";

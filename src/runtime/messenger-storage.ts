@@ -6,7 +6,7 @@ import {
   saveHostRecords,
   type HostStorageMode,
 } from "./host-storage";
-import { readRemoteRuntimeUrl } from "./remote-runtime";
+import { readRemoteRuntimeUrl } from "./runtime-target";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 export type MessengerStorageMode = HostStorageMode;

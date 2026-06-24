@@ -1,9 +1,14 @@
 import {
   checkDesktopRuntimeHealth,
-  DESKTOP_RUNTIME_URL,
   invokeDesktopRuntime,
-  isDesktopRuntimeUrl,
 } from "./desktop-runtime";
+import type { RemoteRuntimeHealthCheck } from "./runtime-health";
+import {
+  isDesktopRuntimeUrl,
+  readRemoteRuntimeUrl,
+  remoteRuntimeTarget,
+  type RuntimeTarget,
+} from "./runtime-target";
 import {
   REMOTE_RUNTIME_COMMANDS,
   type RemoteRuntimeCommand,
@@ -14,62 +19,10 @@ const REMOTE_RUNTIME_MARKERS = new Set([
   "marinara-server",
   "de-koi-desktop",
 ]);
-let sessionRemoteRuntimeUrl = "";
 
 const REMOTE_RUNTIME_COMMAND_SET = new Set<RemoteRuntimeCommand>(
   REMOTE_RUNTIME_COMMANDS,
 );
-
-export type RuntimeTarget = {
-  baseUrl: string;
-  authorization?: string;
-};
-
-export type RemoteRuntimeHealthCheck =
-  | { status: "ok"; message: string }
-  | { status: "unconfigured"; message: string }
-  | { status: "invalid"; message: string }
-  | { status: "unreachable"; message: string }
-  | { status: "not-writable"; message: string };
-
-function encodeBasicAuth(username: string, password: string): string {
-  return `Basic ${btoa(`${decodeURIComponent(username)}:${decodeURIComponent(password)}`)}`;
-}
-
-function normalizeRemoteRuntimeUrl(raw: string): RuntimeTarget | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (isDesktopRuntimeUrl(trimmed)) return { baseUrl: DESKTOP_RUNTIME_URL };
-
-  const url = new URL(trimmed);
-  let authorization: string | undefined;
-  if (url.username || url.password) {
-    authorization = encodeBasicAuth(url.username, url.password);
-    url.username = "";
-    url.password = "";
-  }
-  url.pathname = url.pathname.replace(/\/+$/, "");
-  url.search = "";
-  url.hash = "";
-
-  return { baseUrl: url.toString().replace(/\/+$/, ""), authorization };
-}
-
-export function readRemoteRuntimeUrl(): string {
-  return sessionRemoteRuntimeUrl || import.meta.env.VITE_DEKOI_REMOTE_RUNTIME_URL || "";
-}
-
-export function writeRemoteRuntimeUrl(url: string) {
-  sessionRemoteRuntimeUrl = url.trim();
-}
-
-export function remoteRuntimeTarget(rawUrl = readRemoteRuntimeUrl()): RuntimeTarget | null {
-  try {
-    return normalizeRemoteRuntimeUrl(rawUrl);
-  } catch {
-    throw new Error("Invalid Remote Runtime URL.");
-  }
-}
 
 function remoteHeaders(target: RuntimeTarget, extra?: HeadersInit): HeadersInit {
   return {
@@ -105,7 +58,7 @@ export async function checkRemoteRuntimeHealth(rawUrl = readRemoteRuntimeUrl()):
 
   let target: RuntimeTarget | null;
   try {
-    target = normalizeRemoteRuntimeUrl(rawUrl);
+    target = remoteRuntimeTarget(rawUrl);
   } catch {
     return { status: "invalid", message: "Remote Runtime URL is invalid." };
   }

@@ -29,7 +29,7 @@ import {
   type DeKoiDesktopProviderSecretStatus,
   type DeKoiDesktopHostStatus,
 } from "../../../runtime/desktop-host";
-import { DESKTOP_RUNTIME_URL } from "../../../runtime/desktop-runtime";
+import { DESKTOP_RUNTIME_URL } from "../../../runtime/runtime-target";
 import {
   normalizeLegacyImport,
   type DeKoiLegacyImportPreview,
