@@ -33,6 +33,7 @@ export interface NavContextType extends NavState {
   setRemoteRuntimeUrl: (url: string) => void
   setSendOnEnterSurface: (surface: SurfaceId) => void
   setConfirmRelease: (confirmRelease: boolean) => void
+  setSurfaceStatus: (status: string) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void
 }

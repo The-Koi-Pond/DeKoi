@@ -1,14 +1,43 @@
 import './Tide.css'
+import type { NavContextType } from '../../../shared/ui/nav-context'
 
-export function Tide() {
+interface TideProps {
+  nav: NavContextType
+}
+
+export function Tide({ nav }: TideProps) {
+  const surfaceStatus = nav.appSettings.surfaceStatus
+  const trimmedSurfaceStatus = surfaceStatus.trim()
+
   return (
     <footer className="tide">
       <div className="swim-state">
         <span className="pulse" />
-        {' '}Swimming
+        <span>Swimming</span>
+        {trimmedSurfaceStatus && (
+          <span className="surface-status" title={trimmedSurfaceStatus}>
+            {trimmedSurfaceStatus}
+          </span>
+        )}
       </div>
       <div className="surface-input">
-        <input placeholder="Set your surface — what are you up to?" />
+        <input
+          aria-label="Set your surface status"
+          maxLength={80}
+          placeholder="Set your surface — what are you up to?"
+          value={surfaceStatus}
+          onChange={(event) => nav.setSurfaceStatus(event.target.value)}
+        />
+        {surfaceStatus && (
+          <button
+            type="button"
+            aria-label="Clear surface status"
+            title="Clear"
+            onClick={() => nav.setSurfaceStatus('')}
+          >
+            ×
+          </button>
+        )}
       </div>
       <div className="vitals">
         <div className="vital">

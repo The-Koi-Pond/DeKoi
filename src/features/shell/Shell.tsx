@@ -22,7 +22,7 @@ export function Shell({ nav }: ShellProps) {
       <Bank />
       <Shoal />
       <Pond nav={nav} />
-      <Tide />
+      <Tide nav={nav} />
       <CareDrawer nav={nav} />
     </div>
   )

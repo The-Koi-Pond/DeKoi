@@ -1,15 +1,18 @@
 import { MESSENGER, type SurfaceId } from "../engine/surfaces";
 
 const APP_SETTINGS_STORAGE_KEY = "dekoi:app-settings:v1";
+const MAX_SURFACE_STATUS_LENGTH = 80;
 
 export interface AppSettings {
   sendOnEnterSurface: SurfaceId;
   confirmRelease: boolean;
+  surfaceStatus: string;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   sendOnEnterSurface: MESSENGER,
   confirmRelease: true,
+  surfaceStatus: "",
 };
 
 function hasLocalStorage() {
@@ -18,6 +21,10 @@ function hasLocalStorage() {
 
 function isSurfaceId(value: unknown): value is SurfaceId {
   return value === "messenger" || value === "classic" || value === "reserved";
+}
+
+export function normalizeSurfaceStatus(value: string) {
+  return value.slice(0, MAX_SURFACE_STATUS_LENGTH);
 }
 
 export function loadAppSettings(): AppSettings {
@@ -36,6 +43,10 @@ export function loadAppSettings(): AppSettings {
         typeof parsed.confirmRelease === "boolean"
           ? parsed.confirmRelease
           : DEFAULT_APP_SETTINGS.confirmRelease,
+      surfaceStatus:
+        typeof parsed.surfaceStatus === "string"
+          ? normalizeSurfaceStatus(parsed.surfaceStatus)
+          : DEFAULT_APP_SETTINGS.surfaceStatus,
     };
   } catch {
     return DEFAULT_APP_SETTINGS;

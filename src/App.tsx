@@ -20,6 +20,7 @@ import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
   loadAppSettings,
+  normalizeSurfaceStatus,
   saveAppSettings,
   type AppSettings,
 } from "./runtime/app-settings";
@@ -198,6 +199,13 @@ export default function App() {
     }));
   }, []);
 
+  const setSurfaceStatus = useCallback((surfaceStatus: string) => {
+    setAppSettings((currentSettings) => ({
+      ...currentSettings,
+      surfaceStatus: normalizeSurfaceStatus(surfaceStatus),
+    }));
+  }, []);
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -223,6 +231,7 @@ export default function App() {
     setRemoteRuntimeUrl,
     setSendOnEnterSurface,
     setConfirmRelease,
+    setSurfaceStatus,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };
