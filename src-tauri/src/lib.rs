@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf, time::UNIX_EPOCH};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
+};
 use tauri::Manager;
 
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
@@ -63,6 +67,60 @@ fn bundle_info(path: PathBuf) -> Result<StorageBundleInfo, String> {
         byte_length: metadata.len(),
         updated_at_ms: modified_at_ms(&metadata),
     })
+}
+
+fn safe_default_bundle_file_name(file_name: Option<String>) -> String {
+    let fallback = "dekoi-bundle.json";
+    let Some(raw_file_name) = file_name else {
+        return fallback.to_string();
+    };
+
+    let trimmed = raw_file_name.trim();
+    if trimmed.is_empty() {
+        return fallback.to_string();
+    }
+
+    Path::new(trimmed)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(fallback)
+        .to_string()
+}
+
+fn with_json_extension(mut path: PathBuf) -> PathBuf {
+    if path.extension().is_none() {
+        path.set_extension("json");
+    }
+
+    path
+}
+
+fn write_bundle_file(path: &Path, bundle: &serde_json::Value) -> Result<StorageBundleInfo, String> {
+    let contents = serde_json::to_string_pretty(bundle)
+        .map_err(|error| format!("Could not serialize DeKoi storage bundle. {error}"))?;
+    let temporary_path = path.with_extension("json.tmp");
+
+    fs::write(&temporary_path, contents)
+        .map_err(|error| format!("Could not write DeKoi bundle file. {error}"))?;
+
+    if path.exists() {
+        fs::remove_file(path)
+            .map_err(|error| format!("Could not replace DeKoi bundle file. {error}"))?;
+    }
+
+    fs::rename(&temporary_path, path)
+        .map_err(|error| format!("Could not save DeKoi bundle file. {error}"))?;
+
+    let _ = fs::OpenOptions::new()
+        .append(true)
+        .open(path)
+        .and_then(|file| {
+            file.sync_all()?;
+            Ok(())
+        });
+
+    bundle_info(path.to_path_buf())
 }
 
 fn provider_secret_username(connection_id: &str) -> Result<String, String> {
@@ -155,29 +213,7 @@ fn dekoi_storage_write_bundle(
     fs::create_dir_all(directory)
         .map_err(|error| format!("Could not create DeKoi storage directory. {error}"))?;
 
-    let contents = serde_json::to_string_pretty(&bundle)
-        .map_err(|error| format!("Could not serialize DeKoi storage bundle. {error}"))?;
-    let temporary_path = path.with_extension("json.tmp");
-    fs::write(&temporary_path, contents)
-        .map_err(|error| format!("Could not write DeKoi storage bundle. {error}"))?;
-
-    if path.exists() {
-        fs::remove_file(&path)
-            .map_err(|error| format!("Could not replace DeKoi storage bundle. {error}"))?;
-    }
-    fs::rename(&temporary_path, &path)
-        .map_err(|error| format!("Could not save DeKoi storage bundle. {error}"))?;
-
-    // Ensure a fresh modification time on filesystems with coarse timestamps.
-    let _ = fs::OpenOptions::new()
-        .append(true)
-        .open(&path)
-        .and_then(|file| {
-            file.sync_all()?;
-            Ok(())
-        });
-
-    bundle_info(path)
+    write_bundle_file(&path, &bundle)
 }
 
 #[tauri::command]
@@ -218,11 +254,53 @@ fn dekoi_provider_secret_delete(connection_id: String) -> Result<ProviderSecretS
     }
 }
 
+#[tauri::command]
+fn dekoi_file_export_bundle(
+    bundle: serde_json::Value,
+    default_file_name: Option<String>,
+) -> Result<Option<StorageBundleInfo>, String> {
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("DeKoi bundle", &["json"])
+        .set_file_name(safe_default_bundle_file_name(default_file_name))
+        .save_file()
+    else {
+        return Ok(None);
+    };
+    let path = with_json_extension(path);
+
+    write_bundle_file(&path, &bundle).map(Some)
+}
+
+#[tauri::command]
+fn dekoi_file_import_bundle() -> Result<Option<StorageBundleSnapshot>, String> {
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("DeKoi bundle", &["json"])
+        .pick_file()
+    else {
+        return Ok(None);
+    };
+
+    let contents = fs::read_to_string(&path)
+        .map_err(|error| format!("Could not read DeKoi bundle file. {error}"))?;
+    let bundle = serde_json::from_str(&contents)
+        .map_err(|error| format!("DeKoi bundle file is not valid JSON. {error}"))?;
+    let info = bundle_info(path)?;
+
+    Ok(Some(StorageBundleSnapshot {
+        bundle,
+        path: info.path,
+        byte_length: info.byte_length,
+        updated_at_ms: info.updated_at_ms,
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             dekoi_host_status,
+            dekoi_file_export_bundle,
+            dekoi_file_import_bundle,
             dekoi_provider_secret_delete,
             dekoi_provider_secret_status,
             dekoi_provider_secret_write,

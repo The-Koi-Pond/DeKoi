@@ -38,11 +38,12 @@ pnpm tauri:dev
 ```
 
 The host currently exposes `dekoi_host_status`,
-`dekoi_storage_read_bundle`, `dekoi_storage_write_bundle`, and provider-key
-secret commands. Pond Care > Deep Water can check host readiness and save/load a
-DeKoi-native bundle through the desktop app data directory. Pond Care > Catalog
-can save, check, and clear provider keys for connections without exporting the
-secret value.
+`dekoi_storage_read_bundle`, `dekoi_storage_write_bundle`, native bundle file
+dialogs, and provider-key secret commands. Pond Care > Deep Water can check host
+readiness and save/load a DeKoi-native bundle through the desktop app data
+directory. Pond Care > Stocking can export/import bundle files through desktop
+dialogs. Pond Care > Catalog can save, check, and clear provider keys for
+connections without exporting the secret value.
 
 ## Repository Rules
 

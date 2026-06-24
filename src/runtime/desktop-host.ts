@@ -33,6 +33,15 @@ export type DeKoiDesktopStorageReadResult =
     }
   | { ok: false; error: string };
 
+export type DeKoiDesktopBundleFileImportResult =
+  | {
+      ok: true;
+      bundle: DeKoiStorageBundle;
+      info: DeKoiDesktopStorageBundleInfo;
+      warnings: string[];
+    }
+  | { ok: false; cancelled?: boolean; error: string };
+
 export interface DeKoiDesktopProviderSecretStatus {
   connectionId: string;
   hasSecret: boolean;
@@ -119,6 +128,62 @@ export async function writeDesktopStorageBundle(
     "dekoi_storage_write_bundle",
     { bundle },
   );
+}
+
+function requireTauriForFileAccess() {
+  if (!isTauri()) {
+    throw new Error(
+      "Desktop file import/export is only available inside the Tauri app.",
+    );
+  }
+}
+
+export async function exportDesktopBundleFile(
+  bundle: DeKoiStorageBundle,
+  defaultFileName: string,
+): Promise<DeKoiDesktopStorageBundleInfo | null> {
+  requireTauriForFileAccess();
+
+  return await invoke<DeKoiDesktopStorageBundleInfo | null>(
+    "dekoi_file_export_bundle",
+    { bundle, defaultFileName },
+  );
+}
+
+export async function importDesktopBundleFile(): Promise<DeKoiDesktopBundleFileImportResult> {
+  requireTauriForFileAccess();
+
+  let snapshot: DeKoiDesktopStorageBundleSnapshot | null;
+  try {
+    snapshot =
+      await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
+        "dekoi_file_import_bundle",
+      );
+  } catch (error) {
+    return { ok: false, error: asErrorMessage(error) };
+  }
+
+  if (!snapshot) {
+    return {
+      ok: false,
+      cancelled: true,
+      error: "Desktop file import was cancelled.",
+    };
+  }
+
+  const normalized = normalizeDeKoiStorageBundle(snapshot.bundle);
+  if (!normalized.ok) return { ok: false, error: normalized.error };
+
+  return {
+    ok: true,
+    bundle: normalized.preview.bundle,
+    info: {
+      path: snapshot.path,
+      byteLength: snapshot.byteLength,
+      updatedAtMs: snapshot.updatedAtMs,
+    },
+    warnings: normalized.preview.warnings,
+  };
 }
 
 function requireTauriForSecrets() {

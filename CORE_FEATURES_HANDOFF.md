@@ -254,8 +254,9 @@ storage commands, and wires Pond Care > Deep Water to check host capabilities
 and save/load a DeKoi-native bundle through the desktop app data directory.
 Provider-key secret commands are also available through the desktop host and
 Pond Care > Catalog can save, check, and clear a key for a connection without
-putting the secret value in bundles or browser storage. Filesystem import/export
-and local runtime support are still future host slices.
+putting the secret value in bundles or browser storage. Desktop bundle file
+import/export is also available through native host file dialogs in Pond Care >
+Stocking. Local runtime support is still a future host slice.
 
 Rust/Tauri should eventually own:
 

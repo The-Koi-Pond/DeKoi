@@ -20,7 +20,9 @@ import {
 import {
   checkDesktopHostStatus,
   deleteDesktopProviderSecret,
+  exportDesktopBundleFile,
   getDesktopProviderSecretStatus,
+  importDesktopBundleFile,
   readDesktopStorageBundle,
   writeDesktopProviderSecret,
   writeDesktopStorageBundle,
@@ -206,6 +208,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
   const [bundleStatus, setBundleStatus] = useState("");
+  const [desktopFileBusy, setDesktopFileBusy] = useState(false);
   const [legacyPreview, setLegacyPreview] =
     useState<DeKoiLegacyImportPreview | null>(null);
   const [legacyImportConfirmed, setLegacyImportConfirmed] = useState(false);
@@ -571,6 +574,27 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setBundleStatus("Exported a DeKoi JSON bundle.");
   }
 
+  async function handleDesktopBundleExport() {
+    setDesktopFileBusy(true);
+    setBundleStatus("Opening desktop save dialog...");
+
+    try {
+      const info = await exportDesktopBundleFile(
+        nav.createStorageBundle(),
+        getBundleFilename(),
+      );
+      setBundleStatus(
+        info
+          ? `Exported desktop bundle (${formatBytes(info.byteLength)}).`
+          : "Desktop export cancelled.",
+      );
+    } catch (error) {
+      setBundleStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDesktopFileBusy(false);
+    }
+  }
+
   async function handleBundleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
@@ -608,6 +632,36 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setBundleStatus("Imported DeKoi bundle.");
     setBundlePreview(null);
     setBundleReplaceConfirmed(false);
+  }
+
+  async function handleDesktopBundleFileImport() {
+    setDesktopFileBusy(true);
+    setBundleStatus("Opening desktop import dialog...");
+    setBundlePreview(null);
+    setBundleReplaceConfirmed(false);
+
+    try {
+      const result = await importDesktopBundleFile();
+      if (!result.ok) {
+        setBundleStatus(
+          result.cancelled ? "Desktop import cancelled." : result.error,
+        );
+        return;
+      }
+
+      setBundlePreview({
+        bundle: result.bundle,
+        counts: getDeKoiStorageBundleCounts(result.bundle.data),
+        warnings: result.warnings,
+      });
+      setBundleStatus(
+        `Previewing desktop bundle (${formatBytes(result.info.byteLength)}).`,
+      );
+    } catch (error) {
+      setBundleStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDesktopFileBusy(false);
+    }
   }
 
   async function handleLegacyFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -733,6 +787,15 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </button>
           </div>
           {renderBundleCounts(currentBundleCounts)}
+          <div className="runtime-actions">
+            <button
+              type="button"
+              disabled={desktopFileBusy}
+              onClick={handleDesktopBundleExport}
+            >
+              Export desktop file
+            </button>
+          </div>
           <p className="bundle-note">
             Remote Runtime URL and credentials are not included.
           </p>
@@ -758,6 +821,16 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             <div className="help">
               Import previews counts before anything is changed.
             </div>
+          </div>
+
+          <div className="runtime-actions">
+            <button
+              type="button"
+              disabled={desktopFileBusy}
+              onClick={handleDesktopBundleFileImport}
+            >
+              Open desktop file
+            </button>
           </div>
 
           {bundlePreview && (
