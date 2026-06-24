@@ -46,11 +46,14 @@ import {
 } from "./engine/classic-actions";
 import {
   createLorebookEntryRecord,
+  createLorebookRecord,
   deleteLorebookEntry,
   duplicateLorebookEntryRecord,
   updateLorebookEntryRecord,
+  updateLorebookRecord,
   upsertLorebookEntry,
   type LorebookEntryInput,
+  type LorebookInput,
 } from "./engine/lorebook-actions";
 import type { MessengerThread } from "./engine/messenger";
 import {
@@ -542,6 +545,61 @@ export default function App() {
     },
     [],
   );
+
+  const createLorebook = useCallback((input: LorebookInput) => {
+    const now = new Date().toISOString();
+    const lorebook = createLorebookRecord({
+      id: createLocalId("lorebook"),
+      input,
+      now,
+    });
+    setLorebooks((currentLorebooks) => [lorebook, ...currentLorebooks]);
+    return lorebook;
+  }, []);
+
+  const updateLorebook = useCallback(
+    (lorebookId: string, input: LorebookInput) => {
+      const now = new Date().toISOString();
+      setLorebooks((currentLorebooks) =>
+        currentLorebooks.map((lorebook) =>
+          lorebook.id === lorebookId
+            ? updateLorebookRecord(lorebook, input, now)
+            : lorebook,
+        ),
+      );
+    },
+    [],
+  );
+
+  const deleteLorebook = useCallback((lorebookId: string) => {
+    const now = new Date().toISOString();
+    setLorebooks((currentLorebooks) =>
+      currentLorebooks.filter((lorebook) => lorebook.id !== lorebookId),
+    );
+    // Clear dangling lorebook references from threads, mirroring deleteCharacter.
+    setMessengerThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.lorebookIds.includes(lorebookId)
+          ? {
+              ...thread,
+              lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
+              updatedAt: now,
+            }
+          : thread,
+      ),
+    );
+    setClassicThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.lorebookIds.includes(lorebookId)
+          ? {
+              ...thread,
+              lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
+              updatedAt: now,
+            }
+          : thread,
+      ),
+    );
+  }, []);
 
   const createProviderConnection = useCallback(
     (input: ProviderConnectionInput) => {
@@ -1097,6 +1155,9 @@ export default function App() {
     updateLorebookEntry,
     duplicateLorebookEntry,
     deleteLorebookEntry: removeLorebookEntry,
+    createLorebook,
+    updateLorebook,
+    deleteLorebook,
     createProviderConnection,
     updateProviderConnection,
     duplicateProviderConnection,

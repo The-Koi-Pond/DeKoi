@@ -6,7 +6,10 @@ import type {
   LorebookEntryRecord,
   LorebookRecord,
 } from "../../engine/lorebook";
-import type { LorebookEntryInput } from "../../engine/lorebook-actions";
+import type {
+  LorebookEntryInput,
+  LorebookInput,
+} from "../../engine/lorebook-actions";
 import type { MessengerThread } from "../../engine/messenger";
 import type { PersonaRecord } from "../../engine/persona";
 import type { PersonaRecordInput } from "../../engine/persona-actions";
@@ -79,6 +82,9 @@ export interface NavContextType extends NavState {
     entryId: string,
   ) => LorebookEntryRecord | null;
   deleteLorebookEntry: (lorebookId: string, entryId: string) => void;
+  createLorebook: (input: LorebookInput) => LorebookRecord;
+  updateLorebook: (lorebookId: string, input: LorebookInput) => void;
+  deleteLorebook: (lorebookId: string) => void;
   createProviderConnection: (
     input: ProviderConnectionInput,
   ) => ProviderConnectionRecord;

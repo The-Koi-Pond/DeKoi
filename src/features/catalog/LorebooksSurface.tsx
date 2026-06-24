@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNav } from "../../shared/ui/nav-context";
-import type { LorebookEntryInput } from "../../engine/lorebook-actions";
+import type {
+  LorebookEntryInput,
+  LorebookInput,
+} from "../../engine/lorebook-actions";
 import { Switch } from "../../shared/ui/primitives/Switch";
 import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";
@@ -11,7 +14,13 @@ interface DraftState {
   enabled: boolean;
 }
 
+interface LorebookDraftState {
+  title: string;
+  summary: string;
+}
+
 const EMPTY_DRAFT: DraftState = { title: "", body: "", enabled: true };
+const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = { title: "", summary: "" };
 
 function draftFromEntry(entry: {
   title: string;
@@ -37,6 +46,9 @@ export function LorebooksSurface() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [showEditor, setShowEditor] = useState(false);
+  const [showLorebookEditor, setShowLorebookEditor] = useState(false);
+  const [lorebookDraft, setLorebookDraft] =
+    useState<LorebookDraftState>(EMPTY_LOREBOOK_DRAFT);
 
   const activeLorebook = nav.lorebooks.find(
     (lb) => lb.id === selectedLorebookId,
@@ -92,6 +104,89 @@ export function LorebooksSurface() {
     setEditingEntryId(null);
   }
 
+  function openNewLorebook() {
+    setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
+    setShowLorebookEditor(true);
+  }
+
+  function handleLorebookSave() {
+    const input: LorebookInput = {
+      title: lorebookDraft.title.trim(),
+      summary: lorebookDraft.summary.trim(),
+    };
+    if (!input.title) return;
+    const lorebook = nav.createLorebook(input);
+    setSelectedLorebookId(lorebook.id);
+    setShowLorebookEditor(false);
+    setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
+  }
+
+  function handleLorebookCancel() {
+    setShowLorebookEditor(false);
+    setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
+  }
+
+  function handleDeleteLorebook(lorebookId: string) {
+    nav.deleteLorebook(lorebookId);
+    if (selectedLorebookId === lorebookId) {
+      setSelectedLorebookId(null);
+    }
+  }
+
+  function renderLorebookEditor({
+    heading,
+    onSave,
+    onCancel,
+  }: {
+    heading: string;
+    onSave: () => void;
+    onCancel: () => void;
+  }) {
+    return (
+      <div className="catalog-editor">
+        <h3 className="catalog-editor-heading">{heading}</h3>
+        <div className="catalog-editor-field">
+          <label htmlFor="lorebook-title">Title</label>
+          <input
+            id="lorebook-title"
+            className="pondinput"
+            type="text"
+            value={lorebookDraft.title}
+            onChange={(e) =>
+              setLorebookDraft({ ...lorebookDraft, title: e.target.value })
+            }
+            placeholder="e.g. World Notes"
+          />
+        </div>
+        <div className="catalog-editor-field">
+          <label htmlFor="lorebook-summary">Summary</label>
+          <input
+            id="lorebook-summary"
+            className="pondinput"
+            type="text"
+            value={lorebookDraft.summary}
+            onChange={(e) =>
+              setLorebookDraft({ ...lorebookDraft, summary: e.target.value })
+            }
+            placeholder="Optional description"
+          />
+        </div>
+        <div className="catalog-editor-actions">
+          <button type="button" className="catalog-save-btn" onClick={onSave}>
+            Create Lorebook
+          </button>
+          <button
+            type="button"
+            className="catalog-cancel-btn"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (nav.lorebooks.length === 0) {
     return (
       <main className="pond catalog-surface">
@@ -109,9 +204,27 @@ export function LorebooksSurface() {
           </button>
         </div>
         <div className="pond-inner catalog-inner">
-          <p className="catalog-empty">
-            No lorebooks yet. They will appear once created.
-          </p>
+          {!showLorebookEditor && (
+            <>
+              <p className="catalog-empty">
+                No lorebooks yet. Create one to start collecting notes and
+                continuity material.
+              </p>
+              <button
+                type="button"
+                className="catalog-new-btn"
+                onClick={openNewLorebook}
+              >
+                + New Lorebook
+              </button>
+            </>
+          )}
+          {showLorebookEditor &&
+            renderLorebookEditor({
+              heading: "New Lorebook",
+              onSave: handleLorebookSave,
+              onCancel: handleLorebookCancel,
+            })}
         </div>
       </main>
     );
@@ -138,24 +251,55 @@ export function LorebooksSurface() {
         {/* Lorebook category selector */}
         <div className="lorebook-tabs" role="tablist" aria-label="Lorebooks">
           {nav.lorebooks.map((lb) => (
-            <button
+            <div
               key={lb.id}
-              type="button"
               className={`lorebook-tab${lb.id === selectedLorebookId ? " on" : ""}`}
               role="tab"
               aria-selected={lb.id === selectedLorebookId}
+              tabIndex={0}
               onClick={() => {
                 setSelectedLorebookId(lb.id);
                 setShowEditor(false);
                 setDraft(EMPTY_DRAFT);
                 setEditingEntryId(null);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedLorebookId(lb.id);
+                }
+              }}
             >
-              {lb.title}
+              <span className="lorebook-tab-title">{lb.title}</span>
               <span className="lorebook-entry-count">{lb.entries.length}</span>
-            </button>
+              <span
+                className="lorebook-tab-delete"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <DeleteButton
+                  ariaLabel={`Delete lorebook ${lb.title}`}
+                  onConfirm={() => handleDeleteLorebook(lb.id)}
+                />
+              </span>
+            </div>
           ))}
+          <button
+            type="button"
+            className="lorebook-tab-new"
+            aria-label="New lorebook"
+            onClick={openNewLorebook}
+          >
+            + New Lorebook
+          </button>
         </div>
+
+        {showLorebookEditor &&
+          renderLorebookEditor({
+            heading: "New Lorebook",
+            onSave: handleLorebookSave,
+            onCancel: handleLorebookCancel,
+          })}
 
         {activeLorebook && (
           <div
