@@ -7,15 +7,19 @@ import {
 } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import { type MessengerMessage } from "../../engine/messenger";
+import { createMessengerGenerationRequest } from "../../engine/messenger-generation";
 import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
+  createGeneratedCompanionMessage,
   createPersonaMessengerMessage,
-  createPlaceholderCompanionMessage,
-  getNextPlaceholderCompanion,
-  getPlaceholderReplyText,
 } from "../../engine/messenger-actions";
-import { sampleCompanions, samplePersona } from "../../engine/sample-messenger";
+import {
+  sampleCompanions,
+  sampleLorebook,
+  samplePersona,
+} from "../../engine/sample-messenger";
+import { mockMessengerGenerationAdapter } from "../../runtime/mock-messenger-generation";
 import "./messenger-thread.css";
 
 function getInitials(name: string) {
@@ -49,6 +53,11 @@ export function MessengerThread() {
     body: string;
     threadId: string | null;
   }>({ body: "", threadId: null });
+  const [generationState, setGenerationState] = useState<{
+    threadId: string | null;
+    status: "idle" | "generating" | "error";
+    message: string;
+  }>({ threadId: null, status: "idle", message: "" });
   const messageListRef = useRef<HTMLDivElement>(null);
   const threadCompanions = messengerThread
     ? sampleCompanions.filter((companion) =>
@@ -59,7 +68,15 @@ export function MessengerThread() {
     .map((companion) => companion.displayName)
     .join(" + ");
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
-  const canSend = draft.trim().length > 0;
+  const isGenerating =
+    generationState.threadId === activeThreadId &&
+    generationState.status === "generating";
+  const generationError =
+    generationState.threadId === activeThreadId &&
+    generationState.status === "error"
+      ? generationState.message
+      : "";
+  const canSend = draft.trim().length > 0 && !isGenerating;
   const storageLabel =
     nav.messengerStorageStatus === "saving"
       ? "Saving..."
@@ -75,8 +92,9 @@ export function MessengerThread() {
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
 
-  function sendDraft() {
+  async function sendDraft() {
     if (!messengerThread) return false;
+    if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
@@ -94,40 +112,72 @@ export function MessengerThread() {
       [userMessage],
       sentAt,
     );
-    const placeholderCompanion = getNextPlaceholderCompanion(
-      threadWithUserMessage,
-      sampleCompanions,
-    );
 
-    if (!placeholderCompanion) {
-      nav.updateMessengerThread(threadWithUserMessage);
-      setDraftState({ body: "", threadId: activeThreadId });
-      return true;
-    }
+    nav.updateMessengerThread(threadWithUserMessage);
+    setDraftState({ body: "", threadId: activeThreadId });
 
-    const repliedAt = new Date().toISOString();
-    const placeholderReply = createPlaceholderCompanionMessage({
-      body: getPlaceholderReplyText(trimmedDraft),
-      companion: placeholderCompanion,
-      id: createLocalId("messenger-message"),
-      now: repliedAt,
-      thread: threadWithUserMessage,
+    setGenerationState({
+      threadId: messengerThread.id,
+      status: "generating",
+      message: "Generating a mock Messenger reply.",
     });
 
-    nav.updateMessengerThread(
-      appendMessengerMessages(
-        threadWithUserMessage,
-        [placeholderReply],
-        repliedAt,
-      ),
-    );
-    setDraftState({ body: "", threadId: activeThreadId });
+    try {
+      const request = createMessengerGenerationRequest({
+        activePersona: samplePersona,
+        companions: threadCompanions,
+        id: createLocalId("messenger-generation-request"),
+        lorebooks: [sampleLorebook],
+        now: sentAt,
+        thread: threadWithUserMessage,
+        userMessage,
+      });
+      const response = await mockMessengerGenerationAdapter.generate(request);
+      const generatedMessages = response.messages
+        .map((messageDraft) => {
+          const companion = threadCompanions.find(
+            (candidate) => candidate.id === messageDraft.characterId,
+          );
+          if (!companion) return null;
+
+          return createGeneratedCompanionMessage({
+            body: messageDraft.body,
+            companion,
+            id: createLocalId("messenger-message"),
+            now: response.createdAt,
+            thread: threadWithUserMessage,
+          });
+        })
+        .filter((message): message is MessengerMessage => message !== null);
+
+      if (generatedMessages.length > 0) {
+        nav.updateMessengerThread(
+          appendMessengerMessages(
+            threadWithUserMessage,
+            generatedMessages,
+            response.createdAt,
+          ),
+        );
+      }
+
+      setGenerationState({ threadId: messengerThread.id, status: "idle", message: "" });
+    } catch (error) {
+      setGenerationState({
+        threadId: messengerThread.id,
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Messenger generation failed.",
+      });
+    }
+
     return true;
   }
 
   function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sendDraft();
+    void sendDraft();
   }
 
   function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -144,13 +194,14 @@ export function MessengerThread() {
     }
 
     event.preventDefault();
-    sendDraft();
+    void sendDraft();
   }
 
   function handleResetThread() {
     if (!messengerThread) return;
     nav.clearMessengerThreadMessages(messengerThread.id);
     setDraftState({ body: "", threadId: activeThreadId });
+    setGenerationState({ threadId: activeThreadId, status: "idle", message: "" });
   }
 
   function handleBack() {
@@ -222,6 +273,7 @@ export function MessengerThread() {
           <article className={getMessageClassName(message)} key={message.id}>
             <div className="message-author">
               {message.author.label}
+              {message.origin === "generated" && <span>Generated</span>}
               {message.origin === "placeholder" && <span>Placeholder</span>}
             </div>
             <p>{message.body}</p>
@@ -248,7 +300,7 @@ export function MessengerThread() {
         />
         <div className="composer-actions">
           <button type="submit" disabled={!canSend}>
-            Send
+            {isGenerating ? "Generating" : "Send"}
           </button>
           <button
             type="button"
@@ -260,9 +312,12 @@ export function MessengerThread() {
           </button>
         </div>
         <p className="composer-hint">
-          {nav.appSettings.sendOnEnterSurface === MESSENGER
+          {generationError ||
+          (isGenerating
+            ? "Mock generation is replying through the provider-neutral path."
+            : nav.appSettings.sendOnEnterSurface === MESSENGER
             ? "Enter sends. Shift+Enter adds a new line."
-            : "Enter adds a new line. Use Send to release the message."}
+            : "Enter adds a new line. Use Send to release the message.")}
         </p>
       </form>
     </section>

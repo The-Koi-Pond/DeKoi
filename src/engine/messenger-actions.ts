@@ -118,12 +118,44 @@ export function createPlaceholderCompanionMessage({
   }
 }
 
-export function getNextPlaceholderCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
+export function createGeneratedCompanionMessage({
+  body,
+  companion,
+  id,
+  now,
+  thread,
+}: {
+  body: string
+  companion: CharacterRecord
+  id: string
+  now: string
+  thread: MessengerThread
+}): MessengerMessage {
+  return {
+    id,
+    threadId: thread.id,
+    author: {
+      kind: 'character',
+      characterId: companion.id,
+      label: companion.displayName,
+    },
+    body,
+    origin: 'generated',
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function getNextMessengerCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
   const availableCompanions = companions.filter((companion) => thread.characterIds.includes(companion.id))
   if (availableCompanions.length === 0) return null
 
   const companionMessageCount = thread.messages.filter((message) => message.author.kind === 'character').length
   return availableCompanions[companionMessageCount % availableCompanions.length]
+}
+
+export function getNextPlaceholderCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
+  return getNextMessengerCompanion(thread, companions)
 }
 
 export function getPlaceholderReplyText(messageBody: string) {
