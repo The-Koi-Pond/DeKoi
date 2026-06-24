@@ -341,3 +341,30 @@
 }
 
 /* .lorebook-panel — content panel for the selected lorebook */
+
+/* Inline confirm/cancel pair shown by DeleteButton when confirmRelease is on. */
+.confirm-inline {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.catalog-action.confirm-yes {
+    color: var(--jade-hot);
+}
+.catalog-action.confirm-yes:hover,
+.catalog-action.confirm-yes:focus-visible {
+    border-color: rgba(39, 179, 170, 0.45);
+    background: rgba(39, 179, 170, 0.12);
+    color: var(--jade-hot);
+}
+
+.catalog-action.confirm-no {
+    color: var(--mist);
+}
+.catalog-action.confirm-no:hover,
+.catalog-action.confirm-no:focus-visible {
+    border-color: var(--reed-soft);
+    background: var(--raise);
+    color: var(--foam);
+}

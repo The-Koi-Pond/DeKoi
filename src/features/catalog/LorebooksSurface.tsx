@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import type { LorebookEntryInput } from "../../engine/lorebook-actions";
+import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";
 
 interface DraftState {
@@ -10,10 +11,7 @@ interface DraftState {
 
 const EMPTY_DRAFT: DraftState = { title: "", body: "" };
 
-function draftFromEntry(entry: {
-  title: string;
-  body: string;
-}): DraftState {
+function draftFromEntry(entry: { title: string; body: string }): DraftState {
   return { title: entry.title, body: entry.body };
 }
 
@@ -92,7 +90,9 @@ export function LorebooksSurface() {
     return (
       <main className="pond catalog-surface">
         <div className="pond-banner">
-          <span className="ic" aria-hidden="true">▤</span>
+          <span className="ic" aria-hidden="true">
+            ▤
+          </span>
           Lorebooks
           <button
             type="button"
@@ -116,7 +116,9 @@ export function LorebooksSurface() {
   return (
     <main className="pond catalog-surface">
       <div className="pond-banner">
-        <span className="ic" aria-hidden="true">▤</span>
+        <span className="ic" aria-hidden="true">
+          ▤
+        </span>
         Lorebooks
         <button
           type="button"
@@ -160,10 +162,12 @@ export function LorebooksSurface() {
             )}
 
             <div className="catalog-toolbar">
-              <span className="catalog-count">
-                {entries.length} entries
-              </span>
-              <button type="button" className="catalog-new-btn" onClick={openNew}>
+              <span className="catalog-count">{entries.length} entries</span>
+              <button
+                type="button"
+                className="catalog-new-btn"
+                onClick={openNew}
+              >
                 + New Entry
               </button>
             </div>
@@ -201,14 +205,10 @@ export function LorebooksSurface() {
                     >
                       ⧉
                     </button>
-                    <button
-                      type="button"
-                      className="catalog-action danger"
-                      aria-label={`Delete ${entry.title}`}
-                      onClick={() => handleDelete(entry.id)}
-                    >
-                      ✕
-                    </button>
+                    <DeleteButton
+                      ariaLabel={`Delete ${entry.title}`}
+                      onConfirm={() => handleDelete(entry.id)}
+                    />
                   </div>
                 </article>
               ))}

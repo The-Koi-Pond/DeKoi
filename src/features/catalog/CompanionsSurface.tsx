@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import type { CharacterRecordInput } from "../../engine/character-actions";
+import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";
 
 interface DraftState {
@@ -101,7 +102,9 @@ export function CompanionsSurface() {
   return (
     <main className="pond catalog-surface">
       <div className="pond-banner">
-        <span className="ic" aria-hidden="true">⚇</span>
+        <span className="ic" aria-hidden="true">
+          ⚇
+        </span>
         Companions
         <button
           type="button"
@@ -113,7 +116,9 @@ export function CompanionsSurface() {
       </div>
       <div className="pond-inner catalog-inner">
         <div className="catalog-toolbar">
-          <span className="catalog-count">{nav.characters.length} companions</span>
+          <span className="catalog-count">
+            {nav.characters.length} companions
+          </span>
           <button type="button" className="catalog-new-btn" onClick={openNew}>
             + New Companion
           </button>
@@ -134,8 +139,12 @@ export function CompanionsSurface() {
                 </div>
                 <div className="catalog-card-copy">
                   <b>{character.displayName}</b>
-                  {character.shortName && <small>aka {character.shortName}</small>}
-                  <span className="catalog-card-summary">{character.summary}</span>
+                  {character.shortName && (
+                    <small>aka {character.shortName}</small>
+                  )}
+                  <span className="catalog-card-summary">
+                    {character.summary}
+                  </span>
                 </div>
               </div>
               <div className="catalog-card-actions">
@@ -155,14 +164,10 @@ export function CompanionsSurface() {
                 >
                   ⧉
                 </button>
-                <button
-                  type="button"
-                  className="catalog-action danger"
-                  aria-label={`Delete ${character.displayName}`}
-                  onClick={() => handleDelete(character.id)}
-                >
-                  ✕
-                </button>
+                <DeleteButton
+                  ariaLabel={`Delete ${character.displayName}`}
+                  onConfirm={() => handleDelete(character.id)}
+                />
               </div>
             </article>
           ))}
@@ -180,7 +185,9 @@ export function CompanionsSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.displayName}
-                onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, displayName: e.target.value })
+                }
                 placeholder="e.g. Hikari"
               />
             </div>
@@ -191,7 +198,9 @@ export function CompanionsSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.shortName}
-                onChange={(e) => setDraft({ ...draft, shortName: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, shortName: e.target.value })
+                }
                 placeholder="Optional nickname"
               />
             </div>
@@ -202,7 +211,9 @@ export function CompanionsSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.summary}
-                onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, summary: e.target.value })
+                }
                 placeholder="Brief description"
               />
             </div>
@@ -213,7 +224,9 @@ export function CompanionsSurface() {
                 className="pondinput pondtextarea"
                 rows={4}
                 value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, description: e.target.value })
+                }
                 placeholder="Full description…"
               />
             </div>
@@ -224,15 +237,25 @@ export function CompanionsSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.avatarUrl}
-                onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, avatarUrl: e.target.value })
+                }
                 placeholder="Optional URL"
               />
             </div>
             <div className="catalog-editor-actions">
-              <button type="button" className="catalog-save-btn" onClick={handleSave}>
+              <button
+                type="button"
+                className="catalog-save-btn"
+                onClick={handleSave}
+              >
                 {editingId ? "Save Changes" : "Create"}
               </button>
-              <button type="button" className="catalog-cancel-btn" onClick={handleCancel}>
+              <button
+                type="button"
+                className="catalog-cancel-btn"
+                onClick={handleCancel}
+              >
                 Cancel
               </button>
             </div>

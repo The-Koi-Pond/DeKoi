@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import type { PersonaRecordInput } from "../../engine/persona-actions";
+import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";
 
 interface DraftState {
@@ -96,7 +97,9 @@ export function PersonasSurface() {
   return (
     <main className="pond catalog-surface">
       <div className="pond-banner">
-        <span className="ic" aria-hidden="true">◎</span>
+        <span className="ic" aria-hidden="true">
+          ◎
+        </span>
         Personas
         <button
           type="button"
@@ -129,7 +132,9 @@ export function PersonasSurface() {
                 </div>
                 <div className="catalog-card-copy">
                   <b>{persona.displayName}</b>
-                  <span className="catalog-card-summary">{persona.summary}</span>
+                  <span className="catalog-card-summary">
+                    {persona.summary}
+                  </span>
                 </div>
               </div>
               <div className="catalog-card-actions">
@@ -149,14 +154,10 @@ export function PersonasSurface() {
                 >
                   ⧉
                 </button>
-                <button
-                  type="button"
-                  className="catalog-action danger"
-                  aria-label={`Delete ${persona.displayName}`}
-                  onClick={() => handleDelete(persona.id)}
-                >
-                  ✕
-                </button>
+                <DeleteButton
+                  ariaLabel={`Delete ${persona.displayName}`}
+                  onConfirm={() => handleDelete(persona.id)}
+                />
               </div>
             </article>
           ))}
@@ -174,7 +175,9 @@ export function PersonasSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.displayName}
-                onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, displayName: e.target.value })
+                }
                 placeholder="e.g. Ripples"
               />
             </div>
@@ -185,7 +188,9 @@ export function PersonasSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.summary}
-                onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, summary: e.target.value })
+                }
                 placeholder="Brief description"
               />
             </div>
@@ -196,7 +201,9 @@ export function PersonasSurface() {
                 className="pondinput pondtextarea"
                 rows={4}
                 value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, description: e.target.value })
+                }
                 placeholder="Full description…"
               />
             </div>
@@ -207,15 +214,25 @@ export function PersonasSurface() {
                 className="pondinput"
                 type="text"
                 value={draft.avatarUrl}
-                onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, avatarUrl: e.target.value })
+                }
                 placeholder="Optional URL"
               />
             </div>
             <div className="catalog-editor-actions">
-              <button type="button" className="catalog-save-btn" onClick={handleSave}>
+              <button
+                type="button"
+                className="catalog-save-btn"
+                onClick={handleSave}
+              >
                 {editingId ? "Save Changes" : "Create"}
               </button>
-              <button type="button" className="catalog-cancel-btn" onClick={handleCancel}>
+              <button
+                type="button"
+                className="catalog-cancel-btn"
+                onClick={handleCancel}
+              >
                 Cancel
               </button>
             </div>
