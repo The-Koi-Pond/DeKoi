@@ -5,16 +5,7 @@ import {
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
 } from "./remote-runtime";
-
-export type HostStorageEntity =
-  | "app-settings"
-  | "characters"
-  | "classic-threads"
-  | "lorebooks"
-  | "messenger-threads"
-  | "personas"
-  | "provider-connections"
-  | "ripple-states";
+import type { HostStorageEntity } from "./storage-entities";
 
 export type HostStorageMode = "desktop" | "remote" | "unavailable";
 export type HostStorageStatus = "ready" | "error";

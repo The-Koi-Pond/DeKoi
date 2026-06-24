@@ -7,8 +7,8 @@ import {
 } from "../engine/provider-connection";
 import { isRecord, readString } from "./catalog-storage";
 import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
-const APP_SETTINGS_ENTITY = "app-settings";
 const APP_SETTINGS_RECORD_ID = "app-settings";
 const MAX_SURFACE_STATUS_LENGTH = 80;
 
@@ -241,7 +241,7 @@ export function loadAppSettings(): AppSettings {
 
 export async function loadAppSettingsFromStorage(rawUrl?: string) {
   const snapshot = await loadHostRecordsSnapshot({
-    entity: APP_SETTINGS_ENTITY,
+    entity: STORAGE_ENTITIES.appSettings,
     normalizeRecord: normalizeAppSettingsRecord,
     rawUrl,
     seedRecords: [appSettingsToRecord(DEFAULT_APP_SETTINGS)],
@@ -258,7 +258,7 @@ export function saveAppSettingsToStorage(
   rawUrl?: string,
 ) {
   return saveHostRecords(
-    APP_SETTINGS_ENTITY,
+    STORAGE_ENTITIES.appSettings,
     [appSettingsToRecord(settings)],
     normalizeAppSettingsRecord,
     rawUrl,

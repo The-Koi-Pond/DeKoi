@@ -7,6 +7,7 @@ import {
   type HostStorageMode,
 } from "./host-storage";
 import { readRemoteRuntimeUrl } from "./remote-runtime";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 export type MessengerStorageMode = HostStorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
@@ -17,8 +18,6 @@ export type MessengerStorageSnapshot = {
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
 };
-
-const MESSENGER_THREADS_ENTITY = "messenger-threads";
 
 function migrateLegacyId(id: string) {
   return id
@@ -99,7 +98,7 @@ export async function loadMessengerThreadsFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<MessengerStorageSnapshot> {
   const snapshot = await loadHostRecordsSnapshot({
-    entity: MESSENGER_THREADS_ENTITY,
+    entity: STORAGE_ENTITIES.messengerThreads,
     normalizeRecord: normalizeMessengerThread,
     rawUrl,
     seedRecords: [sampleMessengerThread],
@@ -119,7 +118,7 @@ export async function saveMessengerThreadsToStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<MessengerStorageSnapshot, "threads">> {
   const result = await saveHostRecords(
-    MESSENGER_THREADS_ENTITY,
+    STORAGE_ENTITIES.messengerThreads,
     threads,
     normalizeMessengerThread,
     rawUrl,

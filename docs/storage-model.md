@@ -41,14 +41,22 @@ adapters.
 
 ## Source Of Truth
 
-The current collection allowlist exists in two places and should be collapsed
-into an explicit checked contract:
+The frontend registry is the TypeScript source of truth for DeKoi storage entity
+names:
 
-- frontend: `src/runtime/host-storage.ts`
-- desktop host: `src-tauri/src/lib.rs`
+- `src/runtime/storage-entities.ts`
 
-Until that registry exists, any collection change must update both sides and
-this document in the same change.
+The desktop host keeps a Rust allowlist for local file access:
+
+- `src-tauri/src/lib.rs`
+
+Run this check after any collection change:
+
+```sh
+pnpm check:storage-contracts
+```
+
+The check fails if the TypeScript registry and Rust allowlist drift.
 
 ## Record Rules
 
@@ -106,11 +114,9 @@ names, UI labels, and provider requests should stay DeKoi-native.
 
 ## Next Storage Work
 
-1. Create a shared TypeScript storage entity registry for entity names and
-   expected record owners.
-2. Generate or check a storage catalog from the frontend registry and desktop
-   host allowlist.
-3. Add narrow cleanup helpers for relationships that are currently cleaned by
+1. Add narrow cleanup helpers for relationships that are currently cleaned by
    higher-level UI flows.
-4. Split desktop host storage commands out of `src-tauri/src/lib.rs` before
+2. Split desktop host storage commands out of `src-tauri/src/lib.rs` before
    adding more privileged capabilities.
+3. Wire `pnpm check:storage-contracts` into a broader repo check script once
+   the repo has one.

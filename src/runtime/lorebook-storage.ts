@@ -6,8 +6,7 @@ import {
   readTimestamp,
 } from "./catalog-storage";
 import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
-
-const LOREBOOKS_ENTITY = "lorebooks";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
   if (!isRecord(value)) return null;
@@ -60,7 +59,7 @@ export function loadLorebookRecords() {
 
 export function loadLorebookRecordsFromStorage(rawUrl?: string) {
   return loadHostRecordsSnapshot({
-    entity: LOREBOOKS_ENTITY,
+    entity: STORAGE_ENTITIES.lorebooks,
     normalizeRecord: normalizeLorebookRecord,
     rawUrl,
     seedRecords: [sampleLorebook],
@@ -71,5 +70,10 @@ export function saveLorebookRecordsToStorage(
   records: LorebookRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(LOREBOOKS_ENTITY, records, normalizeLorebookRecord, rawUrl);
+  return saveHostRecords(
+    STORAGE_ENTITIES.lorebooks,
+    records,
+    normalizeLorebookRecord,
+    rawUrl,
+  );
 }

@@ -11,8 +11,7 @@ import {
   readTimestamp,
 } from "./catalog-storage";
 import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
-
-const PROVIDER_CONNECTIONS_ENTITY = "provider-connections";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
@@ -57,7 +56,7 @@ export function loadProviderConnectionRecords() {
 
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
   return loadHostRecordsSnapshot({
-    entity: PROVIDER_CONNECTIONS_ENTITY,
+    entity: STORAGE_ENTITIES.providerConnections,
     normalizeRecord: normalizeProviderConnectionRecord,
     rawUrl,
     seedRecords: providerConnections,
@@ -69,7 +68,7 @@ export function saveProviderConnectionRecordsToStorage(
   rawUrl?: string,
 ) {
   return saveHostRecords(
-    PROVIDER_CONNECTIONS_ENTITY,
+    STORAGE_ENTITIES.providerConnections,
     records,
     normalizeProviderConnectionRecord,
     rawUrl,

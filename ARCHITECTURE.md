@@ -110,12 +110,12 @@ The short version:
 
 ## Next Architecture Work
 
-1. Add a single TypeScript storage entity registry and make runtime storage use
-   it instead of repeated string constants.
-2. Add a generated or checked storage catalog so docs and supported collections
-   cannot silently drift.
-3. Split `src-tauri/src/lib.rs` once host storage, secrets, files, and runtime
+1. Split `src-tauri/src/lib.rs` once host storage, secrets, files, and runtime
    commands need independent owners.
-4. Move `src/runtime` toward narrower adapter modules before adding real
+2. Move `src/runtime` toward narrower adapter modules before adding real
    provider transport.
+3. Add cleanup helpers for storage relationships that are currently enforced by
+   higher-level UI flows.
+4. Wire `pnpm check:storage-contracts` into a broader repo check script once
+   the repo has one.
 5. Add legacy import only after native records and storage contracts are stable.

@@ -7,8 +7,7 @@ import {
   readTimestamp,
 } from "./catalog-storage";
 import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
-
-const PERSONAS_ENTITY = "personas";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
   if (!isRecord(value)) return null;
@@ -37,7 +36,7 @@ export function loadPersonaRecords() {
 
 export function loadPersonaRecordsFromStorage(rawUrl?: string) {
   return loadHostRecordsSnapshot({
-    entity: PERSONAS_ENTITY,
+    entity: STORAGE_ENTITIES.personas,
     normalizeRecord: normalizePersonaRecord,
     rawUrl,
     seedRecords: [samplePersona],
@@ -48,5 +47,10 @@ export function savePersonaRecordsToStorage(
   records: PersonaRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(PERSONAS_ENTITY, records, normalizePersonaRecord, rawUrl);
+  return saveHostRecords(
+    STORAGE_ENTITIES.personas,
+    records,
+    normalizePersonaRecord,
+    rawUrl,
+  );
 }

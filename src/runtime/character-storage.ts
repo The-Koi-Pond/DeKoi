@@ -8,8 +8,7 @@ import {
   readTimestamp,
 } from "./catalog-storage";
 import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
-
-const CHARACTERS_ENTITY = "characters";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
   if (!isRecord(value)) return null;
@@ -40,7 +39,7 @@ export function loadCharacterRecords() {
 
 export function loadCharacterRecordsFromStorage(rawUrl?: string) {
   return loadHostRecordsSnapshot({
-    entity: CHARACTERS_ENTITY,
+    entity: STORAGE_ENTITIES.characters,
     normalizeRecord: normalizeCharacterRecord,
     rawUrl,
     seedRecords: sampleCompanions,
@@ -51,5 +50,10 @@ export function saveCharacterRecordsToStorage(
   records: CharacterRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(CHARACTERS_ENTITY, records, normalizeCharacterRecord, rawUrl);
+  return saveHostRecords(
+    STORAGE_ENTITIES.characters,
+    records,
+    normalizeCharacterRecord,
+    rawUrl,
+  );
 }

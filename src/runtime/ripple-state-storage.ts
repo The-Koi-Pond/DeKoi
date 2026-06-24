@@ -16,8 +16,7 @@ import {
   readString,
   readTimestamp,
 } from "./catalog-storage";
-
-const RIPPLE_STATES_ENTITY = "ripple-states";
+import { STORAGE_ENTITIES } from "./storage-entities";
 
 export type RippleStateStorageMode = HostStorageMode;
 export type RippleStateStorageStatus = "ready" | "error";
@@ -102,7 +101,7 @@ export async function loadRippleStatesFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<RippleStateStorageSnapshot> {
   const snapshot = await loadHostRecordsSnapshot({
-    entity: RIPPLE_STATES_ENTITY,
+    entity: STORAGE_ENTITIES.rippleStates,
     normalizeRecord: normalizeRippleState,
     rawUrl,
     seedRecords: [],
@@ -121,7 +120,7 @@ export async function saveRippleStatesToStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<RippleStateStorageSnapshot, "states">> {
   const result = await saveHostRecords(
-    RIPPLE_STATES_ENTITY,
+    STORAGE_ENTITIES.rippleStates,
     states,
     normalizeRippleState,
     rawUrl,
