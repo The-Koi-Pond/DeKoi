@@ -34,7 +34,7 @@ Build in this order unless the user explicitly redirects:
 4. Harden remote runtime command contract and test fixture.
 5. Harden storage/export/import for DeKoi-native records.
 6. Harden Classic first slice.
-7. Legacy import adapters.
+7. Harden legacy import adapters.
 8. Tauri/Rust host features.
 
 ## 1. Native Catalog Records
@@ -226,11 +226,16 @@ Acceptance:
 
 Goal: import old data only into stable DeKoi-native records.
 
+Status: initial legacy thread import is implemented in Pond Care > Stocking.
+It dry-runs supported previous thread JSON/localStorage shapes, previews counts,
+and appends converted records as native Messenger threads.
+
 Implementation:
 
-- Build one-way adapters: legacy source shape to DeKoi native shape.
+- Continue hardening one-way adapters: legacy source shape to DeKoi native
+  shape.
 - Keep legacy names out of public UI except import-source labels.
-- Add dry-run import summaries before writing data.
+- Keep dry-run import summaries before writing data.
 
 Acceptance:
 

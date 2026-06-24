@@ -17,6 +17,10 @@ import {
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
 } from "../../../runtime/dekoi-storage-bundle";
+import {
+  normalizeLegacyImport,
+  type DeKoiLegacyImportPreview,
+} from "../../../runtime/legacy-import";
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
@@ -181,6 +185,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
   const [bundleStatus, setBundleStatus] = useState("");
+  const [legacyPreview, setLegacyPreview] =
+    useState<DeKoiLegacyImportPreview | null>(null);
+  const [legacyImportConfirmed, setLegacyImportConfirmed] = useState(false);
+  const [legacyStatus, setLegacyStatus] = useState("");
   const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
   const currentBundleCounts = getDeKoiStorageBundleCounts({
     appSettings: nav.appSettings,
@@ -409,6 +417,45 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setBundleReplaceConfirmed(false);
   }
 
+  async function handleLegacyFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    setLegacyStatus("");
+    setLegacyPreview(null);
+    setLegacyImportConfirmed(false);
+
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const result = normalizeLegacyImport(parsed);
+      if (!result.ok) {
+        setLegacyStatus(result.error);
+        return;
+      }
+
+      setLegacyPreview(result.preview);
+      setLegacyStatus(`Previewing ${file.name}.`);
+    } catch {
+      setLegacyStatus("Legacy import file must be valid JSON.");
+    } finally {
+      input.value = "";
+    }
+  }
+
+  function handleLegacyImport() {
+    if (!legacyPreview) return;
+    if (!legacyImportConfirmed) {
+      setLegacyStatus("Confirm import before adding converted records.");
+      return;
+    }
+
+    nav.importLegacyData(legacyPreview.data);
+    setLegacyStatus("Imported converted legacy threads.");
+    setLegacyPreview(null);
+    setLegacyImportConfirmed(false);
+  }
+
   function renderBundleCounts(counts: DeKoiStorageBundleCounts) {
     return (
       <div className="bundle-counts">
@@ -439,6 +486,38 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         <span>
           <b>{counts.messengerMessages}</b> messages
         </span>
+      </div>
+    );
+  }
+
+  function renderLegacyPreview(preview: DeKoiLegacyImportPreview) {
+    return (
+      <div className="bundle-preview">
+        <b>Legacy import preview</b>
+        <div className="bundle-counts">
+          <span>
+            <b>{preview.counts.messengerThreads}</b> Messenger threads
+          </span>
+          <span>
+            <b>{preview.counts.messengerMessages}</b> messages
+          </span>
+        </div>
+        <p className="bundle-note">Source: {preview.data.sourceLabel}</p>
+        {preview.warnings.length > 0 && (
+          <div className="bundle-warnings">
+            {preview.warnings.map((warning) => (
+              <p key={warning}>{warning}</p>
+            ))}
+          </div>
+        )}
+        <label className="catalog-check bundle-confirm">
+          <input
+            type="checkbox"
+            checked={legacyImportConfirmed}
+            onChange={(event) => setLegacyImportConfirmed(event.target.checked)}
+          />
+          Add converted records to DeKoi
+        </label>
       </div>
     );
   }
@@ -521,6 +600,43 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               onClick={handleBundleImport}
             >
               Import bundle
+            </button>
+          </div>
+        </section>
+
+        <section className="bundle-section" aria-labelledby="legacy-import">
+          <div className="catalog-section-head">
+            <div>
+              <h3 id="legacy-import">Legacy import</h3>
+              <span>add converted threads</span>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="legacy-thread-file">Legacy thread JSON</label>
+            <input
+              className="pondinput"
+              id="legacy-thread-file"
+              type="file"
+              accept="application/json,.json"
+              onChange={handleLegacyFileChange}
+            />
+            <div className="help">
+              Supports previous thread exports and localStorage-style thread
+              dumps. Converted records are added as native Messenger threads.
+            </div>
+          </div>
+
+          {legacyPreview && renderLegacyPreview(legacyPreview)}
+          {legacyStatus && <p className="bundle-status">{legacyStatus}</p>}
+
+          <div className="runtime-actions">
+            <button
+              type="button"
+              disabled={!legacyPreview || !legacyImportConfirmed}
+              onClick={handleLegacyImport}
+            >
+              Import converted records
             </button>
           </div>
         </section>

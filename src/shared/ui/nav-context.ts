@@ -12,6 +12,7 @@ import type { ProviderConnectionInput } from '../../engine/provider-connection-a
 import type { SurfaceId } from '../../engine/surfaces'
 import type { AppSettings, ShoalSortMode } from '../../runtime/app-settings'
 import type { DeKoiStorageBundle } from '../../runtime/dekoi-storage-bundle'
+import type { DeKoiLegacyImportData } from '../../runtime/legacy-import'
 import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
 
 export type PondView =
@@ -70,6 +71,7 @@ export interface NavContextType extends NavState {
   openMessengerThread: (threadId: string) => void
   createStorageBundle: () => DeKoiStorageBundle
   importStorageBundle: (bundle: DeKoiStorageBundle) => void
+  importLegacyData: (data: DeKoiLegacyImportData) => void
   setRemoteRuntimeUrl: (url: string) => void
   setSendOnEnterSurface: (surface: SurfaceId) => void
   setConfirmRelease: (confirmRelease: boolean) => void

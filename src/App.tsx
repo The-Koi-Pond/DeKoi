@@ -61,6 +61,7 @@ import {
   createDeKoiStorageBundle,
   type DeKoiStorageBundle,
 } from "./runtime/dekoi-storage-bundle";
+import type { DeKoiLegacyImportData } from "./runtime/legacy-import";
 import {
   loadInitialMessengerThreads,
   loadMessengerThreadsFromStorage,
@@ -728,6 +729,35 @@ export default function App() {
     [providerConnections],
   );
 
+  const importLegacyData = useCallback((data: DeKoiLegacyImportData) => {
+    const importedThreads = data.messengerThreads.map((thread) => {
+      const id = createLocalId("messenger-thread");
+      return {
+        ...thread,
+        id,
+        messages: thread.messages.map((message) => ({
+          ...message,
+          threadId: id,
+        })),
+      };
+    });
+    const firstImportedThreadId = importedThreads[0]?.id ?? null;
+
+    setMessengerThreads((currentThreads) => [
+      ...importedThreads,
+      ...currentThreads,
+    ]);
+
+    setMessengerStorageStatus("saving");
+    setMessengerStorageMessage("Imported legacy threads. Saving...");
+    setSelectedSurface(MESSENGER);
+    setView(
+      firstImportedThreadId
+        ? { kind: "messenger", threadId: firstImportedThreadId }
+        : { kind: "pond" },
+    );
+  }, []);
+
   const setRemoteRuntimeUrl = useCallback((url: string) => {
     writeRemoteRuntimeUrl(url);
     setStorageReady(false);
@@ -825,6 +855,7 @@ export default function App() {
     openMessengerThread,
     createStorageBundle,
     importStorageBundle,
+    importLegacyData,
     setRemoteRuntimeUrl,
     setSendOnEnterSurface,
     setConfirmRelease,
