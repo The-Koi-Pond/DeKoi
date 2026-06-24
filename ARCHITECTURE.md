@@ -18,6 +18,8 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   files, and provider transport stay separate.
 - Runtime command names are registered in `src/runtime/runtime-commands.ts` and
   checked against the Rust desktop runtime and fixture server.
+- Desktop Tauri command names are registered in `src/runtime/desktop-commands.ts`
+  and checked against the Rust command registration.
 - Legacy import is a one-way adapter into DeKoi-native records. Legacy names and
   old storage shapes do not become the core model.
 

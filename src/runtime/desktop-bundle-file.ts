@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { DeKoiStorageBundle } from "./dekoi-storage-bundle";
+import { DESKTOP_COMMANDS } from "./desktop-commands";
 import {
   asDesktopHostErrorMessage,
   normalizeDesktopStorageBundleSnapshot,
@@ -22,7 +23,7 @@ export async function exportDesktopBundleFile(
   );
 
   return await invoke<DeKoiDesktopStorageBundleInfo | null>(
-    "dekoi_file_export_bundle",
+    DESKTOP_COMMANDS.fileExportBundle,
     { bundle, defaultFileName },
   );
 }
@@ -40,7 +41,7 @@ export async function importDesktopBundleFile(): Promise<DeKoiDesktopBundleFileI
   try {
     snapshot =
       await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
-        "dekoi_file_import_bundle",
+        DESKTOP_COMMANDS.fileImportBundle,
       );
   } catch (error) {
     return { ok: false, error: asDesktopHostErrorMessage(error) };

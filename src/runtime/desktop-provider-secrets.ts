@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { DESKTOP_COMMANDS } from "./desktop-commands";
 import { requireTauriForDesktopHost } from "./desktop-host-common";
 
 export interface DeKoiDesktopProviderSecretStatus {
@@ -18,7 +19,7 @@ export async function getDesktopProviderSecretStatus(
   requireTauriForSecrets();
 
   return await invoke<DeKoiDesktopProviderSecretStatus>(
-    "dekoi_provider_secret_status",
+    DESKTOP_COMMANDS.providerSecretStatus,
     { connectionId },
   );
 }
@@ -30,7 +31,7 @@ export async function writeDesktopProviderSecret(
   requireTauriForSecrets();
 
   return await invoke<DeKoiDesktopProviderSecretStatus>(
-    "dekoi_provider_secret_write",
+    DESKTOP_COMMANDS.providerSecretWrite,
     { connectionId, secret },
   );
 }
@@ -41,7 +42,7 @@ export async function deleteDesktopProviderSecret(
   requireTauriForSecrets();
 
   return await invoke<DeKoiDesktopProviderSecretStatus>(
-    "dekoi_provider_secret_delete",
+    DESKTOP_COMMANDS.providerSecretDelete,
     { connectionId },
   );
 }

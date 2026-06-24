@@ -1,5 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { asDesktopHostErrorMessage } from "./desktop-host-common";
+import { DESKTOP_COMMANDS } from "./desktop-commands";
 
 export interface DeKoiDesktopHostStatus {
   appName: string;
@@ -23,7 +24,7 @@ export async function checkDesktopHostStatus(): Promise<DeKoiDesktopHostStatus> 
   if (!isTauri()) return BROWSER_HOST_STATUS;
 
   try {
-    return await invoke<DeKoiDesktopHostStatus>("dekoi_host_status");
+    return await invoke<DeKoiDesktopHostStatus>(DESKTOP_COMMANDS.hostStatus);
   } catch (error) {
     return {
       appName: "DeKoi",

@@ -1,4 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { DESKTOP_COMMANDS } from "./desktop-commands";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import type { RemoteRuntimeCommand } from "./runtime-commands";
 import {
@@ -28,7 +29,7 @@ export async function checkDesktopRuntimeHealth(): Promise<RemoteRuntimeHealthCh
   }
 
   try {
-    const body = await invoke<unknown>("dekoi_runtime_health");
+    const body = await invoke<unknown>(DESKTOP_COMMANDS.runtimeHealth);
     if (
       !isRecord(body) ||
       body.ok !== true ||
@@ -64,7 +65,7 @@ export async function invokeDesktopRuntime<T>(
     throw new Error("Desktop runtime is only available inside the Tauri app.");
   }
 
-  return await invoke<T>("dekoi_runtime_invoke", {
+  return await invoke<T>(DESKTOP_COMMANDS.runtimeInvoke, {
     command,
     args: args ?? null,
   });
