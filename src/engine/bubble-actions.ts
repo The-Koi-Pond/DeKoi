@@ -2,10 +2,58 @@ import type { BubbleMessage, BubbleThread } from './bubbles'
 import type { CharacterRecord } from './character'
 import type { PersonaRecord } from './persona'
 
+export function createBubbleThread({
+  activePersonaId,
+  characterIds,
+  id,
+  lorebookIds = [],
+  now,
+  title,
+}: {
+  activePersonaId: string | null
+  characterIds: string[]
+  id: string
+  lorebookIds?: string[]
+  now: string
+  title: string
+}): BubbleThread {
+  return {
+    id,
+    schemaVersion: 1,
+    kind: 'bubbles',
+    mode: characterIds.length > 1 ? 'group' : 'direct',
+    title,
+    characterIds,
+    activePersonaId,
+    lorebookIds,
+    presetId: null,
+    providerConnectionId: null,
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 export function appendBubbleMessages(thread: BubbleThread, messages: BubbleMessage[], updatedAt: string): BubbleThread {
   return {
     ...thread,
     messages: [...thread.messages, ...messages],
+    updatedAt,
+  }
+}
+
+export function clearBubbleMessages(thread: BubbleThread, updatedAt: string): BubbleThread {
+  return {
+    ...thread,
+    messages: [],
+    updatedAt,
+  }
+}
+
+export function renameBubbleThread(thread: BubbleThread, title: string, updatedAt: string): BubbleThread {
+  return {
+    ...thread,
+    title,
     updatedAt,
   }
 }

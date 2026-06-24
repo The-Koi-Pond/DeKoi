@@ -9,11 +9,6 @@ import {
   getPlaceholderReplyText,
 } from "../../engine/bubble-actions";
 import { sampleCompanions, samplePersona } from "../../engine/sample-bubbles";
-import {
-  loadBubbleThread,
-  resetBubbleThreadStorage,
-  saveBubbleThread,
-} from "../../runtime/bubble-local-storage";
 import "./bubble-thread.css";
 
 function getInitials(name: string) {
@@ -40,25 +35,35 @@ function createLocalId(prefix: string) {
 
 export function BubbleThread() {
   const nav = useNav();
-  const [bubbleThread, setBubbleThread] = useState(loadBubbleThread);
-  const [draft, setDraft] = useState("");
+  const activeThreadId = nav.view.kind === "bubble" ? nav.view.threadId : null;
+  const bubbleThread =
+    nav.bubbleThreads.find((thread) => thread.id === activeThreadId) ?? null;
+  const [draftState, setDraftState] = useState<{
+    body: string;
+    threadId: string | null;
+  }>({ body: "", threadId: null });
   const messageListRef = useRef<HTMLDivElement>(null);
-  const participantSummary = sampleCompanions
+  const threadCompanions = bubbleThread
+    ? sampleCompanions.filter((companion) =>
+        bubbleThread.characterIds.includes(companion.id),
+      )
+    : sampleCompanions;
+  const participantSummary = threadCompanions
     .map((companion) => companion.displayName)
     .join(" + ");
+  const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const canSend = draft.trim().length > 0;
 
   useEffect(() => {
-    saveBubbleThread(bubbleThread);
-  }, [bubbleThread]);
-
-  useEffect(() => {
     if (!messageListRef.current) return;
+    if (!bubbleThread) return;
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-  }, [bubbleThread.messages.length]);
+  }, [bubbleThread, bubbleThread?.messages.length]);
 
   function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!bubbleThread) return;
+
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return;
 
@@ -81,8 +86,8 @@ export function BubbleThread() {
     );
 
     if (!placeholderCompanion) {
-      setBubbleThread(threadWithUserMessage);
-      setDraft("");
+      nav.updateBubbleThread(threadWithUserMessage);
+      setDraftState({ body: "", threadId: activeThreadId });
       return;
     }
 
@@ -95,23 +100,49 @@ export function BubbleThread() {
       thread: threadWithUserMessage,
     });
 
-    setBubbleThread(
+    nav.updateBubbleThread(
       appendBubbleMessages(
         threadWithUserMessage,
         [placeholderReply],
         repliedAt,
       ),
     );
-    setDraft("");
+    setDraftState({ body: "", threadId: activeThreadId });
   }
 
   function handleResetThread() {
-    setBubbleThread(resetBubbleThreadStorage());
-    setDraft("");
+    if (!bubbleThread) return;
+    nav.clearBubbleThreadMessages(bubbleThread.id);
+    setDraftState({ body: "", threadId: activeThreadId });
   }
 
   function handleBack() {
     nav.setView({ kind: "pond" });
+  }
+
+  if (!bubbleThread) {
+    return (
+      <section className="bubble-thread bubble-thread-empty">
+        <header className="bubble-header">
+          <div>
+            <button
+              className="bubble-back"
+              onClick={handleBack}
+              aria-label="Back to the Pond"
+            >
+              ← Back to the Pond
+            </button>
+            <h2>No Bubble selected</h2>
+            <p className="thread-meta">Cast a line to start a local thread.</p>
+          </div>
+        </header>
+        <div className="empty-thread">
+          <button type="button" onClick={() => nav.createBubbleThread()}>
+            + Cast a line
+          </button>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -134,7 +165,7 @@ export function BubbleThread() {
             <span title={samplePersona.displayName}>
               {getInitials(samplePersona.displayName)}
             </span>
-            {sampleCompanions.map((companion) => (
+            {threadCompanions.map((companion) => (
               <span title={companion.displayName} key={companion.id}>
                 {getInitials(companion.displayName)}
               </span>
@@ -166,7 +197,12 @@ export function BubbleThread() {
       >
         <textarea
           aria-label="Draft Bubble message"
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) =>
+            setDraftState({
+              body: event.target.value,
+              threadId: activeThreadId,
+            })
+          }
           placeholder="Write a Bubble..."
           value={draft}
         />

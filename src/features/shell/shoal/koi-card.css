@@ -105,6 +105,45 @@
   padding: 2px 7px;
   border-radius: 6px;
   flex: none;
+  transition: opacity 0.16s;
+}
+
+.kc-actions {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.16s;
+}
+
+.koi-card:hover .kc-actions,
+.koi-card:focus-within .kc-actions {
+  opacity: 1;
+}
+
+.koi-card:hover .kc-mode,
+.koi-card:focus-within .kc-mode {
+  opacity: 0;
+}
+
+.kc-actions button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 50%;
+  background: var(--abyss);
+  color: var(--mist);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.kc-actions button:hover {
+  border-color: var(--reed);
+  color: var(--foam);
 }
 
 .kc-mode.vn {

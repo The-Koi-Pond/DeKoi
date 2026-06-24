@@ -9,6 +9,9 @@ interface KoiCardProps {
   mode: SurfaceId;
   active?: boolean;
   online?: boolean;
+  onDelete?: () => void;
+  onOpen?: () => void;
+  onRename?: () => void;
 }
 
 // Avatar gradient per surface. Locked surfaces keep their color but render as
@@ -26,6 +29,9 @@ export function KoiCard({
   mode,
   active,
   online,
+  onDelete,
+  onOpen,
+  onRename,
 }: KoiCardProps) {
   const nav = useNav();
   const meta = SURFACES[mode];
@@ -33,8 +39,13 @@ export function KoiCard({
 
   function handleClick() {
     if (locked) return;
+    if (onOpen) {
+      onOpen();
+      return;
+    }
+
     nav.setSelectedSurface(mode);
-    nav.setView({ kind: "bubble", threadId: "first-pond" });
+    nav.createBubbleThread();
   }
 
   return (
@@ -47,6 +58,7 @@ export function KoiCard({
       title={locked ? (meta.lockedNote ?? undefined) : undefined}
       onClick={handleClick}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (locked) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -63,6 +75,38 @@ export function KoiCard({
         <div className="kc-sub">{sub}</div>
       </div>
       <span className={`kc-mode ${mode}`}>{meta.label}</span>
+      {(onRename || onDelete) && (
+        <div className="kc-actions" aria-label={`${name} actions`}>
+          {onRename && (
+            <button
+              type="button"
+              aria-label={`Rename ${name}`}
+              title="Rename"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRename();
+              }}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              ✎
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              aria-label={`Release ${name}`}
+              title="Release"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

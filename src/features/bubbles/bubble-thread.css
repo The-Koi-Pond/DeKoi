@@ -231,3 +231,26 @@
   color: var(--foam);
   border-color: var(--reed);
 }
+
+.bubble-thread-empty {
+  min-height: 320px;
+}
+
+.empty-thread {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.empty-thread button {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: linear-gradient(140deg, var(--koi-hot), var(--koi-deep));
+  color: #0c1216;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 550;
+}

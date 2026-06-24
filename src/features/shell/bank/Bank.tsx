@@ -119,7 +119,7 @@ export function Bank() {
         className="cast-fab"
         title="Cast a line — new chat"
         aria-label="Cast a line — new chat"
-        onClick={() => nav.setView({ kind: "bubble", threadId: "first-pond" })}
+        onClick={() => nav.createBubbleThread()}
       >
         +
       </button>

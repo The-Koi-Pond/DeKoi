@@ -123,6 +123,11 @@
   flex: none;
 }
 
+.drifter .dmode.bubbles {
+  background: rgba(244, 122, 53, 0.14);
+  color: var(--koi-hot);
+}
+
 .drifter .dmode.vn {
   background: rgba(39, 179, 170, 0.14);
   color: var(--jade-hot);
@@ -136,6 +141,16 @@
 .drifter[data-unread] {
   border-left: 3px solid var(--jade);
   padding-left: 11px;
+}
+
+.current-empty {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 16px;
+  background: var(--shallow);
+  color: var(--mist);
+  font-size: 12px;
 }
 
 @media (max-width: 1080px) {

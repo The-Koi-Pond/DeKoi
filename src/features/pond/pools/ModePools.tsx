@@ -6,6 +6,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
+import { sortBubbleThreadsByUpdatedAt } from "../../bubbles/thread-display";
 import "./pools.css";
 
 interface ModePoolsProps {
@@ -50,6 +51,16 @@ const POOLS: {
 ];
 
 export function ModePools({ nav }: ModePoolsProps) {
+  function openLatestBubbleThread() {
+    const latestThread = sortBubbleThreadsByUpdatedAt(nav.bubbleThreads)[0];
+    if (latestThread) {
+      nav.openBubbleThread(latestThread.id);
+      return;
+    }
+
+    nav.createBubbleThread();
+  }
+
   return (
     <div className="pools">
       {POOLS.map((pool) => {
@@ -71,14 +82,14 @@ export function ModePools({ nav }: ModePoolsProps) {
             onClick={() => {
               if (locked) return;
               nav.setSelectedSurface(pool.mode);
-              nav.setView({ kind: "bubble", threadId: "first-pond" });
+              openLatestBubbleThread();
             }}
             onKeyDown={(e) => {
               if (locked) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 nav.setSelectedSurface(pool.mode);
-                nav.setView({ kind: "bubble", threadId: "first-pond" });
+                openLatestBubbleThread();
               }
             }}
           >
