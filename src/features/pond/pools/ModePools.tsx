@@ -1,12 +1,12 @@
 import type { NavContextType } from "../../../shared/ui/nav-context";
 import {
-  BUBBLES,
-  VN,
+  CLASSIC,
+  MESSENGER,
   RESERVED,
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
-import { sortBubbleThreadsByUpdatedAt } from "../../bubbles/thread-display";
+import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 import "./pools.css";
 
 interface ModePoolsProps {
@@ -20,13 +20,13 @@ const POOLS: {
   meta: string;
 }[] = [
   {
-    mode: BUBBLES,
+    mode: MESSENGER,
     icon: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />,
     desc: "Open water. Talk freely with the AI, no scene, no rules.",
     meta: "12 koi · last dived 2h ago",
   },
   {
-    mode: VN,
+    mode: CLASSIC,
     icon: (
       <>
         <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
@@ -51,14 +51,14 @@ const POOLS: {
 ];
 
 export function ModePools({ nav }: ModePoolsProps) {
-  function openLatestBubbleThread() {
-    const latestThread = sortBubbleThreadsByUpdatedAt(nav.bubbleThreads)[0];
+  function openLatestMessengerThread() {
+    const latestThread = sortMessengerThreadsByUpdatedAt(nav.messengerThreads)[0];
     if (latestThread) {
-      nav.openBubbleThread(latestThread.id);
+      nav.openMessengerThread(latestThread.id);
       return;
     }
 
-    nav.createBubbleThread();
+    nav.createMessengerThread();
   }
 
   return (
@@ -82,14 +82,14 @@ export function ModePools({ nav }: ModePoolsProps) {
             onClick={() => {
               if (locked) return;
               nav.setSelectedSurface(pool.mode);
-              openLatestBubbleThread();
+              openLatestMessengerThread();
             }}
             onKeyDown={(e) => {
               if (locked) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 nav.setSelectedSurface(pool.mode);
-                openLatestBubbleThread();
+                openLatestMessengerThread();
               }
             }}
           >

@@ -1,16 +1,16 @@
 import { SURFACES } from "../../../engine/surfaces";
 import { useNav } from "../../../shared/ui/nav-context";
 import {
-  getBubbleThreadInitials,
-  getBubbleThreadPreview,
-  getBubbleThreadTimeLabel,
-  sortBubbleThreadsByUpdatedAt,
-} from "../../bubbles/thread-display";
+  getMessengerThreadInitials,
+  getMessengerThreadPreview,
+  getMessengerThreadTimeLabel,
+  sortMessengerThreadsByUpdatedAt,
+} from "../../messenger/thread-display";
 import "./currents.css";
 
 export function RecentCurrents() {
   const nav = useNav();
-  const recentThreads = sortBubbleThreadsByUpdatedAt(nav.bubbleThreads).slice(
+  const recentThreads = sortMessengerThreadsByUpdatedAt(nav.messengerThreads).slice(
     0,
     3,
   );
@@ -29,11 +29,11 @@ export function RecentCurrents() {
             className="drifter"
             role="button"
             tabIndex={0}
-            onClick={() => nav.openBubbleThread(thread.id)}
+            onClick={() => nav.openMessengerThread(thread.id)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                nav.openBubbleThread(thread.id);
+                nav.openMessengerThread(thread.id);
               }
             }}
           >
@@ -43,18 +43,18 @@ export function RecentCurrents() {
                 background: "linear-gradient(140deg,#f6a15a,#e06a2b)",
               }}
             >
-              {getBubbleThreadInitials(thread.title)}
+              {getMessengerThreadInitials(thread.title)}
             </div>
             <div className="db">
               <div className="dt">
                 <span className="dn">{thread.title}</span>
                 <span className="dtime">
-                  {getBubbleThreadTimeLabel(thread.updatedAt)}
+                  {getMessengerThreadTimeLabel(thread.updatedAt)}
                 </span>
               </div>
-              <div className="dmsg">{getBubbleThreadPreview(thread)}</div>
+              <div className="dmsg">{getMessengerThreadPreview(thread)}</div>
             </div>
-            <span className="dmode bubbles">{SURFACES.bubbles.label}</span>
+            <span className="dmode messenger">{SURFACES.messenger.label}</span>
           </div>
         ))}
         {recentThreads.length === 0 && (

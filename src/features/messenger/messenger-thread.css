@@ -1,6 +1,6 @@
-/* Pond-themed Bubble thread — replaces the old light-theme message surface */
+/* Pond-themed Messenger thread — replaces the old light-theme message surface */
 
-.bubble-thread {
+.messenger-thread {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,7 +14,7 @@
   overflow: hidden;
 }
 
-.bubble-header {
+.messenger-header {
   display: flex;
   gap: 16px;
   align-items: center;
@@ -25,7 +25,7 @@
   backdrop-filter: blur(6px);
 }
 
-.bubble-back {
+.messenger-back {
   background: none;
   border: none;
   color: var(--jade);
@@ -39,18 +39,18 @@
   gap: 4px;
 }
 
-.bubble-back:hover {
+.messenger-back:hover {
   color: var(--jade-hot);
 }
 
-.bubble-header h2 {
+.messenger-header h2 {
   font-family: var(--display);
   font-size: 18px;
   font-weight: 600;
   color: var(--foam);
 }
 
-.bubble-header-tools {
+.messenger-header-tools {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -112,7 +112,7 @@
   padding: 18px;
 }
 
-.bubble-message {
+.messenger-message {
   width: min(72%, 620px);
   padding: 11px 13px;
   border: 1px solid var(--reed-soft);
@@ -120,7 +120,7 @@
   background: var(--shallow);
 }
 
-.bubble-message-own {
+.messenger-message-own {
   align-self: flex-end;
   border-color: rgba(244, 122, 53, 0.35);
   background: rgba(244, 122, 53, 0.06);
@@ -138,7 +138,7 @@
   text-transform: uppercase;
 }
 
-.bubble-message-own .message-author {
+.messenger-message-own .message-author {
   color: var(--koi-hot);
 }
 
@@ -150,13 +150,13 @@
   font-size: 9px;
 }
 
-.bubble-message p {
+.messenger-message p {
   color: var(--foam);
   line-height: 1.5;
   font-size: 13px;
 }
 
-.bubble-composer {
+.messenger-composer {
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -166,7 +166,7 @@
   backdrop-filter: blur(6px);
 }
 
-.bubble-composer textarea {
+.messenger-composer textarea {
   flex: 1;
   min-height: 48px;
   max-height: 90px;
@@ -181,11 +181,11 @@
   outline: none;
 }
 
-.bubble-composer textarea::placeholder {
+.messenger-composer textarea::placeholder {
   color: var(--mist-dim);
 }
 
-.bubble-composer textarea:focus {
+.messenger-composer textarea:focus {
   border-color: var(--jade);
 }
 
@@ -232,7 +232,7 @@
   border-color: var(--reed);
 }
 
-.bubble-thread-empty {
+.messenger-thread-empty {
   min-height: 320px;
 }
 

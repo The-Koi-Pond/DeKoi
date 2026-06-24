@@ -122,8 +122,8 @@
   background: linear-gradient(transparent 50%, color-mix(in srgb, var(--c) 10%, transparent));
 }
 
-.pool.bubbles { --c: var(--koi); --c2: var(--koi-hot); }
-.pool.vn { --c: var(--jade); --c2: var(--jade-hot); }
+.pool.messenger { --c: var(--koi); --c2: var(--koi-hot); }
+.pool.classic { --c: var(--jade); --c2: var(--jade-hot); }
 .pool.reserved { --c: var(--amber); --c2: var(--amber-hot); }
 
 @media (max-width: 1080px) {

@@ -4,27 +4,27 @@ import {
   type PondView,
   type NavContextType,
 } from "./shared/ui/nav-context";
-import type { BubbleThread } from "./engine/bubbles";
+import type { MessengerThread } from "./engine/messenger";
 import {
-  clearBubbleMessages,
-  createBubbleThread as buildBubbleThread,
-  renameBubbleThread as renameBubbleThreadRecord,
-} from "./engine/bubble-actions";
+  clearMessengerMessages,
+  createMessengerThread as buildMessengerThread,
+  renameMessengerThread as renameMessengerThreadRecord,
+} from "./engine/messenger-actions";
 import {
   sampleCompanions,
   sampleLorebook,
   samplePersona,
-} from "./engine/sample-bubbles";
+} from "./engine/sample-messenger";
 import type { SurfaceId } from "./engine/surfaces";
-import { BUBBLES } from "./engine/surfaces";
+import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
-  loadBubbleThreadsFromStorage,
-  loadInitialBubbleThreads,
-  saveBubbleThreadsToStorage,
-  type BubbleStorageMode,
-  type BubbleStorageStatus,
-} from "./runtime/bubble-storage";
+  loadInitialMessengerThreads,
+  loadMessengerThreadsFromStorage,
+  saveMessengerThreadsToStorage,
+  type MessengerStorageMode,
+  type MessengerStorageStatus,
+} from "./runtime/messenger-storage";
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
@@ -39,15 +39,15 @@ function createLocalId(prefix: string) {
 
 export default function App() {
   const [view, setView] = useState<PondView>({ kind: "pond" });
-  const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(BUBBLES);
-  const [bubbleThreads, setBubbleThreads] =
-    useState<BubbleThread[]>(loadInitialBubbleThreads);
-  const [bubbleStorageMode, setBubbleStorageMode] =
-    useState<BubbleStorageMode>("local");
-  const [bubbleStorageStatus, setBubbleStorageStatus] =
-    useState<BubbleStorageStatus>("loading");
-  const [bubbleStorageMessage, setBubbleStorageMessage] =
-    useState("Loading Bubble storage.");
+  const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(MESSENGER);
+  const [messengerThreads, setMessengerThreads] =
+    useState<MessengerThread[]>(loadInitialMessengerThreads);
+  const [messengerStorageMode, setMessengerStorageMode] =
+    useState<MessengerStorageMode>("local");
+  const [messengerStorageStatus, setMessengerStorageStatus] =
+    useState<MessengerStorageStatus>("loading");
+  const [messengerStorageMessage, setMessengerStorageMessage] =
+    useState("Loading Messenger storage.");
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
     useState(readRemoteRuntimeUrl);
   const [storageReady, setStorageReady] = useState(false);
@@ -58,12 +58,12 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
 
-    loadBubbleThreadsFromStorage(remoteRuntimeUrl).then((snapshot) => {
+    loadMessengerThreadsFromStorage(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled) return;
-      setBubbleThreads(snapshot.threads);
-      setBubbleStorageMode(snapshot.mode);
-      setBubbleStorageStatus(snapshot.status);
-      setBubbleStorageMessage(snapshot.message);
+      setMessengerThreads(snapshot.threads);
+      setMessengerStorageMode(snapshot.mode);
+      setMessengerStorageStatus(snapshot.status);
+      setMessengerStorageMessage(snapshot.message);
       setStorageReady(true);
     });
 
@@ -78,15 +78,15 @@ export default function App() {
     const requestId = saveRequestId.current + 1;
     saveRequestId.current = requestId;
 
-    saveBubbleThreadsToStorage(bubbleThreads, remoteRuntimeUrl).then(
+    saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl).then(
       (snapshot) => {
         if (saveRequestId.current !== requestId) return;
-        setBubbleStorageMode(snapshot.mode);
-        setBubbleStorageStatus(snapshot.status);
-        setBubbleStorageMessage(snapshot.message);
+        setMessengerStorageMode(snapshot.mode);
+        setMessengerStorageStatus(snapshot.status);
+        setMessengerStorageMessage(snapshot.message);
       },
     );
-  }, [bubbleThreads, remoteRuntimeUrl, storageReady]);
+  }, [messengerThreads, remoteRuntimeUrl, storageReady]);
 
   // Esc key closes CareDrawer
   useEffect(() => {
@@ -98,30 +98,30 @@ export default function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [careOpen]);
 
-  const openBubbleThread = useCallback((threadId: string) => {
-    setSelectedSurface(BUBBLES);
-    setView({ kind: "bubble", threadId });
+  const openMessengerThread = useCallback((threadId: string) => {
+    setSelectedSurface(MESSENGER);
+    setView({ kind: "messenger", threadId });
   }, []);
 
-  const createBubbleThread = useCallback(() => {
+  const createMessengerThread = useCallback(() => {
     const now = new Date().toISOString();
-    const thread = buildBubbleThread({
+    const thread = buildMessengerThread({
       activePersonaId: samplePersona.id,
       characterIds: sampleCompanions.map((companion) => companion.id),
-      id: createLocalId("bubble-thread"),
+      id: createLocalId("messenger-thread"),
       lorebookIds: [sampleLorebook.id],
       now,
-      title: `New Bubble ${bubbleThreads.length + 1}`,
+      title: `New Messenger ${messengerThreads.length + 1}`,
     });
 
-    setBubbleThreads((currentThreads) => [thread, ...currentThreads]);
-    setSelectedSurface(BUBBLES);
-    setView({ kind: "bubble", threadId: thread.id });
+    setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
+    setSelectedSurface(MESSENGER);
+    setView({ kind: "messenger", threadId: thread.id });
     return thread;
-  }, [bubbleThreads.length]);
+  }, [messengerThreads.length]);
 
-  const updateBubbleThread = useCallback((thread: BubbleThread) => {
-    setBubbleThreads((currentThreads) =>
+  const updateMessengerThread = useCallback((thread: MessengerThread) => {
+    setMessengerThreads((currentThreads) =>
       currentThreads.some((currentThread) => currentThread.id === thread.id)
         ? currentThreads.map((currentThread) =>
             currentThread.id === thread.id ? thread : currentThread,
@@ -130,36 +130,36 @@ export default function App() {
     );
   }, []);
 
-  const renameBubbleThread = useCallback((threadId: string, title: string) => {
+  const renameMessengerThread = useCallback((threadId: string, title: string) => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
     const now = new Date().toISOString();
-    setBubbleThreads((currentThreads) =>
+    setMessengerThreads((currentThreads) =>
       currentThreads.map((thread) =>
         thread.id === threadId
-          ? renameBubbleThreadRecord(thread, trimmedTitle, now)
+          ? renameMessengerThreadRecord(thread, trimmedTitle, now)
           : thread,
       ),
     );
   }, []);
 
-  const clearBubbleThreadMessages = useCallback((threadId: string) => {
+  const clearMessengerThreadMessages = useCallback((threadId: string) => {
     const now = new Date().toISOString();
-    setBubbleThreads((currentThreads) =>
+    setMessengerThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.id === threadId ? clearBubbleMessages(thread, now) : thread,
+        thread.id === threadId ? clearMessengerMessages(thread, now) : thread,
       ),
     );
   }, []);
 
-  const deleteBubbleThread = useCallback(
+  const deleteMessengerThread = useCallback(
     (threadId: string) => {
-      setBubbleThreads((currentThreads) =>
+      setMessengerThreads((currentThreads) =>
         currentThreads.filter((thread) => thread.id !== threadId),
       );
 
-      if (view.kind === "bubble" && view.threadId === threadId) {
+      if (view.kind === "messenger" && view.threadId === threadId) {
         setView({ kind: "pond" });
       }
     },
@@ -169,18 +169,18 @@ export default function App() {
   const setRemoteRuntimeUrl = useCallback((url: string) => {
     writeRemoteRuntimeUrl(url);
     setStorageReady(false);
-    setBubbleStorageStatus("loading");
-    setBubbleStorageMessage("Loading Bubble storage.");
+    setMessengerStorageStatus("loading");
+    setMessengerStorageMessage("Loading Messenger storage.");
     setRemoteRuntimeUrlState(readRemoteRuntimeUrl());
   }, []);
 
   const nav: NavContextType = {
     view,
     selectedSurface,
-    bubbleThreads,
-    bubbleStorageMode,
-    bubbleStorageStatus,
-    bubbleStorageMessage,
+    messengerThreads,
+    messengerStorageMode,
+    messengerStorageStatus,
+    messengerStorageMessage,
     remoteRuntimeUrl,
     careOpen,
     careTab,
@@ -189,12 +189,12 @@ export default function App() {
       (s: SurfaceId) => setSelectedSurface(s),
       [],
     ),
-    createBubbleThread,
-    updateBubbleThread,
-    renameBubbleThread,
-    clearBubbleThreadMessages,
-    deleteBubbleThread,
-    openBubbleThread,
+    createMessengerThread,
+    updateMessengerThread,
+    renameMessengerThread,
+    clearMessengerThreadMessages,
+    deleteMessengerThread,
+    openMessengerThread,
     setRemoteRuntimeUrl,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),

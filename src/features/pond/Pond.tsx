@@ -1,6 +1,6 @@
 import type { NavContextType } from "../../shared/ui/nav-context";
 import { PondHome } from "./PondHome";
-import { BubbleThread } from "../bubbles/BubbleThread";
+import { MessengerThread } from "../messenger/MessengerThread";
 import "./Pond.css";
 
 interface PondProps {
@@ -8,15 +8,15 @@ interface PondProps {
 }
 
 export function Pond({ nav }: PondProps) {
-  const inBubble = nav.view.kind === "bubble";
+  const inMessenger = nav.view.kind === "messenger";
   const storagePhrase =
-    nav.bubbleStorageMode === "remote" && nav.bubbleStorageStatus !== "error"
+    nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
       ? "through the remote runtime"
       : "locally";
   // The banner copy is contextual: the "pick a koi" hint is for the Pond home;
-  // once inside a Bubble it would be misleading, so show a calmer status line.
-  const banner = inBubble
-    ? `Reading the water — your Bubble is saved ${storagePhrase} as you swim.`
+  // once inside Messenger it would be misleading, so show a calmer status line.
+  const banner = inMessenger
+    ? `Reading the water — your Messenger thread is saved ${storagePhrase} as you swim.`
     : "Cast a line to read the water — pick a koi from the Shoal to see its tracker.";
 
   return (
@@ -28,7 +28,7 @@ export function Pond({ nav }: PondProps) {
         {banner}
       </div>
       <div className="pond-inner">
-        {inBubble ? <BubbleThread /> : <PondHome nav={nav} />}
+        {inMessenger ? <MessengerThread /> : <PondHome nav={nav} />}
       </div>
     </main>
   );

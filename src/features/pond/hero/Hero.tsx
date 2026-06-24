@@ -2,7 +2,7 @@ import { PondEye } from "./PondEye";
 import "./hero.css";
 
 import { useNav } from "../../../shared/ui/nav-context";
-import { sortBubbleThreadsByUpdatedAt } from "../../bubbles/thread-display";
+import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 
 export function Hero() {
   const nav = useNav();
@@ -18,22 +18,22 @@ export function Hero() {
       <div className="hero-cta">
         <button
           className="cta primary"
-          onClick={() => nav.createBubbleThread()}
+          onClick={() => nav.createMessengerThread()}
         >
           + Cast a line
         </button>
         <button
           className="cta ghost"
           onClick={() => {
-            const latestThread = sortBubbleThreadsByUpdatedAt(
-              nav.bubbleThreads,
+            const latestThread = sortMessengerThreadsByUpdatedAt(
+              nav.messengerThreads,
             )[0];
             if (latestThread) {
-              nav.openBubbleThread(latestThread.id);
+              nav.openMessengerThread(latestThread.id);
               return;
             }
 
-            nav.createBubbleThread();
+            nav.createMessengerThread();
           }}
         >
           ↻ Resume a current

@@ -26,8 +26,8 @@ const CARE_TABS = [
 
 // DeKoi-native surface ids for the Send-on-Enter segmented control.
 const SEND_ON_ENTER_SURFACES = [
-  { value: "vn", label: "VN" },
-  { value: "bubbles", label: "Bubbles" },
+  { value: "classic", label: "Classic" },
+  { value: "messenger", label: "Messenger" },
   { value: "reserved", label: "Reserved" },
 ] as const;
 
@@ -44,11 +44,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [wheelNavigate, setWheelNavigate] = useState(false);
   const [narrationDrift, setNarrationDrift] = useState(50);
   const [autoplayPause, setAutoplayPause] = useState(30);
-  const [sendOnEnter, setSendOnEnter] = useState<string>("bubbles");
+  const [sendOnEnter, setSendOnEnter] = useState<string>("messenger");
   const [confirmRelease, setConfirmRelease] = useState(true);
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
-  const runtimeStatusMessage = runtimeHealth || nav.bubbleStorageMessage;
+  const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
 
   function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -272,7 +272,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           ) : nav.careTab === 7 ? (
             <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
               <p className="care-intro">
-                Deep Water controls where saved Bubbles settle.
+                Deep Water controls where saved Messenger threads settle.
               </p>
 
               <div className="field">
@@ -288,9 +288,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 <div className="help">Leave empty to use this browser only.</div>
               </div>
 
-              <div className={`runtime-status ${nav.bubbleStorageStatus}`}>
+              <div className={`runtime-status ${nav.messengerStorageStatus}`}>
                 <b>
-                  {nav.bubbleStorageMode === "remote"
+                  {nav.messengerStorageMode === "remote"
                     ? "Remote runtime"
                     : "Local storage"}
                 </b>

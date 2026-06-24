@@ -50,7 +50,7 @@ export function Depths() {
         </div>
         <div className="pop">
           <span className="pop-q">Lore library</span>
-          <span className="pop-to">→ VN</span>
+          <span className="pop-to">→ Classic</span>
         </div>
         <div className="pop">
           <span className="pop-q">Webhook surface</span>

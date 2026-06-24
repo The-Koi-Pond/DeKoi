@@ -101,8 +101,8 @@
   box-shadow: 0 0 12px var(--c);
 }
 
-.dive.bubbles { --c: var(--koi); --c2: var(--koi-hot); }
-.dive.vn { --c: var(--jade); --c2: var(--jade-hot); }
+.dive.messenger { --c: var(--koi); --c2: var(--koi-hot); }
+.dive.classic { --c: var(--jade); --c2: var(--jade-hot); }
 .dive.reserved { --c: var(--amber); --c2: var(--amber-hot); }
 
 .bank-spacer {

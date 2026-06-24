@@ -1,7 +1,7 @@
 {
   "name": "DeKoi",
   "short_name": "DeKoi",
-  "description": "A private-first character story engine — Bubbles, VN, lore, and ripples.",
+  "description": "A private-first character story engine — Messenger, Classic, lore, and ripples.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#091317",

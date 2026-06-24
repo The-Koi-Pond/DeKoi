@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { BUBBLES_SURFACE_LABEL, POND_SURFACE_LABEL, type BubbleMessage } from '../../engine/bubbles'
+import { MESSENGER_SURFACE_LABEL, POND_SURFACE_LABEL, type MessengerMessage } from '../../engine/messenger'
 import {
-  appendBubbleMessages,
-  createPersonaBubbleMessage,
+  appendMessengerMessages,
+  createPersonaMessengerMessage,
   createPlaceholderCompanionMessage,
   getNextPlaceholderCompanion,
   getPlaceholderReplyText,
-} from '../../engine/bubble-actions'
+} from '../../engine/messenger-actions'
 import { COMPANION_SURFACE_LABEL } from '../../engine/character'
 import { LOREBOOK_SURFACE_LABEL } from '../../engine/lorebook'
 import { PERSONA_SURFACE_LABEL } from '../../engine/persona'
@@ -16,12 +16,12 @@ import {
   sampleLorebook,
   samplePersona,
   sampleRippleState,
-} from '../../engine/sample-bubbles'
-import { loadBubbleThread, resetBubbleThreadStorage, saveBubbleThread } from '../../runtime/bubble-local-storage'
+} from '../../engine/sample-messenger'
+import { loadMessengerThread, resetMessengerThreadStorage, saveMessengerThread } from '../../runtime/messenger-local-storage'
 
 const surfaceLabels = [
-  BUBBLES_SURFACE_LABEL,
-  'VN',
+  MESSENGER_SURFACE_LABEL,
+  'Classic',
   COMPANION_SURFACE_LABEL,
   PERSONA_SURFACE_LABEL,
   LOREBOOK_SURFACE_LABEL,
@@ -36,8 +36,8 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-function getMessageClassName(message: BubbleMessage) {
-  return message.author.kind === 'persona' ? 'bubble-message bubble-message-own' : 'bubble-message'
+function getMessageClassName(message: MessengerMessage) {
+  return message.author.kind === 'persona' ? 'messenger-message messenger-message-own' : 'messenger-message'
 }
 
 function createLocalId(prefix: string) {
@@ -49,21 +49,21 @@ function createLocalId(prefix: string) {
 }
 
 export function Home() {
-  const [bubbleThread, setBubbleThread] = useState(loadBubbleThread)
+  const [messengerThread, setMessengerThread] = useState(loadMessengerThread)
   const [draft, setDraft] = useState('')
   const messageListRef = useRef<HTMLDivElement>(null)
   const participantSummary = sampleCompanions.map((companion) => companion.displayName).join(' + ')
-  const latestMessage = bubbleThread.messages[bubbleThread.messages.length - 1]
+  const latestMessage = messengerThread.messages[messengerThread.messages.length - 1]
   const canSend = draft.trim().length > 0
 
   useEffect(() => {
-    saveBubbleThread(bubbleThread)
-  }, [bubbleThread])
+    saveMessengerThread(messengerThread)
+  }, [messengerThread])
 
   useEffect(() => {
     if (!messageListRef.current) return
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight
-  }, [bubbleThread.messages.length])
+  }, [messengerThread.messages.length])
 
   function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -72,18 +72,18 @@ export function Home() {
     if (!trimmedDraft) return
 
     const sentAt = new Date().toISOString()
-    const userMessage = createPersonaBubbleMessage({
+    const userMessage = createPersonaMessengerMessage({
       body: trimmedDraft,
-      id: createLocalId('bubble-message'),
+      id: createLocalId('messenger-message'),
       now: sentAt,
       persona: samplePersona,
-      thread: bubbleThread,
+      thread: messengerThread,
     })
-    const threadWithUserMessage = appendBubbleMessages(bubbleThread, [userMessage], sentAt)
+    const threadWithUserMessage = appendMessengerMessages(messengerThread, [userMessage], sentAt)
     const placeholderCompanion = getNextPlaceholderCompanion(threadWithUserMessage, sampleCompanions)
 
     if (!placeholderCompanion) {
-      setBubbleThread(threadWithUserMessage)
+      setMessengerThread(threadWithUserMessage)
       setDraft('')
       return
     }
@@ -92,17 +92,17 @@ export function Home() {
     const placeholderReply = createPlaceholderCompanionMessage({
       body: getPlaceholderReplyText(trimmedDraft),
       companion: placeholderCompanion,
-      id: createLocalId('bubble-message'),
+      id: createLocalId('messenger-message'),
       now: repliedAt,
       thread: threadWithUserMessage,
     })
 
-    setBubbleThread(appendBubbleMessages(threadWithUserMessage, [placeholderReply], repliedAt))
+    setMessengerThread(appendMessengerMessages(threadWithUserMessage, [placeholderReply], repliedAt))
     setDraft('')
   }
 
   function handleResetThread() {
-    setBubbleThread(resetBubbleThreadStorage())
+    setMessengerThread(resetMessengerThreadStorage())
     setDraft('')
   }
 
@@ -119,7 +119,7 @@ export function Home() {
 
         <nav className="surface-tabs" aria-label="Primary surfaces">
           {surfaceLabels.map((label) => (
-            <span className={label === BUBBLES_SURFACE_LABEL ? 'surface-tab active' : 'surface-tab'} key={label}>
+            <span className={label === MESSENGER_SURFACE_LABEL ? 'surface-tab active' : 'surface-tab'} key={label}>
               {label}
             </span>
           ))}
@@ -143,27 +143,27 @@ export function Home() {
             </div>
           </div>
 
-          <article className="thread-row active" aria-label={bubbleThread.title}>
-            <div className="thread-avatar">{getInitials(bubbleThread.title)}</div>
+          <article className="thread-row active" aria-label={messengerThread.title}>
+            <div className="thread-avatar">{getInitials(messengerThread.title)}</div>
             <div className="thread-copy">
               <div className="thread-line">
-                <h3>{bubbleThread.title}</h3>
-                <span>{bubbleThread.messages.length}</span>
+                <h3>{messengerThread.title}</h3>
+                <span>{messengerThread.messages.length}</span>
               </div>
               <p>{latestMessage?.body ?? 'No messages yet.'}</p>
-              <small>Group Bubble with {participantSummary}</small>
+              <small>Group Messenger with {participantSummary}</small>
             </div>
           </article>
         </aside>
 
-        <section className="bubble-surface" aria-labelledby="bubble-thread-title">
-          <header className="bubble-header">
+        <section className="messenger-surface" aria-labelledby="messenger-thread-title">
+          <header className="messenger-header">
             <div>
-              <p className="eyebrow">{BUBBLES_SURFACE_LABEL}</p>
-              <h2 id="bubble-thread-title">{bubbleThread.title}</h2>
-              <p className="thread-meta">Group Bubble with {participantSummary}</p>
+              <p className="eyebrow">{MESSENGER_SURFACE_LABEL}</p>
+              <h2 id="messenger-thread-title">{messengerThread.title}</h2>
+              <p className="thread-meta">Group Messenger with {participantSummary}</p>
             </div>
-            <div className="bubble-header-tools">
+            <div className="messenger-header-tools">
               <span className="storage-chip">Saved locally</span>
               <div className="participant-stack" aria-label="Thread participants">
                 <span title={samplePersona.displayName}>{getInitials(samplePersona.displayName)}</span>
@@ -176,8 +176,8 @@ export function Home() {
             </div>
           </header>
 
-          <div className="message-list" aria-label="Bubble messages" ref={messageListRef}>
-            {bubbleThread.messages.map((message) => (
+          <div className="message-list" aria-label="Messenger messages" ref={messageListRef}>
+            {messengerThread.messages.map((message) => (
               <article className={getMessageClassName(message)} key={message.id}>
                 <div className="message-author">
                   {message.author.label}
@@ -188,11 +188,11 @@ export function Home() {
             ))}
           </div>
 
-          <form className="bubble-composer" aria-label="Bubble composer" onSubmit={handleSend}>
+          <form className="messenger-composer" aria-label="Messenger composer" onSubmit={handleSend}>
             <textarea
-              aria-label="Draft Bubble message"
+              aria-label="Draft Messenger message"
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Write a Bubble..."
+              placeholder="Write a Messenger message..."
               value={draft}
             />
             <button type="submit" disabled={!canSend}>

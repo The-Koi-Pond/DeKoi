@@ -1,8 +1,8 @@
-import type { BubbleMessage, BubbleThread } from './bubbles'
+import type { MessengerMessage, MessengerThread } from './messenger'
 import type { CharacterRecord } from './character'
 import type { PersonaRecord } from './persona'
 
-export function createBubbleThread({
+export function createMessengerThread({
   activePersonaId,
   characterIds,
   id,
@@ -16,11 +16,11 @@ export function createBubbleThread({
   lorebookIds?: string[]
   now: string
   title: string
-}): BubbleThread {
+}): MessengerThread {
   return {
     id,
     schemaVersion: 1,
-    kind: 'bubbles',
+    kind: 'messenger',
     mode: characterIds.length > 1 ? 'group' : 'direct',
     title,
     characterIds,
@@ -34,7 +34,11 @@ export function createBubbleThread({
   }
 }
 
-export function appendBubbleMessages(thread: BubbleThread, messages: BubbleMessage[], updatedAt: string): BubbleThread {
+export function appendMessengerMessages(
+  thread: MessengerThread,
+  messages: MessengerMessage[],
+  updatedAt: string,
+): MessengerThread {
   return {
     ...thread,
     messages: [...thread.messages, ...messages],
@@ -42,7 +46,7 @@ export function appendBubbleMessages(thread: BubbleThread, messages: BubbleMessa
   }
 }
 
-export function clearBubbleMessages(thread: BubbleThread, updatedAt: string): BubbleThread {
+export function clearMessengerMessages(thread: MessengerThread, updatedAt: string): MessengerThread {
   return {
     ...thread,
     messages: [],
@@ -50,7 +54,7 @@ export function clearBubbleMessages(thread: BubbleThread, updatedAt: string): Bu
   }
 }
 
-export function renameBubbleThread(thread: BubbleThread, title: string, updatedAt: string): BubbleThread {
+export function renameMessengerThread(thread: MessengerThread, title: string, updatedAt: string): MessengerThread {
   return {
     ...thread,
     title,
@@ -58,7 +62,7 @@ export function renameBubbleThread(thread: BubbleThread, title: string, updatedA
   }
 }
 
-export function createPersonaBubbleMessage({
+export function createPersonaMessengerMessage({
   body,
   id,
   now,
@@ -69,8 +73,8 @@ export function createPersonaBubbleMessage({
   id: string
   now: string
   persona: PersonaRecord
-  thread: BubbleThread
-}): BubbleMessage {
+  thread: MessengerThread
+}): MessengerMessage {
   return {
     id,
     threadId: thread.id,
@@ -97,8 +101,8 @@ export function createPlaceholderCompanionMessage({
   companion: CharacterRecord
   id: string
   now: string
-  thread: BubbleThread
-}): BubbleMessage {
+  thread: MessengerThread
+}): MessengerMessage {
   return {
     id,
     threadId: thread.id,
@@ -114,7 +118,7 @@ export function createPlaceholderCompanionMessage({
   }
 }
 
-export function getNextPlaceholderCompanion(thread: BubbleThread, companions: CharacterRecord[]) {
+export function getNextPlaceholderCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
   const availableCompanions = companions.filter((companion) => thread.characterIds.includes(companion.id))
   if (availableCompanions.length === 0) return null
 
@@ -125,11 +129,11 @@ export function getNextPlaceholderCompanion(thread: BubbleThread, companions: Ch
 export function getPlaceholderReplyText(messageBody: string) {
   const trimmedBody = messageBody.trim()
   if (trimmedBody.endsWith('?')) {
-    return 'I can answer for the local prototype: this Bubble is saved in your browser for now.'
+    return 'I can answer for the local prototype: this Messenger thread is saved in your browser for now.'
   }
 
   if (trimmedBody.length > 120) {
-    return 'Got it. I kept the important part in this local Bubble so we can reload and keep going.'
+    return 'Got it. I kept the important part in this local Messenger thread so we can reload and keep going.'
   }
 
   return 'Noted. This is a placeholder reply until provider support exists.'

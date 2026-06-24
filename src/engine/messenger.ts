@@ -1,11 +1,11 @@
-export const BUBBLES_SURFACE_LABEL = 'Bubbles'
+export const MESSENGER_SURFACE_LABEL = 'Messenger'
 export const POND_SURFACE_LABEL = 'Pond'
 
-export type BubbleThreadKind = 'bubbles'
-export type BubbleThreadMode = 'direct' | 'group'
-export type BubbleMessageOrigin = 'manual' | 'generated' | 'imported' | 'placeholder' | 'sample'
+export type MessengerThreadKind = 'messenger'
+export type MessengerThreadMode = 'direct' | 'group'
+export type MessengerMessageOrigin = 'manual' | 'generated' | 'imported' | 'placeholder' | 'sample'
 
-export type BubbleMessageAuthor =
+export type MessengerMessageAuthor =
   | {
       kind: 'persona'
       personaId: string
@@ -25,28 +25,28 @@ export type BubbleMessageAuthor =
       label: string
     }
 
-export interface BubbleMessage {
+export interface MessengerMessage {
   id: string
   threadId: string
-  author: BubbleMessageAuthor
+  author: MessengerMessageAuthor
   body: string
-  origin: BubbleMessageOrigin
+  origin: MessengerMessageOrigin
   createdAt: string
   updatedAt: string
 }
 
-export interface BubbleThread {
+export interface MessengerThread {
   id: string
   schemaVersion: 1
-  kind: BubbleThreadKind
-  mode: BubbleThreadMode
+  kind: MessengerThreadKind
+  mode: MessengerThreadMode
   title: string
   characterIds: string[]
   activePersonaId: string | null
   lorebookIds: string[]
   presetId: string | null
   providerConnectionId: string | null
-  messages: BubbleMessage[]
+  messages: MessengerMessage[]
   createdAt: string
   updatedAt: string
 }

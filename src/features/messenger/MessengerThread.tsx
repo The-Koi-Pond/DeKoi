@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNav } from "../../shared/ui/nav-context";
-import { type BubbleMessage } from "../../engine/bubbles";
+import { type MessengerMessage } from "../../engine/messenger";
 import {
-  appendBubbleMessages,
-  createPersonaBubbleMessage,
+  appendMessengerMessages,
+  createPersonaMessengerMessage,
   createPlaceholderCompanionMessage,
   getNextPlaceholderCompanion,
   getPlaceholderReplyText,
-} from "../../engine/bubble-actions";
-import { sampleCompanions, samplePersona } from "../../engine/sample-bubbles";
-import "./bubble-thread.css";
+} from "../../engine/messenger-actions";
+import { sampleCompanions, samplePersona } from "../../engine/sample-messenger";
+import "./messenger-thread.css";
 
 function getInitials(name: string) {
   return name
@@ -20,10 +20,10 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function getMessageClassName(message: BubbleMessage) {
+function getMessageClassName(message: MessengerMessage) {
   return message.author.kind === "persona"
-    ? "bubble-message bubble-message-own"
-    : "bubble-message";
+    ? "messenger-message messenger-message-own"
+    : "messenger-message";
 }
 
 function createLocalId(prefix: string) {
@@ -33,19 +33,19 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function BubbleThread() {
+export function MessengerThread() {
   const nav = useNav();
-  const activeThreadId = nav.view.kind === "bubble" ? nav.view.threadId : null;
-  const bubbleThread =
-    nav.bubbleThreads.find((thread) => thread.id === activeThreadId) ?? null;
+  const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
+  const messengerThread =
+    nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;
   const [draftState, setDraftState] = useState<{
     body: string;
     threadId: string | null;
   }>({ body: "", threadId: null });
   const messageListRef = useRef<HTMLDivElement>(null);
-  const threadCompanions = bubbleThread
+  const threadCompanions = messengerThread
     ? sampleCompanions.filter((companion) =>
-        bubbleThread.characterIds.includes(companion.id),
+        messengerThread.characterIds.includes(companion.id),
       )
     : sampleCompanions;
   const participantSummary = threadCompanions
@@ -54,37 +54,37 @@ export function BubbleThread() {
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const canSend = draft.trim().length > 0;
   const storageLabel =
-    nav.bubbleStorageStatus === "saving"
+    nav.messengerStorageStatus === "saving"
       ? "Saving..."
-      : nav.bubbleStorageMode === "remote"
+      : nav.messengerStorageMode === "remote"
         ? "Remote runtime"
-        : nav.bubbleStorageStatus === "error"
+        : nav.messengerStorageStatus === "error"
           ? "Local fallback"
           : "Saved locally";
 
   useEffect(() => {
     if (!messageListRef.current) return;
-    if (!bubbleThread) return;
+    if (!messengerThread) return;
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-  }, [bubbleThread, bubbleThread?.messages.length]);
+  }, [messengerThread, messengerThread?.messages.length]);
 
   function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!bubbleThread) return;
+    if (!messengerThread) return;
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return;
 
     const sentAt = new Date().toISOString();
-    const userMessage = createPersonaBubbleMessage({
+    const userMessage = createPersonaMessengerMessage({
       body: trimmedDraft,
-      id: createLocalId("bubble-message"),
+      id: createLocalId("messenger-message"),
       now: sentAt,
       persona: samplePersona,
-      thread: bubbleThread,
+      thread: messengerThread,
     });
-    const threadWithUserMessage = appendBubbleMessages(
-      bubbleThread,
+    const threadWithUserMessage = appendMessengerMessages(
+      messengerThread,
       [userMessage],
       sentAt,
     );
@@ -94,7 +94,7 @@ export function BubbleThread() {
     );
 
     if (!placeholderCompanion) {
-      nav.updateBubbleThread(threadWithUserMessage);
+      nav.updateMessengerThread(threadWithUserMessage);
       setDraftState({ body: "", threadId: activeThreadId });
       return;
     }
@@ -103,13 +103,13 @@ export function BubbleThread() {
     const placeholderReply = createPlaceholderCompanionMessage({
       body: getPlaceholderReplyText(trimmedDraft),
       companion: placeholderCompanion,
-      id: createLocalId("bubble-message"),
+      id: createLocalId("messenger-message"),
       now: repliedAt,
       thread: threadWithUserMessage,
     });
 
-    nav.updateBubbleThread(
-      appendBubbleMessages(
+    nav.updateMessengerThread(
+      appendMessengerMessages(
         threadWithUserMessage,
         [placeholderReply],
         repliedAt,
@@ -119,8 +119,8 @@ export function BubbleThread() {
   }
 
   function handleResetThread() {
-    if (!bubbleThread) return;
-    nav.clearBubbleThreadMessages(bubbleThread.id);
+    if (!messengerThread) return;
+    nav.clearMessengerThreadMessages(messengerThread.id);
     setDraftState({ body: "", threadId: activeThreadId });
   }
 
@@ -128,24 +128,24 @@ export function BubbleThread() {
     nav.setView({ kind: "pond" });
   }
 
-  if (!bubbleThread) {
+  if (!messengerThread) {
     return (
-      <section className="bubble-thread bubble-thread-empty">
-        <header className="bubble-header">
+      <section className="messenger-thread messenger-thread-empty">
+        <header className="messenger-header">
           <div>
             <button
-              className="bubble-back"
+              className="messenger-back"
               onClick={handleBack}
               aria-label="Back to the Pond"
             >
               ← Back to the Pond
             </button>
-            <h2>No Bubble selected</h2>
+            <h2>No Messenger thread selected</h2>
             <p className="thread-meta">Cast a line to start a local thread.</p>
           </div>
         </header>
         <div className="empty-thread">
-          <button type="button" onClick={() => nav.createBubbleThread()}>
+          <button type="button" onClick={() => nav.createMessengerThread()}>
             + Cast a line
           </button>
         </div>
@@ -154,21 +154,21 @@ export function BubbleThread() {
   }
 
   return (
-    <section className="bubble-thread" aria-labelledby="bubble-thread-title">
-      <header className="bubble-header">
+    <section className="messenger-thread" aria-labelledby="messenger-thread-title">
+      <header className="messenger-header">
         <div>
           <button
-            className="bubble-back"
+            className="messenger-back"
             onClick={handleBack}
             aria-label="Back to the Pond"
           >
             ← Back to the Pond
           </button>
-          <h2 id="bubble-thread-title">{bubbleThread.title}</h2>
-          <p className="thread-meta">Group Bubble with {participantSummary}</p>
+          <h2 id="messenger-thread-title">{messengerThread.title}</h2>
+          <p className="thread-meta">Group Messenger with {participantSummary}</p>
         </div>
-        <div className="bubble-header-tools">
-          <span className="storage-chip" title={nav.bubbleStorageMessage}>
+        <div className="messenger-header-tools">
+          <span className="storage-chip" title={nav.messengerStorageMessage}>
             {storageLabel}
           </span>
           <div className="participant-stack" aria-label="Thread participants">
@@ -186,10 +186,10 @@ export function BubbleThread() {
 
       <div
         className="message-list"
-        aria-label="Bubble messages"
+        aria-label="Messenger messages"
         ref={messageListRef}
       >
-        {bubbleThread.messages.map((message) => (
+        {messengerThread.messages.map((message) => (
           <article className={getMessageClassName(message)} key={message.id}>
             <div className="message-author">
               {message.author.label}
@@ -201,19 +201,19 @@ export function BubbleThread() {
       </div>
 
       <form
-        className="bubble-composer"
-        aria-label="Bubble composer"
+        className="messenger-composer"
+        aria-label="Messenger composer"
         onSubmit={handleSend}
       >
         <textarea
-          aria-label="Draft Bubble message"
+          aria-label="Draft Messenger message"
           onChange={(event) =>
             setDraftState({
               body: event.target.value,
               threadId: activeThreadId,
             })
           }
-          placeholder="Write a Bubble..."
+          placeholder="Write a Messenger message..."
           value={draft}
         />
         <div className="composer-actions">

@@ -1,19 +1,19 @@
 import { createContext, useContext } from 'react'
-import type { BubbleThread } from '../../engine/bubbles'
+import type { MessengerThread } from '../../engine/messenger'
 import type { SurfaceId } from '../../engine/surfaces'
-import type { BubbleStorageMode, BubbleStorageStatus } from '../../runtime/bubble-storage'
+import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
 
 export type PondView =
   | { kind: 'pond' }
-  | { kind: 'bubble'; threadId: string }
+  | { kind: 'messenger'; threadId: string }
 
 export interface NavState {
   view: PondView
   selectedSurface: SurfaceId
-  bubbleThreads: BubbleThread[]
-  bubbleStorageMode: BubbleStorageMode
-  bubbleStorageStatus: BubbleStorageStatus
-  bubbleStorageMessage: string
+  messengerThreads: MessengerThread[]
+  messengerStorageMode: MessengerStorageMode
+  messengerStorageStatus: MessengerStorageStatus
+  messengerStorageMessage: string
   remoteRuntimeUrl: string
   careOpen: boolean
   careTab: number
@@ -22,12 +22,12 @@ export interface NavState {
 export interface NavContextType extends NavState {
   setView: (view: PondView) => void
   setSelectedSurface: (surface: SurfaceId) => void
-  createBubbleThread: () => BubbleThread
-  updateBubbleThread: (thread: BubbleThread) => void
-  renameBubbleThread: (threadId: string, title: string) => void
-  clearBubbleThreadMessages: (threadId: string) => void
-  deleteBubbleThread: (threadId: string) => void
-  openBubbleThread: (threadId: string) => void
+  createMessengerThread: () => MessengerThread
+  updateMessengerThread: (thread: MessengerThread) => void
+  renameMessengerThread: (threadId: string, title: string) => void
+  clearMessengerThreadMessages: (threadId: string) => void
+  deleteMessengerThread: (threadId: string) => void
+  openMessengerThread: (threadId: string) => void
   setRemoteRuntimeUrl: (url: string) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void

@@ -1,23 +1,23 @@
 import { useMemo, useState } from "react";
 import { KoiCard } from "./KoiCard";
 import {
-  getBubbleThreadInitials,
-  getBubbleThreadPreview,
-  sortBubbleThreadsByUpdatedAt,
-} from "../../bubbles/thread-display";
+  getMessengerThreadInitials,
+  getMessengerThreadPreview,
+  sortMessengerThreadsByUpdatedAt,
+} from "../../messenger/thread-display";
 import { useNav } from "../../../shared/ui/nav-context";
 import "./Shoal.css";
 
 export function Shoal() {
   const nav = useNav();
   const [query, setQuery] = useState("");
-  const activeThreadId = nav.view.kind === "bubble" ? nav.view.threadId : null;
+  const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const sortedThreads = useMemo(
-    () => sortBubbleThreadsByUpdatedAt(nav.bubbleThreads),
-    [nav.bubbleThreads],
+    () => sortMessengerThreadsByUpdatedAt(nav.messengerThreads),
+    [nav.messengerThreads],
   );
   const storageLabel =
-    nav.bubbleStorageMode === "remote" && nav.bubbleStorageStatus !== "error"
+    nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
       ? "remote runtime"
       : "saved locally";
   const filteredThreads = useMemo(() => {
@@ -25,7 +25,7 @@ export function Shoal() {
     if (!normalizedQuery) return sortedThreads;
 
     return sortedThreads.filter((thread) => {
-      const preview = getBubbleThreadPreview(thread);
+      const preview = getMessengerThreadPreview(thread);
       return (
         thread.title.toLowerCase().includes(normalizedQuery) ||
         preview.toLowerCase().includes(normalizedQuery)
@@ -34,14 +34,14 @@ export function Shoal() {
   }, [query, sortedThreads]);
 
   function handleRename(threadId: string, currentTitle: string) {
-    const nextTitle = window.prompt("Rename Bubble", currentTitle);
+    const nextTitle = window.prompt("Rename Messenger thread", currentTitle);
     if (nextTitle === null) return;
-    nav.renameBubbleThread(threadId, nextTitle);
+    nav.renameMessengerThread(threadId, nextTitle);
   }
 
   function handleDelete(threadId: string, title: string) {
     if (!window.confirm(`Release "${title}" from the Shoal?`)) return;
-    nav.deleteBubbleThread(threadId);
+    nav.deleteMessengerThread(threadId);
   }
 
   return (
@@ -73,7 +73,7 @@ export function Shoal() {
         <div className="shoal-actions">
           <button
             className="pill koi"
-            onClick={() => nav.createBubbleThread()}
+            onClick={() => nav.createMessengerThread()}
           >
             ＋ Cast a line
           </button>
@@ -87,30 +87,30 @@ export function Shoal() {
       </div>
       <div className="shoal-meta">
         <span className="sort">↕ Freshest first</span>
-        <span className="mark-chip" title={nav.bubbleStorageMessage}>
+        <span className="mark-chip" title={nav.messengerStorageMessage}>
           ⌗ {filteredThreads.length} shown
         </span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">Bubbles — {storageLabel}</div>
+        <div className="group-label">Messenger — {storageLabel}</div>
         {filteredThreads.map((thread) => (
           <KoiCard
             key={thread.id}
-            initials={getBubbleThreadInitials(thread.title)}
+            initials={getMessengerThreadInitials(thread.title)}
             name={thread.title}
-            sub={getBubbleThreadPreview(thread)}
-            mode="bubbles"
+            sub={getMessengerThreadPreview(thread)}
+            mode="messenger"
             active={thread.id === activeThreadId}
             online
-            onOpen={() => nav.openBubbleThread(thread.id)}
+            onOpen={() => nav.openMessengerThread(thread.id)}
             onRename={() => handleRename(thread.id, thread.title)}
             onDelete={() => handleDelete(thread.id, thread.title)}
           />
         ))}
         {filteredThreads.length === 0 && (
           <div className="shoal-empty">
-            <p>No Bubbles match this search.</p>
-            <button type="button" onClick={() => nav.createBubbleThread()}>
+            <p>No Messenger threads match this search.</p>
+            <button type="button" onClick={() => nav.createMessengerThread()}>
               Cast a line
             </button>
           </div>

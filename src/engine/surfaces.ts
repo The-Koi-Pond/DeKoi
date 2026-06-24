@@ -2,15 +2,15 @@
  * DeKoi surface/pond-mode identifiers — the single source of truth.
  *
  * Per SURFACE_LABELS.md and DOMAIN_MODEL.md: the first-slice surfaces are
- * Bubbles (DM-style chat) and VN (visual novel). The third slot is Reserved —
+ * Messenger (DM-style chat) and Classic (visual novel). The third slot is Reserved —
  * a placeholder for a not-yet-decided surface (the mockup's amber "deep water"
  * lane). Reserved is intentionally out of scope for the first slice.
  */
-export const BUBBLES = "bubbles";
-export const VN = "vn";
+export const MESSENGER = "messenger";
+export const CLASSIC = "classic";
 export const RESERVED = "reserved";
 
-export type SurfaceId = typeof BUBBLES | typeof VN | typeof RESERVED;
+export type SurfaceId = typeof MESSENGER | typeof CLASSIC | typeof RESERVED;
 
 export interface SurfaceMeta {
   id: SurfaceId;
@@ -23,8 +23,8 @@ export interface SurfaceMeta {
 }
 
 export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
-  [BUBBLES]: { id: BUBBLES, label: "Bubbles", locked: false, lockedNote: null },
-  [VN]: { id: VN, label: "VN", locked: true, lockedNote: "Surfacing soon" },
+  [MESSENGER]: { id: MESSENGER, label: "Messenger", locked: false, lockedNote: null },
+  [CLASSIC]: { id: CLASSIC, label: "Classic", locked: true, lockedNote: "Surfacing soon" },
   [RESERVED]: {
     id: RESERVED,
     label: "Reserved",
@@ -33,7 +33,7 @@ export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
   },
 };
 
-export const SURFACE_ORDER: SurfaceId[] = [BUBBLES, VN, RESERVED];
+export const SURFACE_ORDER: SurfaceId[] = [MESSENGER, CLASSIC, RESERVED];
 
 export function isLockedSurface(surface: SurfaceId): boolean {
   return SURFACES[surface].locked;

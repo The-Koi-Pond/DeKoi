@@ -1,4 +1,4 @@
-import type { BubbleThread } from './bubbles'
+import type { MessengerThread } from './messenger'
 import type { CharacterRecord } from './character'
 import type { LorebookRecord } from './lorebook'
 import type { PersonaRecord } from './persona'
@@ -37,8 +37,8 @@ export const samplePersona: PersonaRecord = {
   id: 'persona-local-self',
   schemaVersion: 1,
   displayName: 'You',
-  summary: 'The active local persona for the first Bubble thread.',
-  description: 'A private user identity that can be reused across Bubbles and VN threads.',
+  summary: 'The active local persona for the first Messenger thread.',
+  description: 'A private user identity that can be reused across Messenger and Classic threads.',
   avatarUrl: null,
   createdAt: sampleTimestamp,
   updatedAt: sampleTimestamp,
@@ -61,7 +61,7 @@ export const sampleLorebook: LorebookRecord = {
     {
       id: 'lore-entry-native-records',
       title: 'Native records',
-      body: 'Bubbles, Companions, Personas, Lorebooks, and Ripples are DeKoi-owned concepts.',
+      body: 'Messenger, Companions, Personas, Lorebooks, and Ripples are DeKoi-owned concepts.',
       enabled: true,
       createdAt: sampleTimestamp,
       updatedAt: sampleTimestamp,
@@ -71,10 +71,10 @@ export const sampleLorebook: LorebookRecord = {
   updatedAt: sampleTimestamp,
 }
 
-export const sampleBubbleThread: BubbleThread = {
-  id: 'bubble-thread-first-pond',
+export const sampleMessengerThread: MessengerThread = {
+  id: 'messenger-thread-first-pond',
   schemaVersion: 1,
-  kind: 'bubbles',
+  kind: 'messenger',
   mode: 'group',
   title: 'First Pond Check-In',
   characterIds: sampleCompanions.map((companion) => companion.id),
@@ -84,8 +84,8 @@ export const sampleBubbleThread: BubbleThread = {
   providerConnectionId: null,
   messages: [
     {
-      id: 'bubble-message-1',
-      threadId: 'bubble-thread-first-pond',
+      id: 'messenger-message-1',
+      threadId: 'messenger-thread-first-pond',
       author: {
         kind: 'persona',
         personaId: samplePersona.id,
@@ -97,8 +97,8 @@ export const sampleBubbleThread: BubbleThread = {
       updatedAt: '2026-06-23T09:31:00.000Z',
     },
     {
-      id: 'bubble-message-2',
-      threadId: 'bubble-thread-first-pond',
+      id: 'messenger-message-2',
+      threadId: 'messenger-thread-first-pond',
       author: {
         kind: 'character',
         characterId: 'companion-nami',
@@ -110,14 +110,14 @@ export const sampleBubbleThread: BubbleThread = {
       updatedAt: '2026-06-23T09:32:00.000Z',
     },
     {
-      id: 'bubble-message-3',
-      threadId: 'bubble-thread-first-pond',
+      id: 'messenger-message-3',
+      threadId: 'messenger-thread-first-pond',
       author: {
         kind: 'character',
         characterId: 'companion-ren',
         label: 'Ren',
       },
-      body: 'The first working slice can be tiny. One Bubble thread, two Companions, saved locally.',
+      body: 'The first working slice can be tiny. One Messenger thread, two Companions, saved locally.',
       origin: 'sample',
       createdAt: '2026-06-23T09:33:00.000Z',
       updatedAt: '2026-06-23T09:33:00.000Z',
@@ -130,7 +130,7 @@ export const sampleBubbleThread: BubbleThread = {
 export const sampleRippleState: RippleState = {
   id: 'ripple-state-first-pond',
   schemaVersion: 1,
-  threadId: sampleBubbleThread.id,
+  threadId: sampleMessengerThread.id,
   ripples: [
     {
       id: 'ripple-clean-room',
@@ -143,7 +143,7 @@ export const sampleRippleState: RippleState = {
       id: 'ripple-first-slice',
       tone: 'shift',
       title: 'First slice',
-      body: 'Bubbles are the first implementation target.',
+      body: 'Messenger is the first implementation target.',
       updatedAt: sampleTimestamp,
     },
   ],

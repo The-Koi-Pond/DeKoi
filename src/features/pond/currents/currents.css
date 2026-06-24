@@ -123,12 +123,12 @@
   flex: none;
 }
 
-.drifter .dmode.bubbles {
+.drifter .dmode.messenger {
   background: rgba(244, 122, 53, 0.14);
   color: var(--koi-hot);
 }
 
-.drifter .dmode.vn {
+.drifter .dmode.classic {
   background: rgba(39, 179, 170, 0.14);
   color: var(--jade-hot);
 }

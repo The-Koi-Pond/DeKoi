@@ -17,8 +17,8 @@ interface KoiCardProps {
 // Avatar gradient per surface. Locked surfaces keep their color but render as
 // non-navigable status rows.
 const AVA_VARIANT: Record<SurfaceId, string> = {
-  bubbles: "k1",
-  vn: "k2",
+  messenger: "k1",
+  classic: "k2",
   reserved: "k3",
 };
 
@@ -45,7 +45,7 @@ export function KoiCard({
     }
 
     nav.setSelectedSurface(mode);
-    nav.createBubbleThread();
+    nav.createMessengerThread();
   }
 
   return (

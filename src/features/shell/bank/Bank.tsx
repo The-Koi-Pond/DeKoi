@@ -2,8 +2,8 @@ import "./Bank.css";
 
 import { useNav } from "../../../shared/ui/nav-context";
 import {
-  BUBBLES,
-  VN,
+  CLASSIC,
+  MESSENGER,
   RESERVED,
   SURFACES,
   type SurfaceId,
@@ -11,11 +11,11 @@ import {
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {
-    mode: BUBBLES,
+    mode: MESSENGER,
     icon: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />,
   },
   {
-    mode: VN,
+    mode: CLASSIC,
     icon: (
       <>
         <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
@@ -51,7 +51,7 @@ export function Bank() {
 
         // Locked surfaces are not activatable: render them as non-interactive
         // status chips (aria-disabled, not in the tab order) with a tooltip
-        // that explains why. Bubbles is a real button.
+        // that explains why. Messenger is a real button.
         if (locked) {
           return (
             <div
@@ -119,7 +119,7 @@ export function Bank() {
         className="cast-fab"
         title="Cast a line — new chat"
         aria-label="Cast a line — new chat"
-        onClick={() => nav.createBubbleThread()}
+        onClick={() => nav.createMessengerThread()}
       >
         +
       </button>

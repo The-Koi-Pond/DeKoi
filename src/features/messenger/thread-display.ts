@@ -1,10 +1,10 @@
-import type { BubbleThread } from "../../engine/bubbles";
+import type { MessengerThread } from "../../engine/messenger";
 
-export function sortBubbleThreadsByUpdatedAt(threads: BubbleThread[]) {
+export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export function getBubbleThreadInitials(title: string) {
+export function getMessengerThreadInitials(title: string) {
   const initials = title
     .split(/\s+/)
     .filter(Boolean)
@@ -13,10 +13,10 @@ export function getBubbleThreadInitials(title: string) {
     .slice(0, 2)
     .toUpperCase();
 
-  return initials || "B";
+  return initials || "M";
 }
 
-export function getBubbleThreadPreview(thread: BubbleThread) {
+export function getMessengerThreadPreview(thread: MessengerThread) {
   const lastMessage = thread.messages.at(-1);
   if (!lastMessage) return "No messages yet";
 
@@ -25,7 +25,7 @@ export function getBubbleThreadPreview(thread: BubbleThread) {
   return `${author}: ${lastMessage.body}`;
 }
 
-export function getBubbleThreadTimeLabel(updatedAt: string, now = Date.now()) {
+export function getMessengerThreadTimeLabel(updatedAt: string, now = Date.now()) {
   const updatedTime = Date.parse(updatedAt);
   if (Number.isNaN(updatedTime)) return "recently";
 
