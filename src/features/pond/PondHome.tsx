@@ -17,7 +17,7 @@ export function PondHome({ nav }: PondHomeProps) {
       </div>
       <ModePools nav={nav} />
       <RecentCurrents />
-      <Depths />
+      <Depths nav={nav} />
     </>
   );
 }

@@ -91,9 +91,11 @@
   font-family: var(--ui);
 }
 
-.chip:hover {
+.chip:hover,
+.chip:focus-visible {
   color: var(--foam);
   border-color: var(--reed);
+  outline: none;
 }
 
 .chip.on {
@@ -118,6 +120,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--abyss);
@@ -125,20 +128,43 @@
   margin-bottom: 6px;
   cursor: pointer;
   transition: 0.15s;
+  font-family: var(--ui);
+  text-align: left;
 }
 
-.pop:hover {
+.pop:hover,
+.pop:focus-visible {
   border-color: var(--reed);
   background: var(--shallow);
+  outline: none;
+}
+
+.pop-main {
+  min-width: 0;
 }
 
 .pop .pop-q {
+  display: block;
   font-size: 13px;
   color: var(--foam);
   font-weight: 500;
 }
 
+.pop .pop-desc {
+  display: block;
+  max-width: 42ch;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--mist);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pop .pop-to {
+  flex: 0 0 auto;
+  margin-left: 14px;
   font-size: 10.5px;
   color: var(--jade-hot);
   text-transform: uppercase;
@@ -146,6 +172,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.pop.empty {
+  cursor: default;
+  color: var(--mist);
+  font-size: 12px;
+}
+
+.pop.empty:hover {
+  border-color: var(--reed-soft);
+  background: var(--abyss);
 }
 
 .depths-foot {
@@ -192,4 +229,15 @@
   background: var(--raise);
   border-color: var(--jade);
   color: var(--jade-hot);
+}
+
+.browse-all:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.browse-all:disabled:hover {
+  background: var(--shallow);
+  border-color: var(--reed);
+  color: var(--foam);
 }
