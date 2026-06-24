@@ -29,6 +29,7 @@ export interface GenerateMessengerThreadReplyInput {
   activePersona: PersonaRecord | null;
   lorebooks: LorebookRecord[];
   now: string;
+  mode?: MessengerGenerationRuntimeMode;
   createId: (prefix: string) => string;
 }
 
@@ -41,7 +42,23 @@ export interface GenerateMessengerThreadReplyResult {
   warnings: string[];
 }
 
-export function selectMessengerGenerationRuntime(): MessengerGenerationRuntimeSnapshot {
+export function isMessengerGenerationRuntimeMode(
+  value: unknown,
+): value is MessengerGenerationRuntimeMode {
+  return value === "mock";
+}
+
+export function selectMessengerGenerationRuntime(
+  mode: MessengerGenerationRuntimeMode = "mock",
+): MessengerGenerationRuntimeSnapshot {
+  if (mode !== "mock") {
+    return {
+      mode: "mock",
+      label: "Mock generation",
+      adapter: mockMessengerGenerationAdapter,
+    };
+  }
+
   return {
     mode: "mock",
     label: "Mock generation",
@@ -51,8 +68,9 @@ export function selectMessengerGenerationRuntime(): MessengerGenerationRuntimeSn
 
 export async function generateMessengerResponse(
   request: MessengerGenerationRequest,
+  mode: MessengerGenerationRuntimeMode = "mock",
 ): Promise<MessengerGenerationResponse> {
-  const runtime = selectMessengerGenerationRuntime();
+  const runtime = selectMessengerGenerationRuntime(mode);
   return runtime.adapter.generate(request);
 }
 
@@ -61,11 +79,12 @@ export async function generateMessengerThreadReply({
   companions,
   createId,
   lorebooks,
+  mode = "mock",
   now,
   thread,
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
-  const runtime = selectMessengerGenerationRuntime();
+  const runtime = selectMessengerGenerationRuntime(mode);
   const request = createMessengerGenerationRequest({
     activePersona,
     companions,
@@ -75,7 +94,7 @@ export async function generateMessengerThreadReply({
     thread,
     userMessage,
   });
-  const response = await generateMessengerResponse(request);
+  const response = await generateMessengerResponse(request, runtime.mode);
   const generatedMessages = response.messages
     .map((messageDraft) => {
       const companion = companions.find(

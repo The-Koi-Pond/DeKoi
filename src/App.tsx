@@ -18,6 +18,7 @@ import {
 import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
+import type { MessengerGenerationRuntimeMode } from "./runtime/messenger-generation";
 import {
   loadAppSettings,
   normalizeSurfaceStatus,
@@ -214,6 +215,16 @@ export default function App() {
     }));
   }, []);
 
+  const setMessengerGenerationMode = useCallback(
+    (messengerGenerationMode: MessengerGenerationRuntimeMode) => {
+      setAppSettings((currentSettings) => ({
+        ...currentSettings,
+        messengerGenerationMode,
+      }));
+    },
+    [],
+  );
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -241,6 +252,7 @@ export default function App() {
     setConfirmRelease,
     setSurfaceStatus,
     setShoalSortMode,
+    setMessengerGenerationMode,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };

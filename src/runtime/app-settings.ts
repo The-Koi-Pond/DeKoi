@@ -1,4 +1,8 @@
 import { MESSENGER, type SurfaceId } from "../engine/surfaces";
+import {
+  isMessengerGenerationRuntimeMode,
+  type MessengerGenerationRuntimeMode,
+} from "./messenger-generation";
 
 const APP_SETTINGS_STORAGE_KEY = "dekoi:app-settings:v1";
 const MAX_SURFACE_STATUS_LENGTH = 80;
@@ -8,6 +12,7 @@ export interface AppSettings {
   confirmRelease: boolean;
   surfaceStatus: string;
   shoalSortMode: ShoalSortMode;
+  messengerGenerationMode: MessengerGenerationRuntimeMode;
 }
 
 export type ShoalSortMode = "freshest" | "oldest" | "title";
@@ -17,6 +22,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   confirmRelease: true,
   surfaceStatus: "",
   shoalSortMode: "freshest",
+  messengerGenerationMode: "mock",
 };
 
 function hasLocalStorage() {
@@ -58,6 +64,11 @@ export function loadAppSettings(): AppSettings {
       shoalSortMode: isShoalSortMode(parsed.shoalSortMode)
         ? parsed.shoalSortMode
         : DEFAULT_APP_SETTINGS.shoalSortMode,
+      messengerGenerationMode: isMessengerGenerationRuntimeMode(
+        parsed.messengerGenerationMode,
+      )
+        ? parsed.messengerGenerationMode
+        : DEFAULT_APP_SETTINGS.messengerGenerationMode,
     };
   } catch {
     return DEFAULT_APP_SETTINGS;

@@ -86,7 +86,9 @@ export function MessengerThread() {
         : nav.messengerStorageStatus === "error"
           ? "Local fallback"
           : "Saved locally";
-  const generationRuntime = selectMessengerGenerationRuntime();
+  const generationRuntime = selectMessengerGenerationRuntime(
+    nav.appSettings.messengerGenerationMode,
+  );
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -130,6 +132,7 @@ export function MessengerThread() {
         companions: threadCompanions,
         createId: createLocalId,
         lorebooks: [sampleLorebook],
+        mode: nav.appSettings.messengerGenerationMode,
         now: sentAt,
         thread: threadWithUserMessage,
         userMessage,
