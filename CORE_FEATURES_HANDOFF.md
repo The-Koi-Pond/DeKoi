@@ -249,10 +249,11 @@ Goal: add native capabilities only when the TypeScript records and contracts are
 stable enough to justify the host layer.
 
 Status: initial optional Tauri desktop scaffold is implemented. It keeps the
-web app intact, adds a Rust host crate, exposes a host-status command, and wires
-Pond Care > Deep Water to check whether native host capabilities are available.
-Durable storage, secrets, filesystem import/export, and local runtime support
-are still future host slices.
+web app intact, adds a Rust host crate, exposes host-status and durable bundle
+storage commands, and wires Pond Care > Deep Water to check host capabilities
+and save/load a DeKoi-native bundle through the desktop app data directory.
+Secrets, filesystem import/export, and local runtime support are still future
+host slices.
 
 Rust/Tauri should eventually own:
 

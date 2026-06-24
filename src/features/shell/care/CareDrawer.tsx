@@ -19,6 +19,8 @@ import {
 } from "../../../runtime/dekoi-storage-bundle";
 import {
   checkDesktopHostStatus,
+  readDesktopStorageBundle,
+  writeDesktopStorageBundle,
   type DeKoiDesktopHostStatus,
 } from "../../../runtime/desktop-host";
 import {
@@ -168,6 +170,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopHostStatus, setDesktopHostStatus] =
     useState<DeKoiDesktopHostStatus | null>(null);
   const [desktopHostBusy, setDesktopHostBusy] = useState(false);
+  const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
+  const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
   );
@@ -238,6 +242,63 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     const status = await checkDesktopHostStatus();
     setDesktopHostStatus(status);
     setDesktopHostBusy(false);
+  }
+
+  function formatBytes(byteLength: number) {
+    if (byteLength < 1024) return `${byteLength} B`;
+    return `${(byteLength / 1024).toFixed(1)} KB`;
+  }
+
+  async function refreshDesktopHostStatus() {
+    const status = await checkDesktopHostStatus();
+    setDesktopHostStatus(status);
+    return status;
+  }
+
+  async function handleDesktopStorageSave() {
+    setDesktopStorageBusy(true);
+    setDesktopStorageStatus("Saving desktop host bundle...");
+
+    try {
+      const info = await writeDesktopStorageBundle(nav.createStorageBundle());
+      await refreshDesktopHostStatus();
+      setDesktopStorageStatus(
+        `Saved desktop host bundle (${formatBytes(info.byteLength)}).`,
+      );
+    } catch (error) {
+      setDesktopStorageStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setDesktopStorageBusy(false);
+    }
+  }
+
+  async function handleDesktopStorageLoad() {
+    setDesktopStorageBusy(true);
+    setDesktopStorageStatus("Loading desktop host bundle...");
+
+    try {
+      const result = await readDesktopStorageBundle();
+      if (!result.ok) {
+        setDesktopStorageStatus(result.error);
+        return;
+      }
+
+      nav.importStorageBundle(result.bundle);
+      await refreshDesktopHostStatus();
+      setDesktopStorageStatus(
+        result.warnings.length > 0
+          ? `Loaded desktop host bundle with ${result.warnings.length} warning(s).`
+          : `Loaded desktop host bundle (${formatBytes(result.info.byteLength)}).`,
+      );
+    } catch (error) {
+      setDesktopStorageStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setDesktopStorageBusy(false);
+    }
   }
 
   function resetCharacterDraft() {
@@ -1319,6 +1380,27 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                     Runtime
                   </span>
                 </div>
+              )}
+
+              <div className="runtime-actions">
+                <button
+                  type="button"
+                  disabled={desktopStorageBusy}
+                  onClick={handleDesktopStorageSave}
+                >
+                  Save host bundle
+                </button>
+                <button
+                  type="button"
+                  disabled={desktopStorageBusy}
+                  onClick={handleDesktopStorageLoad}
+                >
+                  Load host bundle
+                </button>
+              </div>
+
+              {desktopStorageStatus && (
+                <p className="bundle-status">{desktopStorageStatus}</p>
               )}
 
               <div className="field">

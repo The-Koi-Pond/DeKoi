@@ -37,8 +37,10 @@ local runtime support.
 pnpm tauri:dev
 ```
 
-The host currently exposes a small `dekoi_host_status` command. Pond Care >
-Deep Water can check it and show which native capability groups are ready.
+The host currently exposes `dekoi_host_status`,
+`dekoi_storage_read_bundle`, and `dekoi_storage_write_bundle`. Pond Care >
+Deep Water can check host readiness and save/load a DeKoi-native bundle through
+the desktop app data directory.
 
 ## Repository Rules
 

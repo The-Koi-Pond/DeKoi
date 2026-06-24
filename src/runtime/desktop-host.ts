@@ -1,4 +1,8 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import {
+  normalizeDeKoiStorageBundle,
+  type DeKoiStorageBundle,
+} from "./dekoi-storage-bundle";
 
 export interface DeKoiDesktopHostStatus {
   appName: string;
@@ -8,6 +12,26 @@ export interface DeKoiDesktopHostStatus {
   runtimeReady: boolean;
   message: string;
 }
+
+export interface DeKoiDesktopStorageBundleInfo {
+  path: string;
+  byteLength: number;
+  updatedAtMs: number | null;
+}
+
+interface DeKoiDesktopStorageBundleSnapshot
+  extends DeKoiDesktopStorageBundleInfo {
+  bundle: unknown;
+}
+
+export type DeKoiDesktopStorageReadResult =
+  | {
+      ok: true;
+      bundle: DeKoiStorageBundle;
+      info: DeKoiDesktopStorageBundleInfo;
+      warnings: string[];
+    }
+  | { ok: false; error: string };
 
 const BROWSER_HOST_STATUS: DeKoiDesktopHostStatus = {
   appName: "DeKoi",
@@ -38,4 +62,56 @@ export async function checkDesktopHostStatus(): Promise<DeKoiDesktopHostStatus> 
       message: `Desktop host command failed. ${asErrorMessage(error)}`,
     };
   }
+}
+
+export async function readDesktopStorageBundle(): Promise<DeKoiDesktopStorageReadResult> {
+  if (!isTauri()) {
+    return {
+      ok: false,
+      error: "Desktop host storage is only available inside the Tauri app.",
+    };
+  }
+
+  let snapshot: DeKoiDesktopStorageBundleSnapshot | null;
+  try {
+    snapshot =
+      await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
+        "dekoi_storage_read_bundle",
+      );
+  } catch (error) {
+    return { ok: false, error: asErrorMessage(error) };
+  }
+
+  if (!snapshot) {
+    return { ok: false, error: "No desktop host bundle has been saved yet." };
+  }
+
+  const normalized = normalizeDeKoiStorageBundle(snapshot.bundle);
+  if (!normalized.ok) return { ok: false, error: normalized.error };
+
+  return {
+    ok: true,
+    bundle: normalized.preview.bundle,
+    info: {
+      path: snapshot.path,
+      byteLength: snapshot.byteLength,
+      updatedAtMs: snapshot.updatedAtMs,
+    },
+    warnings: normalized.preview.warnings,
+  };
+}
+
+export async function writeDesktopStorageBundle(
+  bundle: DeKoiStorageBundle,
+): Promise<DeKoiDesktopStorageBundleInfo> {
+  if (!isTauri()) {
+    throw new Error(
+      "Desktop host storage is only available inside the Tauri app.",
+    );
+  }
+
+  return await invoke<DeKoiDesktopStorageBundleInfo>(
+    "dekoi_storage_write_bundle",
+    { bundle },
+  );
 }
