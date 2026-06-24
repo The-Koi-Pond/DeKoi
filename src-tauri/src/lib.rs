@@ -6,6 +6,10 @@ use std::{
 use tauri::Manager;
 
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
+const DESKTOP_RUNTIME_THREADS_FILE_NAME: &str = "dekoi-runtime-messenger-threads.json";
+const DESKTOP_RUNTIME_MARKER: &str = "de-koi-desktop";
+const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
+const LEGACY_BUBBLE_THREADS_ENTITY: &str = "bubble-threads";
 const PROVIDER_SECRET_SERVICE: &str = "com.xelvanas.dekoi.provider-key";
 
 #[derive(serde::Serialize)]
@@ -43,11 +47,19 @@ struct ProviderSecretStatus {
     has_secret: bool,
 }
 
-fn storage_bundle_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+fn app_data_file_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
-        .map(|dir| dir.join(STORAGE_BUNDLE_FILE_NAME))
+        .map(|dir| dir.join(file_name))
         .map_err(|error| format!("Could not resolve DeKoi app data directory. {error}"))
+}
+
+fn storage_bundle_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app_data_file_path(app, STORAGE_BUNDLE_FILE_NAME)
+}
+
+fn runtime_threads_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app_data_file_path(app, DESKTOP_RUNTIME_THREADS_FILE_NAME)
 }
 
 fn modified_at_ms(metadata: &fs::Metadata) -> Option<u64> {
@@ -123,6 +135,312 @@ fn write_bundle_file(path: &Path, bundle: &serde_json::Value) -> Result<StorageB
     bundle_info(path.to_path_buf())
 }
 
+fn write_json_file(path: &Path, value: &serde_json::Value) -> Result<(), String> {
+    if let Some(directory) = path.parent() {
+        fs::create_dir_all(directory)
+            .map_err(|error| format!("Could not create DeKoi runtime directory. {error}"))?;
+    }
+
+    let contents = serde_json::to_string_pretty(value)
+        .map_err(|error| format!("Could not serialize DeKoi runtime data. {error}"))?;
+    let temporary_path = path.with_extension("json.tmp");
+    fs::write(&temporary_path, contents)
+        .map_err(|error| format!("Could not write DeKoi runtime data. {error}"))?;
+
+    if path.exists() {
+        fs::remove_file(path)
+            .map_err(|error| format!("Could not replace DeKoi runtime data. {error}"))?;
+    }
+
+    fs::rename(&temporary_path, path)
+        .map_err(|error| format!("Could not save DeKoi runtime data. {error}"))
+}
+
+fn read_runtime_threads(app: &tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
+    let path = runtime_threads_path(app)?;
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let contents = fs::read_to_string(&path)
+        .map_err(|error| format!("Could not read desktop runtime storage. {error}"))?;
+    let value: serde_json::Value = serde_json::from_str(&contents)
+        .map_err(|error| format!("Desktop runtime storage is not valid JSON. {error}"))?;
+
+    Ok(value.as_array().cloned().unwrap_or_default())
+}
+
+fn write_runtime_threads(
+    app: &tauri::AppHandle,
+    threads: Vec<serde_json::Value>,
+) -> Result<(), String> {
+    let path = runtime_threads_path(app)?;
+    write_json_file(&path, &serde_json::Value::Array(threads))
+}
+
+fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
+    value
+        .get(key)
+        .and_then(|field| field.as_str())
+        .unwrap_or("")
+}
+
+fn runtime_args_object<'a>(
+    args: &'a serde_json::Value,
+    command: &str,
+) -> Result<&'a serde_json::Map<String, serde_json::Value>, String> {
+    args.as_object()
+        .ok_or_else(|| format!("{command} requires args."))
+}
+
+fn runtime_entity(args: &serde_json::Map<String, serde_json::Value>) -> Result<&str, String> {
+    let entity = args
+        .get("entity")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if entity.is_empty() {
+        return Err("Storage command requires args.entity.".to_string());
+    }
+
+    Ok(entity)
+}
+
+fn ensure_runtime_entity(entity: &str) -> Result<(), String> {
+    if entity == MESSENGER_THREADS_ENTITY {
+        return Ok(());
+    }
+
+    Err(format!(
+        "Desktop runtime storage entity is not supported: {entity}"
+    ))
+}
+
+fn storage_list(
+    app: &tauri::AppHandle,
+    args: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "storage_list")?;
+    let entity = runtime_entity(args)?;
+    if entity == LEGACY_BUBBLE_THREADS_ENTITY {
+        return Ok(serde_json::Value::Array(Vec::new()));
+    }
+    ensure_runtime_entity(entity)?;
+
+    Ok(serde_json::Value::Array(read_runtime_threads(app)?))
+}
+
+fn storage_create(
+    app: &tauri::AppHandle,
+    args: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "storage_create")?;
+    ensure_runtime_entity(runtime_entity(args)?)?;
+    let value = args
+        .get("value")
+        .and_then(|value| value.as_object())
+        .ok_or_else(|| "storage_create requires args.value.".to_string())?;
+    let mut record = value.clone();
+    let id = record
+        .get("id")
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .unwrap_or_else(|| format!("desktop-runtime-record-{}", current_unix_ms()));
+    record.insert("id".to_string(), serde_json::Value::String(id.clone()));
+
+    let next_record = serde_json::Value::Object(record);
+    let mut threads = read_runtime_threads(app)?;
+    threads.retain(|thread| read_string_field(thread, "id") != id);
+    threads.push(next_record.clone());
+    write_runtime_threads(app, threads)?;
+
+    Ok(next_record)
+}
+
+fn storage_update(
+    app: &tauri::AppHandle,
+    args: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "storage_update")?;
+    ensure_runtime_entity(runtime_entity(args)?)?;
+    let id = args
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if id.is_empty() {
+        return Err("storage_update requires args.id.".to_string());
+    }
+    let patch = args
+        .get("patch")
+        .and_then(|value| value.as_object())
+        .ok_or_else(|| "storage_update requires args.patch.".to_string())?;
+
+    let mut threads = read_runtime_threads(app)?;
+    let existing = threads
+        .iter()
+        .find(|thread| read_string_field(thread, "id") == id)
+        .and_then(|thread| thread.as_object())
+        .cloned()
+        .unwrap_or_default();
+    let mut record = existing;
+    for (key, value) in patch {
+        record.insert(key.clone(), value.clone());
+    }
+    record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+    let next_record = serde_json::Value::Object(record);
+
+    threads.retain(|thread| read_string_field(thread, "id") != id);
+    threads.push(next_record.clone());
+    write_runtime_threads(app, threads)?;
+
+    Ok(next_record)
+}
+
+fn storage_delete(
+    app: &tauri::AppHandle,
+    args: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "storage_delete")?;
+    ensure_runtime_entity(runtime_entity(args)?)?;
+    let id = args
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if id.is_empty() {
+        return Err("storage_delete requires args.id.".to_string());
+    }
+
+    let mut threads = read_runtime_threads(app)?;
+    threads.retain(|thread| read_string_field(thread, "id") != id);
+    write_runtime_threads(app, threads)?;
+
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+fn count_enabled_lore_entries(request: &serde_json::Value) -> usize {
+    request
+        .get("lorebooks")
+        .and_then(|value| value.as_array())
+        .map(|lorebooks| {
+            lorebooks
+                .iter()
+                .filter_map(|lorebook| lorebook.get("entries").and_then(|value| value.as_array()))
+                .flatten()
+                .filter(|entry| {
+                    entry.get("enabled").and_then(|value| value.as_bool()) != Some(false)
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+fn select_companion(request: &serde_json::Value) -> Option<&serde_json::Value> {
+    let companions = request.get("companions")?.as_array()?;
+    let valid_companions: Vec<&serde_json::Value> = companions
+        .iter()
+        .filter(|companion| !read_string_field(companion, "id").trim().is_empty())
+        .collect();
+    if valid_companions.is_empty() {
+        return None;
+    }
+
+    let companion_message_count = request
+        .get("thread")
+        .and_then(|thread| thread.get("messages"))
+        .and_then(|messages| messages.as_array())
+        .map(|messages| {
+            messages
+                .iter()
+                .filter(|message| {
+                    message
+                        .get("author")
+                        .and_then(|author| author.get("kind"))
+                        .and_then(|kind| kind.as_str())
+                        == Some("character")
+                })
+                .count()
+        })
+        .unwrap_or(0);
+
+    Some(valid_companions[companion_message_count % valid_companions.len()])
+}
+
+fn current_unix_ms() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or_default()
+}
+
+fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "messenger_generate")?;
+    let request = args
+        .get("request")
+        .ok_or_else(|| "messenger_generate requires args.request.".to_string())?;
+    let request_id = read_string_field(request, "id").trim();
+    if request_id.is_empty() {
+        return Err("messenger_generate request requires id.".to_string());
+    }
+    let created_at = read_string_field(request, "createdAt");
+    let created_at = if created_at.is_empty() {
+        current_unix_ms().to_string()
+    } else {
+        created_at.to_string()
+    };
+
+    let Some(companion) = select_companion(request) else {
+        return Ok(serde_json::json!({
+            "schemaVersion": 1,
+            "requestId": request_id,
+            "providerKind": "remote-runtime",
+            "createdAt": created_at,
+            "messages": [],
+            "warnings": ["Desktop runtime found no selected companion."]
+        }));
+    };
+
+    let companion_id = read_string_field(companion, "id").trim();
+    let companion_name = {
+        let short_name = read_string_field(companion, "shortName").trim();
+        if short_name.is_empty() {
+            let display_name = read_string_field(companion, "displayName").trim();
+            if display_name.is_empty() {
+                "Companion"
+            } else {
+                display_name
+            }
+        } else {
+            short_name
+        }
+    };
+    let persona_name = request
+        .get("activePersona")
+        .map(|persona| read_string_field(persona, "displayName").trim())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("the active persona");
+    let lore_count = count_enabled_lore_entries(request);
+
+    Ok(serde_json::json!({
+        "schemaVersion": 1,
+        "requestId": request_id,
+        "providerKind": "remote-runtime",
+        "createdAt": created_at,
+        "messages": [
+            {
+                "characterId": companion_id,
+                "body": format!(
+                    "Desktop runtime reply from {companion_name}: received {persona_name} with {lore_count} enabled lore notes."
+                )
+            }
+        ],
+        "warnings": []
+    }))
+}
+
 fn provider_secret_username(connection_id: &str) -> Result<String, String> {
     let trimmed = connection_id.trim();
     if trimmed.is_empty() {
@@ -168,11 +486,11 @@ fn dekoi_host_status() -> HostStatus {
         host_kind: "tauri",
         storage_ready: true,
         secrets_ready,
-        runtime_ready: false,
+        runtime_ready: true,
         message: if secrets_ready {
-            "Tauri host is available. Durable bundle storage and provider key storage are ready."
+            "Tauri host is available. Storage, provider keys, and desktop runtime are ready."
         } else {
-            "Tauri host is available. Durable bundle storage is ready, but provider key storage is unavailable."
+            "Tauri host is available. Storage and desktop runtime are ready, but provider key storage is unavailable."
         }
         .to_string(),
     }
@@ -294,6 +612,34 @@ fn dekoi_file_import_bundle() -> Result<Option<StorageBundleSnapshot>, String> {
     }))
 }
 
+#[tauri::command]
+fn dekoi_runtime_health() -> serde_json::Value {
+    serde_json::json!({
+        "ok": true,
+        "runtime": DESKTOP_RUNTIME_MARKER,
+        "writable": true
+    })
+}
+
+#[tauri::command]
+fn dekoi_runtime_invoke(
+    app: tauri::AppHandle,
+    command: String,
+    args: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let args = args.unwrap_or(serde_json::Value::Null);
+    match command.as_str() {
+        "messenger_generate" => messenger_generate(&args),
+        "storage_create" => storage_create(&app, &args),
+        "storage_delete" => storage_delete(&app, &args),
+        "storage_list" => storage_list(&app, &args),
+        "storage_update" => storage_update(&app, &args),
+        _ => Err(format!(
+            "Desktop runtime command is not supported: {command}"
+        )),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -304,6 +650,8 @@ pub fn run() {
             dekoi_provider_secret_delete,
             dekoi_provider_secret_status,
             dekoi_provider_secret_write,
+            dekoi_runtime_health,
+            dekoi_runtime_invoke,
             dekoi_storage_read_bundle,
             dekoi_storage_write_bundle
         ])

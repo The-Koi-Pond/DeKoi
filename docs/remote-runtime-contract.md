@@ -46,7 +46,26 @@ Compatible response:
 ```
 
 `runtime` may also be `marinara-server` while DeKoi is still compatible with
-that runtime marker.
+that runtime marker. The Tauri desktop host uses `de-koi-desktop` internally
+when Pond Care selects the desktop runtime.
+
+## Desktop Runtime
+
+Inside the Tauri app, Pond Care > Deep Water can select:
+
+```text
+desktop://runtime
+```
+
+This does not start an HTTP server. It routes the same runtime command names
+through Tauri commands:
+
+- `dekoi_runtime_health`
+- `dekoi_runtime_invoke`
+
+The desktop runtime currently provides durable Messenger-thread storage under
+the app data directory and fixture-style Messenger generation. It is a host
+contract bridge, not a real provider transport yet.
 
 ## Invoke Envelope
 

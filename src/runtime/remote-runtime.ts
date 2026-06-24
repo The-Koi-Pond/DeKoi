@@ -1,5 +1,16 @@
+import {
+  checkDesktopRuntimeHealth,
+  DESKTOP_RUNTIME_URL,
+  invokeDesktopRuntime,
+  isDesktopRuntimeUrl,
+} from "./desktop-runtime";
+
 const REMOTE_RUNTIME_URL_STORAGE_KEY = "dekoi:remote-runtime-url";
-const REMOTE_RUNTIME_MARKERS = new Set(["de-koi-server", "marinara-server"]);
+const REMOTE_RUNTIME_MARKERS = new Set([
+  "de-koi-server",
+  "marinara-server",
+  "de-koi-desktop",
+]);
 
 export type RemoteRuntimeCommand =
   | "messenger_generate"
@@ -39,6 +50,7 @@ function encodeBasicAuth(username: string, password: string): string {
 function normalizeRemoteRuntimeUrl(raw: string): RuntimeTarget | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
+  if (isDesktopRuntimeUrl(trimmed)) return { baseUrl: DESKTOP_RUNTIME_URL };
 
   const url = new URL(trimmed);
   let authorization: string | undefined;
@@ -105,6 +117,10 @@ export async function checkRemoteRuntimeHealth(rawUrl = readRemoteRuntimeUrl()):
     return { status: "unconfigured", message: "Remote Runtime URL is not set." };
   }
 
+  if (isDesktopRuntimeUrl(rawUrl)) {
+    return await checkDesktopRuntimeHealth();
+  }
+
   let target: RuntimeTarget | null;
   try {
     target = normalizeRemoteRuntimeUrl(rawUrl);
@@ -161,6 +177,10 @@ export async function invokeRemote<T>(
 ): Promise<T> {
   if (!isRemoteRuntimeCommand(command)) {
     throw new Error(`Remote runtime command is not supported: ${command}`);
+  }
+
+  if (isDesktopRuntimeUrl(rawUrl)) {
+    return await invokeDesktopRuntime<T>(command, args);
   }
 
   const target = remoteRuntimeTarget(rawUrl);

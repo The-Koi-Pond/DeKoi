@@ -256,7 +256,9 @@ Provider-key secret commands are also available through the desktop host and
 Pond Care > Catalog can save, check, and clear a key for a connection without
 putting the secret value in bundles or browser storage. Desktop bundle file
 import/export is also available through native host file dialogs in Pond Care >
-Stocking. Local runtime support is still a future host slice.
+Stocking. Initial desktop runtime support is wired through `desktop://runtime`;
+it provides host-backed Messenger storage and fixture-style generation through
+the existing runtime command names.
 
 Rust/Tauri should eventually own:
 

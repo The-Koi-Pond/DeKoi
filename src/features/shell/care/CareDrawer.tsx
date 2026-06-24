@@ -29,6 +29,7 @@ import {
   type DeKoiDesktopProviderSecretStatus,
   type DeKoiDesktopHostStatus,
 } from "../../../runtime/desktop-host";
+import { DESKTOP_RUNTIME_URL } from "../../../runtime/desktop-runtime";
 import {
   normalizeLegacyImport,
   type DeKoiLegacyImportPreview,
@@ -240,6 +241,22 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setRuntimeUrl("");
     nav.setRemoteRuntimeUrl("");
     setRuntimeHealth("Saved locally.");
+  }
+
+  function handleUseDesktopRuntime() {
+    const runtimeConnection = nav.providerConnections.find(
+      (connection) => connection.kind === "remote-runtime",
+    );
+    setRuntimeUrl(DESKTOP_RUNTIME_URL);
+    nav.setRemoteRuntimeUrl(DESKTOP_RUNTIME_URL);
+    if (runtimeConnection) {
+      nav.setActiveMessengerConnectionId(runtimeConnection.id);
+    }
+    setRuntimeHealth(
+      runtimeConnection
+        ? "Desktop runtime selected."
+        : "Desktop runtime selected. Add a remote-runtime connection to use desktop generation.",
+    );
   }
 
   async function handleDesktopHostCheck() {
@@ -1584,7 +1601,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   className="pondinput"
                   id="remote-runtime-url"
                   type="url"
-                  placeholder="http://127.0.0.1:7341"
+                  placeholder="http://127.0.0.1:7341 or desktop://runtime"
                   value={runtimeUrl}
                   onChange={(event) => setRuntimeUrl(event.target.value)}
                 />
@@ -1671,6 +1688,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </button>
                 <button type="button" onClick={handleUseLocalStorage}>
                   Use local
+                </button>
+                <button type="button" onClick={handleUseDesktopRuntime}>
+                  Use desktop
                 </button>
                 <button
                   type="button"
