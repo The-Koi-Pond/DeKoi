@@ -5,6 +5,8 @@ DeKoi is a fresh local-first story and character engine seed.
 This repository starts the new DeKoi identity from a blank implementation. It is
 not a continuation repository, not a fork checkout, and not a place to copy code,
 assets, docs, prompts, schemas, or UI text from the prior fork-derived line.
+Architecture lessons may be re-decided here when they are written in DeKoi-owned
+terms and do not copy implementation.
 
 ## Current Scope
 
@@ -54,7 +56,9 @@ provider keys for connections without exporting the secret value.
 
 - DeKoi-owned code starts here.
 - Legacy compatibility must be built as explicit import adapters.
-- Do not use the old repository as a source template.
+- Do not copy the old repository as a source template.
+- Architecture skeletons may be reused only as fresh DeKoi decisions with native
+  names, current requirements, and current docs.
 - If a behavior is needed, write the requirement in DeKoi terms first.
 - If a file, phrase, asset, schema, prompt, or component came from the old line,
   it does not belong here.
@@ -63,5 +67,8 @@ See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process.
 See [SURFACE_LABELS.md](./SURFACE_LABELS.md) for the first DeKoi-owned naming
 map.
 See [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) for the first native product records.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) and
+[docs/storage-model.md](./docs/storage-model.md) for the current architecture
+and storage guardrails.
 See [docs/developer/index.html](./docs/developer/index.html) for migrated
 developer docs that still need validation against the new implementation.
