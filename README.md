@@ -1,80 +1,97 @@
 # DeKoi
 
-DeKoi is a fresh local-first story and character engine seed.
+DeKoi is a fresh, local-first story and character engine for private character conversations, scenes, and small story worlds.
 
-This repository starts the new DeKoi identity from a blank implementation. It is
-not a continuation repository, not a fork checkout, and not a place to copy code,
-assets, docs, prompts, schemas, or UI text from the prior fork-derived line.
-Architecture lessons may be re-decided here when they are written in DeKoi-owned
-terms and do not copy implementation.
+This repository starts the no-dash DeKoi identity from a blank implementation. It is not a fork checkout, not a continuation repository, and not a place to copy code, assets, docs, prompts, schemas, UI text, or component layouts from the prior fork-derived line. Architecture lessons can be re-decided here only when they are written in DeKoi-owned terms.
 
-## Current Scope
+## Status
 
-- Fresh React and TypeScript app shell.
-- Clean-room project boundary notes.
-- Early product and architecture notes.
-- Legacy import is explicit; it is not an automatic browser-storage migration.
-- No copied source or assets from the prior repo.
+DeKoi is an early clean-room seed. The current app proves the first native product surfaces, storage contracts, and optional desktop host path; it is not feature-complete yet.
 
-## Run
+Current highlights:
 
-```sh
+- React and TypeScript app shell for the first DeKoi product loop.
+- Native Messenger, Classic, catalog, provider connection, and Ripple record concepts.
+- Collection-backed storage contracts for desktop and compatible remote runtimes.
+- Optional Tauri desktop host for app-data storage, bundle file dialogs, provider-key secrets, and a desktop runtime bridge.
+- Clean-room documentation that keeps DeKoi separate from the old dashed project line.
+
+See [docs/project-status.md](./docs/project-status.md) for what works now, what is experimental, and what is intentionally out of scope.
+
+## Quick Start
+
+Install dependencies:
+
+~~~sh
 pnpm install
+~~~
+
+Run the browser development shell:
+
+~~~sh
 pnpm dev
-```
+~~~
 
-## Checks
+Run the optional desktop host:
 
-```sh
-pnpm check
-```
-
-For the frontend build only:
-
-```sh
-pnpm build
-```
-
-## Desktop Host
-
-DeKoi has an optional Tauri desktop host scaffold. Use it only for native host
-capabilities such as file-backed storage, secrets, filesystem import/export, and
-local runtime support.
-
-```sh
+~~~sh
 pnpm tauri:dev
-```
+~~~
 
-The host currently exposes `dekoi_host_status`,
-`dekoi_storage_read_bundle`, `dekoi_storage_write_bundle`, native bundle file
-dialogs, provider-key secret commands, and a desktop runtime bridge. Durable app
-records are stored by the host under `<app-data>/collections/<entity>.json`.
-The browser shell does not use browser storage for durable DeKoi records; run
-the Tauri app or configure a Remote Runtime URL when persistence matters.
+Run the full local check:
 
-Pond Care > Deep Water can check host readiness, save/load a DeKoi-native bundle
-through the desktop app data directory, and select `desktop://runtime` for
-host-backed fixture generation. Pond Care > Stocking can export/import bundle
-files through desktop dialogs. Pond Care > Catalog can save, check, and clear
-provider keys for connections without exporting the secret value.
+~~~sh
+pnpm check
+~~~
+
+For a guided setup path, see [docs/getting-started.md](./docs/getting-started.md).
+
+## Storage Note
+
+The browser development shell is useful for UI and runtime work, but it does not use browser storage for durable DeKoi records. Use the Tauri desktop app or configure a compatible Remote Runtime URL when persistence matters.
+
+Desktop records are stored under:
+
+~~~text
+<app-data>/collections/<entity>.json
+~~~
+
+Pond Care > Deep Water can check host readiness, save and load DeKoi-native bundles through the desktop app-data directory, and select desktop://runtime for host-backed fixture generation. Pond Care > Stocking can export and import bundle files through desktop dialogs. Pond Care > Catalog can save, check, and clear provider keys without exporting secret values.
+
+## DeKoi And De-Koi
+
+DeKoi is the no-dash, from-scratch project. De-Koi is the older dashed fork-derived line. Keep their identities separate when writing docs, code, issue text, and compatibility notes.
+
+Compatibility work should be explicit one-way import work after DeKoi has native records:
+
+~~~text
+legacy source record -> DeKoi native record
+~~~
+
+Legacy names and old storage shapes should not become DeKoi core concepts.
 
 ## Repository Rules
 
 - DeKoi-owned code starts here.
-- Legacy compatibility must be built as explicit import adapters.
+- Write the DeKoi requirement before adding substantial code.
+- Build legacy compatibility as explicit import adapters.
 - Do not copy the old repository as a source template.
-- Architecture skeletons may be reused only as fresh DeKoi decisions with native
-  names, current requirements, and current docs.
-- If a behavior is needed, write the requirement in DeKoi terms first.
-- If a file, phrase, asset, schema, prompt, or component came from the old line,
-  it does not belong here.
+- Do not copy old source code, assets, documentation wording, prompts, schemas, generated bindings, component layouts, or UI text.
+- Keep public labels, internal domain nouns, and legacy import aliases separate.
 
-See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process.
-See [SURFACE_LABELS.md](./SURFACE_LABELS.md) for the first DeKoi-owned naming
-map.
-See [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) for the first native product records.
-See [ARCHITECTURE.md](./ARCHITECTURE.md) and
-[docs/storage-model.md](./docs/storage-model.md) for the current architecture
-and storage guardrails.
-See [docs/developer/index.html](./docs/developer/index.html) for migrated
-developer docs that still need validation against the new implementation.
+See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process and [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules.
+
+## Project Docs
+
+- [Product Notes](./PRODUCT.md): purpose, intended users, first slice, and non-goals.
+- [Clean-Room Boundary](./CLEAN_ROOM.md): what can and cannot be used as input.
+- [Surface Labels](./SURFACE_LABELS.md): DeKoi-owned naming map.
+- [Domain Model](./DOMAIN_MODEL.md): first native product records.
+- [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
+- [Storage Model](./docs/storage-model.md): collection-backed durable data guardrails.
+- [Remote Runtime Contract](./docs/remote-runtime-contract.md): compatible runtime health, invoke, generation, and storage commands.
+- [Developer Docs](./docs/developer/index.html): migrated developer docs that still need validation against the new implementation.
+
+## License
+
+DeKoi is licensed under the [Apache License 2.0](./LICENSE). This license applies to this clean-room DeKoi repository; it does not change the license or provenance of the older dashed project line.
