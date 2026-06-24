@@ -33,6 +33,11 @@ export type DeKoiDesktopStorageReadResult =
     }
   | { ok: false; error: string };
 
+export interface DeKoiDesktopProviderSecretStatus {
+  connectionId: string;
+  hasSecret: boolean;
+}
+
 const BROWSER_HOST_STATUS: DeKoiDesktopHostStatus = {
   appName: "DeKoi",
   hostKind: "browser",
@@ -113,5 +118,47 @@ export async function writeDesktopStorageBundle(
   return await invoke<DeKoiDesktopStorageBundleInfo>(
     "dekoi_storage_write_bundle",
     { bundle },
+  );
+}
+
+function requireTauriForSecrets() {
+  if (!isTauri()) {
+    throw new Error(
+      "Desktop provider key storage is only available inside the Tauri app.",
+    );
+  }
+}
+
+export async function getDesktopProviderSecretStatus(
+  connectionId: string,
+): Promise<DeKoiDesktopProviderSecretStatus> {
+  requireTauriForSecrets();
+
+  return await invoke<DeKoiDesktopProviderSecretStatus>(
+    "dekoi_provider_secret_status",
+    { connectionId },
+  );
+}
+
+export async function writeDesktopProviderSecret(
+  connectionId: string,
+  secret: string,
+): Promise<DeKoiDesktopProviderSecretStatus> {
+  requireTauriForSecrets();
+
+  return await invoke<DeKoiDesktopProviderSecretStatus>(
+    "dekoi_provider_secret_write",
+    { connectionId, secret },
+  );
+}
+
+export async function deleteDesktopProviderSecret(
+  connectionId: string,
+): Promise<DeKoiDesktopProviderSecretStatus> {
+  requireTauriForSecrets();
+
+  return await invoke<DeKoiDesktopProviderSecretStatus>(
+    "dekoi_provider_secret_delete",
+    { connectionId },
   );
 }

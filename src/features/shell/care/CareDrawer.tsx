@@ -19,8 +19,12 @@ import {
 } from "../../../runtime/dekoi-storage-bundle";
 import {
   checkDesktopHostStatus,
+  deleteDesktopProviderSecret,
+  getDesktopProviderSecretStatus,
   readDesktopStorageBundle,
+  writeDesktopProviderSecret,
   writeDesktopStorageBundle,
+  type DeKoiDesktopProviderSecretStatus,
   type DeKoiDesktopHostStatus,
 } from "../../../runtime/desktop-host";
 import {
@@ -192,6 +196,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   );
   const [connectionDraft, setConnectionDraft] =
     useState<ProviderConnectionDraft>(EMPTY_CONNECTION_DRAFT);
+  const [connectionSecretInput, setConnectionSecretInput] = useState("");
+  const [connectionSecretBusy, setConnectionSecretBusy] = useState(false);
+  const [connectionSecretStatus, setConnectionSecretStatus] = useState("");
+  const [connectionSecrets, setConnectionSecrets] = useState<
+    Record<string, DeKoiDesktopProviderSecretStatus>
+  >({});
   const [bundlePreview, setBundlePreview] =
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
@@ -412,6 +422,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   function resetConnectionDraft() {
     setEditingConnectionId(null);
     setConnectionDraft(EMPTY_CONNECTION_DRAFT);
+    setConnectionSecretInput("");
+    setConnectionSecretStatus("");
   }
 
   function handleConnectionSubmit(event: FormEvent<HTMLFormElement>) {
@@ -424,11 +436,15 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     const connection = nav.createProviderConnection(connectionDraft);
     setEditingConnectionId(connection.id);
     setConnectionDraft(connectionDraftFrom(connection));
+    setConnectionSecretInput("");
+    setConnectionSecretStatus("");
   }
 
   function editConnection(connection: ProviderConnectionRecord) {
     setEditingConnectionId(connection.id);
     setConnectionDraft(connectionDraftFrom(connection));
+    setConnectionSecretInput("");
+    setConnectionSecretStatus("");
   }
 
   function copyConnection(connectionId: string) {
@@ -439,7 +455,101 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
   function removeConnection(connectionId: string) {
     nav.deleteProviderConnection(connectionId);
+    setConnectionSecrets((currentSecrets) => {
+      const remainingSecrets = { ...currentSecrets };
+      delete remainingSecrets[connectionId];
+      return remainingSecrets;
+    });
+    void deleteDesktopProviderSecret(connectionId).catch(() => undefined);
     if (editingConnectionId === connectionId) resetConnectionDraft();
+  }
+
+  function updateConnectionSecretStatus(
+    status: DeKoiDesktopProviderSecretStatus,
+  ) {
+    setConnectionSecrets((currentSecrets) => ({
+      ...currentSecrets,
+      [status.connectionId]: status,
+    }));
+  }
+
+  async function handleConnectionSecretCheck(
+    connectionId = editingConnectionId,
+  ) {
+    if (!connectionId) {
+      setConnectionSecretStatus("Save the connection before managing its key.");
+      return;
+    }
+
+    setConnectionSecretBusy(true);
+    setConnectionSecretStatus("Checking provider key...");
+
+    try {
+      const status = await getDesktopProviderSecretStatus(connectionId);
+      updateConnectionSecretStatus(status);
+      setConnectionSecretStatus(
+        status.hasSecret
+          ? "Provider key is saved in the desktop host."
+          : "No provider key is saved for this connection.",
+      );
+    } catch (error) {
+      setConnectionSecretStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setConnectionSecretBusy(false);
+    }
+  }
+
+  async function handleConnectionSecretSave() {
+    if (!editingConnectionId) {
+      setConnectionSecretStatus("Save the connection before managing its key.");
+      return;
+    }
+
+    setConnectionSecretBusy(true);
+    setConnectionSecretStatus("Saving provider key...");
+
+    try {
+      const status = await writeDesktopProviderSecret(
+        editingConnectionId,
+        connectionSecretInput,
+      );
+      updateConnectionSecretStatus(status);
+      setConnectionSecretInput("");
+      await refreshDesktopHostStatus();
+      setConnectionSecretStatus("Provider key saved in the desktop host.");
+    } catch (error) {
+      setConnectionSecretStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setConnectionSecretBusy(false);
+    }
+  }
+
+  async function handleConnectionSecretClear() {
+    if (!editingConnectionId) {
+      setConnectionSecretStatus("Save the connection before managing its key.");
+      return;
+    }
+
+    setConnectionSecretBusy(true);
+    setConnectionSecretStatus("Clearing provider key...");
+
+    try {
+      const status = await deleteDesktopProviderSecret(editingConnectionId);
+      updateConnectionSecretStatus(status);
+      setConnectionSecretInput("");
+      await refreshDesktopHostStatus();
+      setConnectionSecretStatus("Provider key cleared.");
+    } catch (error) {
+      setConnectionSecretStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setConnectionSecretBusy(false);
+    }
   }
 
   function getBundleFilename() {
@@ -1031,7 +1141,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               <article className="catalog-row" key={connection.id}>
                 <span>
                   <b>{connection.label}</b>
-                  <small>{connection.summary || connection.kind}</small>
+                  <small>
+                    {connection.summary || connection.kind}
+                    {connectionSecrets[connection.id]?.hasSecret
+                      ? " · key saved"
+                      : ""}
+                  </small>
                 </span>
                 <span className="catalog-actions">
                   <button type="button" onClick={() => editConnection(connection)}>
@@ -1112,6 +1227,62 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 }
               />
             </div>
+
+            <div className="field">
+              <label htmlFor="connection-secret">Provider key</label>
+              <input
+                className="pondinput"
+                id="connection-secret"
+                type="password"
+                autoComplete="off"
+                placeholder={
+                  editingConnectionId
+                    ? "Stored only in the desktop host"
+                    : "Save the connection first"
+                }
+                value={connectionSecretInput}
+                onChange={(event) =>
+                  setConnectionSecretInput(event.target.value)
+                }
+                disabled={!editingConnectionId || connectionSecretBusy}
+              />
+              <div className="help">
+                Keys are not saved in DeKoi bundles or browser storage.
+              </div>
+            </div>
+
+            <div className="runtime-actions">
+              <button
+                type="button"
+                disabled={!editingConnectionId || connectionSecretBusy}
+                onClick={() => handleConnectionSecretCheck()}
+              >
+                Check key
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !editingConnectionId ||
+                  connectionSecretBusy ||
+                  !connectionSecretInput.trim()
+                }
+                onClick={handleConnectionSecretSave}
+              >
+                Save key
+              </button>
+              <button
+                type="button"
+                disabled={!editingConnectionId || connectionSecretBusy}
+                onClick={handleConnectionSecretClear}
+              >
+                Clear key
+              </button>
+            </div>
+
+            {connectionSecretStatus && (
+              <p className="bundle-status">{connectionSecretStatus}</p>
+            )}
+
             <div className="runtime-actions">
               <button type="submit">
                 {editingConnectionId ? "Save connection" : "Create connection"}

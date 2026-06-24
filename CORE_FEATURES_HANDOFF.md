@@ -252,8 +252,10 @@ Status: initial optional Tauri desktop scaffold is implemented. It keeps the
 web app intact, adds a Rust host crate, exposes host-status and durable bundle
 storage commands, and wires Pond Care > Deep Water to check host capabilities
 and save/load a DeKoi-native bundle through the desktop app data directory.
-Secrets, filesystem import/export, and local runtime support are still future
-host slices.
+Provider-key secret commands are also available through the desktop host and
+Pond Care > Catalog can save, check, and clear a key for a connection without
+putting the secret value in bundles or browser storage. Filesystem import/export
+and local runtime support are still future host slices.
 
 Rust/Tauri should eventually own:
 
