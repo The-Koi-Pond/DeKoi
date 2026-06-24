@@ -6,14 +6,13 @@ import {
 } from "../engine/provider-connection";
 import {
   isRecord,
-  loadCatalogRecords,
   readNullableString,
   readString,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
+import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
 
-const PROVIDER_CONNECTION_STORAGE_KEY = "dekoi:provider-connections:v1";
+const PROVIDER_CONNECTIONS_ENTITY = "provider-connections";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
@@ -53,13 +52,26 @@ export function normalizeProviderConnectionRecord(
 }
 
 export function loadProviderConnectionRecords() {
-  return loadCatalogRecords(
-    PROVIDER_CONNECTION_STORAGE_KEY,
-    providerConnections,
-    normalizeProviderConnectionRecord,
-  );
+  return providerConnections;
 }
 
-export function saveProviderConnectionRecords(records: ProviderConnectionRecord[]) {
-  saveCatalogRecords(PROVIDER_CONNECTION_STORAGE_KEY, records);
+export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
+  return loadHostRecordsSnapshot({
+    entity: PROVIDER_CONNECTIONS_ENTITY,
+    normalizeRecord: normalizeProviderConnectionRecord,
+    rawUrl,
+    seedRecords: providerConnections,
+  });
+}
+
+export function saveProviderConnectionRecordsToStorage(
+  records: ProviderConnectionRecord[],
+  rawUrl?: string,
+) {
+  return saveHostRecords(
+    PROVIDER_CONNECTIONS_ENTITY,
+    records,
+    normalizeProviderConnectionRecord,
+    rawUrl,
+  );
 }

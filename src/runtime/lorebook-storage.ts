@@ -2,13 +2,12 @@ import type { LorebookEntryRecord, LorebookRecord } from "../engine/lorebook";
 import { sampleLorebook } from "../engine/sample-messenger";
 import {
   isRecord,
-  loadCatalogRecords,
   readString,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
+import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
 
-const LOREBOOK_STORAGE_KEY = "dekoi:lorebooks:v1";
+const LOREBOOKS_ENTITY = "lorebooks";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
   if (!isRecord(value)) return null;
@@ -56,9 +55,21 @@ export function normalizeLorebookRecord(value: unknown): LorebookRecord | null {
 }
 
 export function loadLorebookRecords() {
-  return loadCatalogRecords(LOREBOOK_STORAGE_KEY, [sampleLorebook], normalizeLorebookRecord);
+  return [sampleLorebook];
 }
 
-export function saveLorebookRecords(records: LorebookRecord[]) {
-  saveCatalogRecords(LOREBOOK_STORAGE_KEY, records);
+export function loadLorebookRecordsFromStorage(rawUrl?: string) {
+  return loadHostRecordsSnapshot({
+    entity: LOREBOOKS_ENTITY,
+    normalizeRecord: normalizeLorebookRecord,
+    rawUrl,
+    seedRecords: [sampleLorebook],
+  });
+}
+
+export function saveLorebookRecordsToStorage(
+  records: LorebookRecord[],
+  rawUrl?: string,
+) {
+  return saveHostRecords(LOREBOOKS_ENTITY, records, normalizeLorebookRecord, rawUrl);
 }

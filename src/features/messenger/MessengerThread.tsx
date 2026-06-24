@@ -164,9 +164,11 @@ export function MessengerThread() {
       ? "Saving..."
       : nav.messengerStorageMode === "remote"
         ? "Remote runtime"
+        : nav.messengerStorageMode === "desktop"
+          ? "Desktop host"
         : nav.messengerStorageStatus === "error"
-          ? "Local fallback"
-          : "Saved locally";
+          ? "Storage unavailable"
+          : "Host storage";
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
       nav.appSettings.activeMessengerConnectionId,

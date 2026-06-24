@@ -2,15 +2,14 @@ import type { CharacterRecord } from "../engine/character";
 import { sampleCompanions } from "../engine/sample-messenger";
 import {
   isRecord,
-  loadCatalogRecords,
   readNullableString,
   readString,
   readStringArray,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
+import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
 
-const CHARACTER_STORAGE_KEY = "dekoi:characters:v1";
+const CHARACTERS_ENTITY = "characters";
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
   if (!isRecord(value)) return null;
@@ -36,13 +35,21 @@ export function normalizeCharacterRecord(value: unknown): CharacterRecord | null
 }
 
 export function loadCharacterRecords() {
-  return loadCatalogRecords(
-    CHARACTER_STORAGE_KEY,
-    sampleCompanions,
-    normalizeCharacterRecord,
-  );
+  return sampleCompanions;
 }
 
-export function saveCharacterRecords(records: CharacterRecord[]) {
-  saveCatalogRecords(CHARACTER_STORAGE_KEY, records);
+export function loadCharacterRecordsFromStorage(rawUrl?: string) {
+  return loadHostRecordsSnapshot({
+    entity: CHARACTERS_ENTITY,
+    normalizeRecord: normalizeCharacterRecord,
+    rawUrl,
+    seedRecords: sampleCompanions,
+  });
+}
+
+export function saveCharacterRecordsToStorage(
+  records: CharacterRecord[],
+  rawUrl?: string,
+) {
+  return saveHostRecords(CHARACTERS_ENTITY, records, normalizeCharacterRecord, rawUrl);
 }

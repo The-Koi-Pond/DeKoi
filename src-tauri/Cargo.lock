@@ -715,6 +715,7 @@ dependencies = [
 name = "dekoi"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "keyring",
  "rfd",
  "serde",

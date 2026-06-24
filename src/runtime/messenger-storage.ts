@@ -1,16 +1,14 @@
 import type { MessengerMessage, MessengerThread } from "../engine/messenger";
 import { sampleMessengerThread } from "../engine/sample-messenger";
 import {
-  invokeRemote,
-  readRemoteRuntimeUrl,
-  remoteRuntimeTarget,
-} from "./remote-runtime";
-import {
-  loadMessengerThreads as loadLocalMessengerThreads,
-  saveMessengerThreads as saveLocalMessengerThreads,
-} from "./messenger-local-storage";
+  HOST_STORAGE_UNAVAILABLE_MESSAGE,
+  loadHostRecordsSnapshot,
+  saveHostRecords,
+  type HostStorageMode,
+} from "./host-storage";
+import { readRemoteRuntimeUrl } from "./remote-runtime";
 
-export type MessengerStorageMode = "local" | "remote";
+export type MessengerStorageMode = HostStorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
 
 export type MessengerStorageSnapshot = {
@@ -21,11 +19,6 @@ export type MessengerStorageSnapshot = {
 };
 
 const MESSENGER_THREADS_ENTITY = "messenger-threads";
-const LEGACY_BUBBLE_THREADS_ENTITY = "bubble-threads";
-
-function asErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
-}
 
 function migrateLegacyId(id: string) {
   return id
@@ -98,183 +91,43 @@ export function normalizeMessengerThreads(value: unknown): MessengerThread[] {
     .filter((thread): thread is MessengerThread => thread !== null);
 }
 
-function hasRemoteRuntime(rawUrl: string) {
-  try {
-    return remoteRuntimeTarget(rawUrl) !== null;
-  } catch {
-    return false;
-  }
-}
-
-async function loadRemoteMessengerThreads(rawUrl: string): Promise<MessengerThread[]> {
-  let records: unknown[] = [];
-  let newCollectionError: unknown = null;
-
-  try {
-    records = await invokeRemote<unknown[]>(
-      "storage_list",
-      {
-        entity: MESSENGER_THREADS_ENTITY,
-        options: null,
-      },
-      rawUrl,
-    );
-  } catch (error) {
-    newCollectionError = error;
-  }
-
-  const messengerThreads = normalizeMessengerThreads(records);
-  if (messengerThreads.length > 0) return messengerThreads;
-
-  try {
-    const legacyRecords = await invokeRemote<unknown[]>(
-      "storage_list",
-      {
-        entity: LEGACY_BUBBLE_THREADS_ENTITY,
-        options: null,
-      },
-      rawUrl,
-    );
-    return normalizeMessengerThreads(legacyRecords);
-  } catch {
-    if (newCollectionError) throw newCollectionError;
-    return [];
-  }
-
-  return [];
-}
-
-async function saveRemoteMessengerThreads(threads: MessengerThread[], rawUrl: string) {
-  const currentThreads = normalizeMessengerThreads(
-    await invokeRemote<unknown[]>(
-      "storage_list",
-      {
-        entity: MESSENGER_THREADS_ENTITY,
-        options: null,
-      },
-      rawUrl,
-    ).catch(() => []),
-  );
-  const currentIds = new Set(currentThreads.map((thread) => thread.id));
-  const nextIds = new Set(threads.map((thread) => thread.id));
-
-  await Promise.all(
-    threads.map((thread) =>
-      currentIds.has(thread.id)
-        ? invokeRemote(
-            "storage_update",
-            {
-              entity: MESSENGER_THREADS_ENTITY,
-              id: thread.id,
-              patch: thread as unknown as Record<string, unknown>,
-            },
-            rawUrl,
-          )
-        : invokeRemote(
-            "storage_create",
-            {
-              entity: MESSENGER_THREADS_ENTITY,
-              value: thread as unknown as Record<string, unknown>,
-            },
-            rawUrl,
-          ),
-    ),
-  );
-
-  await Promise.all(
-    currentThreads
-      .filter((thread) => !nextIds.has(thread.id))
-      .map((thread) =>
-        invokeRemote(
-          "storage_delete",
-          {
-            entity: MESSENGER_THREADS_ENTITY,
-            id: thread.id,
-          },
-          rawUrl,
-        ),
-      ),
-  );
-}
-
 export function loadInitialMessengerThreads(): MessengerThread[] {
-  return loadLocalMessengerThreads();
+  return [sampleMessengerThread];
 }
 
 export async function loadMessengerThreadsFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<MessengerStorageSnapshot> {
-  const localThreads = loadLocalMessengerThreads();
-  if (!rawUrl.trim()) {
-    return {
-      threads: localThreads,
-      mode: "local",
-      status: "ready",
-      message: "Saved locally.",
-    };
-  }
+  const snapshot = await loadHostRecordsSnapshot({
+    entity: MESSENGER_THREADS_ENTITY,
+    normalizeRecord: normalizeMessengerThread,
+    rawUrl,
+    seedRecords: [sampleMessengerThread],
+  });
 
-  if (!hasRemoteRuntime(rawUrl)) {
-    return {
-      threads: localThreads,
-      mode: "local",
-      status: "error",
-      message: "Remote Runtime URL is invalid; using local storage.",
-    };
-  }
-
-  try {
-    const remoteThreads = await loadRemoteMessengerThreads(rawUrl);
-    return {
-      threads: remoteThreads.length > 0 ? remoteThreads : localThreads,
-      mode: "remote",
-      status: "ready",
-      message: "Remote runtime storage is active.",
-    };
-  } catch (error) {
-    return {
-      threads: localThreads.length > 0 ? localThreads : [sampleMessengerThread],
-      mode: "local",
-      status: "error",
-      message: `Remote runtime unavailable; using local storage. ${asErrorMessage(error)}`,
-    };
-  }
+  return {
+    threads: snapshot.records,
+    mode: snapshot.mode,
+    status: snapshot.status,
+    message:
+      snapshot.mode === "unavailable" ? HOST_STORAGE_UNAVAILABLE_MESSAGE : snapshot.message,
+  };
 }
 
 export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<MessengerStorageSnapshot, "threads">> {
-  saveLocalMessengerThreads(threads);
+  const result = await saveHostRecords(
+    MESSENGER_THREADS_ENTITY,
+    threads,
+    normalizeMessengerThread,
+    rawUrl,
+  );
 
-  if (!rawUrl.trim()) {
-    return {
-      mode: "local",
-      status: "ready",
-      message: "Saved locally.",
-    };
-  }
-
-  if (!hasRemoteRuntime(rawUrl)) {
-    return {
-      mode: "local",
-      status: "error",
-      message: "Remote Runtime URL is invalid; saved locally.",
-    };
-  }
-
-  try {
-    await saveRemoteMessengerThreads(threads, rawUrl);
-    return {
-      mode: "remote",
-      status: "ready",
-      message: "Saved through remote runtime.",
-    };
-  } catch (error) {
-    return {
-      mode: "local",
-      status: "error",
-      message: `Remote save failed; saved locally. ${asErrorMessage(error)}`,
-    };
-  }
+  return {
+    mode: result.mode,
+    status: result.status,
+    message: result.message,
+  };
 }

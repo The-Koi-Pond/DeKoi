@@ -1,15 +1,14 @@
 import type { ClassicEntry, ClassicThread } from "../engine/classic";
 import {
   isRecord,
-  loadCatalogRecords,
   readNullableString,
   readString,
   readStringArray,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
+import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
 
-const CLASSIC_THREADS_STORAGE_KEY = "dekoi:classic-threads:v1";
+const CLASSIC_THREADS_ENTITY = "classic-threads";
 
 function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
   if (
@@ -92,13 +91,26 @@ export function normalizeClassicThread(value: unknown): ClassicThread | null {
 }
 
 export function loadClassicThreads() {
-  return loadCatalogRecords(
-    CLASSIC_THREADS_STORAGE_KEY,
-    [],
-    normalizeClassicThread,
-  );
+  return [];
 }
 
-export function saveClassicThreads(records: ClassicThread[]) {
-  saveCatalogRecords(CLASSIC_THREADS_STORAGE_KEY, records);
+export function loadClassicThreadsFromStorage(rawUrl?: string) {
+  return loadHostRecordsSnapshot({
+    entity: CLASSIC_THREADS_ENTITY,
+    normalizeRecord: normalizeClassicThread,
+    rawUrl,
+    seedRecords: [],
+  });
+}
+
+export function saveClassicThreadsToStorage(
+  records: ClassicThread[],
+  rawUrl?: string,
+) {
+  return saveHostRecords(
+    CLASSIC_THREADS_ENTITY,
+    records,
+    normalizeClassicThread,
+    rawUrl,
+  );
 }

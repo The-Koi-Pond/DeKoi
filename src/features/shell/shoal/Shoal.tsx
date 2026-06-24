@@ -40,7 +40,9 @@ export function Shoal() {
   const storageLabel =
     nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
       ? "remote runtime"
-      : "saved locally";
+      : nav.messengerStorageMode === "desktop" && nav.messengerStorageStatus !== "error"
+        ? "desktop host"
+        : "storage unavailable";
   const filteredThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sortedThreads;
@@ -181,7 +183,7 @@ export function Shoal() {
             onDelete={() => handleDeleteMessenger(thread.id, thread.title)}
           />
         ))}
-        <div className="group-label">Classic — saved locally</div>
+        <div className="group-label">Classic — {storageLabel}</div>
         {filteredClassicThreads.map((thread) => (
           <KoiCard
             key={thread.id}

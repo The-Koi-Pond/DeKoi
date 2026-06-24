@@ -5,23 +5,21 @@ import type {
   RippleTone,
 } from "../engine/ripples";
 import {
-  invokeRemote,
-  readRemoteRuntimeUrl,
-  remoteRuntimeTarget,
-} from "./remote-runtime";
+  loadHostRecordsSnapshot,
+  saveHostRecords,
+  type HostStorageMode,
+} from "./host-storage";
+import { readRemoteRuntimeUrl } from "./remote-runtime";
 import {
   isRecord,
-  loadCatalogRecords,
   normalizeCatalogList,
   readString,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
 
-const RIPPLE_STATES_STORAGE_KEY = "dekoi:ripple-states:v1";
 const RIPPLE_STATES_ENTITY = "ripple-states";
 
-export type RippleStateStorageMode = "local" | "remote";
+export type RippleStateStorageMode = HostStorageMode;
 export type RippleStateStorageStatus = "ready" | "error";
 
 export type RippleStateStorageSnapshot = {
@@ -30,10 +28,6 @@ export type RippleStateStorageSnapshot = {
   status: RippleStateStorageStatus;
   message: string;
 };
-
-function asErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
-}
 
 function normalizeRippleTone(value: unknown): RippleTone {
   if (value === "shift" || value === "meter") return value;
@@ -101,165 +95,41 @@ export function normalizeRippleStates(value: unknown): RippleState[] {
 }
 
 export function loadRippleStates() {
-  return loadCatalogRecords(
-    RIPPLE_STATES_STORAGE_KEY,
-    [],
-    normalizeRippleState,
-  );
-}
-
-export function saveRippleStates(records: RippleState[]) {
-  saveCatalogRecords(RIPPLE_STATES_STORAGE_KEY, records);
-}
-
-function hasRemoteRuntime(rawUrl: string) {
-  try {
-    return remoteRuntimeTarget(rawUrl) !== null;
-  } catch {
-    return false;
-  }
-}
-
-async function loadRemoteRippleStates(rawUrl: string): Promise<RippleState[]> {
-  return normalizeRippleStates(
-    await invokeRemote<unknown[]>(
-      "storage_list",
-      {
-        entity: RIPPLE_STATES_ENTITY,
-        options: null,
-      },
-      rawUrl,
-    ),
-  );
-}
-
-async function saveRemoteRippleStates(states: RippleState[], rawUrl: string) {
-  const currentStates = normalizeRippleStates(
-    await invokeRemote<unknown[]>(
-      "storage_list",
-      {
-        entity: RIPPLE_STATES_ENTITY,
-        options: null,
-      },
-      rawUrl,
-    ).catch(() => []),
-  );
-  const currentIds = new Set(currentStates.map((state) => state.id));
-  const nextIds = new Set(states.map((state) => state.id));
-
-  await Promise.all(
-    states.map((state) =>
-      currentIds.has(state.id)
-        ? invokeRemote(
-            "storage_update",
-            {
-              entity: RIPPLE_STATES_ENTITY,
-              id: state.id,
-              patch: state as unknown as Record<string, unknown>,
-            },
-            rawUrl,
-          )
-        : invokeRemote(
-            "storage_create",
-            {
-              entity: RIPPLE_STATES_ENTITY,
-              value: state as unknown as Record<string, unknown>,
-            },
-            rawUrl,
-          ),
-    ),
-  );
-
-  await Promise.all(
-    currentStates
-      .filter((state) => !nextIds.has(state.id))
-      .map((state) =>
-        invokeRemote(
-          "storage_delete",
-          {
-            entity: RIPPLE_STATES_ENTITY,
-            id: state.id,
-          },
-          rawUrl,
-        ),
-      ),
-  );
+  return [];
 }
 
 export async function loadRippleStatesFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<RippleStateStorageSnapshot> {
-  const localStates = loadRippleStates();
-  if (!rawUrl.trim()) {
-    return {
-      states: localStates,
-      mode: "local",
-      status: "ready",
-      message: "Ripple Dock saved locally.",
-    };
-  }
+  const snapshot = await loadHostRecordsSnapshot({
+    entity: RIPPLE_STATES_ENTITY,
+    normalizeRecord: normalizeRippleState,
+    rawUrl,
+    seedRecords: [],
+  });
 
-  if (!hasRemoteRuntime(rawUrl)) {
-    return {
-      states: localStates,
-      mode: "local",
-      status: "error",
-      message: "Remote Runtime URL is invalid; Ripple Dock is using local storage.",
-    };
-  }
-
-  try {
-    const remoteStates = await loadRemoteRippleStates(rawUrl);
-    return {
-      states: remoteStates.length > 0 ? remoteStates : localStates,
-      mode: "remote",
-      status: "ready",
-      message: "Ripple Dock remote storage is active.",
-    };
-  } catch (error) {
-    return {
-      states: localStates,
-      mode: "local",
-      status: "error",
-      message: `Ripple Dock remote storage unavailable; using local storage. ${asErrorMessage(error)}`,
-    };
-  }
+  return {
+    states: snapshot.records,
+    mode: snapshot.mode,
+    status: snapshot.status,
+    message: snapshot.message,
+  };
 }
 
 export async function saveRippleStatesToStorage(
   states: RippleState[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<RippleStateStorageSnapshot, "states">> {
-  saveRippleStates(states);
+  const result = await saveHostRecords(
+    RIPPLE_STATES_ENTITY,
+    states,
+    normalizeRippleState,
+    rawUrl,
+  );
 
-  if (!rawUrl.trim()) {
-    return {
-      mode: "local",
-      status: "ready",
-      message: "Ripple Dock saved locally.",
-    };
-  }
-
-  if (!hasRemoteRuntime(rawUrl)) {
-    return {
-      mode: "local",
-      status: "error",
-      message: "Remote Runtime URL is invalid; Ripple Dock saved locally.",
-    };
-  }
-
-  try {
-    await saveRemoteRippleStates(states, rawUrl);
-    return {
-      mode: "remote",
-      status: "ready",
-      message: "Ripple Dock saved through remote runtime.",
-    };
-  } catch (error) {
-    return {
-      mode: "local",
-      status: "error",
-      message: `Ripple Dock remote save failed; saved locally. ${asErrorMessage(error)}`,
-    };
-  }
+  return {
+    mode: result.mode,
+    status: result.status,
+    message: result.message,
+  };
 }

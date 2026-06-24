@@ -14,7 +14,9 @@ export function Pond({ nav }: PondProps) {
   const storagePhrase =
     nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
       ? "through the remote runtime"
-      : "locally";
+      : nav.messengerStorageMode === "desktop" && nav.messengerStorageStatus !== "error"
+        ? "through desktop host storage"
+        : "only in this temporary session";
   // The banner copy is contextual: the "pick a koi" hint is for the Pond home;
   // once inside Messenger it would be misleading, so show a calmer status line.
   const banner = inMessenger

@@ -1,7 +1,3 @@
-export function hasCatalogStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -43,28 +39,4 @@ export function normalizeCatalogList<T extends { id: string }>(
 
   if (value.length > 0 && records.length === 0) return null;
   return records;
-}
-
-export function loadCatalogRecords<T extends { id: string }>(
-  storageKey: string,
-  seedRecords: T[],
-  normalizeRecord: (value: unknown) => T | null,
-) {
-  if (!hasCatalogStorage()) return seedRecords;
-
-  const storedRecords = window.localStorage.getItem(storageKey);
-  if (storedRecords === null) return seedRecords;
-
-  try {
-    const parsedRecords = JSON.parse(storedRecords);
-    return normalizeCatalogList(parsedRecords, normalizeRecord) ?? seedRecords;
-  } catch {
-    return seedRecords;
-  }
-}
-
-export function saveCatalogRecords<T>(storageKey: string, records: T[]) {
-  if (!hasCatalogStorage()) return;
-
-  window.localStorage.setItem(storageKey, JSON.stringify(records));
 }

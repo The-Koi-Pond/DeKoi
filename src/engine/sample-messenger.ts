@@ -117,7 +117,7 @@ export const sampleMessengerThread: MessengerThread = {
         characterId: 'companion-ren',
         label: 'Ren',
       },
-      body: 'The first working slice can be tiny. One Messenger thread, two Companions, saved locally.',
+      body: 'The first working slice can be tiny. One Messenger thread, two Companions, saved through host storage.',
       origin: 'sample',
       createdAt: '2026-06-23T09:33:00.000Z',
       updatedAt: '2026-06-23T09:33:00.000Z',

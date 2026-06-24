@@ -2,14 +2,13 @@ import type { PersonaRecord } from "../engine/persona";
 import { samplePersona } from "../engine/sample-messenger";
 import {
   isRecord,
-  loadCatalogRecords,
   readNullableString,
   readString,
   readTimestamp,
-  saveCatalogRecords,
 } from "./catalog-storage";
+import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
 
-const PERSONA_STORAGE_KEY = "dekoi:personas:v1";
+const PERSONAS_ENTITY = "personas";
 
 export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
   if (!isRecord(value)) return null;
@@ -33,9 +32,21 @@ export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
 }
 
 export function loadPersonaRecords() {
-  return loadCatalogRecords(PERSONA_STORAGE_KEY, [samplePersona], normalizePersonaRecord);
+  return [samplePersona];
 }
 
-export function savePersonaRecords(records: PersonaRecord[]) {
-  saveCatalogRecords(PERSONA_STORAGE_KEY, records);
+export function loadPersonaRecordsFromStorage(rawUrl?: string) {
+  return loadHostRecordsSnapshot({
+    entity: PERSONAS_ENTITY,
+    normalizeRecord: normalizePersonaRecord,
+    rawUrl,
+    seedRecords: [samplePersona],
+  });
+}
+
+export function savePersonaRecordsToStorage(
+  records: PersonaRecord[],
+  rawUrl?: string,
+) {
+  return saveHostRecords(PERSONAS_ENTITY, records, normalizePersonaRecord, rawUrl);
 }

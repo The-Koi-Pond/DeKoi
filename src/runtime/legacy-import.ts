@@ -196,20 +196,20 @@ function collectCandidates(value: unknown) {
 
   if (Array.isArray(legacyThreadList)) {
     candidates.push(...legacyThreadList);
-    sourceLabel = "Legacy Bubbles localStorage";
+    sourceLabel = "Legacy Bubbles export";
   }
 
   if (isRecord(legacySingleThread)) {
     candidates.push(legacySingleThread);
-    sourceLabel = "Legacy Bubbles localStorage";
+    sourceLabel = "Legacy Bubbles export";
   }
 
   if (Array.isArray(messengerThreadList)) {
     candidates.push(...messengerThreadList);
     sourceLabel =
-      sourceLabel === "Legacy Bubbles localStorage"
-        ? "Legacy localStorage"
-        : "Legacy Messenger localStorage";
+      sourceLabel === "Legacy Bubbles export"
+        ? "Legacy Bubbles export"
+        : "Legacy Messenger export";
   }
 
   return { candidates, sourceLabel };

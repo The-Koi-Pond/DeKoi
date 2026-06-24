@@ -241,7 +241,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   function handleUseLocalStorage() {
     setRuntimeUrl("");
     nav.setRemoteRuntimeUrl("");
-    setRuntimeHealth("Saved locally.");
+    setRuntimeHealth("Using desktop host storage when available; otherwise this browser session is temporary.");
   }
 
   function handleUseDesktopRuntime() {
@@ -912,8 +912,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               onChange={handleLegacyFileChange}
             />
             <div className="help">
-              Supports previous thread exports and localStorage-style thread
-              dumps. Converted records are added as native Messenger threads.
+              Supports previous thread export files. Converted records are
+              added as native Messenger threads.
             </div>
           </div>
 
@@ -1599,7 +1599,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           ) : nav.careTab === 7 ? (
             <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
               <p className="care-intro">
-                Deep Water controls where saved Messenger threads settle.
+                Deep Water controls which host stores DeKoi records and runtime calls.
               </p>
 
               <div className="field">
@@ -1612,14 +1612,18 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   value={runtimeUrl}
                   onChange={(event) => setRuntimeUrl(event.target.value)}
                 />
-                <div className="help">Leave empty to use this browser only.</div>
+                <div className="help">
+                  Leave empty for desktop host storage inside Tauri. Browser-only sessions are temporary.
+                </div>
               </div>
 
               <div className={`runtime-status ${nav.messengerStorageStatus}`}>
                 <b>
                   {nav.messengerStorageMode === "remote"
                     ? "Remote runtime"
-                    : "Local storage"}
+                    : nav.messengerStorageMode === "desktop"
+                      ? "Desktop host"
+                      : "Storage unavailable"}
                 </b>
                 <span>{runtimeStatusMessage}</span>
               </div>
@@ -1694,7 +1698,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   Test
                 </button>
                 <button type="button" onClick={handleUseLocalStorage}>
-                  Use local
+                  Use host default
                 </button>
                 <button type="button" onClick={handleUseDesktopRuntime}>
                   Use desktop

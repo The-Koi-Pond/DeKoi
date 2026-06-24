@@ -1,3 +1,4 @@
+use chrono::{SecondsFormat, Utc};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -6,13 +7,27 @@ use std::{
 use tauri::Manager;
 
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
-const DESKTOP_RUNTIME_MESSENGER_THREADS_FILE_NAME: &str = "dekoi-runtime-messenger-threads.json";
-const DESKTOP_RUNTIME_RIPPLE_STATES_FILE_NAME: &str = "dekoi-runtime-ripple-states.json";
 const DESKTOP_RUNTIME_MARKER: &str = "de-koi-desktop";
+const APP_SETTINGS_ENTITY: &str = "app-settings";
+const CHARACTERS_ENTITY: &str = "characters";
+const CLASSIC_THREADS_ENTITY: &str = "classic-threads";
+const LOREBOOKS_ENTITY: &str = "lorebooks";
 const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
+const PERSONAS_ENTITY: &str = "personas";
+const PROVIDER_CONNECTIONS_ENTITY: &str = "provider-connections";
 const RIPPLE_STATES_ENTITY: &str = "ripple-states";
 const LEGACY_BUBBLE_THREADS_ENTITY: &str = "bubble-threads";
 const PROVIDER_SECRET_SERVICE: &str = "com.xelvanas.dekoi.provider-key";
+const COLLECTION_ENTITIES: &[&str] = &[
+    APP_SETTINGS_ENTITY,
+    CHARACTERS_ENTITY,
+    CLASSIC_THREADS_ENTITY,
+    LOREBOOKS_ENTITY,
+    MESSENGER_THREADS_ENTITY,
+    PERSONAS_ENTITY,
+    PROVIDER_CONNECTIONS_ENTITY,
+    RIPPLE_STATES_ENTITY,
+];
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,18 +75,22 @@ fn storage_bundle_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app_data_file_path(app, STORAGE_BUNDLE_FILE_NAME)
 }
 
-fn runtime_entity_file_name(entity: &str) -> Result<&'static str, String> {
-    match entity {
-        MESSENGER_THREADS_ENTITY => Ok(DESKTOP_RUNTIME_MESSENGER_THREADS_FILE_NAME),
-        RIPPLE_STATES_ENTITY => Ok(DESKTOP_RUNTIME_RIPPLE_STATES_FILE_NAME),
-        _ => Err(format!(
-            "Desktop runtime storage entity is not supported: {entity}"
-        )),
+fn ensure_collection_entity(entity: &str) -> Result<(), String> {
+    if COLLECTION_ENTITIES.contains(&entity) {
+        return Ok(());
     }
+
+    Err(format!(
+        "Desktop runtime storage entity is not supported: {entity}"
+    ))
 }
 
 fn runtime_entity_path(app: &tauri::AppHandle, entity: &str) -> Result<PathBuf, String> {
-    app_data_file_path(app, runtime_entity_file_name(entity)?)
+    ensure_collection_entity(entity)?;
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("collections").join(format!("{entity}.json")))
+        .map_err(|error| format!("Could not resolve DeKoi app data directory. {error}"))
 }
 
 fn modified_at_ms(metadata: &fs::Metadata) -> Option<u64> {
@@ -241,7 +260,7 @@ fn storage_create(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_create")?;
     let entity = runtime_entity(args)?;
-    let _ = runtime_entity_file_name(entity)?;
+    ensure_collection_entity(entity)?;
     let value = args
         .get("value")
         .and_then(|value| value.as_object())
@@ -254,7 +273,12 @@ fn storage_create(
         .filter(|value| !value.is_empty())
         .map(ToString::to_string)
         .unwrap_or_else(|| format!("desktop-runtime-record-{}", current_unix_ms()));
+    let now = current_iso_timestamp();
     record.insert("id".to_string(), serde_json::Value::String(id.clone()));
+    record
+        .entry("createdAt".to_string())
+        .or_insert_with(|| serde_json::Value::String(now.clone()));
+    record.insert("updatedAt".to_string(), serde_json::Value::String(now));
 
     let next_record = serde_json::Value::Object(record);
     let mut records = read_runtime_records(app, entity)?;
@@ -271,7 +295,7 @@ fn storage_update(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_update")?;
     let entity = runtime_entity(args)?;
-    let _ = runtime_entity_file_name(entity)?;
+    ensure_collection_entity(entity)?;
     let id = args
         .get("id")
         .and_then(|value| value.as_str())
@@ -297,6 +321,10 @@ fn storage_update(
         record.insert(key.clone(), value.clone());
     }
     record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+    record.insert(
+        "updatedAt".to_string(),
+        serde_json::Value::String(current_iso_timestamp()),
+    );
     let next_record = serde_json::Value::Object(record);
 
     records.retain(|record| read_string_field(record, "id") != id);
@@ -312,7 +340,7 @@ fn storage_delete(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_delete")?;
     let entity = runtime_entity(args)?;
-    let _ = runtime_entity_file_name(entity)?;
+    ensure_collection_entity(entity)?;
     let id = args
         .get("id")
         .and_then(|value| value.as_str())
@@ -382,6 +410,10 @@ fn current_unix_ms() -> u128 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or_default()
+}
+
+fn current_iso_timestamp() -> String {
+    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Value, String> {

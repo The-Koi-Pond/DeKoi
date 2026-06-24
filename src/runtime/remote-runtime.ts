@@ -5,12 +5,12 @@ import {
   isDesktopRuntimeUrl,
 } from "./desktop-runtime";
 
-const REMOTE_RUNTIME_URL_STORAGE_KEY = "dekoi:remote-runtime-url";
 const REMOTE_RUNTIME_MARKERS = new Set([
   "de-koi-server",
   "marinara-server",
   "de-koi-desktop",
 ]);
+let sessionRemoteRuntimeUrl = "";
 
 export type RemoteRuntimeCommand =
   | "messenger_generate"
@@ -39,10 +39,6 @@ export type RemoteRuntimeHealthCheck =
   | { status: "unreachable"; message: string }
   | { status: "not-writable"; message: string };
 
-function hasLocalStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
 function encodeBasicAuth(username: string, password: string): string {
   return `Basic ${btoa(`${decodeURIComponent(username)}:${decodeURIComponent(password)}`)}`;
 }
@@ -67,18 +63,11 @@ function normalizeRemoteRuntimeUrl(raw: string): RuntimeTarget | null {
 }
 
 export function readRemoteRuntimeUrl(): string {
-  if (hasLocalStorage()) {
-    const storedUrl = window.localStorage.getItem(REMOTE_RUNTIME_URL_STORAGE_KEY);
-    if (storedUrl !== null) return storedUrl;
-  }
-
-  return import.meta.env.VITE_DEKOI_REMOTE_RUNTIME_URL ?? "";
+  return sessionRemoteRuntimeUrl || import.meta.env.VITE_DEKOI_REMOTE_RUNTIME_URL || "";
 }
 
 export function writeRemoteRuntimeUrl(url: string) {
-  if (!hasLocalStorage()) return;
-
-  window.localStorage.setItem(REMOTE_RUNTIME_URL_STORAGE_KEY, url.trim());
+  sessionRemoteRuntimeUrl = url.trim();
 }
 
 export function remoteRuntimeTarget(rawUrl = readRemoteRuntimeUrl()): RuntimeTarget | null {

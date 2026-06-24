@@ -60,7 +60,8 @@ import { Shell } from "./features/shell/Shell";
 import {
   loadAppSettings,
   normalizeSurfaceStatus,
-  saveAppSettings,
+  loadAppSettingsFromStorage,
+  saveAppSettingsToStorage,
   type AppSettings,
   type ShoalSortMode,
 } from "./runtime/app-settings";
@@ -74,34 +75,37 @@ import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
   type MessengerStorageMode,
-  type MessengerStorageSnapshot,
   type MessengerStorageStatus,
 } from "./runtime/messenger-storage";
 import {
   loadCharacterRecords,
-  saveCharacterRecords,
+  loadCharacterRecordsFromStorage,
+  saveCharacterRecordsToStorage,
 } from "./runtime/character-storage";
 import {
   loadClassicThreads,
-  saveClassicThreads,
+  loadClassicThreadsFromStorage,
+  saveClassicThreadsToStorage,
 } from "./runtime/classic-storage";
 import {
   loadLorebookRecords,
-  saveLorebookRecords,
+  loadLorebookRecordsFromStorage,
+  saveLorebookRecordsToStorage,
 } from "./runtime/lorebook-storage";
 import {
   loadPersonaRecords,
-  savePersonaRecords,
+  loadPersonaRecordsFromStorage,
+  savePersonaRecordsToStorage,
 } from "./runtime/persona-storage";
 import {
   loadProviderConnectionRecords,
-  saveProviderConnectionRecords,
+  loadProviderConnectionRecordsFromStorage,
+  saveProviderConnectionRecordsToStorage,
 } from "./runtime/provider-connection-storage";
 import {
   loadRippleStates,
   loadRippleStatesFromStorage,
   saveRippleStatesToStorage,
-  type RippleStateStorageSnapshot,
 } from "./runtime/ripple-state-storage";
 import {
   readRemoteRuntimeUrl,
@@ -115,20 +119,18 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function mergeStorageResult(
-  messengerResult: Omit<MessengerStorageSnapshot, "threads">,
-  rippleResult: Omit<RippleStateStorageSnapshot, "states">,
-) {
-  if (messengerResult.status === "error") return messengerResult;
-  if (rippleResult.status === "error") {
-    return {
-      mode: "local" as const,
-      status: "error" as const,
-      message: rippleResult.message,
-    };
-  }
+type StorageResult = {
+  mode: MessengerStorageMode;
+  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  message: string;
+};
 
-  return messengerResult;
+function mergeStorageResults(results: StorageResult[]) {
+  return (
+    results.find((result) => result.status === "error") ??
+    results.find((result) => result.mode !== "unavailable") ??
+    results[0]
+  );
 }
 
 export default function App() {
@@ -147,7 +149,7 @@ export default function App() {
   const [rippleStates, setRippleStates] =
     useState<RippleState[]>(loadRippleStates);
   const [messengerStorageMode, setMessengerStorageMode] =
-    useState<MessengerStorageMode>("local");
+    useState<MessengerStorageMode>("unavailable");
   const [messengerStorageStatus, setMessengerStorageStatus] =
     useState<MessengerStorageStatus>("loading");
   const [messengerStorageMessage, setMessengerStorageMessage] =
@@ -164,17 +166,47 @@ export default function App() {
     let cancelled = false;
 
     Promise.all([
+      loadAppSettingsFromStorage(remoteRuntimeUrl),
+      loadCharacterRecordsFromStorage(remoteRuntimeUrl),
+      loadPersonaRecordsFromStorage(remoteRuntimeUrl),
+      loadLorebookRecordsFromStorage(remoteRuntimeUrl),
+      loadProviderConnectionRecordsFromStorage(remoteRuntimeUrl),
+      loadClassicThreadsFromStorage(remoteRuntimeUrl),
       loadMessengerThreadsFromStorage(remoteRuntimeUrl),
       loadRippleStatesFromStorage(remoteRuntimeUrl),
-    ]).then(([messengerSnapshot, rippleSnapshot]) => {
+    ]).then(([
+      appSettingsSnapshot,
+      characterSnapshot,
+      personaSnapshot,
+      lorebookSnapshot,
+      providerConnectionSnapshot,
+      classicSnapshot,
+      messengerSnapshot,
+      rippleSnapshot,
+    ]) => {
       if (cancelled) return;
-      const storageResult = mergeStorageResult(messengerSnapshot, rippleSnapshot);
+      const storageResult = mergeStorageResults([
+        appSettingsSnapshot,
+        characterSnapshot,
+        personaSnapshot,
+        lorebookSnapshot,
+        providerConnectionSnapshot,
+        classicSnapshot,
+        messengerSnapshot,
+        rippleSnapshot,
+      ]);
+      setAppSettings(appSettingsSnapshot.settings);
+      setCharacters(characterSnapshot.records);
+      setPersonas(personaSnapshot.records);
+      setLorebooks(lorebookSnapshot.records);
+      setProviderConnections(providerConnectionSnapshot.records);
+      setClassicThreads(classicSnapshot.records);
       setMessengerThreads(messengerSnapshot.threads);
       setRippleStates(rippleSnapshot.states);
       setMessengerStorageMode(storageResult.mode);
       setMessengerStorageStatus(storageResult.status);
       setMessengerStorageMessage(storageResult.message);
-      setStorageReady(true);
+      setStorageReady(storageResult.status === "ready");
     });
 
     return () => {
@@ -189,42 +221,35 @@ export default function App() {
     saveRequestId.current = requestId;
 
     Promise.all([
+      saveAppSettingsToStorage(appSettings, remoteRuntimeUrl),
+      saveCharacterRecordsToStorage(characters, remoteRuntimeUrl),
+      savePersonaRecordsToStorage(personas, remoteRuntimeUrl),
+      saveLorebookRecordsToStorage(lorebooks, remoteRuntimeUrl),
+      saveProviderConnectionRecordsToStorage(providerConnections, remoteRuntimeUrl),
+      saveClassicThreadsToStorage(classicThreads, remoteRuntimeUrl),
       saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
       saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
     ]).then(
-      ([messengerSnapshot, rippleSnapshot]) => {
+      (results) => {
         if (saveRequestId.current !== requestId) return;
-        const storageResult = mergeStorageResult(messengerSnapshot, rippleSnapshot);
+        const storageResult = mergeStorageResults(results);
         setMessengerStorageMode(storageResult.mode);
         setMessengerStorageStatus(storageResult.status);
         setMessengerStorageMessage(storageResult.message);
       },
     );
-  }, [messengerThreads, remoteRuntimeUrl, rippleStates, storageReady]);
-
-  useEffect(() => {
-    saveAppSettings(appSettings);
-  }, [appSettings]);
-
-  useEffect(() => {
-    saveCharacterRecords(characters);
-  }, [characters]);
-
-  useEffect(() => {
-    savePersonaRecords(personas);
-  }, [personas]);
-
-  useEffect(() => {
-    saveLorebookRecords(lorebooks);
-  }, [lorebooks]);
-
-  useEffect(() => {
-    saveProviderConnectionRecords(providerConnections);
-  }, [providerConnections]);
-
-  useEffect(() => {
-    saveClassicThreads(classicThreads);
-  }, [classicThreads]);
+  }, [
+    appSettings,
+    characters,
+    classicThreads,
+    lorebooks,
+    messengerThreads,
+    personas,
+    providerConnections,
+    remoteRuntimeUrl,
+    rippleStates,
+    storageReady,
+  ]);
 
   // Esc key closes CareDrawer
   useEffect(() => {

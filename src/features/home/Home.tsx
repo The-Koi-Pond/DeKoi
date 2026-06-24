@@ -14,10 +14,10 @@ import { RIPPLE_DOCK_SURFACE_LABEL, RIPPLES_SURFACE_LABEL } from '../../engine/r
 import {
   sampleCompanions,
   sampleLorebook,
+  sampleMessengerThread,
   samplePersona,
   sampleRippleState,
 } from '../../engine/sample-messenger'
-import { loadMessengerThread, resetMessengerThreadStorage, saveMessengerThread } from '../../runtime/messenger-local-storage'
 
 const surfaceLabels = [
   MESSENGER_SURFACE_LABEL,
@@ -49,16 +49,12 @@ function createLocalId(prefix: string) {
 }
 
 export function Home() {
-  const [messengerThread, setMessengerThread] = useState(loadMessengerThread)
+  const [messengerThread, setMessengerThread] = useState(sampleMessengerThread)
   const [draft, setDraft] = useState('')
   const messageListRef = useRef<HTMLDivElement>(null)
   const participantSummary = sampleCompanions.map((companion) => companion.displayName).join(' + ')
   const latestMessage = messengerThread.messages[messengerThread.messages.length - 1]
   const canSend = draft.trim().length > 0
-
-  useEffect(() => {
-    saveMessengerThread(messengerThread)
-  }, [messengerThread])
 
   useEffect(() => {
     if (!messageListRef.current) return
@@ -102,7 +98,7 @@ export function Home() {
   }
 
   function handleResetThread() {
-    setMessengerThread(resetMessengerThreadStorage())
+    setMessengerThread(sampleMessengerThread)
     setDraft('')
   }
 
@@ -164,7 +160,7 @@ export function Home() {
               <p className="thread-meta">Group Messenger with {participantSummary}</p>
             </div>
             <div className="messenger-header-tools">
-              <span className="storage-chip">Saved locally</span>
+              <span className="storage-chip">Preview only</span>
               <div className="participant-stack" aria-label="Thread participants">
                 <span title={samplePersona.displayName}>{getInitials(samplePersona.displayName)}</span>
                 {sampleCompanions.map((companion) => (

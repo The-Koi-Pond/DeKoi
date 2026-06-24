@@ -11,7 +11,7 @@ assets, docs, prompts, schemas, or UI text from the prior fork-derived line.
 - Fresh React and TypeScript app shell.
 - Clean-room project boundary notes.
 - Early product and architecture notes.
-- No durable legacy importer yet.
+- Legacy import is explicit; it is not an automatic browser-storage migration.
 - No copied source or assets from the prior repo.
 
 ## Run
@@ -39,13 +39,16 @@ pnpm tauri:dev
 
 The host currently exposes `dekoi_host_status`,
 `dekoi_storage_read_bundle`, `dekoi_storage_write_bundle`, native bundle file
-dialogs, provider-key secret commands, and a desktop runtime bridge. Pond Care >
-Deep Water can check host readiness, save/load a DeKoi-native bundle through the
-desktop app data directory, and select `desktop://runtime` for host-backed
-Messenger storage plus fixture generation. Pond Care > Stocking can
-export/import bundle files through desktop dialogs. Pond Care > Catalog can
-save, check, and clear provider keys for connections without exporting the
-secret value.
+dialogs, provider-key secret commands, and a desktop runtime bridge. Durable app
+records are stored by the host under `<app-data>/collections/<entity>.json`.
+The browser shell does not use browser storage for durable DeKoi records; run
+the Tauri app or configure a Remote Runtime URL when persistence matters.
+
+Pond Care > Deep Water can check host readiness, save/load a DeKoi-native bundle
+through the desktop app data directory, and select `desktop://runtime` for
+host-backed fixture generation. Pond Care > Stocking can export/import bundle
+files through desktop dialogs. Pond Care > Catalog can save, check, and clear
+provider keys for connections without exporting the secret value.
 
 ## Repository Rules
 

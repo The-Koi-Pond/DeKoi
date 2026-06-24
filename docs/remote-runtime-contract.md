@@ -63,9 +63,15 @@ through Tauri commands:
 - `dekoi_runtime_health`
 - `dekoi_runtime_invoke`
 
-The desktop runtime currently provides durable Messenger-thread and RippleState
-storage under the app data directory, plus fixture-style Messenger generation.
-It is a host contract bridge, not a real provider transport yet.
+The desktop runtime currently provides durable collection storage under the app
+data directory at:
+
+```text
+<app-data>/collections/<entity>.json
+```
+
+It also provides fixture-style Messenger generation. It is a host contract
+bridge, not a real provider transport yet.
 
 ## Invoke Envelope
 
@@ -226,8 +232,18 @@ drops unknown companion drafts and surfaces a warning.
 
 Supported storage entities:
 
+- `app-settings`
+- `characters`
+- `classic-threads`
+- `lorebooks`
 - `messenger-threads`
+- `personas`
+- `provider-connections`
 - `ripple-states`
+
+The browser app does not persist these entities in browser storage. If the app
+is not running in Tauri, configure a Remote Runtime URL before expecting durable
+storage.
 
 `storage_list`:
 
