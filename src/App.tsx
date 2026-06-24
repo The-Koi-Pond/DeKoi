@@ -1,4 +1,30 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+
+// requestIdleCallback isn't in every TS DOM lib and isn't available everywhere,
+// so fall back to setTimeout. Only used to coalesce storage writes.
+type IdleHandle = number;
+const requestIdle: (cb: () => void) => IdleHandle =
+  typeof window !== "undefined" &&
+  typeof (window as unknown as { requestIdleCallback?: unknown })
+    .requestIdleCallback === "function"
+    ? (cb) =>
+        (
+          window as unknown as {
+            requestIdleCallback: (cb: () => void) => number;
+          }
+        ).requestIdleCallback(cb)
+    : (cb) => window.setTimeout(cb, 1) as unknown as IdleHandle;
+const cancelIdle: (handle: IdleHandle) => void =
+  typeof window !== "undefined" &&
+  typeof (window as unknown as { cancelIdleCallback?: unknown })
+    .cancelIdleCallback === "function"
+    ? (handle) =>
+        (
+          window as unknown as {
+            cancelIdleCallback: (handle: number) => void;
+          }
+        ).cancelIdleCallback(handle)
+    : (handle) => window.clearTimeout(handle);
 import {
   NavContext,
   type PondView,
@@ -218,31 +244,47 @@ export default function App() {
     };
   }, [remoteRuntimeUrl]);
 
+  // Coalesce rapid state changes (e.g. dragging a settings slider fires many
+  // updateAppSettings calls) into a single host write. We debounce briefly, then
+  // defer the write to an idle frame so the main thread stays responsive. The
+  // saveRequestId guard below still ensures only the latest batch's result is
+  // applied if multiple writes overlap.
   useEffect(() => {
     if (!storageReady) return;
 
-    const requestId = saveRequestId.current + 1;
-    saveRequestId.current = requestId;
+    let idleHandle: IdleHandle | undefined;
 
-    Promise.all([
-      saveAppSettingsToStorage(appSettings, remoteRuntimeUrl),
-      saveCharacterRecordsToStorage(characters, remoteRuntimeUrl),
-      savePersonaRecordsToStorage(personas, remoteRuntimeUrl),
-      saveLorebookRecordsToStorage(lorebooks, remoteRuntimeUrl),
-      saveProviderConnectionRecordsToStorage(
-        providerConnections,
-        remoteRuntimeUrl,
-      ),
-      saveClassicThreadsToStorage(classicThreads, remoteRuntimeUrl),
-      saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
-      saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
-    ]).then((results) => {
-      if (saveRequestId.current !== requestId) return;
-      const storageResult = mergeStorageResults(results);
-      setMessengerStorageMode(storageResult.mode);
-      setMessengerStorageStatus(storageResult.status);
-      setMessengerStorageMessage(storageResult.message);
-    });
+    const timer = setTimeout(() => {
+      const requestId = saveRequestId.current + 1;
+      saveRequestId.current = requestId;
+
+      idleHandle = requestIdle(() => {
+        Promise.all([
+          saveAppSettingsToStorage(appSettings, remoteRuntimeUrl),
+          saveCharacterRecordsToStorage(characters, remoteRuntimeUrl),
+          savePersonaRecordsToStorage(personas, remoteRuntimeUrl),
+          saveLorebookRecordsToStorage(lorebooks, remoteRuntimeUrl),
+          saveProviderConnectionRecordsToStorage(
+            providerConnections,
+            remoteRuntimeUrl,
+          ),
+          saveClassicThreadsToStorage(classicThreads, remoteRuntimeUrl),
+          saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
+          saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
+        ]).then((results) => {
+          if (saveRequestId.current !== requestId) return;
+          const storageResult = mergeStorageResults(results);
+          setMessengerStorageMode(storageResult.mode);
+          setMessengerStorageStatus(storageResult.status);
+          setMessengerStorageMessage(storageResult.message);
+        });
+      });
+    }, 150);
+
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+      if (idleHandle !== undefined) cancelIdle(idleHandle);
+    };
   }, [
     appSettings,
     characters,
