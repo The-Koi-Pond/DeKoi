@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const tsRegistryPath = path.join(root, "src", "runtime", "storage-entities.ts");
-const rustHostPath = path.join(root, "src-tauri", "src", "lib.rs");
+const rustHostPath = path.join(root, "src-tauri", "src", "storage.rs");
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -33,7 +33,7 @@ function parseRustEntities(source) {
     /const COLLECTION_ENTITIES:\s*&\[\&str\]\s*=\s*&\[([\s\S]*?)\];/,
   );
   if (!collectionMatch) {
-    throw new Error("Could not find COLLECTION_ENTITIES in src-tauri/src/lib.rs.");
+    throw new Error("Could not find COLLECTION_ENTITIES in src-tauri/src/storage.rs.");
   }
 
   return [...collectionMatch[1].matchAll(/\b[A-Z_]+_ENTITY\b/g)].map(

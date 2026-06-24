@@ -105,17 +105,16 @@ The short version:
   surfaces.
 - `src/runtime/*` adapts native records to desktop storage, remote storage,
   DeKoi bundle import/export, and generation runtimes.
-- `src-tauri/src/lib.rs` currently hosts desktop collection storage, bundle
-  file import/export, provider secrets, and the desktop runtime bridge.
+- `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
+  `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
+  status, and the desktop runtime bridge.
 
 ## Next Architecture Work
 
-1. Split `src-tauri/src/lib.rs` once host storage, secrets, files, and runtime
-   commands need independent owners.
-2. Move `src/runtime` toward narrower adapter modules before adding real
+1. Move `src/runtime` toward narrower adapter modules before adding real
    provider transport.
-3. Add cleanup helpers for storage relationships that are currently enforced by
+2. Add cleanup helpers for storage relationships that are currently enforced by
    higher-level UI flows.
-4. Wire `pnpm check:storage-contracts` into a broader repo check script once
+3. Wire `pnpm check:storage-contracts` into a broader repo check script once
    the repo has one.
-5. Add legacy import only after native records and storage contracts are stable.
+4. Add legacy import only after native records and storage contracts are stable.

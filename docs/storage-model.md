@@ -48,7 +48,7 @@ names:
 
 The desktop host keeps a Rust allowlist for local file access:
 
-- `src-tauri/src/lib.rs`
+- `src-tauri/src/storage.rs`
 
 Run this check after any collection change:
 
@@ -116,7 +116,7 @@ names, UI labels, and provider requests should stay DeKoi-native.
 
 1. Add narrow cleanup helpers for relationships that are currently cleaned by
    higher-level UI flows.
-2. Split desktop host storage commands out of `src-tauri/src/lib.rs` before
-   adding more privileged capabilities.
+2. Move desktop storage into a dedicated capability module or crate once record
+   repair, cleanup, or profile import makes `src-tauri/src/storage.rs` too broad.
 3. Wire `pnpm check:storage-contracts` into a broader repo check script once
    the repo has one.
