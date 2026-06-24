@@ -4,7 +4,7 @@ import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
-import { MESSENGER_GENERATION_RUNTIME_OPTIONS } from "../../../runtime/messenger-generation";
+import { providerConnections } from "../../../engine/provider-connection";
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
@@ -32,6 +32,11 @@ const SEND_ON_ENTER_SURFACES = [
   { value: MESSENGER, label: "Messenger" },
   { value: RESERVED, label: "Reserved" },
 ] as const;
+
+const MESSENGER_CONNECTION_OPTIONS = providerConnections.map((connection) => ({
+  value: connection.id,
+  label: connection.label,
+}));
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
@@ -296,19 +301,19 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               </div>
 
               <div className="field">
-                <label>Messenger generation</label>
+                <label>Messenger connection</label>
                 <div
                   className="help"
                   style={{ marginTop: 0, marginBottom: 10 }}
                 >
-                  Mock replies locally. Remote sends the provider-neutral
-                  request to the configured Remote Runtime URL.
+                  New Messenger threads use this connection. Existing threads
+                  keep the connection they were created with.
                 </div>
                 <Seg
-                  options={MESSENGER_GENERATION_RUNTIME_OPTIONS}
-                  value={nav.appSettings.messengerGenerationMode}
-                  onChange={nav.setMessengerGenerationMode}
-                  ariaLabel="Messenger generation mode"
+                  options={MESSENGER_CONNECTION_OPTIONS}
+                  value={nav.appSettings.activeMessengerConnectionId}
+                  onChange={nav.setActiveMessengerConnectionId}
+                  ariaLabel="Messenger connection"
                 />
               </div>
 

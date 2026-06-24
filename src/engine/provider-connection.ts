@@ -17,6 +17,8 @@ export interface ProviderConnectionRecord {
 
 export const LOCAL_MOCK_PROVIDER_CONNECTION_ID: ProviderConnectionId =
   "connection-local-mock";
+export const REMOTE_RUNTIME_PROVIDER_CONNECTION_ID: ProviderConnectionId =
+  "connection-remote-runtime";
 
 export const providerConnections: ProviderConnectionRecord[] = [
   {
@@ -29,7 +31,7 @@ export const providerConnections: ProviderConnectionRecord[] = [
     modelLabel: "Mock adapter",
   },
   {
-    id: "connection-remote-runtime",
+    id: REMOTE_RUNTIME_PROVIDER_CONNECTION_ID,
     schemaVersion: 1,
     kind: "remote-runtime",
     label: "Remote runtime",

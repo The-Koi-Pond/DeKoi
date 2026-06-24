@@ -12,22 +12,11 @@ import type { CharacterRecord } from "../engine/character";
 import type { LorebookRecord } from "../engine/lorebook";
 import type { MessengerMessage, MessengerThread } from "../engine/messenger";
 import type { PersonaRecord } from "../engine/persona";
-import {
-  getProviderConnectionById,
-  type ProviderConnectionRecord,
-} from "../engine/provider-connection";
+import type { ProviderConnectionRecord } from "../engine/provider-connection";
 import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
 import { remoteMessengerGenerationAdapter } from "./remote-messenger-generation";
 
 export type MessengerGenerationRuntimeMode = "mock" | "remote-runtime";
-
-export const MESSENGER_GENERATION_RUNTIME_OPTIONS: ReadonlyArray<{
-  value: MessengerGenerationRuntimeMode;
-  label: string;
-}> = [
-  { value: "mock", label: "Mock" },
-  { value: "remote-runtime", label: "Remote" },
-];
 
 export interface MessengerGenerationRuntimeSnapshot {
   mode: MessengerGenerationRuntimeMode;
@@ -91,14 +80,6 @@ export function getMessengerGenerationModeForConnection(
   connection: ProviderConnectionRecord,
 ): MessengerGenerationRuntimeMode {
   return connection.kind === "remote-runtime" ? "remote-runtime" : "mock";
-}
-
-export function getMessengerGenerationModeForConnectionId(
-  connectionId: string | null | undefined,
-): MessengerGenerationRuntimeMode {
-  return getMessengerGenerationModeForConnection(
-    getProviderConnectionById(connectionId),
-  );
 }
 
 export async function generateMessengerResponse(

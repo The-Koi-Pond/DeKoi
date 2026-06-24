@@ -20,10 +20,6 @@ import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
-  getMessengerGenerationModeForConnectionId,
-  type MessengerGenerationRuntimeMode,
-} from "./runtime/messenger-generation";
-import {
   loadAppSettings,
   normalizeSurfaceStatus,
   saveAppSettings,
@@ -220,24 +216,11 @@ export default function App() {
     }));
   }, []);
 
-  const setMessengerGenerationMode = useCallback(
-    (messengerGenerationMode: MessengerGenerationRuntimeMode) => {
-      setAppSettings((currentSettings) => ({
-        ...currentSettings,
-        messengerGenerationMode,
-      }));
-    },
-    [],
-  );
-
   const setActiveMessengerConnectionId = useCallback(
     (activeMessengerConnectionId: ProviderConnectionId) => {
       setAppSettings((currentSettings) => ({
         ...currentSettings,
         activeMessengerConnectionId,
-        messengerGenerationMode: getMessengerGenerationModeForConnectionId(
-          activeMessengerConnectionId,
-        ),
       }));
     },
     [],
@@ -270,7 +253,6 @@ export default function App() {
     setConfirmRelease,
     setSurfaceStatus,
     setShoalSortMode,
-    setMessengerGenerationMode,
     setActiveMessengerConnectionId,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),

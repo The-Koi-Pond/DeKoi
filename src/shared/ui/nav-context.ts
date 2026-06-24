@@ -3,7 +3,6 @@ import type { MessengerThread } from '../../engine/messenger'
 import type { ProviderConnectionId } from '../../engine/provider-connection'
 import type { SurfaceId } from '../../engine/surfaces'
 import type { AppSettings, ShoalSortMode } from '../../runtime/app-settings'
-import type { MessengerGenerationRuntimeMode } from '../../runtime/messenger-generation'
 import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
 
 export type PondView =
@@ -37,7 +36,6 @@ export interface NavContextType extends NavState {
   setConfirmRelease: (confirmRelease: boolean) => void
   setSurfaceStatus: (status: string) => void
   setShoalSortMode: (sortMode: ShoalSortMode) => void
-  setMessengerGenerationMode: (mode: MessengerGenerationRuntimeMode) => void
   setActiveMessengerConnectionId: (connectionId: ProviderConnectionId) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void
