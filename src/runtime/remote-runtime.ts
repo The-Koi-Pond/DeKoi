@@ -1,6 +1,21 @@
 const REMOTE_RUNTIME_URL_STORAGE_KEY = "dekoi:remote-runtime-url";
 const REMOTE_RUNTIME_MARKERS = new Set(["de-koi-server", "marinara-server"]);
 
+export type RemoteRuntimeCommand =
+  | "messenger_generate"
+  | "storage_create"
+  | "storage_delete"
+  | "storage_list"
+  | "storage_update";
+
+const REMOTE_RUNTIME_COMMANDS = new Set<RemoteRuntimeCommand>([
+  "messenger_generate",
+  "storage_create",
+  "storage_delete",
+  "storage_list",
+  "storage_update",
+]);
+
 export type RuntimeTarget = {
   baseUrl: string;
   authorization?: string;
@@ -81,6 +96,10 @@ function isSupportedRemoteRuntime(value: unknown): boolean {
   return typeof value === "string" && REMOTE_RUNTIME_MARKERS.has(value);
 }
 
+function isRemoteRuntimeCommand(command: string): command is RemoteRuntimeCommand {
+  return REMOTE_RUNTIME_COMMANDS.has(command as RemoteRuntimeCommand);
+}
+
 export async function checkRemoteRuntimeHealth(rawUrl = readRemoteRuntimeUrl()): Promise<RemoteRuntimeHealthCheck> {
   if (!rawUrl.trim()) {
     return { status: "unconfigured", message: "Remote Runtime URL is not set." };
@@ -136,10 +155,14 @@ async function readRemoteError(response: Response): Promise<Error> {
 }
 
 export async function invokeRemote<T>(
-  command: string,
+  command: RemoteRuntimeCommand,
   args?: Record<string, unknown>,
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T> {
+  if (!isRemoteRuntimeCommand(command)) {
+    throw new Error(`Remote runtime command is not supported: ${command}`);
+  }
+
   const target = remoteRuntimeTarget(rawUrl);
   if (!target) throw new Error("Remote Runtime URL is not set.");
 

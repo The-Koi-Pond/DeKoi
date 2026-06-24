@@ -88,7 +88,7 @@ const featureResults: FeatureResult[] = [
   {
     id: "remote-runtime",
     label: "Configure remote runtime",
-    description: "Point Messenger storage at a remote runtime host.",
+    description: "Point Messenger storage and generation at a remote runtime host.",
     surface: "Pond Care",
     depth: "Deep",
     action: "care",

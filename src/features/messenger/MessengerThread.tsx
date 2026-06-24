@@ -306,7 +306,7 @@ export function MessengerThread() {
         <p className="composer-hint">
           {generationError ||
           (isGenerating
-            ? "Mock generation is replying through the provider-neutral path."
+            ? `${generationRuntime.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER
             ? "Enter sends. Shift+Enter adds a new line."
             : "Enter adds a new line. Use Send to release the message.")}

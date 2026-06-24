@@ -13,8 +13,17 @@ import type { LorebookRecord } from "../engine/lorebook";
 import type { MessengerMessage, MessengerThread } from "../engine/messenger";
 import type { PersonaRecord } from "../engine/persona";
 import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
+import { remoteMessengerGenerationAdapter } from "./remote-messenger-generation";
 
-export type MessengerGenerationRuntimeMode = "mock";
+export type MessengerGenerationRuntimeMode = "mock" | "remote-runtime";
+
+export const MESSENGER_GENERATION_RUNTIME_OPTIONS: ReadonlyArray<{
+  value: MessengerGenerationRuntimeMode;
+  label: string;
+}> = [
+  { value: "mock", label: "Mock" },
+  { value: "remote-runtime", label: "Remote" },
+];
 
 export interface MessengerGenerationRuntimeSnapshot {
   mode: MessengerGenerationRuntimeMode;
@@ -45,12 +54,20 @@ export interface GenerateMessengerThreadReplyResult {
 export function isMessengerGenerationRuntimeMode(
   value: unknown,
 ): value is MessengerGenerationRuntimeMode {
-  return value === "mock";
+  return value === "mock" || value === "remote-runtime";
 }
 
 export function selectMessengerGenerationRuntime(
   mode: MessengerGenerationRuntimeMode = "mock",
 ): MessengerGenerationRuntimeSnapshot {
+  if (mode === "remote-runtime") {
+    return {
+      mode: "remote-runtime",
+      label: "Remote runtime generation",
+      adapter: remoteMessengerGenerationAdapter,
+    };
+  }
+
   if (mode !== "mock") {
     return {
       mode: "mock",

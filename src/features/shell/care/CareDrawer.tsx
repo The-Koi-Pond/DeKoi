@@ -4,7 +4,7 @@ import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
-import type { MessengerGenerationRuntimeMode } from "../../../runtime/messenger-generation";
+import { MESSENGER_GENERATION_RUNTIME_OPTIONS } from "../../../runtime/messenger-generation";
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
@@ -32,11 +32,6 @@ const SEND_ON_ENTER_SURFACES = [
   { value: MESSENGER, label: "Messenger" },
   { value: RESERVED, label: "Reserved" },
 ] as const;
-
-const GENERATION_MODES: ReadonlyArray<{
-  value: MessengerGenerationRuntimeMode;
-  label: string;
-}> = [{ value: "mock", label: "Mock" }];
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
@@ -306,11 +301,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   className="help"
                   style={{ marginTop: 0, marginBottom: 10 }}
                 >
-                  Mock is the only stocked generation mode for now. Remote and
-                  provider adapters will plug in here.
+                  Mock replies locally. Remote sends the provider-neutral
+                  request to the configured Remote Runtime URL.
                 </div>
                 <Seg
-                  options={GENERATION_MODES}
+                  options={MESSENGER_GENERATION_RUNTIME_OPTIONS}
                   value={nav.appSettings.messengerGenerationMode}
                   onChange={nav.setMessengerGenerationMode}
                   ariaLabel="Messenger generation mode"
