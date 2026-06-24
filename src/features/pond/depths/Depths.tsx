@@ -1,10 +1,7 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import {
-  CLASSIC,
-  RESERVED,
-  type SurfaceId,
-} from "../../../engine/surfaces";
+import { RESERVED } from "../../../engine/surfaces";
 import type { NavContextType } from "../../../shared/ui/nav-context";
+import { sortClassicThreadsByUpdatedAt } from "../../classic/classic-display";
 import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 import "./depths.css";
 
@@ -96,9 +93,9 @@ const featureResults: FeatureResult[] = [
   {
     id: "classic-scenes",
     label: "Classic scene surface",
-    description: "Reserved visual-novel-style scenes for a later slice.",
+    description: "Create or reopen a saved visual-novel-style scene.",
     surface: "Classic",
-    depth: "Surfacing soon",
+    depth: "Shallows",
     action: "classic",
   },
   {
@@ -163,8 +160,14 @@ export function Depths({ nav }: DepthsProps) {
     nav.createMessengerThread();
   }
 
-  function selectSurface(surface: SurfaceId) {
-    nav.setSelectedSurface(surface);
+  function openLatestClassicThread() {
+    const latestThread = sortClassicThreadsByUpdatedAt(nav.classicThreads)[0];
+    if (latestThread) {
+      nav.openClassicThread(latestThread.id);
+      return;
+    }
+
+    nav.createClassicThread();
   }
 
   function activateResult(result: FeatureResult) {
@@ -180,12 +183,12 @@ export function Depths({ nav }: DepthsProps) {
     }
 
     if (result.action === "classic") {
-      selectSurface(CLASSIC);
+      openLatestClassicThread();
       return;
     }
 
     if (result.action === "reserved") {
-      selectSurface(RESERVED);
+      nav.setSelectedSurface(RESERVED);
     }
   }
 

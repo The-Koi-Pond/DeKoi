@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { CharacterRecord } from '../../engine/character'
 import type { CharacterRecordInput } from '../../engine/character-actions'
+import type { ClassicThread } from '../../engine/classic'
 import type { LorebookEntryRecord, LorebookRecord } from '../../engine/lorebook'
 import type { LorebookEntryInput } from '../../engine/lorebook-actions'
 import type { MessengerThread } from '../../engine/messenger'
@@ -15,6 +16,7 @@ import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime
 
 export type PondView =
   | { kind: 'pond' }
+  | { kind: 'classic'; threadId: string }
   | { kind: 'messenger'; threadId: string }
 
 export interface NavState {
@@ -24,6 +26,7 @@ export interface NavState {
   personas: PersonaRecord[]
   lorebooks: LorebookRecord[]
   providerConnections: ProviderConnectionRecord[]
+  classicThreads: ClassicThread[]
   messengerThreads: MessengerThread[]
   messengerStorageMode: MessengerStorageMode
   messengerStorageStatus: MessengerStorageStatus
@@ -53,6 +56,12 @@ export interface NavContextType extends NavState {
   updateProviderConnection: (connectionId: string, input: ProviderConnectionInput) => void
   duplicateProviderConnection: (connectionId: string) => ProviderConnectionRecord | null
   deleteProviderConnection: (connectionId: string) => void
+  createClassicThread: () => ClassicThread
+  updateClassicThread: (thread: ClassicThread) => void
+  renameClassicThread: (threadId: string, title: string) => void
+  clearClassicThreadEntries: (threadId: string) => void
+  deleteClassicThread: (threadId: string) => void
+  openClassicThread: (threadId: string) => void
   createMessengerThread: () => MessengerThread
   updateMessengerThread: (thread: MessengerThread) => void
   renameMessengerThread: (threadId: string, title: string) => void

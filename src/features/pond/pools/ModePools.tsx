@@ -6,6 +6,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
+import { sortClassicThreadsByUpdatedAt } from "../../classic/classic-display";
 import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 import "./pools.css";
 
@@ -23,7 +24,7 @@ const POOLS: {
     mode: MESSENGER,
     icon: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />,
     desc: "Open water. Talk freely with the AI, no scene, no rules.",
-    meta: "12 koi · last dived 2h ago",
+    meta: "saved threads",
   },
   {
     mode: CLASSIC,
@@ -34,7 +35,7 @@ const POOLS: {
       </>
     ),
     desc: "Swim into a story. Characters, lore, and scenes carry the current.",
-    meta: "8 koi · 35m ago",
+    meta: "saved scenes",
   },
   {
     mode: RESERVED,
@@ -61,6 +62,34 @@ export function ModePools({ nav }: ModePoolsProps) {
     nav.createMessengerThread();
   }
 
+  function openLatestClassicThread() {
+    const latestThread = sortClassicThreadsByUpdatedAt(nav.classicThreads)[0];
+    if (latestThread) {
+      nav.openClassicThread(latestThread.id);
+      return;
+    }
+
+    nav.createClassicThread();
+  }
+
+  function openPool(mode: SurfaceId) {
+    nav.setSelectedSurface(mode);
+    if (mode === MESSENGER) {
+      openLatestMessengerThread();
+      return;
+    }
+
+    if (mode === CLASSIC) {
+      openLatestClassicThread();
+    }
+  }
+
+  function getPoolMeta(mode: SurfaceId, fallback: string) {
+    if (mode === MESSENGER) return `${nav.messengerThreads.length} threads`;
+    if (mode === CLASSIC) return `${nav.classicThreads.length} scenes`;
+    return fallback;
+  }
+
   return (
     <div className="pools">
       {POOLS.map((pool) => {
@@ -81,15 +110,13 @@ export function ModePools({ nav }: ModePoolsProps) {
             title={locked ? (meta.lockedNote ?? undefined) : undefined}
             onClick={() => {
               if (locked) return;
-              nav.setSelectedSurface(pool.mode);
-              openLatestMessengerThread();
+              openPool(pool.mode);
             }}
             onKeyDown={(e) => {
               if (locked) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                nav.setSelectedSurface(pool.mode);
-                openLatestMessengerThread();
+                openPool(pool.mode);
               }
             }}
           >
@@ -107,7 +134,7 @@ export function ModePools({ nav }: ModePoolsProps) {
             </div>
             <h3>{meta.label}</h3>
             <p>{pool.desc}</p>
-            <div className="pool-meta">{pool.meta}</div>
+            <div className="pool-meta">{getPoolMeta(pool.mode, pool.meta)}</div>
             <div className="go">{locked ? meta.lockedNote : "Dive in →"}</div>
           </div>
         );

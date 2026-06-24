@@ -1,0 +1,217 @@
+.classic-thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(90deg, rgba(62, 197, 125, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, var(--shallow), var(--abyss));
+  background-size: 34px 34px, auto;
+  overflow: hidden;
+}
+
+.classic-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border-bottom: 1px solid var(--reed-soft);
+  background: rgba(9, 19, 23, 0.74);
+  backdrop-filter: blur(6px);
+}
+
+.classic-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  margin-bottom: 6px;
+  border: 0;
+  color: var(--jade);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+}
+
+.classic-back:hover {
+  color: var(--jade-hot);
+}
+
+.classic-header h2 {
+  color: var(--foam);
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.classic-meta {
+  margin-top: 4px;
+  color: var(--mist);
+  font-size: 12px;
+}
+
+.classic-header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.classic-header-tools span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border: 1px solid rgba(62, 197, 125, 0.28);
+  border-radius: 999px;
+  background: rgba(62, 197, 125, 0.08);
+  color: var(--jade-hot);
+  padding: 0 9px;
+  font-size: 10.5px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.classic-scene {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--reed-soft);
+  background: rgba(9, 19, 23, 0.64);
+}
+
+.classic-scene label {
+  color: var(--mist);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.classic-scene textarea {
+  min-height: 122px;
+  resize: vertical;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  color: var(--foam);
+  background: var(--abyss);
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+  padding: 12px;
+}
+
+.classic-scene textarea:focus {
+  border-color: var(--jade);
+}
+
+.classic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.classic-actions button,
+.classic-empty button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: linear-gradient(140deg, var(--jade-hot), var(--jade));
+  color: #0c1216;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 15px;
+}
+
+.classic-actions button + button {
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  color: var(--mist);
+}
+
+.classic-actions button:disabled,
+.classic-empty button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.classic-hint {
+  color: var(--mist-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.classic-entries {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.classic-entry {
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px 13px;
+}
+
+.classic-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.classic-entry-head b {
+  color: var(--jade-hot);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.classic-entry-head span {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--jade);
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.classic-entry p,
+.classic-empty-note {
+  color: var(--foam);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.classic-empty-note {
+  color: var(--mist-dim);
+}
+
+.classic-thread-empty {
+  min-height: 320px;
+}
+
+.classic-empty {
+  display: grid;
+  flex: 1;
+  place-items: center;
+}
+
+@media (max-width: 760px) {
+  .classic-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .classic-header-tools {
+    justify-content: flex-start;
+  }
+}

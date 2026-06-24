@@ -11,6 +11,13 @@ import {
   updateCharacterRecord,
   type CharacterRecordInput,
 } from "./engine/character-actions";
+import type { ClassicThread } from "./engine/classic";
+import {
+  clearClassicEntries,
+  createClassicThread as buildClassicThread,
+  deleteClassicThread as deleteClassicThreadRecord,
+  renameClassicThread as renameClassicThreadRecord,
+} from "./engine/classic-actions";
 import {
   createLorebookEntryRecord,
   deleteLorebookEntry,
@@ -41,7 +48,7 @@ import {
   type ProviderConnectionInput,
 } from "./engine/provider-connection-actions";
 import type { SurfaceId } from "./engine/surfaces";
-import { MESSENGER } from "./engine/surfaces";
+import { CLASSIC, MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
   loadAppSettings,
@@ -65,6 +72,10 @@ import {
   loadCharacterRecords,
   saveCharacterRecords,
 } from "./runtime/character-storage";
+import {
+  loadClassicThreads,
+  saveClassicThreads,
+} from "./runtime/classic-storage";
 import {
   loadLorebookRecords,
   saveLorebookRecords,
@@ -98,6 +109,8 @@ export default function App() {
   const [providerConnections, setProviderConnections] = useState(
     loadProviderConnectionRecords,
   );
+  const [classicThreads, setClassicThreads] =
+    useState<ClassicThread[]>(loadClassicThreads);
   const [messengerThreads, setMessengerThreads] =
     useState<MessengerThread[]>(loadInitialMessengerThreads);
   const [messengerStorageMode, setMessengerStorageMode] =
@@ -166,6 +179,10 @@ export default function App() {
   useEffect(() => {
     saveProviderConnectionRecords(providerConnections);
   }, [providerConnections]);
+
+  useEffect(() => {
+    saveClassicThreads(classicThreads);
+  }, [classicThreads]);
 
   // Esc key closes CareDrawer
   useEffect(() => {
@@ -239,6 +256,17 @@ export default function App() {
         };
       }),
     );
+    setClassicThreads((currentThreads) =>
+      currentThreads.map((thread) => {
+        if (!thread.characterIds.includes(characterId)) return thread;
+
+        return {
+          ...thread,
+          characterIds: thread.characterIds.filter((id) => id !== characterId),
+          updatedAt: now,
+        };
+      }),
+    );
   }, []);
 
   const createPersona = useCallback((input: PersonaRecordInput) => {
@@ -286,6 +314,13 @@ export default function App() {
       deletePersonaRecord(currentPersonas, personaId),
     );
     setMessengerThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.activePersonaId === personaId
+          ? { ...thread, activePersonaId: null, updatedAt: now }
+          : thread,
+      ),
+    );
+    setClassicThreads((currentThreads) =>
       currentThreads.map((thread) =>
         thread.activePersonaId === personaId
           ? { ...thread, activePersonaId: null, updatedAt: now }
@@ -464,7 +499,101 @@ export default function App() {
           : thread,
       ),
     );
+    setClassicThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.providerConnectionId === connectionId
+          ? {
+              ...thread,
+              providerConnectionId: fallbackConnection.id,
+              updatedAt: now,
+            }
+          : thread,
+      ),
+    );
   }, [providerConnections]);
+
+  const openClassicThread = useCallback((threadId: string) => {
+    setSelectedSurface(CLASSIC);
+    setView({ kind: "classic", threadId });
+  }, []);
+
+  const createClassicThread = useCallback(() => {
+    const now = new Date().toISOString();
+    const activePersona = personas[0] ?? null;
+    const activeConnection =
+      providerConnections.find(
+        (connection) => connection.id === appSettings.activeMessengerConnectionId,
+      ) ??
+      providerConnections[0] ??
+      null;
+    const thread = buildClassicThread({
+      activePersonaId: activePersona?.id ?? null,
+      characterIds: characters.slice(0, 1).map((companion) => companion.id),
+      id: createLocalId("classic-thread"),
+      lorebookIds: lorebooks.map((lorebook) => lorebook.id),
+      now,
+      providerConnectionId: activeConnection?.id ?? null,
+      title: `New Classic ${classicThreads.length + 1}`,
+    });
+
+    setClassicThreads((currentThreads) => [thread, ...currentThreads]);
+    setSelectedSurface(CLASSIC);
+    setView({ kind: "classic", threadId: thread.id });
+    return thread;
+  }, [
+    appSettings.activeMessengerConnectionId,
+    characters,
+    classicThreads.length,
+    lorebooks,
+    personas,
+    providerConnections,
+  ]);
+
+  const updateClassicThread = useCallback((thread: ClassicThread) => {
+    setClassicThreads((currentThreads) =>
+      currentThreads.some((currentThread) => currentThread.id === thread.id)
+        ? currentThreads.map((currentThread) =>
+            currentThread.id === thread.id ? thread : currentThread,
+          )
+        : [thread, ...currentThreads],
+    );
+  }, []);
+
+  const renameClassicThread = useCallback((threadId: string, title: string) => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
+    const now = new Date().toISOString();
+    setClassicThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.id === threadId
+          ? renameClassicThreadRecord(thread, trimmedTitle, now)
+          : thread,
+      ),
+    );
+  }, []);
+
+  const clearClassicThreadEntries = useCallback((threadId: string) => {
+    const now = new Date().toISOString();
+    setClassicThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.id === threadId ? clearClassicEntries(thread, now) : thread,
+      ),
+    );
+  }, []);
+
+  const deleteClassicThread = useCallback(
+    (threadId: string) => {
+      setClassicThreads((currentThreads) =>
+        deleteClassicThreadRecord(currentThreads, threadId),
+      );
+
+      if (view.kind === "classic" && view.threadId === threadId) {
+        setView({ kind: "pond" });
+      }
+    },
+    [view],
+  );
 
   const openMessengerThread = useCallback((threadId: string) => {
     setSelectedSurface(MESSENGER);
@@ -554,6 +683,7 @@ export default function App() {
       createDeKoiStorageBundle({
         appSettings,
         characters,
+        classicThreads,
         lorebooks,
         messengerThreads,
         personas,
@@ -562,6 +692,7 @@ export default function App() {
     [
       appSettings,
       characters,
+      classicThreads,
       lorebooks,
       messengerThreads,
       personas,
@@ -586,6 +717,7 @@ export default function App() {
       setPersonas(bundle.data.personas);
       setLorebooks(bundle.data.lorebooks);
       setProviderConnections(importedConnections);
+      setClassicThreads(bundle.data.classicThreads);
       setMessengerThreads(bundle.data.messengerThreads);
       setAppSettings(importedSettings);
       setMessengerStorageStatus("saving");
@@ -649,6 +781,7 @@ export default function App() {
     personas,
     lorebooks,
     providerConnections,
+    classicThreads,
     messengerThreads,
     messengerStorageMode,
     messengerStorageStatus,
@@ -678,6 +811,12 @@ export default function App() {
     updateProviderConnection,
     duplicateProviderConnection,
     deleteProviderConnection,
+    createClassicThread,
+    updateClassicThread,
+    renameClassicThread,
+    clearClassicThreadEntries,
+    deleteClassicThread,
+    openClassicThread,
     createMessengerThread,
     updateMessengerThread,
     renameMessengerThread,

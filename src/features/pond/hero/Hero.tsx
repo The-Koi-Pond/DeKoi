@@ -2,6 +2,7 @@ import { PondEye } from "./PondEye";
 import "./hero.css";
 
 import { useNav } from "../../../shared/ui/nav-context";
+import { sortClassicThreadsByUpdatedAt } from "../../classic/classic-display";
 import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 
 export function Hero() {
@@ -28,6 +29,19 @@ export function Hero() {
             const latestThread = sortMessengerThreadsByUpdatedAt(
               nav.messengerThreads,
             )[0];
+            const latestClassicThread = sortClassicThreadsByUpdatedAt(
+              nav.classicThreads,
+            )[0];
+
+            if (
+              latestClassicThread &&
+              (!latestThread ||
+                latestClassicThread.updatedAt.localeCompare(latestThread.updatedAt) > 0)
+            ) {
+              nav.openClassicThread(latestClassicThread.id);
+              return;
+            }
+
             if (latestThread) {
               nav.openMessengerThread(latestThread.id);
               return;

@@ -1,4 +1,5 @@
 import type { CharacterRecord } from "../engine/character";
+import type { ClassicThread } from "../engine/classic";
 import type { LorebookRecord } from "../engine/lorebook";
 import type { MessengerThread } from "../engine/messenger";
 import type { PersonaRecord } from "../engine/persona";
@@ -7,6 +8,7 @@ import type { AppSettings } from "./app-settings";
 import { normalizeAppSettings } from "./app-settings";
 import { isRecord, normalizeCatalogList } from "./catalog-storage";
 import { normalizeCharacterRecord } from "./character-storage";
+import { normalizeClassicThread } from "./classic-storage";
 import { normalizeLorebookRecord } from "./lorebook-storage";
 import { normalizeMessengerThreads } from "./messenger-storage";
 import { normalizePersonaRecord } from "./persona-storage";
@@ -17,6 +19,7 @@ export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
 
 export interface DeKoiStorageBundleData {
   characters: CharacterRecord[];
+  classicThreads: ClassicThread[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   providerConnections: ProviderConnectionRecord[];
@@ -33,6 +36,8 @@ export interface DeKoiStorageBundle {
 
 export interface DeKoiStorageBundleCounts {
   characters: number;
+  classicThreads: number;
+  classicEntries: number;
   personas: number;
   lorebooks: number;
   lorebookEntries: number;
@@ -84,6 +89,11 @@ export function getDeKoiStorageBundleCounts(
 ): DeKoiStorageBundleCounts {
   return {
     characters: data.characters.length,
+    classicThreads: data.classicThreads.length,
+    classicEntries: data.classicThreads.reduce(
+      (count, thread) => count + thread.entries.length,
+      0,
+    ),
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
     lorebookEntries: data.lorebooks.reduce(
@@ -102,6 +112,7 @@ export function getDeKoiStorageBundleCounts(
 export function createDeKoiStorageBundle({
   appSettings,
   characters,
+  classicThreads,
   lorebooks,
   messengerThreads,
   personas,
@@ -114,6 +125,7 @@ export function createDeKoiStorageBundle({
     data: {
       appSettings: normalizeAppSettings(appSettings),
       characters: cloneRecords(characters),
+      classicThreads: cloneRecords(classicThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
       providerConnections: cloneRecords(providerConnections),
@@ -148,6 +160,12 @@ export function normalizeDeKoiStorageBundle(
       value.data.characters,
       "Characters",
       normalizeCharacterRecord,
+      warnings,
+    ),
+    classicThreads: normalizeList(
+      value.data.classicThreads,
+      "Classic threads",
+      normalizeClassicThread,
       warnings,
     ),
     personas: normalizeList(

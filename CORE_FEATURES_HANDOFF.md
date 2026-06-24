@@ -33,7 +33,7 @@ Build in this order unless the user explicitly redirects:
 3. Harden generation request assembly from real selected records.
 4. Harden remote runtime command contract and test fixture.
 5. Harden storage/export/import for DeKoi-native records.
-6. Classic first slice.
+6. Harden Classic first slice.
 7. Legacy import adapters.
 8. Tauri/Rust host features.
 
@@ -201,12 +201,18 @@ Acceptance:
 
 Goal: start Classic only after Messenger core records are stable.
 
+Status: initial Classic scene records, local storage, Shoal reopening, and a
+minimal scene surface are implemented. Classic can generate a character turn by
+adapting the scene into the existing provider-neutral Messenger generation
+boundary.
+
 Implementation:
 
-- Add `ClassicThread` and `ClassicEntry` records in `src/engine`.
+- Continue hardening `ClassicThread` and `ClassicEntry` records in `src/engine`.
 - Reuse characters, personas, lorebooks, provider connections, and generation
   runtime where practical.
-- Build a minimal Classic surface with scene text and speaker turns.
+- Keep building out the minimal Classic surface with scene text and speaker
+  turns.
 - Avoid importing Messenger UI internals directly.
 
 Acceptance:

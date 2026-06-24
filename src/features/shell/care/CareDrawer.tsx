@@ -185,6 +185,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const currentBundleCounts = getDeKoiStorageBundleCounts({
     appSettings: nav.appSettings,
     characters: nav.characters,
+    classicThreads: nav.classicThreads,
     lorebooks: nav.lorebooks,
     messengerThreads: nav.messengerThreads,
     personas: nav.personas,
@@ -416,6 +417,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         </span>
         <span>
           <b>{counts.personas}</b> personas
+        </span>
+        <span>
+          <b>{counts.classicThreads}</b> Classic scenes
+        </span>
+        <span>
+          <b>{counts.classicEntries}</b> Classic turns
         </span>
         <span>
           <b>{counts.lorebooks}</b> lorebooks

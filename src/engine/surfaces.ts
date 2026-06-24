@@ -24,7 +24,7 @@ export interface SurfaceMeta {
 
 export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
   [MESSENGER]: { id: MESSENGER, label: "Messenger", locked: false, lockedNote: null },
-  [CLASSIC]: { id: CLASSIC, label: "Classic", locked: true, lockedNote: "Surfacing soon" },
+  [CLASSIC]: { id: CLASSIC, label: "Classic", locked: false, lockedNote: null },
   [RESERVED]: {
     id: RESERVED,
     label: "Reserved",
