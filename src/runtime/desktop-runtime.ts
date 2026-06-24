@@ -1,8 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type {
-  RemoteRuntimeCommand,
-  RemoteRuntimeHealthCheck,
-} from "./remote-runtime";
+import type { RemoteRuntimeHealthCheck } from "./remote-runtime";
+import type { RemoteRuntimeCommand } from "./runtime-commands";
 
 export const DESKTOP_RUNTIME_URL = "desktop://runtime";
 const DESKTOP_RUNTIME_MARKER = "de-koi-desktop";

@@ -16,6 +16,8 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   collection names, relationships, and import/export contract.
 - Runtime commands are explicit and allowlisted. Generation, storage, secrets,
   files, and provider transport stay separate.
+- Runtime command names are registered in `src/runtime/runtime-commands.ts` and
+  checked against the Rust desktop runtime and fixture server.
 - Legacy import is a one-way adapter into DeKoi-native records. Legacy names and
   old storage shapes do not become the core model.
 

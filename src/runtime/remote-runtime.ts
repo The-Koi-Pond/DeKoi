@@ -4,6 +4,10 @@ import {
   invokeDesktopRuntime,
   isDesktopRuntimeUrl,
 } from "./desktop-runtime";
+import {
+  REMOTE_RUNTIME_COMMANDS,
+  type RemoteRuntimeCommand,
+} from "./runtime-commands";
 
 const REMOTE_RUNTIME_MARKERS = new Set([
   "de-koi-server",
@@ -12,20 +16,9 @@ const REMOTE_RUNTIME_MARKERS = new Set([
 ]);
 let sessionRemoteRuntimeUrl = "";
 
-export type RemoteRuntimeCommand =
-  | "messenger_generate"
-  | "storage_create"
-  | "storage_delete"
-  | "storage_list"
-  | "storage_update";
-
-const REMOTE_RUNTIME_COMMANDS = new Set<RemoteRuntimeCommand>([
-  "messenger_generate",
-  "storage_create",
-  "storage_delete",
-  "storage_list",
-  "storage_update",
-]);
+const REMOTE_RUNTIME_COMMAND_SET = new Set<RemoteRuntimeCommand>(
+  REMOTE_RUNTIME_COMMANDS,
+);
 
 export type RuntimeTarget = {
   baseUrl: string;
@@ -98,7 +91,7 @@ function isSupportedRemoteRuntime(value: unknown): boolean {
 }
 
 function isRemoteRuntimeCommand(command: string): command is RemoteRuntimeCommand {
-  return REMOTE_RUNTIME_COMMANDS.has(command as RemoteRuntimeCommand);
+  return REMOTE_RUNTIME_COMMAND_SET.has(command as RemoteRuntimeCommand);
 }
 
 export async function checkRemoteRuntimeHealth(rawUrl = readRemoteRuntimeUrl()): Promise<RemoteRuntimeHealthCheck> {

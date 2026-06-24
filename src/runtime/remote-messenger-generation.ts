@@ -6,8 +6,7 @@ import type {
   MessengerGenerationResponse,
 } from "../engine/messenger-generation";
 import { invokeRemote } from "./remote-runtime";
-
-const REMOTE_MESSENGER_GENERATION_COMMAND = "messenger_generate";
+import { RUNTIME_COMMANDS } from "./runtime-commands";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -92,7 +91,7 @@ export const remoteMessengerGenerationAdapter: MessengerGenerationAdapter = {
   async generate(request) {
     try {
       const response = await invokeRemote<unknown>(
-        REMOTE_MESSENGER_GENERATION_COMMAND,
+        RUNTIME_COMMANDS.messengerGenerate,
         { request },
       );
       return normalizeRemoteResponse(response, request);

@@ -5,6 +5,7 @@ import {
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
 } from "./remote-runtime";
+import { RUNTIME_COMMANDS, type StorageRuntimeCommand } from "./runtime-commands";
 import type { HostStorageEntity } from "./storage-entities";
 
 export type HostStorageMode = "desktop" | "remote" | "unavailable";
@@ -18,8 +19,6 @@ export type HostStorageResult = {
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
-
-type StorageCommand = "storage_create" | "storage_delete" | "storage_list" | "storage_update";
 
 function asErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
@@ -62,7 +61,7 @@ export function hasHostStorage(rawUrl = readRemoteRuntimeUrl()) {
 }
 
 async function invokeHostStorage<T>(
-  command: StorageCommand,
+  command: StorageRuntimeCommand,
   args: Record<string, unknown>,
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T> {
@@ -88,7 +87,7 @@ export async function loadHostRecords<T extends { id: string }>(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T[]> {
   const records = await invokeHostStorage<unknown[]>(
-    "storage_list",
+    RUNTIME_COMMANDS.storageList,
     {
       entity,
       options: null,
@@ -134,7 +133,7 @@ export async function saveHostRecords<T extends { id: string }>(
         return [
           currentIds.has(record.id)
             ? invokeHostStorage(
-                "storage_update",
+                RUNTIME_COMMANDS.storageUpdate,
                 {
                   entity,
                   id: record.id,
@@ -143,7 +142,7 @@ export async function saveHostRecords<T extends { id: string }>(
                 rawUrl,
               )
             : invokeHostStorage(
-                "storage_create",
+                RUNTIME_COMMANDS.storageCreate,
                 {
                   entity,
                   value: record as unknown as Record<string, unknown>,
@@ -159,7 +158,7 @@ export async function saveHostRecords<T extends { id: string }>(
         .filter((record) => !nextIds.has(record.id))
         .map((record) =>
           invokeHostStorage(
-            "storage_delete",
+            RUNTIME_COMMANDS.storageDelete,
             {
               entity,
               id: record.id,
