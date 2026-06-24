@@ -1,5 +1,6 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { useNav } from "../../../shared/ui/nav-context";
+import { sampleCompanions, sampleLorebook } from "../../../engine/sample-messenger";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -7,10 +8,13 @@ import {
 } from "../../messenger/thread-display";
 import "./Waterline.css";
 
+type CatalogPanel = "lore" | "companions" | "media" | "connections";
+
 export function Waterline() {
   const nav = useNav();
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [activeCatalog, setActiveCatalog] = useState<CatalogPanel | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
   const threadResults = useMemo(() => {
     if (!normalizedQuery) return [];
@@ -53,6 +57,95 @@ export function Waterline() {
   function handleSearchBlur(event: FocusEvent<HTMLDivElement>) {
     if (event.currentTarget.contains(event.relatedTarget)) return;
     setSearchFocused(false);
+  }
+
+  function toggleCatalog(panel: CatalogPanel) {
+    setActiveCatalog((currentPanel) => (currentPanel === panel ? null : panel));
+  }
+
+  function handleCatalogBlur(event: FocusEvent<HTMLDivElement>) {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setActiveCatalog(null);
+  }
+
+  function renderCatalogPanel() {
+    if (!activeCatalog) return null;
+
+    if (activeCatalog === "lore") {
+      return (
+        <div className="pebble-panel" role="region" aria-label="Lore library">
+          <div className="pebble-panel-head">
+            <b>{sampleLorebook.title}</b>
+            <span>{sampleLorebook.entries.length} entries</span>
+          </div>
+          <p>{sampleLorebook.summary}</p>
+          <div className="panel-list">
+            {sampleLorebook.entries.map((entry) => (
+              <article className="panel-row" key={entry.id}>
+                <b>{entry.title}</b>
+                <small>{entry.body}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeCatalog === "companions") {
+      return (
+        <div className="pebble-panel" role="region" aria-label="Companions">
+          <div className="pebble-panel-head">
+            <b>Companions</b>
+            <span>{sampleCompanions.length} stocked</span>
+          </div>
+          <div className="panel-list">
+            {sampleCompanions.map((companion) => (
+              <article className="panel-row companion-row" key={companion.id}>
+                <span className="panel-avatar">
+                  {getMessengerThreadInitials(companion.displayName)}
+                </span>
+                <span>
+                  <b>{companion.displayName}</b>
+                  <small>{companion.summary}</small>
+                </span>
+              </article>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeCatalog === "connections") {
+      return (
+        <div className="pebble-panel" role="region" aria-label="Connections">
+          <div className="pebble-panel-head">
+            <b>Connections</b>
+            <span>{nav.messengerStorageMode}</span>
+          </div>
+          <p>{nav.messengerStorageMessage}</p>
+          <button
+            type="button"
+            className="panel-action"
+            onClick={() => {
+              setActiveCatalog(null);
+              nav.setCareOpen(true);
+            }}
+          >
+            Open Pond Care
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="pebble-panel" role="region" aria-label="Media">
+        <div className="pebble-panel-head">
+          <b>Media</b>
+          <span>empty</span>
+        </div>
+        <p>Sprites, backgrounds, audio, and generated assets will surface here once the media library is stocked.</p>
+      </div>
+    );
   }
 
   return (
@@ -121,28 +214,51 @@ export function Waterline() {
           </div>
         )}
       </div>
-      <div className="pebbles">
+      <div className="pebbles" onBlur={handleCatalogBlur}>
         <button
-          className="pebble on"
+          className={`pebble${activeCatalog === "lore" ? " on" : ""}`}
           title="Lore library"
           aria-label="Lore library"
+          aria-expanded={activeCatalog === "lore"}
+          onClick={() => toggleCatalog("lore")}
         >
           ▤
         </button>
-        <button className="pebble" title="Companions" aria-label="Companions">
+        <button
+          className={`pebble${activeCatalog === "companions" ? " on" : ""}`}
+          title="Companions"
+          aria-label="Companions"
+          aria-expanded={activeCatalog === "companions"}
+          onClick={() => toggleCatalog("companions")}
+        >
           ⚇
         </button>
-        <button className="pebble" title="Media" aria-label="Media">
+        <button
+          className={`pebble${activeCatalog === "media" ? " on" : ""}`}
+          title="Media"
+          aria-label="Media"
+          aria-expanded={activeCatalog === "media"}
+          onClick={() => toggleCatalog("media")}
+        >
           ◐
         </button>
-        <button className="pebble" title="Connections" aria-label="Connections">
+        <button
+          className={`pebble${activeCatalog === "connections" ? " on" : ""}`}
+          title="Connections"
+          aria-label="Connections"
+          aria-expanded={activeCatalog === "connections"}
+          onClick={() => toggleCatalog("connections")}
+        >
           ⌗
         </button>
         <button
           className="pebble care"
           title="Pond Care"
           aria-label="Pond Care"
-          onClick={() => nav.setCareOpen(true)}
+          onClick={() => {
+            setActiveCatalog(null);
+            nav.setCareOpen(true);
+          }}
         >
           ⚙
         </button>
@@ -151,6 +267,7 @@ export function Waterline() {
           <span></span>
           <span></span>
         </div>
+        {renderCatalogPanel()}
       </div>
     </header>
   );
