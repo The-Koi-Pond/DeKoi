@@ -16,13 +16,19 @@ capabilities.
 ## Current Seed
 
 - `src/engine/project-plan.ts` contains a tiny React-free planning model.
-- `src/features/home/Home.tsx` renders the first DeKoi status surface.
+- `src/engine/messenger.ts` and `src/engine/messenger-actions.ts` define the
+  first Messenger records and local message mutations.
+- `src/features/messenger/MessengerThread.tsx` renders the first active
+  Messenger surface inside the Pond shell.
+- `src/runtime/messenger-local-storage.ts` and
+  `src/runtime/messenger-storage.ts` provide local and remote-runtime storage
+  adapters, with one-way legacy `bubble-*` migration fallbacks.
 
 ## Next Architecture Decisions
 
-1. Define native DeKoi character, persona, chat, and message records.
-2. Choose whether the first storage proof is browser-local JSON or Tauri-backed
-   local files.
-3. Define the provider request contract before implementing any concrete
-   provider.
+1. Define the provider-neutral Messenger generation request/response contract.
+2. Decide whether the current remote-runtime client needs a local host
+   implementation before provider work.
+3. Define Classic records only after Messenger generation and storage are
+   stable.
 4. Add legacy import only after native records are stable.

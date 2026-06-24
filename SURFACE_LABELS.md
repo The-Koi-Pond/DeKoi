@@ -19,11 +19,11 @@ concepts while mapping old records into DeKoi-owned models.
 
 | Legacy source concept | DeKoi public label | DeKoi internal noun | Purpose |
 | --- | --- | --- | --- |
-| Conversation-style mode | Bubbles | bubble thread | Direct and group DM-style chats with compact message turns. |
-| Roleplay-style mode | VN | visual novel thread | Visual-novel-style character scenes with cast, continuity, and world context. |
-| Chat list/sidebar | Pond | thread list | Saved Bubble and VN records. |
-| Character catalog | Companions | character record | People/entities the user can talk with or place into VN threads. |
-| Persona catalog | Personas | persona record | User-facing identities for participation in Bubbles and VN threads. |
+| Conversation-style mode | Messenger | messenger thread | Direct and group DM-style chats with compact message turns. |
+| Roleplay-style mode | Classic | classic thread | Visual-novel-style character scenes with cast, continuity, and world context. |
+| Chat list/sidebar | Pond | thread list | Saved Messenger and Classic records. |
+| Character catalog | Companions | character record | People/entities the user can talk with or place into Classic threads. |
+| Persona catalog | Personas | persona record | User-facing identities for participation in Messenger and Classic threads. |
 | Lorebook/knowledge catalog | Lorebooks | lorebook record | Reusable facts, setting notes, references, and continuity material. |
 | Presets/chat presets | Currents | prompt recipe | Reusable generation settings and prompt structure. |
 | Game-state/tracker-style data | Ripples | ripple state | Dynamic per-thread state, counters, summaries, and continuity changes. |
@@ -34,23 +34,23 @@ concepts while mapping old records into DeKoi-owned models.
 
 ## DM-Style Chat Name
 
-Current candidate: **Bubbles**.
+Use **Messenger**.
 
 Why:
 
-- It points at chat bubbles and fish bubbles at the same time.
+- It is immediately understandable to nontechnical users.
 - It works for both one-on-one and group chats.
-- It is less generic than `Messages` and less formal than `Conversation`.
+- It avoids over-theming the core workflow.
 - It lets the saved object still be a **thread**, which is a useful internal noun.
 
 Suggested language:
 
-- Public navigation: `Bubbles`
+- Public navigation: `Messenger`
 - Primary action: `New thread`
-- One-on-one subtype: `Direct Bubble`
-- Multi-participant subtype: `Group Bubble`
-- Internal kind: `bubbles`
-- Core record: `BubbleThread`
+- One-on-one subtype: `Direct Messenger`
+- Multi-participant subtype: `Group Messenger`
+- Internal kind: `messenger`
+- Core record: `MessengerThread`
 - Import adapter alias only: `legacy conversation source`
 
 Avoid using `Conversation Mode` as public text or `conversation` as a native
@@ -60,18 +60,18 @@ Close alternates:
 
 - `Pings`: clear DM meaning, but weaker DeKoi identity.
 - `Pondlines`: distinctive, but may be too coined for first-run users.
-- `Bubblestreams`: thematic and clear, but likely too long for navigation.
 
-## VN Name
+## Classic Name
 
-Use **VN** as the public surface label for visual-novel-style character scenes.
+Use **Classic** as the public surface label for visual-novel-style character
+scenes.
 
 Suggested language:
 
-- Public navigation: `VN`
-- Primary action: `New VN`
-- Internal kind: `vn`
-- Core record: `VisualNovelThread`
+- Public navigation: `Classic`
+- Primary action: `New Classic`
+- Internal kind: `classic`
+- Core record: `ClassicThread`
 - Import adapter alias only: `legacy roleplay source`
 
 Avoid using `Roleplay Mode` as public text or `roleplay` as a native DeKoi mode

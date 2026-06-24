@@ -43,14 +43,14 @@ flowchart TB
     AppRoot[App.tsx and main.tsx<br/>bootstrap]
     AppProviders[providers<br/>theme injection]
     AppShell[shell<br/>chrome, sidebars, panels, routes]
-    AppStartup[startup<br/>Bubbles switch side effects]
+    AppStartup[startup<br/>Messenger switch side effects]
   end
 
   subgraph Features[src/features]
     ShellLayer[shell<br/>settings, connections UI, guide,<br/>imports, bot browser, onboarding,<br/>notifications, Spotify]
-    ModesLayer[modes<br/>router, shared Bubbles UI, shared scene UI,<br/>Bubbles, VN, future adventure surfaces, media-assets]
+    ModesLayer[modes<br/>router, shared Messenger UI, shared scene UI,<br/>Messenger, Classic, future adventure surfaces, media-assets]
     RuntimeLayer[runtime<br/>generation, ripples,<br/>visuals, ripples]
-    CatalogLayer[catalog<br/>Bubbles, companions, personas, sprites,<br/>lorebooks, presets, bubble-presets,<br/>connections data, keepers, gallery, knowledge]
+    CatalogLayer[catalog<br/>Messenger, companions, personas, sprites,<br/>lorebooks, presets, messenger-presets,<br/>connections data, keepers, gallery, knowledge]
   end
 
   subgraph Shared[src/shared]
@@ -72,7 +72,7 @@ flowchart TB
     Helpers[helpers-runtime<br/>executor, knowledge, pipeline]
     Generation[generation<br/>generation lifecycle]
     Pond GuideEngine[pond-guide<br/>Pond Guide entry contract]
-    EngineModes[modes<br/>Bubbles, VN, game]
+    EngineModes[modes<br/>Messenger, Classic, game]
   end
 
   subgraph Tauri[src-tauri]
@@ -139,7 +139,7 @@ flowchart TB
         <pre class="mermaid">
 flowchart TB
   Shell[features/shell<br/>app-level tools and panels]
-  Modes[features/modes<br/>Bubbles, VN, future adventure surfaces, router,<br/>shared mode UI, media assets]
+  Modes[features/modes<br/>Messenger, Classic, future adventure surfaces, router,<br/>shared mode UI, media assets]
   Runtime[features/runtime<br/>generation, ripples, visuals,<br/>ripples]
   Catalog[features/catalog<br/>resource data, hooks, query keys,<br/>library/editor surfaces]
 
@@ -168,7 +168,7 @@ flowchart TB
             <tr>
               <td><code>features/catalog</code></td>
               <td>
-                <code>keepers</code>, <code>companions</code>, <code>bubble-presets</code>, <code>Bubbles</code>,
+                <code>keepers</code>, <code>companions</code>, <code>messenger-presets</code>, <code>Messenger</code>,
                 <code>connections</code>, <code>gallery</code>, <code>knowledge</code>, <code>lorebooks</code>,
                 <code>personas</code>, <code>presets</code>, <code>sprites</code>.
               </td>
@@ -187,8 +187,8 @@ flowchart TB
             <tr>
               <td><code>features/modes</code></td>
               <td>
-                <code>Bubbles</code>, <code>VN</code>, <code>future-adventure</code>, <code>media-assets</code>,
-                <code>router</code>, <code>shared/Bubbles-ui</code>, <code>shared/scene-ui</code>.
+                <code>Messenger</code>, <code>Classic</code>, <code>future-adventure</code>, <code>media-assets</code>,
+                <code>router</code>, <code>shared/Messenger-ui</code>, <code>shared/scene-ui</code>.
               </td>
               <td>Own concrete user modes, shared mode UI, and the mode composition point.</td>
               <td>Import shell tools, or import sibling concrete modes outside <code>modes/router</code>.</td>
@@ -253,13 +253,13 @@ flowchart TB
             <tr>
               <td><code>features/modes/router/shell.ts</code></td>
               <td>
-                The only current React entrypoint allowed to compose concrete Bubbles, VN, and future adventure surfaces packages.
+                The only current React entrypoint allowed to compose concrete Messenger, Classic, and future adventure surfaces packages.
               </td>
             </tr>
             <tr>
               <td><code>features/modes/shared/scene-ui/SceneBanner.tsx</code></td>
               <td>
-                Current shared scene UI file used by Bubbles and VN. Add a public
+                Current shared scene UI file used by Messenger and Classic. Add a public
                 <code>index.ts</code> before widening this package further.
               </td>
             </tr>
@@ -277,16 +277,16 @@ flowchart TB
           </thead>
           <tbody>
             <tr>
-              <td><code>catalog/bubbles</code></td>
+              <td><code>catalog/messenger</code></td>
               <td>
-                Bubbles records, messages, folders, notes, memories, branches, swipes, prompt preview hooks, and Bubbles query
+                Messenger records, messages, folders, notes, memories, branches, swipes, prompt preview hooks, and Messenger query
                 keys.
               </td>
-              <td>It is a data owner. Shared Bubbles rendering lives under <code>modes/shared/Bubbles-ui</code>.</td>
+              <td>It is a data owner. Shared Messenger rendering lives under <code>modes/shared/Messenger-ui</code>.</td>
             </tr>
             <tr>
               <td><code>catalog/companions</code></td>
-              <td>Companions library hooks, groups, start-Bubbles helpers, and character shell surfaces.</td>
+              <td>Companions library hooks, groups, start-Messenger helpers, and character shell surfaces.</td>
               <td>
                 Shared Companion/persona sprite hooks and query keys live behind <code>catalog/sprites</code>.
               </td>
@@ -315,11 +315,11 @@ flowchart TB
             <tr>
               <td>
                 <code>catalog/keepers</code>, <code>gallery</code>, <code>knowledge</code>, <code>lorebooks</code>,
-                <code>presets</code>, <code>bubble-presets</code>
+                <code>presets</code>, <code>messenger-presets</code>
               </td>
               <td>
                 Keeper/tool records, image gallery hooks, knowledge source hooks, lorebook data/editors, prompt presets,
-                and Bubbles preset selection.
+                and Messenger preset selection.
               </td>
               <td>
                 Catalog code may call shared APIs and engine contracts/services, but not runtime or mode internals.
@@ -357,7 +357,7 @@ flowchart TB
               </td>
             </tr>
             <tr>
-              <td><code>modes/shared/Bubbles-ui</code></td>
+              <td><code>modes/shared/Messenger-ui</code></td>
               <td>
                 Shared transcript, input, settings drawer, overlays, gallery/files drawers, prompt peek, quick
                 switchers, summaries, swipes, and setup wizard UI.
@@ -368,23 +368,23 @@ flowchart TB
               </td>
             </tr>
             <tr>
-              <td><code>modes/Bubbles</code></td>
+              <td><code>modes/Messenger</code></td>
               <td>
-                Bubbles surface, view/input/message components, recent Bubbles, connection gate, home FAQ, and
-                autonomous Bubbles hooks.
+                Messenger surface, view/input/message components, recent Messenger, connection gate, home FAQ, and
+                autonomous Messenger hooks.
               </td>
               <td>
-                Bubbles can call <code>engine/modes/Bubbles</code> services; it must not import VN or game
+                Messenger can call <code>engine/modes/Messenger</code> services; it must not import Classic or game
                 internals.
               </td>
             </tr>
             <tr>
-              <td><code>modes/VN</code></td>
+              <td><code>modes/Classic</code></td>
               <td>
-                VN surface, scene hook, encounter hook, CYOA choices, context injection, HUD panels, VN
-                Ripple Dock UI, and VN Ripple Dock API.
+                Classic surface, scene hook, encounter hook, CYOA choices, context injection, HUD panels, Classic
+                Ripple Dock UI, and Classic Ripple Dock API.
               </td>
-              <td>VN scene and encounter behavior call <code>engine/modes/VN</code> services.</td>
+              <td>Classic scene and encounter behavior call <code>engine/modes/Classic</code> services.</td>
             </tr>
             <tr>
               <td><code>modes/game</code></td>
@@ -401,7 +401,7 @@ flowchart TB
               <td><code>modes/router</code></td>
               <td><code>ModeSurface</code>, the active mode composition point.</td>
               <td>
-                This file is currently broad: it also handles active Bubbles loading, pagination, swipes, overlays, shared
+                This file is currently broad: it also handles active Messenger loading, pagination, swipes, overlays, shared
                 generation actions, background/visual state, TTS hooks, and mode switching. New product behavior should
                 move to the owning mode/runtime/catalog module instead of making the router broader.
               </td>
@@ -415,7 +415,7 @@ flowchart TB
               <td><code>features/shell/*</code></td>
               <td>
                 Settings, provider connection management UI, admin data reset, guide, SillyTavern imports, bot browser,
-                onboarding, notification bubbles, and Spotify controls.
+                onboarding, notifications, and Spotify controls.
               </td>
               <td>
                 Shell may coordinate top-level workflows, but storage formats, prompt behavior, provider transport, and
@@ -429,31 +429,31 @@ flowchart TB
         <pre class="mermaid">
 flowchart TB
   Router[features/modes/router<br/>ModeSurface composition]
-  SharedModeUI[features/modes/shared<br/>Bubbles UI and scene UI]
-  BubblesUI[features/modes/Bubbles]
-  VNUI[features/modes/VN]
+  SharedModeUI[features/modes/shared<br/>Messenger UI and scene UI]
+  MessengerUI[features/modes/Messenger]
+  ClassicUI[features/modes/Classic]
   GameUI[features/modes/game]
 
-  BubblesEngine[engine/modes/Bubbles]
-  VNEngine[engine/modes/VN]
+  MessengerEngine[engine/modes/Messenger]
+  ClassicEngine[engine/modes/Classic]
   GameEngine[engine/modes/game]
   Lower[engine lower layers<br/>contracts, shared, repositories,<br/>generation-core, generation, capabilities]
 
-  Router --> BubblesUI
-  Router --> VNUI
+  Router --> MessengerUI
+  Router --> ClassicUI
   Router --> GameUI
-  BubblesUI --> SharedModeUI
-  VNUI --> SharedModeUI
+  MessengerUI --> SharedModeUI
+  ClassicUI --> SharedModeUI
   GameUI --> SharedModeUI
-  BubblesUI --> BubblesEngine
-  VNUI --> VNEngine
+  MessengerUI --> MessengerEngine
+  ClassicUI --> ClassicEngine
   GameUI --> GameEngine
-  BubblesEngine --> Lower
-  VNEngine --> Lower
+  MessengerEngine --> Lower
+  ClassicEngine --> Lower
   GameEngine --> Lower
-  BubblesUI -. forbidden .-> VNUI
-  VNUI -. forbidden .-> GameUI
-  GameUI -. forbidden .-> BubblesUI
+  MessengerUI -. forbidden .-> ClassicUI
+  ClassicUI -. forbidden .-> GameUI
+  GameUI -. forbidden .-> MessengerUI
         </pre>
 
         <table>
@@ -466,14 +466,14 @@ flowchart TB
           </thead>
           <tbody>
             <tr>
-              <td><code>engine/modes/Bubbles</code></td>
-              <td>Normal Bubbles, autonomous behavior, schedules, summaries, and Bubbles commands.</td>
-              <td>Share lower engine helpers, not VN scenes or future adventure turns.</td>
+              <td><code>engine/modes/Messenger</code></td>
+              <td>Normal Messenger, autonomous behavior, schedules, summaries, and Messenger commands.</td>
+              <td>Share lower engine helpers, not Classic scenes or future adventure turns.</td>
             </tr>
             <tr>
-              <td><code>engine/modes/VN</code></td>
+              <td><code>engine/modes/Classic</code></td>
               <td>
-                Scenes, scene planning/forking/conclusion, VN encounters, scene memory, and VN sprites.
+                Scenes, scene planning/forking/conclusion, Classic encounters, scene memory, and Classic sprites.
               </td>
               <td>Shared transcript or visual primitives belong below concrete modes.</td>
             </tr>
@@ -483,11 +483,11 @@ flowchart TB
                 Future adventure turns, prompts, mechanics, combat, maps, Ripples, sessions, time, weather, loot, and game
                 assets.
               </td>
-              <td>Future adventure rules do not move into Bubbles or VN UI for reuse.</td>
+              <td>Future adventure rules do not move into Messenger or Classic UI for reuse.</td>
             </tr>
             <tr>
               <td><code>features/modes/router</code></td>
-              <td>Current React composition point for concrete modes and shared active-Bubbles workflow.</td>
+              <td>Current React composition point for concrete modes and shared active-Messenger workflow.</td>
               <td>
                 It may import concrete mode public entries. Other concrete mode packages may not import each other.
               </td>
@@ -498,7 +498,7 @@ flowchart TB
         <h2>Engine Layers</h2>
         <pre class="mermaid">
 flowchart TB
-  Modes[modes<br/>Bubbles, VN, game]
+  Modes[modes<br/>Messenger, Classic, game]
   Pond Guide[pond-guide<br/>Pond Guide entry]
   Generation[generation<br/>lifecycle, replay, makers, prompt review]
   Helpers[helpers-runtime<br/>executor, knowledge, pipeline]
@@ -580,7 +580,7 @@ flowchart TB
             </tr>
             <tr>
               <td><code>modes</code></td>
-              <td>Mode-owned product behavior for Bubbles, VN, and future adventure systems.</td>
+              <td>Mode-owned product behavior for Messenger, Classic, and future adventure systems.</td>
               <td>Sibling mode internals.</td>
             </tr>
           </tbody>
@@ -598,7 +598,7 @@ flowchart TB
   HttpServer[src-tauri/src/http_server.rs<br/>HTTP routes]
   HttpDispatch[src-tauri/src/http_dispatch.rs<br/>explicit invoke dispatch]
   CommandGroups[src-tauri/src/commands/storage.rs<br/>public command modules]
-  CommandImpl[src-tauri/src/commands/storage/*<br/>admin, keepers, assets, Bubbles,<br/>imports, integrations, media, profile]
+  CommandImpl[src-tauri/src/commands/storage/*<br/>admin, keepers, assets, Messenger,<br/>imports, integrations, media, profile]
   Crates[src-tauri/crates<br/>core, security, storage,<br/>assets, llm, integrations]
 
   FeatureCode --> SharedApi
@@ -663,7 +663,7 @@ flowchart TB
               <td>Command facades</td>
               <td>
                 <code>src-tauri/src/commands/storage.rs</code> maps public groups such as <code>keeper_commands</code>,
-                <code>asset_commands</code>, <code>bot_browser_commands</code>, <code>bubbles_commands</code>,
+                <code>asset_commands</code>, <code>bot_browser_commands</code>, <code>messenger_commands</code>,
                 <code>entity_commands</code>, <code>ripple_snapshot_commands</code>, <code>import_commands</code>,
                 <code>integration_commands</code>, <code>pond_guide_commands</code>, <code>media_commands</code>, and
                 <code>profile_commands</code>.
@@ -675,7 +675,7 @@ flowchart TB
               <td>
                 <code>storage/admin.rs</code>, <code>keepers.rs</code>, <code>avatars.rs</code>,
                 <code>backgrounds.rs</code>, <code>bot_browser.rs</code>, <code>companions.rs</code>,
-                <code>bubbles.rs</code>, <code>custom_tools.rs</code>, <code>exports.rs</code>, <code>fonts.rs</code>,
+                <code>messenger.rs</code>, <code>custom_tools.rs</code>, <code>exports.rs</code>, <code>fonts.rs</code>,
                 <code>media_assets.rs</code>, <code>ripple_snapshots.rs</code>, <code>generation.rs</code>,
                 <code>http.rs</code>, <code>images.rs</code>, <code>imports</code>, <code>integrations</code>,
                 <code>knowledge.rs</code>, <code>llm.rs</code>, <code>pond_guide.rs</code>, <code>media_uploads.rs</code>,
@@ -734,14 +734,14 @@ flowchart TB
             <tr>
               <td>Concrete modes are separated</td>
               <td>
-                Bubbles, VN, and game cannot import each other's concrete UI or engine mode internals.
+                Messenger, Classic, and game cannot import each other's concrete UI or engine mode internals.
                 <code>features/modes/router</code> is the composition exception for React surfaces.
               </td>
             </tr>
             <tr>
               <td>Shared mode UI stays lower than concrete modes</td>
               <td>
-                <code>features/modes/shared</code> cannot import concrete Bubbles, VN, or future adventure surfaces packages.
+                <code>features/modes/shared</code> cannot import concrete Messenger, Classic, or future adventure surfaces packages.
               </td>
             </tr>
             <tr>

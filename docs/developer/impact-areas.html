@@ -40,12 +40,12 @@ Affected modes:
 Rust/TS boundary touched:
 Checks planned:</code></pre>
 
-        <h2>Bubbles And Generation</h2>
+        <h2>Messenger And Generation</h2>
         <pre class="mermaid">
 flowchart LR
-  BubblesUI[features/modes/Bubbles<br/>+ modes/shared/Bubbles-ui]
+  MessengerUI[features/modes/Messenger<br/>+ modes/shared/Messenger-ui]
   GenerationHook[features/runtime/generation<br/>use-generate]
-  BubblesMode[engine/modes/Bubbles]
+  MessengerMode[engine/modes/Messenger]
   Generation[engine/generation]
   GenCore[engine/generation-core]
   Helpers[engine/helpers-runtime]
@@ -56,13 +56,13 @@ flowchart LR
   RustLLM[src-tauri crates/llm]
   RustStorage[src-tauri crates/storage]
 
-  BubblesUI --> GenerationHook
-  GenerationHook --> BubblesMode
+  MessengerUI --> GenerationHook
+  GenerationHook --> MessengerMode
   GenerationHook --> Generation
   GenerationHook --> LLMApi
   GenerationHook --> StorageApi
   GenerationHook --> IntegrationApi
-  BubblesMode --> Generation
+  MessengerMode --> Generation
   Generation --> Capabilities
   Generation --> GenCore
   Generation --> Helpers
@@ -84,7 +84,7 @@ flowchart LR
             <tr>
               <th>Review</th>
               <td>
-                Bubbles UI, generation events, storage writes, helper pre/post hooks, provider payloads, persisted message
+                Messenger UI, generation events, storage writes, helper pre/post hooks, provider payloads, persisted message
                 metadata.
               </td>
             </tr>
@@ -98,12 +98,12 @@ flowchart LR
           </tbody>
         </table>
 
-        <h2>VN</h2>
+        <h2>Classic</h2>
         <pre class="mermaid">
 flowchart LR
-  VNUI[features/modes/VN]
+  ClassicUI[features/modes/Classic]
   Visuals[features/runtime/visuals]
-  VNMode[engine/modes/VN]
+  ClassicMode[engine/modes/Classic]
   Generation[engine/generation]
   Capabilities[engine/capabilities<br/>storage and llm ports]
   Assets[shared/api/assets-api]
@@ -112,15 +112,15 @@ flowchart LR
   RustAssets[src-tauri crates/assets]
   RustStorage[src-tauri crates/storage]
 
-  VNUI --> VNMode
-  VNUI --> Visuals
-  VNUI --> Storage
-  VNUI --> LLM
-  VNMode --> Capabilities
-  VNMode --> Generation
-  Capabilities -. implemented by VN feature adapter .-> Storage
-  Capabilities -. implemented by VN feature adapter .-> LLM
-  VNUI --> Assets
+  ClassicUI --> ClassicMode
+  ClassicUI --> Visuals
+  ClassicUI --> Storage
+  ClassicUI --> LLM
+  ClassicMode --> Capabilities
+  ClassicMode --> Generation
+  Capabilities -. implemented by Classic feature adapter .-> Storage
+  Capabilities -. implemented by Classic feature adapter .-> LLM
+  ClassicUI --> Assets
   Assets --> RustAssets
   Storage --> RustStorage
         </pre>
@@ -129,20 +129,20 @@ flowchart LR
             <tr>
               <th>Touching</th>
               <td>
-                Scenes, scene memory, scene analysis, VN encounters, sprites, VN choices, VN
+                Scenes, scene memory, scene analysis, Classic encounters, sprites, Classic choices, Classic
                 prompt continuity.
               </td>
             </tr>
             <tr>
               <th>Review</th>
               <td>
-                VN screen, visual primitives, origin Bubbles updates, persisted scene metadata, asset reads/writes.
+                Classic screen, visual primitives, origin Messenger updates, persisted scene metadata, asset reads/writes.
               </td>
             </tr>
             <tr>
               <th>Verify</th>
               <td>
-                Typecheck VN paths; verify sibling future adventure scene logic only if shared visuals or lower-layer scene
+                Typecheck Classic paths; verify sibling future adventure scene logic only if shared visuals or lower-layer scene
                 utilities changed.
               </td>
             </tr>
@@ -228,7 +228,7 @@ flowchart LR
             <tr>
               <th>Touching</th>
               <td>
-                Pond Guide shell entry, standalone Bubbles surface, connection/persona context, attachments, read-only
+                Pond Guide shell entry, standalone Messenger surface, connection/persona context, attachments, read-only
                 creative library tool, native tool calling, or provider errors.
               </td>
             </tr>
@@ -418,7 +418,7 @@ flowchart LR
           </div>
           <div class="panel">
             <h3><code>engine/generation-core</code></h3>
-            <p>Review Bubbles, VN, future adventure systems, helpers, prompt preview, and replay behavior.</p>
+            <p>Review Messenger, Classic, future adventure systems, helpers, prompt preview, and replay behavior.</p>
           </div>
           <div class="panel">
             <h3><code>src/shared/api</code></h3>

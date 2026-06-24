@@ -97,7 +97,7 @@
               <td>Client state and data loading</td>
               <td>React state first. Dedicated data loading and app stores are not selected yet.</td>
               <td>
-                The first slice should prove Bubbles locally before adding provider, storage, or runtime complexity.
+                The first slice should prove Messenger locally before adding provider, storage, or runtime complexity.
               </td>
             </tr>
             <tr>
@@ -106,7 +106,7 @@
                 React-free TypeScript model modules, then storage schemas after the names settle.
               </td>
               <td>
-                <code>src/engine</code> currently defines Bubbles, Companions, Personas, Lorebooks, and Ripples.
+                <code>src/engine</code> currently defines Messenger, Companions, Personas, Lorebooks, and Ripples.
               </td>
             </tr>
             <tr>
@@ -128,7 +128,7 @@
             <h3>Shell and feature split</h3>
             <p>
               The app shell lives under <code>src/app</code>. Product surfaces live under <code>src/features</code>,
-              including Bubbles, VN, future adventure systems, media assets, libraries, settings, integrations, onboarding, and Pond Guide.
+              including Messenger, Classic, future adventure systems, media assets, libraries, settings, integrations, onboarding, and Pond Guide.
             </p>
           </div>
           <div class="panel">
@@ -141,7 +141,7 @@
           <div class="panel">
             <h3>Pond Guide path</h3>
             <p>
-              Pond Guide is not hidden inside Bubbles. The shell opens
+              Pond Guide is not hidden inside Messenger. The shell opens
               <code>features/shell/pond-guide</code>, which calls <code>engine/pond-guide</code>, <code>shared/api/pond-guide-api</code>,
               and the Rust <code>pond_guide_prompt</code> command.
             </p>
@@ -186,7 +186,7 @@ flowchart LR
           <div class="panel">
             <h3>Mode separation</h3>
             <p>
-              Bubbles is the first active surface. VN is reserved next. Future adventure systems should stay separate
+              Messenger is the first active surface. Classic is reserved next. Future adventure systems should stay separate
               until DeKoi has native records and storage.
             </p>
           </div>

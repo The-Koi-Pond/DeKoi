@@ -86,9 +86,9 @@
           </thead>
           <tbody>
             <tr>
-              <td><code>features/catalog/bubbles</code></td>
-              <td>Bubbles data hooks, mutations, folders, storage-facing types, and query keys.</td>
-              <td>Storage API, Bubbles engine contracts, public runtime consumers.</td>
+              <td><code>features/catalog/messenger</code></td>
+              <td>Messenger data hooks, mutations, folders, storage-facing types, and query keys.</td>
+              <td>Storage API, Messenger engine contracts, public runtime consumers.</td>
             </tr>
             <tr>
               <td><code>features/catalog/companions</code></td>
@@ -109,7 +109,7 @@
               <td><code>features/catalog/sprites</code></td>
               <td>Shared sprite query keys, types, and React Query hooks for character and persona sprite owners.</td>
               <td>
-                Image generation API sprite commands, character and persona editors, runtime ripples, future adventure systems, and Bubbles
+                Image generation API sprite commands, character and persona editors, runtime ripples, future adventure systems, and Messenger
                 settings consumers.
               </td>
             </tr>
@@ -119,8 +119,8 @@
               <td>Storage API, import API, lorebook contracts.</td>
             </tr>
             <tr>
-              <td><code>features/catalog/presets</code>, <code>features/catalog/bubble-presets</code></td>
-              <td>Prompt preset editors, choice selection, Bubbles preset data hooks, and query keys.</td>
+              <td><code>features/catalog/presets</code>, <code>features/catalog/messenger-presets</code></td>
+              <td>Prompt preset editors, choice selection, Messenger preset data hooks, and query keys.</td>
               <td>Storage API, prompt contracts, generation preview.</td>
             </tr>
             <tr>
@@ -141,7 +141,7 @@
             <tr>
               <td><code>features/runtime/generation</code></td>
               <td>Generation hook that binds UI state and capability adapters to engine generation services.</td>
-              <td>Engine generation, catalog Bubbles keys, shared API adapters, helper/ripples stores.</td>
+              <td>Engine generation, catalog Messenger keys, shared API adapters, helper/ripples stores.</td>
             </tr>
             <tr>
               <td><code>features/runtime/ripples</code></td>
@@ -162,9 +162,9 @@
               <td>Ripples API, shared stores, mode state.</td>
             </tr>
             <tr>
-              <td><code>features/modes/shared/Bubbles-ui</code></td>
+              <td><code>features/modes/shared/Messenger-ui</code></td>
               <td>Shared transcript, message, input, branch, settings, overlay, gallery, and quick-switcher UI.</td>
-              <td>Catalog Bubbles data, runtime visuals, generation replay, shared components.</td>
+              <td>Catalog Messenger data, runtime visuals, generation replay, shared components.</td>
             </tr>
             <tr>
               <td><code>features/modes/shared/scene-ui</code></td>
@@ -172,22 +172,22 @@
               <td>Shared components and mode-provided scene state.</td>
             </tr>
             <tr>
-              <td><code>features/modes/Bubbles</code></td>
+              <td><code>features/modes/Messenger</code></td>
               <td>
-                Bubbles surface, setup wizard, recent Bubbles, autonomous effects, echo chamber, and normal
-                Bubbles UI.
+                Messenger surface, setup wizard, recent Messenger, autonomous effects, echo chamber, and normal
+                Messenger UI.
               </td>
-              <td>Bubbles surface engine, runtime generation, catalog Bubbles data, shared Bubbles UI.</td>
+              <td>Messenger surface engine, runtime generation, catalog Messenger data, shared Messenger UI.</td>
             </tr>
             <tr>
-              <td><code>features/modes/VN</code></td>
-              <td>VN screen surfaces, HUD, choices, encounters, scene UI, and VN Ripple Dock panels.</td>
-              <td>VN surface engine, runtime visuals/generation, catalog resources, shared Bubbles/scene UI.</td>
+              <td><code>features/modes/Classic</code></td>
+              <td>Classic screen surfaces, HUD, choices, encounters, scene UI, and Classic Ripple Dock panels.</td>
+              <td>Classic surface engine, runtime visuals/generation, catalog resources, shared Messenger/scene UI.</td>
             </tr>
             <tr>
               <td><code>features/modes/game</code></td>
               <td>Game screen, party UI, world UI, mechanics UI, future adventure hooks, stores, and game API facade.</td>
-              <td>Future adventure surface engine, media assets, runtime systems, catalog resources, shared Bubbles UI.</td>
+              <td>Future adventure surface engine, media assets, runtime systems, catalog resources, shared Messenger UI.</td>
             </tr>
             <tr>
               <td><code>features/modes/media-assets</code></td>
@@ -197,10 +197,10 @@
             <tr>
               <td><code>features/modes/router</code></td>
               <td>
-                Mode surface composition plus shared active-Bubbles workflow, pagination, swipes, overlays, and mode
+                Mode surface composition plus shared active-Messenger workflow, pagination, swipes, overlays, and mode
                 switching.
               </td>
-              <td>Concrete mode public surfaces, catalog Bubbles data, runtime systems, and mode metadata.</td>
+              <td>Concrete mode public surfaces, catalog Messenger data, runtime systems, and mode metadata.</td>
             </tr>
             <tr>
               <td><code>features/shell/settings</code>, <code>features/shell/connections</code></td>
@@ -208,12 +208,12 @@
                 Settings panels, provider connection management, themes, profile import, assets, TTS
                 configuration, and admin reset orchestration.
               </td>
-              <td>Catalog connection/Bubbles APIs, settings/storage APIs, integration APIs, profile API.</td>
+              <td>Catalog connection/Messenger APIs, settings/storage APIs, integration APIs, profile API.</td>
             </tr>
             <tr>
               <td><code>features/shell/pond-guide</code></td>
               <td>Pond Guide standalone assistant surface.</td>
-              <td>engine guide entry contract, guide API, catalog connections/personas, shared Bubbles UI.</td>
+              <td>engine guide entry contract, guide API, catalog connections/personas, shared Messenger UI.</td>
             </tr>
             <tr>
               <td><code>features/shell/imports</code>, <code>features/shell/bot-browser</code></td>
@@ -225,7 +225,7 @@
                 <code>features/shell/spotify</code>, <code>features/shell/onboarding</code>,
                 <code>features/shell/notifications</code>
               </td>
-              <td>Spotify mini player, first-run onboarding tutorial UI, and app-level notification bubbles.</td>
+              <td>Spotify mini player, first-run onboarding tutorial UI, and app-level notifications.</td>
               <td>Integration utility API, app shell, mode stores, shared playback/events UI.</td>
             </tr>
           </tbody>
@@ -332,7 +332,7 @@
             <tr>
               <td><code>engine/helpers-runtime</code></td>
               <td>Helper execution, tools, knowledge, memory routing.</td>
-              <td>Bubbles, future adventure systems, or VN surface orchestration.</td>
+              <td>Messenger, future adventure systems, or Classic surface orchestration.</td>
             </tr>
             <tr>
               <td><code>engine/generation</code></td>
@@ -345,19 +345,19 @@
               <td>React UI, concrete Tauri invokes, Rust helper execution.</td>
             </tr>
             <tr>
-              <td><code>engine/modes/Bubbles</code></td>
-              <td>Bubbles/autonomous/schedules/summaries/commands.</td>
-              <td>VN scene or future adventure turn logic.</td>
+              <td><code>engine/modes/Messenger</code></td>
+              <td>Messenger/autonomous/schedules/summaries/commands.</td>
+              <td>Classic scene or future adventure turn logic.</td>
             </tr>
             <tr>
-              <td><code>engine/modes/VN</code></td>
-              <td>Scenes, VN encounters, scene memory, VN sprites.</td>
+              <td><code>engine/modes/Classic</code></td>
+              <td>Scenes, Classic encounters, scene memory, Classic sprites.</td>
               <td>Ripples, maps, game session repair.</td>
             </tr>
             <tr>
               <td><code>engine/modes/game</code></td>
               <td>Future adventure turns, prompts, mechanics, world, state, assets.</td>
-              <td>VN scene lifecycle or Bubbles schedules.</td>
+              <td>Classic scene lifecycle or Messenger schedules.</td>
             </tr>
           </tbody>
         </table>
@@ -467,7 +467,7 @@ flowchart LR
             </tr>
             <tr>
               <td><code>storage-api.ts</code></td>
-              <td>Typed entity CRUD, duplication, Bubbles helpers, and generic storage access.</td>
+              <td>Typed entity CRUD, duplication, Messenger helpers, and generic storage access.</td>
             </tr>
             <tr>
               <td><code>remote-runtime.ts</code></td>
@@ -485,7 +485,7 @@ flowchart LR
             </tr>
             <tr>
               <td><code>ripples-snapshot-api.ts</code></td>
-              <td>Ripple snapshot save/read commands for game and VN state history.</td>
+              <td>Ripple snapshot save/read commands for game and Classic state history.</td>
             </tr>
           </tbody>
         </table>
@@ -519,9 +519,9 @@ flowchart LR
               <td>Bot browser proxy commands and Ripple snapshot persistence.</td>
             </tr>
             <tr>
-              <td><code>companions</code>, <code>Bubbles</code>, <code>prompts</code>, <code>knowledge</code></td>
+              <td><code>companions</code>, <code>Messenger</code>, <code>prompts</code>, <code>knowledge</code></td>
               <td>
-                Creative records, Bubbles memory/notes/branches/swipes, prompt data, and knowledge source persistence.
+                Creative records, Messenger memory/notes/branches/swipes, prompt data, and knowledge source persistence.
               </td>
             </tr>
             <tr>

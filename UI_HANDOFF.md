@@ -15,13 +15,13 @@ project rules.
   React + TypeScript + Vite app.
 - Wire the mockup's interactions (mode dock, koi cards, pools, Pond Care
   drawer, chips, sliders, toggles) to React state.
-- Preserve the existing Bubble-thread behavior (send / placeholder reply /
-  localStorage) by re-homing it behind the new shell as the Bubble surface.
+- Preserve the existing Messenger-thread behavior (send / placeholder reply /
+  localStorage) by re-homing it behind the new shell as the Messenger surface.
 
 **Out of scope (do not build yet)**
 
 - Provider/generation runtime, real model replies.
-- VN and Game surfaces beyond visual placeholders.
+- Classic and Reserved surfaces beyond visual placeholders.
 - Legacy import, Tauri storage, media library, webhook surfaces.
 - Anything labeled "Deep water" / "Surfacing soon" in the mockup — render as
   disabled/locked affordances only.
@@ -34,10 +34,11 @@ project rules.
 | Product rules | `PRODUCT.md` | "calm, intimate, handmade"; water/paper/ink/coral motifs. |
 | Architecture lanes | `ARCHITECTURE.md` | `src/engine`, `src/features`, `src/shared`, `src/runtime`. UI lives in `src/features` and `src/shared`. |
 | Naming rules | `SURFACE_LABELS.md` | Public labels, internal nouns, legacy aliases. **Read before naming anything.** |
-| Domain records | `DOMAIN_MODEL.md` | Bubble/Character/Persona/Lorebook/Ripple record shapes. |
+| Domain records | `DOMAIN_MODEL.md` | Messenger/Character/Persona/Lorebook/Ripple record shapes. |
 | Clean-room boundary | `CLEAN_ROOM.md` | No copying from the prior fork-derived repo. The mockup is a user-supplied design, not legacy code, so it is an allowed input — but write the React implementation fresh in DeKoi terms. |
-| Current shell (to be replaced) | `src/App.tsx`, `src/App.css`, `src/index.css`, `src/features/home/Home.tsx` | Old light-theme placeholder. |
-| Current Bubble logic (to preserve) | `src/features/home/Home.tsx`, `src/engine/bubble-actions.ts`, `src/runtime/bubble-local-storage.ts` | Keep the send/reply/persist behavior. |
+| Active shell | `src/App.tsx`, `src/features/shell/*`, `src/features/pond/*`, `src/shared/ui/nav-context.ts` | Pond shell, view switch, and app-level state. |
+| Active Messenger logic | `src/features/messenger/MessengerThread.tsx`, `src/engine/messenger-actions.ts`, `src/runtime/messenger-storage.ts`, `src/runtime/messenger-local-storage.ts` | Send/reply/persist behavior. |
+| Legacy standalone prototype | `src/features/home/Home.tsx` | Old first prototype; do not extend for new shell work. |
 
 Open the mockup directly in a browser to see motion and hover states that
 screenshots cannot convey.
@@ -60,7 +61,7 @@ Regions (class → role):
 | Region | Class | Lines | Contents |
 | --- | --- | --- | --- |
 | Top bar | `.waterline` | 86–124 | Brand mark, "DeKoi" wordmark, `.ripple-search` omni-search, `.pebbles` catalog buttons (Lore/Companions/Media/Connections + Pond Care), `.win-dots`. |
-| Mode dock | `.bank` | 140–209 | Vertical rail. `.dive` buttons (bubbles/vn/reserved — see §5.1) with hover `.tag` tooltips and `.on` indicator; `.cast-fab` (new chat); `.me` profile bubble. |
+| Mode dock | `.bank` | 140–209 | Vertical rail. `.dive` buttons (messenger/classic/reserved — see §5.1) with hover `.tag` tooltips and `.on` indicator; `.cast-fab` (new chat); `.me` profile bubble. |
 | Chat list | `.shoal` | 211–291 | `.shoal-head` (title, search, action pills), `.shoal-meta`, scrollable `.shoal-list` of `.koi-card` entries grouped by `.group-label`. |
 | Main canvas | `.pond` | 293–403 | Sticky `.pond-banner`, centered `.pond-inner` containing: `.hero` (animated koi `.pond-eye`), `.pools` (3 organic blob cards), `.section-head` + `.current` (recent drifters), `.depths` (feature finder). |
 | Status bar | `.tide` | 487–507 | `.swim-state` pulse, `.surface-input`, `.vitals` bars (Clarity/Stock). |
@@ -79,7 +80,7 @@ JS behaviors (lines 1002–1062): Pond Care open/close + Esc + scrim click; care
 tab single-select; `[data-toggle]` switch toggle; `selectMode(mode)` syncing
 `.dive` and `.pool`; `#surfaceChips`/`#depthChips` single-select chip groups;
 `.seg` single-select; `[data-track]` pointer-drag sliders. (`selectMode` reads
-`data-mode`, whose values are now the DeKoi ids `bubbles`/`vn`/`reserved`.)
+`data-mode`, whose values are now the DeKoi ids `messenger`/`classic`/`reserved`.)
 
 ## 4. Conflicts and decisions
 
@@ -97,7 +98,7 @@ The original mockup used three "modes": Conversation / Roleplay / Game
   Mode` as public text or `roleplay` as a native DeKoi mode ID."
 - `DOMAIN_MODEL.md` line 30: "Game/adventure-style play is intentionally out of
   scope for now."
-- The agreed DeKoi labels are **Bubbles** (DM-style chat) and **VN** (visual
+- The agreed DeKoi labels are **Messenger** (DM-style chat) and **Classic** (visual
   novel). Game is not a first-slice surface.
 
 Per the user's decision ("amend the docs to reflect DeKoi's docs"), the mockup
@@ -115,11 +116,12 @@ becomes the new default. The old tokens and `App.css` are replaced, not merged.
 ### 4.3 Mockup is a dashboard, not the chat surface
 
 The mockup's `.pond` is a **home/landing canvas** (hero, pools, recent
-currents, feature finder). It is not the message-thread view. The repo already
-has working Bubble-thread logic in `src/features/home/Home.tsx`
-(send → placeholder reply → localStorage). That logic must be preserved and
-moved into a Bubble surface reached from the Pond (via Cast-a-line, a pool, or
-a koi card).
+currents, feature finder). It is not the message-thread view. The active app
+keeps the Messenger-thread logic in
+`src/features/messenger/MessengerThread.tsx` (send -> placeholder reply ->
+storage) and reaches it from the Pond via Cast-a-line, a pool, or a koi card.
+`src/features/home/Home.tsx` is the older standalone prototype, not the place for
+new shell work.
 
 ### 4.4 Routing
 
@@ -145,22 +147,22 @@ out-of-scope surface is marked Reserved.
 
 | Original mockup `data-mode` | Original label | DeKoi surface (now in mockup) | `data-mode` (now) | Color token | First-slice status |
 | --- | --- | --- | --- | --- | --- |
-| `talk` | Conversation | **Bubbles** | `bubbles` | `--koi` | Active. Routes to the Bubble surface. |
-| `tale` | Roleplay | **VN** | `vn` | `--jade` | Placeholder. Lock with "Surfacing soon" in the React port. |
+| `talk` | Conversation | **Messenger** | `messenger` | `--koi` | Active. Routes to the Messenger surface. |
+| `tale` | Roleplay | **Classic** | `classic` | `--jade` | Placeholder. Lock with "Surfacing soon" in the React port. |
 | `quest` | Game | **Reserved** (no native label yet) | `reserved` | `--amber` | Out of scope. Lock as "Deep water" in the React port. |
 
 Where this already landed in the mockup: `.dive .tag` copy (lines 651, 655,
 659), `.kc-mode` chips on koi cards (lines 697, 706, 717, 726, 735), `.pool h3`
 titles (lines 800, 811, 822), `.drifter .dmode` chips (lines 842, 850, 858), the
 Depths pop-results (lines 894–895), and the Send-on-Enter `.seg` options
-(lines 989–991). CSS class hooks were renamed to match: `.dive.bubbles` /
-`.dive.vn` / `.dive.reserved`, `.pool.bubbles` / `.pool.vn` / `.pool.reserved`,
-`.kc-mode.bubbles` / `.kc-mode.vn` / `.kc-mode.reserved`, `.dmode.vn` /
+(lines 989–991). CSS class hooks were renamed to match: `.dive.messenger` /
+`.dive.classic` / `.dive.reserved`, `.pool.messenger` / `.pool.classic` / `.pool.reserved`,
+`.kc-mode.messenger` / `.kc-mode.classic` / `.kc-mode.reserved`, `.dmode.classic` /
 `.dmode.reserved`. Two free-text spots were also fixed: the hero eyebrow is now
 "The Pond · character story engine" (was "AI roleplay engine"), and the Pond
 Care toggle is now "Surface all text at once" (was "Surface game text at once").
 
-Note: the mockup shows VN and Reserved as visually-present but not yet locked.
+Note: the mockup shows Classic and Reserved as visually-present but not yet locked.
 The React port adds the locked/disabled + tooltip treatment per their
 first-slice status above.
 
@@ -172,12 +174,12 @@ from `src/main.tsx` (replacing the current `index.css` import). Delete the old
 light tokens from `src/index.css` and the old `src/App.css` rules once the new
 shell renders.
 
-### 5.3 Re-home Bubble logic (resolves §4.3)
+### 5.3 Re-home Messenger logic (resolves §4.3)
 
 - Create `src/features/pond/Pond.tsx` (the mockup's `.pond` home canvas).
 - Move the existing thread state and send/reply logic out of `Home.tsx` into a
-  new `src/features/bubbles/BubbleThread.tsx` (keep the same hooks/effects and
-  the same `loadBubbleThread`/`saveBubbleThread` runtime).
+  new `src/features/messenger/MessengerThread.tsx` (keep the same hooks/effects and
+  the same `loadMessengerThread`/`saveMessengerThread` runtime).
 - `Home.tsx` becomes a thin router (see §5.4) or is deleted in favor of
   `App.tsx` hosting the shell + active view.
 
@@ -186,12 +188,12 @@ shell renders.
 Start with a **state-based view switch** in `App.tsx` — no new dependency:
 
 ```ts
-type PondView = { kind: 'pond' } | { kind: 'bubble'; threadId: string }
+type PondView = { kind: 'pond' } | { kind: 'messenger'; threadId: string }
 ```
 
 Lift `view` and `setView` via props or a tiny React context
 (`src/shared/ui/nav-context.ts`). Cast-a-line / pool click / koi-card click call
-`setView({ kind: 'bubble', threadId })`. The shell (waterline/bank/shoal/tide)
+`setView({ kind: 'messenger', threadId })`. The shell (waterline/bank/shoal/tide)
 stays mounted across views; only `.pond` swaps content. Add `react-router` only
 when a third top-level surface or deep-linking is actually needed.
 
@@ -239,7 +241,7 @@ src/features/shell/waterline/
   Waterline.tsx + Waterline.css         brand, wordmark, RippleSearch, Pebbles, win-dots
 
 src/features/shell/bank/
-  Bank.tsx + Bank.css                   bank-label, Dive buttons (Bubbles/VN/Reserved), CastFab, Me
+  Bank.tsx + Bank.css                   bank-label, Dive buttons (Messenger/Classic/Reserved), CastFab, Me
 
 src/features/shell/shoal/
   Shoal.tsx + Shoal.css                 head, search, action pills, meta, list
@@ -255,7 +257,7 @@ src/features/shell/care/
   care-fields.css                       field, toggle-row, slider-field, seg shared rules
 
 src/features/pond/
-  Pond.tsx + Pond.css                   .pond host: banner + view switch ( PondHome | BubbleThread | ... )
+  Pond.tsx + Pond.css                   .pond host: banner + view switch ( PondHome | MessengerThread | ... )
   PondHome.tsx                          hero + pools + recent currents + depths
   hero/
     PondEye.tsx + PondEye.css           animated koi orbit art
@@ -267,12 +269,12 @@ src/features/pond/
   depths/
     Depths.tsx + depths.css             feature finder (search, chips, pop results)
 
-src/features/bubbles/
-  BubbleThread.tsx + bubble-thread.css  EXISTING send/reply/localStorage logic, restyled to pond theme
+src/features/messenger/
+  MessengerThread.tsx + messenger-thread.css  EXISTING send/reply/localStorage logic, restyled to pond theme
 ```
 
 Keep the engine layer untouched: `src/engine/*` and `src/runtime/*` stay as-is.
-The Shoal and Recent Currents read the same `BubbleThread`/`CharacterRecord`
+The Shoal and Recent Currents read the same `MessengerThread`/`CharacterRecord`
 samples the old Home used.
 
 ## 7. Design tokens
@@ -323,8 +325,8 @@ passing. Phase 0 is already complete (the mockup itself was amended).
 ### Phase 0 — Reconcile naming (DONE)
 
 The mockup (`design/pond-mockup.html`) already uses DeKoi-native labels and
-mode ids (Bubbles / VN / Reserved); see §5.1. Before coding, add DeKoi surface
-id constants to the engine (e.g. `BUBBLES`, `VN`, `RESERVED`) if not present,
+mode ids (Messenger / Classic / Reserved); see §5.1. Before coding, add DeKoi surface
+id constants to the engine (e.g. `MESSENGER`, `CLASSIC`, `RESERVED`) if not present,
 so the React port has a single source of truth to import. No change to
 `SURFACE_LABELS.md` or `DOMAIN_MODEL.md` is needed — they already mandate these
 labels.
@@ -349,8 +351,8 @@ grid skeleton visible; `pnpm build` passes.
 Port each region's markup + CSS as static React, using the §5.1 labels:
 
 - Waterline (brand, wordmark, omni-search input, pebbles, win-dots).
-- Bank (Bubbles/VN/Reserved dives with tooltips; CastFab; Me).
-- Shoal (head, search, pills, meta, sample koi cards from `sampleBubbleThread`/
+- Bank (Messenger/Classic/Reserved dives with tooltips; CastFab; Me).
+- Shoal (head, search, pills, meta, sample koi cards from `sampleMessengerThread`/
   `sampleCompanions` — map each thread to a `KoiCard`).
 - Tide (swim-state pulse, surface-input, vitals).
 - Pond banner + PondHome: Hero (with `PondEye` animation), ModePools (3 cards),
@@ -363,11 +365,11 @@ work via CSS; `pnpm build` passes.
 ### Phase 3 — Interactions and state
 
 - `nav-context.ts`: `view`, `selectedThreadId`, `selectedSurface`
-  (`'bubbles'|'vn'|'reserved'`), `careOpen`, `careTab`.
+  (`'messenger'|'classic'|'reserved'`), `careOpen`, `careTab`.
 - Bank dive + ModePools click → set `selectedSurface` (sync both, like the
-  mockup's `selectMode`). Reserved/VN are locked (aria-disabled, tooltip
+  mockup's `selectMode`). Reserved/Classic are locked (aria-disabled, tooltip
   "Surfacing soon").
-- CastFab + Bubbles pool + koi-card click → `setView({kind:'bubble',
+- CastFab + Messenger pool + koi-card click → `setView({kind:'messenger',
   threadId})`.
 - Chip groups (Depths surface + depth) → single-select local state.
 - Seg control (Send-on-Enter) → single-select.
@@ -377,17 +379,17 @@ work via CSS; `pnpm build` passes.
   support (Left/Right).
 - CareDrawer open/close: gear button, X button, scrim click, Esc.
 
-Acceptance: every control in the mockup responds; only Bubbles is navigable.
+Acceptance: every control in the mockup responds; only Messenger is navigable.
 
-### Phase 4 — Re-home Bubble surface
+### Phase 4 — Re-home Messenger surface
 
-- Create `src/features/bubbles/BubbleThread.tsx` by moving the thread state,
+- Create `src/features/messenger/MessengerThread.tsx` by moving the thread state,
   `handleSend`, `handleResetThread`, autoscroll effect, and
-  `load/saveBubbleThread` usage out of `Home.tsx`.
+  `load/saveMessengerThread` usage out of `Home.tsx`.
 - Restyle to pond theme (dark surface, foam text, jade/koi accents). Replace
-  the old `App.css`/`index.css` light classes (`bubble-surface`, `message-list`,
-  `bubble-message*`, `bubble-composer`, etc.) with new pond-themed classes.
-- Pond.tsx view switch: `view.kind === 'bubble'` renders `BubbleThread`; else
+  the old `App.css`/`index.css` light classes (`messenger-surface`, `message-list`,
+  `messenger-message*`, `messenger-composer`, etc.) with new pond-themed classes.
+- Pond.tsx view switch: `view.kind === 'messenger'` renders `MessengerThread`; else
   renders `PondHome`.
 - Back/cast navigation returns to `{kind:'pond'}`.
 
@@ -475,8 +477,8 @@ Restate each mockup JS behavior so it survives the React rewrite:
 - **Viewport** — mockup is fixed-height (`100vh`, body `overflow:hidden`). Keep
   the shell full-viewport; only `.pond` and `.shoal-list`/`.care-body` scroll
   internally.
-- **Surface IDs vs labels** — internal attributes use DeKoi ids (`bubbles`,
-  `vn`, `reserved`), never the mockup's `talk/tale/quest` or the forbidden
+- **Surface IDs vs labels** — internal attributes use DeKoi ids (`messenger`,
+  `classic`, `reserved`), never the mockup's `talk/tale/quest` or the forbidden
   words `conversation`/`roleplay`/`game`.
 - **Clean room** — do not copy UI text wholesale from the mockup if it
   contradicts DeKoi voice (it's fine to keep decorative phrases like "Cast a
@@ -490,9 +492,9 @@ Restate each mockup JS behavior so it survives the React rewrite:
 - [ ] `pnpm lint` passes.
 - [ ] Side-by-side: tokens, fonts, orbit animation, caustics, blob pools,
       drawer animation match the mockup.
-- [ ] Bubbles dive / Cast-a-line / koi-card navigates to the Bubble surface;
+- [ ] Messenger dive / Cast-a-line / koi-card navigates to the Messenger surface;
       send → placeholder reply → reload preserves history.
-- [ ] VN and Reserved dives/pools are locked with "Surfacing soon"/"Deep water".
+- [ ] Classic and Reserved dives/pools are locked with "Surfacing soon"/"Deep water".
 - [ ] Pond Care opens via gear, closes via X / scrim / Esc; tabs, switches,
       chips, seg, and slider all respond.
 - [ ] Keyboard-only and reduced-motion walkthroughs succeed.
@@ -507,14 +509,14 @@ Restate each mockup JS behavior so it survives the React rewrite:
 3. Any DeKoi-native copy preference for the hero subtitle / pool descriptions,
    or keep the mockup's wording?
 
-(Naming — Bubbles / VN locked / Reserved locked — is settled; see §5.1.)
+(Naming — Messenger / Classic locked / Reserved locked — is settled; see §5.1.)
 
 ## 14. Follow-ups (later, not in this handoff)
 
 - Persist Pond Care settings behind a real settings store.
 - Real Shoal with multiple threads, create/rename/delete, and "Ask before
   releasing a koi".
-- VN surface behind the same shell.
+- Classic surface behind the same shell.
 - Self-hosted fonts + offline assets.
 - Router + deep-linking once a third top-level surface exists.
 - Media/Net, Inlets/Connections, Keepers surfaces (currently pebbles only).

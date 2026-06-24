@@ -17,15 +17,15 @@ or import adapters.
 
 ## First Product Area
 
-The first DeKoi loop is **Bubbles**.
+The first DeKoi loop is **Messenger**.
 
-A Bubble is a DM-style thread between the user and one or more characters. It
-should feel like a private or group message chat: compact turns, quick replies,
-clear speakers, and saved history.
+A Messenger thread is a DM-style thread between the user and one or more
+characters. It should feel like a private or group message chat: compact turns,
+quick replies, clear speakers, and saved history.
 
-VN is reserved as the second major surface. It should reuse characters,
+Classic is reserved as the second major surface. It should reuse characters,
 personas, lorebooks, presets, and providers where that makes sense, but its
-scene presentation and continuity needs can diverge from Bubbles.
+scene presentation and continuity needs can diverge from Messenger.
 
 Game/adventure-style play is intentionally out of scope for now.
 
@@ -33,7 +33,8 @@ Game/adventure-style play is intentionally out of scope for now.
 
 ### Character
 
-A character is someone or something the user can talk with or place into a VN.
+A character is someone or something the user can talk with or place into
+Classic.
 The current public surface label for characters is **Companions**.
 
 Purpose:
@@ -44,8 +45,8 @@ Purpose:
 
 Likely relationships:
 
-- Can appear in many Bubble threads.
-- Can appear in many VN threads.
+- Can appear in many Messenger threads.
+- Can appear in many Classic threads.
 - Can reference lorebooks, presets, or media later.
 
 Not decided yet:
@@ -60,14 +61,14 @@ A persona is one of the user's in-world or chat identities.
 
 Purpose:
 
-- Let the user choose who they are in a Bubble or VN.
+- Let the user choose who they are in Messenger or Classic.
 - Hold user-facing description, display name, and optional style/context.
 - Avoid hard-coding a single global user identity.
 
 Likely relationships:
 
-- A Bubble thread may have one active persona.
-- A VN thread may have one active persona.
+- A Messenger thread may have one active persona.
+- A Classic thread may have one active persona.
 - A persona can be reused across many threads.
 
 Not decided yet:
@@ -88,7 +89,7 @@ Purpose:
 Likely relationships:
 
 - Can be attached to characters.
-- Can be attached to Bubble or VN threads.
+- Can be attached to Messenger or Classic threads.
 - Can contain many lore entries.
 
 Not decided yet:
@@ -109,8 +110,8 @@ Purpose:
 
 Likely relationships:
 
-- A Bubble thread may use one active preset.
-- A VN thread may use one active preset.
+- A Messenger thread may use one active preset.
+- A Classic thread may use one active preset.
 - Presets may be global or copied into a thread later if needed.
 
 Not decided yet:
@@ -131,7 +132,7 @@ Purpose:
 
 Likely relationships:
 
-- A Bubble or VN thread may choose a connection.
+- A Messenger or Classic thread may choose a connection.
 - A preset may be compatible with some connections.
 
 Not decided yet:
@@ -140,15 +141,15 @@ Not decided yet:
 - Secret storage.
 - Tauri vs browser-only runtime boundary.
 
-## Bubble Records
+## Messenger Records
 
-### BubbleThread
+### MessengerThread
 
-A BubbleThread is a saved DM-style conversation.
+A MessengerThread is a saved DM-style conversation.
 
 Purpose:
 
-- Group Bubble messages into one saved thread.
+- Group Messenger messages into one saved thread.
 - Track participants, active persona, optional preset, optional lorebooks, and
   message history.
 - Reopen cleanly without needing provider access.
@@ -157,26 +158,26 @@ Likely relationships:
 
 - Has one or more character participants.
 - May have one active persona.
-- Contains many BubbleMessages.
+- Contains many MessengerMessages.
 - May reference lorebooks, presets, media, and provider connections later.
 
 Important behavior:
 
-- One-on-one and group Bubbles should be the same record kind with different
+- One-on-one and group Messenger threads should be the same record kind with different
   participant counts.
-- A BubbleThread should not require VN scene state.
-- A BubbleThread should be understandable even before generation support exists.
+- A MessengerThread should not require Classic scene state.
+- A MessengerThread should be understandable even before generation support exists.
 
 Not decided yet:
 
-- Whether the public action should be `New thread`, `New Bubble`, or both.
-- Whether group Bubbles use one shared character response or separate character
+- Whether the public action should be `New thread`, `New Messenger`, or both.
+- Whether group Messenger threads use one shared character response or separate character
   turns.
 - Exact saved-file shape.
 
-### BubbleMessage
+### MessengerMessage
 
-A BubbleMessage is one visible message inside a BubbleThread.
+A MessengerMessage is one visible message inside a MessengerThread.
 
 Purpose:
 
@@ -186,7 +187,7 @@ Purpose:
 
 Likely relationships:
 
-- Belongs to exactly one BubbleThread.
+- Belongs to exactly one MessengerThread.
 - Has an author reference: user persona, character, system/app, or unknown
   imported source.
 
@@ -202,16 +203,16 @@ Not decided yet:
 - Edit history.
 - Attachment format.
 
-## VN Records
+## Classic Records
 
-### VisualNovelThread
+### ClassicThread
 
-A VisualNovelThread is a saved visual-novel-style character scene.
+A ClassicThread is a saved visual-novel-style character scene.
 
 Purpose:
 
 - Present longer character interactions with stronger scene framing than
-  Bubbles.
+  Messenger.
 - Reuse characters, personas, lorebooks, presets, media, and providers.
 - Leave room for sprites, backgrounds, speaker presentation, and continuity.
 
@@ -224,8 +225,8 @@ Likely relationships:
 
 Not decided yet:
 
-- Exact VN turn model.
-- Whether VN uses BubbleMessage-compatible messages or a separate scene-entry
+- Exact Classic turn model.
+- Whether Classic uses MessengerMessage-compatible messages or a separate scene-entry
   record.
 - Sprite/background ownership.
 
@@ -241,20 +242,20 @@ Purpose:
 - Replace game-state/tracker-style wording with a DeKoi-owned concept.
 - Track changing conditions without making game/adventure-style play part of the
   first product slice.
-- Give Bubbles and VN a future place for continuity changes, counters, moods,
+- Give Messenger and Classic a future place for continuity changes, counters, moods,
   relationship notes, or other stateful details.
 
 Likely relationships:
 
-- Belongs to one BubbleThread or VisualNovelThread.
+- Belongs to one MessengerThread or ClassicThread.
 - May be updated manually or by future helper modules.
 - May contain many individual Ripples.
 
 Not decided yet:
 
 - Whether Ripples are freeform notes, structured fields, event logs, or a mix.
-- Whether BubbleThread needs RippleState in the first local prototype.
-- Whether VN and Bubbles share one state shape.
+- Whether MessengerThread needs RippleState in the first local prototype.
+- Whether Classic and Messenger share one state shape.
 
 ### RippleDock
 
@@ -269,27 +270,27 @@ Purpose:
 
 Likely relationships:
 
-- Reads and edits RippleState for the active BubbleThread or VisualNovelThread.
+- Reads and edits RippleState for the active MessengerThread or ClassicThread.
 - May be hidden, docked, or expanded depending on layout.
 
 Not decided yet:
 
 - Exact panel layout.
 - Which Ripples are editable in the first version.
-- Whether this UI appears in Bubbles, VN, or only VN at first.
+- Whether this UI appears in Messenger, Classic, or only Classic at first.
 
 ## First Implementation Slice
 
 The first useful implementation should prove:
 
 1. Create or define one character.
-2. Create one BubbleThread.
-3. Add user-authored BubbleMessages.
-4. Add placeholder character BubbleMessages without a provider.
+2. Create one MessengerThread.
+3. Add user-authored MessengerMessages.
+4. Add placeholder character MessengerMessages without a provider.
 5. Save and reload the thread locally.
 
 This proves the DeKoi-native model before adding providers, Tauri file storage,
-VN presentation, or legacy import.
+Classic presentation, or legacy import.
 
 ## Later Boundaries
 
