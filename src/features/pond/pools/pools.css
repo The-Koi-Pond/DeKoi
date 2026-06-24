@@ -10,7 +10,7 @@
   --c2: var(--koi-hot);
   position: relative;
   cursor: pointer;
-  padding: 24px 22px 22px;
+  padding: 24px 48px 30px;
   min-height: 172px;
   border-radius: 26% 68% 64% 36% / 38% 40% 60% 62%;
   background: radial-gradient(120% 120% at 30% 12%, color-mix(in srgb, var(--c) 16%, var(--shallow)) 0%, var(--shallow) 62%);
@@ -18,6 +18,8 @@
   transition: 0.32s cubic-bezier(0.3, 0.8, 0.4, 1);
   display: flex;
   flex-direction: column;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .pool:nth-child(2) {
@@ -30,7 +32,7 @@
 
 .pool:hover {
   transform: translateY(-5px);
-  border-radius: 26px;
+  border-radius: 999px;
   box-shadow: 0 24px 50px -22px var(--c), inset 0 0 40px -20px var(--c);
   border-color: var(--c);
 }
@@ -47,6 +49,11 @@
 
 .pool:hover .shimmer {
   opacity: 1;
+}
+
+.pool > :not(.shimmer) {
+  position: relative;
+  z-index: 1;
 }
 
 .pool-ic {
@@ -72,6 +79,8 @@
   font-weight: 600;
   margin-top: 16px;
   color: var(--foam);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .pool p {
@@ -79,6 +88,8 @@
   color: var(--mist);
   margin-top: 5px;
   line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .pool .pool-meta {
@@ -98,6 +109,8 @@
   align-items: center;
   gap: 6px;
   opacity: 0.85;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pool::after {
@@ -127,10 +140,8 @@
 }
 .pool.locked:hover {
   transform: none;
-  border-radius: 26% 68% 64% 36% / 38% 40% 60% 62%;
+  border-radius: 999px;
   box-shadow: none;
   border-color: color-mix(in srgb, var(--c) 26%, var(--reed-soft));
 }
-.pool.locked:nth-child(2):hover { border-radius: 60% 36% 40% 64% / 56% 58% 42% 46%; }
-.pool.locked:nth-child(3):hover { border-radius: 42% 58% 68% 32% / 40% 52% 48% 62%; }
 .pool.locked:hover .shimmer { opacity: 0; }

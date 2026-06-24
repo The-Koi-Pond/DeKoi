@@ -6,7 +6,7 @@ export function Waterline() {
   return (
     <header className="waterline">
       <div className="brand">
-        <img className="mark" src="/koi-mark.svg" alt="" />
+        <img className="mark" src="/logo.png" alt="" />
       </div>
       <div className="wordmark">DeKoi</div>
       <div className="ripple-search">

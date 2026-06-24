@@ -10,15 +10,7 @@ export function Shoal() {
       <div className="shoal-head">
         <div className="shoal-title">
           <h2>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              style={{ color: "var(--jade)" }}
-              aria-hidden="true"
-            >
-              <use href="#fish" />
-            </svg>{" "}
+            <img className="shoal-mark" src="/koi-mark.svg" alt="" />
             The Shoal
           </h2>
           <span className="count">5 swimming</span>
