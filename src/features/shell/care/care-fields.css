@@ -259,6 +259,26 @@ select.pondsel:disabled {
   border-color: rgba(244, 122, 53, 0.42);
 }
 
+.host-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.host-flags span {
+  border: 1px solid var(--reed-soft);
+  border-radius: 999px;
+  color: var(--mist);
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 9px;
+}
+
+.host-flags span.on {
+  border-color: rgba(39, 179, 170, 0.45);
+  color: var(--jade-hot);
+}
+
 .runtime-actions {
   display: flex;
   flex-wrap: wrap;

@@ -18,6 +18,10 @@ import {
   type DeKoiStorageBundlePreview,
 } from "../../../runtime/dekoi-storage-bundle";
 import {
+  checkDesktopHostStatus,
+  type DeKoiDesktopHostStatus,
+} from "../../../runtime/desktop-host";
+import {
   normalizeLegacyImport,
   type DeKoiLegacyImportPreview,
 } from "../../../runtime/legacy-import";
@@ -161,6 +165,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [autoplayPause, setAutoplayPause] = useState(30);
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
+  const [desktopHostStatus, setDesktopHostStatus] =
+    useState<DeKoiDesktopHostStatus | null>(null);
+  const [desktopHostBusy, setDesktopHostBusy] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
   );
@@ -216,6 +223,21 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setRuntimeUrl("");
     nav.setRemoteRuntimeUrl("");
     setRuntimeHealth("Saved locally.");
+  }
+
+  async function handleDesktopHostCheck() {
+    setDesktopHostBusy(true);
+    setDesktopHostStatus({
+      appName: "DeKoi",
+      hostKind: "browser",
+      storageReady: false,
+      secretsReady: false,
+      runtimeReady: false,
+      message: "Checking desktop host...",
+    });
+    const status = await checkDesktopHostStatus();
+    setDesktopHostStatus(status);
+    setDesktopHostBusy(false);
   }
 
   function resetCharacterDraft() {
@@ -1273,6 +1295,32 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 <span>{runtimeStatusMessage}</span>
               </div>
 
+              <div className="runtime-status">
+                <b>
+                  {desktopHostStatus?.hostKind === "tauri"
+                    ? "Desktop host"
+                    : "Browser host"}
+                </b>
+                <span>
+                  {desktopHostStatus?.message ??
+                    "Check whether native host capabilities are available."}
+                </span>
+              </div>
+
+              {desktopHostStatus && (
+                <div className="host-flags" aria-label="Desktop host readiness">
+                  <span className={desktopHostStatus.storageReady ? "on" : ""}>
+                    Storage
+                  </span>
+                  <span className={desktopHostStatus.secretsReady ? "on" : ""}>
+                    Secrets
+                  </span>
+                  <span className={desktopHostStatus.runtimeReady ? "on" : ""}>
+                    Runtime
+                  </span>
+                </div>
+              )}
+
               <div className="field">
                 <label>Messenger connection</label>
                 <div
@@ -1297,6 +1345,13 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </button>
                 <button type="button" onClick={handleUseLocalStorage}>
                   Use local
+                </button>
+                <button
+                  type="button"
+                  disabled={desktopHostBusy}
+                  onClick={handleDesktopHostCheck}
+                >
+                  {desktopHostBusy ? "Checking host" : "Check host"}
                 </button>
               </div>
             </form>

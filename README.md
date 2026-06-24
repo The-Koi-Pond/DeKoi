@@ -27,6 +27,19 @@ pnpm dev
 pnpm build
 ```
 
+## Desktop Host
+
+DeKoi has an optional Tauri desktop host scaffold. Use it only for native host
+capabilities such as file-backed storage, secrets, filesystem import/export, and
+local runtime support.
+
+```sh
+pnpm tauri:dev
+```
+
+The host currently exposes a small `dekoi_host_status` command. Pond Care >
+Deep Water can check it and show which native capability groups are ready.
+
 ## Repository Rules
 
 - DeKoi-owned code starts here.

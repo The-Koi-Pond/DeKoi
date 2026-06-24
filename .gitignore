@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Rust/Tauri generated output
+/src-tauri/target/
+/src-tauri/gen/schemas/
+
 # Local scratch / dev screenshots
 /screenshot.png
 
