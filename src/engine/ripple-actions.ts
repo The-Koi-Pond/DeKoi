@@ -76,3 +76,13 @@ export function updateRippleRecord(
     updatedAt,
   };
 }
+
+export function deleteRippleStateForOwner(
+  states: RippleState[],
+  ownerKind: RippleStateOwnerKind,
+  ownerId: string,
+) {
+  return states.filter(
+    (state) => state.ownerKind !== ownerKind || state.ownerId !== ownerId,
+  );
+}

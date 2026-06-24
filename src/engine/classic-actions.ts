@@ -95,6 +95,63 @@ export function deleteClassicThread(records: ClassicThread[], id: string) {
   return records.filter((record) => record.id !== id);
 }
 
+export function removeClassicThreadCharacter(
+  thread: ClassicThread,
+  characterId: string,
+  updatedAt: string,
+): ClassicThread {
+  if (!thread.characterIds.includes(characterId)) return thread;
+
+  return {
+    ...thread,
+    characterIds: thread.characterIds.filter((id) => id !== characterId),
+    updatedAt,
+  };
+}
+
+export function clearClassicThreadPersona(
+  thread: ClassicThread,
+  personaId: string,
+  updatedAt: string,
+): ClassicThread {
+  if (thread.activePersonaId !== personaId) return thread;
+
+  return {
+    ...thread,
+    activePersonaId: null,
+    updatedAt,
+  };
+}
+
+export function removeClassicThreadLorebook(
+  thread: ClassicThread,
+  lorebookId: string,
+  updatedAt: string,
+): ClassicThread {
+  if (!thread.lorebookIds.includes(lorebookId)) return thread;
+
+  return {
+    ...thread,
+    lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
+    updatedAt,
+  };
+}
+
+export function replaceClassicThreadProviderConnection(
+  thread: ClassicThread,
+  deletedConnectionId: string,
+  fallbackConnectionId: string,
+  updatedAt: string,
+): ClassicThread {
+  if (thread.providerConnectionId !== deletedConnectionId) return thread;
+
+  return {
+    ...thread,
+    providerConnectionId: fallbackConnectionId,
+    updatedAt,
+  };
+}
+
 export function createGeneratedClassicEntry({
   companion,
   id,

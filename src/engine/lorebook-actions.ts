@@ -125,3 +125,7 @@ export function deleteLorebookEntry(
     updatedAt,
   };
 }
+
+export function deleteLorebookRecord(records: LorebookRecord[], id: string) {
+  return records.filter((record) => record.id !== id);
+}

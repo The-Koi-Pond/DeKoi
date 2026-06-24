@@ -64,6 +64,10 @@ export function renameMessengerThread(thread: MessengerThread, title: string, up
   }
 }
 
+export function deleteMessengerThread(records: MessengerThread[], id: string) {
+  return records.filter((record) => record.id !== id)
+}
+
 function cleanThreadIds(ids: string[]) {
   return [...new Set(ids.map((id) => id.trim()).filter(Boolean))]
 }
@@ -116,6 +120,51 @@ export function setMessengerThreadProviderConnection(
     providerConnectionId,
     updatedAt,
   }
+}
+
+export function removeMessengerThreadCharacter(
+  thread: MessengerThread,
+  characterId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (!thread.characterIds.includes(characterId)) return thread
+  return setMessengerThreadParticipants(
+    thread,
+    thread.characterIds.filter((id) => id !== characterId),
+    updatedAt,
+  )
+}
+
+export function clearMessengerThreadPersona(
+  thread: MessengerThread,
+  personaId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (thread.activePersonaId !== personaId) return thread
+  return setMessengerThreadPersona(thread, null, updatedAt)
+}
+
+export function removeMessengerThreadLorebook(
+  thread: MessengerThread,
+  lorebookId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (!thread.lorebookIds.includes(lorebookId)) return thread
+  return setMessengerThreadLorebooks(
+    thread,
+    thread.lorebookIds.filter((id) => id !== lorebookId),
+    updatedAt,
+  )
+}
+
+export function replaceMessengerThreadProviderConnection(
+  thread: MessengerThread,
+  deletedConnectionId: string,
+  fallbackConnectionId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (thread.providerConnectionId !== deletedConnectionId) return thread
+  return setMessengerThreadProviderConnection(thread, fallbackConnectionId, updatedAt)
 }
 
 export function createPersonaMessengerMessage({

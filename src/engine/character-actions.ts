@@ -79,3 +79,17 @@ export function duplicateCharacterRecord(
 export function deleteCharacterRecord(records: CharacterRecord[], id: string) {
   return records.filter((record) => record.id !== id);
 }
+
+export function removeCharacterLorebook(
+  record: CharacterRecord,
+  lorebookId: string,
+  updatedAt: string,
+): CharacterRecord {
+  if (!record.lorebookIds.includes(lorebookId)) return record;
+
+  return {
+    ...record,
+    lorebookIds: record.lorebookIds.filter((id) => id !== lorebookId),
+    updatedAt,
+  };
+}

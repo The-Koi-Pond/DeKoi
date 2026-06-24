@@ -35,20 +35,26 @@ import {
   createCharacterRecord,
   deleteCharacterRecord,
   duplicateCharacterRecord,
+  removeCharacterLorebook,
   updateCharacterRecord,
   type CharacterRecordInput,
 } from "./engine/character-actions";
 import type { ClassicThread } from "./engine/classic";
 import {
+  clearClassicThreadPersona,
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
+  removeClassicThreadCharacter,
+  removeClassicThreadLorebook,
+  replaceClassicThreadProviderConnection,
   renameClassicThread as renameClassicThreadRecord,
 } from "./engine/classic-actions";
 import {
   createLorebookEntryRecord,
   createLorebookRecord,
   deleteLorebookEntry,
+  deleteLorebookRecord,
   duplicateLorebookEntryRecord,
   updateLorebookEntryRecord,
   updateLorebookRecord,
@@ -58,8 +64,13 @@ import {
 } from "./engine/lorebook-actions";
 import type { MessengerThread } from "./engine/messenger";
 import {
+  clearMessengerThreadPersona,
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
+  deleteMessengerThread as deleteMessengerThreadRecord,
+  removeMessengerThreadCharacter,
+  removeMessengerThreadLorebook,
+  replaceMessengerThreadProviderConnection,
   renameMessengerThread as renameMessengerThreadRecord,
 } from "./engine/messenger-actions";
 import {
@@ -81,6 +92,7 @@ import type { RippleState, RippleStateOwnerKind } from "./engine/ripples";
 import {
   createRippleRecord,
   createRippleState,
+  deleteRippleStateForOwner,
   updateRippleRecord,
   type RippleInput,
 } from "./engine/ripple-actions";
@@ -366,30 +378,14 @@ export default function App() {
       deleteCharacterRecord(currentCharacters, characterId),
     );
     setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) => {
-        if (!thread.characterIds.includes(characterId)) return thread;
-
-        const characterIds = thread.characterIds.filter(
-          (id) => id !== characterId,
-        );
-        return {
-          ...thread,
-          characterIds,
-          mode: characterIds.length > 1 ? "group" : "direct",
-          updatedAt: now,
-        };
-      }),
+      currentThreads.map((thread) =>
+        removeMessengerThreadCharacter(thread, characterId, now),
+      ),
     );
     setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) => {
-        if (!thread.characterIds.includes(characterId)) return thread;
-
-        return {
-          ...thread,
-          characterIds: thread.characterIds.filter((id) => id !== characterId),
-          updatedAt: now,
-        };
-      }),
+      currentThreads.map((thread) =>
+        removeClassicThreadCharacter(thread, characterId, now),
+      ),
     );
   }, []);
 
@@ -444,16 +440,12 @@ export default function App() {
     );
     setMessengerThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.activePersonaId === personaId
-          ? { ...thread, activePersonaId: null, updatedAt: now }
-          : thread,
+        clearMessengerThreadPersona(thread, personaId, now),
       ),
     );
     setClassicThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.activePersonaId === personaId
-          ? { ...thread, activePersonaId: null, updatedAt: now }
-          : thread,
+        clearClassicThreadPersona(thread, personaId, now),
       ),
     );
   }, []);
@@ -576,29 +568,21 @@ export default function App() {
   const deleteLorebook = useCallback((lorebookId: string) => {
     const now = new Date().toISOString();
     setLorebooks((currentLorebooks) =>
-      currentLorebooks.filter((lorebook) => lorebook.id !== lorebookId),
+      deleteLorebookRecord(currentLorebooks, lorebookId),
     );
-    // Clear dangling lorebook references from threads, mirroring deleteCharacter.
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        removeCharacterLorebook(character, lorebookId, now),
+      ),
+    );
     setMessengerThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.lorebookIds.includes(lorebookId)
-          ? {
-              ...thread,
-              lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
-              updatedAt: now,
-            }
-          : thread,
+        removeMessengerThreadLorebook(thread, lorebookId, now),
       ),
     );
     setClassicThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.lorebookIds.includes(lorebookId)
-          ? {
-              ...thread,
-              lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
-              updatedAt: now,
-            }
-          : thread,
+        removeClassicThreadLorebook(thread, lorebookId, now),
       ),
     );
   }, []);
@@ -679,24 +663,22 @@ export default function App() {
       );
       setMessengerThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.providerConnectionId === connectionId
-            ? {
-                ...thread,
-                providerConnectionId: fallbackConnection.id,
-                updatedAt: now,
-              }
-            : thread,
+          replaceMessengerThreadProviderConnection(
+            thread,
+            connectionId,
+            fallbackConnection.id,
+            now,
+          ),
         ),
       );
       setClassicThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.providerConnectionId === connectionId
-            ? {
-                ...thread,
-                providerConnectionId: fallbackConnection.id,
-                updatedAt: now,
-              }
-            : thread,
+          replaceClassicThreadProviderConnection(
+            thread,
+            connectionId,
+            fallbackConnection.id,
+            now,
+          ),
         ),
       );
     },
@@ -782,10 +764,7 @@ export default function App() {
         deleteClassicThreadRecord(currentThreads, threadId),
       );
       setRippleStates((currentStates) =>
-        currentStates.filter(
-          (state) =>
-            state.ownerKind !== "classic-thread" || state.ownerId !== threadId,
-        ),
+        deleteRippleStateForOwner(currentStates, "classic-thread", threadId),
       );
 
       if (view.kind === "classic" && view.threadId === threadId) {
@@ -874,14 +853,10 @@ export default function App() {
   const deleteMessengerThread = useCallback(
     (threadId: string) => {
       setMessengerThreads((currentThreads) =>
-        currentThreads.filter((thread) => thread.id !== threadId),
+        deleteMessengerThreadRecord(currentThreads, threadId),
       );
       setRippleStates((currentStates) =>
-        currentStates.filter(
-          (state) =>
-            state.ownerKind !== "messenger-thread" ||
-            state.ownerId !== threadId,
-        ),
+        deleteRippleStateForOwner(currentStates, "messenger-thread", threadId),
       );
 
       if (view.kind === "messenger" && view.threadId === threadId) {

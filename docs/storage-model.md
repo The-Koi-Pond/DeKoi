@@ -114,7 +114,5 @@ names, UI labels, and provider requests should stay DeKoi-native.
 
 ## Next Storage Work
 
-1. Add narrow cleanup helpers for relationships that are currently cleaned by
-   higher-level UI flows.
-2. Move desktop storage into a dedicated capability module or crate once record
+1. Move desktop storage into a dedicated capability module or crate once record
    repair, cleanup, or profile import makes `src-tauri/src/storage.rs` too broad.
