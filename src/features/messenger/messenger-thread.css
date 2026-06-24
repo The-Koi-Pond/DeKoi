@@ -157,7 +157,8 @@
 }
 
 .messenger-composer {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: flex-end;
   padding: 14px;
@@ -167,7 +168,6 @@
 }
 
 .messenger-composer textarea {
-  flex: 1;
   min-height: 48px;
   max-height: 90px;
   resize: vertical;
@@ -230,6 +230,13 @@
 .composer-actions .reset-btn:hover {
   color: var(--foam);
   border-color: var(--reed);
+}
+
+.composer-hint {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+  color: var(--mist-dim);
+  font-size: 11px;
 }
 
 .messenger-thread-empty {

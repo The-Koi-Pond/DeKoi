@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { MessengerThread } from '../../engine/messenger'
 import type { SurfaceId } from '../../engine/surfaces'
+import type { AppSettings } from '../../runtime/app-settings'
 import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
 
 export type PondView =
@@ -15,6 +16,7 @@ export interface NavState {
   messengerStorageStatus: MessengerStorageStatus
   messengerStorageMessage: string
   remoteRuntimeUrl: string
+  appSettings: AppSettings
   careOpen: boolean
   careTab: number
 }
@@ -29,6 +31,8 @@ export interface NavContextType extends NavState {
   deleteMessengerThread: (threadId: string) => void
   openMessengerThread: (threadId: string) => void
   setRemoteRuntimeUrl: (url: string) => void
+  setSendOnEnterSurface: (surface: SurfaceId) => void
+  setConfirmRelease: (confirmRelease: boolean) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void
 }

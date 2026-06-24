@@ -3,6 +3,7 @@ import type { NavContextType } from "../../../shared/ui/nav-context";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
+import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
@@ -26,17 +27,15 @@ const CARE_TABS = [
 
 // DeKoi-native surface ids for the Send-on-Enter segmented control.
 const SEND_ON_ENTER_SURFACES = [
-  { value: "classic", label: "Classic" },
-  { value: "messenger", label: "Messenger" },
-  { value: "reserved", label: "Reserved" },
+  { value: CLASSIC, label: "Classic" },
+  { value: MESSENGER, label: "Messenger" },
+  { value: RESERVED, label: "Reserved" },
 ] as const;
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
 
-  // Local-only settings state. These are intentionally not persisted yet —
-  // they prove the controls work; a settings store comes later. The two with
-  // real product meaning (sendOnEnter, confirmRelease) are wired read/write.
+  // Local-only visual/demo settings. Product settings live in nav.appSettings.
   const [streamReplies, setStreamReplies] = useState(true);
   const [spotifyPlayer, setSpotifyPlayer] = useState(false);
   const [rippleSpeed, setRippleSpeed] = useState(50);
@@ -44,8 +43,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [wheelNavigate, setWheelNavigate] = useState(false);
   const [narrationDrift, setNarrationDrift] = useState(50);
   const [autoplayPause, setAutoplayPause] = useState(30);
-  const [sendOnEnter, setSendOnEnter] = useState<string>("messenger");
-  const [confirmRelease, setConfirmRelease] = useState(true);
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
   const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
@@ -251,8 +248,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Seg
                   options={SEND_ON_ENTER_SURFACES}
-                  value={sendOnEnter}
-                  onChange={setSendOnEnter}
+                  value={nav.appSettings.sendOnEnterSurface}
+                  onChange={nav.setSendOnEnterSurface}
                   ariaLabel="Send on Enter surface"
                 />
               </div>
@@ -263,8 +260,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   <i>confirm before deleting</i>
                 </div>
                 <Switch
-                  checked={confirmRelease}
-                  onChange={setConfirmRelease}
+                  checked={nav.appSettings.confirmRelease}
+                  onChange={nav.setConfirmRelease}
                   ariaLabel="Ask before releasing a koi"
                 />
               </div>

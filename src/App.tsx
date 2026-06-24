@@ -19,6 +19,11 @@ import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
+  loadAppSettings,
+  saveAppSettings,
+  type AppSettings,
+} from "./runtime/app-settings";
+import {
   loadInitialMessengerThreads,
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
@@ -50,6 +55,7 @@ export default function App() {
     useState("Loading Messenger storage.");
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
     useState(readRemoteRuntimeUrl);
+  const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
   const [storageReady, setStorageReady] = useState(false);
   const saveRequestId = useRef(0);
   const [careOpen, setCareOpen] = useState(false);
@@ -87,6 +93,10 @@ export default function App() {
       },
     );
   }, [messengerThreads, remoteRuntimeUrl, storageReady]);
+
+  useEffect(() => {
+    saveAppSettings(appSettings);
+  }, [appSettings]);
 
   // Esc key closes CareDrawer
   useEffect(() => {
@@ -174,6 +184,20 @@ export default function App() {
     setRemoteRuntimeUrlState(readRemoteRuntimeUrl());
   }, []);
 
+  const setSendOnEnterSurface = useCallback((surface: SurfaceId) => {
+    setAppSettings((currentSettings) => ({
+      ...currentSettings,
+      sendOnEnterSurface: surface,
+    }));
+  }, []);
+
+  const setConfirmRelease = useCallback((confirmRelease: boolean) => {
+    setAppSettings((currentSettings) => ({
+      ...currentSettings,
+      confirmRelease,
+    }));
+  }, []);
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -182,6 +206,7 @@ export default function App() {
     messengerStorageStatus,
     messengerStorageMessage,
     remoteRuntimeUrl,
+    appSettings,
     careOpen,
     careTab,
     setView: useCallback((v: PondView) => setView(v), []),
@@ -196,6 +221,8 @@ export default function App() {
     deleteMessengerThread,
     openMessengerThread,
     setRemoteRuntimeUrl,
+    setSendOnEnterSurface,
+    setConfirmRelease,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };

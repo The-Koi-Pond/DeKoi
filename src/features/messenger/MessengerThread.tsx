@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import { type MessengerMessage } from "../../engine/messenger";
+import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
   createPersonaMessengerMessage,
@@ -68,12 +75,11 @@ export function MessengerThread() {
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
 
-  function handleSend(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!messengerThread) return;
+  function sendDraft() {
+    if (!messengerThread) return false;
 
     const trimmedDraft = draft.trim();
-    if (!trimmedDraft) return;
+    if (!trimmedDraft) return false;
 
     const sentAt = new Date().toISOString();
     const userMessage = createPersonaMessengerMessage({
@@ -96,7 +102,7 @@ export function MessengerThread() {
     if (!placeholderCompanion) {
       nav.updateMessengerThread(threadWithUserMessage);
       setDraftState({ body: "", threadId: activeThreadId });
-      return;
+      return true;
     }
 
     const repliedAt = new Date().toISOString();
@@ -116,6 +122,29 @@ export function MessengerThread() {
       ),
     );
     setDraftState({ body: "", threadId: activeThreadId });
+    return true;
+  }
+
+  function handleSend(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    sendDraft();
+  }
+
+  function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.nativeEvent.isComposing ||
+      nav.appSettings.sendOnEnterSurface !== MESSENGER
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    sendDraft();
   }
 
   function handleResetThread() {
@@ -207,6 +236,7 @@ export function MessengerThread() {
       >
         <textarea
           aria-label="Draft Messenger message"
+          onKeyDown={handleDraftKeyDown}
           onChange={(event) =>
             setDraftState({
               body: event.target.value,
@@ -229,6 +259,11 @@ export function MessengerThread() {
             ↺
           </button>
         </div>
+        <p className="composer-hint">
+          {nav.appSettings.sendOnEnterSurface === MESSENGER
+            ? "Enter sends. Shift+Enter adds a new line."
+            : "Enter adds a new line. Use Send to release the message."}
+        </p>
       </form>
     </section>
   );

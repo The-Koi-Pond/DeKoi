@@ -40,7 +40,13 @@ export function Shoal() {
   }
 
   function handleDelete(threadId: string, title: string) {
-    if (!window.confirm(`Release "${title}" from the Shoal?`)) return;
+    if (
+      nav.appSettings.confirmRelease &&
+      !window.confirm(`Release "${title}" from the Shoal?`)
+    ) {
+      return;
+    }
+
     nav.deleteMessengerThread(threadId);
   }
 
