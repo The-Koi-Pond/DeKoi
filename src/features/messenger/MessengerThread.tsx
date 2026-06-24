@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
@@ -12,6 +13,9 @@ import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
   createPersonaMessengerMessage,
+  setMessengerThreadLorebooks,
+  setMessengerThreadParticipants,
+  setMessengerThreadPersona,
   setMessengerThreadProviderConnection,
 } from "../../engine/messenger-actions";
 import {
@@ -57,6 +61,12 @@ export function MessengerThread() {
     status: "idle" | "generating" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
+  const [settingsState, setSettingsState] = useState<{
+    threadId: string | null;
+    open: boolean;
+  }>({ threadId: null, open: false });
+  const settingsOpen =
+    settingsState.threadId === activeThreadId && settingsState.open;
   const messageListRef = useRef<HTMLDivElement>(null);
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) =>
@@ -73,6 +83,31 @@ export function MessengerThread() {
         messengerThread.lorebookIds.includes(lorebook.id),
       )
     : nav.lorebooks;
+  const selectedCharacterIds = new Set(messengerThread?.characterIds ?? []);
+  const selectedLorebookIds = new Set(messengerThread?.lorebookIds ?? []);
+  const missingCharacterIds = messengerThread
+    ? messengerThread.characterIds.filter(
+        (id) => !nav.characters.some((companion) => companion.id === id),
+      )
+    : [];
+  const missingLorebookIds = messengerThread
+    ? messengerThread.lorebookIds.filter(
+        (id) => !nav.lorebooks.some((lorebook) => lorebook.id === id),
+      )
+    : [];
+  const missingPersonaId =
+    messengerThread?.activePersonaId && !activePersona
+      ? messengerThread.activePersonaId
+      : "";
+  const configuredConnection = messengerThread?.providerConnectionId
+    ? nav.providerConnections.find(
+        (connection) => connection.id === messengerThread.providerConnectionId,
+      ) ?? null
+    : null;
+  const missingConnectionId =
+    messengerThread?.providerConnectionId && !configuredConnection
+      ? messengerThread.providerConnectionId
+      : "";
   const participantSummary = threadCompanions
     .map((companion) => companion.displayName)
     .join(" + ") || "no companions";
@@ -99,6 +134,24 @@ export function MessengerThread() {
       nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
+  const selectedConnectionId =
+    messengerThread?.providerConnectionId && configuredConnection
+      ? messengerThread.providerConnectionId
+      : threadConnection.id;
+  const missingReferenceLabels = [
+    missingCharacterIds.length > 0
+      ? `${missingCharacterIds.length} missing companion${
+          missingCharacterIds.length === 1 ? "" : "s"
+        }`
+      : "",
+    missingLorebookIds.length > 0
+      ? `${missingLorebookIds.length} missing lorebook${
+          missingLorebookIds.length === 1 ? "" : "s"
+        }`
+      : "",
+    missingPersonaId ? "missing persona" : "",
+    missingConnectionId ? "missing connection" : "",
+  ].filter(Boolean);
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
 
@@ -107,6 +160,80 @@ export function MessengerThread() {
     if (!messengerThread) return;
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
+
+  function handlePersonaChange(event: ChangeEvent<HTMLSelectElement>) {
+    if (!messengerThread) return;
+    nav.updateMessengerThread(
+      setMessengerThreadPersona(
+        messengerThread,
+        event.target.value || null,
+        new Date().toISOString(),
+      ),
+    );
+  }
+
+  function handleConnectionChange(event: ChangeEvent<HTMLSelectElement>) {
+    if (!messengerThread) return;
+    nav.updateMessengerThread(
+      setMessengerThreadProviderConnection(
+        messengerThread,
+        event.target.value || null,
+        new Date().toISOString(),
+      ),
+    );
+  }
+
+  function toggleCompanion(characterId: string) {
+    if (!messengerThread) return;
+
+    const nextIds = new Set(messengerThread.characterIds);
+    const selectedKnownCount = nav.characters.filter((companion) =>
+      nextIds.has(companion.id),
+    ).length;
+
+    if (nextIds.has(characterId)) {
+      if (selectedKnownCount <= 1) return;
+      nextIds.delete(characterId);
+    } else {
+      nextIds.add(characterId);
+    }
+
+    nav.updateMessengerThread(
+      setMessengerThreadParticipants(
+        messengerThread,
+        nav.characters
+          .map((companion) => companion.id)
+          .filter((id) => nextIds.has(id)),
+        new Date().toISOString(),
+      ),
+    );
+  }
+
+  function toggleLorebook(lorebookId: string) {
+    if (!messengerThread) return;
+
+    const nextIds = new Set(messengerThread.lorebookIds);
+    if (nextIds.has(lorebookId)) {
+      nextIds.delete(lorebookId);
+    } else {
+      nextIds.add(lorebookId);
+    }
+
+    nav.updateMessengerThread(
+      setMessengerThreadLorebooks(
+        messengerThread,
+        nav.lorebooks
+          .map((lorebook) => lorebook.id)
+          .filter((id) => nextIds.has(id)),
+        new Date().toISOString(),
+      ),
+    );
+  }
+
+  function openCatalogCare() {
+    nav.setCareTab(4);
+    nav.setCareOpen(true);
+  }
 
   async function sendDraft() {
     if (!messengerThread) return false;
@@ -124,7 +251,9 @@ export function MessengerThread() {
     }
 
     const sentAt = new Date().toISOString();
-    const threadForSend = messengerThread.providerConnectionId
+    const hasConfiguredConnection =
+      !!messengerThread.providerConnectionId && configuredConnection !== null;
+    const threadForSend = hasConfiguredConnection
       ? messengerThread
       : setMessengerThreadProviderConnection(
           messengerThread,
@@ -267,6 +396,20 @@ export function MessengerThread() {
           <p className="thread-meta">Group Messenger with {participantSummary}</p>
         </div>
         <div className="messenger-header-tools">
+          <button
+            type="button"
+            className={`thread-settings-toggle${settingsOpen ? " on" : ""}`}
+            aria-expanded={settingsOpen}
+            onClick={() =>
+              setSettingsState((current) => ({
+                threadId: activeThreadId,
+                open:
+                  current.threadId === activeThreadId ? !current.open : true,
+              }))
+            }
+          >
+            Settings
+          </button>
           <span className="storage-chip" title={nav.messengerStorageMessage}>
             {storageLabel}
           </span>
@@ -287,6 +430,140 @@ export function MessengerThread() {
           </div>
         </div>
       </header>
+
+      {settingsOpen && (
+        <section
+          className="thread-settings"
+          aria-label="Messenger thread settings"
+        >
+          <div className="thread-settings-grid">
+            <label className="thread-setting-field">
+              <span>Persona</span>
+              <select value={messengerThread.activePersonaId ?? ""} onChange={handlePersonaChange}>
+                <option value="">No persona</option>
+                {missingPersonaId && (
+                  <option value={missingPersonaId} disabled>
+                    Missing persona
+                  </option>
+                )}
+                {nav.personas.map((persona) => (
+                  <option value={persona.id} key={persona.id}>
+                    {persona.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="thread-setting-field">
+              <span>Connection</span>
+              <select
+                value={selectedConnectionId}
+                onChange={handleConnectionChange}
+                disabled={nav.providerConnections.length === 0}
+              >
+                {missingConnectionId && (
+                  <option value={missingConnectionId} disabled>
+                    Missing connection
+                  </option>
+                )}
+                {nav.providerConnections.map((connection) => (
+                  <option value={connection.id} key={connection.id}>
+                    {connection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="thread-choice-columns">
+            <section className="thread-choice-group" aria-labelledby="thread-companions">
+              <div className="thread-choice-head">
+                <b id="thread-companions">Companions</b>
+                <span>{threadCompanions.length} selected</span>
+              </div>
+              <div className="thread-choice-list">
+                {nav.characters.map((companion) => {
+                  const selected = selectedCharacterIds.has(companion.id);
+                  const selectedKnownCount = nav.characters.filter((character) =>
+                    selectedCharacterIds.has(character.id),
+                  ).length;
+
+                  return (
+                    <label
+                      className={`thread-check${selected ? " on" : ""}`}
+                      key={companion.id}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={selected && selectedKnownCount <= 1}
+                        onChange={() => toggleCompanion(companion.id)}
+                      />
+                      <span>
+                        <b>{companion.displayName}</b>
+                        <small>{companion.summary || "No summary."}</small>
+                      </span>
+                    </label>
+                  );
+                })}
+                {nav.characters.length === 0 && (
+                  <button
+                    type="button"
+                    className="thread-open-catalog"
+                    onClick={openCatalogCare}
+                  >
+                    Open Catalog
+                  </button>
+                )}
+              </div>
+            </section>
+
+            <section className="thread-choice-group" aria-labelledby="thread-lorebooks">
+              <div className="thread-choice-head">
+                <b id="thread-lorebooks">Lorebooks</b>
+                <span>{threadLorebooks.length} selected</span>
+              </div>
+              <div className="thread-choice-list">
+                {nav.lorebooks.map((lorebook) => {
+                  const selected = selectedLorebookIds.has(lorebook.id);
+
+                  return (
+                    <label
+                      className={`thread-check${selected ? " on" : ""}`}
+                      key={lorebook.id}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleLorebook(lorebook.id)}
+                      />
+                      <span>
+                        <b>{lorebook.title}</b>
+                        <small>{lorebook.summary || "No summary."}</small>
+                      </span>
+                    </label>
+                  );
+                })}
+                {nav.lorebooks.length === 0 && (
+                  <button
+                    type="button"
+                    className="thread-open-catalog"
+                    onClick={openCatalogCare}
+                  >
+                    Open Catalog
+                  </button>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {missingReferenceLabels.length > 0 && (
+            <p className="thread-settings-warning">
+              Missing references: {missingReferenceLabels.join(", ")}.
+            </p>
+          )}
+        </section>
+      )}
 
       <div
         className="message-list"

@@ -29,7 +29,7 @@ Recent architecture direction:
 Build in this order unless the user explicitly redirects:
 
 1. Harden native catalog records and CRUD.
-2. Messenger thread configuration using those records.
+2. Harden Messenger thread configuration using those records.
 3. Generation request assembly from real selected records.
 4. Remote runtime command contract and test fixture.
 5. Storage/export/import for DeKoi-native records.
@@ -83,6 +83,10 @@ Acceptance:
 
 Goal: a Messenger thread should choose its actual participants and context.
 
+Status: initial per-thread settings are implemented in the Messenger surface for
+persona, companions, lorebooks, and provider connection. Existing threads can
+change their connection without changing global defaults.
+
 Current files:
 
 - `src/features/messenger/MessengerThread.tsx`
@@ -92,9 +96,9 @@ Current files:
 
 Implementation:
 
-- Add a thread settings surface for active persona, companions, lorebooks,
-  preset placeholder, and provider connection.
-- Add `setMessengerThreadParticipants`, `setMessengerThreadPersona`,
+- Continue hardening the thread settings surface for active persona,
+  companions, lorebooks, preset placeholder, and provider connection.
+- Keep `setMessengerThreadParticipants`, `setMessengerThreadPersona`,
   `setMessengerThreadLorebooks`, and `setMessengerThreadProviderConnection`
   helpers in `src/engine/messenger-actions.ts`.
 - New thread creation should use the currently active app defaults, but existing

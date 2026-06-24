@@ -64,6 +64,48 @@ export function renameMessengerThread(thread: MessengerThread, title: string, up
   }
 }
 
+function cleanThreadIds(ids: string[]) {
+  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))]
+}
+
+export function setMessengerThreadParticipants(
+  thread: MessengerThread,
+  characterIds: string[],
+  updatedAt: string,
+): MessengerThread {
+  const cleanCharacterIds = cleanThreadIds(characterIds)
+  return {
+    ...thread,
+    characterIds: cleanCharacterIds,
+    mode: cleanCharacterIds.length > 1 ? 'group' : 'direct',
+    updatedAt,
+  }
+}
+
+export function setMessengerThreadPersona(
+  thread: MessengerThread,
+  activePersonaId: string | null,
+  updatedAt: string,
+): MessengerThread {
+  return {
+    ...thread,
+    activePersonaId: activePersonaId?.trim() || null,
+    updatedAt,
+  }
+}
+
+export function setMessengerThreadLorebooks(
+  thread: MessengerThread,
+  lorebookIds: string[],
+  updatedAt: string,
+): MessengerThread {
+  return {
+    ...thread,
+    lorebookIds: cleanThreadIds(lorebookIds),
+    updatedAt,
+  }
+}
+
 export function setMessengerThreadProviderConnection(
   thread: MessengerThread,
   providerConnectionId: string | null,
