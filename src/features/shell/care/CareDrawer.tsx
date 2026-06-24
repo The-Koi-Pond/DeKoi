@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { NavContextType } from "../../../shared/ui/nav-context";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
+import { NumberField } from "../../../shared/ui/primitives/NumberField";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Chip } from "../../../shared/ui/primitives/Chip";
 import { SettingSection } from "./SettingSection";
@@ -105,6 +106,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     motion,
     density,
     fontScale,
+    defaultTemperature,
+    defaultMaxTokens,
+    defaultTopP,
   } = nav.appSettings;
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
@@ -1194,11 +1198,80 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           ) : nav.careTab === 3 ? (
             <>
               <p className="care-intro">
-                Default generation parameters for new threads. Coming in the
-                next phase.
+                Default generation parameters for new threads.
               </p>
-              <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 12 }}>
-                Temperature, max tokens, and top-p controls will appear here.
+
+              <SettingSection
+                title="Generation"
+                description="Global defaults for model output"
+              >
+                <div className="slider-field">
+                  <div className="sl-top">
+                    <b>Temperature</b>
+                    <span>{(defaultTemperature / 100).toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={defaultTemperature}
+                    onChange={(v) =>
+                      nav.updateAppSettings({ defaultTemperature: v })
+                    }
+                    min={0}
+                    max={200}
+                    step={5}
+                    ariaLabel="Temperature"
+                  />
+                  <div className="track-ends">
+                    <span>Precise</span>
+                    <span>Creative</span>
+                  </div>
+                </div>
+
+                <div className="slider-field">
+                  <div className="sl-top">
+                    <b>Max tokens</b>
+                    <span>{defaultMaxTokens}</span>
+                  </div>
+                  <NumberField
+                    value={defaultMaxTokens}
+                    onChange={(v) =>
+                      nav.updateAppSettings({ defaultMaxTokens: v })
+                    }
+                    min={64}
+                    max={8192}
+                    step={64}
+                    ariaLabel="Max tokens"
+                  />
+                </div>
+
+                <div className="slider-field">
+                  <div className="sl-top">
+                    <b>Top-p</b>
+                    <span>{(defaultTopP / 100).toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={defaultTopP}
+                    onChange={(v) => nav.updateAppSettings({ defaultTopP: v })}
+                    min={0}
+                    max={100}
+                    step={1}
+                    ariaLabel="Top-p"
+                  />
+                  <div className="track-ends">
+                    <span>Focused</span>
+                    <span>Diverse</span>
+                  </div>
+                </div>
+              </SettingSection>
+
+              <p
+                style={{
+                  color: "var(--mist-dim)",
+                  fontSize: 11,
+                  lineHeight: 1.45,
+                }}
+              >
+                These are global defaults. You can override them per thread in
+                the messenger.
               </p>
             </>
           ) : nav.careTab === 4 ? (
