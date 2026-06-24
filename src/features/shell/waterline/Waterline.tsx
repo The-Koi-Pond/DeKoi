@@ -3,9 +3,7 @@ import { useNav } from "../../../shared/ui/nav-context";
 import {
   getProviderConnectionById,
   getProviderConnectionStatusLabel,
-  providerConnections,
 } from "../../../engine/provider-connection";
-import { sampleCompanions, sampleLorebook } from "../../../engine/sample-messenger";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -23,6 +21,7 @@ export function Waterline() {
   const normalizedQuery = query.trim().toLowerCase();
   const activeConnection = getProviderConnectionById(
     nav.appSettings.activeMessengerConnectionId,
+    nav.providerConnections,
   );
   const threadResults = useMemo(() => {
     if (!normalizedQuery) return [];
@@ -80,15 +79,20 @@ export function Waterline() {
     if (!activeCatalog) return null;
 
     if (activeCatalog === "lore") {
+      const activeLorebook = nav.lorebooks[0] ?? null;
+
       return (
         <div className="pebble-panel" role="region" aria-label="Lore library">
           <div className="pebble-panel-head">
-            <b>{sampleLorebook.title}</b>
-            <span>{sampleLorebook.entries.length} entries</span>
+            <b>{activeLorebook?.title ?? "Lore library"}</b>
+            <span>{activeLorebook?.entries.length ?? 0} entries</span>
           </div>
-          <p>{sampleLorebook.summary}</p>
+          <p>
+            {activeLorebook?.summary ||
+              "No lorebook entries are stocked yet."}
+          </p>
           <div className="panel-list">
-            {sampleLorebook.entries.map((entry) => (
+            {activeLorebook?.entries.map((entry) => (
               <article className="panel-row" key={entry.id}>
                 <b>{entry.title}</b>
                 <small>{entry.body}</small>
@@ -104,10 +108,10 @@ export function Waterline() {
         <div className="pebble-panel" role="region" aria-label="Companions">
           <div className="pebble-panel-head">
             <b>Companions</b>
-            <span>{sampleCompanions.length} stocked</span>
+            <span>{nav.characters.length} stocked</span>
           </div>
           <div className="panel-list">
-            {sampleCompanions.map((companion) => (
+            {nav.characters.map((companion) => (
               <article className="panel-row companion-row" key={companion.id}>
                 <span className="panel-avatar">
                   {getMessengerThreadInitials(companion.displayName)}
@@ -128,11 +132,11 @@ export function Waterline() {
         <div className="pebble-panel" role="region" aria-label="Connections">
           <div className="pebble-panel-head">
             <b>Connections</b>
-            <span>{providerConnections.length} stocked</span>
+            <span>{nav.providerConnections.length} stocked</span>
           </div>
           <p>New Messenger threads use {activeConnection.label}.</p>
           <div className="panel-list">
-            {providerConnections.map((connection) => {
+            {nav.providerConnections.map((connection) => {
               const selected =
                 connection.id === nav.appSettings.activeMessengerConnectionId;
 

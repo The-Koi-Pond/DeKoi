@@ -1,6 +1,4 @@
-export type ProviderConnectionId =
-  | "connection-local-mock"
-  | "connection-remote-runtime";
+export type ProviderConnectionId = string;
 
 export type ProviderConnectionKind = "mock" | "remote-runtime";
 export type ProviderConnectionStatus = "ready" | "needs-runtime";
@@ -13,12 +11,16 @@ export interface ProviderConnectionRecord {
   summary: string;
   status: ProviderConnectionStatus;
   modelLabel: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const LOCAL_MOCK_PROVIDER_CONNECTION_ID: ProviderConnectionId =
   "connection-local-mock";
 export const REMOTE_RUNTIME_PROVIDER_CONNECTION_ID: ProviderConnectionId =
   "connection-remote-runtime";
+
+const defaultTimestamp = "2026-06-23T09:30:00.000Z";
 
 export const providerConnections: ProviderConnectionRecord[] = [
   {
@@ -29,6 +31,8 @@ export const providerConnections: ProviderConnectionRecord[] = [
     summary: "Deterministic local replies for development and offline use.",
     status: "ready",
     modelLabel: "Mock adapter",
+    createdAt: defaultTimestamp,
+    updatedAt: defaultTimestamp,
   },
   {
     id: REMOTE_RUNTIME_PROVIDER_CONNECTION_ID,
@@ -38,22 +42,24 @@ export const providerConnections: ProviderConnectionRecord[] = [
     summary: "Sends Messenger generation requests to the configured runtime.",
     status: "needs-runtime",
     modelLabel: null,
+    createdAt: defaultTimestamp,
+    updatedAt: defaultTimestamp,
   },
 ];
 
 export function isProviderConnectionId(
   value: unknown,
 ): value is ProviderConnectionId {
-  return (
-    value === "connection-local-mock" || value === "connection-remote-runtime"
-  );
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 export function getProviderConnectionById(
   connectionId: string | null | undefined,
+  connections: ProviderConnectionRecord[] = providerConnections,
 ) {
   return (
-    providerConnections.find((connection) => connection.id === connectionId) ??
+    connections.find((connection) => connection.id === connectionId) ??
+    connections[0] ??
     providerConnections[0]
   );
 }

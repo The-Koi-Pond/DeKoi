@@ -15,11 +15,6 @@ import {
   setMessengerThreadProviderConnection,
 } from "../../engine/messenger-actions";
 import {
-  sampleCompanions,
-  sampleLorebook,
-  samplePersona,
-} from "../../engine/sample-messenger";
-import {
   generateMessengerThreadReply,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
@@ -64,13 +59,23 @@ export function MessengerThread() {
   }>({ threadId: null, status: "idle", message: "" });
   const messageListRef = useRef<HTMLDivElement>(null);
   const threadCompanions = messengerThread
-    ? sampleCompanions.filter((companion) =>
+    ? nav.characters.filter((companion) =>
         messengerThread.characterIds.includes(companion.id),
       )
-    : sampleCompanions;
+    : nav.characters;
+  const activePersona = messengerThread?.activePersonaId
+    ? nav.personas.find(
+        (persona) => persona.id === messengerThread.activePersonaId,
+      ) ?? null
+    : nav.personas[0] ?? null;
+  const threadLorebooks = messengerThread
+    ? nav.lorebooks.filter((lorebook) =>
+        messengerThread.lorebookIds.includes(lorebook.id),
+      )
+    : nav.lorebooks;
   const participantSummary = threadCompanions
     .map((companion) => companion.displayName)
-    .join(" + ");
+    .join(" + ") || "no companions";
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const isGenerating =
     generationState.threadId === activeThreadId &&
@@ -92,6 +97,7 @@ export function MessengerThread() {
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
       nav.appSettings.activeMessengerConnectionId,
+    nav.providerConnections,
   );
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
@@ -108,6 +114,14 @@ export function MessengerThread() {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
+    if (!activePersona) {
+      setGenerationState({
+        threadId: messengerThread.id,
+        status: "error",
+        message: "Add a persona before sending a Messenger message.",
+      });
+      return false;
+    }
 
     const sentAt = new Date().toISOString();
     const threadForSend = messengerThread.providerConnectionId
@@ -121,7 +135,7 @@ export function MessengerThread() {
       body: trimmedDraft,
       id: createLocalId("messenger-message"),
       now: sentAt,
-      persona: samplePersona,
+      persona: activePersona,
       thread: threadForSend,
     });
     const threadWithUserMessage = appendMessengerMessages(
@@ -141,10 +155,10 @@ export function MessengerThread() {
 
     try {
       const result = await generateMessengerThreadReply({
-        activePersona: samplePersona,
+        activePersona,
         companions: threadCompanions,
         createId: createLocalId,
-        lorebooks: [sampleLorebook],
+        lorebooks: threadLorebooks,
         mode: generationMode,
         now: sentAt,
         thread: threadWithUserMessage,
@@ -260,9 +274,11 @@ export function MessengerThread() {
             {threadConnection.label}
           </span>
           <div className="participant-stack" aria-label="Thread participants">
-            <span title={samplePersona.displayName}>
-              {getInitials(samplePersona.displayName)}
-            </span>
+            {activePersona && (
+              <span title={activePersona.displayName}>
+                {getInitials(activePersona.displayName)}
+              </span>
+            )}
             {threadCompanions.map((companion) => (
               <span title={companion.displayName} key={companion.id}>
                 {getInitials(companion.displayName)}

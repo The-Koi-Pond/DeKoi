@@ -1,6 +1,13 @@
 import { createContext, useContext } from 'react'
+import type { CharacterRecord } from '../../engine/character'
+import type { CharacterRecordInput } from '../../engine/character-actions'
+import type { LorebookEntryRecord, LorebookRecord } from '../../engine/lorebook'
+import type { LorebookEntryInput } from '../../engine/lorebook-actions'
 import type { MessengerThread } from '../../engine/messenger'
-import type { ProviderConnectionId } from '../../engine/provider-connection'
+import type { PersonaRecord } from '../../engine/persona'
+import type { PersonaRecordInput } from '../../engine/persona-actions'
+import type { ProviderConnectionId, ProviderConnectionRecord } from '../../engine/provider-connection'
+import type { ProviderConnectionInput } from '../../engine/provider-connection-actions'
 import type { SurfaceId } from '../../engine/surfaces'
 import type { AppSettings, ShoalSortMode } from '../../runtime/app-settings'
 import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
@@ -12,6 +19,10 @@ export type PondView =
 export interface NavState {
   view: PondView
   selectedSurface: SurfaceId
+  characters: CharacterRecord[]
+  personas: PersonaRecord[]
+  lorebooks: LorebookRecord[]
+  providerConnections: ProviderConnectionRecord[]
   messengerThreads: MessengerThread[]
   messengerStorageMode: MessengerStorageMode
   messengerStorageStatus: MessengerStorageStatus
@@ -25,6 +36,22 @@ export interface NavState {
 export interface NavContextType extends NavState {
   setView: (view: PondView) => void
   setSelectedSurface: (surface: SurfaceId) => void
+  createCharacter: (input: CharacterRecordInput) => CharacterRecord
+  updateCharacter: (characterId: string, input: CharacterRecordInput) => void
+  duplicateCharacter: (characterId: string) => CharacterRecord | null
+  deleteCharacter: (characterId: string) => void
+  createPersona: (input: PersonaRecordInput) => PersonaRecord
+  updatePersona: (personaId: string, input: PersonaRecordInput) => void
+  duplicatePersona: (personaId: string) => PersonaRecord | null
+  deletePersona: (personaId: string) => void
+  createLorebookEntry: (lorebookId: string, input: LorebookEntryInput) => LorebookEntryRecord | null
+  updateLorebookEntry: (lorebookId: string, entryId: string, input: LorebookEntryInput) => void
+  duplicateLorebookEntry: (lorebookId: string, entryId: string) => LorebookEntryRecord | null
+  deleteLorebookEntry: (lorebookId: string, entryId: string) => void
+  createProviderConnection: (input: ProviderConnectionInput) => ProviderConnectionRecord
+  updateProviderConnection: (connectionId: string, input: ProviderConnectionInput) => void
+  duplicateProviderConnection: (connectionId: string) => ProviderConnectionRecord | null
+  deleteProviderConnection: (connectionId: string) => void
   createMessengerThread: () => MessengerThread
   updateMessengerThread: (thread: MessengerThread) => void
   renameMessengerThread: (threadId: string, title: string) => void
