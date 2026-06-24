@@ -53,6 +53,14 @@ export function BubbleThread() {
     .join(" + ");
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const canSend = draft.trim().length > 0;
+  const storageLabel =
+    nav.bubbleStorageStatus === "saving"
+      ? "Saving..."
+      : nav.bubbleStorageMode === "remote"
+        ? "Remote runtime"
+        : nav.bubbleStorageStatus === "error"
+          ? "Local fallback"
+          : "Saved locally";
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -160,7 +168,9 @@ export function BubbleThread() {
           <p className="thread-meta">Group Bubble with {participantSummary}</p>
         </div>
         <div className="bubble-header-tools">
-          <span className="storage-chip">Saved locally</span>
+          <span className="storage-chip" title={nav.bubbleStorageMessage}>
+            {storageLabel}
+          </span>
           <div className="participant-stack" aria-label="Thread participants">
             <span title={samplePersona.displayName}>
               {getInitials(samplePersona.displayName)}

@@ -16,6 +16,10 @@ export function Shoal() {
     () => sortBubbleThreadsByUpdatedAt(nav.bubbleThreads),
     [nav.bubbleThreads],
   );
+  const storageLabel =
+    nav.bubbleStorageMode === "remote" && nav.bubbleStorageStatus !== "error"
+      ? "remote runtime"
+      : "saved locally";
   const filteredThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sortedThreads;
@@ -83,10 +87,12 @@ export function Shoal() {
       </div>
       <div className="shoal-meta">
         <span className="sort">↕ Freshest first</span>
-        <span className="mark-chip">⌗ {filteredThreads.length} shown</span>
+        <span className="mark-chip" title={nav.bubbleStorageMessage}>
+          ⌗ {filteredThreads.length} shown
+        </span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">Bubbles — saved locally</div>
+        <div className="group-label">Bubbles — {storageLabel}</div>
         {filteredThreads.map((thread) => (
           <KoiCard
             key={thread.id}

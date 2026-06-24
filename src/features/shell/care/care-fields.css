@@ -35,6 +35,23 @@ select.pondsel:focus {
   border-color: var(--jade);
 }
 
+input.pondinput {
+  width: 100%;
+  height: 38px;
+  background: var(--abyss);
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  color: var(--foam);
+  font-size: 13px;
+  padding: 0 12px;
+  font-family: var(--ui);
+  outline: none;
+}
+
+input.pondinput:focus {
+  border-color: var(--jade);
+}
+
 .toggle-row {
   display: flex;
   align-items: center;
@@ -183,4 +200,58 @@ select.pondsel:focus {
   border-color: var(--jade);
   color: var(--jade-hot);
   font-weight: 550;
+}
+
+.runtime-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.runtime-status {
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.runtime-status b {
+  display: block;
+  color: var(--foam);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.runtime-status span {
+  display: block;
+  color: var(--mist);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.runtime-status.error {
+  border-color: rgba(244, 122, 53, 0.42);
+}
+
+.runtime-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.runtime-actions button {
+  min-height: 34px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 999px;
+  background: var(--shallow);
+  color: var(--foam);
+  padding: 0 13px;
+  font-family: var(--ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.runtime-actions button:hover {
+  border-color: var(--jade);
+  color: var(--jade-hot);
 }

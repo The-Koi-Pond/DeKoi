@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { BubbleThread } from '../../engine/bubbles'
 import type { SurfaceId } from '../../engine/surfaces'
+import type { BubbleStorageMode, BubbleStorageStatus } from '../../runtime/bubble-storage'
 
 export type PondView =
   | { kind: 'pond' }
@@ -10,6 +11,10 @@ export interface NavState {
   view: PondView
   selectedSurface: SurfaceId
   bubbleThreads: BubbleThread[]
+  bubbleStorageMode: BubbleStorageMode
+  bubbleStorageStatus: BubbleStorageStatus
+  bubbleStorageMessage: string
+  remoteRuntimeUrl: string
   careOpen: boolean
   careTab: number
 }
@@ -23,6 +28,7 @@ export interface NavContextType extends NavState {
   clearBubbleThreadMessages: (threadId: string) => void
   deleteBubbleThread: (threadId: string) => void
   openBubbleThread: (threadId: string) => void
+  setRemoteRuntimeUrl: (url: string) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void
 }

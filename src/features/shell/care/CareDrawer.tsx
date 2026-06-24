@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import type { NavContextType } from "../../../shared/ui/nav-context";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
+import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
 
@@ -45,6 +46,27 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [autoplayPause, setAutoplayPause] = useState(30);
   const [sendOnEnter, setSendOnEnter] = useState<string>("bubbles");
   const [confirmRelease, setConfirmRelease] = useState(true);
+  const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
+  const [runtimeHealth, setRuntimeHealth] = useState("");
+  const runtimeStatusMessage = runtimeHealth || nav.bubbleStorageMessage;
+
+  function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRuntimeHealth("");
+    nav.setRemoteRuntimeUrl(runtimeUrl);
+  }
+
+  async function handleRuntimeTest() {
+    setRuntimeHealth("Checking remote runtime...");
+    const health = await checkRemoteRuntimeHealth(runtimeUrl);
+    setRuntimeHealth(health.message);
+  }
+
+  function handleUseLocalStorage() {
+    setRuntimeUrl("");
+    nav.setRemoteRuntimeUrl("");
+    setRuntimeHealth("Saved locally.");
+  }
 
   return (
     <>
@@ -247,6 +269,44 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 />
               </div>
             </>
+          ) : nav.careTab === 7 ? (
+            <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
+              <p className="care-intro">
+                Deep Water controls where saved Bubbles settle.
+              </p>
+
+              <div className="field">
+                <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
+                <input
+                  className="pondinput"
+                  id="remote-runtime-url"
+                  type="url"
+                  placeholder="http://127.0.0.1:7341"
+                  value={runtimeUrl}
+                  onChange={(event) => setRuntimeUrl(event.target.value)}
+                />
+                <div className="help">Leave empty to use this browser only.</div>
+              </div>
+
+              <div className={`runtime-status ${nav.bubbleStorageStatus}`}>
+                <b>
+                  {nav.bubbleStorageMode === "remote"
+                    ? "Remote runtime"
+                    : "Local storage"}
+                </b>
+                <span>{runtimeStatusMessage}</span>
+              </div>
+
+              <div className="runtime-actions">
+                <button type="submit">Apply</button>
+                <button type="button" onClick={handleRuntimeTest}>
+                  Test
+                </button>
+                <button type="button" onClick={handleUseLocalStorage}>
+                  Use local
+                </button>
+              </div>
+            </form>
           ) : (
             <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 20 }}>
               {CARE_TABS[nav.careTab].label} settings — coming soon.

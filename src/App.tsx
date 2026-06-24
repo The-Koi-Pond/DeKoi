@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   NavContext,
   type PondView,
@@ -19,9 +19,16 @@ import type { SurfaceId } from "./engine/surfaces";
 import { BUBBLES } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import {
-  loadBubbleThreads,
-  saveBubbleThreads,
-} from "./runtime/bubble-local-storage";
+  loadBubbleThreadsFromStorage,
+  loadInitialBubbleThreads,
+  saveBubbleThreadsToStorage,
+  type BubbleStorageMode,
+  type BubbleStorageStatus,
+} from "./runtime/bubble-storage";
+import {
+  readRemoteRuntimeUrl,
+  writeRemoteRuntimeUrl,
+} from "./runtime/remote-runtime";
 
 function createLocalId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -34,13 +41,52 @@ export default function App() {
   const [view, setView] = useState<PondView>({ kind: "pond" });
   const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(BUBBLES);
   const [bubbleThreads, setBubbleThreads] =
-    useState<BubbleThread[]>(loadBubbleThreads);
+    useState<BubbleThread[]>(loadInitialBubbleThreads);
+  const [bubbleStorageMode, setBubbleStorageMode] =
+    useState<BubbleStorageMode>("local");
+  const [bubbleStorageStatus, setBubbleStorageStatus] =
+    useState<BubbleStorageStatus>("loading");
+  const [bubbleStorageMessage, setBubbleStorageMessage] =
+    useState("Loading Bubble storage.");
+  const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
+    useState(readRemoteRuntimeUrl);
+  const [storageReady, setStorageReady] = useState(false);
+  const saveRequestId = useRef(0);
   const [careOpen, setCareOpen] = useState(false);
   const [careTab, setCareTab] = useState(0);
 
   useEffect(() => {
-    saveBubbleThreads(bubbleThreads);
-  }, [bubbleThreads]);
+    let cancelled = false;
+
+    loadBubbleThreadsFromStorage(remoteRuntimeUrl).then((snapshot) => {
+      if (cancelled) return;
+      setBubbleThreads(snapshot.threads);
+      setBubbleStorageMode(snapshot.mode);
+      setBubbleStorageStatus(snapshot.status);
+      setBubbleStorageMessage(snapshot.message);
+      setStorageReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteRuntimeUrl]);
+
+  useEffect(() => {
+    if (!storageReady) return;
+
+    const requestId = saveRequestId.current + 1;
+    saveRequestId.current = requestId;
+
+    saveBubbleThreadsToStorage(bubbleThreads, remoteRuntimeUrl).then(
+      (snapshot) => {
+        if (saveRequestId.current !== requestId) return;
+        setBubbleStorageMode(snapshot.mode);
+        setBubbleStorageStatus(snapshot.status);
+        setBubbleStorageMessage(snapshot.message);
+      },
+    );
+  }, [bubbleThreads, remoteRuntimeUrl, storageReady]);
 
   // Esc key closes CareDrawer
   useEffect(() => {
@@ -120,10 +166,22 @@ export default function App() {
     [view],
   );
 
+  const setRemoteRuntimeUrl = useCallback((url: string) => {
+    writeRemoteRuntimeUrl(url);
+    setStorageReady(false);
+    setBubbleStorageStatus("loading");
+    setBubbleStorageMessage("Loading Bubble storage.");
+    setRemoteRuntimeUrlState(readRemoteRuntimeUrl());
+  }, []);
+
   const nav: NavContextType = {
     view,
     selectedSurface,
     bubbleThreads,
+    bubbleStorageMode,
+    bubbleStorageStatus,
+    bubbleStorageMessage,
+    remoteRuntimeUrl,
     careOpen,
     careTab,
     setView: useCallback((v: PondView) => setView(v), []),
@@ -137,6 +195,7 @@ export default function App() {
     clearBubbleThreadMessages,
     deleteBubbleThread,
     openBubbleThread,
+    setRemoteRuntimeUrl,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };

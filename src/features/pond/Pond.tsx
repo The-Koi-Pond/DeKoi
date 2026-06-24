@@ -9,10 +9,14 @@ interface PondProps {
 
 export function Pond({ nav }: PondProps) {
   const inBubble = nav.view.kind === "bubble";
+  const storagePhrase =
+    nav.bubbleStorageMode === "remote" && nav.bubbleStorageStatus !== "error"
+      ? "through the remote runtime"
+      : "locally";
   // The banner copy is contextual: the "pick a koi" hint is for the Pond home;
   // once inside a Bubble it would be misleading, so show a calmer status line.
   const banner = inBubble
-    ? "Reading the water — your Bubble is saved locally as you swim."
+    ? `Reading the water — your Bubble is saved ${storagePhrase} as you swim.`
     : "Cast a line to read the water — pick a koi from the Shoal to see its tracker.";
 
   return (
