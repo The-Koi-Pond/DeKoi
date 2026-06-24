@@ -520,3 +520,35 @@ select.pondsel:disabled {
 .bundle-confirm {
   margin-bottom: 0;
 }
+
+/* ---- SettingSection ---- */
+.setting-section {
+  margin-bottom: 22px;
+}
+
+.setting-section-head {
+  margin-bottom: 12px;
+}
+
+.setting-section-head h3 {
+  color: var(--foam);
+  font-size: 14px;
+  font-weight: 650;
+  margin: 0 0 2px;
+}
+
+.setting-section-head span {
+  color: var(--mist-dim);
+  font-size: 11px;
+}
+
+.setting-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Slider within a setting section — use section-body gap instead of margin */
+.setting-section-body .slider-field {
+  margin-bottom: 0;
+}

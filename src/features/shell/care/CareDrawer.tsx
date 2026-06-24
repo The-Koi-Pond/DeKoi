@@ -3,6 +3,8 @@ import type { NavContextType } from "../../../shared/ui/nav-context";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { Seg } from "../../../shared/ui/primitives/Seg";
+import { Chip } from "../../../shared/ui/primitives/Chip";
+import { SettingSection } from "./SettingSection";
 import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
 import type {
   ProviderConnectionKind,
@@ -34,6 +36,7 @@ import {
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
+import "../../../shared/ui/primitives/Chip.css";
 
 interface CareDrawerProps {
   nav: NavContextType;
@@ -98,6 +101,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     wheelNavigate,
     narrationDrift,
     autoplayPause,
+    accent,
+    motion,
+    density,
+    fontScale,
   } = nav.appSettings;
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
@@ -998,12 +1005,76 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           ) : nav.careTab === 1 ? (
             <>
               <p className="care-intro">
-                Change how the pond looks. Coming in the next phase.
+                Change how the pond looks. Changes apply instantly.
               </p>
-              <p style={{ color: "var(--mist)", fontSize: 13, marginTop: 12 }}>
-                Accent, motion, density, and text size controls will appear
-                here.
-              </p>
+
+              <SettingSection title="Accent">
+                <Chip
+                  options={[
+                    { value: "koi", label: "Koi" },
+                    { value: "jade", label: "Jade" },
+                    { value: "amber", label: "Amber" },
+                  ]}
+                  value={accent}
+                  onChange={(v) =>
+                    nav.updateAppSettings({
+                      accent: v as "koi" | "jade" | "amber",
+                    })
+                  }
+                  ariaLabel="Accent color"
+                />
+              </SettingSection>
+
+              <SettingSection title="Motion">
+                <Seg
+                  options={[
+                    { value: "auto", label: "Auto" },
+                    { value: "reduced", label: "Reduced" },
+                    { value: "off", label: "Off" },
+                  ]}
+                  value={motion}
+                  onChange={(v) =>
+                    nav.updateAppSettings({
+                      motion: v as "auto" | "reduced" | "off",
+                    })
+                  }
+                  ariaLabel="Motion preference"
+                />
+                <div className="help" style={{ marginTop: 0 }}>
+                  Auto follows your system&rsquo;s reduced-motion setting.
+                </div>
+              </SettingSection>
+
+              <SettingSection title="Density">
+                <Seg
+                  options={[
+                    { value: "comfortable", label: "Comfortable" },
+                    { value: "compact", label: "Compact" },
+                  ]}
+                  value={density}
+                  onChange={(v) =>
+                    nav.updateAppSettings({
+                      density: v as "comfortable" | "compact",
+                    })
+                  }
+                  ariaLabel="Density preference"
+                />
+              </SettingSection>
+
+              <SettingSection title="Text size">
+                <Slider
+                  value={fontScale}
+                  onChange={(v) => nav.updateAppSettings({ fontScale: v })}
+                  ariaLabel="Text size"
+                  min={90}
+                  max={120}
+                  step={5}
+                />
+                <div className="track-ends">
+                  <span>Small</span>
+                  <span>Large</span>
+                </div>
+              </SettingSection>
             </>
           ) : nav.careTab === 2 ? (
             <>

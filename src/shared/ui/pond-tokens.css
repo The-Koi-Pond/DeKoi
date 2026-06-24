@@ -18,8 +18,8 @@
   --mist: #86a0a8;
   --mist-dim: #5c7882;
   --belly: #f5ece1;
-  --display: 'Shippori Mincho', 'Songti SC', serif;
-  --ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --display: "Shippori Mincho", "Songti SC", serif;
+  --ui: "Inter", system-ui, -apple-system, sans-serif;
   --r-lg: 22px;
   --r-md: 14px;
   --r-sm: 10px;
@@ -55,10 +55,26 @@ body {
   z-index: 0;
   opacity: 0.5;
   background:
-    radial-gradient(circle at 20% 30%, rgba(39, 179, 170, 0.06), transparent 9%),
-    radial-gradient(circle at 70% 20%, rgba(244, 122, 53, 0.05), transparent 8%),
-    radial-gradient(circle at 40% 80%, rgba(39, 179, 170, 0.05), transparent 10%),
-    radial-gradient(circle at 85% 65%, rgba(227, 165, 52, 0.04), transparent 9%);
+    radial-gradient(
+      circle at 20% 30%,
+      rgba(39, 179, 170, 0.06),
+      transparent 9%
+    ),
+    radial-gradient(
+      circle at 70% 20%,
+      rgba(244, 122, 53, 0.05),
+      transparent 8%
+    ),
+    radial-gradient(
+      circle at 40% 80%,
+      rgba(39, 179, 170, 0.05),
+      transparent 10%
+    ),
+    radial-gradient(
+      circle at 85% 65%,
+      rgba(227, 165, 52, 0.04),
+      transparent 9%
+    );
   animation: drift 26s ease-in-out infinite alternate;
 }
 
@@ -66,19 +82,39 @@ body {
   animation: drift-b 38s ease-in-out infinite alternate;
   opacity: 0.35;
   background:
-    radial-gradient(circle at 65% 35%, rgba(39, 179, 170, 0.04), transparent 12%),
-    radial-gradient(circle at 30% 70%, rgba(227, 165, 52, 0.04), transparent 10%),
-    radial-gradient(circle at 80% 50%, rgba(244, 122, 53, 0.03), transparent 11%);
+    radial-gradient(
+      circle at 65% 35%,
+      rgba(39, 179, 170, 0.04),
+      transparent 12%
+    ),
+    radial-gradient(
+      circle at 30% 70%,
+      rgba(227, 165, 52, 0.04),
+      transparent 10%
+    ),
+    radial-gradient(
+      circle at 80% 50%,
+      rgba(244, 122, 53, 0.03),
+      transparent 11%
+    );
 }
 
 @keyframes drift {
-  from { transform: translate(0, 0); }
-  to { transform: translate(-22px, 16px); }
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-22px, 16px);
+  }
 }
 
 @keyframes drift-b {
-  from { transform: translate(0, 0); }
-  to { transform: translate(18px, -12px); }
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(18px, -12px);
+  }
 }
 
 /* ---- app shell grid ---- */
@@ -90,13 +126,13 @@ body {
   grid-template-columns: 80px minmax(264px, 300px) 1fr;
   grid-template-rows: 54px 1fr 46px;
   grid-template-areas:
-    'waterline waterline waterline'
-    'bank      shoal     pond'
-    'tide      tide      tide';
+    "waterline waterline waterline"
+    "bank      shoal     pond"
+    "tide      tide      tide";
 }
 
 .app::after {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -120,9 +156,77 @@ body {
 
 /* ---- focus/active ---- */
 :focus-visible {
-  outline: 2px solid var(--jade);
+  outline: 2px solid var(--accent, var(--jade));
   outline-offset: 2px;
   border-radius: inherit;
+}
+
+/* ---- accent tokens (set by Appearance applier) ---- */
+
+/* Default accent is koi (orange) */
+:root {
+  --accent: var(--koi);
+  --accent-hot: var(--koi-hot);
+  --accent-deep: var(--koi-deep);
+}
+
+/* Accent-specific color mapping */
+:root[data-accent="jade"] {
+  --accent: var(--jade);
+  --accent-hot: var(--jade-hot);
+  --accent-deep: var(--jade);
+}
+
+:root[data-accent="amber"] {
+  --accent: var(--amber);
+  --accent-hot: var(--amber-hot);
+  --accent-deep: var(--amber);
+}
+
+/* ---- font scale (set by Appearance applier) ---- */
+:root {
+  --font-scale: 1;
+}
+
+body {
+  font-size: calc(var(--font-scale) * 14px);
+}
+
+/* ---- density (set by Appearance applier) ---- */
+/* Comfortable is the default — no override needed. */
+
+:root[data-density="compact"] .care-body {
+  padding: 14px 18px 24px;
+}
+
+:root[data-density="compact"] .toggle-row {
+  padding: 8px 0;
+}
+
+:root[data-density="compact"] .slider-field {
+  margin-bottom: 16px;
+}
+
+:root[data-density="compact"] .field {
+  margin-bottom: 14px;
+}
+
+:root[data-density="compact"] .setting-section-body {
+  gap: 12px;
+}
+
+/* ---- motion (set by Appearance applier) ---- */
+/* "off" and "reduced" both force reduced motion unconditionally. */
+/* "auto" follows system preference (handled by the @media below). */
+:root[data-motion="off"] .caustics,
+:root[data-motion="off"] .caustics.b {
+  animation: none !important;
+}
+
+:root[data-motion="off"] *,
+:root[data-motion="reduced"] * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* ---- reduced motion ---- */
@@ -135,11 +239,11 @@ body {
 
 /* ---- sumi-e koi watermark (koi-bg.svg) ---- */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url('/koi-bg.svg') no-repeat center / cover;
+  background: url("/koi-bg.svg") no-repeat center / cover;
   opacity: 0.04;
 }

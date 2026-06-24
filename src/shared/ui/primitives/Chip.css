@@ -1,0 +1,79 @@
+/* Single-select pill group — used by the Appearance accent picker */
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--shallow);
+  border: 1px solid var(--reed-soft);
+  color: var(--mist);
+  transition: 0.18s;
+  user-select: none;
+}
+
+.chip:hover {
+  color: var(--foam);
+  border-color: var(--reed);
+}
+
+.chip.on {
+  background: rgba(39, 179, 170, 0.12);
+  border-color: var(--jade);
+  color: var(--jade-hot);
+  font-weight: 550;
+}
+
+/* Accent-specific chip colors when selected */
+.chip.on[data-accent="koi"] {
+  background: rgba(244, 122, 53, 0.12);
+  border-color: var(--koi);
+  color: var(--koi-hot);
+}
+
+.chip.on[data-accent="jade"] {
+  background: rgba(39, 179, 170, 0.12);
+  border-color: var(--jade);
+  color: var(--jade-hot);
+}
+
+.chip.on[data-accent="amber"] {
+  background: rgba(227, 165, 52, 0.12);
+  border-color: var(--amber);
+  color: var(--amber-hot);
+}
+
+/* Accent colour dot inside each chip */
+.chip::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--chip-swatch, var(--mist));
+}
+
+.chip[data-accent="koi"]::before {
+  background: var(--koi);
+}
+
+.chip[data-accent="jade"]::before {
+  background: var(--jade);
+}
+
+.chip[data-accent="amber"]::before {
+  background: var(--amber);
+}
