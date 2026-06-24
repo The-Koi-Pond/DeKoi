@@ -253,8 +253,7 @@ Likely relationships:
 
 Not decided yet:
 
-- Whether Ripples are freeform notes, structured fields, event logs, or a mix.
-- Whether MessengerThread needs RippleState in the first local prototype.
+- Whether Ripples stay freeform notes or grow structured fields/event logs.
 - Whether Classic and Messenger share one state shape.
 
 ### RippleDock
@@ -275,9 +274,14 @@ Likely relationships:
 
 Not decided yet:
 
-- Exact panel layout.
-- Which Ripples are editable in the first version.
-- Whether this UI appears in Messenger, Classic, or only Classic at first.
+- Exact Classic panel layout.
+- Which future structured Ripple fields are editable.
+
+Current implementation:
+
+- Messenger has the first RippleDock slice.
+- Ripples are editable freeform records with `note`, `shift`, and `meter` tones.
+- RippleState is saved locally and included in DeKoi storage bundles.
 
 ## First Implementation Slice
 

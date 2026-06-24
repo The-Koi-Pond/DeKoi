@@ -9,6 +9,8 @@ import type { PersonaRecord } from '../../engine/persona'
 import type { PersonaRecordInput } from '../../engine/persona-actions'
 import type { ProviderConnectionId, ProviderConnectionRecord } from '../../engine/provider-connection'
 import type { ProviderConnectionInput } from '../../engine/provider-connection-actions'
+import type { RippleState, RippleStateOwnerKind } from '../../engine/ripples'
+import type { RippleInput } from '../../engine/ripple-actions'
 import type { SurfaceId } from '../../engine/surfaces'
 import type { AppSettings, ShoalSortMode } from '../../runtime/app-settings'
 import type { DeKoiStorageBundle } from '../../runtime/dekoi-storage-bundle'
@@ -29,6 +31,7 @@ export interface NavState {
   providerConnections: ProviderConnectionRecord[]
   classicThreads: ClassicThread[]
   messengerThreads: MessengerThread[]
+  rippleStates: RippleState[]
   messengerStorageMode: MessengerStorageMode
   messengerStorageStatus: MessengerStorageStatus
   messengerStorageMessage: string
@@ -69,6 +72,23 @@ export interface NavContextType extends NavState {
   clearMessengerThreadMessages: (threadId: string) => void
   deleteMessengerThread: (threadId: string) => void
   openMessengerThread: (threadId: string) => void
+  getRippleState: (ownerKind: RippleStateOwnerKind, ownerId: string) => RippleState | null
+  createRipple: (
+    ownerKind: RippleStateOwnerKind,
+    ownerId: string,
+    input: RippleInput,
+  ) => void
+  updateRipple: (
+    ownerKind: RippleStateOwnerKind,
+    ownerId: string,
+    rippleId: string,
+    input: RippleInput,
+  ) => void
+  deleteRipple: (
+    ownerKind: RippleStateOwnerKind,
+    ownerId: string,
+    rippleId: string,
+  ) => void
   createStorageBundle: () => DeKoiStorageBundle
   importStorageBundle: (bundle: DeKoiStorageBundle) => void
   importLegacyData: (data: DeKoiLegacyImportData) => void

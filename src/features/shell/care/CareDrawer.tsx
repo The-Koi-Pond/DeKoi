@@ -223,6 +223,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     messengerThreads: nav.messengerThreads,
     personas: nav.personas,
     providerConnections: nav.providerConnections,
+    rippleStates: nav.rippleStates,
   });
 
   function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
@@ -749,6 +750,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         </span>
         <span>
           <b>{counts.messengerMessages}</b> messages
+        </span>
+        <span>
+          <b>{counts.rippleStates}</b> Ripple states
+        </span>
+        <span>
+          <b>{counts.ripples}</b> Ripples
         </span>
       </div>
     );

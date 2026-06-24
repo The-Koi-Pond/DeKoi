@@ -4,6 +4,7 @@ import type { LorebookRecord } from "../engine/lorebook";
 import type { MessengerThread } from "../engine/messenger";
 import type { PersonaRecord } from "../engine/persona";
 import type { ProviderConnectionRecord } from "../engine/provider-connection";
+import type { RippleState } from "../engine/ripples";
 import type { AppSettings } from "./app-settings";
 import { normalizeAppSettings } from "./app-settings";
 import { isRecord, normalizeCatalogList } from "./catalog-storage";
@@ -13,6 +14,7 @@ import { normalizeLorebookRecord } from "./lorebook-storage";
 import { normalizeMessengerThreads } from "./messenger-storage";
 import { normalizePersonaRecord } from "./persona-storage";
 import { normalizeProviderConnectionRecord } from "./provider-connection-storage";
+import { normalizeRippleState } from "./ripple-state-storage";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
@@ -24,6 +26,7 @@ export interface DeKoiStorageBundleData {
   lorebooks: LorebookRecord[];
   providerConnections: ProviderConnectionRecord[];
   messengerThreads: MessengerThread[];
+  rippleStates: RippleState[];
   appSettings: AppSettings;
 }
 
@@ -44,6 +47,8 @@ export interface DeKoiStorageBundleCounts {
   providerConnections: number;
   messengerThreads: number;
   messengerMessages: number;
+  rippleStates: number;
+  ripples: number;
 }
 
 export interface DeKoiStorageBundlePreview {
@@ -106,6 +111,11 @@ export function getDeKoiStorageBundleCounts(
       (count, thread) => count + thread.messages.length,
       0,
     ),
+    rippleStates: data.rippleStates.length,
+    ripples: data.rippleStates.reduce(
+      (count, state) => count + state.ripples.length,
+      0,
+    ),
   };
 }
 
@@ -117,6 +127,7 @@ export function createDeKoiStorageBundle({
   messengerThreads,
   personas,
   providerConnections,
+  rippleStates,
 }: DeKoiStorageBundleData): DeKoiStorageBundle {
   return {
     kind: DEKOI_STORAGE_BUNDLE_KIND,
@@ -130,6 +141,7 @@ export function createDeKoiStorageBundle({
       lorebooks: cloneRecords(lorebooks),
       providerConnections: cloneRecords(providerConnections),
       messengerThreads: cloneRecords(messengerThreads),
+      rippleStates: cloneRecords(rippleStates),
     },
   };
 }
@@ -187,6 +199,12 @@ export function normalizeDeKoiStorageBundle(
       warnings,
     ),
     messengerThreads: normalizeMessengerThreads(value.data.messengerThreads),
+    rippleStates: normalizeList(
+      value.data.rippleStates,
+      "Ripple states",
+      normalizeRippleState,
+      warnings,
+    ),
   };
 
   if (!Array.isArray(value.data.messengerThreads)) {
@@ -195,6 +213,22 @@ export function normalizeDeKoiStorageBundle(
     warnings.push(
       `Messenger threads skipped ${value.data.messengerThreads.length - data.messengerThreads.length} invalid record(s).`,
     );
+  }
+
+  const classicThreadIds = new Set(data.classicThreads.map((thread) => thread.id));
+  const messengerThreadIds = new Set(
+    data.messengerThreads.map((thread) => thread.id),
+  );
+  const validRippleStates = data.rippleStates.filter((state) =>
+    state.ownerKind === "classic-thread"
+      ? classicThreadIds.has(state.ownerId)
+      : messengerThreadIds.has(state.ownerId),
+  );
+  if (validRippleStates.length !== data.rippleStates.length) {
+    warnings.push(
+      `Ripple states skipped ${data.rippleStates.length - validRippleStates.length} record(s) without an imported owner.`,
+    );
+    data.rippleStates = validRippleStates;
   }
 
   const bundle: DeKoiStorageBundle = {

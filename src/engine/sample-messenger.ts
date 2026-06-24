@@ -130,13 +130,15 @@ export const sampleMessengerThread: MessengerThread = {
 export const sampleRippleState: RippleState = {
   id: 'ripple-state-first-pond',
   schemaVersion: 1,
-  threadId: sampleMessengerThread.id,
+  ownerKind: 'messenger-thread',
+  ownerId: sampleMessengerThread.id,
   ripples: [
     {
       id: 'ripple-clean-room',
       tone: 'note',
       title: 'Clean-room boundary',
       body: 'Native records come before compatibility adapters.',
+      createdAt: sampleTimestamp,
       updatedAt: sampleTimestamp,
     },
     {
@@ -144,6 +146,7 @@ export const sampleRippleState: RippleState = {
       tone: 'shift',
       title: 'First slice',
       body: 'Messenger is the first implementation target.',
+      createdAt: sampleTimestamp,
       updatedAt: sampleTimestamp,
     },
   ],

@@ -47,6 +47,13 @@ import {
   updateProviderConnectionRecord,
   type ProviderConnectionInput,
 } from "./engine/provider-connection-actions";
+import type { RippleState, RippleStateOwnerKind } from "./engine/ripples";
+import {
+  createRippleRecord,
+  createRippleState,
+  updateRippleRecord,
+  type RippleInput,
+} from "./engine/ripple-actions";
 import type { SurfaceId } from "./engine/surfaces";
 import { CLASSIC, MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
@@ -90,6 +97,10 @@ import {
   saveProviderConnectionRecords,
 } from "./runtime/provider-connection-storage";
 import {
+  loadRippleStates,
+  saveRippleStates,
+} from "./runtime/ripple-state-storage";
+import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
 } from "./runtime/remote-runtime";
@@ -114,6 +125,8 @@ export default function App() {
     useState<ClassicThread[]>(loadClassicThreads);
   const [messengerThreads, setMessengerThreads] =
     useState<MessengerThread[]>(loadInitialMessengerThreads);
+  const [rippleStates, setRippleStates] =
+    useState<RippleState[]>(loadRippleStates);
   const [messengerStorageMode, setMessengerStorageMode] =
     useState<MessengerStorageMode>("local");
   const [messengerStorageStatus, setMessengerStorageStatus] =
@@ -184,6 +197,10 @@ export default function App() {
   useEffect(() => {
     saveClassicThreads(classicThreads);
   }, [classicThreads]);
+
+  useEffect(() => {
+    saveRippleStates(rippleStates);
+  }, [rippleStates]);
 
   // Esc key closes CareDrawer
   useEffect(() => {
@@ -588,6 +605,12 @@ export default function App() {
       setClassicThreads((currentThreads) =>
         deleteClassicThreadRecord(currentThreads, threadId),
       );
+      setRippleStates((currentStates) =>
+        currentStates.filter(
+          (state) =>
+            state.ownerKind !== "classic-thread" || state.ownerId !== threadId,
+        ),
+      );
 
       if (view.kind === "classic" && view.threadId === threadId) {
         setView({ kind: "pond" });
@@ -671,12 +694,121 @@ export default function App() {
       setMessengerThreads((currentThreads) =>
         currentThreads.filter((thread) => thread.id !== threadId),
       );
+      setRippleStates((currentStates) =>
+        currentStates.filter(
+          (state) =>
+            state.ownerKind !== "messenger-thread" || state.ownerId !== threadId,
+        ),
+      );
 
       if (view.kind === "messenger" && view.threadId === threadId) {
         setView({ kind: "pond" });
       }
     },
     [view],
+  );
+
+  const getRippleState = useCallback(
+    (ownerKind: RippleStateOwnerKind, ownerId: string) =>
+      rippleStates.find(
+        (state) => state.ownerKind === ownerKind && state.ownerId === ownerId,
+      ) ?? null,
+    [rippleStates],
+  );
+
+  const createRipple = useCallback(
+    (
+      ownerKind: RippleStateOwnerKind,
+      ownerId: string,
+      input: RippleInput,
+    ) => {
+      const now = new Date().toISOString();
+      const ripple = createRippleRecord({
+        id: createLocalId("ripple"),
+        input,
+        now,
+      });
+
+      setRippleStates((currentStates) => {
+        const existingState = currentStates.find(
+          (state) => state.ownerKind === ownerKind && state.ownerId === ownerId,
+        );
+
+        if (!existingState) {
+          return [
+            createRippleState({
+              id: createLocalId("ripple-state"),
+              now,
+              ownerId,
+              ownerKind,
+              ripples: [ripple],
+            }),
+            ...currentStates,
+          ];
+        }
+
+        return currentStates.map((state) =>
+          state.id === existingState.id
+            ? {
+                ...state,
+                ripples: [ripple, ...state.ripples],
+                updatedAt: now,
+              }
+            : state,
+        );
+      });
+
+      return ripple;
+    },
+    [],
+  );
+
+  const updateRipple = useCallback(
+    (
+      ownerKind: RippleStateOwnerKind,
+      ownerId: string,
+      rippleId: string,
+      input: RippleInput,
+    ) => {
+      const now = new Date().toISOString();
+      setRippleStates((currentStates) =>
+        currentStates.map((state) =>
+          state.ownerKind === ownerKind && state.ownerId === ownerId
+            ? {
+                ...state,
+                ripples: state.ripples.map((ripple) =>
+                  ripple.id === rippleId
+                    ? updateRippleRecord(ripple, input, now)
+                    : ripple,
+                ),
+                updatedAt: now,
+              }
+            : state,
+        ),
+      );
+    },
+    [],
+  );
+
+  const deleteRipple = useCallback(
+    (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string) => {
+      const now = new Date().toISOString();
+      setRippleStates((currentStates) =>
+        currentStates.flatMap((state) => {
+          if (state.ownerKind !== ownerKind || state.ownerId !== ownerId) {
+            return [state];
+          }
+
+          const ripples = state.ripples.filter(
+            (ripple) => ripple.id !== rippleId,
+          );
+          return ripples.length > 0
+            ? [{ ...state, ripples, updatedAt: now }]
+            : [];
+        }),
+      );
+    },
+    [],
   );
 
   const createStorageBundle = useCallback(
@@ -689,6 +821,7 @@ export default function App() {
         messengerThreads,
         personas,
         providerConnections,
+        rippleStates,
       }),
     [
       appSettings,
@@ -698,6 +831,7 @@ export default function App() {
       messengerThreads,
       personas,
       providerConnections,
+      rippleStates,
     ],
   );
 
@@ -720,6 +854,7 @@ export default function App() {
       setProviderConnections(importedConnections);
       setClassicThreads(bundle.data.classicThreads);
       setMessengerThreads(bundle.data.messengerThreads);
+      setRippleStates(bundle.data.rippleStates);
       setAppSettings(importedSettings);
       setMessengerStorageStatus("saving");
       setMessengerStorageMessage("Imported DeKoi bundle. Saving...");
@@ -816,6 +951,7 @@ export default function App() {
     messengerStorageMode,
     messengerStorageStatus,
     messengerStorageMessage,
+    rippleStates,
     remoteRuntimeUrl,
     appSettings,
     careOpen,
@@ -853,6 +989,10 @@ export default function App() {
     clearMessengerThreadMessages,
     deleteMessengerThread,
     openMessengerThread,
+    getRippleState,
+    createRipple,
+    updateRipple,
+    deleteRipple,
     createStorageBundle,
     importStorageBundle,
     importLegacyData,
