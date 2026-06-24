@@ -41,38 +41,117 @@ function draftToInput(draft: DraftState): PersonaRecordInput {
   };
 }
 
-export function PersonasSurface() {
-  const nav = useNav();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
-  const [showEditor, setShowEditor] = useState(false);
+interface PersonaEditorProps {
+  editingId: string | null;
+  initialDraft: DraftState;
+  onCancel: () => void;
+  onSave: (input: PersonaRecordInput) => void;
+}
 
-  function openNew() {
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
-    setShowEditor(true);
-  }
-
-  function openEdit(personaId: string) {
-    const record = nav.personas.find((p) => p.id === personaId);
-    if (!record) return;
-    setDraft(draftFromPersona(record));
-    setEditingId(personaId);
-    setShowEditor(true);
-  }
+function PersonaEditor({
+  editingId,
+  initialDraft,
+  onCancel,
+  onSave,
+}: PersonaEditorProps) {
+  const [draft, setDraft] = useState<DraftState>(initialDraft);
 
   function handleSave() {
     const input = draftToInput(draft);
     if (!input.displayName) return;
+    onSave(input);
+  }
 
+  return (
+    <div className="catalog-editor">
+      <h3 className="catalog-editor-heading">
+        {editingId ? "Edit Persona" : "New Persona"}
+      </h3>
+      <div className="catalog-editor-field">
+        <label htmlFor="pers-name">Display Name</label>
+        <input
+          id="pers-name"
+          className="pondinput"
+          type="text"
+          value={draft.displayName}
+          onChange={(e) =>
+            setDraft({ ...draft, displayName: e.target.value })
+          }
+          placeholder="e.g. Ripples"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="pers-summary">Summary</label>
+        <input
+          id="pers-summary"
+          className="pondinput"
+          type="text"
+          value={draft.summary}
+          onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+          placeholder="Brief description"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="pers-desc">Description</label>
+        <textarea
+          id="pers-desc"
+          className="pondinput pondtextarea"
+          rows={4}
+          value={draft.description}
+          onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+          placeholder="Full description…"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="pers-avatar">Avatar URL</label>
+        <input
+          id="pers-avatar"
+          className="pondinput"
+          type="text"
+          value={draft.avatarUrl}
+          onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
+          placeholder="Optional URL"
+        />
+      </div>
+      <div className="catalog-editor-actions">
+        <button type="button" className="catalog-save-btn" onClick={handleSave}>
+          {editingId ? "Save Changes" : "Create"}
+        </button>
+        <button type="button" className="catalog-cancel-btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function PersonasSurface() {
+  const nav = useNav();
+  const activePersonaId =
+    nav.view.kind === "personas" ? nav.view.personaId : null;
+  const activePersona = activePersonaId
+    ? nav.personas.find((persona) => persona.id === activePersonaId) ?? null
+    : null;
+  const isCreating = nav.view.kind === "personas" && nav.view.mode === "new";
+  const editingId = activePersona?.id ?? null;
+  const showEditor = isCreating || activePersona !== null;
+  const initialDraft = activePersona ? draftFromPersona(activePersona) : EMPTY_DRAFT;
+
+  function openNew() {
+    nav.setView({ kind: "personas", mode: "new" });
+  }
+
+  function openEdit(personaId: string) {
+    nav.setView({ kind: "personas", personaId });
+  }
+
+  function handleSave(input: PersonaRecordInput) {
     if (editingId) {
       nav.updatePersona(editingId, input);
     } else {
       nav.createPersona(input);
     }
-    setShowEditor(false);
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
+    nav.setView({ kind: "personas" });
   }
 
   function handleDuplicate(personaId: string) {
@@ -82,16 +161,12 @@ export function PersonasSurface() {
   function handleDelete(personaId: string) {
     nav.deletePersona(personaId);
     if (editingId === personaId) {
-      setShowEditor(false);
-      setDraft(EMPTY_DRAFT);
-      setEditingId(null);
+      nav.setView({ kind: "personas" });
     }
   }
 
   function handleCancel() {
-    setShowEditor(false);
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
+    nav.setView({ kind: "personas" });
   }
 
   return (
@@ -125,8 +200,18 @@ export function PersonasSurface() {
 
         <div className="catalog-list">
           {nav.personas.map((persona) => (
-            <article className="catalog-card" key={persona.id}>
-              <div className="catalog-card-body">
+            <article
+              className={`catalog-card${
+                editingId === persona.id ? " selected" : ""
+              }`}
+              key={persona.id}
+            >
+              <button
+                type="button"
+                className="catalog-card-body catalog-card-open"
+                aria-label={`Edit ${persona.displayName}`}
+                onClick={() => openEdit(persona.id)}
+              >
                 <div className="catalog-avatar">
                   {persona.displayName.charAt(0).toUpperCase()}
                 </div>
@@ -136,7 +221,7 @@ export function PersonasSurface() {
                     {persona.summary}
                   </span>
                 </div>
-              </div>
+              </button>
               <div className="catalog-card-actions">
                 <button
                   type="button"
@@ -164,79 +249,13 @@ export function PersonasSurface() {
         </div>
 
         {showEditor && (
-          <div className="catalog-editor">
-            <h3 className="catalog-editor-heading">
-              {editingId ? "Edit Persona" : "New Persona"}
-            </h3>
-            <div className="catalog-editor-field">
-              <label htmlFor="pers-name">Display Name</label>
-              <input
-                id="pers-name"
-                className="pondinput"
-                type="text"
-                value={draft.displayName}
-                onChange={(e) =>
-                  setDraft({ ...draft, displayName: e.target.value })
-                }
-                placeholder="e.g. Ripples"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="pers-summary">Summary</label>
-              <input
-                id="pers-summary"
-                className="pondinput"
-                type="text"
-                value={draft.summary}
-                onChange={(e) =>
-                  setDraft({ ...draft, summary: e.target.value })
-                }
-                placeholder="Brief description"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="pers-desc">Description</label>
-              <textarea
-                id="pers-desc"
-                className="pondinput pondtextarea"
-                rows={4}
-                value={draft.description}
-                onChange={(e) =>
-                  setDraft({ ...draft, description: e.target.value })
-                }
-                placeholder="Full description…"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="pers-avatar">Avatar URL</label>
-              <input
-                id="pers-avatar"
-                className="pondinput"
-                type="text"
-                value={draft.avatarUrl}
-                onChange={(e) =>
-                  setDraft({ ...draft, avatarUrl: e.target.value })
-                }
-                placeholder="Optional URL"
-              />
-            </div>
-            <div className="catalog-editor-actions">
-              <button
-                type="button"
-                className="catalog-save-btn"
-                onClick={handleSave}
-              >
-                {editingId ? "Save Changes" : "Create"}
-              </button>
-              <button
-                type="button"
-                className="catalog-cancel-btn"
-                onClick={handleCancel}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <PersonaEditor
+            key={editingId ?? "new-persona"}
+            editingId={editingId}
+            initialDraft={initialDraft}
+            onCancel={handleCancel}
+            onSave={handleSave}
+          />
         )}
       </div>
     </main>

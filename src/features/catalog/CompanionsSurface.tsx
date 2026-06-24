@@ -46,38 +46,132 @@ function draftToInput(draft: DraftState): CharacterRecordInput {
   };
 }
 
-export function CompanionsSurface() {
-  const nav = useNav();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
-  const [showEditor, setShowEditor] = useState(false);
+interface CompanionEditorProps {
+  editingId: string | null;
+  initialDraft: DraftState;
+  onCancel: () => void;
+  onSave: (input: CharacterRecordInput) => void;
+}
 
-  function openNew() {
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
-    setShowEditor(true);
-  }
-
-  function openEdit(characterId: string) {
-    const record = nav.characters.find((c) => c.id === characterId);
-    if (!record) return;
-    setDraft(draftFromCharacter(record));
-    setEditingId(characterId);
-    setShowEditor(true);
-  }
+function CompanionEditor({
+  editingId,
+  initialDraft,
+  onCancel,
+  onSave,
+}: CompanionEditorProps) {
+  const [draft, setDraft] = useState<DraftState>(initialDraft);
 
   function handleSave() {
     const input = draftToInput(draft);
     if (!input.displayName) return;
+    onSave(input);
+  }
 
+  return (
+    <div className="catalog-editor">
+      <h3 className="catalog-editor-heading">
+        {editingId ? "Edit Companion" : "New Companion"}
+      </h3>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-name">Display Name</label>
+        <input
+          id="comp-name"
+          className="pondinput"
+          type="text"
+          value={draft.displayName}
+          onChange={(e) =>
+            setDraft({ ...draft, displayName: e.target.value })
+          }
+          placeholder="e.g. Hikari"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-short">Short Name</label>
+        <input
+          id="comp-short"
+          className="pondinput"
+          type="text"
+          value={draft.shortName}
+          onChange={(e) => setDraft({ ...draft, shortName: e.target.value })}
+          placeholder="Optional nickname"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-summary">Summary</label>
+        <input
+          id="comp-summary"
+          className="pondinput"
+          type="text"
+          value={draft.summary}
+          onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+          placeholder="Brief description"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-desc">Description</label>
+        <textarea
+          id="comp-desc"
+          className="pondinput pondtextarea"
+          rows={4}
+          value={draft.description}
+          onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+          placeholder="Full description…"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-avatar">Avatar URL</label>
+        <input
+          id="comp-avatar"
+          className="pondinput"
+          type="text"
+          value={draft.avatarUrl}
+          onChange={(e) => setDraft({ ...draft, avatarUrl: e.target.value })}
+          placeholder="Optional URL"
+        />
+      </div>
+      <div className="catalog-editor-actions">
+        <button type="button" className="catalog-save-btn" onClick={handleSave}>
+          {editingId ? "Save Changes" : "Create"}
+        </button>
+        <button type="button" className="catalog-cancel-btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function CompanionsSurface() {
+  const nav = useNav();
+  const activeCharacterId =
+    nav.view.kind === "companions" ? nav.view.characterId : null;
+  const activeCharacter = activeCharacterId
+    ? nav.characters.find((character) => character.id === activeCharacterId) ??
+      null
+    : null;
+  const isCreating =
+    nav.view.kind === "companions" && nav.view.mode === "new";
+  const editingId = activeCharacter?.id ?? null;
+  const showEditor = isCreating || activeCharacter !== null;
+  const initialDraft = activeCharacter
+    ? draftFromCharacter(activeCharacter)
+    : EMPTY_DRAFT;
+
+  function openNew() {
+    nav.setView({ kind: "companions", mode: "new" });
+  }
+
+  function openEdit(characterId: string) {
+    nav.setView({ kind: "companions", characterId });
+  }
+
+  function handleSave(input: CharacterRecordInput) {
     if (editingId) {
       nav.updateCharacter(editingId, input);
     } else {
       nav.createCharacter(input);
     }
-    setShowEditor(false);
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
+    nav.setView({ kind: "companions" });
   }
 
   function handleDuplicate(characterId: string) {
@@ -87,16 +181,12 @@ export function CompanionsSurface() {
   function handleDelete(characterId: string) {
     nav.deleteCharacter(characterId);
     if (editingId === characterId) {
-      setShowEditor(false);
-      setDraft(EMPTY_DRAFT);
-      setEditingId(null);
+      nav.setView({ kind: "companions" });
     }
   }
 
   function handleCancel() {
-    setShowEditor(false);
-    setDraft(EMPTY_DRAFT);
-    setEditingId(null);
+    nav.setView({ kind: "companions" });
   }
 
   return (
@@ -132,8 +222,18 @@ export function CompanionsSurface() {
 
         <div className="catalog-list">
           {nav.characters.map((character) => (
-            <article className="catalog-card" key={character.id}>
-              <div className="catalog-card-body">
+            <article
+              className={`catalog-card${
+                editingId === character.id ? " selected" : ""
+              }`}
+              key={character.id}
+            >
+              <button
+                type="button"
+                className="catalog-card-body catalog-card-open"
+                aria-label={`Edit ${character.displayName}`}
+                onClick={() => openEdit(character.id)}
+              >
                 <div className="catalog-avatar">
                   {character.displayName.charAt(0).toUpperCase()}
                 </div>
@@ -146,7 +246,7 @@ export function CompanionsSurface() {
                     {character.summary}
                   </span>
                 </div>
-              </div>
+              </button>
               <div className="catalog-card-actions">
                 <button
                   type="button"
@@ -174,92 +274,13 @@ export function CompanionsSurface() {
         </div>
 
         {showEditor && (
-          <div className="catalog-editor">
-            <h3 className="catalog-editor-heading">
-              {editingId ? "Edit Companion" : "New Companion"}
-            </h3>
-            <div className="catalog-editor-field">
-              <label htmlFor="comp-name">Display Name</label>
-              <input
-                id="comp-name"
-                className="pondinput"
-                type="text"
-                value={draft.displayName}
-                onChange={(e) =>
-                  setDraft({ ...draft, displayName: e.target.value })
-                }
-                placeholder="e.g. Hikari"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="comp-short">Short Name</label>
-              <input
-                id="comp-short"
-                className="pondinput"
-                type="text"
-                value={draft.shortName}
-                onChange={(e) =>
-                  setDraft({ ...draft, shortName: e.target.value })
-                }
-                placeholder="Optional nickname"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="comp-summary">Summary</label>
-              <input
-                id="comp-summary"
-                className="pondinput"
-                type="text"
-                value={draft.summary}
-                onChange={(e) =>
-                  setDraft({ ...draft, summary: e.target.value })
-                }
-                placeholder="Brief description"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="comp-desc">Description</label>
-              <textarea
-                id="comp-desc"
-                className="pondinput pondtextarea"
-                rows={4}
-                value={draft.description}
-                onChange={(e) =>
-                  setDraft({ ...draft, description: e.target.value })
-                }
-                placeholder="Full description…"
-              />
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="comp-avatar">Avatar URL</label>
-              <input
-                id="comp-avatar"
-                className="pondinput"
-                type="text"
-                value={draft.avatarUrl}
-                onChange={(e) =>
-                  setDraft({ ...draft, avatarUrl: e.target.value })
-                }
-                placeholder="Optional URL"
-              />
-            </div>
-            <div className="catalog-editor-actions">
-              <button
-                type="button"
-                className="catalog-save-btn"
-                onClick={handleSave}
-              >
-                {editingId ? "Save Changes" : "Create"}
-              </button>
-              <button
-                type="button"
-                className="catalog-cancel-btn"
-                onClick={handleCancel}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          <CompanionEditor
+            key={editingId ?? "new-companion"}
+            editingId={editingId}
+            initialDraft={initialDraft}
+            onCancel={handleCancel}
+            onSave={handleSave}
+          />
         )}
       </div>
     </main>

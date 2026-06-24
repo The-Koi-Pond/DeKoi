@@ -33,8 +33,8 @@ export type PondView =
   | { kind: "pond" }
   | { kind: "classic"; threadId: string }
   | { kind: "messenger"; threadId: string }
-  | { kind: "companions" }
-  | { kind: "personas" }
+  | { kind: "companions"; characterId?: string; mode?: "new" }
+  | { kind: "personas"; personaId?: string; mode?: "new" }
   | { kind: "lorebooks" };
 
 export interface NavState {

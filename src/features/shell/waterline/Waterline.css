@@ -290,11 +290,67 @@
   line-height: 1.5;
 }
 
+.people-panel {
+  width: min(390px, calc(100vw - 32px));
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.panel-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+}
+
+.panel-tab span {
+  color: var(--mist-dim);
+  font-size: 10px;
+}
+
+.panel-tab:hover,
+.panel-tab:focus-visible,
+.panel-tab.on {
+  border-color: rgba(39, 179, 170, 0.42);
+  background: rgba(39, 179, 170, 0.08);
+  color: var(--jade-hot);
+  outline: none;
+}
+
+.pebble-panel .panel-empty {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .panel-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: 10px;
+}
+
+.people-list {
+  max-height: min(360px, calc(100vh - 220px));
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .panel-row {
@@ -336,6 +392,33 @@ button.panel-row:focus-visible {
   color: var(--mist);
   font-size: 11px;
   line-height: 1.45;
+}
+
+.person-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.person-row-copy {
+  min-width: 0;
+}
+
+.person-row-copy b,
+.person-row-copy em,
+.person-row-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row-copy em {
+  display: block;
+  margin-top: 2px;
+  color: var(--mist-dim);
+  font-size: 10.5px;
+  font-style: normal;
 }
 
 .companion-row {
@@ -382,6 +465,12 @@ button.panel-row:focus-visible {
   color: var(--koi-hot);
   font-size: 11px;
   font-weight: 700;
+}
+
+.persona-avatar {
+  border-color: rgba(39, 179, 170, 0.45);
+  background: rgba(39, 179, 170, 0.12);
+  color: var(--jade-hot);
 }
 
 .panel-action {

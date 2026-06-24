@@ -11,13 +11,16 @@ import {
 } from "../../messenger/thread-display";
 import "./Waterline.css";
 
-type CatalogPanel = "lore" | "companions" | "media" | "connections";
+type CatalogPanel = "lore" | "people" | "media" | "connections";
+type PeopleTab = "companions" | "personas";
 
 export function Waterline() {
   const nav = useNav();
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [activeCatalog, setActiveCatalog] = useState<CatalogPanel | null>(null);
+  const [activePeopleTab, setActivePeopleTab] =
+    useState<PeopleTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
   const activeConnection = getProviderConnectionById(
     nav.appSettings.activeMessengerConnectionId,
@@ -70,6 +73,27 @@ export function Waterline() {
     setActiveCatalog((currentPanel) => (currentPanel === panel ? null : panel));
   }
 
+  function openCompanion(characterId: string) {
+    setActiveCatalog(null);
+    nav.setView({ kind: "companions", characterId });
+  }
+
+  function openPersona(personaId: string) {
+    setActiveCatalog(null);
+    nav.setView({ kind: "personas", personaId });
+  }
+
+  function openNewPersonRecord() {
+    setActiveCatalog(null);
+
+    if (activePeopleTab === "companions") {
+      nav.setView({ kind: "companions", mode: "new" });
+      return;
+    }
+
+    nav.setView({ kind: "personas", mode: "new" });
+  }
+
   function handleCatalogBlur(event: FocusEvent<HTMLDivElement>) {
     if (event.currentTarget.contains(event.relatedTarget)) return;
     setActiveCatalog(null);
@@ -102,26 +126,102 @@ export function Waterline() {
       );
     }
 
-    if (activeCatalog === "companions") {
+    if (activeCatalog === "people") {
+      const companionCount = nav.characters.length;
+      const personaCount = nav.personas.length;
+      const isCompanionsTab = activePeopleTab === "companions";
+
       return (
-        <div className="pebble-panel" role="region" aria-label="Companions">
+        <div
+          className="pebble-panel people-panel"
+          role="region"
+          aria-label="Companions and Personas"
+        >
           <div className="pebble-panel-head">
-            <b>Companions</b>
-            <span>{nav.characters.length} stocked</span>
+            <b>Companions & Personas</b>
+            <span>{companionCount + personaCount} stocked</span>
           </div>
-          <div className="panel-list">
-            {nav.characters.map((companion) => (
-              <article className="panel-row companion-row" key={companion.id}>
-                <span className="panel-avatar">
-                  {getMessengerThreadInitials(companion.displayName)}
-                </span>
-                <span>
-                  <b>{companion.displayName}</b>
-                  <small>{companion.summary}</small>
-                </span>
-              </article>
-            ))}
+          <div
+            className="panel-tabs"
+            role="tablist"
+            aria-label="Character library"
+          >
+            <button
+              type="button"
+              className={`panel-tab${isCompanionsTab ? " on" : ""}`}
+              role="tab"
+              aria-selected={isCompanionsTab}
+              onClick={() => setActivePeopleTab("companions")}
+            >
+              Companions <span>{companionCount}</span>
+            </button>
+            <button
+              type="button"
+              className={`panel-tab${!isCompanionsTab ? " on" : ""}`}
+              role="tab"
+              aria-selected={!isCompanionsTab}
+              onClick={() => setActivePeopleTab("personas")}
+            >
+              Personas <span>{personaCount}</span>
+            </button>
           </div>
+
+          {isCompanionsTab ? (
+            companionCount > 0 ? (
+              <div className="panel-list people-list">
+                {nav.characters.map((companion) => (
+                  <button
+                    type="button"
+                    className="panel-row person-row"
+                    key={companion.id}
+                    onClick={() => openCompanion(companion.id)}
+                  >
+                    <span className="panel-avatar">
+                      {getMessengerThreadInitials(companion.displayName)}
+                    </span>
+                    <span className="person-row-copy">
+                      <b>{companion.displayName}</b>
+                      {companion.shortName && (
+                        <em>aka {companion.shortName}</em>
+                      )}
+                      <small>{companion.summary || "No summary yet."}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="panel-empty">No companions stocked yet.</p>
+            )
+          ) : personaCount > 0 ? (
+            <div className="panel-list people-list">
+              {nav.personas.map((persona) => (
+                <button
+                  type="button"
+                  className="panel-row person-row"
+                  key={persona.id}
+                  onClick={() => openPersona(persona.id)}
+                >
+                  <span className="panel-avatar persona-avatar">
+                    {getMessengerThreadInitials(persona.displayName)}
+                  </span>
+                  <span className="person-row-copy">
+                    <b>{persona.displayName}</b>
+                    <small>{persona.summary || "No summary yet."}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="panel-empty">No personas stocked yet.</p>
+          )}
+
+          <button
+            type="button"
+            className="panel-action"
+            onClick={openNewPersonRecord}
+          >
+            {isCompanionsTab ? "New Companion" : "New Persona"}
+          </button>
         </div>
       );
     }
@@ -266,10 +366,11 @@ export function Waterline() {
           ▤
         </button>
         <button
-          className="pebble"
-          title="Companions"
-          aria-label="Companions"
-          onClick={() => nav.setView({ kind: "companions" })}
+          className={`pebble${activeCatalog === "people" ? " on" : ""}`}
+          title="Companions and Personas"
+          aria-label="Companions and Personas"
+          aria-expanded={activeCatalog === "people"}
+          onClick={() => toggleCatalog("people")}
         >
           ⚇
         </button>
