@@ -1,0 +1,273 @@
+# Remote Runtime Contract
+
+DeKoi can talk to a local or remote runtime through a small HTTP contract. This
+is intentionally provider-neutral: DeKoi sends native records and the runtime
+decides how to generate, store, or transport them.
+
+## Development Fixture
+
+Start the local fixture:
+
+```sh
+npm run runtime:fixture
+```
+
+Default URL:
+
+```text
+http://127.0.0.1:7341
+```
+
+Use that URL in Pond Care > Deep Water > Remote Runtime URL. The fixture keeps
+storage in memory, so records disappear when the fixture process stops.
+
+Optional host and port:
+
+```sh
+npm run runtime:fixture -- --host 127.0.0.1 --port 7342
+```
+
+## Health
+
+DeKoi probes:
+
+```http
+GET /health?probe=1
+```
+
+Compatible response:
+
+```json
+{
+  "ok": true,
+  "runtime": "de-koi-server",
+  "writable": true
+}
+```
+
+`runtime` may also be `marinara-server` while DeKoi is still compatible with
+that runtime marker.
+
+## Invoke Envelope
+
+All runtime commands use:
+
+```http
+POST /api/invoke
+Content-Type: application/json
+X-Marinara-CSRF: 1
+```
+
+Request envelope:
+
+```json
+{
+  "command": "messenger_generate",
+  "args": {}
+}
+```
+
+Error response:
+
+```json
+{
+  "message": "Remote runtime returned a clear error."
+}
+```
+
+The browser adapter treats any non-2xx response as a runtime error and shows the
+message in Messenger.
+
+## Commands
+
+The explicit DeKoi allowlist currently contains:
+
+- `messenger_generate`
+- `storage_list`
+- `storage_create`
+- `storage_update`
+- `storage_delete`
+
+Generation and storage commands must remain separately named. Do not overload
+`messenger_generate` to persist messages or overload storage commands to run
+generation.
+
+## `messenger_generate`
+
+Request:
+
+```json
+{
+  "command": "messenger_generate",
+  "args": {
+    "request": {
+      "schemaVersion": 1,
+      "id": "messenger-generation-request-example",
+      "createdAt": "2026-06-24T07:20:00.000Z",
+      "thread": {
+        "id": "messenger-thread-example",
+        "schemaVersion": 1,
+        "kind": "messenger",
+        "mode": "direct",
+        "title": "Example Messenger",
+        "characterIds": ["character-koi"],
+        "activePersonaId": "persona-xel",
+        "lorebookIds": ["lorebook-main"],
+        "presetId": null,
+        "providerConnectionId": "connection-remote-runtime",
+        "messages": [],
+        "createdAt": "2026-06-24T07:10:00.000Z",
+        "updatedAt": "2026-06-24T07:20:00.000Z"
+      },
+      "userMessage": {
+        "id": "messenger-message-user",
+        "threadId": "messenger-thread-example",
+        "author": {
+          "kind": "persona",
+          "personaId": "persona-xel",
+          "label": "Xel"
+        },
+        "body": "Can you hear me?",
+        "origin": "manual",
+        "createdAt": "2026-06-24T07:20:00.000Z",
+        "updatedAt": "2026-06-24T07:20:00.000Z"
+      },
+      "companions": [
+        {
+          "id": "character-koi",
+          "schemaVersion": 1,
+          "displayName": "Koi",
+          "shortName": "Koi",
+          "summary": "A local test companion.",
+          "description": "Used for remote runtime contract checks.",
+          "avatarUrl": null,
+          "lorebookIds": [],
+          "createdAt": "2026-06-24T07:00:00.000Z",
+          "updatedAt": "2026-06-24T07:00:00.000Z"
+        }
+      ],
+      "activePersona": {
+        "id": "persona-xel",
+        "schemaVersion": 1,
+        "displayName": "Xel",
+        "summary": "The active user persona.",
+        "description": "Used for remote runtime contract checks.",
+        "avatarUrl": null,
+        "createdAt": "2026-06-24T07:00:00.000Z",
+        "updatedAt": "2026-06-24T07:00:00.000Z"
+      },
+      "lorebooks": [
+        {
+          "id": "lorebook-main",
+          "schemaVersion": 1,
+          "title": "Main Lorebook",
+          "summary": "Example lore.",
+          "entries": [
+            {
+              "id": "lore-entry-1",
+              "title": "Contract",
+              "body": "The runtime should return provider-neutral drafts.",
+              "enabled": true,
+              "createdAt": "2026-06-24T07:00:00.000Z",
+              "updatedAt": "2026-06-24T07:00:00.000Z"
+            }
+          ],
+          "createdAt": "2026-06-24T07:00:00.000Z",
+          "updatedAt": "2026-06-24T07:00:00.000Z"
+        }
+      ],
+      "providerConnectionId": "connection-remote-runtime"
+    }
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "schemaVersion": 1,
+  "requestId": "messenger-generation-request-example",
+  "providerKind": "remote-runtime",
+  "createdAt": "2026-06-24T07:20:00.000Z",
+  "messages": [
+    {
+      "characterId": "character-koi",
+      "body": "Fixture reply from Koi."
+    }
+  ],
+  "warnings": []
+}
+```
+
+`messages[].characterId` must match a selected companion in the request. DeKoi
+drops unknown companion drafts and surfaces a warning.
+
+## Storage Commands
+
+`storage_list`:
+
+```json
+{
+  "command": "storage_list",
+  "args": {
+    "entity": "messenger-threads",
+    "options": null
+  }
+}
+```
+
+Returns an array of records.
+
+`storage_create`:
+
+```json
+{
+  "command": "storage_create",
+  "args": {
+    "entity": "messenger-threads",
+    "value": {
+      "id": "messenger-thread-example"
+    }
+  }
+}
+```
+
+Returns the created record.
+
+`storage_update`:
+
+```json
+{
+  "command": "storage_update",
+  "args": {
+    "entity": "messenger-threads",
+    "id": "messenger-thread-example",
+    "patch": {
+      "title": "Updated Messenger"
+    }
+  }
+}
+```
+
+Returns the updated record.
+
+`storage_delete`:
+
+```json
+{
+  "command": "storage_delete",
+  "args": {
+    "entity": "messenger-threads",
+    "id": "messenger-thread-example"
+  }
+}
+```
+
+Returns:
+
+```json
+{
+  "ok": true
+}
+```

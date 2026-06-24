@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "docs:dev": "vite docs/developer --host 127.0.0.1 --port 4174",
+    "runtime:fixture": "node scripts/remote-runtime-fixture.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

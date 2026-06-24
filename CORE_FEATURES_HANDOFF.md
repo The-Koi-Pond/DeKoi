@@ -31,7 +31,7 @@ Build in this order unless the user explicitly redirects:
 1. Harden native catalog records and CRUD.
 2. Harden Messenger thread configuration using those records.
 3. Harden generation request assembly from real selected records.
-4. Remote runtime command contract and test fixture.
+4. Harden remote runtime command contract and test fixture.
 5. Storage/export/import for DeKoi-native records.
 6. Classic first slice.
 7. Legacy import adapters.
@@ -148,17 +148,23 @@ Acceptance:
 
 Goal: make the remote generation path testable before a full Rust runtime exists.
 
+Status: initial contract docs and a local in-memory fixture server are
+implemented. Use `npm run runtime:fixture` and see
+`docs/remote-runtime-contract.md`.
+
 Current files:
 
 - `src/runtime/remote-runtime.ts`
 - `src/runtime/remote-messenger-generation.ts`
 - `src/runtime/messenger-storage.ts`
+- `docs/remote-runtime-contract.md`
+- `scripts/remote-runtime-fixture.mjs`
 
 Implementation:
 
-- Document `/api/invoke` command `messenger_generate`.
-- Add a tiny local fixture server or documented mock route for development.
-- Define exact JSON request and response examples in `docs/`.
+- Continue hardening `/api/invoke` command docs for `messenger_generate`.
+- Keep the tiny local fixture server available for development.
+- Keep exact JSON request and response examples in `docs/`.
 - Keep the command allowlist explicit.
 
 Acceptance:
