@@ -7,11 +7,9 @@ import {
 } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import { type MessengerMessage } from "../../engine/messenger";
-import { createMessengerGenerationRequest } from "../../engine/messenger-generation";
 import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
-  createGeneratedCompanionMessage,
   createPersonaMessengerMessage,
 } from "../../engine/messenger-actions";
 import {
@@ -20,7 +18,7 @@ import {
   samplePersona,
 } from "../../engine/sample-messenger";
 import {
-  generateMessengerResponse,
+  generateMessengerThreadReply,
   selectMessengerGenerationRuntime,
 } from "../../runtime/messenger-generation";
 import "./messenger-thread.css";
@@ -127,44 +125,31 @@ export function MessengerThread() {
     });
 
     try {
-      const request = createMessengerGenerationRequest({
+      const result = await generateMessengerThreadReply({
         activePersona: samplePersona,
         companions: threadCompanions,
-        id: createLocalId("messenger-generation-request"),
+        createId: createLocalId,
         lorebooks: [sampleLorebook],
         now: sentAt,
         thread: threadWithUserMessage,
         userMessage,
       });
-      const response = await generateMessengerResponse(request);
-      const generatedMessages = response.messages
-        .map((messageDraft) => {
-          const companion = threadCompanions.find(
-            (candidate) => candidate.id === messageDraft.characterId,
-          );
-          if (!companion) return null;
 
-          return createGeneratedCompanionMessage({
-            body: messageDraft.body,
-            companion,
-            id: createLocalId("messenger-message"),
-            now: response.createdAt,
-            thread: threadWithUserMessage,
-          });
-        })
-        .filter((message): message is MessengerMessage => message !== null);
-
-      if (generatedMessages.length > 0) {
-        nav.updateMessengerThread(
-          appendMessengerMessages(
-            threadWithUserMessage,
-            generatedMessages,
-            response.createdAt,
-          ),
-        );
+      if (result.generatedMessages.length > 0) {
+        nav.updateMessengerThread(result.thread);
       }
 
-      setGenerationState({ threadId: messengerThread.id, status: "idle", message: "" });
+      setGenerationState(
+        result.generatedMessages.length > 0
+          ? { threadId: messengerThread.id, status: "idle", message: "" }
+          : {
+              threadId: messengerThread.id,
+              status: "error",
+              message:
+                result.warnings[0] ??
+                `${result.runtimeLabel} did not return a Messenger reply.`,
+            },
+      );
     } catch (error) {
       setGenerationState({
         threadId: messengerThread.id,
