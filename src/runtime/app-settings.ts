@@ -7,12 +7,16 @@ export interface AppSettings {
   sendOnEnterSurface: SurfaceId;
   confirmRelease: boolean;
   surfaceStatus: string;
+  shoalSortMode: ShoalSortMode;
 }
+
+export type ShoalSortMode = "freshest" | "oldest" | "title";
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   sendOnEnterSurface: MESSENGER,
   confirmRelease: true,
   surfaceStatus: "",
+  shoalSortMode: "freshest",
 };
 
 function hasLocalStorage() {
@@ -21,6 +25,10 @@ function hasLocalStorage() {
 
 function isSurfaceId(value: unknown): value is SurfaceId {
   return value === "messenger" || value === "classic" || value === "reserved";
+}
+
+function isShoalSortMode(value: unknown): value is ShoalSortMode {
+  return value === "freshest" || value === "oldest" || value === "title";
 }
 
 export function normalizeSurfaceStatus(value: string) {
@@ -47,6 +55,9 @@ export function loadAppSettings(): AppSettings {
         typeof parsed.surfaceStatus === "string"
           ? normalizeSurfaceStatus(parsed.surfaceStatus)
           : DEFAULT_APP_SETTINGS.surfaceStatus,
+      shoalSortMode: isShoalSortMode(parsed.shoalSortMode)
+        ? parsed.shoalSortMode
+        : DEFAULT_APP_SETTINGS.shoalSortMode,
     };
   } catch {
     return DEFAULT_APP_SETTINGS;

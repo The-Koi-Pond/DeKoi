@@ -3,18 +3,27 @@ import { KoiCard } from "./KoiCard";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
-  sortMessengerThreadsByUpdatedAt,
+  sortMessengerThreads,
 } from "../../messenger/thread-display";
 import { useNav } from "../../../shared/ui/nav-context";
+import type { ShoalSortMode } from "../../../runtime/app-settings";
 import "./Shoal.css";
+
+const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
+const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
+  freshest: "Freshest first",
+  oldest: "Oldest first",
+  title: "A-Z",
+};
 
 export function Shoal() {
   const nav = useNav();
   const [query, setQuery] = useState("");
+  const sortMode = nav.appSettings.shoalSortMode;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const sortedThreads = useMemo(
-    () => sortMessengerThreadsByUpdatedAt(nav.messengerThreads),
-    [nav.messengerThreads],
+    () => sortMessengerThreads(nav.messengerThreads, sortMode),
+    [nav.messengerThreads, sortMode],
   );
   const storageLabel =
     nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
@@ -48,6 +57,13 @@ export function Shoal() {
     }
 
     nav.deleteMessengerThread(threadId);
+  }
+
+  function cycleSortMode() {
+    const currentIndex = SHOAL_SORT_ORDER.indexOf(sortMode);
+    const nextIndex =
+      currentIndex === -1 ? 0 : (currentIndex + 1) % SHOAL_SORT_ORDER.length;
+    nav.setShoalSortMode(SHOAL_SORT_ORDER[nextIndex]);
   }
 
   return (
@@ -92,7 +108,15 @@ export function Shoal() {
         </div>
       </div>
       <div className="shoal-meta">
-        <span className="sort">↕ Freshest first</span>
+        <button
+          type="button"
+          className="sort"
+          aria-label={`Sort Messenger threads: ${SHOAL_SORT_LABELS[sortMode]}`}
+          title="Change thread sort"
+          onClick={cycleSortMode}
+        >
+          ↕ {SHOAL_SORT_LABELS[sortMode]}
+        </button>
         <span className="mark-chip" title={nav.messengerStorageMessage}>
           ⌗ {filteredThreads.length} shown
         </span>

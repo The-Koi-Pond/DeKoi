@@ -132,10 +132,17 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
 }
 
-.shoal-meta .sort:hover {
+.shoal-meta .sort:hover,
+.shoal-meta .sort:focus-visible {
   color: var(--foam);
+  outline: none;
 }
 
 .mark-chip {

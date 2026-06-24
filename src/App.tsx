@@ -23,6 +23,7 @@ import {
   normalizeSurfaceStatus,
   saveAppSettings,
   type AppSettings,
+  type ShoalSortMode,
 } from "./runtime/app-settings";
 import {
   loadInitialMessengerThreads,
@@ -206,6 +207,13 @@ export default function App() {
     }));
   }, []);
 
+  const setShoalSortMode = useCallback((shoalSortMode: ShoalSortMode) => {
+    setAppSettings((currentSettings) => ({
+      ...currentSettings,
+      shoalSortMode,
+    }));
+  }, []);
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -232,6 +240,7 @@ export default function App() {
     setSendOnEnterSurface,
     setConfirmRelease,
     setSurfaceStatus,
+    setShoalSortMode,
     setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
     setCareTab: useCallback((t: number) => setCareTab(t), []),
   };

@@ -1,7 +1,29 @@
 import type { MessengerThread } from "../../engine/messenger";
+import type { ShoalSortMode } from "../../runtime/app-settings";
 
 export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function sortMessengerThreads(
+  threads: MessengerThread[],
+  sortMode: ShoalSortMode,
+) {
+  const sortedThreads = [...threads];
+
+  if (sortMode === "oldest") {
+    return sortedThreads.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  if (sortMode === "title") {
+    return sortedThreads.sort(
+      (a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
+        b.updatedAt.localeCompare(a.updatedAt),
+    );
+  }
+
+  return sortedThreads.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export function getMessengerThreadInitials(title: string) {

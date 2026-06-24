@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { MessengerThread } from '../../engine/messenger'
 import type { SurfaceId } from '../../engine/surfaces'
-import type { AppSettings } from '../../runtime/app-settings'
+import type { AppSettings, ShoalSortMode } from '../../runtime/app-settings'
 import type { MessengerStorageMode, MessengerStorageStatus } from '../../runtime/messenger-storage'
 
 export type PondView =
@@ -34,6 +34,7 @@ export interface NavContextType extends NavState {
   setSendOnEnterSurface: (surface: SurfaceId) => void
   setConfirmRelease: (confirmRelease: boolean) => void
   setSurfaceStatus: (status: string) => void
+  setShoalSortMode: (sortMode: ShoalSortMode) => void
   setCareOpen: (open: boolean) => void
   setCareTab: (tab: number) => void
 }
