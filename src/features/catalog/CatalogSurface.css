@@ -368,3 +368,17 @@
     background: var(--raise);
     color: var(--foam);
 }
+
+/* Enabled toggle row in the lore entry editor — label left, switch right. */
+.catalog-editor-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.catalog-toggle-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--foam);
+}

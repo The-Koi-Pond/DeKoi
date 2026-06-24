@@ -1,25 +1,31 @@
 import { useState } from "react";
 import { useNav } from "../../shared/ui/nav-context";
 import type { LorebookEntryInput } from "../../engine/lorebook-actions";
+import { Switch } from "../../shared/ui/primitives/Switch";
 import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";
 
 interface DraftState {
   title: string;
   body: string;
+  enabled: boolean;
 }
 
-const EMPTY_DRAFT: DraftState = { title: "", body: "" };
+const EMPTY_DRAFT: DraftState = { title: "", body: "", enabled: true };
 
-function draftFromEntry(entry: { title: string; body: string }): DraftState {
-  return { title: entry.title, body: entry.body };
+function draftFromEntry(entry: {
+  title: string;
+  body: string;
+  enabled: boolean;
+}): DraftState {
+  return { title: entry.title, body: entry.body, enabled: entry.enabled };
 }
 
 function draftToInput(draft: DraftState): LorebookEntryInput {
   return {
     title: draft.title.trim() || "Untitled note",
     body: draft.body.trim(),
-    enabled: true,
+    enabled: draft.enabled,
   };
 }
 
@@ -243,6 +249,14 @@ export function LorebooksSurface() {
                       setDraft({ ...draft, body: e.target.value })
                     }
                     placeholder="Entry content…"
+                  />
+                </div>
+                <div className="catalog-editor-field catalog-editor-toggle">
+                  <span className="catalog-toggle-label">Enabled</span>
+                  <Switch
+                    checked={draft.enabled}
+                    onChange={(v) => setDraft({ ...draft, enabled: v })}
+                    ariaLabel="Entry enabled"
                   />
                 </div>
                 <div className="catalog-editor-actions">
