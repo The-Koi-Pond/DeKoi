@@ -144,16 +144,18 @@ export default function App() {
   );
   const [classicThreads, setClassicThreads] =
     useState<ClassicThread[]>(loadClassicThreads);
-  const [messengerThreads, setMessengerThreads] =
-    useState<MessengerThread[]>(loadInitialMessengerThreads);
+  const [messengerThreads, setMessengerThreads] = useState<MessengerThread[]>(
+    loadInitialMessengerThreads,
+  );
   const [rippleStates, setRippleStates] =
     useState<RippleState[]>(loadRippleStates);
   const [messengerStorageMode, setMessengerStorageMode] =
     useState<MessengerStorageMode>("unavailable");
   const [messengerStorageStatus, setMessengerStorageStatus] =
     useState<MessengerStorageStatus>("loading");
-  const [messengerStorageMessage, setMessengerStorageMessage] =
-    useState("Loading Messenger storage.");
+  const [messengerStorageMessage, setMessengerStorageMessage] = useState(
+    "Loading Messenger storage.",
+  );
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
     useState(readRemoteRuntimeUrl);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
@@ -174,18 +176,8 @@ export default function App() {
       loadClassicThreadsFromStorage(remoteRuntimeUrl),
       loadMessengerThreadsFromStorage(remoteRuntimeUrl),
       loadRippleStatesFromStorage(remoteRuntimeUrl),
-    ]).then(([
-      appSettingsSnapshot,
-      characterSnapshot,
-      personaSnapshot,
-      lorebookSnapshot,
-      providerConnectionSnapshot,
-      classicSnapshot,
-      messengerSnapshot,
-      rippleSnapshot,
-    ]) => {
-      if (cancelled) return;
-      const storageResult = mergeStorageResults([
+    ]).then(
+      ([
         appSettingsSnapshot,
         characterSnapshot,
         personaSnapshot,
@@ -194,20 +186,32 @@ export default function App() {
         classicSnapshot,
         messengerSnapshot,
         rippleSnapshot,
-      ]);
-      setAppSettings(appSettingsSnapshot.settings);
-      setCharacters(characterSnapshot.records);
-      setPersonas(personaSnapshot.records);
-      setLorebooks(lorebookSnapshot.records);
-      setProviderConnections(providerConnectionSnapshot.records);
-      setClassicThreads(classicSnapshot.records);
-      setMessengerThreads(messengerSnapshot.threads);
-      setRippleStates(rippleSnapshot.states);
-      setMessengerStorageMode(storageResult.mode);
-      setMessengerStorageStatus(storageResult.status);
-      setMessengerStorageMessage(storageResult.message);
-      setStorageReady(storageResult.status === "ready");
-    });
+      ]) => {
+        if (cancelled) return;
+        const storageResult = mergeStorageResults([
+          appSettingsSnapshot,
+          characterSnapshot,
+          personaSnapshot,
+          lorebookSnapshot,
+          providerConnectionSnapshot,
+          classicSnapshot,
+          messengerSnapshot,
+          rippleSnapshot,
+        ]);
+        setAppSettings(appSettingsSnapshot.settings);
+        setCharacters(characterSnapshot.records);
+        setPersonas(personaSnapshot.records);
+        setLorebooks(lorebookSnapshot.records);
+        setProviderConnections(providerConnectionSnapshot.records);
+        setClassicThreads(classicSnapshot.records);
+        setMessengerThreads(messengerSnapshot.threads);
+        setRippleStates(rippleSnapshot.states);
+        setMessengerStorageMode(storageResult.mode);
+        setMessengerStorageStatus(storageResult.status);
+        setMessengerStorageMessage(storageResult.message);
+        setStorageReady(storageResult.status === "ready");
+      },
+    );
 
     return () => {
       cancelled = true;
@@ -225,19 +229,20 @@ export default function App() {
       saveCharacterRecordsToStorage(characters, remoteRuntimeUrl),
       savePersonaRecordsToStorage(personas, remoteRuntimeUrl),
       saveLorebookRecordsToStorage(lorebooks, remoteRuntimeUrl),
-      saveProviderConnectionRecordsToStorage(providerConnections, remoteRuntimeUrl),
+      saveProviderConnectionRecordsToStorage(
+        providerConnections,
+        remoteRuntimeUrl,
+      ),
       saveClassicThreadsToStorage(classicThreads, remoteRuntimeUrl),
       saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
       saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
-    ]).then(
-      (results) => {
-        if (saveRequestId.current !== requestId) return;
-        const storageResult = mergeStorageResults(results);
-        setMessengerStorageMode(storageResult.mode);
-        setMessengerStorageStatus(storageResult.status);
-        setMessengerStorageMessage(storageResult.message);
-      },
-    );
+    ]).then((results) => {
+      if (saveRequestId.current !== requestId) return;
+      const storageResult = mergeStorageResults(results);
+      setMessengerStorageMode(storageResult.mode);
+      setMessengerStorageStatus(storageResult.status);
+      setMessengerStorageMessage(storageResult.message);
+    });
   }, [
     appSettings,
     characters,
@@ -286,24 +291,27 @@ export default function App() {
     [],
   );
 
-  const duplicateCharacter = useCallback((characterId: string) => {
-    const character = characters.find(
-      (currentCharacter) => currentCharacter.id === characterId,
-    );
-    if (!character) return null;
+  const duplicateCharacter = useCallback(
+    (characterId: string) => {
+      const character = characters.find(
+        (currentCharacter) => currentCharacter.id === characterId,
+      );
+      if (!character) return null;
 
-    const now = new Date().toISOString();
-    const duplicatedCharacter = duplicateCharacterRecord(
-      character,
-      createLocalId("character"),
-      now,
-    );
-    setCharacters((currentCharacters) => [
-      duplicatedCharacter,
-      ...currentCharacters,
-    ]);
-    return duplicatedCharacter;
-  }, [characters]);
+      const now = new Date().toISOString();
+      const duplicatedCharacter = duplicateCharacterRecord(
+        character,
+        createLocalId("character"),
+        now,
+      );
+      setCharacters((currentCharacters) => [
+        duplicatedCharacter,
+        ...currentCharacters,
+      ]);
+      return duplicatedCharacter;
+    },
+    [characters],
+  );
 
   const deleteCharacter = useCallback((characterId: string) => {
     const now = new Date().toISOString();
@@ -314,7 +322,9 @@ export default function App() {
       currentThreads.map((thread) => {
         if (!thread.characterIds.includes(characterId)) return thread;
 
-        const characterIds = thread.characterIds.filter((id) => id !== characterId);
+        const characterIds = thread.characterIds.filter(
+          (id) => id !== characterId,
+        );
         return {
           ...thread,
           characterIds,
@@ -361,19 +371,24 @@ export default function App() {
     [],
   );
 
-  const duplicatePersona = useCallback((personaId: string) => {
-    const persona = personas.find((currentPersona) => currentPersona.id === personaId);
-    if (!persona) return null;
+  const duplicatePersona = useCallback(
+    (personaId: string) => {
+      const persona = personas.find(
+        (currentPersona) => currentPersona.id === personaId,
+      );
+      if (!persona) return null;
 
-    const now = new Date().toISOString();
-    const duplicatedPersona = duplicatePersonaRecord(
-      persona,
-      createLocalId("persona"),
-      now,
-    );
-    setPersonas((currentPersonas) => [duplicatedPersona, ...currentPersonas]);
-    return duplicatedPersona;
-  }, [personas]);
+      const now = new Date().toISOString();
+      const duplicatedPersona = duplicatePersonaRecord(
+        persona,
+        createLocalId("persona"),
+        now,
+      );
+      setPersonas((currentPersonas) => [duplicatedPersona, ...currentPersonas]);
+      return duplicatedPersona;
+    },
+    [personas],
+  );
 
   const deletePersona = useCallback((personaId: string) => {
     const now = new Date().toISOString();
@@ -398,7 +413,8 @@ export default function App() {
 
   const createLorebookEntry = useCallback(
     (lorebookId: string, input: LorebookEntryInput) => {
-      if (!lorebooks.some((lorebook) => lorebook.id === lorebookId)) return null;
+      if (!lorebooks.some((lorebook) => lorebook.id === lorebookId))
+        return null;
 
       const now = new Date().toISOString();
       const entry = createLorebookEntryRecord({
@@ -516,68 +532,74 @@ export default function App() {
     [],
   );
 
-  const duplicateProviderConnection = useCallback((connectionId: string) => {
-    const connection = providerConnections.find(
-      (currentConnection) => currentConnection.id === connectionId,
-    );
-    if (!connection) return null;
+  const duplicateProviderConnection = useCallback(
+    (connectionId: string) => {
+      const connection = providerConnections.find(
+        (currentConnection) => currentConnection.id === connectionId,
+      );
+      if (!connection) return null;
 
-    const now = new Date().toISOString();
-    const duplicatedConnection = duplicateProviderConnectionRecord(
-      connection,
-      createLocalId("connection"),
-      now,
-    );
-    setProviderConnections((currentConnections) => [
-      duplicatedConnection,
-      ...currentConnections,
-    ]);
-    return duplicatedConnection;
-  }, [providerConnections]);
+      const now = new Date().toISOString();
+      const duplicatedConnection = duplicateProviderConnectionRecord(
+        connection,
+        createLocalId("connection"),
+        now,
+      );
+      setProviderConnections((currentConnections) => [
+        duplicatedConnection,
+        ...currentConnections,
+      ]);
+      return duplicatedConnection;
+    },
+    [providerConnections],
+  );
 
-  const deleteProviderConnection = useCallback((connectionId: string) => {
-    if (providerConnections.length <= 1) return;
+  const deleteProviderConnection = useCallback(
+    (connectionId: string) => {
+      if (providerConnections.length <= 1) return;
 
-    const nextConnections = deleteProviderConnectionRecord(
-      providerConnections,
-      connectionId,
-    );
-    if (nextConnections.length === providerConnections.length) return;
+      const nextConnections = deleteProviderConnectionRecord(
+        providerConnections,
+        connectionId,
+      );
+      if (nextConnections.length === providerConnections.length) return;
 
-    const fallbackConnection = nextConnections[0];
-    const now = new Date().toISOString();
-    setProviderConnections(nextConnections);
-    setAppSettings((currentSettings) =>
-      currentSettings.activeMessengerConnectionId === connectionId
-        ? {
-            ...currentSettings,
-            activeMessengerConnectionId: fallbackConnection.id,
-          }
-        : currentSettings,
-    );
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.providerConnectionId === connectionId
+      const fallbackConnection = nextConnections[0];
+      const now = new Date().toISOString();
+      setProviderConnections(nextConnections);
+      setAppSettings((currentSettings) =>
+        currentSettings.activeMessengerConnectionId === connectionId
           ? {
-              ...thread,
-              providerConnectionId: fallbackConnection.id,
-              updatedAt: now,
+              ...currentSettings,
+              activeMessengerConnectionId: fallbackConnection.id,
             }
-          : thread,
-      ),
-    );
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.providerConnectionId === connectionId
-          ? {
-              ...thread,
-              providerConnectionId: fallbackConnection.id,
-              updatedAt: now,
-            }
-          : thread,
-      ),
-    );
-  }, [providerConnections]);
+          : currentSettings,
+      );
+      setMessengerThreads((currentThreads) =>
+        currentThreads.map((thread) =>
+          thread.providerConnectionId === connectionId
+            ? {
+                ...thread,
+                providerConnectionId: fallbackConnection.id,
+                updatedAt: now,
+              }
+            : thread,
+        ),
+      );
+      setClassicThreads((currentThreads) =>
+        currentThreads.map((thread) =>
+          thread.providerConnectionId === connectionId
+            ? {
+                ...thread,
+                providerConnectionId: fallbackConnection.id,
+                updatedAt: now,
+              }
+            : thread,
+        ),
+      );
+    },
+    [providerConnections],
+  );
 
   const openClassicThread = useCallback((threadId: string) => {
     setSelectedSurface(CLASSIC);
@@ -589,7 +611,8 @@ export default function App() {
     const activePersona = personas[0] ?? null;
     const activeConnection =
       providerConnections.find(
-        (connection) => connection.id === appSettings.activeMessengerConnectionId,
+        (connection) =>
+          connection.id === appSettings.activeMessengerConnectionId,
       ) ??
       providerConnections[0] ??
       null;
@@ -678,7 +701,8 @@ export default function App() {
     const activePersona = personas[0] ?? null;
     const activeConnection =
       providerConnections.find(
-        (connection) => connection.id === appSettings.activeMessengerConnectionId,
+        (connection) =>
+          connection.id === appSettings.activeMessengerConnectionId,
       ) ??
       providerConnections[0] ??
       null;
@@ -715,19 +739,22 @@ export default function App() {
     );
   }, []);
 
-  const renameMessengerThread = useCallback((threadId: string, title: string) => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+  const renameMessengerThread = useCallback(
+    (threadId: string, title: string) => {
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) return;
 
-    const now = new Date().toISOString();
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.id === threadId
-          ? renameMessengerThreadRecord(thread, trimmedTitle, now)
-          : thread,
-      ),
-    );
-  }, []);
+      const now = new Date().toISOString();
+      setMessengerThreads((currentThreads) =>
+        currentThreads.map((thread) =>
+          thread.id === threadId
+            ? renameMessengerThreadRecord(thread, trimmedTitle, now)
+            : thread,
+        ),
+      );
+    },
+    [],
+  );
 
   const clearMessengerThreadMessages = useCallback((threadId: string) => {
     const now = new Date().toISOString();
@@ -746,7 +773,8 @@ export default function App() {
       setRippleStates((currentStates) =>
         currentStates.filter(
           (state) =>
-            state.ownerKind !== "messenger-thread" || state.ownerId !== threadId,
+            state.ownerKind !== "messenger-thread" ||
+            state.ownerId !== threadId,
         ),
       );
 
@@ -766,11 +794,7 @@ export default function App() {
   );
 
   const createRipple = useCallback(
-    (
-      ownerKind: RippleStateOwnerKind,
-      ownerId: string,
-      input: RippleInput,
-    ) => {
+    (ownerKind: RippleStateOwnerKind, ownerId: string, input: RippleInput) => {
       const now = new Date().toISOString();
       const ripple = createRippleRecord({
         id: createLocalId("ripple"),
@@ -889,9 +913,11 @@ export default function App() {
       const importedConnections = bundle.data.providerConnections;
       const importedSettings = { ...bundle.data.appSettings };
       const hasActiveConnection = importedConnections.some(
-        (connection) => connection.id === importedSettings.activeMessengerConnectionId,
+        (connection) =>
+          connection.id === importedSettings.activeMessengerConnectionId,
       );
-      const fallbackConnection = importedConnections[0] ?? providerConnections[0];
+      const fallbackConnection =
+        importedConnections[0] ?? providerConnections[0];
 
       if (!hasActiveConnection && fallbackConnection) {
         importedSettings.activeMessengerConnectionId = fallbackConnection.id;
@@ -988,6 +1014,13 @@ export default function App() {
     [],
   );
 
+  const updateAppSettings = useCallback((patch: Partial<AppSettings>) => {
+    setAppSettings((currentSettings) => ({
+      ...currentSettings,
+      ...patch,
+    }));
+  }, []);
+
   const nav: NavContextType = {
     view,
     selectedSurface,
@@ -1046,6 +1079,7 @@ export default function App() {
     importStorageBundle,
     importLegacyData,
     setRemoteRuntimeUrl,
+    updateAppSettings,
     setSendOnEnterSurface,
     setConfirmRelease,
     setSurfaceStatus,

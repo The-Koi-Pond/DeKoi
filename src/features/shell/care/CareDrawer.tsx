@@ -90,13 +90,15 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     }),
   );
 
-  // Local-only visual/demo settings. Product settings live in nav.appSettings.
-  const [streamReplies, setStreamReplies] = useState(true);
-  const [rippleSpeed, setRippleSpeed] = useState(50);
-  const [surfaceAllText, setSurfaceAllText] = useState(false);
-  const [wheelNavigate, setWheelNavigate] = useState(false);
-  const [narrationDrift, setNarrationDrift] = useState(50);
-  const [autoplayPause, setAutoplayPause] = useState(30);
+  // Product settings live in nav.appSettings and persist across reloads.
+  const {
+    streamReplies,
+    rippleSpeed,
+    surfaceAllText,
+    wheelNavigate,
+    narrationDrift,
+    autoplayPause,
+  } = nav.appSettings;
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
   const [desktopHostStatus, setDesktopHostStatus] =
@@ -1014,7 +1016,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Switch
                   checked={streamReplies}
-                  onChange={setStreamReplies}
+                  onChange={(v) => nav.updateAppSettings({ streamReplies: v })}
                   ariaLabel="Let replies ripple in"
                 />
               </div>
@@ -1026,7 +1028,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Slider
                   value={rippleSpeed}
-                  onChange={setRippleSpeed}
+                  onChange={(v) => nav.updateAppSettings({ rippleSpeed: v })}
                   ariaLabel="Ripple speed"
                 />
                 <div className="track-ends">
@@ -1042,7 +1044,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Switch
                   checked={surfaceAllText}
-                  onChange={setSurfaceAllText}
+                  onChange={(v) => nav.updateAppSettings({ surfaceAllText: v })}
                   ariaLabel="Surface all text at once"
                 />
               </div>
@@ -1053,7 +1055,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Switch
                   checked={wheelNavigate}
-                  onChange={setWheelNavigate}
+                  onChange={(v) => nav.updateAppSettings({ wheelNavigate: v })}
                   ariaLabel="Wheel + click to navigate"
                 />
               </div>
@@ -1065,7 +1067,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Slider
                   value={narrationDrift}
-                  onChange={setNarrationDrift}
+                  onChange={(v) => nav.updateAppSettings({ narrationDrift: v })}
                   ariaLabel="Narration drift"
                 />
                 <div className="track-ends">
@@ -1081,7 +1083,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Slider
                   value={autoplayPause}
-                  onChange={setAutoplayPause}
+                  onChange={(v) => nav.updateAppSettings({ autoplayPause: v })}
                   ariaLabel="Auto-play pause between segments"
                 />
                 <div className="track-ends">
