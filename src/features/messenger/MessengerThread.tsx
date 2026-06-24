@@ -58,7 +58,7 @@ export function MessengerThread() {
   }>({ body: "", threadId: null });
   const [generationState, setGenerationState] = useState<{
     threadId: string | null;
-    status: "idle" | "generating" | "error";
+    status: "idle" | "generating" | "warning" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
   const [settingsState, setSettingsState] = useState<{
@@ -115,9 +115,9 @@ export function MessengerThread() {
   const isGenerating =
     generationState.threadId === activeThreadId &&
     generationState.status === "generating";
-  const generationError =
+  const generationNotice =
     generationState.threadId === activeThreadId &&
-    generationState.status === "error"
+    (generationState.status === "error" || generationState.status === "warning")
       ? generationState.message
       : "";
   const canSend = draft.trim().length > 0 && !isGenerating;
@@ -284,12 +284,14 @@ export function MessengerThread() {
 
     try {
       const result = await generateMessengerThreadReply({
-        activePersona,
-        companions: threadCompanions,
+        characters: nav.characters,
         createId: createLocalId,
-        lorebooks: threadLorebooks,
+        fallbackProviderConnectionId: threadConnection.id,
+        lorebooks: nav.lorebooks,
         mode: generationMode,
         now: sentAt,
+        personas: nav.personas,
+        providerConnections: nav.providerConnections,
         thread: threadWithUserMessage,
         userMessage,
       });
@@ -300,7 +302,11 @@ export function MessengerThread() {
 
       setGenerationState(
         result.generatedMessages.length > 0
-          ? { threadId: messengerThread.id, status: "idle", message: "" }
+          ? {
+              threadId: messengerThread.id,
+              status: result.warnings.length > 0 ? "warning" : "idle",
+              message: result.warnings[0] ?? "",
+            }
           : {
               threadId: messengerThread.id,
               status: "error",
@@ -613,7 +619,7 @@ export function MessengerThread() {
           </button>
         </div>
         <p className="composer-hint">
-          {generationError ||
+          {generationNotice ||
           (isGenerating
             ? `${generationRuntime.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER

@@ -3,7 +3,10 @@ import type {
   MessengerGenerationRequest,
   MessengerGenerationResponse,
 } from "../engine/messenger-generation";
-import { createMessengerGenerationRequest } from "../engine/messenger-generation";
+import {
+  createMessengerGenerationContext,
+  createMessengerGenerationRequest,
+} from "../engine/messenger-generation";
 import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,
@@ -27,9 +30,11 @@ export interface MessengerGenerationRuntimeSnapshot {
 export interface GenerateMessengerThreadReplyInput {
   thread: MessengerThread;
   userMessage: MessengerMessage;
-  companions: CharacterRecord[];
-  activePersona: PersonaRecord | null;
+  characters: CharacterRecord[];
+  personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  providerConnections: ProviderConnectionRecord[];
+  fallbackProviderConnectionId?: string | null;
   now: string;
   mode?: MessengerGenerationRuntimeMode;
   createId: (prefix: string) => string;
@@ -91,42 +96,55 @@ export async function generateMessengerResponse(
 }
 
 export async function generateMessengerThreadReply({
-  activePersona,
-  companions,
+  characters,
   createId,
+  fallbackProviderConnectionId = null,
   lorebooks,
   mode = "mock",
   now,
+  personas,
+  providerConnections,
   thread,
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const runtime = selectMessengerGenerationRuntime(mode);
-  const request = createMessengerGenerationRequest({
-    activePersona,
-    companions,
-    id: createId("messenger-generation-request"),
+  const context = createMessengerGenerationContext({
+    characters,
+    fallbackProviderConnectionId,
     lorebooks,
-    now,
+    personas,
+    providerConnections,
     thread,
+  });
+  const request = createMessengerGenerationRequest({
+    context,
+    id: createId("messenger-generation-request"),
+    now,
     userMessage,
   });
   const response = await generateMessengerResponse(request, runtime.mode);
-  const generatedMessages = response.messages
-    .map((messageDraft) => {
-      const companion = companions.find(
-        (candidate) => candidate.id === messageDraft.characterId,
+  const droppedDraftWarnings: string[] = [];
+  const generatedMessages = response.messages.flatMap((messageDraft) => {
+    const companion = context.companions.find(
+      (candidate) => candidate.id === messageDraft.characterId,
+    );
+    if (!companion) {
+      droppedDraftWarnings.push(
+        `Generation response referenced an unavailable companion: ${messageDraft.characterId}.`,
       );
-      if (!companion) return null;
+      return [];
+    }
 
-      return createGeneratedCompanionMessage({
+    return [
+      createGeneratedCompanionMessage({
         body: messageDraft.body,
         companion,
         id: createId("messenger-message"),
         now: response.createdAt,
         thread,
-      });
-    })
-    .filter((message): message is MessengerMessage => message !== null);
+      }),
+    ];
+  });
 
   return {
     thread:
@@ -137,6 +155,6 @@ export async function generateMessengerThreadReply({
     generatedMessages,
     runtimeMode: runtime.mode,
     runtimeLabel: runtime.label,
-    warnings: response.warnings,
+    warnings: [...context.warnings, ...response.warnings, ...droppedDraftWarnings],
   };
 }

@@ -30,7 +30,7 @@ Build in this order unless the user explicitly redirects:
 
 1. Harden native catalog records and CRUD.
 2. Harden Messenger thread configuration using those records.
-3. Generation request assembly from real selected records.
+3. Harden generation request assembly from real selected records.
 4. Remote runtime command contract and test fixture.
 5. Storage/export/import for DeKoi-native records.
 6. Classic first slice.
@@ -116,6 +116,10 @@ Acceptance:
 Goal: generated replies should use selected thread records, not hard-coded sample
 records.
 
+Status: initial generation context assembly is implemented in the engine. The
+runtime now resolves selected companions, persona, lorebooks, and provider
+connection from stored catalogs before creating the provider-neutral request.
+
 Current files:
 
 - `src/engine/messenger-generation.ts`
@@ -125,11 +129,11 @@ Current files:
 
 Implementation:
 
-- Resolve thread character IDs, active persona ID, lorebook IDs, and provider
-  connection ID from stored catalogs.
+- Continue hardening resolution of thread character IDs, active persona ID,
+  lorebook IDs, and provider connection ID from stored catalogs.
 - Keep React components out of prompt/context assembly.
-- Add a deterministic context builder in `src/engine/messenger-generation.ts`
-  or a focused neighbor module.
+- Keep the deterministic context builder in `src/engine/messenger-generation.ts`
+  focused on native records and missing-reference warnings.
 - Keep mock generation deterministic and useful for testing.
 - Remote generation must continue to send the provider-neutral
   `MessengerGenerationRequest`.
