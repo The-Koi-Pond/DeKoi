@@ -12,6 +12,7 @@ import { MESSENGER } from "../../engine/surfaces";
 import {
   appendMessengerMessages,
   createPersonaMessengerMessage,
+  setMessengerThreadProviderConnection,
 } from "../../engine/messenger-actions";
 import {
   sampleCompanions,
@@ -20,6 +21,7 @@ import {
 } from "../../engine/sample-messenger";
 import {
   generateMessengerThreadReply,
+  getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime/messenger-generation";
 import "./messenger-thread.css";
@@ -87,13 +89,12 @@ export function MessengerThread() {
         : nav.messengerStorageStatus === "error"
           ? "Local fallback"
           : "Saved locally";
-  const generationRuntime = selectMessengerGenerationRuntime(
-    nav.appSettings.messengerGenerationMode,
-  );
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
       nav.appSettings.activeMessengerConnectionId,
   );
+  const generationMode = getMessengerGenerationModeForConnection(threadConnection);
+  const generationRuntime = selectMessengerGenerationRuntime(generationMode);
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -109,15 +110,22 @@ export function MessengerThread() {
     if (!trimmedDraft) return false;
 
     const sentAt = new Date().toISOString();
+    const threadForSend = messengerThread.providerConnectionId
+      ? messengerThread
+      : setMessengerThreadProviderConnection(
+          messengerThread,
+          threadConnection.id,
+          sentAt,
+        );
     const userMessage = createPersonaMessengerMessage({
       body: trimmedDraft,
       id: createLocalId("messenger-message"),
       now: sentAt,
       persona: samplePersona,
-      thread: messengerThread,
+      thread: threadForSend,
     });
     const threadWithUserMessage = appendMessengerMessages(
-      messengerThread,
+      threadForSend,
       [userMessage],
       sentAt,
     );
@@ -137,7 +145,7 @@ export function MessengerThread() {
         companions: threadCompanions,
         createId: createLocalId,
         lorebooks: [sampleLorebook],
-        mode: nav.appSettings.messengerGenerationMode,
+        mode: generationMode,
         now: sentAt,
         thread: threadWithUserMessage,
         userMessage,

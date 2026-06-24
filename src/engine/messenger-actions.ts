@@ -64,6 +64,18 @@ export function renameMessengerThread(thread: MessengerThread, title: string, up
   }
 }
 
+export function setMessengerThreadProviderConnection(
+  thread: MessengerThread,
+  providerConnectionId: string | null,
+  updatedAt: string,
+): MessengerThread {
+  return {
+    ...thread,
+    providerConnectionId,
+    updatedAt,
+  }
+}
+
 export function createPersonaMessengerMessage({
   body,
   id,

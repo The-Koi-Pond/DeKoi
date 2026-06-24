@@ -19,7 +19,10 @@ import type { ProviderConnectionId } from "./engine/provider-connection";
 import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
-import type { MessengerGenerationRuntimeMode } from "./runtime/messenger-generation";
+import {
+  getMessengerGenerationModeForConnectionId,
+  type MessengerGenerationRuntimeMode,
+} from "./runtime/messenger-generation";
 import {
   loadAppSettings,
   normalizeSurfaceStatus,
@@ -232,6 +235,9 @@ export default function App() {
       setAppSettings((currentSettings) => ({
         ...currentSettings,
         activeMessengerConnectionId,
+        messengerGenerationMode: getMessengerGenerationModeForConnectionId(
+          activeMessengerConnectionId,
+        ),
       }));
     },
     [],
