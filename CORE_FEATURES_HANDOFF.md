@@ -32,7 +32,7 @@ Build in this order unless the user explicitly redirects:
 2. Harden Messenger thread configuration using those records.
 3. Harden generation request assembly from real selected records.
 4. Harden remote runtime command contract and test fixture.
-5. Storage/export/import for DeKoi-native records.
+5. Harden storage/export/import for DeKoi-native records.
 6. Classic first slice.
 7. Legacy import adapters.
 8. Tauri/Rust host features.
@@ -178,12 +178,16 @@ Acceptance:
 
 Goal: users can move data between devices without a hidden browser-only trap.
 
+Status: initial DeKoi-native JSON export/import is implemented in Pond Care >
+Stocking. Import validates schema version, previews counts, and requires
+explicit replacement confirmation.
+
 Implementation:
 
-- Define a DeKoi export bundle containing native records:
+- Continue hardening the DeKoi export bundle containing native records:
   characters, personas, lorebooks, provider connections without secrets,
   Messenger threads, and app settings.
-- Add export/import JSON actions in Pond Care or a new Stocking tab.
+- Keep export/import JSON actions in Pond Care > Stocking.
 - Keep legacy import separate from native import.
 - Validate schema versions on import.
 

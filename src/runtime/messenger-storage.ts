@@ -59,7 +59,7 @@ function normalizeMessengerMessage(value: unknown, threadId: string): MessengerM
   } as MessengerMessage;
 }
 
-function normalizeMessengerThread(value: unknown): MessengerThread | null {
+export function normalizeMessengerThread(value: unknown): MessengerThread | null {
   if (!value || typeof value !== "object") return null;
 
   const candidate = value as Partial<MessengerThread> & { kind?: unknown };
@@ -91,7 +91,7 @@ function normalizeMessengerThread(value: unknown): MessengerThread | null {
   return null;
 }
 
-function normalizeMessengerThreads(value: unknown): MessengerThread[] {
+export function normalizeMessengerThreads(value: unknown): MessengerThread[] {
   if (!Array.isArray(value)) return [];
   return value
     .map(normalizeMessengerThread)

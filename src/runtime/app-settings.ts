@@ -57,6 +57,31 @@ export function normalizeSurfaceStatus(value: string) {
   return value.slice(0, MAX_SURFACE_STATUS_LENGTH);
 }
 
+export function normalizeAppSettings(value: unknown): AppSettings {
+  const parsed =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Partial<AppSettings>)
+      : {};
+
+  return {
+    sendOnEnterSurface: isSurfaceId(parsed.sendOnEnterSurface)
+      ? parsed.sendOnEnterSurface
+      : DEFAULT_APP_SETTINGS.sendOnEnterSurface,
+    confirmRelease:
+      typeof parsed.confirmRelease === "boolean"
+        ? parsed.confirmRelease
+        : DEFAULT_APP_SETTINGS.confirmRelease,
+    surfaceStatus:
+      typeof parsed.surfaceStatus === "string"
+        ? normalizeSurfaceStatus(parsed.surfaceStatus)
+        : DEFAULT_APP_SETTINGS.surfaceStatus,
+    shoalSortMode: isShoalSortMode(parsed.shoalSortMode)
+      ? parsed.shoalSortMode
+      : DEFAULT_APP_SETTINGS.shoalSortMode,
+    activeMessengerConnectionId: migrateLegacyConnectionId(parsed),
+  };
+}
+
 export function loadAppSettings(): AppSettings {
   if (!hasLocalStorage()) return DEFAULT_APP_SETTINGS;
 
@@ -64,24 +89,7 @@ export function loadAppSettings(): AppSettings {
   if (!storedSettings) return DEFAULT_APP_SETTINGS;
 
   try {
-    const parsed = JSON.parse(storedSettings) as Partial<AppSettings>;
-    return {
-      sendOnEnterSurface: isSurfaceId(parsed.sendOnEnterSurface)
-        ? parsed.sendOnEnterSurface
-        : DEFAULT_APP_SETTINGS.sendOnEnterSurface,
-      confirmRelease:
-        typeof parsed.confirmRelease === "boolean"
-          ? parsed.confirmRelease
-          : DEFAULT_APP_SETTINGS.confirmRelease,
-      surfaceStatus:
-        typeof parsed.surfaceStatus === "string"
-          ? normalizeSurfaceStatus(parsed.surfaceStatus)
-          : DEFAULT_APP_SETTINGS.surfaceStatus,
-      shoalSortMode: isShoalSortMode(parsed.shoalSortMode)
-        ? parsed.shoalSortMode
-        : DEFAULT_APP_SETTINGS.shoalSortMode,
-      activeMessengerConnectionId: migrateLegacyConnectionId(parsed),
-    };
+    return normalizeAppSettings(JSON.parse(storedSettings));
   } catch {
     return DEFAULT_APP_SETTINGS;
   }

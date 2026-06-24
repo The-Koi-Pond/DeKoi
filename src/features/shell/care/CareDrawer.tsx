@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import type { NavContextType } from "../../../shared/ui/nav-context";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
@@ -11,6 +11,12 @@ import type {
   ProviderConnectionKind,
   ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
+import {
+  getDeKoiStorageBundleCounts,
+  normalizeDeKoiStorageBundle,
+  type DeKoiStorageBundleCounts,
+  type DeKoiStorageBundlePreview,
+} from "../../../runtime/dekoi-storage-bundle";
 import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
@@ -171,7 +177,19 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   );
   const [connectionDraft, setConnectionDraft] =
     useState<ProviderConnectionDraft>(EMPTY_CONNECTION_DRAFT);
+  const [bundlePreview, setBundlePreview] =
+    useState<DeKoiStorageBundlePreview | null>(null);
+  const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
+  const [bundleStatus, setBundleStatus] = useState("");
   const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
+  const currentBundleCounts = getDeKoiStorageBundleCounts({
+    appSettings: nav.appSettings,
+    characters: nav.characters,
+    lorebooks: nav.lorebooks,
+    messengerThreads: nav.messengerThreads,
+    personas: nav.personas,
+    providerConnections: nav.providerConnections,
+  });
 
   function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -330,6 +348,177 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   function removeConnection(connectionId: string) {
     nav.deleteProviderConnection(connectionId);
     if (editingConnectionId === connectionId) resetConnectionDraft();
+  }
+
+  function getBundleFilename() {
+    return `dekoi-bundle-${new Date().toISOString().slice(0, 10)}.json`;
+  }
+
+  function handleBundleExport() {
+    const bundle = nav.createStorageBundle();
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = getBundleFilename();
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    setBundleStatus("Exported a DeKoi JSON bundle.");
+  }
+
+  async function handleBundleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    setBundleStatus("");
+    setBundlePreview(null);
+    setBundleReplaceConfirmed(false);
+
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const result = normalizeDeKoiStorageBundle(parsed);
+      if (!result.ok) {
+        setBundleStatus(result.error);
+        return;
+      }
+
+      setBundlePreview(result.preview);
+      setBundleStatus(`Previewing ${file.name}.`);
+    } catch {
+      setBundleStatus("Import file must be valid JSON.");
+    } finally {
+      input.value = "";
+    }
+  }
+
+  function handleBundleImport() {
+    if (!bundlePreview) return;
+    if (!bundleReplaceConfirmed) {
+      setBundleStatus("Confirm replacement before importing.");
+      return;
+    }
+
+    nav.importStorageBundle(bundlePreview.bundle);
+    setBundleStatus("Imported DeKoi bundle.");
+    setBundlePreview(null);
+    setBundleReplaceConfirmed(false);
+  }
+
+  function renderBundleCounts(counts: DeKoiStorageBundleCounts) {
+    return (
+      <div className="bundle-counts">
+        <span>
+          <b>{counts.characters}</b> companions
+        </span>
+        <span>
+          <b>{counts.personas}</b> personas
+        </span>
+        <span>
+          <b>{counts.lorebooks}</b> lorebooks
+        </span>
+        <span>
+          <b>{counts.lorebookEntries}</b> lore entries
+        </span>
+        <span>
+          <b>{counts.providerConnections}</b> connections
+        </span>
+        <span>
+          <b>{counts.messengerThreads}</b> threads
+        </span>
+        <span>
+          <b>{counts.messengerMessages}</b> messages
+        </span>
+      </div>
+    );
+  }
+
+  function renderStockingTools() {
+    return (
+      <div className="bundle-panel">
+        <p className="care-intro">
+          Export and import DeKoi-native records as a readable JSON bundle.
+        </p>
+
+        <section className="bundle-section" aria-labelledby="bundle-export">
+          <div className="catalog-section-head">
+            <div>
+              <h3 id="bundle-export">Export</h3>
+              <span>current pond</span>
+            </div>
+            <button type="button" onClick={handleBundleExport}>
+              Export JSON
+            </button>
+          </div>
+          {renderBundleCounts(currentBundleCounts)}
+          <p className="bundle-note">
+            Remote Runtime URL and credentials are not included.
+          </p>
+        </section>
+
+        <section className="bundle-section" aria-labelledby="bundle-import">
+          <div className="catalog-section-head">
+            <div>
+              <h3 id="bundle-import">Import</h3>
+              <span>replace current records</span>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="dekoi-bundle-file">DeKoi JSON bundle</label>
+            <input
+              className="pondinput"
+              id="dekoi-bundle-file"
+              type="file"
+              accept="application/json,.json"
+              onChange={handleBundleFileChange}
+            />
+            <div className="help">
+              Import previews counts before anything is changed.
+            </div>
+          </div>
+
+          {bundlePreview && (
+            <div className="bundle-preview">
+              <b>Import preview</b>
+              {renderBundleCounts(bundlePreview.counts)}
+              {bundlePreview.warnings.length > 0 && (
+                <div className="bundle-warnings">
+                  {bundlePreview.warnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
+                </div>
+              )}
+              <label className="catalog-check bundle-confirm">
+                <input
+                  type="checkbox"
+                  checked={bundleReplaceConfirmed}
+                  onChange={(event) =>
+                    setBundleReplaceConfirmed(event.target.checked)
+                  }
+                />
+                Replace current DeKoi records with this bundle
+              </label>
+            </div>
+          )}
+
+          {bundleStatus && <p className="bundle-status">{bundleStatus}</p>}
+
+          <div className="runtime-actions">
+            <button
+              type="button"
+              disabled={!bundlePreview || !bundleReplaceConfirmed}
+              onClick={handleBundleImport}
+            >
+              Import bundle
+            </button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   function renderCatalogManager() {
@@ -931,6 +1120,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </>
           ) : nav.careTab === 4 ? (
             renderCatalogManager()
+          ) : nav.careTab === 5 ? (
+            renderStockingTools()
           ) : nav.careTab === 7 ? (
             <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
               <p className="care-intro">

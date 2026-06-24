@@ -51,6 +51,10 @@ import {
   type ShoalSortMode,
 } from "./runtime/app-settings";
 import {
+  createDeKoiStorageBundle,
+  type DeKoiStorageBundle,
+} from "./runtime/dekoi-storage-bundle";
+import {
   loadInitialMessengerThreads,
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
@@ -545,6 +549,53 @@ export default function App() {
     [view],
   );
 
+  const createStorageBundle = useCallback(
+    () =>
+      createDeKoiStorageBundle({
+        appSettings,
+        characters,
+        lorebooks,
+        messengerThreads,
+        personas,
+        providerConnections,
+      }),
+    [
+      appSettings,
+      characters,
+      lorebooks,
+      messengerThreads,
+      personas,
+      providerConnections,
+    ],
+  );
+
+  const importStorageBundle = useCallback(
+    (bundle: DeKoiStorageBundle) => {
+      const importedConnections = bundle.data.providerConnections;
+      const importedSettings = { ...bundle.data.appSettings };
+      const hasActiveConnection = importedConnections.some(
+        (connection) => connection.id === importedSettings.activeMessengerConnectionId,
+      );
+      const fallbackConnection = importedConnections[0] ?? providerConnections[0];
+
+      if (!hasActiveConnection && fallbackConnection) {
+        importedSettings.activeMessengerConnectionId = fallbackConnection.id;
+      }
+
+      setCharacters(bundle.data.characters);
+      setPersonas(bundle.data.personas);
+      setLorebooks(bundle.data.lorebooks);
+      setProviderConnections(importedConnections);
+      setMessengerThreads(bundle.data.messengerThreads);
+      setAppSettings(importedSettings);
+      setMessengerStorageStatus("saving");
+      setMessengerStorageMessage("Imported DeKoi bundle. Saving...");
+      setSelectedSurface(MESSENGER);
+      setView({ kind: "pond" });
+    },
+    [providerConnections],
+  );
+
   const setRemoteRuntimeUrl = useCallback((url: string) => {
     writeRemoteRuntimeUrl(url);
     setStorageReady(false);
@@ -633,6 +684,8 @@ export default function App() {
     clearMessengerThreadMessages,
     deleteMessengerThread,
     openMessengerThread,
+    createStorageBundle,
+    importStorageBundle,
     setRemoteRuntimeUrl,
     setSendOnEnterSurface,
     setConfirmRelease,
