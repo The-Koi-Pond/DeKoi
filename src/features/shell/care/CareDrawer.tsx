@@ -19,16 +19,22 @@ import {
 } from "../../../runtime/dekoi-storage-bundle";
 import {
   checkDesktopHostStatus,
-  deleteDesktopProviderSecret,
-  exportDesktopBundleFile,
-  getDesktopProviderSecretStatus,
-  importDesktopBundleFile,
-  readDesktopStorageBundle,
-  writeDesktopProviderSecret,
-  writeDesktopStorageBundle,
-  type DeKoiDesktopProviderSecretStatus,
   type DeKoiDesktopHostStatus,
-} from "../../../runtime/desktop-host";
+} from "../../../runtime/desktop-host-status";
+import {
+  exportDesktopBundleFile,
+  importDesktopBundleFile,
+} from "../../../runtime/desktop-bundle-file";
+import {
+  deleteDesktopProviderSecret,
+  getDesktopProviderSecretStatus,
+  writeDesktopProviderSecret,
+  type DeKoiDesktopProviderSecretStatus,
+} from "../../../runtime/desktop-provider-secrets";
+import {
+  readDesktopStorageBundle,
+  writeDesktopStorageBundle,
+} from "../../../runtime/desktop-storage-bundle";
 import { DESKTOP_RUNTIME_URL } from "../../../runtime/runtime-target";
 import {
   normalizeLegacyImport,

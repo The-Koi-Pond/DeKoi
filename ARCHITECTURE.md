@@ -107,7 +107,8 @@ The short version:
   surfaces.
 - `src/runtime/*` adapts native records to desktop storage, remote storage,
   DeKoi bundle import/export, and generation runtimes. Runtime command names,
-  target URL handling, and health result types have narrow owner modules.
+  target URL handling, health result types, and desktop host capability wrappers
+  have narrow owner modules.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
   status, and the desktop runtime bridge.
