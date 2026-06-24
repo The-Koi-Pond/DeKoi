@@ -123,7 +123,20 @@ export function Bank() {
       >
         +
       </button>
-      <div className="me" title="Your koi" aria-label="Your koi profile">
+      <div
+        className="me"
+        title="Your personas"
+        aria-label="Your personas"
+        role="button"
+        tabIndex={0}
+        onClick={() => nav.setView({ kind: "personas" })}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            nav.setView({ kind: "personas" });
+          }
+        }}
+      >
         M
       </div>
     </nav>

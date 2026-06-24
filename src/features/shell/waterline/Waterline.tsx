@@ -88,8 +88,7 @@ export function Waterline() {
             <span>{activeLorebook?.entries.length ?? 0} entries</span>
           </div>
           <p>
-            {activeLorebook?.summary ||
-              "No lorebook entries are stocked yet."}
+            {activeLorebook?.summary || "No lorebook entries are stocked yet."}
           </p>
           <div className="panel-list">
             {activeLorebook?.entries.map((entry) => (
@@ -148,7 +147,9 @@ export function Waterline() {
                   }`}
                   aria-pressed={selected}
                   key={connection.id}
-                  onClick={() => nav.setActiveMessengerConnectionId(connection.id)}
+                  onClick={() =>
+                    nav.setActiveMessengerConnectionId(connection.id)
+                  }
                 >
                   <span className="connection-copy">
                     <b>{connection.label}</b>
@@ -181,7 +182,10 @@ export function Waterline() {
           <b>Media</b>
           <span>empty</span>
         </div>
-        <p>Sprites, backgrounds, audio, and generated assets will surface here once the media library is stocked.</p>
+        <p>
+          Sprites, backgrounds, audio, and generated assets will surface here
+          once the media library is stocked.
+        </p>
       </div>
     );
   }
@@ -254,20 +258,18 @@ export function Waterline() {
       </div>
       <div className="pebbles" onBlur={handleCatalogBlur}>
         <button
-          className={`pebble${activeCatalog === "lore" ? " on" : ""}`}
+          className="pebble"
           title="Lore library"
           aria-label="Lore library"
-          aria-expanded={activeCatalog === "lore"}
-          onClick={() => toggleCatalog("lore")}
+          onClick={() => nav.setView({ kind: "lorebooks" })}
         >
           ▤
         </button>
         <button
-          className={`pebble${activeCatalog === "companions" ? " on" : ""}`}
+          className="pebble"
           title="Companions"
           aria-label="Companions"
-          aria-expanded={activeCatalog === "companions"}
-          onClick={() => toggleCatalog("companions")}
+          onClick={() => nav.setView({ kind: "companions" })}
         >
           ⚇
         </button>

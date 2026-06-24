@@ -1,0 +1,343 @@
+/* Shared catalog surface styles for Companions, Personas, and Lorebooks */
+
+.catalog-surface::-webkit-scrollbar {
+    width: 9px;
+}
+
+.catalog-surface::-webkit-scrollbar-thumb {
+    background: var(--reed);
+    border-radius: 8px;
+}
+
+.catalog-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Back button in banner */
+.back-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--reed-soft);
+    border-radius: 999px;
+    color: var(--mist);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 11px;
+    padding: 4px 12px;
+    transition: 0.18s;
+}
+
+.back-btn:hover,
+.back-btn:focus-visible {
+    border-color: var(--jade);
+    color: var(--jade-hot);
+}
+
+/* Toolbar */
+.catalog-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--reed-soft);
+}
+
+.catalog-count {
+    color: var(--mist);
+    font-size: 12px;
+}
+
+.catalog-new-btn {
+    background: var(--shallow);
+    border: 1px solid var(--reed-soft);
+    border-radius: 999px;
+    color: var(--foam);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: 0.18s;
+}
+
+.catalog-new-btn:hover,
+.catalog-new-btn:focus-visible {
+    border-color: var(--jade);
+    color: var(--jade-hot);
+}
+
+/* Empty state */
+.catalog-empty {
+    color: var(--mist);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 24px 0;
+    text-align: center;
+}
+
+/* List */
+.catalog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+/* Card */
+.catalog-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--reed-soft);
+    border-radius: var(--r-sm);
+    background: rgba(255, 255, 255, 0.02);
+    transition: 0.18s;
+}
+
+.catalog-card:hover {
+    border-color: var(--reed);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.catalog-card.disabled {
+    opacity: 0.55;
+}
+
+.catalog-card-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.catalog-avatar {
+    width: 38px;
+    height: 38px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(244, 122, 53, 0.45);
+    border-radius: 50%;
+    background: rgba(244, 122, 53, 0.12);
+    color: var(--koi-hot);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.catalog-card-copy {
+    min-width: 0;
+}
+
+.catalog-card-copy b {
+    display: block;
+    color: var(--foam);
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-card-copy small {
+    display: block;
+    color: var(--mist-dim);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.catalog-card-summary {
+    display: block;
+    color: var(--mist);
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-card-actions {
+    display: flex;
+    gap: 4px;
+    flex: none;
+}
+
+.catalog-action {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    font-size: 13px;
+    transition: 0.15s;
+}
+
+.catalog-action:hover,
+.catalog-action:focus-visible {
+    border-color: var(--reed-soft);
+    background: var(--raise);
+    color: var(--foam);
+}
+
+.catalog-action.danger:hover,
+.catalog-action.danger:focus-visible {
+    border-color: rgba(244, 70, 70, 0.4);
+    background: rgba(244, 70, 70, 0.1);
+    color: #f55;
+}
+
+/* Editor panel */
+.catalog-editor {
+    padding: 18px;
+    border: 1px solid var(--reed);
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.03);
+    margin-top: 8px;
+}
+
+.catalog-editor-heading {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--foam);
+    margin-bottom: 16px;
+}
+
+.catalog-editor-field {
+    margin-bottom: 14px;
+}
+
+.catalog-editor-field label {
+    display: block;
+    color: var(--mist);
+    font-size: 11.5px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.catalog-editor-field .pondinput {
+    width: 100%;
+}
+
+.catalog-editor-field .pondtextarea {
+    resize: vertical;
+    font-family: var(--ui);
+    line-height: 1.5;
+}
+
+.catalog-editor-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.catalog-save-btn {
+    background: var(--shallow);
+    border: 1px solid var(--reed);
+    border-radius: 999px;
+    color: var(--foam);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 22px;
+    transition: 0.18s;
+}
+
+.catalog-save-btn:hover,
+.catalog-save-btn:focus-visible {
+    border-color: var(--jade);
+    color: var(--jade-hot);
+    background: rgba(39, 179, 170, 0.08);
+}
+
+.catalog-cancel-btn {
+    background: transparent;
+    border: 1px solid var(--reed-soft);
+    border-radius: 999px;
+    color: var(--mist);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 13px;
+    padding: 8px 22px;
+    transition: 0.18s;
+}
+
+.catalog-cancel-btn:hover,
+.catalog-cancel-btn:focus-visible {
+    border-color: var(--reed);
+    color: var(--foam);
+}
+
+/* Lorebook-specific: tab bar for lorebook selection */
+.lorebook-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--reed-soft);
+}
+
+.lorebook-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 13px;
+    border: 1px solid var(--reed-soft);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 12px;
+    transition: 0.18s;
+}
+
+.lorebook-tab:hover,
+.lorebook-tab:focus-visible {
+    border-color: var(--reed);
+    color: var(--foam);
+}
+
+.lorebook-tab.on {
+    border-color: var(--jade);
+    background: rgba(39, 179, 170, 0.08);
+    color: var(--jade-hot);
+    font-weight: 500;
+}
+
+.lorebook-entry-count {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--shallow);
+    color: var(--mist);
+}
+
+.lorebook-tab.on .lorebook-entry-count {
+    background: rgba(39, 179, 170, 0.15);
+    color: var(--jade-hot);
+}
+
+.lorebook-summary {
+    color: var(--mist);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+/* .lorebook-panel — content panel for the selected lorebook */

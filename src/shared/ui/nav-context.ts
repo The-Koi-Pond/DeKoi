@@ -29,7 +29,10 @@ import type {
 export type PondView =
   | { kind: "pond" }
   | { kind: "classic"; threadId: string }
-  | { kind: "messenger"; threadId: string };
+  | { kind: "messenger"; threadId: string }
+  | { kind: "companions" }
+  | { kind: "personas" }
+  | { kind: "lorebooks" };
 
 export interface NavState {
   view: PondView;

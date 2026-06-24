@@ -2,6 +2,9 @@ import type { NavContextType } from "../../shared/ui/nav-context";
 import { ClassicThread } from "../classic/ClassicThread";
 import { PondHome } from "./PondHome";
 import { MessengerThread } from "../messenger/MessengerThread";
+import { CompanionsSurface } from "../catalog/CompanionsSurface";
+import { PersonasSurface } from "../catalog/PersonasSurface";
+import { LorebooksSurface } from "../catalog/LorebooksSurface";
 import "./Pond.css";
 
 interface PondProps {
@@ -11,10 +14,15 @@ interface PondProps {
 export function Pond({ nav }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";
   const inClassic = nav.view.kind === "classic";
+  const inCompanions = nav.view.kind === "companions";
+  const inPersonas = nav.view.kind === "personas";
+  const inLorebooks = nav.view.kind === "lorebooks";
   const storagePhrase =
-    nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
+    nav.messengerStorageMode === "remote" &&
+    nav.messengerStorageStatus !== "error"
       ? "through the remote runtime"
-      : nav.messengerStorageMode === "desktop" && nav.messengerStorageStatus !== "error"
+      : nav.messengerStorageMode === "desktop" &&
+          nav.messengerStorageStatus !== "error"
         ? "through desktop host storage"
         : "only in this temporary session";
   // The banner copy is contextual: the "pick a koi" hint is for the Pond home;
@@ -23,7 +31,13 @@ export function Pond({ nav }: PondProps) {
     ? `Reading the water — your Messenger thread is saved ${storagePhrase} as you swim.`
     : inClassic
       ? "Classic scene current — write the scene, then generate the next turn through the shared runtime."
-    : "Cast a line to read the water — pick a koi from the Shoal to see its tracker.";
+      : "Cast a line to read the water — pick a koi from the Shoal to see its tracker.";
+
+  // Catalog surfaces render their own banner — only show the pond banner for
+  // pond home / messenger / classic views.
+  if (inCompanions) return <CompanionsSurface />;
+  if (inPersonas) return <PersonasSurface />;
+  if (inLorebooks) return <LorebooksSurface />;
 
   return (
     <main className="pond">
