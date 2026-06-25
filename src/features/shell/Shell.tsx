@@ -5,7 +5,7 @@ import { Shoal } from "./shoal/Shoal";
 import { Tide } from "./tide/Tide";
 import { useEffect } from "react";
 import { CareDrawer } from "./care/CareDrawer";
-import { Pond } from "../pond/Pond";
+import { Pond } from "./pond/Pond";
 import type { NavContextType } from "../navigation/nav-types";
 
 interface ShellProps {

@@ -1,13 +1,13 @@
-import type { NavContextType } from "../../navigation/nav-types";
+import type { NavContextType } from "../../../navigation/nav-types";
 import {
   CLASSIC,
   MESSENGER,
   RESERVED,
   SURFACES,
   type SurfaceId,
-} from "../../../engine/surfaces";
-import { sortClassicThreadsByUpdatedAt } from "../../modes/classic/classic-display";
-import { sortMessengerThreadsByUpdatedAt } from "../../modes/messenger/thread-display";
+} from "../../../../engine/surfaces";
+import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic/classic-display";
+import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger/thread-display";
 import "./pools.css";
 
 interface ModePoolsProps {

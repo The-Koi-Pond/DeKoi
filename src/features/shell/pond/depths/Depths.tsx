@@ -1,8 +1,8 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { RESERVED } from "../../../engine/surfaces";
-import type { NavContextType } from "../../navigation/nav-types";
-import { sortClassicThreadsByUpdatedAt } from "../../modes/classic/classic-display";
-import { sortMessengerThreadsByUpdatedAt } from "../../modes/messenger/thread-display";
+import { RESERVED } from "../../../../engine/surfaces";
+import type { NavContextType } from "../../../navigation/nav-types";
+import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic/classic-display";
+import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger/thread-display";
 import "./depths.css";
 
 type FeatureDepth = "Shallows" | "Deep" | "Murky" | "Surfacing soon";

@@ -120,7 +120,7 @@
               <td>Split typed transport wrappers into <code>src/shared/api</code> and shared frontend systems into <code>features/runtime</code>.</td>
             </tr>
             <tr>
-              <td><code>src/features/pond</code> and other current flat feature folders</td>
+              <td>Current flat feature folders outside <code>catalog</code>, <code>modes</code>, <code>navigation</code>, and <code>shell</code></td>
               <td>Current flat feature screens.</td>
               <td>Move mode surfaces under <code>features/modes</code> and shell surfaces under <code>features/shell</code>.</td>
             </tr>
@@ -179,7 +179,7 @@
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin.</li>
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too.</li>
-          <li>Move Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>.</li>
+          <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
           <li>Split current <code>src/runtime</code> into typed <code>src/shared/api</code> wrappers and <code>features/runtime</code> systems where appropriate.</li>
           <li>Deepen <code>features/catalog</code> into resource-owned packages as collections grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>

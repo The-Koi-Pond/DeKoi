@@ -1,10 +1,10 @@
-import type { NavContextType } from "../navigation/nav-types";
-import { ClassicThread } from "../modes/classic/ClassicThread";
+import type { NavContextType } from "../../navigation/nav-types";
+import { ClassicThread } from "../../modes/classic/ClassicThread";
 import { PondHome } from "./PondHome";
-import { MessengerThread } from "../modes/messenger/MessengerThread";
-import { CompanionsSurface } from "../catalog/CompanionsSurface";
-import { PersonasSurface } from "../catalog/PersonasSurface";
-import { LorebooksSurface } from "../catalog/LorebooksSurface";
+import { MessengerThread } from "../../modes/messenger/MessengerThread";
+import { CompanionsSurface } from "../../catalog/CompanionsSurface";
+import { PersonasSurface } from "../../catalog/PersonasSurface";
+import { LorebooksSurface } from "../../catalog/LorebooksSurface";
 import "./Pond.css";
 
 interface PondProps {

@@ -1,11 +1,11 @@
-import { SURFACES } from "../../../engine/surfaces";
-import { useNav } from "../../navigation/nav-context";
+import { SURFACES } from "../../../../engine/surfaces";
+import { useNav } from "../../../navigation/nav-context";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   getMessengerThreadTimeLabel,
   sortMessengerThreadsByUpdatedAt,
-} from "../../modes/messenger/thread-display";
+} from "../../../modes/messenger/thread-display";
 import "./currents.css";
 
 export function RecentCurrents() {
