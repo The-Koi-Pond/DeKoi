@@ -6,6 +6,7 @@ import {
   type NavContextType,
 } from "./features/navigation/nav-context";
 import { useCharacterActions } from "./features/navigation/use-character-actions";
+import { useClassicThreadActions } from "./features/navigation/use-classic-thread-actions";
 import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
 import { usePersonaActions } from "./features/navigation/use-persona-actions";
 import { useProviderConnectionActions } from "./features/navigation/use-provider-connection-actions";
@@ -17,12 +18,6 @@ import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
 import type { ClassicThread } from "./engine/classic";
-import {
-  clearClassicEntries,
-  createClassicThread as buildClassicThread,
-  deleteClassicThread as deleteClassicThreadRecord,
-  renameClassicThread as renameClassicThreadRecord,
-} from "./engine/classic-actions";
 import type { MessengerThread } from "./engine/messenger";
 import {
   clearMessengerMessages,
@@ -222,87 +217,25 @@ export default function App() {
     setMessengerThreads,
   });
 
-  const createClassicThread = useCallback(() => {
-    const now = currentIsoTimestamp();
-    const activePersona = personas[0] ?? null;
-    const activeConnection =
-      providerConnections.find(
-        (connection) =>
-          connection.id === appSettings.activeMessengerConnectionId,
-      ) ??
-      providerConnections[0] ??
-      null;
-    const thread = buildClassicThread({
-      activePersonaId: activePersona?.id ?? null,
-      characterIds: characters.slice(0, 1).map((companion) => companion.id),
-      id: createRecordId("classic-thread"),
-      lorebookIds: lorebooks.map((lorebook) => lorebook.id),
-      now,
-      providerConnectionId: activeConnection?.id ?? null,
-      title: `New Classic ${classicThreads.length + 1}`,
-    });
-
-    setClassicThreads((currentThreads) => [thread, ...currentThreads]);
-    openClassicThread(thread.id);
-    return thread;
-  }, [
-    appSettings.activeMessengerConnectionId,
+  const {
+    createClassicThread,
+    updateClassicThread,
+    renameClassicThread,
+    clearClassicThreadEntries,
+    deleteClassicThread,
+  } = useClassicThreadActions({
+    activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
     characters,
-    classicThreads.length,
+    classicThreads,
     lorebooks,
-    openClassicThread,
     personas,
     providerConnections,
-  ]);
-
-  const updateClassicThread = useCallback((thread: ClassicThread) => {
-    setClassicThreads((currentThreads) =>
-      currentThreads.some((currentThread) => currentThread.id === thread.id)
-        ? currentThreads.map((currentThread) =>
-            currentThread.id === thread.id ? thread : currentThread,
-          )
-        : [thread, ...currentThreads],
-    );
-  }, []);
-
-  const renameClassicThread = useCallback((threadId: string, title: string) => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
-
-    const now = currentIsoTimestamp();
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.id === threadId
-          ? renameClassicThreadRecord(thread, trimmedTitle, now)
-          : thread,
-      ),
-    );
-  }, []);
-
-  const clearClassicThreadEntries = useCallback((threadId: string) => {
-    const now = currentIsoTimestamp();
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.id === threadId ? clearClassicEntries(thread, now) : thread,
-      ),
-    );
-  }, []);
-
-  const deleteClassicThread = useCallback(
-    (threadId: string) => {
-      setClassicThreads((currentThreads) =>
-        deleteClassicThreadRecord(currentThreads, threadId),
-      );
-      setRippleStates((currentStates) =>
-        deleteRippleStateForOwner(currentStates, "classic-thread", threadId),
-      );
-
-      if (view.kind === "classic" && view.threadId === threadId) {
-        setNavView({ kind: "pond" });
-      }
-    },
-    [setNavView, view],
-  );
+    setClassicThreads,
+    setRippleStates,
+    setView: setNavView,
+    view,
+    openClassicThread,
+  });
 
   const createMessengerThread = useCallback(() => {
     const now = currentIsoTimestamp();
