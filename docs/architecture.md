@@ -51,7 +51,7 @@ src-tauri/
 
 | Layer | Path | Owns | Must not own |
 | --- | --- | --- | --- |
-| App bootstrap bridge | `src/App.tsx`, `src/main.tsx` | Provider wiring and first render composition until `src/app` exists. | Product rules, storage adapters, or host I/O. |
+| App composition | `src/app`, `src/main.tsx` | Provider wiring and first render composition. | Product rules, storage adapters, or host I/O. |
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
 | Runtime adapter bridge | `src/runtime` | Storage contracts, desktop/remote runtime transport, import/export normalization, app settings, and generation adapters until wrappers move toward `src/shared/api` and `features/runtime`. | React features or UI orchestration. |
 | Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, and the navigation provider/controller until app providers and mode router boundaries exist. | Concrete feature screens or shell UI. |
@@ -70,10 +70,12 @@ pnpm check:frontend-boundaries
 The check currently enforces these rules:
 
 - `src/engine` must not import `src/runtime`, `src/features`, `src/shared`,
-  React, or Tauri packages.
-- `src/runtime` must not import `src/features` or React.
-- `src/shared` must not import `src/features`; generic shared code outside
-  `src/shared/api` also must not import engine or runtime adapter modules.
+  `src/app`, React, or Tauri packages.
+- `src/app` must not import runtime adapters or engine modules directly.
+- `src/runtime` must not import `src/app`, `src/features`, or React.
+- `src/shared` must not import `src/app` or `src/features`; generic shared code
+  outside `src/shared/api` also must not import engine or runtime adapter
+  modules.
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
 - `src/features/navigation` must not import sibling feature UI modules.
@@ -88,7 +90,8 @@ unsafe refactor in the same slice.
 
 Move toward the old De-Koi skeleton in small, validated slices:
 
-1. Create `src/app` and move provider/startup composition out of root files.
+1. Keep provider/startup composition in `src/app`; root entry files should stay
+   thin.
 2. Move `features/navigation` provider/controller code to app/provider or mode
    router ownership, keeping feature screens as consumers.
 3. Move Messenger and Classic screens under `features/modes`.

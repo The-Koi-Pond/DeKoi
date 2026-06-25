@@ -102,6 +102,7 @@ function describeImport(sourceFile, specifier, targetFile) {
 
 function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
   const failures = [];
+  const sourceIsApp = isUnder(sourceFile, "src/app");
   const sourceIsEngine = isUnder(sourceFile, "src/engine");
   const sourceIsRuntime = isUnder(sourceFile, "src/runtime");
   const sourceIsShared = isUnder(sourceFile, "src/shared");
@@ -125,18 +126,26 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
   if (
     sourceIsEngine &&
     (isUnder(targetFile, "src/runtime") ||
+      isUnder(targetFile, "src/app") ||
       isUnder(targetFile, "src/features") ||
       isUnder(targetFile, "src/shared"))
   ) {
-    failures.push("Engine modules must not import runtime, feature, or shared frontend modules.");
+    failures.push("Engine modules must not import app, runtime, feature, or shared frontend modules.");
   }
 
-  if (sourceIsRuntime && isUnder(targetFile, "src/features")) {
-    failures.push("Runtime adapters must not import React feature modules.");
+  if (
+    sourceIsApp &&
+    (isUnder(targetFile, "src/runtime") || isUnder(targetFile, "src/engine"))
+  ) {
+    failures.push("App composition must not import runtime adapters or engine modules directly.");
   }
 
-  if (sourceIsShared && isUnder(targetFile, "src/features")) {
-    failures.push("Shared modules must not import app feature modules.");
+  if (sourceIsRuntime && (isUnder(targetFile, "src/app") || isUnder(targetFile, "src/features"))) {
+    failures.push("Runtime adapters must not import app composition or React feature modules.");
+  }
+
+  if (sourceIsShared && (isUnder(targetFile, "src/app") || isUnder(targetFile, "src/features"))) {
+    failures.push("Shared modules must not import app composition or feature modules.");
   }
 
   if (
@@ -155,6 +164,10 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
         "Old-shape feature layer direction must be shell -> modes -> runtime -> catalog.",
       );
     }
+  }
+
+  if (sourceIsFeature && isUnder(targetFile, "src/app")) {
+    failures.push("Feature modules must not import app composition modules.");
   }
 
   if (

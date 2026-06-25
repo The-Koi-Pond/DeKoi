@@ -105,9 +105,9 @@
           </thead>
           <tbody>
             <tr>
-              <td><code>src/App.tsx</code>, <code>src/main.tsx</code></td>
+              <td><code>src/app</code>, <code>src/main.tsx</code></td>
               <td>Provider wiring and first render composition.</td>
-              <td>Move app composition into <code>src/app</code>.</td>
+              <td>Keep root entry files thin; app composition belongs in <code>src/app</code>.</td>
             </tr>
             <tr>
               <td><code>src/features/navigation</code></td>
@@ -144,15 +144,19 @@
           </thead>
           <tbody>
             <tr>
-              <td><code>src/engine</code> must not import runtime, features, shared frontend helpers, React, or Tauri packages.</td>
+              <td><code>src/engine</code> must not import app composition, runtime, features, shared frontend helpers, React, or Tauri packages.</td>
               <td>The engine must stay portable, testable, and free of storage or UI concerns.</td>
             </tr>
             <tr>
-              <td><code>src/runtime</code> must not import <code>src/features</code> or React.</td>
+              <td><code>src/app</code> must not import runtime adapters or engine modules directly.</td>
+              <td>App composition wires providers and screens; it does not become a product or persistence layer.</td>
+            </tr>
+            <tr>
+              <td><code>src/runtime</code> must not import <code>src/app</code>, <code>src/features</code>, or React.</td>
               <td>The bridge runtime exposes capability contracts; it does not call screens or hooks.</td>
             </tr>
             <tr>
-              <td><code>src/shared</code> must not import features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
+              <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
               <td>Shared helpers stay generic, while <code>shared/api</code> remains the typed runtime wrapper exception.</td>
             </tr>
             <tr>
@@ -172,7 +176,7 @@
 
         <h2>Migration Direction</h2>
         <ol>
-          <li>Create <code>src/app</code> and move provider/startup composition out of root files.</li>
+          <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin.</li>
           <li>Move navigation provider/controller ownership toward app providers and mode router boundaries.</li>
           <li>Move Messenger and Classic screens under <code>features/modes</code>.</li>
           <li>Move Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>.</li>
