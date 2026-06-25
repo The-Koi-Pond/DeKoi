@@ -176,6 +176,10 @@
               <td>Companions, personas, and lorebooks keep their internal components package-owned.</td>
             </tr>
             <tr>
+              <td>Catalog source files must live in resource or shared packages, not directly under <code>src/features/catalog</code>.</td>
+              <td>The catalog root stays a package namespace rather than an implementation folder.</td>
+            </tr>
+            <tr>
               <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> directly.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>

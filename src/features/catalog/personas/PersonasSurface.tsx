@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNav } from "../../navigation/nav-context";
 import type { PersonaRecordInput } from "../../../engine/persona-actions";
 import { DeleteButton } from "../shared/DeleteButton";
-import "../CatalogSurface.css";
+import "../shared/CatalogSurface.css";
 
 interface DraftState {
   displayName: string;

@@ -82,6 +82,8 @@ The check currently enforces these rules:
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
 - Catalog resource packages must be imported through their public entrypoints.
+- Catalog source files must live in resource or shared packages, not directly
+  under `src/features/catalog`.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
   bridge layer, and it must not import `src/runtime` directly.

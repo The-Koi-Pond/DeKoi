@@ -22,6 +22,10 @@ const allowedFeatureRoots = new Set([
   "navigation",
 ]);
 
+function isCatalogRootSourceFile(filePath) {
+  return /^src\/features\/catalog\/[^/]+\.[jt]sx?$/.test(filePath);
+}
+
 function toPosix(value) {
   return value.split(path.sep).join("/");
 }
@@ -235,6 +239,12 @@ for (const sourceFile of sourceFiles) {
   const featureRootMatch = sourceFile.match(/^src\/features\/([^/]+)/);
   if (featureRootMatch && !allowedFeatureRoots.has(featureRootMatch[1])) {
     unknownFeatureRoots.add(featureRootMatch[1]);
+  }
+
+  if (isCatalogRootSourceFile(sourceFile) && sourceFile !== "src/features/catalog/index.ts") {
+    failures.push(
+      `Catalog source files must live in resource or shared packages.\n  - ${sourceFile}`,
+    );
   }
 
   const source = fs.readFileSync(path.join(root, sourceFile), "utf8");

@@ -6,7 +6,7 @@ import type {
 } from "../../../engine/lorebook-actions";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { DeleteButton } from "../shared/DeleteButton";
-import "../CatalogSurface.css";
+import "../shared/CatalogSurface.css";
 
 interface DraftState {
   title: string;
