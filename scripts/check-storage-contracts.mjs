@@ -72,11 +72,12 @@ function parseDocumentedCollections(source) {
     throw new Error("Could not find Current Collections table in docs/storage-model.md.");
   }
 
-  return [...sectionMatch[1].matchAll(/^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|$/gm)].map(
+  return [...sectionMatch[1].matchAll(/^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|$/gm)].map(
     (match) => ({
       entity: match[1],
       ownerPath: match[2],
       recordName: match[3],
+      adapterPath: match[4],
     }),
   );
 }
@@ -92,6 +93,10 @@ function listDifference(left, right) {
 
 function formatList(values) {
   return values.length ? values.map((value) => `  - ${value}`).join("\n") : "  - none";
+}
+
+function findAliasForEntity(entity) {
+  return tsEntityAliases.find((alias) => alias.entity === entity)?.key ?? null;
 }
 
 const tsEntities = parseTypeScriptEntities(readFile(tsRegistryPath));
@@ -206,6 +211,33 @@ for (const collection of documentedCollections) {
   if (!new RegExp(`\\b${collection.recordName}\\b`).test(ownerSource)) {
     failures.push(
       `Documented record ${collection.recordName} was not found in ${collection.ownerPath}.`,
+    );
+  }
+
+  const adapterPath = path.join(root, collection.adapterPath);
+  if (!fs.existsSync(adapterPath)) {
+    failures.push(
+      `Documented runtime adapter does not exist for ${collection.entity}: ${collection.adapterPath}`,
+    );
+    continue;
+  }
+
+  const aliasKey = findAliasForEntity(collection.entity);
+  if (!aliasKey) {
+    failures.push(`Could not find STORAGE_ENTITIES alias for ${collection.entity}.`);
+    continue;
+  }
+
+  const adapterSource = readFile(adapterPath);
+  if (!/\bcreateHostStorageRepository\s*\(/.test(adapterSource)) {
+    failures.push(
+      `Documented runtime adapter must create a storage repository for ${collection.entity}: ${collection.adapterPath}`,
+    );
+  }
+
+  if (!new RegExp(`entity:\\s*STORAGE_ENTITIES\\.${aliasKey}\\b`).test(adapterSource)) {
+    failures.push(
+      `Documented runtime adapter ${collection.adapterPath} must use STORAGE_ENTITIES.${aliasKey}.`,
     );
   }
 }

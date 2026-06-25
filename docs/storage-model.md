@@ -28,16 +28,16 @@ adapters.
 
 ## Current Collections
 
-| Entity | Native owner | Record |
-| --- | --- | --- |
-| `app-settings` | `src/engine/app-settings.ts` | `AppSettings` |
-| `characters` | `src/engine/character.ts` | `CharacterRecord` |
-| `classic-threads` | `src/engine/classic.ts` | `ClassicThread` |
-| `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` |
-| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` |
-| `personas` | `src/engine/persona.ts` | `PersonaRecord` |
-| `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` |
-| `ripple-states` | `src/engine/ripples.ts` | `RippleState` |
+| Entity | Native owner | Record | Runtime adapter |
+| --- | --- | --- | --- |
+| `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/app-settings.ts` |
+| `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/character-storage.ts` |
+| `classic-threads` | `src/engine/classic.ts` | `ClassicThread` | `src/runtime/classic-storage.ts` |
+| `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/lorebook-storage.ts` |
+| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/messenger-storage.ts` |
+| `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/persona-storage.ts` |
+| `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/provider-connection-storage.ts` |
+| `ripple-states` | `src/engine/ripples.ts` | `RippleState` | `src/runtime/ripple-state-storage.ts` |
 
 ## Source Of Truth
 
@@ -67,7 +67,8 @@ pnpm check:storage-contracts
 
 The check fails if the TypeScript registry, TypeScript semantic alias map, Rust
 allowlist, or documented collection table drift. It also verifies each
-documented native owner file exists and names the documented record type.
+documented native owner file exists and names the documented record type, and
+that each documented runtime adapter uses the expected repository entity alias.
 
 ## Record Rules
 
