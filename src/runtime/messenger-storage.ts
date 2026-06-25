@@ -6,7 +6,7 @@ import {
   type HostStorageMode,
 } from "./host-storage";
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
-import { STORAGE_ENTITIES } from "./storage-entities";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 export type MessengerStorageMode = HostStorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";

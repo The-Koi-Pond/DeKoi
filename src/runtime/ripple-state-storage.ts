@@ -14,8 +14,8 @@ import {
   normalizeStorageRecordList,
   readString,
   readTimestamp,
-} from "./storage-json";
-import { STORAGE_ENTITIES } from "./storage-entities";
+} from "./storage/storage-json";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 export type RippleStateStorageMode = HostStorageMode;
 export type RippleStateStorageStatus = "ready" | "error";

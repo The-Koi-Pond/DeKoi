@@ -3,7 +3,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const tsRegistryPath = path.join(root, "src", "runtime", "storage-entities.ts");
+const tsRegistryPath = path.join(
+  root,
+  "src",
+  "runtime",
+  "storage",
+  "storage-entities.ts",
+);
 const runtimeIndexPath = path.join(root, "src", "runtime", "index.ts");
 const rustHostPath = path.join(root, "src-tauri", "src", "storage.rs");
 const storageDocsPath = path.join(root, "docs", "storage-model.md");
@@ -98,7 +104,7 @@ function parseDocumentedCollections(source) {
 function parseRuntimeStorageRepositoryExports(source) {
   return [
     ...source.matchAll(
-      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-repository";$/gm,
+      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage\/storage-repository";$/gm,
     ),
   ].flatMap((match) =>
     [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
@@ -108,7 +114,7 @@ function parseRuntimeStorageRepositoryExports(source) {
 function parseRuntimeStorageEntityExports(source) {
   return [
     ...source.matchAll(
-      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-entities";$/gm,
+      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage\/storage-entities";$/gm,
     ),
   ].flatMap((match) =>
     [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
@@ -118,7 +124,7 @@ function parseRuntimeStorageEntityExports(source) {
 function parseRuntimeStorageRepositoryValueExports(source) {
   return [
     ...source.matchAll(
-      /^export\s+\{([^}]*)\}\s+from\s+"\.\/storage-repository";$/gm,
+      /^export\s+\{([^}]*)\}\s+from\s+"\.\/storage\/storage-repository";$/gm,
     ),
   ].flatMap((match) =>
     [...match[1].matchAll(/\b[a-z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
@@ -217,7 +223,7 @@ const missingRuntimeStorageRepositoryExports = listDifference(
 );
 if (missingRuntimeStorageRepositoryExports.length > 0) {
   failures.push(
-    `Runtime public entrypoint must re-export storage repository contract types from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryExports)}`,
+    `Runtime public entrypoint must re-export storage repository contract types from ./storage/storage-repository:\n${formatList(missingRuntimeStorageRepositoryExports)}`,
   );
 }
 
@@ -227,7 +233,7 @@ const missingRuntimeStorageEntityExports = listDifference(
 );
 if (missingRuntimeStorageEntityExports.length > 0) {
   failures.push(
-    `Runtime public entrypoint must re-export storage entity types from ./storage-entities:\n${formatList(missingRuntimeStorageEntityExports)}`,
+    `Runtime public entrypoint must re-export storage entity types from ./storage/storage-entities:\n${formatList(missingRuntimeStorageEntityExports)}`,
   );
 }
 
@@ -237,7 +243,7 @@ const missingRuntimeStorageRepositoryValueExports = listDifference(
 );
 if (missingRuntimeStorageRepositoryValueExports.length > 0) {
   failures.push(
-    `Runtime public entrypoint must re-export storage repository helpers from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryValueExports)}`,
+    `Runtime public entrypoint must re-export storage repository helpers from ./storage/storage-repository:\n${formatList(missingRuntimeStorageRepositoryValueExports)}`,
   );
 }
 

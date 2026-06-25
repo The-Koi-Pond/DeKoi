@@ -7,7 +7,7 @@ import type { ProviderConnectionRecord } from "../engine/provider-connection";
 import type { RippleState } from "../engine/ripples";
 import type { AppSettings } from "../engine/app-settings";
 import { normalizeAppSettings } from "../engine/app-settings";
-import { isRecord, normalizeStorageRecordList } from "./storage-json";
+import { isRecord, normalizeStorageRecordList } from "./storage/storage-json";
 import { normalizeCharacterRecord } from "./character-storage";
 import { normalizeClassicThread } from "./classic-storage";
 import { normalizeLorebookRecord } from "./lorebook-storage";

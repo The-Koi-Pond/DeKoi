@@ -10,8 +10,8 @@ import {
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
 } from "../shared/api/runtime-target";
-import type { StorageEntity } from "./storage-entities";
-import { planStorageRecordSync } from "./storage-record-sync";
+import type { StorageEntity } from "./storage/storage-entities";
+import { planStorageRecordSync } from "./storage/storage-record-sync";
 import type {
   StorageCollectionRepository,
   StorageMode,
@@ -21,13 +21,13 @@ import type {
   StorageRepositoryInput,
   StorageResult,
   StorageStatus,
-} from "./storage-repository";
+} from "./storage/storage-repository";
 
 export type HostStorageMode = StorageMode;
 export type HostStorageStatus = StorageStatus;
 
 export type HostStorageResult = StorageResult;
-export { mergeStorageResults as mergeHostStorageResults } from "./storage-repository";
+export { mergeStorageResults as mergeHostStorageResults } from "./storage/storage-repository";
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";

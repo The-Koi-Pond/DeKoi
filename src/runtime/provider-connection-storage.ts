@@ -9,9 +9,9 @@ import {
   readNullableString,
   readString,
   readTimestamp,
-} from "./storage-json";
+} from "./storage/storage-json";
 import { createHostStorageRepository } from "./host-storage";
-import { STORAGE_ENTITIES } from "./storage-entities";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";

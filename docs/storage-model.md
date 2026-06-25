@@ -44,7 +44,7 @@ adapters.
 The frontend registry is the TypeScript source of truth for DeKoi storage entity
 names:
 
-- `src/runtime/storage-entities.ts`
+- `src/runtime/storage/storage-entities.ts`
 
 The public collection entity type is `StorageEntity`. `HostStorageEntity`
 remains a compatibility alias for host-backed storage code.
@@ -53,11 +53,11 @@ Runtime storage adapters live under `src/runtime`; durable product record shapes
 live under `src/engine`.
 
 Generic JSON reader helpers for storage/import normalization live in
-`src/runtime/storage-json.ts`. Product-specific normalization stays in the
+`src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
 owning runtime adapter for each collection.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
-`src/runtime/storage-repository.ts`, re-exported through the runtime public
+`src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
 entrypoint in `src/runtime/index.ts`. The current host-backed implementation
 lives in `src/runtime/host-storage.ts`. Future SQLite or database-backed storage
 should implement the same repository shape behind runtime adapters rather than

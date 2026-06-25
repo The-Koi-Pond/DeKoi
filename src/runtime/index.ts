@@ -41,8 +41,8 @@ export {
 export { loadPersonaRecords } from "./persona-storage";
 export { loadProviderConnectionRecords } from "./provider-connection-storage";
 export { loadRippleStates } from "./ripple-state-storage";
-export type { StorageEntity } from "./storage-entities";
-export { mergeStorageResults } from "./storage-repository";
+export type { StorageEntity } from "./storage/storage-entities";
+export { mergeStorageResults } from "./storage/storage-repository";
 export type {
   StorageCollectionRepository,
   StorageMode,
@@ -52,4 +52,4 @@ export type {
   StorageRepositoryInput,
   StorageResult,
   StorageStatus,
-} from "./storage-repository";
+} from "./storage/storage-repository";

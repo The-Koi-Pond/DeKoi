@@ -41,7 +41,7 @@ import {
 import {
   mergeStorageResults,
   type StorageResult,
-} from "./storage-repository";
+} from "./storage/storage-repository";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;

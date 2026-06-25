@@ -3,9 +3,9 @@ import {
   normalizeAppSettings,
   type AppSettings,
 } from "../engine/app-settings";
-import { isRecord, readString } from "./storage-json";
+import { isRecord, readString } from "./storage/storage-json";
 import { createHostStorageRepository } from "./host-storage";
-import { STORAGE_ENTITIES } from "./storage-entities";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 const APP_SETTINGS_RECORD_ID = "app-settings";
 

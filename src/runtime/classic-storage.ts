@@ -5,9 +5,9 @@ import {
   readString,
   readStringArray,
   readTimestamp,
-} from "./storage-json";
+} from "./storage/storage-json";
 import { createHostStorageRepository } from "./host-storage";
-import { STORAGE_ENTITIES } from "./storage-entities";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
   if (

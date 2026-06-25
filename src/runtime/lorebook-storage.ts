@@ -4,9 +4,9 @@ import {
   isRecord,
   readString,
   readTimestamp,
-} from "./storage-json";
+} from "./storage/storage-json";
 import { createHostStorageRepository } from "./host-storage";
-import { STORAGE_ENTITIES } from "./storage-entities";
+import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
   if (!isRecord(value)) return null;
