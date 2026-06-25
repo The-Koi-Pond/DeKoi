@@ -1,10 +1,6 @@
-import { useState, useCallback } from "react";
-import {
-  NavContext,
-  type PondView,
-  type SideRailView,
-  type NavContextType,
-} from "./features/navigation/nav-context";
+import { NavContext, type NavContextType } from "./features/navigation/nav-context";
+import { useAppState } from "./features/navigation/use-app-state";
+import { useCareDrawerActions } from "./features/navigation/use-care-drawer-actions";
 import { useCharacterActions } from "./features/navigation/use-character-actions";
 import { useClassicThreadActions } from "./features/navigation/use-classic-thread-actions";
 import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
@@ -16,57 +12,47 @@ import { useAppImportExportActions } from "./features/navigation/use-app-import-
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
 import { useViewActions } from "./features/navigation/use-view-actions";
-import { useEscapeKey } from "./shared/ui/use-escape-key";
-import type { ClassicThread } from "./engine/classic";
-import type { MessengerThread } from "./engine/messenger";
-import type { RippleState } from "./engine/ripples";
-import type { SurfaceId } from "./engine/surfaces";
-import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
-import { loadAppSettings, type AppSettings } from "./runtime/app-settings";
-import {
-  loadInitialMessengerThreads,
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
-} from "./runtime/messenger-storage";
-import { loadCharacterRecords } from "./runtime/character-storage";
-import { loadClassicThreads } from "./runtime/classic-storage";
-import { loadLorebookRecords } from "./runtime/lorebook-storage";
-import { loadPersonaRecords } from "./runtime/persona-storage";
-import { loadProviderConnectionRecords } from "./runtime/provider-connection-storage";
-import { loadRippleStates } from "./runtime/ripple-state-storage";
-import { readRemoteRuntimeUrl } from "./runtime/runtime-target";
 
 export default function App() {
-  const [view, setView] = useState<PondView>({ kind: "pond" });
-  const [sideRailView, setSideRailView] = useState<SideRailView>("shoal");
-  const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(MESSENGER);
-  const [characters, setCharacters] = useState(loadCharacterRecords);
-  const [personas, setPersonas] = useState(loadPersonaRecords);
-  const [lorebooks, setLorebooks] = useState(loadLorebookRecords);
-  const [providerConnections, setProviderConnections] = useState(
-    loadProviderConnectionRecords,
-  );
-  const [classicThreads, setClassicThreads] =
-    useState<ClassicThread[]>(loadClassicThreads);
-  const [messengerThreads, setMessengerThreads] = useState<MessengerThread[]>(
-    loadInitialMessengerThreads,
-  );
-  const [rippleStates, setRippleStates] =
-    useState<RippleState[]>(loadRippleStates);
-  const [messengerStorageMode, setMessengerStorageMode] =
-    useState<MessengerStorageMode>("unavailable");
-  const [messengerStorageStatus, setMessengerStorageStatus] =
-    useState<MessengerStorageStatus>("loading");
-  const [messengerStorageMessage, setMessengerStorageMessage] = useState(
-    "Loading Messenger storage.",
-  );
-  const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
-    useState(readRemoteRuntimeUrl);
-  const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
-  const [storageReady, setStorageReady] = useState(false);
-  const [careOpen, setCareOpen] = useState(false);
-  const [careTab, setCareTab] = useState(0);
+  const {
+    view,
+    setView,
+    sideRailView,
+    setSideRailView,
+    selectedSurface,
+    setSelectedSurface,
+    characters,
+    setCharacters,
+    personas,
+    setPersonas,
+    lorebooks,
+    setLorebooks,
+    providerConnections,
+    setProviderConnections,
+    classicThreads,
+    setClassicThreads,
+    messengerThreads,
+    setMessengerThreads,
+    rippleStates,
+    setRippleStates,
+    messengerStorageMode,
+    setMessengerStorageMode,
+    messengerStorageStatus,
+    setMessengerStorageStatus,
+    messengerStorageMessage,
+    setMessengerStorageMessage,
+    remoteRuntimeUrl,
+    setRemoteRuntimeUrlState,
+    appSettings,
+    setAppSettings,
+    storageReady,
+    setStorageReady,
+    careOpen,
+    setCareOpen,
+    careTab,
+    setCareTab,
+  } = useAppState();
 
   const {
     setView: setNavView,
@@ -148,8 +134,12 @@ export default function App() {
     setView: setNavView,
   });
 
-  const closeCareDrawer = useCallback(() => setCareOpen(false), []);
-  useEscapeKey(careOpen, closeCareDrawer);
+  const { setCareOpen: setNavCareOpen, setCareTab: setNavCareTab } =
+    useCareDrawerActions({
+      careOpen,
+      setCareOpen,
+      setCareTab,
+    });
 
   const {
     createCharacter,
@@ -320,8 +310,8 @@ export default function App() {
     setSurfaceStatus,
     setShoalSortMode,
     setActiveMessengerConnectionId,
-    setCareOpen: useCallback((o: boolean) => setCareOpen(o), []),
-    setCareTab: useCallback((t: number) => setCareTab(t), []),
+    setCareOpen: setNavCareOpen,
+    setCareTab: setNavCareTab,
   };
 
   return (
