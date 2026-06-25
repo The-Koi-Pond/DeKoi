@@ -43,7 +43,7 @@ export function Shell({ nav }: ShellProps) {
   }, [nav.appSettings]);
 
   return (
-    <div className="app">
+    <div className={`app${nav.careOpen ? " care-open" : ""}`}>
       <KoiSprite />
       <div className="caustics" aria-hidden="true" />
       <div className="caustics b" aria-hidden="true" />

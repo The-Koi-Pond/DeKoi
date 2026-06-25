@@ -123,12 +123,17 @@ body {
   z-index: 1;
   height: 100vh;
   display: grid;
-  grid-template-columns: 80px minmax(264px, 300px) 1fr;
+  grid-template-columns: 80px minmax(264px, 300px) minmax(0, 1fr) 0;
   grid-template-rows: 54px 1fr 46px;
   grid-template-areas:
-    "waterline waterline waterline"
-    "bank      shoal     pond"
-    "tide      tide      tide";
+    "waterline waterline waterline waterline"
+    "bank      shoal     pond      care"
+    "tide      tide      tide      tide";
+  transition: grid-template-columns 0.34s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.app.care-open {
+  grid-template-columns: 80px minmax(264px, 300px) minmax(0, 1fr) clamp(360px, 30vw, 430px);
 }
 
 .app::after {
@@ -141,7 +146,11 @@ body {
 }
 
 .app.shoal-closed {
-  grid-template-columns: 80px 0 1fr;
+  grid-template-columns: 80px 0 minmax(0, 1fr) 0;
+}
+
+.app.shoal-closed.care-open {
+  grid-template-columns: 80px 0 minmax(0, 1fr) clamp(360px, 30vw, 430px);
 }
 
 /* ---- scrollbar ---- */

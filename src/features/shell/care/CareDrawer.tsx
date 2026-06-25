@@ -954,17 +954,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   }
 
   return (
-    <>
-      <div
-        className={`scrim${open ? " open" : ""}`}
-        onClick={() => nav.setCareOpen(false)}
-        aria-hidden={open ? undefined : true}
-      />
-      <aside
-        className={`care${open ? " open" : ""}`}
-        aria-label="Pond Care"
-        aria-hidden={open ? undefined : true}
-      >
+    <aside
+      className={`care${open ? " open" : ""}`}
+      aria-label="Pond Care"
+      aria-hidden={open ? undefined : true}
+    >
         <div className="care-head">
           <div className="top">
             <img src="/koi-mark.svg" alt="" style={{ width: 26, height: 26 }} />
@@ -1436,7 +1430,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </>
           )}
         </div>
-      </aside>
-    </>
+    </aside>
   );
 }
