@@ -6,6 +6,7 @@ import {
   type NavContextType,
 } from "./features/navigation/nav-context";
 import { useCharacterActions } from "./features/navigation/use-character-actions";
+import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
 import { usePersonaActions } from "./features/navigation/use-persona-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
@@ -14,34 +15,19 @@ import { useViewActions } from "./features/navigation/use-view-actions";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
-import { removeCharacterLorebook } from "./engine/character-actions";
 import type { ClassicThread } from "./engine/classic";
 import {
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
-  removeClassicThreadLorebook,
   replaceClassicThreadProviderConnection,
   renameClassicThread as renameClassicThreadRecord,
 } from "./engine/classic-actions";
-import {
-  createLorebookEntryRecord,
-  createLorebookRecord,
-  deleteLorebookEntry,
-  deleteLorebookRecord,
-  duplicateLorebookEntryRecord,
-  updateLorebookEntryRecord,
-  updateLorebookRecord,
-  upsertLorebookEntry,
-  type LorebookEntryInput,
-  type LorebookInput,
-} from "./engine/lorebook-actions";
 import type { MessengerThread } from "./engine/messenger";
 import {
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
-  removeMessengerThreadLorebook,
   replaceMessengerThreadProviderConnection,
   renameMessengerThread as renameMessengerThreadRecord,
 } from "./engine/messenger-actions";
@@ -215,142 +201,21 @@ export default function App() {
     setMessengerThreads,
   });
 
-  const createLorebookEntry = useCallback(
-    (lorebookId: string, input: LorebookEntryInput) => {
-      if (!lorebooks.some((lorebook) => lorebook.id === lorebookId))
-        return null;
-
-      const now = currentIsoTimestamp();
-      const entry = createLorebookEntryRecord({
-        id: createRecordId("lore-entry"),
-        input,
-        now,
-      });
-
-      setLorebooks((currentLorebooks) =>
-        currentLorebooks.map((lorebook) => {
-          if (lorebook.id !== lorebookId) return lorebook;
-          return upsertLorebookEntry(lorebook, entry, now);
-        }),
-      );
-
-      return entry;
-    },
-    [lorebooks],
-  );
-
-  const updateLorebookEntry = useCallback(
-    (lorebookId: string, entryId: string, input: LorebookEntryInput) => {
-      const now = currentIsoTimestamp();
-      setLorebooks((currentLorebooks) =>
-        currentLorebooks.map((lorebook) => {
-          if (lorebook.id !== lorebookId) return lorebook;
-
-          const entry = lorebook.entries.find(
-            (currentEntry) => currentEntry.id === entryId,
-          );
-          if (!entry) return lorebook;
-
-          return upsertLorebookEntry(
-            lorebook,
-            updateLorebookEntryRecord(entry, input, now),
-            now,
-          );
-        }),
-      );
-    },
-    [],
-  );
-
-  const duplicateLorebookEntry = useCallback(
-    (lorebookId: string, entryId: string) => {
-      const lorebook = lorebooks.find(
-        (currentLorebook) => currentLorebook.id === lorebookId,
-      );
-      const entry = lorebook?.entries.find(
-        (currentEntry) => currentEntry.id === entryId,
-      );
-      if (!entry) return null;
-
-      const now = currentIsoTimestamp();
-      const duplicatedEntry = duplicateLorebookEntryRecord(
-        entry,
-        createRecordId("lore-entry"),
-        now,
-      );
-
-      setLorebooks((currentLorebooks) =>
-        currentLorebooks.map((lorebook) => {
-          if (lorebook.id !== lorebookId) return lorebook;
-          return upsertLorebookEntry(lorebook, duplicatedEntry, now);
-        }),
-      );
-
-      return duplicatedEntry;
-    },
-    [lorebooks],
-  );
-
-  const removeLorebookEntry = useCallback(
-    (lorebookId: string, entryId: string) => {
-      const now = currentIsoTimestamp();
-      setLorebooks((currentLorebooks) =>
-        currentLorebooks.map((lorebook) =>
-          lorebook.id === lorebookId
-            ? deleteLorebookEntry(lorebook, entryId, now)
-            : lorebook,
-        ),
-      );
-    },
-    [],
-  );
-
-  const createLorebook = useCallback((input: LorebookInput) => {
-    const now = currentIsoTimestamp();
-    const lorebook = createLorebookRecord({
-      id: createRecordId("lorebook"),
-      input,
-      now,
-    });
-    setLorebooks((currentLorebooks) => [lorebook, ...currentLorebooks]);
-    return lorebook;
-  }, []);
-
-  const updateLorebook = useCallback(
-    (lorebookId: string, input: LorebookInput) => {
-      const now = currentIsoTimestamp();
-      setLorebooks((currentLorebooks) =>
-        currentLorebooks.map((lorebook) =>
-          lorebook.id === lorebookId
-            ? updateLorebookRecord(lorebook, input, now)
-            : lorebook,
-        ),
-      );
-    },
-    [],
-  );
-
-  const deleteLorebook = useCallback((lorebookId: string) => {
-    const now = currentIsoTimestamp();
-    setLorebooks((currentLorebooks) =>
-      deleteLorebookRecord(currentLorebooks, lorebookId),
-    );
-    setCharacters((currentCharacters) =>
-      currentCharacters.map((character) =>
-        removeCharacterLorebook(character, lorebookId, now),
-      ),
-    );
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        removeMessengerThreadLorebook(thread, lorebookId, now),
-      ),
-    );
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        removeClassicThreadLorebook(thread, lorebookId, now),
-      ),
-    );
-  }, []);
+  const {
+    createLorebookEntry,
+    updateLorebookEntry,
+    duplicateLorebookEntry,
+    deleteLorebookEntry,
+    createLorebook,
+    updateLorebook,
+    deleteLorebook,
+  } = useLorebookActions({
+    lorebooks,
+    setLorebooks,
+    setCharacters,
+    setClassicThreads,
+    setMessengerThreads,
+  });
 
   const createProviderConnection = useCallback(
     (input: ProviderConnectionInput) => {
@@ -748,7 +613,7 @@ export default function App() {
     createLorebookEntry,
     updateLorebookEntry,
     duplicateLorebookEntry,
-    deleteLorebookEntry: removeLorebookEntry,
+    deleteLorebookEntry,
     createLorebook,
     updateLorebook,
     deleteLorebook,
