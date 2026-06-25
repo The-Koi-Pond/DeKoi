@@ -8,11 +8,9 @@ import {
   loadAppStorageSnapshot,
   saveAppStorageSnapshot,
   type AppStorageRecords,
-} from "../../runtime/app-storage-snapshot";
-import type {
-  MessengerStorageMode,
-  MessengerStorageStatus,
-} from "../../runtime/messenger-storage";
+  type MessengerStorageMode,
+  type MessengerStorageStatus,
+} from "../runtime/app-storage-workflows";
 import type { StateSetter } from "./state-setter";
 
 type UseAppStorageSyncInput = AppStorageRecords & {

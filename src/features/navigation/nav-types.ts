@@ -28,7 +28,7 @@ import type {
 import type {
   MessengerStorageMode,
   MessengerStorageStatus,
-} from "../../runtime/messenger-storage";
+} from "../runtime/app-storage-workflows";
 
 export type PondView =
   | { kind: "pond" }

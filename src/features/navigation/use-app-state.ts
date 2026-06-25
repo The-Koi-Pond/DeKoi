@@ -5,18 +5,18 @@ import type { RippleState } from "../../engine/ripples";
 import type { SurfaceId } from "../../engine/surfaces";
 import { MESSENGER } from "../../engine/surfaces";
 import type { AppSettings } from "../../engine/app-settings";
-import { loadAppSettings } from "../../runtime/app-settings";
-import { loadCharacterRecords } from "../../runtime/character-storage";
-import { loadClassicThreads } from "../../runtime/classic-storage";
-import { loadLorebookRecords } from "../../runtime/lorebook-storage";
 import {
+  loadAppSettings,
+  loadCharacterRecords,
+  loadClassicThreads,
   loadInitialMessengerThreads,
+  loadLorebookRecords,
+  loadPersonaRecords,
+  loadProviderConnectionRecords,
+  loadRippleStates,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../../runtime/messenger-storage";
-import { loadPersonaRecords } from "../../runtime/persona-storage";
-import { loadProviderConnectionRecords } from "../../runtime/provider-connection-storage";
-import { loadRippleStates } from "../../runtime/ripple-state-storage";
+} from "../runtime/app-storage-workflows";
 import { readRemoteRuntimeUrl } from "../../shared/api/runtime-target";
 import type { PondView, SideRailView } from "./nav-types";
 

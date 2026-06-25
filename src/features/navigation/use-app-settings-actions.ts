@@ -10,7 +10,7 @@ import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
 } from "../../shared/api/runtime-target";
-import type { MessengerStorageStatus } from "../../runtime/messenger-storage";
+import type { MessengerStorageStatus } from "../runtime/app-storage-workflows";
 import type { StateSetter } from "./state-setter";
 
 type UseAppSettingsActionsInput = {

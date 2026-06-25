@@ -172,12 +172,16 @@
               <td>Higher layers compose lower layers; lower resource/runtime layers do not depend on app screens.</td>
             </tr>
             <tr>
-              <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer.</td>
+              <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> directly.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>
             <tr>
               <td><code>src/features/runtime</code> is the only feature layer that may adapt the remaining <code>src/runtime</code> bridge.</td>
               <td>Shell, mode, and catalog modules route runtime-facing work through <code>features/runtime</code>.</td>
+            </tr>
+            <tr>
+              <td><code>src/features/runtime</code> workflows must stay React-free and must not import navigation orchestration.</td>
+              <td>Shared runtime workflows remain reusable below navigation, shell, and mode UI.</td>
             </tr>
           </tbody>
         </table>

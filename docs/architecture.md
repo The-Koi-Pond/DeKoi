@@ -83,10 +83,12 @@ The check currently enforces these rules:
   `shell -> modes -> runtime -> catalog`.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
-  bridge layer.
+  bridge layer, and it must not import `src/runtime` directly.
 - `src/features/runtime` is the only feature layer that may adapt the remaining
   `src/runtime` bridge. Shell, mode, and catalog modules must not import
   `src/runtime` directly.
+- `src/features/runtime` workflows must stay React-free and must not import
+  navigation orchestration.
 
 The feature-runtime exception exists only while storage and import/export
 adapters still live under `src/runtime`. Do not route shell or mode UI around

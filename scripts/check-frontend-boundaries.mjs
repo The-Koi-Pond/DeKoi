@@ -97,6 +97,7 @@ function checkImport(sourceFile, specifier, targetFile) {
   const sourceIsGenericShared = sourceIsShared && !sourceIsSharedApi;
   const sourceIsNavigation = isUnder(sourceFile, "src/features/navigation");
   const sourceIsFeature = isUnder(sourceFile, "src/features");
+  const sourceIsFeatureRuntime = isUnder(sourceFile, "src/features/runtime");
   const sourceIsNonNavigationFeature = sourceIsFeature && !sourceIsNavigation;
   const sourceFeatureLayer = getFeatureLayer(sourceFile);
 
@@ -110,6 +111,10 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   if (sourceIsRuntime && isTauriPackage(specifier)) {
     failures.push("Runtime adapters must use shared API wrappers for Tauri host checks.");
+  }
+
+  if (sourceIsFeatureRuntime && isReactPackage(specifier)) {
+    failures.push("Feature runtime workflows must stay React-free.");
   }
 
   if (!targetFile) return failures;
@@ -169,6 +174,10 @@ function checkImport(sourceFile, specifier, targetFile) {
     failures.push("Feature modules must not import app composition modules.");
   }
 
+  if (sourceIsFeatureRuntime && isUnder(targetFile, "src/features/navigation")) {
+    failures.push("Feature runtime workflows must not import navigation orchestration.");
+  }
+
   if (
     sourceIsNavigation &&
     isUnder(targetFile, "src/features") &&
@@ -176,6 +185,10 @@ function checkImport(sourceFile, specifier, targetFile) {
     !isUnder(targetFile, "src/features/runtime")
   ) {
     failures.push("Navigation orchestration must not import sibling feature UI modules.");
+  }
+
+  if (sourceIsNavigation && isUnder(targetFile, "src/runtime")) {
+    failures.push("Navigation orchestration must route runtime bridge imports through features/runtime.");
   }
 
   if (
@@ -215,7 +228,7 @@ for (const sourceFile of sourceFiles) {
 if (unknownFeatureRoots.size > 0) {
   failures.push(
     [
-      "Top-level feature folders must be catalog, modes, navigation, or shell.",
+      "Top-level feature folders must be catalog, runtime, modes, navigation, or shell.",
       ...[...unknownFeatureRoots].sort().map((featureRoot) => `  - src/features/${featureRoot}`),
     ].join("\n"),
   );
