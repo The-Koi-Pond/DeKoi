@@ -9,6 +9,8 @@
   border-bottom: 1px solid var(--reed-soft);
   background: linear-gradient(180deg, rgba(19, 36, 43, 0.9), rgba(14, 27, 33, 0.7));
   backdrop-filter: blur(8px);
+  -webkit-app-region: drag;
+  user-select: none;
 }
 
 .brand {
@@ -43,6 +45,7 @@
   position: relative;
   height: 36px;
   z-index: 40;
+  -webkit-app-region: no-drag;
 }
 
 .ripple-search input {
@@ -57,6 +60,8 @@
   padding: 0 40px 0 40px;
   outline: none;
   transition: border-color 0.25s, box-shadow 0.25s;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .ripple-search input::placeholder {
@@ -93,6 +98,7 @@
   cursor: pointer;
   font-family: var(--ui);
   font-size: 15px;
+  -webkit-app-region: no-drag;
 }
 
 .search-clear:hover,
@@ -131,6 +137,7 @@
   cursor: pointer;
   font-family: var(--ui);
   text-align: left;
+  -webkit-app-region: no-drag;
 }
 
 .search-result:hover,
@@ -189,6 +196,7 @@
   gap: 6px;
   margin-left: auto;
   position: relative;
+  -webkit-app-region: no-drag;
 }
 
 .settings-button {
@@ -207,6 +215,7 @@
   font-weight: 650;
   transition: 0.18s;
   white-space: nowrap;
+  -webkit-app-region: no-drag;
 }
 
 .settings-button:hover,
@@ -217,17 +226,64 @@
   outline: none;
 }
 
-.win-dots {
+.window-controls {
   display: flex;
-  gap: 9px;
+  align-items: center;
+  gap: 2px;
   margin-left: 6px;
   padding-left: 12px;
   border-left: 1px solid var(--reed-soft);
+  -webkit-app-region: no-drag;
 }
 
-.win-dots span {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--reed);
+.window-control {
+  --window-control-color: var(--mist);
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--window-control-color);
+  cursor: pointer;
+  transition: 0.16s;
+  -webkit-app-region: no-drag;
+}
+
+.window-control svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.window-control.minimize {
+  --window-control-color: var(--amber-hot);
+}
+
+.window-control.maximize {
+  --window-control-color: var(--jade-hot);
+}
+
+.window-control.close {
+  --window-control-color: var(--koi-hot);
+}
+
+.window-control:hover,
+.window-control:focus-visible {
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  color: var(--window-control-color);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.window-control.close:hover,
+.window-control.close:focus-visible {
+  border-color: rgba(244, 122, 53, 0.5);
+  background: rgba(244, 122, 53, 0.14);
 }
