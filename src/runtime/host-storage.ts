@@ -21,6 +21,28 @@ export type HostStorageResult = {
   message: string;
 };
 
+export type StorageRecord = { id: string };
+
+export type StorageRecordNormalizer<T extends StorageRecord> = (
+  value: unknown,
+) => T | null;
+
+export type StorageRecordsSnapshot<T extends StorageRecord> = {
+  records: T[];
+} & HostStorageResult;
+
+export interface StorageCollectionRepository<T extends StorageRecord> {
+  load: (rawUrl?: string) => Promise<T[]>;
+  loadSnapshot: (rawUrl?: string) => Promise<StorageRecordsSnapshot<T>>;
+  save: (records: T[], rawUrl?: string) => Promise<HostStorageResult>;
+}
+
+interface HostStorageRepositoryInput<T extends StorageRecord> {
+  entity: HostStorageEntity;
+  normalizeRecord: StorageRecordNormalizer<T>;
+  seedRecords: T[];
+}
+
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
 
@@ -100,9 +122,9 @@ async function invokeHostStorage<T>(
   throw new Error(HOST_STORAGE_UNAVAILABLE_MESSAGE);
 }
 
-export async function loadHostRecords<T extends { id: string }>(
+export async function loadHostRecords<T extends StorageRecord>(
   entity: HostStorageEntity,
-  normalizeRecord: (value: unknown) => T | null,
+  normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T[]> {
   const records = await invokeHostStorage<unknown[]>(
@@ -119,10 +141,10 @@ export async function loadHostRecords<T extends { id: string }>(
     .filter((record): record is T => record !== null);
 }
 
-export async function saveHostRecords<T extends { id: string }>(
+export async function saveHostRecords<T extends StorageRecord>(
   entity: HostStorageEntity,
   records: T[],
-  normalizeRecord: (value: unknown) => T | null,
+  normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<HostStorageResult> {
   const mode = getHostStorageMode(rawUrl);
@@ -204,17 +226,17 @@ export async function saveHostRecords<T extends { id: string }>(
   }
 }
 
-export async function loadHostRecordsSnapshot<T extends { id: string }>({
+export async function loadHostRecordsSnapshot<T extends StorageRecord>({
   entity,
   normalizeRecord,
   rawUrl = readRemoteRuntimeUrl(),
   seedRecords,
 }: {
   entity: HostStorageEntity;
-  normalizeRecord: (value: unknown) => T | null;
+  normalizeRecord: StorageRecordNormalizer<T>;
   rawUrl?: string;
   seedRecords: T[];
-}): Promise<{ records: T[] } & HostStorageResult> {
+}): Promise<StorageRecordsSnapshot<T>> {
   const mode = getHostStorageMode(rawUrl);
   if (mode === "unavailable") {
     return {
@@ -244,4 +266,23 @@ export async function loadHostRecordsSnapshot<T extends { id: string }>({
       message: `Host storage unavailable. ${asErrorMessage(error)}`,
     };
   }
+}
+
+export function createHostStorageRepository<T extends StorageRecord>({
+  entity,
+  normalizeRecord,
+  seedRecords,
+}: HostStorageRepositoryInput<T>): StorageCollectionRepository<T> {
+  return {
+    load: (rawUrl) => loadHostRecords(entity, normalizeRecord, rawUrl),
+    loadSnapshot: (rawUrl) =>
+      loadHostRecordsSnapshot({
+        entity,
+        normalizeRecord,
+        rawUrl,
+        seedRecords,
+      }),
+    save: (records, rawUrl) =>
+      saveHostRecords(entity, records, normalizeRecord, rawUrl),
+  };
 }

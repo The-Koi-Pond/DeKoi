@@ -5,8 +5,7 @@ import type {
   RippleTone,
 } from "../engine/ripples";
 import {
-  loadHostRecordsSnapshot,
-  saveHostRecords,
+  createHostStorageRepository,
   type HostStorageMode,
 } from "./host-storage";
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
@@ -97,15 +96,16 @@ export function loadRippleStates() {
   return [];
 }
 
+const rippleStateRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.rippleStates,
+  normalizeRecord: normalizeRippleState,
+  seedRecords: [],
+});
+
 export async function loadRippleStatesFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<RippleStateStorageSnapshot> {
-  const snapshot = await loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.rippleStates,
-    normalizeRecord: normalizeRippleState,
-    rawUrl,
-    seedRecords: [],
-  });
+  const snapshot = await rippleStateRepository.loadSnapshot(rawUrl);
 
   return {
     states: snapshot.records,
@@ -119,12 +119,7 @@ export async function saveRippleStatesToStorage(
   states: RippleState[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<RippleStateStorageSnapshot, "states">> {
-  const result = await saveHostRecords(
-    STORAGE_ENTITIES.rippleStates,
-    states,
-    normalizeRippleState,
-    rawUrl,
-  );
+  const result = await rippleStateRepository.save(states, rawUrl);
 
   return {
     mode: result.mode,

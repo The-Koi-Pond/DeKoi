@@ -5,7 +5,7 @@ import {
   readString,
   readTimestamp,
 } from "./catalog-storage";
-import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
@@ -57,23 +57,19 @@ export function loadLorebookRecords() {
   return [sampleLorebook];
 }
 
+const lorebookRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.lorebooks,
+  normalizeRecord: normalizeLorebookRecord,
+  seedRecords: [sampleLorebook],
+});
+
 export function loadLorebookRecordsFromStorage(rawUrl?: string) {
-  return loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.lorebooks,
-    normalizeRecord: normalizeLorebookRecord,
-    rawUrl,
-    seedRecords: [sampleLorebook],
-  });
+  return lorebookRepository.loadSnapshot(rawUrl);
 }
 
 export function saveLorebookRecordsToStorage(
   records: LorebookRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(
-    STORAGE_ENTITIES.lorebooks,
-    records,
-    normalizeLorebookRecord,
-    rawUrl,
-  );
+  return lorebookRepository.save(records, rawUrl);
 }

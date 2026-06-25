@@ -7,7 +7,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "./catalog-storage";
-import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
@@ -37,23 +37,19 @@ export function loadCharacterRecords() {
   return sampleCompanions;
 }
 
+const characterRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.characters,
+  normalizeRecord: normalizeCharacterRecord,
+  seedRecords: sampleCompanions,
+});
+
 export function loadCharacterRecordsFromStorage(rawUrl?: string) {
-  return loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.characters,
-    normalizeRecord: normalizeCharacterRecord,
-    rawUrl,
-    seedRecords: sampleCompanions,
-  });
+  return characterRepository.loadSnapshot(rawUrl);
 }
 
 export function saveCharacterRecordsToStorage(
   records: CharacterRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(
-    STORAGE_ENTITIES.characters,
-    records,
-    normalizeCharacterRecord,
-    rawUrl,
-  );
+  return characterRepository.save(records, rawUrl);
 }

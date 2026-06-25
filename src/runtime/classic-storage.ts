@@ -6,7 +6,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "./catalog-storage";
-import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
@@ -93,23 +93,19 @@ export function loadClassicThreads() {
   return [];
 }
 
+const classicThreadRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.classicThreads,
+  normalizeRecord: normalizeClassicThread,
+  seedRecords: [],
+});
+
 export function loadClassicThreadsFromStorage(rawUrl?: string) {
-  return loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.classicThreads,
-    normalizeRecord: normalizeClassicThread,
-    rawUrl,
-    seedRecords: [],
-  });
+  return classicThreadRepository.loadSnapshot(rawUrl);
 }
 
 export function saveClassicThreadsToStorage(
   records: ClassicThread[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(
-    STORAGE_ENTITIES.classicThreads,
-    records,
-    normalizeClassicThread,
-    rawUrl,
-  );
+  return classicThreadRepository.save(records, rawUrl);
 }

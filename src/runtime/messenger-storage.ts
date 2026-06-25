@@ -2,8 +2,7 @@ import type { MessengerMessage, MessengerThread } from "../engine/messenger";
 import { sampleMessengerThread } from "../engine/sample-messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
-  loadHostRecordsSnapshot,
-  saveHostRecords,
+  createHostStorageRepository,
   type HostStorageMode,
 } from "./host-storage";
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
@@ -94,15 +93,16 @@ export function loadInitialMessengerThreads(): MessengerThread[] {
   return [sampleMessengerThread];
 }
 
+const messengerThreadRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.messengerThreads,
+  normalizeRecord: normalizeMessengerThread,
+  seedRecords: [sampleMessengerThread],
+});
+
 export async function loadMessengerThreadsFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<MessengerStorageSnapshot> {
-  const snapshot = await loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.messengerThreads,
-    normalizeRecord: normalizeMessengerThread,
-    rawUrl,
-    seedRecords: [sampleMessengerThread],
-  });
+  const snapshot = await messengerThreadRepository.loadSnapshot(rawUrl);
 
   return {
     threads: snapshot.records,
@@ -117,12 +117,7 @@ export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<MessengerStorageSnapshot, "threads">> {
-  const result = await saveHostRecords(
-    STORAGE_ENTITIES.messengerThreads,
-    threads,
-    normalizeMessengerThread,
-    rawUrl,
-  );
+  const result = await messengerThreadRepository.save(threads, rawUrl);
 
   return {
     mode: result.mode,

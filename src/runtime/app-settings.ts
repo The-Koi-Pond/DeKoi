@@ -4,7 +4,7 @@ import {
   type AppSettings,
 } from "../engine/app-settings";
 import { isRecord, readString } from "./catalog-storage";
-import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 const APP_SETTINGS_RECORD_ID = "app-settings";
@@ -42,17 +42,18 @@ function appSettingsToRecord(settings: AppSettings): AppSettingsRecord {
   };
 }
 
+const appSettingsRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.appSettings,
+  normalizeRecord: normalizeAppSettingsRecord,
+  seedRecords: [appSettingsToRecord(DEFAULT_APP_SETTINGS)],
+});
+
 export function loadAppSettings(): AppSettings {
   return DEFAULT_APP_SETTINGS;
 }
 
 export async function loadAppSettingsFromStorage(rawUrl?: string) {
-  const snapshot = await loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.appSettings,
-    normalizeRecord: normalizeAppSettingsRecord,
-    rawUrl,
-    seedRecords: [appSettingsToRecord(DEFAULT_APP_SETTINGS)],
-  });
+  const snapshot = await appSettingsRepository.loadSnapshot(rawUrl);
 
   return {
     ...snapshot,
@@ -64,10 +65,5 @@ export function saveAppSettingsToStorage(
   settings: AppSettings,
   rawUrl?: string,
 ) {
-  return saveHostRecords(
-    STORAGE_ENTITIES.appSettings,
-    [appSettingsToRecord(settings)],
-    normalizeAppSettingsRecord,
-    rawUrl,
-  );
+  return appSettingsRepository.save([appSettingsToRecord(settings)], rawUrl);
 }

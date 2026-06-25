@@ -10,7 +10,7 @@ import {
   readString,
   readTimestamp,
 } from "./catalog-storage";
-import { loadHostRecordsSnapshot, saveHostRecords } from "./host-storage";
+import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
@@ -54,23 +54,19 @@ export function loadProviderConnectionRecords() {
   return providerConnections;
 }
 
+const providerConnectionRepository = createHostStorageRepository({
+  entity: STORAGE_ENTITIES.providerConnections,
+  normalizeRecord: normalizeProviderConnectionRecord,
+  seedRecords: providerConnections,
+});
+
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
-  return loadHostRecordsSnapshot({
-    entity: STORAGE_ENTITIES.providerConnections,
-    normalizeRecord: normalizeProviderConnectionRecord,
-    rawUrl,
-    seedRecords: providerConnections,
-  });
+  return providerConnectionRepository.loadSnapshot(rawUrl);
 }
 
 export function saveProviderConnectionRecordsToStorage(
   records: ProviderConnectionRecord[],
   rawUrl?: string,
 ) {
-  return saveHostRecords(
-    STORAGE_ENTITIES.providerConnections,
-    records,
-    normalizeProviderConnectionRecord,
-    rawUrl,
-  );
+  return providerConnectionRepository.save(records, rawUrl);
 }
