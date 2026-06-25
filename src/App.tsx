@@ -5,6 +5,7 @@ import {
   type SideRailView,
   type NavContextType,
 } from "./features/navigation/nav-context";
+import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
@@ -78,11 +79,6 @@ import type { SurfaceId } from "./engine/surfaces";
 import { CLASSIC, MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import { loadAppSettings, type AppSettings } from "./runtime/app-settings";
-import {
-  createDeKoiStorageBundle,
-  type DeKoiStorageBundle,
-} from "./runtime/dekoi-storage-bundle";
-import type { DeKoiLegacyImportData } from "./runtime/legacy-import";
 import {
   loadInitialMessengerThreads,
   type MessengerStorageMode,
@@ -166,6 +162,33 @@ export default function App() {
     setStorageReady,
     setMessengerStorageStatus,
     setMessengerStorageMessage,
+  });
+
+  const {
+    createStorageBundle,
+    importStorageBundle,
+    importLegacyData,
+  } = useAppImportExportActions({
+    appSettings,
+    characters,
+    personas,
+    lorebooks,
+    providerConnections,
+    classicThreads,
+    messengerThreads,
+    rippleStates,
+    setAppSettings,
+    setCharacters,
+    setPersonas,
+    setLorebooks,
+    setProviderConnections,
+    setClassicThreads,
+    setMessengerThreads,
+    setRippleStates,
+    setMessengerStorageStatus,
+    setMessengerStorageMessage,
+    setSelectedSurface,
+    setView,
   });
 
   const closeCareDrawer = useCallback(() => setCareOpen(false), []);
@@ -810,90 +833,6 @@ export default function App() {
     },
     [],
   );
-
-  const createStorageBundle = useCallback(
-    () =>
-      createDeKoiStorageBundle({
-        appSettings,
-        characters,
-        classicThreads,
-        lorebooks,
-        messengerThreads,
-        personas,
-        providerConnections,
-        rippleStates,
-      }),
-    [
-      appSettings,
-      characters,
-      classicThreads,
-      lorebooks,
-      messengerThreads,
-      personas,
-      providerConnections,
-      rippleStates,
-    ],
-  );
-
-  const importStorageBundle = useCallback(
-    (bundle: DeKoiStorageBundle) => {
-      const importedConnections = bundle.data.providerConnections;
-      const importedSettings = { ...bundle.data.appSettings };
-      const hasActiveConnection = importedConnections.some(
-        (connection) =>
-          connection.id === importedSettings.activeMessengerConnectionId,
-      );
-      const fallbackConnection =
-        importedConnections[0] ?? providerConnections[0];
-
-      if (!hasActiveConnection && fallbackConnection) {
-        importedSettings.activeMessengerConnectionId = fallbackConnection.id;
-      }
-
-      setCharacters(bundle.data.characters);
-      setPersonas(bundle.data.personas);
-      setLorebooks(bundle.data.lorebooks);
-      setProviderConnections(importedConnections);
-      setClassicThreads(bundle.data.classicThreads);
-      setMessengerThreads(bundle.data.messengerThreads);
-      setRippleStates(bundle.data.rippleStates);
-      setAppSettings(importedSettings);
-      setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Imported DeKoi bundle. Saving...");
-      setSelectedSurface(MESSENGER);
-      setView({ kind: "pond" });
-    },
-    [providerConnections],
-  );
-
-  const importLegacyData = useCallback((data: DeKoiLegacyImportData) => {
-    const importedThreads = data.messengerThreads.map((thread) => {
-      const id = createRecordId("messenger-thread");
-      return {
-        ...thread,
-        id,
-        messages: thread.messages.map((message) => ({
-          ...message,
-          threadId: id,
-        })),
-      };
-    });
-    const firstImportedThreadId = importedThreads[0]?.id ?? null;
-
-    setMessengerThreads((currentThreads) => [
-      ...importedThreads,
-      ...currentThreads,
-    ]);
-
-    setMessengerStorageStatus("saving");
-    setMessengerStorageMessage("Imported legacy threads. Saving...");
-    setSelectedSurface(MESSENGER);
-    setView(
-      firstImportedThreadId
-        ? { kind: "messenger", threadId: firstImportedThreadId }
-        : { kind: "pond" },
-    );
-  }, []);
 
   const nav: NavContextType = {
     view,
