@@ -344,9 +344,15 @@ for (const collection of documentedCollections) {
   }
 
   const adapterSource = readFile(adapterPath);
-  if (!/\bcreateHostStorageRepository\s*\(/.test(adapterSource)) {
+  if (!/\bcreateStorageRepository\s*\(/.test(adapterSource)) {
     failures.push(
       `Documented runtime adapter must create a storage repository for ${collection.entity}: ${collection.adapterPath}`,
+    );
+  }
+
+  if (!/from\s+"\.\.\/storage-repository-factory"/.test(adapterSource)) {
+    failures.push(
+      `Documented runtime adapter ${collection.adapterPath} must use the storage repository factory.`,
     );
   }
 

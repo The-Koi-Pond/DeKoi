@@ -5,9 +5,9 @@ import type {
   RippleTone,
 } from "../../../engine/ripples";
 import {
-  createHostStorageRepository,
-  type HostStorageMode,
-} from "../host-storage";
+  createStorageRepository,
+  type StorageMode,
+} from "../storage-repository-factory";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import {
   isRecord,
@@ -17,7 +17,7 @@ import {
 } from "../storage-json";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-export type RippleStateStorageMode = HostStorageMode;
+export type RippleStateStorageMode = StorageMode;
 export type RippleStateStorageStatus = "ready" | "error";
 
 export type RippleStateStorageSnapshot = {
@@ -96,7 +96,7 @@ export function loadRippleStates() {
   return [];
 }
 
-const rippleStateRepository = createHostStorageRepository({
+const rippleStateRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.rippleStates,
   normalizeRecord: normalizeRippleState,
   seedRecords: [],

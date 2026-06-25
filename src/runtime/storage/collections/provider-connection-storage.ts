@@ -10,7 +10,7 @@ import {
   readString,
   readTimestamp,
 } from "../storage-json";
-import { createHostStorageRepository } from "../host-storage";
+import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
@@ -54,7 +54,7 @@ export function loadProviderConnectionRecords() {
   return providerConnections;
 }
 
-const providerConnectionRepository = createHostStorageRepository({
+const providerConnectionRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.providerConnections,
   normalizeRecord: normalizeProviderConnectionRecord,
   seedRecords: providerConnections,

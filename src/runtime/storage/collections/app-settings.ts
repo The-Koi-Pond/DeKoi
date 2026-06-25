@@ -4,7 +4,7 @@ import {
   type AppSettings,
 } from "../../../engine/app-settings";
 import { isRecord, readString } from "../storage-json";
-import { createHostStorageRepository } from "../host-storage";
+import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 const APP_SETTINGS_RECORD_ID = "app-settings";
@@ -42,7 +42,7 @@ function appSettingsToRecord(settings: AppSettings): AppSettingsRecord {
   };
 }
 
-const appSettingsRepository = createHostStorageRepository({
+const appSettingsRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.appSettings,
   normalizeRecord: normalizeAppSettingsRecord,
   seedRecords: [appSettingsToRecord(DEFAULT_APP_SETTINGS)],

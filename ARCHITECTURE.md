@@ -92,6 +92,8 @@ The short version:
 - Relationships are stored as IDs and documented with cleanup expectations.
 - Import/export validates schema versions and never treats provider secrets as
   ordinary records.
+- Collection adapters depend on `storage-repository-factory.ts`, keeping the
+  current host-storage adapter behind one future database swap point.
 - Native DeKoi records come before legacy compatibility.
 
 ## Current Seed
@@ -113,9 +115,9 @@ The short version:
   provider.
   Catalog owns catalog record action hooks, modes own thread action hooks, and
   shell care owns settings/import/export action hooks. `src/features/runtime`
-  owns ripple actions and runtime-facing workflows.
-  `src/features/runtime` owns runtime-facing workflows such as generation,
-  initial app-storage record loading, and runtime target URL changes.
+  owns runtime-facing workflows grouped under `generation`, `ripples`, and
+  `storage`, including generation, ripple state operations, initial app-storage
+  record loading, and runtime target URL changes.
   Non-navigation feature modules receive navigation state/actions through narrow
   feature-owned props built from exported navigation state/action groups rather
   than reading navigation context directly, importing `NavContextType`, or
@@ -128,9 +130,10 @@ The short version:
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
   status, and the desktop runtime bridge.
 
-## Next Architecture Work
+## Future Architecture Work
 
-1. Keep hardening `src/runtime/storage` package boundaries before adding a real
-   database adapter.
-2. Keep hardening the navigation context/contracts boundary as a future app or
-   mode router shape becomes concrete.
+1. Add a database-backed storage adapter behind
+   `src/runtime/storage/storage-repository-factory.ts` when product needs justify
+   replacing the current host-backed implementation.
+2. Split navigation contracts toward app or mode-router-owned contracts when a
+   concrete route model exists.

@@ -77,6 +77,12 @@ The check currently enforces these rules:
   entrypoint.
 - Runtime implementation files must live in owner packages under `src/runtime`,
   leaving `src/runtime/index.ts` as the public entrypoint.
+- Runtime storage collection adapters must use the storage repository factory;
+  direct host-storage imports stay behind that factory so a future database
+  adapter has one swap point.
+- Feature runtime implementation files must live in owner packages under
+  `src/features/runtime`: `generation`, `ripples`, or `storage`; only
+  `src/features/runtime/index.ts` stays at the feature-runtime root.
 - Navigation bridge implementation files must live in `context` under
   `src/features/navigation`; only the package entrypoint stays at the
   navigation root. State, action, and runtime hooks must live with app or
@@ -148,11 +154,12 @@ Move toward the old De-Koi skeleton in small, validated slices:
    keep DeKoi storage contracts, collection adapters, and bundle normalization
    organized under `src/runtime/storage`. Import
    feature runtime workflows through their package entrypoint from outside the
-   package, and import the lower runtime bridge through its public entrypoint.
-   App composition should use feature-runtime workflows for storage startup and
-   runtime target changes. Shell UI should use feature-runtime workflows for
-   storage bundle file previews rather than calling raw bundle normalizers
-   directly.
+   package, keep feature-runtime implementation files under `storage`,
+   `generation`, or `ripples`, and import the lower runtime bridge through its
+   public entrypoint. App composition should use feature-runtime workflows for
+   storage startup and runtime target changes. Shell UI should use
+   feature-runtime workflows for storage bundle file previews rather than
+   calling raw bundle normalizers directly.
 7. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow. Import catalog surfaces through the catalog
    feature entrypoint from outside the catalog feature.
@@ -167,6 +174,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
 - Durable record names and shapes stay DeKoi-native.
 - Runtime/shared API modules normalize JSON, call desktop/remote storage, and
   hide future SQLite or database implementation details.
+- Runtime collection adapters depend on the storage repository factory, not the
+  host-storage adapter directly.
 - Engine modules define records and mutations without knowing how records are
   stored.
 - App/runtime orchestration loads, syncs, imports, exports, and exposes typed
@@ -174,7 +183,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
 - Feature UI consumes navigation state/actions or narrowly typed props. It
   should not learn DB tables, host commands, or storage file layout.
 - Future DB adapters should implement runtime repository/storage functions
-  behind the existing contracts, not leak clients into features or engine code.
+  behind the existing factory/contracts, not leak clients into features,
+  collection adapters, or engine code.
 
 ## Adding Or Moving Code
 

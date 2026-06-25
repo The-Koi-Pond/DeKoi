@@ -7,7 +7,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
-import { createHostStorageRepository } from "../host-storage";
+import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
@@ -37,7 +37,7 @@ export function loadCharacterRecords() {
   return sampleCompanions;
 }
 
-const characterRepository = createHostStorageRepository({
+const characterRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.characters,
   normalizeRecord: normalizeCharacterRecord,
   seedRecords: sampleCompanions,

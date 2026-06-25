@@ -26,6 +26,11 @@ const shellPackageNames = new Set([
   "waterline",
 ]);
 const modePackageNames = new Set(["classic", "messenger"]);
+const featureRuntimeOwnerPackageNames = new Set([
+  "generation",
+  "ripples",
+  "storage",
+]);
 const allowedFeatureRoots = new Set([
   ...featureLayerRank.keys(),
   "navigation",
@@ -59,6 +64,10 @@ function getRuntimeBridgeRoot(filePath) {
 
 function isRuntimeRootSourceFile(filePath) {
   return /^src\/runtime\/[^/]+\.[jt]sx?$/.test(filePath);
+}
+
+function isFeatureRuntimeRootSourceFile(filePath) {
+  return /^src\/features\/runtime\/[^/]+\.[jt]sx?$/.test(filePath);
 }
 
 function getFeatureLayer(filePath) {
@@ -112,6 +121,11 @@ function isNavigationRootSourceFile(filePath) {
 function getFeatureRuntimePackageRoot(filePath) {
   if (!isUnder(filePath, "src/features/runtime")) return null;
   return "src/features/runtime";
+}
+
+function getFeatureRuntimeOwnerPackageName(filePath) {
+  const match = filePath.match(/^src\/features\/runtime\/([^/]+)\//);
+  return match?.[1] ?? null;
 }
 
 function listSourceFiles(directoryPath) {
@@ -228,6 +242,13 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   if (sourceIsRuntime && targetFile === "src/shared/api/desktop-commands") {
     failures.push("Runtime adapters must use shared API wrappers instead of the desktop command catalog.");
+  }
+
+  if (
+    targetFile === "src/runtime/storage/host-storage" &&
+    sourceFile !== "src/runtime/storage/storage-repository-factory.ts"
+  ) {
+    failures.push("Host storage adapter imports must stay behind the storage repository factory.");
   }
 
   if (sourceIsShared && (isUnder(targetFile, "src/app") || isUnder(targetFile, "src/features"))) {
@@ -410,6 +431,26 @@ for (const sourceFile of sourceFiles) {
   if (isRuntimeRootSourceFile(sourceFile) && sourceFile !== "src/runtime/index.ts") {
     failures.push(
       `Runtime implementation files must live in owner packages.\n  - ${sourceFile}`,
+    );
+  }
+
+  if (
+    isFeatureRuntimeRootSourceFile(sourceFile) &&
+    sourceFile !== "src/features/runtime/index.ts"
+  ) {
+    failures.push(
+      `Feature runtime implementation files must live in owner packages; only the entrypoint may stay at the feature-runtime root.\n  - ${sourceFile}`,
+    );
+  }
+
+  const featureRuntimeOwnerPackageName =
+    getFeatureRuntimeOwnerPackageName(sourceFile);
+  if (
+    featureRuntimeOwnerPackageName &&
+    !featureRuntimeOwnerPackageNames.has(featureRuntimeOwnerPackageName)
+  ) {
+    failures.push(
+      `Feature runtime owner packages must be generation, ripples, or storage.\n  - ${sourceFile}`,
     );
   }
 

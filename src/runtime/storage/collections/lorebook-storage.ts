@@ -5,7 +5,7 @@ import {
   readString,
   readTimestamp,
 } from "../storage-json";
-import { createHostStorageRepository } from "../host-storage";
+import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
@@ -57,7 +57,7 @@ export function loadLorebookRecords() {
   return [sampleLorebook];
 }
 
-const lorebookRepository = createHostStorageRepository({
+const lorebookRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.lorebooks,
   normalizeRecord: normalizeLorebookRecord,
   seedRecords: [sampleLorebook],

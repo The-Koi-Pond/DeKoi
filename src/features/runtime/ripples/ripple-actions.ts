@@ -2,15 +2,15 @@ import type {
   Ripple,
   RippleState,
   RippleStateOwnerKind,
-} from "../../engine/ripples";
+} from "../../../engine/ripples";
 import {
   createRippleRecord,
   createRippleState,
   updateRippleRecord,
   type RippleInput,
-} from "../../engine/ripple-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
+} from "../../../engine/ripple-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
 
 export type { RippleInput, RippleState, RippleStateOwnerKind };
 

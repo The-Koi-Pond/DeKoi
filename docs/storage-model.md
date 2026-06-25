@@ -62,10 +62,13 @@ owning runtime adapter for each collection.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
-entrypoint in `src/runtime/index.ts`. The current host-backed implementation
-lives in `src/runtime/storage/host-storage.ts`. Future SQLite or database-backed storage
-should implement the same repository shape behind runtime adapters rather than
-leaking database details into feature code or engine records.
+entrypoint in `src/runtime/index.ts`. Collection adapters create repositories
+through `src/runtime/storage/storage-repository-factory.ts`; the current
+host-backed implementation lives behind that factory in
+`src/runtime/storage/host-storage.ts`. Future SQLite or database-backed storage
+should implement the same repository shape behind the factory rather than
+leaking database details into feature code, collection adapters, or engine
+records.
 The shared repository module also owns storage result aggregation, so snapshot
 and import/export orchestration can combine adapter outcomes without depending
 on a concrete host implementation.
@@ -139,7 +142,10 @@ legacy source record -> DeKoi native record
 Import adapters may understand old source names. Engine records, collection
 names, UI labels, and provider requests should stay DeKoi-native.
 
-## Next Storage Work
+## Future Storage Work
 
-1. Move desktop storage into a dedicated capability module or crate once record
+1. Add a database-backed repository implementation behind
+   `src/runtime/storage/storage-repository-factory.ts` when DeKoi needs a real
+   database.
+2. Move desktop storage into a dedicated capability module or crate once record
    repair, cleanup, or profile import makes `src-tauri/src/storage.rs` too broad.

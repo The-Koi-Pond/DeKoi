@@ -6,7 +6,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
-import { createHostStorageRepository } from "../host-storage";
+import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
@@ -93,7 +93,7 @@ export function loadClassicThreads() {
   return [];
 }
 
-const classicThreadRepository = createHostStorageRepository({
+const classicThreadRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.classicThreads,
   normalizeRecord: normalizeClassicThread,
   seedRecords: [],

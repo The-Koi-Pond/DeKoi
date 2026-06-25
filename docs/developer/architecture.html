@@ -164,6 +164,14 @@
               <td><code>src/runtime/index.ts</code> stays the public entrypoint instead of becoming an implementation folder.</td>
             </tr>
             <tr>
+              <td>Runtime storage collection adapters must use the storage repository factory.</td>
+              <td>Direct host-storage imports stay behind one factory so a future database adapter has one swap point.</td>
+            </tr>
+            <tr>
+              <td>Feature runtime implementation files must live in <code>generation</code>, <code>ripples</code>, or <code>storage</code> under <code>src/features/runtime</code>.</td>
+              <td><code>src/features/runtime/index.ts</code> stays the public feature-runtime entrypoint.</td>
+            </tr>
+            <tr>
               <td>Navigation bridge implementation files must live in <code>context</code> under <code>src/features/navigation</code>.</td>
               <td>Only the navigation package entrypoint stays at the navigation root; state, action, and runtime hooks live with app or feature owners.</td>
             </tr>
@@ -257,7 +265,7 @@
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Pass navigation state/actions through narrow feature-owned props into shell, mode, and catalog surfaces. Build those contracts from exported navigation state/action groups rather than reading the navigation context, importing <code>NavContextType</code>, accepting it directly, or picking from it inside non-navigation feature modules.</li>
-          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. App composition should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
+          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, keep feature-runtime implementation files under <code>storage</code>, <code>generation</code>, or <code>ripples</code>, and import the lower runtime bridge through its public entrypoint. App composition should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow. Import catalog surfaces through the catalog feature entrypoint from outside the catalog feature.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>
@@ -268,10 +276,11 @@
         <ul>
           <li>Durable record names and shapes stay DeKoi-native.</li>
           <li>Runtime/shared API modules normalize JSON, call desktop/remote storage, and hide future SQLite or database implementation details.</li>
+          <li>Runtime collection adapters depend on the storage repository factory, not the host-storage adapter directly.</li>
           <li>Engine modules define records and mutations without knowing how records are stored.</li>
           <li>App/runtime orchestration loads, syncs, imports, exports, and exposes typed actions to the UI.</li>
           <li>Feature UI consumes typed actions or narrowly scoped props; it should not learn DB tables, host commands, or storage file layout.</li>
-          <li>Future DB adapters implement runtime repository/storage functions behind existing contracts.</li>
+          <li>Future DB adapters implement runtime repository/storage functions behind existing factory/contracts.</li>
         </ul>
 
         <h2>Related Checks</h2>

@@ -8,22 +8,22 @@ import {
   loadProviderConnectionRecords,
   loadRippleStates,
   type AppStorageRecords,
-} from "../../runtime";
+} from "../../../runtime";
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
-} from "../../shared/api/runtime-target";
+} from "../../../shared/api/runtime-target";
 
 export {
   loadAppStorageSnapshot,
   saveAppStorageSnapshot,
   type AppStorageRecords,
   type AppStorageSnapshot,
-} from "../../runtime";
+} from "../../../runtime";
 export {
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../../runtime";
+} from "../../../runtime";
 
 export function loadInitialAppStorageRecords(): AppStorageRecords {
   return {

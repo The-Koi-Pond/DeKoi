@@ -2,13 +2,13 @@ import type { MessengerMessage, MessengerThread } from "../../../engine/messenge
 import { sampleMessengerThread } from "../../../engine/sample-messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
-  createHostStorageRepository,
-  type HostStorageMode,
-} from "../host-storage";
+  createStorageRepository,
+  type StorageMode,
+} from "../storage-repository-factory";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-export type MessengerStorageMode = HostStorageMode;
+export type MessengerStorageMode = StorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
 
 export type MessengerStorageSnapshot = {
@@ -93,7 +93,7 @@ export function loadInitialMessengerThreads(): MessengerThread[] {
   return [sampleMessengerThread];
 }
 
-const messengerThreadRepository = createHostStorageRepository({
+const messengerThreadRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.messengerThreads,
   normalizeRecord: normalizeMessengerThread,
   seedRecords: [sampleMessengerThread],
