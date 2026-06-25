@@ -22,6 +22,22 @@ function parseTypeScriptEntities(source) {
   return [...match[1].matchAll(/"([^"]+)"/g)].map((item) => item[1]);
 }
 
+function parseTypeScriptEntityAliases(source) {
+  const match = source.match(
+    /export const STORAGE_ENTITIES = \{([\s\S]*?)\} as const satisfies Record<string, HostStorageEntity>;/,
+  );
+  if (!match) {
+    throw new Error("Could not find STORAGE_ENTITIES in storage-entities.ts.");
+  }
+
+  return [...match[1].matchAll(/\b([a-z][A-Za-z0-9]*)\s*:\s*"([^"]+)"/g)].map(
+    (item) => ({
+      key: item[1],
+      entity: item[2],
+    }),
+  );
+}
+
 function parseRustEntities(source) {
   const constants = new Map();
   for (const match of source.matchAll(
@@ -79,6 +95,8 @@ function formatList(values) {
 }
 
 const tsEntities = parseTypeScriptEntities(readFile(tsRegistryPath));
+const tsEntityAliases = parseTypeScriptEntityAliases(readFile(tsRegistryPath));
+const tsAliasEntities = tsEntityAliases.map((alias) => alias.entity);
 const rustEntities = parseRustEntities(readFile(rustHostPath));
 const documentedCollections = parseDocumentedCollections(readFile(storageDocsPath));
 const documentedEntities = documentedCollections.map((collection) => collection.entity);
@@ -86,6 +104,19 @@ const failures = [];
 
 if (tsEntities.length !== unique(tsEntities).length) {
   failures.push("TypeScript storage entity registry contains duplicate values.");
+}
+
+if (tsAliasEntities.length !== unique(tsAliasEntities).length) {
+  failures.push("TypeScript STORAGE_ENTITIES contains duplicate values.");
+}
+
+const duplicateAliasKeys = tsEntityAliases
+  .map((alias) => alias.key)
+  .filter((key, index, keys) => keys.indexOf(key) !== index);
+if (duplicateAliasKeys.length > 0) {
+  failures.push(
+    `TypeScript STORAGE_ENTITIES contains duplicate keys:\n${formatList(unique(duplicateAliasKeys))}`,
+  );
 }
 
 if (rustEntities.length !== unique(rustEntities).length) {
@@ -98,6 +129,8 @@ if (documentedEntities.length !== unique(documentedEntities).length) {
 
 const missingInRust = listDifference(tsEntities, rustEntities);
 const missingInTypeScript = listDifference(rustEntities, tsEntities);
+const missingInAliases = listDifference(tsEntities, tsAliasEntities);
+const extraInAliases = listDifference(tsAliasEntities, tsEntities);
 const missingInDocs = listDifference(tsEntities, documentedEntities);
 const extraInDocs = listDifference(documentedEntities, tsEntities);
 if (missingInRust.length > 0) {
@@ -109,6 +142,18 @@ if (missingInRust.length > 0) {
 if (missingInTypeScript.length > 0) {
   failures.push(
     `Entities present in Rust but missing from TypeScript:\n${formatList(missingInTypeScript)}`,
+  );
+}
+
+if (missingInAliases.length > 0) {
+  failures.push(
+    `Entities present in TypeScript registry but missing from STORAGE_ENTITIES:\n${formatList(missingInAliases)}`,
+  );
+}
+
+if (extraInAliases.length > 0) {
+  failures.push(
+    `Entities present in STORAGE_ENTITIES but missing from TypeScript registry:\n${formatList(extraInAliases)}`,
   );
 }
 
@@ -140,6 +185,14 @@ if (
   failures.push("TypeScript and documented storage entities match but are in different order.");
 }
 
+if (
+  missingInAliases.length === 0 &&
+  extraInAliases.length === 0 &&
+  tsEntities.join("\n") !== tsAliasEntities.join("\n")
+) {
+  failures.push("TypeScript storage registry and STORAGE_ENTITIES match but are in different order.");
+}
+
 for (const collection of documentedCollections) {
   const ownerPath = path.join(root, collection.ownerPath);
   if (!fs.existsSync(ownerPath)) {
@@ -164,5 +217,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Storage contract check passed for ${tsEntities.length} entities and ${documentedCollections.length} documented collections.`,
+  `Storage contract check passed for ${tsEntities.length} entities, ${tsEntityAliases.length} aliases, and ${documentedCollections.length} documented collections.`,
 );
