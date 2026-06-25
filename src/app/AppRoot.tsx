@@ -1,4 +1,4 @@
-import { Shell } from "../features/shell/Shell";
+import { Shell } from "../features/shell";
 import { AppProviders } from "./AppProviders";
 
 export function AppRoot() {

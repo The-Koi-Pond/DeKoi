@@ -61,6 +61,11 @@ function getShellPackageRoot(filePath) {
   return `src/features/shell/${match[1]}`;
 }
 
+function getShellRoot(filePath) {
+  if (!isUnder(filePath, "src/features/shell")) return null;
+  return "src/features/shell";
+}
+
 function getModePackageRoot(filePath) {
   const match = filePath.match(/^src\/features\/modes\/([^/]+)/);
   if (!match || !modePackageNames.has(match[1])) return null;
@@ -218,6 +223,8 @@ function checkImport(sourceFile, specifier, targetFile) {
     getFeatureRuntimePackageRoot(sourceFile);
   const targetFeatureRuntimePackageRoot =
     getFeatureRuntimePackageRoot(targetFile);
+  const sourceShellRoot = getShellRoot(sourceFile);
+  const targetShellRoot = getShellRoot(targetFile);
   const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
   const targetShellPackageRoot = getShellPackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
@@ -264,6 +271,10 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceFeatureRuntimePackageRoot !== targetFeatureRuntimePackageRoot
   ) {
     failures.push("Feature runtime must be imported through its public entrypoint.");
+  }
+
+  if (targetShellRoot && targetFile !== targetShellRoot && sourceShellRoot !== targetShellRoot) {
+    failures.push("Shell must be imported through its public entrypoint.");
   }
 
   if (

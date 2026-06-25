@@ -87,6 +87,7 @@ The check currently enforces these rules:
 - Feature runtime must be imported through its public entrypoint.
 - Mode packages must be imported through their public entrypoints.
 - Navigation must be imported through its public entrypoint.
+- Shell must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
@@ -114,7 +115,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
 3. Keep Messenger and Classic screens under `features/modes`; move future mode
    surfaces there too, with package entrypoints for each mode.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
-   `features/shell`; move future app-level tools there too.
+   `features/shell`; move future app-level tools there too. Import the shell
+   feature through its package entrypoint from app composition.
 5. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;
    continue moving remaining `src/runtime` storage and import/export systems
