@@ -8,6 +8,7 @@ import {
 import { useCharacterActions } from "./features/navigation/use-character-actions";
 import { useClassicThreadActions } from "./features/navigation/use-classic-thread-actions";
 import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
+import { useMessengerThreadActions } from "./features/navigation/use-messenger-thread-actions";
 import { usePersonaActions } from "./features/navigation/use-persona-actions";
 import { useProviderConnectionActions } from "./features/navigation/use-provider-connection-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
@@ -19,17 +20,10 @@ import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
 import type { ClassicThread } from "./engine/classic";
 import type { MessengerThread } from "./engine/messenger";
-import {
-  clearMessengerMessages,
-  createMessengerThread as buildMessengerThread,
-  deleteMessengerThread as deleteMessengerThreadRecord,
-  renameMessengerThread as renameMessengerThreadRecord,
-} from "./engine/messenger-actions";
 import type { RippleState, RippleStateOwnerKind } from "./engine/ripples";
 import {
   createRippleRecord,
   createRippleState,
-  deleteRippleStateForOwner,
   updateRippleRecord,
   type RippleInput,
 } from "./engine/ripple-actions";
@@ -237,90 +231,25 @@ export default function App() {
     openClassicThread,
   });
 
-  const createMessengerThread = useCallback(() => {
-    const now = currentIsoTimestamp();
-    const activePersona = personas[0] ?? null;
-    const activeConnection =
-      providerConnections.find(
-        (connection) =>
-          connection.id === appSettings.activeMessengerConnectionId,
-      ) ??
-      providerConnections[0] ??
-      null;
-    const thread = buildMessengerThread({
-      activePersonaId: activePersona?.id ?? null,
-      characterIds: characters.map((companion) => companion.id),
-      id: createRecordId("messenger-thread"),
-      lorebookIds: lorebooks.map((lorebook) => lorebook.id),
-      now,
-      providerConnectionId: activeConnection?.id ?? null,
-      title: `New Messenger ${messengerThreads.length + 1}`,
-    });
-
-    setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
-    openMessengerThread(thread.id);
-    return thread;
-  }, [
-    appSettings.activeMessengerConnectionId,
+  const {
+    createMessengerThread,
+    updateMessengerThread,
+    renameMessengerThread,
+    clearMessengerThreadMessages,
+    deleteMessengerThread,
+  } = useMessengerThreadActions({
+    activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
     characters,
     lorebooks,
-    messengerThreads.length,
-    openMessengerThread,
+    messengerThreads,
     personas,
     providerConnections,
-  ]);
-
-  const updateMessengerThread = useCallback((thread: MessengerThread) => {
-    setMessengerThreads((currentThreads) =>
-      currentThreads.some((currentThread) => currentThread.id === thread.id)
-        ? currentThreads.map((currentThread) =>
-            currentThread.id === thread.id ? thread : currentThread,
-          )
-        : [thread, ...currentThreads],
-    );
-  }, []);
-
-  const renameMessengerThread = useCallback(
-    (threadId: string, title: string) => {
-      const trimmedTitle = title.trim();
-      if (!trimmedTitle) return;
-
-      const now = currentIsoTimestamp();
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          thread.id === threadId
-            ? renameMessengerThreadRecord(thread, trimmedTitle, now)
-            : thread,
-        ),
-      );
-    },
-    [],
-  );
-
-  const clearMessengerThreadMessages = useCallback((threadId: string) => {
-    const now = currentIsoTimestamp();
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.id === threadId ? clearMessengerMessages(thread, now) : thread,
-      ),
-    );
-  }, []);
-
-  const deleteMessengerThread = useCallback(
-    (threadId: string) => {
-      setMessengerThreads((currentThreads) =>
-        deleteMessengerThreadRecord(currentThreads, threadId),
-      );
-      setRippleStates((currentStates) =>
-        deleteRippleStateForOwner(currentStates, "messenger-thread", threadId),
-      );
-
-      if (view.kind === "messenger" && view.threadId === threadId) {
-        setNavView({ kind: "pond" });
-      }
-    },
-    [setNavView, view],
-  );
+    setMessengerThreads,
+    setRippleStates,
+    setView: setNavView,
+    view,
+    openMessengerThread,
+  });
 
   const getRippleState = useCallback(
     (ownerKind: RippleStateOwnerKind, ownerId: string) =>
