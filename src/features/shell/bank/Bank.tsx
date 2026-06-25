@@ -1,6 +1,6 @@
 import "./Bank.css";
 
-import { useNav } from "../../navigation/nav-context";
+import { useNav } from "../../navigation";
 import {
   CLASSIC,
   MESSENGER,
@@ -8,7 +8,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
-import type { SideRailView } from "../../navigation/nav-types";
+import type { SideRailView } from "../../navigation";
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {

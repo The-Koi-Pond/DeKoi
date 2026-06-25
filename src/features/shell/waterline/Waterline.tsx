@@ -1,5 +1,5 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
-import { useNav } from "../../navigation/nav-context";
+import { useNav } from "../../navigation";
 import {
   getProviderConnectionById,
   getProviderConnectionStatusLabel,

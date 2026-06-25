@@ -1,4 +1,4 @@
-import type { NavContextType } from "../../../navigation/nav-types";
+import type { NavContextType } from "../../../navigation";
 import {
   CLASSIC,
   MESSENGER,

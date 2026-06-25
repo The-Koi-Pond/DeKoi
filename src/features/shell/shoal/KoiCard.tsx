@@ -1,4 +1,4 @@
-import { useNav } from "../../navigation/nav-context";
+import { useNav } from "../../navigation";
 import { SURFACES, type SurfaceId } from "../../../engine/surfaces";
 import "./koi-card.css";
 

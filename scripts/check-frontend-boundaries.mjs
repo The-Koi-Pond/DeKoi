@@ -67,6 +67,11 @@ function getModePackageRoot(filePath) {
   return `src/features/modes/${match[1]}`;
 }
 
+function getNavigationPackageRoot(filePath) {
+  if (!isUnder(filePath, "src/features/navigation")) return null;
+  return "src/features/navigation";
+}
+
 function listSourceFiles(directoryPath) {
   const files = [];
 
@@ -202,6 +207,8 @@ function checkImport(sourceFile, specifier, targetFile) {
     getCatalogResourcePackageRoot(targetFile);
   const sourceModePackageRoot = getModePackageRoot(sourceFile);
   const targetModePackageRoot = getModePackageRoot(targetFile);
+  const sourceNavigationPackageRoot = getNavigationPackageRoot(sourceFile);
+  const targetNavigationPackageRoot = getNavigationPackageRoot(targetFile);
   const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
   const targetShellPackageRoot = getShellPackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
@@ -232,6 +239,14 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceModePackageRoot !== targetModePackageRoot
   ) {
     failures.push("Mode packages must be imported through their public entrypoints.");
+  }
+
+  if (
+    targetNavigationPackageRoot &&
+    targetFile !== targetNavigationPackageRoot &&
+    sourceNavigationPackageRoot !== targetNavigationPackageRoot
+  ) {
+    failures.push("Navigation must be imported through its public entrypoint.");
   }
 
   if (

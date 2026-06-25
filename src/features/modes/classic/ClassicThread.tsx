@@ -6,7 +6,7 @@ import {
   selectMessengerGenerationRuntime,
 } from "../../runtime/generation/messenger-generation";
 import { generateClassicThreadTurn } from "../../runtime/generation/classic-generation";
-import { useNav } from "../../navigation/nav-context";
+import { useNav } from "../../navigation";
 import "./classic-thread.css";
 
 function createLocalId(prefix: string) {

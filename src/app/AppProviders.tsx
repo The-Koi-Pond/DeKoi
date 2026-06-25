@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import { NavContext } from "../features/navigation/nav-context";
-import type { NavContextType } from "../features/navigation/nav-types";
-import { useNavigationController } from "../features/navigation/use-navigation-controller";
+import {
+  NavContext,
+  type NavContextType,
+  useNavigationController,
+} from "../features/navigation";
 
 type AppProvidersProps = {
   children: (nav: NavContextType) => ReactNode;

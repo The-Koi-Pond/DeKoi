@@ -85,6 +85,7 @@ The check currently enforces these rules:
 - Catalog source files must live in resource or shared packages, not directly
   under `src/features/catalog`.
 - Mode packages must be imported through their public entrypoints.
+- Navigation must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
@@ -107,7 +108,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    thin.
 2. Keep app provider wiring in `src/app`; move the remaining navigation
    controller/state bridge toward app or mode router ownership as those
-   boundaries become concrete.
+   boundaries become concrete. Import navigation through its package entrypoint
+   while it remains a bridge.
 3. Keep Messenger and Classic screens under `features/modes`; move future mode
    surfaces there too, with package entrypoints for each mode.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under

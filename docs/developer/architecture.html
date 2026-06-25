@@ -184,6 +184,10 @@
               <td>Classic and Messenger expose stable mode surfaces and display helpers without leaking file layout.</td>
             </tr>
             <tr>
+              <td>Navigation must be imported through its public entrypoint.</td>
+              <td>The bridge can expose context, types, and controller hooks without leaking its internal action files.</td>
+            </tr>
+            <tr>
               <td>Shell packages must be imported through their public entrypoints.</td>
               <td>App-level panels keep their internal components package-owned while the shell composes stable surfaces.</td>
             </tr>
@@ -205,7 +209,7 @@
         <h2>Migration Direction</h2>
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin.</li>
-          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete.</li>
+          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
           <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
