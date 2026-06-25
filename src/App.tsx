@@ -1,15 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import {
   NavContext,
   type PondView,
   type SideRailView,
   type NavContextType,
 } from "./features/navigation/nav-context";
-import {
-  cancelIdle,
-  requestIdle,
-  type IdleHandle,
-} from "./shared/browser/idle-callback";
+import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
@@ -104,10 +100,6 @@ import { loadPersonaRecords } from "./runtime/persona-storage";
 import { loadProviderConnectionRecords } from "./runtime/provider-connection-storage";
 import { loadRippleStates } from "./runtime/ripple-state-storage";
 import {
-  loadAppStorageSnapshot,
-  saveAppStorageSnapshot,
-} from "./runtime/app-storage-snapshot";
-import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
 } from "./runtime/runtime-target";
@@ -140,86 +132,33 @@ export default function App() {
     useState(readRemoteRuntimeUrl);
   const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
   const [storageReady, setStorageReady] = useState(false);
-  const saveRequestId = useRef(0);
   const [careOpen, setCareOpen] = useState(false);
   const [careTab, setCareTab] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
-      if (cancelled) return;
-      setAppSettings(snapshot.appSettings);
-      setCharacters(snapshot.characters);
-      setPersonas(snapshot.personas);
-      setLorebooks(snapshot.lorebooks);
-      setProviderConnections(snapshot.providerConnections);
-      setClassicThreads(snapshot.classicThreads);
-      setMessengerThreads(snapshot.messengerThreads);
-      setRippleStates(snapshot.rippleStates);
-      setMessengerStorageMode(snapshot.storageResult.mode);
-      setMessengerStorageStatus(snapshot.storageResult.status);
-      setMessengerStorageMessage(snapshot.storageResult.message);
-      setStorageReady(snapshot.storageResult.status === "ready");
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [remoteRuntimeUrl]);
-
-  // Coalesce rapid state changes (e.g. dragging a settings slider fires many
-  // updateAppSettings calls) into a single host write. We debounce briefly, then
-  // defer the write to an idle frame so the main thread stays responsive. The
-  // saveRequestId guard below still ensures only the latest batch's result is
-  // applied if multiple writes overlap.
-  useEffect(() => {
-    if (!storageReady) return;
-
-    let idleHandle: IdleHandle | undefined;
-
-    const timer = setTimeout(() => {
-      const requestId = saveRequestId.current + 1;
-      saveRequestId.current = requestId;
-
-      idleHandle = requestIdle(() => {
-        saveAppStorageSnapshot(
-          {
-            appSettings,
-            characters,
-            personas,
-            lorebooks,
-            providerConnections,
-            classicThreads,
-            messengerThreads,
-            rippleStates,
-          },
-          remoteRuntimeUrl,
-        ).then((storageResult) => {
-          if (saveRequestId.current !== requestId) return;
-          setMessengerStorageMode(storageResult.mode);
-          setMessengerStorageStatus(storageResult.status);
-          setMessengerStorageMessage(storageResult.message);
-        });
-      });
-    }, 150);
-
-    return () => {
-      if (timer !== undefined) clearTimeout(timer);
-      if (idleHandle !== undefined) cancelIdle(idleHandle);
-    };
-  }, [
+  useAppStorageSync({
     appSettings,
     characters,
-    classicThreads,
-    lorebooks,
-    messengerThreads,
     personas,
+    lorebooks,
     providerConnections,
-    remoteRuntimeUrl,
+    classicThreads,
+    messengerThreads,
     rippleStates,
+    remoteRuntimeUrl,
+    setAppSettings,
+    setCharacters,
+    setPersonas,
+    setLorebooks,
+    setProviderConnections,
+    setClassicThreads,
+    setMessengerThreads,
+    setRippleStates,
+    setMessengerStorageMode,
+    setMessengerStorageStatus,
+    setMessengerStorageMessage,
+    setStorageReady,
     storageReady,
-  ]);
+  });
 
   const closeCareDrawer = useCallback(() => setCareOpen(false), []);
   useEscapeKey(careOpen, closeCareDrawer);
