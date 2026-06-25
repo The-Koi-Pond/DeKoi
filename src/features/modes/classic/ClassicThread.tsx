@@ -4,8 +4,8 @@ import { getProviderConnectionById } from "../../../engine/provider-connection";
 import {
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
-} from "../../../runtime/messenger-generation";
-import { generateClassicThreadTurn } from "../../../runtime/classic-generation";
+} from "../../runtime/generation/messenger-generation";
+import { generateClassicThreadTurn } from "../../runtime/generation/classic-generation";
 import { useNav } from "../../navigation/nav-context";
 import "./classic-thread.css";
 

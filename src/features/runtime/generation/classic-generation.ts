@@ -1,13 +1,13 @@
-import type { CharacterRecord } from "../engine/character";
+import type { CharacterRecord } from "../../../engine/character";
 import {
   appendClassicEntries,
   createGeneratedClassicEntry,
-} from "../engine/classic-actions";
-import type { ClassicThread } from "../engine/classic";
-import type { LorebookRecord } from "../engine/lorebook";
-import type { MessengerMessage, MessengerThread } from "../engine/messenger";
-import type { PersonaRecord } from "../engine/persona";
-import type { ProviderConnectionRecord } from "../engine/provider-connection";
+} from "../../../engine/classic-actions";
+import type { ClassicThread } from "../../../engine/classic";
+import type { LorebookRecord } from "../../../engine/lorebook";
+import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import type { PersonaRecord } from "../../../engine/persona";
+import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import type { MessengerGenerationRuntimeMode } from "./messenger-generation";
 import { generateMessengerThreadReply } from "./messenger-generation";
 

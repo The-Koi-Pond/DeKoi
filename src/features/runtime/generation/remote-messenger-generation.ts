@@ -4,9 +4,9 @@ import type {
   MessengerGenerationProviderKind,
   MessengerGenerationRequest,
   MessengerGenerationResponse,
-} from "../engine/messenger-generation";
-import { invokeRemote } from "../shared/api/remote-runtime";
-import { RUNTIME_COMMANDS } from "../shared/api/runtime-commands";
+} from "../../../engine/messenger-generation";
+import { invokeRemote } from "../../../shared/api/remote-runtime";
+import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);

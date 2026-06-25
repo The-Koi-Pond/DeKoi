@@ -27,7 +27,7 @@ import {
   generateMessengerThreadReply,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
-} from "../../../runtime/messenger-generation";
+} from "../../runtime/generation/messenger-generation";
 import "./messenger-thread.css";
 
 const EMPTY_RIPPLE_DRAFT = {

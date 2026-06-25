@@ -3,9 +3,9 @@ import type {
   MessengerGenerationAdapter,
   MessengerGenerationRequest,
   MessengerGenerationResponse,
-} from "../engine/messenger-generation";
-import { getNextMessengerCompanion } from "../engine/messenger-actions";
-import type { CharacterRecord } from "../engine/character";
+} from "../../../engine/messenger-generation";
+import { getNextMessengerCompanion } from "../../../engine/messenger-actions";
+import type { CharacterRecord } from "../../../engine/character";
 
 function getMockReplyText(
   request: MessengerGenerationRequest,

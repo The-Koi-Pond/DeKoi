@@ -2,20 +2,20 @@ import type {
   MessengerGenerationAdapter,
   MessengerGenerationRequest,
   MessengerGenerationResponse,
-} from "../engine/messenger-generation";
+} from "../../../engine/messenger-generation";
 import {
   createMessengerGenerationContext,
   createMessengerGenerationRequest,
-} from "../engine/messenger-generation";
+} from "../../../engine/messenger-generation";
 import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,
-} from "../engine/messenger-actions";
-import type { CharacterRecord } from "../engine/character";
-import type { LorebookRecord } from "../engine/lorebook";
-import type { MessengerMessage, MessengerThread } from "../engine/messenger";
-import type { PersonaRecord } from "../engine/persona";
-import type { ProviderConnectionRecord } from "../engine/provider-connection";
+} from "../../../engine/messenger-actions";
+import type { CharacterRecord } from "../../../engine/character";
+import type { LorebookRecord } from "../../../engine/lorebook";
+import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import type { PersonaRecord } from "../../../engine/persona";
+import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
 import { remoteMessengerGenerationAdapter } from "./remote-messenger-generation";
 
