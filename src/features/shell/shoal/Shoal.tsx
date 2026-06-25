@@ -8,7 +8,17 @@ import {
   getMessengerThreadPreview,
   sortMessengerThreads,
 } from "../../modes";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCatalogState,
+  NavClassicThreadActions,
+  NavMessengerThreadActions,
+  NavSettingsActions,
+  NavSettingsState,
+  NavStorageState,
+  NavThreadState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import "./Shoal.css";
 
@@ -22,8 +32,30 @@ const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
 type PeopleTab = "companions" | "personas";
 
 interface ShoalProps {
-  nav: NavContextType;
+  nav: ShoalNav;
 }
+
+export type ShoalNav = Pick<
+  NavCatalogState,
+  "characters" | "lorebooks" | "personas"
+> &
+  Pick<
+    NavClassicThreadActions,
+    "createClassicThread" | "deleteClassicThread" | "renameClassicThread"
+  > &
+  Pick<
+    NavMessengerThreadActions,
+    "createMessengerThread" | "deleteMessengerThread" | "renameMessengerThread"
+  > &
+  Pick<NavSettingsActions, "setShoalSortMode"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<
+    NavStorageState,
+    "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"
+  > &
+  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<NavViewActions, "openClassicThread" | "openMessengerThread" | "setView"> &
+  Pick<NavViewState, "sideRailView" | "view">;
 
 interface CatalogRailCardProps {
   active?: boolean;

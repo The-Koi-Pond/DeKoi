@@ -430,7 +430,39 @@ for (const sourceFile of sourceFiles) {
     /\bimport\s+\{\s*useNav\b[^}]*\}\s+from\s+["'][^"']*navigation["']/.test(source)
   ) {
     failures.push(
-      `Feature modules should receive navigation state/actions through typed props instead of useNav().\n  - ${sourceFile}`,
+      `Feature modules must receive navigation state/actions through narrow feature-owned props instead of useNav().\n  - ${sourceFile}`,
+    );
+  }
+
+  if (
+    isUnder(sourceFile, "src/features") &&
+    !isUnder(sourceFile, "src/features/navigation") &&
+    /\bimport\s+(?:type\s+)?\{[^}]*\bNavContextType\b[^}]*\}\s+from\s+["'][^"']*navigation["']/.test(
+      source,
+    )
+  ) {
+    failures.push(
+      `Feature modules must use navigation state/action groups instead of importing NavContextType.\n  - ${sourceFile}`,
+    );
+  }
+
+  if (
+    isUnder(sourceFile, "src/features") &&
+    !isUnder(sourceFile, "src/features/navigation") &&
+    /\bnav\s*:\s*NavContextType\b/.test(source)
+  ) {
+    failures.push(
+      `Feature nav props must use narrow surface-owned contracts instead of NavContextType.\n  - ${sourceFile}`,
+    );
+  }
+
+  if (
+    isUnder(sourceFile, "src/features") &&
+    !isUnder(sourceFile, "src/features/navigation") &&
+    /\bPick\s*<\s*NavContextType\b/.test(source)
+  ) {
+    failures.push(
+      `Feature nav props must use navigation state/action groups instead of Pick<NavContextType, ...>.\n  - ${sourceFile}`,
     );
   }
 

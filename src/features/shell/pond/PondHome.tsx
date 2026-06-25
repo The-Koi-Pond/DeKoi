@@ -1,12 +1,19 @@
-import type { NavContextType } from "../../navigation";
-import { Hero } from "./hero/Hero";
-import { ModePools } from "./pools/ModePools";
-import { RecentCurrents } from "./currents/RecentCurrents";
-import { Depths } from "./depths/Depths";
+import { Hero, type HeroNav } from "./hero/Hero";
+import { ModePools, type ModePoolsNav } from "./pools/ModePools";
+import {
+  RecentCurrents,
+  type RecentCurrentsNav,
+} from "./currents/RecentCurrents";
+import { Depths, type DepthsNav } from "./depths/Depths";
 
 interface PondHomeProps {
-  nav: NavContextType;
+  nav: PondHomeNav;
 }
+
+export type PondHomeNav = DepthsNav &
+  HeroNav &
+  ModePoolsNav &
+  RecentCurrentsNav;
 
 export function PondHome({ nav }: PondHomeProps) {
   return (

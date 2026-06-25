@@ -1,6 +1,12 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { RESERVED } from "../../../../engine/surfaces";
-import type { NavContextType } from "../../../navigation";
+import type {
+  NavCareActions,
+  NavClassicThreadActions,
+  NavMessengerThreadActions,
+  NavThreadState,
+  NavViewActions,
+} from "../../../navigation";
 import {
   sortClassicThreadsByUpdatedAt,
   sortMessengerThreadsByUpdatedAt,
@@ -28,8 +34,20 @@ interface FeatureResult {
 }
 
 interface DepthsProps {
-  nav: NavContextType;
+  nav: DepthsNav;
 }
+
+export type DepthsNav = Pick<
+  NavCareActions,
+  "setCareOpen" | "setCareTab"
+> &
+  Pick<NavClassicThreadActions, "createClassicThread"> &
+  Pick<NavMessengerThreadActions, "createMessengerThread"> &
+  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<
+    NavViewActions,
+    "openClassicThread" | "openMessengerThread" | "setSelectedSurface"
+  >;
 
 const surfaceChips: Array<"All surfaces" | FeatureSurface> = [
   "All surfaces",

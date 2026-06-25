@@ -1,5 +1,12 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCareActions,
+  NavCatalogState,
+  NavSettingsActions,
+  NavSettingsState,
+  NavThreadState,
+  NavViewActions,
+} from "../../navigation";
 import {
   getProviderConnectionById,
   getProviderConnectionStatusLabel,
@@ -14,8 +21,18 @@ import "./Waterline.css";
 type CatalogPanel = "media" | "connections";
 
 interface WaterlineProps {
-  nav: NavContextType;
+  nav: WaterlineNav;
 }
+
+export type WaterlineNav = Pick<
+  NavCatalogState,
+  "providerConnections"
+> &
+  Pick<NavCareActions, "setCareOpen"> &
+  Pick<NavSettingsActions, "setActiveMessengerConnectionId"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavThreadState, "messengerThreads"> &
+  Pick<NavViewActions, "openMessengerThread">;
 
 export function Waterline({ nav }: WaterlineProps) {
   const [query, setQuery] = useState("");

@@ -1,18 +1,26 @@
 import { KoiSprite } from "../../shared/ui/KoiSprite";
-import { Waterline } from "./waterline";
-import { Bank } from "./bank";
-import { Shoal } from "./shoal";
-import { Tide } from "./tide";
+import { Waterline, type WaterlineNav } from "./waterline";
+import { Bank, type BankNav } from "./bank";
+import { Shoal, type ShoalNav } from "./shoal";
+import { Tide, type TideNav } from "./tide";
 import { useEffect } from "react";
-import { CareDrawer } from "./care";
-import { Pond } from "./pond";
-import type { NavContextType } from "../navigation";
+import { CareDrawer, type CareDrawerNav } from "./care";
+import { Pond, type PondNav } from "./pond";
+import type { NavSettingsState } from "../navigation";
 
 interface ShellProps {
-  nav: NavContextType;
+  nav: ShellNav;
 }
 
-function applyPondAppearance(settings: NavContextType["appSettings"]) {
+export type ShellNav = Pick<NavSettingsState, "appSettings"> &
+  BankNav &
+  CareDrawerNav &
+  PondNav &
+  ShoalNav &
+  TideNav &
+  WaterlineNav;
+
+function applyPondAppearance(settings: ShellNav["appSettings"]) {
   const root = document.documentElement;
 
   // Accent → data attribute (CSS maps it to --accent/--accent-hot/--accent-deep)

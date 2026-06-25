@@ -1,12 +1,27 @@
 import { useState } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCatalogState,
+  NavCharacterActions,
+  NavSettingsState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
 interface CompanionsSurfaceProps {
-  nav: NavContextType;
+  nav: CompanionsSurfaceNav;
 }
+
+export type CompanionsSurfaceNav = Pick<
+  NavCatalogState,
+  "characters"
+> &
+  Pick<NavCharacterActions, "createCharacter" | "deleteCharacter" | "duplicateCharacter" | "updateCharacter"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavViewActions, "setView"> &
+  Pick<NavViewState, "view">;
 
 interface DraftState {
   displayName: string;

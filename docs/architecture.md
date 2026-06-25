@@ -101,8 +101,10 @@ The check currently enforces these rules:
 - Navigation must be imported through its public entrypoint.
 - Shell must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
-- Non-navigation feature modules should receive navigation state/actions
-  through typed props instead of reading `useNav()` directly.
+- Non-navigation feature modules must receive navigation state/actions through
+  narrow feature-owned props built from exported navigation state/action groups
+  instead of reading `useNav()` directly, importing `NavContextType`, accepting
+  `nav: NavContextType`, or picking from `NavContextType`.
 - Feature package entrypoints must use explicit exports, not wildcard exports.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
@@ -135,8 +137,10 @@ Move toward the old De-Koi skeleton in small, validated slices:
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too. Import the shell
    feature through its package entrypoint from app composition.
-5. Pass navigation state/actions through typed props into shell, mode, and
-   catalog surfaces rather than reading the navigation context inside
+5. Pass navigation state/actions through narrow feature-owned props into shell,
+   mode, and catalog surfaces. Build those contracts from exported navigation
+   state/action groups rather than reading the navigation context, importing
+   `NavContextType`, accepting it directly, or picking from it inside
    non-navigation feature modules.
 6. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;

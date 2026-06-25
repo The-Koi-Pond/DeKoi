@@ -1,5 +1,16 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCareActions,
+  NavCareState,
+  NavCatalogState,
+  NavProviderConnectionActions,
+  NavRippleState,
+  NavSettingsActions,
+  NavSettingsState,
+  NavStorageBundleActions,
+  NavStorageState,
+  NavThreadState,
+} from "../../navigation";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { NumberField } from "../../../shared/ui/primitives/NumberField";
@@ -41,8 +52,47 @@ import "./care-fields.css";
 import "../../../shared/ui/primitives/Chip.css";
 
 interface CareDrawerProps {
-  nav: NavContextType;
+  nav: CareDrawerNav;
 }
+
+export type CareDrawerNav = Pick<
+  NavCareActions,
+  "setCareOpen" | "setCareTab"
+> &
+  Pick<NavCareState, "careOpen" | "careTab"> &
+  Pick<
+    NavCatalogState,
+    "characters" | "lorebooks" | "personas" | "providerConnections"
+  > &
+  Pick<
+    NavProviderConnectionActions,
+    | "createProviderConnection"
+    | "deleteProviderConnection"
+    | "duplicateProviderConnection"
+    | "updateProviderConnection"
+  > &
+  Pick<NavRippleState, "rippleStates"> &
+  Pick<
+    NavSettingsActions,
+    | "setActiveMessengerConnectionId"
+    | "setConfirmRelease"
+    | "setRemoteRuntimeUrl"
+    | "setSendOnEnterSurface"
+    | "updateAppSettings"
+  > &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<
+    NavStorageBundleActions,
+    "createStorageBundle" | "importLegacyData" | "importStorageBundle"
+  > &
+  Pick<
+    NavStorageState,
+    | "messengerStorageMessage"
+    | "messengerStorageMode"
+    | "messengerStorageStatus"
+    | "remoteRuntimeUrl"
+  > &
+  Pick<NavThreadState, "classicThreads" | "messengerThreads">;
 
 // Six settings-only tabs: all render real content or phase-appropriate placeholders.
 const CARE_TABS = [

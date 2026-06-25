@@ -7,11 +7,23 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
-import type { NavContextType, SideRailView } from "../../navigation";
+import type {
+  NavMessengerThreadActions,
+  NavViewActions,
+  NavViewState,
+  SideRailView,
+} from "../../navigation";
 
 interface BankProps {
-  nav: NavContextType;
+  nav: BankNav;
 }
+
+export type BankNav = Pick<
+  NavMessengerThreadActions,
+  "createMessengerThread"
+> &
+  Pick<NavViewActions, "setSelectedSurface" | "setSideRailView"> &
+  Pick<NavViewState, "selectedSurface" | "sideRailView">;
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {

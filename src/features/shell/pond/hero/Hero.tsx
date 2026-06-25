@@ -1,15 +1,26 @@
 import { PondEye } from "./PondEye";
 import "./hero.css";
 
-import type { NavContextType } from "../../../navigation";
+import type {
+  NavMessengerThreadActions,
+  NavThreadState,
+  NavViewActions,
+} from "../../../navigation";
 import {
   sortClassicThreadsByUpdatedAt,
   sortMessengerThreadsByUpdatedAt,
 } from "../../../modes";
 
 interface HeroProps {
-  nav: NavContextType;
+  nav: HeroNav;
 }
+
+export type HeroNav = Pick<
+  NavMessengerThreadActions,
+  "createMessengerThread"
+> &
+  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<NavViewActions, "openClassicThread" | "openMessengerThread">;
 
 export function Hero({ nav }: HeroProps) {
   return (

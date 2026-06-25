@@ -6,7 +6,17 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCareActions,
+  NavCatalogState,
+  NavMessengerThreadActions,
+  NavRippleActions,
+  NavSettingsState,
+  NavStorageState,
+  NavThreadState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
@@ -29,6 +39,19 @@ import {
   selectMessengerGenerationRuntime,
 } from "../../runtime";
 import "./messenger-thread.css";
+
+export type MessengerThreadNav = Pick<
+  NavCatalogState,
+  "characters" | "lorebooks" | "personas" | "providerConnections"
+> &
+  Pick<NavMessengerThreadActions, "clearMessengerThreadMessages" | "createMessengerThread" | "updateMessengerThread"> &
+  Pick<NavRippleActions, "createRipple" | "deleteRipple" | "getRippleState" | "updateRipple"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavStorageState, "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"> &
+  Pick<NavThreadState, "messengerThreads"> &
+  Pick<NavViewActions, "setView"> &
+  Pick<NavViewState, "view"> &
+  Pick<NavCareActions, "setCareOpen" | "setCareTab">;
 
 const EMPTY_RIPPLE_DRAFT = {
   body: "",
@@ -65,7 +88,7 @@ function readRippleTone(value: string): RippleTone {
 }
 
 interface MessengerThreadProps {
-  nav: NavContextType;
+  nav: MessengerThreadNav;
 }
 
 export function MessengerThread({ nav }: MessengerThreadProps) {

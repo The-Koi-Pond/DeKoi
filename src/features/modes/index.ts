@@ -1,5 +1,6 @@
 export {
   ClassicThread,
+  type ClassicThreadNav,
   getClassicThreadInitials,
   getClassicThreadPreview,
   sortClassicThreads,
@@ -7,6 +8,7 @@ export {
 } from "./classic";
 export {
   MessengerThread,
+  type MessengerThreadNav,
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   getMessengerThreadTimeLabel,

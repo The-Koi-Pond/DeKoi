@@ -1,9 +1,12 @@
 import './Tide.css'
-import type { NavContextType } from '../../navigation'
+import type { NavSettingsActions, NavSettingsState } from '../../navigation'
 
 interface TideProps {
-  nav: NavContextType
+  nav: TideNav
 }
+
+export type TideNav = Pick<NavSettingsActions, 'setSurfaceStatus'> &
+  Pick<NavSettingsState, 'appSettings'>
 
 export function Tide({ nav }: TideProps) {
   const surfaceStatus = nav.appSettings.surfaceStatus

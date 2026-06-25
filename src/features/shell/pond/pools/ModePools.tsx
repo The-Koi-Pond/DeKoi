@@ -1,4 +1,10 @@
-import type { NavContextType } from "../../../navigation";
+import type {
+  NavClassicThreadActions,
+  NavMessengerThreadActions,
+  NavThreadState,
+  NavViewActions,
+  NavViewState,
+} from "../../../navigation";
 import {
   CLASSIC,
   MESSENGER,
@@ -13,8 +19,20 @@ import {
 import "./pools.css";
 
 interface ModePoolsProps {
-  nav: NavContextType;
+  nav: ModePoolsNav;
 }
+
+export type ModePoolsNav = Pick<
+  NavClassicThreadActions,
+  "createClassicThread"
+> &
+  Pick<NavMessengerThreadActions, "createMessengerThread"> &
+  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<
+    NavViewActions,
+    "openClassicThread" | "openMessengerThread" | "setSelectedSurface"
+  > &
+  Pick<NavViewState, "selectedSurface">;
 
 const POOLS: {
   mode: SurfaceId;

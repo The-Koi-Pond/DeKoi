@@ -1,17 +1,36 @@
-import type { NavContextType } from "../../navigation";
-import { ClassicThread } from "../../modes";
-import { PondHome } from "./PondHome";
-import { MessengerThread } from "../../modes";
+import type { NavStorageState, NavViewState } from "../../navigation";
+import {
+  ClassicThread,
+  type ClassicThreadNav,
+  MessengerThread,
+  type MessengerThreadNav,
+} from "../../modes";
+import { PondHome, type PondHomeNav } from "./PondHome";
 import {
   CompanionsSurface,
+  type CompanionsSurfaceNav,
   LorebooksSurface,
+  type LorebooksSurfaceNav,
   PersonasSurface,
+  type PersonasSurfaceNav,
 } from "../../catalog";
 import "./Pond.css";
 
 interface PondProps {
-  nav: NavContextType;
+  nav: PondNav;
 }
+
+export type PondNav = Pick<
+  NavStorageState,
+  "messengerStorageMode" | "messengerStorageStatus"
+> &
+  Pick<NavViewState, "view"> &
+  ClassicThreadNav &
+  CompanionsSurfaceNav &
+  LorebooksSurfaceNav &
+  MessengerThreadNav &
+  PersonasSurfaceNav &
+  PondHomeNav;
 
 export function Pond({ nav }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";

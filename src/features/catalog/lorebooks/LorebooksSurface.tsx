@@ -1,5 +1,11 @@
 import { useState } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCatalogState,
+  NavLorebookActions,
+  NavSettingsState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import type {
   LorebookEntryInput,
   LorebookInput,
@@ -9,8 +15,25 @@ import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
 interface LorebooksSurfaceProps {
-  nav: NavContextType;
+  nav: LorebooksSurfaceNav;
 }
+
+export type LorebooksSurfaceNav = Pick<
+  NavCatalogState,
+  "lorebooks"
+> &
+  Pick<
+    NavLorebookActions,
+    | "createLorebook"
+    | "createLorebookEntry"
+    | "deleteLorebook"
+    | "deleteLorebookEntry"
+    | "duplicateLorebookEntry"
+    | "updateLorebookEntry"
+  > &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavViewActions, "setView"> &
+  Pick<NavViewState, "view">;
 
 interface DraftState {
   title: string;

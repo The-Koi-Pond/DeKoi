@@ -6,8 +6,25 @@ import {
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCatalogState,
+  NavClassicThreadActions,
+  NavSettingsState,
+  NavThreadState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import "./classic-thread.css";
+
+export type ClassicThreadNav = Pick<
+  NavCatalogState,
+  "characters" | "lorebooks" | "personas" | "providerConnections"
+> &
+  Pick<NavClassicThreadActions, "clearClassicThreadEntries" | "createClassicThread" | "updateClassicThread"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavThreadState, "classicThreads"> &
+  Pick<NavViewActions, "setView"> &
+  Pick<NavViewState, "view">;
 
 function createLocalId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -17,7 +34,7 @@ function createLocalId(prefix: string) {
 }
 
 interface ClassicThreadProps {
-  nav: NavContextType;
+  nav: ClassicThreadNav;
 }
 
 export function ClassicThread({ nav }: ClassicThreadProps) {

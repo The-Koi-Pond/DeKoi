@@ -111,8 +111,10 @@ The short version:
   internals are grouped into `context`, `state`, and `actions`.
   `src/features/runtime` owns runtime-facing workflows such as generation,
   initial app-storage record loading, and runtime target URL changes.
-  Non-navigation feature modules receive navigation state/actions through typed
-  props rather than reading navigation context directly.
+  Non-navigation feature modules receive navigation state/actions through narrow
+  feature-owned props built from exported navigation state/action groups rather
+  than reading navigation context directly, importing `NavContextType`, or
+  deriving feature props from the full navigation type.
 - `src/runtime/index.ts` is the public runtime bridge. `src/runtime/storage/*`
   adapts native records to desktop or remote storage, DeKoi bundle
   import/export, and legacy import while using shared API wrappers for host or

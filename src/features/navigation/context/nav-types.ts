@@ -40,39 +40,86 @@ export type PondView =
 
 export type SideRailView = "shoal" | "lorebooks" | "people";
 
-export interface NavState {
+export interface NavViewState {
   view: PondView;
   sideRailView: SideRailView;
   selectedSurface: SurfaceId;
+}
+
+export interface NavCatalogState {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   providerConnections: ProviderConnectionRecord[];
+}
+
+export interface NavThreadState {
   classicThreads: ClassicThread[];
   messengerThreads: MessengerThread[];
+}
+
+export interface NavRippleState {
   rippleStates: RippleState[];
+}
+
+export interface NavStorageState {
   messengerStorageMode: MessengerStorageMode;
   messengerStorageStatus: MessengerStorageStatus;
   messengerStorageMessage: string;
   remoteRuntimeUrl: string;
+}
+
+export interface NavSettingsState {
   appSettings: AppSettings;
+}
+
+export interface NavCareState {
   careOpen: boolean;
   careTab: number;
 }
 
-export interface NavContextType extends NavState {
+export interface NavState
+  extends NavViewState,
+    NavCatalogState,
+    NavThreadState,
+    NavRippleState,
+    NavStorageState,
+    NavSettingsState,
+    NavCareState {}
+
+export interface NavViewActions {
   setView: (view: PondView) => void;
   setSideRailView: (view: SideRailView) => void;
   setSelectedSurface: (surface: SurfaceId) => void;
+  openClassicThread: (threadId: string) => void;
+  openMessengerThread: (threadId: string) => void;
+}
+
+export interface NavSettingsActions {
+  setRemoteRuntimeUrl: (url: string) => void;
   updateAppSettings: (patch: Partial<AppSettings>) => void;
+  setSendOnEnterSurface: (surface: SurfaceId) => void;
+  setConfirmRelease: (confirmRelease: boolean) => void;
+  setSurfaceStatus: (status: string) => void;
+  setShoalSortMode: (sortMode: ShoalSortMode) => void;
+  setActiveMessengerConnectionId: (connectionId: ProviderConnectionId) => void;
+}
+
+export interface NavCharacterActions {
   createCharacter: (input: CharacterRecordInput) => CharacterRecord;
   updateCharacter: (characterId: string, input: CharacterRecordInput) => void;
   duplicateCharacter: (characterId: string) => CharacterRecord | null;
   deleteCharacter: (characterId: string) => void;
+}
+
+export interface NavPersonaActions {
   createPersona: (input: PersonaRecordInput) => PersonaRecord;
   updatePersona: (personaId: string, input: PersonaRecordInput) => void;
   duplicatePersona: (personaId: string) => PersonaRecord | null;
   deletePersona: (personaId: string) => void;
+}
+
+export interface NavLorebookActions {
   createLorebookEntry: (
     lorebookId: string,
     input: LorebookEntryInput,
@@ -90,6 +137,9 @@ export interface NavContextType extends NavState {
   createLorebook: (input: LorebookInput) => LorebookRecord;
   updateLorebook: (lorebookId: string, input: LorebookInput) => void;
   deleteLorebook: (lorebookId: string) => void;
+}
+
+export interface NavProviderConnectionActions {
   createProviderConnection: (
     input: ProviderConnectionInput,
   ) => ProviderConnectionRecord;
@@ -101,18 +151,25 @@ export interface NavContextType extends NavState {
     connectionId: string,
   ) => ProviderConnectionRecord | null;
   deleteProviderConnection: (connectionId: string) => void;
+}
+
+export interface NavClassicThreadActions {
   createClassicThread: () => ClassicThread;
   updateClassicThread: (thread: ClassicThread) => void;
   renameClassicThread: (threadId: string, title: string) => void;
   clearClassicThreadEntries: (threadId: string) => void;
   deleteClassicThread: (threadId: string) => void;
-  openClassicThread: (threadId: string) => void;
+}
+
+export interface NavMessengerThreadActions {
   createMessengerThread: () => MessengerThread;
   updateMessengerThread: (thread: MessengerThread) => void;
   renameMessengerThread: (threadId: string, title: string) => void;
   clearMessengerThreadMessages: (threadId: string) => void;
   deleteMessengerThread: (threadId: string) => void;
-  openMessengerThread: (threadId: string) => void;
+}
+
+export interface NavRippleActions {
   getRippleState: (
     ownerKind: RippleStateOwnerKind,
     ownerId: string,
@@ -133,15 +190,30 @@ export interface NavContextType extends NavState {
     ownerId: string,
     rippleId: string,
   ) => void;
+}
+
+export interface NavStorageBundleActions {
   createStorageBundle: () => DeKoiStorageBundle;
   importStorageBundle: (bundle: DeKoiStorageBundle) => void;
   importLegacyData: (data: DeKoiLegacyImportData) => void;
-  setRemoteRuntimeUrl: (url: string) => void;
-  setSendOnEnterSurface: (surface: SurfaceId) => void;
-  setConfirmRelease: (confirmRelease: boolean) => void;
-  setSurfaceStatus: (status: string) => void;
-  setShoalSortMode: (sortMode: ShoalSortMode) => void;
-  setActiveMessengerConnectionId: (connectionId: ProviderConnectionId) => void;
+}
+
+export interface NavCareActions {
   setCareOpen: (open: boolean) => void;
   setCareTab: (tab: number) => void;
 }
+
+export interface NavActions
+  extends NavViewActions,
+    NavSettingsActions,
+    NavCharacterActions,
+    NavPersonaActions,
+    NavLorebookActions,
+    NavProviderConnectionActions,
+    NavClassicThreadActions,
+    NavMessengerThreadActions,
+    NavRippleActions,
+    NavStorageBundleActions,
+    NavCareActions {}
+
+export interface NavContextType extends NavState, NavActions {}

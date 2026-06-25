@@ -1,12 +1,27 @@
 import { useState } from "react";
-import type { NavContextType } from "../../navigation";
+import type {
+  NavCatalogState,
+  NavPersonaActions,
+  NavSettingsState,
+  NavViewActions,
+  NavViewState,
+} from "../../navigation";
 import type { PersonaRecordInput } from "../../../engine/persona-actions";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
 interface PersonasSurfaceProps {
-  nav: NavContextType;
+  nav: PersonasSurfaceNav;
 }
+
+export type PersonasSurfaceNav = Pick<
+  NavCatalogState,
+  "personas"
+> &
+  Pick<NavPersonaActions, "createPersona" | "deletePersona" | "duplicatePersona" | "updatePersona"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavViewActions, "setView"> &
+  Pick<NavViewState, "view">;
 
 interface DraftState {
   displayName: string;

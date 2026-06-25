@@ -1,5 +1,5 @@
 import { SURFACES } from "../../../../engine/surfaces";
-import type { NavContextType } from "../../../navigation";
+import type { NavThreadState, NavViewActions } from "../../../navigation";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -9,8 +9,14 @@ import {
 import "./currents.css";
 
 interface RecentCurrentsProps {
-  nav: NavContextType;
+  nav: RecentCurrentsNav;
 }
+
+export type RecentCurrentsNav = Pick<
+  NavThreadState,
+  "messengerThreads"
+> &
+  Pick<NavViewActions, "openMessengerThread">;
 
 export function RecentCurrents({ nav }: RecentCurrentsProps) {
   const recentThreads = sortMessengerThreadsByUpdatedAt(nav.messengerThreads).slice(
