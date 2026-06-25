@@ -3,13 +3,13 @@ import {
   exportDesktopBundleFile as exportDesktopBundleFilePayload,
   importDesktopBundleFileSnapshot,
 } from "../shared/api/desktop-bundle-file";
+import { asDesktopHostErrorMessage } from "../shared/api/desktop-host-common";
 import {
-  asDesktopHostErrorMessage,
   normalizeDesktopStorageBundleSnapshot,
   type DeKoiDesktopStorageBundleInfo,
   type DeKoiDesktopStorageBundleResult,
   type DeKoiDesktopStorageBundleSnapshot,
-} from "./desktop-host-common";
+} from "./desktop-storage-bundle-normalizer";
 
 export type DeKoiDesktopBundleFileImportResult =
   | Extract<DeKoiDesktopStorageBundleResult, { ok: true }>

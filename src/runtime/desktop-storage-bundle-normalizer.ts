@@ -6,10 +6,6 @@ import type {
   DeKoiDesktopStorageBundleInfo,
   DeKoiDesktopStorageBundleSnapshot,
 } from "../shared/api/desktop-storage-bundle";
-export {
-  asDesktopHostErrorMessage,
-  requireTauriForDesktopHost,
-} from "../shared/api/desktop-host-common";
 export type {
   DeKoiDesktopStorageBundleInfo,
   DeKoiDesktopStorageBundleSnapshot,
