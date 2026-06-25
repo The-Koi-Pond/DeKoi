@@ -6,11 +6,11 @@ import {
 import type {
   DeKoiDesktopStorageBundleInfo,
   DeKoiDesktopStorageBundleSnapshot,
-} from "../shared/api/desktop-storage-bundle";
+} from "../../../shared/api/desktop-storage-bundle";
 export type {
   DeKoiDesktopStorageBundleInfo,
   DeKoiDesktopStorageBundleSnapshot,
-} from "../shared/api/desktop-storage-bundle";
+} from "../../../shared/api/desktop-storage-bundle";
 
 export type DeKoiDesktopStorageBundleResult =
   | {

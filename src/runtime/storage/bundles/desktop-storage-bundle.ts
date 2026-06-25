@@ -2,8 +2,8 @@ import type { DeKoiStorageBundle } from "./dekoi-storage-bundle";
 import {
   readDesktopStorageBundleSnapshot,
   writeDesktopStorageBundle as writeDesktopStorageBundlePayload,
-} from "../shared/api/desktop-storage-bundle";
-import { asDesktopHostErrorMessage } from "../shared/api/desktop-host-common";
+} from "../../../shared/api/desktop-storage-bundle";
+import { asDesktopHostErrorMessage } from "../../../shared/api/desktop-host-common";
 import {
   normalizeDesktopStorageBundleSnapshot,
   type DeKoiDesktopStorageBundleInfo,

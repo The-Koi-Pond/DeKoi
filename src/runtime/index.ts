@@ -15,23 +15,23 @@ export {
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundleParseResult,
   type DeKoiStorageBundlePreview,
-} from "./dekoi-storage-bundle";
+} from "./storage/bundles/dekoi-storage-bundle";
 export {
   exportDesktopBundleFile,
   importDesktopBundleFile,
   type DeKoiDesktopBundleFileImportResult,
-} from "./desktop-bundle-file";
+} from "./storage/bundles/desktop-bundle-file";
 export {
   readDesktopStorageBundle,
   writeDesktopStorageBundle,
   type DeKoiDesktopStorageReadResult,
-} from "./desktop-storage-bundle";
+} from "./storage/bundles/desktop-storage-bundle";
 export {
   normalizeLegacyImport,
   type DeKoiLegacyImportData,
   type DeKoiLegacyImportParseResult,
   type DeKoiLegacyImportPreview,
-} from "./legacy-import";
+} from "./storage/bundles/legacy-import";
 export { loadLorebookRecords } from "./storage/collections/lorebook-storage";
 export {
   loadInitialMessengerThreads,

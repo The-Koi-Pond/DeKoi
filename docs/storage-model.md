@@ -53,6 +53,8 @@ Runtime collection adapters live under `src/runtime/storage/collections`;
 durable product record shapes live under `src/engine`.
 App-wide load/save orchestration lives in
 `src/runtime/storage/app-storage-snapshot.ts`.
+Bundle import/export and legacy import normalization live under
+`src/runtime/storage/bundles`.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
