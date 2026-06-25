@@ -21,6 +21,21 @@ export type HostStorageResult = {
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
 
+export function mergeHostStorageResults<T extends HostStorageResult>(
+  results: readonly T[],
+): T {
+  const fallback = results[0];
+  if (!fallback) {
+    throw new Error("Cannot merge an empty host storage result list.");
+  }
+
+  return (
+    results.find((result) => result.status === "error") ??
+    results.find((result) => result.mode !== "unavailable") ??
+    fallback
+  );
+}
+
 function asErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
 }

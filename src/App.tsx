@@ -1,36 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-
-// requestIdleCallback isn't in every TS DOM lib and isn't available everywhere,
-// so fall back to setTimeout. Only used to coalesce storage writes.
-type IdleHandle = number;
-const requestIdle: (cb: () => void) => IdleHandle =
-  typeof window !== "undefined" &&
-  typeof (window as unknown as { requestIdleCallback?: unknown })
-    .requestIdleCallback === "function"
-    ? (cb) =>
-        (
-          window as unknown as {
-            requestIdleCallback: (cb: () => void) => number;
-          }
-        ).requestIdleCallback(cb)
-    : (cb) => window.setTimeout(cb, 1) as unknown as IdleHandle;
-const cancelIdle: (handle: IdleHandle) => void =
-  typeof window !== "undefined" &&
-  typeof (window as unknown as { cancelIdleCallback?: unknown })
-    .cancelIdleCallback === "function"
-    ? (handle) =>
-        (
-          window as unknown as {
-            cancelIdleCallback: (handle: number) => void;
-          }
-        ).cancelIdleCallback(handle)
-    : (handle) => window.clearTimeout(handle);
 import {
   NavContext,
   type PondView,
   type SideRailView,
   type NavContextType,
 } from "./features/navigation/nav-context";
+import {
+  cancelIdle,
+  requestIdle,
+  type IdleHandle,
+} from "./shared/browser/idle-callback";
 import {
   createCharacterRecord,
   deleteCharacterRecord,
@@ -149,6 +128,7 @@ import {
   loadRippleStatesFromStorage,
   saveRippleStatesToStorage,
 } from "./runtime/ripple-state-storage";
+import { mergeHostStorageResults } from "./runtime/host-storage";
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
@@ -159,20 +139,6 @@ function createLocalId(prefix: string) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-type StorageResult = {
-  mode: MessengerStorageMode;
-  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
-  message: string;
-};
-
-function mergeStorageResults(results: StorageResult[]) {
-  return (
-    results.find((result) => result.status === "error") ??
-    results.find((result) => result.mode !== "unavailable") ??
-    results[0]
-  );
 }
 
 export default function App() {
@@ -231,7 +197,7 @@ export default function App() {
         rippleSnapshot,
       ]) => {
         if (cancelled) return;
-        const storageResult = mergeStorageResults([
+        const storageResult = mergeHostStorageResults([
           appSettingsSnapshot,
           characterSnapshot,
           personaSnapshot,
@@ -290,7 +256,7 @@ export default function App() {
           saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
         ]).then((results) => {
           if (saveRequestId.current !== requestId) return;
-          const storageResult = mergeStorageResults(results);
+          const storageResult = mergeHostStorageResults(results);
           setMessengerStorageMode(storageResult.mode);
           setMessengerStorageStatus(storageResult.status);
           setMessengerStorageMessage(storageResult.message);
