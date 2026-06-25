@@ -152,7 +152,7 @@
               <td>App composition wires providers and screens; it does not become a product or persistence layer.</td>
             </tr>
             <tr>
-              <td><code>src/runtime</code> must not import <code>src/app</code>, <code>src/features</code>, React, or the desktop command catalog directly.</td>
+              <td><code>src/runtime</code> must not import <code>src/app</code>, <code>src/features</code>, React, Tauri packages, or the desktop command catalog directly.</td>
               <td>The bridge runtime exposes capability contracts; it does not call screens or hooks.</td>
             </tr>
             <tr>
@@ -172,7 +172,7 @@
               <td>Higher layers compose lower layers; lower resource/runtime layers do not depend on app screens.</td>
             </tr>
             <tr>
-              <td><code>src/features/navigation</code> must not import sibling feature UI modules.</td>
+              <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>
             <tr>

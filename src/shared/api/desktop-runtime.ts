@@ -1,5 +1,6 @@
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { DESKTOP_COMMANDS } from "./desktop-commands";
+import { isDesktopHostAvailable } from "./desktop-host-common";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import type { RemoteRuntimeCommand } from "./runtime-commands";
 import {
@@ -21,7 +22,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function checkDesktopRuntimeHealth(): Promise<RemoteRuntimeHealthCheck> {
-  if (!isTauri()) {
+  if (!isDesktopHostAvailable()) {
     return {
       status: "unreachable",
       message: "Desktop runtime is only available inside the Tauri app.",
@@ -61,7 +62,7 @@ export async function invokeDesktopRuntime<T>(
   command: RemoteRuntimeCommand,
   args?: Record<string, unknown>,
 ): Promise<T> {
-  if (!isTauri()) {
+  if (!isDesktopHostAvailable()) {
     throw new Error("Desktop runtime is only available inside the Tauri app.");
   }
 

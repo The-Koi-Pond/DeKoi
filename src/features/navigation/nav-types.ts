@@ -21,8 +21,10 @@ import type { RippleState, RippleStateOwnerKind } from "../../engine/ripples";
 import type { RippleInput } from "../../engine/ripple-actions";
 import type { SurfaceId } from "../../engine/surfaces";
 import type { AppSettings, ShoalSortMode } from "../../engine/app-settings";
-import type { DeKoiStorageBundle } from "../../runtime/dekoi-storage-bundle";
-import type { DeKoiLegacyImportData } from "../../runtime/legacy-import";
+import type {
+  DeKoiLegacyImportData,
+  DeKoiStorageBundle,
+} from "../runtime/storage-bundle-workflows";
 import type {
   MessengerStorageMode,
   MessengerStorageStatus,

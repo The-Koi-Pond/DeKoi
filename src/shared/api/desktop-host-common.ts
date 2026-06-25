@@ -5,6 +5,10 @@ export function asDesktopHostErrorMessage(error: unknown) {
   return String(error);
 }
 
+export function isDesktopHostAvailable() {
+  return isTauri();
+}
+
 export function requireTauriForDesktopHost(message: string) {
-  if (!isTauri()) throw new Error(message);
+  if (!isDesktopHostAvailable()) throw new Error(message);
 }

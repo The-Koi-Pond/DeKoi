@@ -71,8 +71,8 @@ The check currently enforces these rules:
 - `src/engine` must not import `src/runtime`, `src/features`, `src/shared`,
   `src/app`, React, or Tauri packages.
 - `src/app` must not import runtime adapters or engine modules directly.
-- `src/runtime` must not import `src/app`, `src/features`, React, or the
-  desktop command catalog directly.
+- `src/runtime` must not import `src/app`, `src/features`, React, Tauri
+  packages, or the desktop command catalog directly.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
@@ -81,7 +81,9 @@ The check currently enforces these rules:
   `shell`.
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
-- `src/features/navigation` must not import sibling feature UI modules.
+- `src/features/navigation` must not import sibling shell, mode, or catalog UI
+  modules. It may call lower `features/runtime` workflows while navigation is a
+  bridge layer.
 - `src/features/runtime` is the only feature layer that may adapt the remaining
   `src/runtime` bridge. Shell, mode, and catalog modules must not import
   `src/runtime` directly.

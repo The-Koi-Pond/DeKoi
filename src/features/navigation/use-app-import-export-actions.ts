@@ -5,9 +5,9 @@ import { MESSENGER } from "../../engine/surfaces";
 import { createRecordId } from "../../shared/browser/record-id";
 import {
   createDeKoiStorageBundle,
+  type DeKoiLegacyImportData,
   type DeKoiStorageBundle,
-} from "../../runtime/dekoi-storage-bundle";
-import type { DeKoiLegacyImportData } from "../../runtime/legacy-import";
+} from "../runtime/storage-bundle-workflows";
 import type { MessengerStorageStatus } from "../../runtime/messenger-storage";
 import type { PondView } from "./nav-types";
 import type { AppStorageRecords } from "../../runtime/app-storage-snapshot";

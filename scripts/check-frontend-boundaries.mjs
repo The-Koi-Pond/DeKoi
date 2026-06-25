@@ -108,6 +108,10 @@ function checkImport(sourceFile, specifier, targetFile) {
     failures.push("Runtime adapters must stay React-free.");
   }
 
+  if (sourceIsRuntime && isTauriPackage(specifier)) {
+    failures.push("Runtime adapters must use shared API wrappers for Tauri host checks.");
+  }
+
   if (!targetFile) return failures;
 
   if (
@@ -168,7 +172,8 @@ function checkImport(sourceFile, specifier, targetFile) {
   if (
     sourceIsNavigation &&
     isUnder(targetFile, "src/features") &&
-    !isUnder(targetFile, "src/features/navigation")
+    !isUnder(targetFile, "src/features/navigation") &&
+    !isUnder(targetFile, "src/features/runtime")
   ) {
     failures.push("Navigation orchestration must not import sibling feature UI modules.");
   }

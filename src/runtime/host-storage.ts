@@ -1,4 +1,4 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { isDesktopHostAvailable } from "../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../shared/api/desktop-runtime";
 import { invokeRemote } from "../shared/api/remote-runtime";
 import {
@@ -65,14 +65,14 @@ function remoteTargetIsAvailable(rawUrl: string) {
 
 export function getHostStorageMode(rawUrl = readRemoteRuntimeUrl()): HostStorageMode {
   if (isDesktopRuntimeUrl(rawUrl)) {
-    return isTauri() ? "desktop" : "unavailable";
+    return isDesktopHostAvailable() ? "desktop" : "unavailable";
   }
 
   if (rawUrl.trim()) {
     return remoteTargetIsAvailable(rawUrl) ? "remote" : "unavailable";
   }
 
-  return isTauri() ? "desktop" : "unavailable";
+  return isDesktopHostAvailable() ? "desktop" : "unavailable";
 }
 
 export function hasHostStorage(rawUrl = readRemoteRuntimeUrl()) {
@@ -85,7 +85,7 @@ async function invokeHostStorage<T>(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T> {
   if (isDesktopRuntimeUrl(rawUrl)) {
-    if (isTauri()) return await invokeDesktopRuntime<T>(command, args);
+    if (isDesktopHostAvailable()) return await invokeDesktopRuntime<T>(command, args);
     throw new Error(HOST_STORAGE_UNAVAILABLE_MESSAGE);
   }
 
@@ -93,7 +93,7 @@ async function invokeHostStorage<T>(
     return await invokeRemote<T>(command, args, rawUrl);
   }
 
-  if (isTauri()) {
+  if (isDesktopHostAvailable()) {
     return await invokeDesktopRuntime<T>(command, args);
   }
 
