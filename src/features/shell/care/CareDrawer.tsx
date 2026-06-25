@@ -56,10 +56,7 @@ interface CareDrawerProps {
   nav: CareDrawerNav;
 }
 
-export type CareDrawerNav = Pick<
-  NavCareActions,
-  "setCareOpen" | "setCareTab"
-> &
+export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavCareState, "careOpen" | "careTab"> &
   Pick<
     NavCatalogState,
@@ -648,7 +645,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               <h3 id="bundle-export">Export</h3>
               <span>current pond</span>
             </div>
-            <button type="button" onClick={handleBundleExport}>
+            <button
+              type="button"
+              className="care-btn primary"
+              onClick={handleBundleExport}
+            >
               Export JSON
             </button>
           </div>
@@ -728,6 +729,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           <div className="runtime-actions">
             <button
               type="button"
+              className="care-btn primary"
               disabled={!bundlePreview || !bundleReplaceConfirmed}
               onClick={handleBundleImport}
             >
@@ -765,6 +767,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           <div className="runtime-actions">
             <button
               type="button"
+              className="care-btn primary"
               disabled={!legacyPreview || !legacyImportConfirmed}
               onClick={handleLegacyImport}
             >
@@ -787,7 +790,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             <h3 id="catalog-connections">Connections</h3>
             <span>{nav.providerConnections.length} stocked</span>
           </div>
-          <button type="button" onClick={resetConnectionDraft}>
+          <button
+            type="button"
+            className="care-btn primary"
+            onClick={resetConnectionDraft}
+          >
             New
           </button>
         </div>
@@ -819,6 +826,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </button>
                 <button
                   type="button"
+                  className="care-btn danger"
                   disabled={nav.providerConnections.length <= 1}
                   onClick={() => removeConnection(connection.id)}
                 >
@@ -932,6 +940,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </button>
             <button
               type="button"
+              className="care-btn danger"
               disabled={!editingConnectionId || connectionSecretBusy}
               onClick={handleConnectionSecretClear}
             >
@@ -944,7 +953,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           )}
 
           <div className="runtime-actions">
-            <button type="submit">
+            <button type="submit" className="care-btn primary">
               {editingConnectionId ? "Save connection" : "Create connection"}
             </button>
           </div>
@@ -959,477 +968,468 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       aria-label="Pond Care"
       aria-hidden={open ? undefined : true}
     >
-        <div className="care-head">
-          <div className="top">
-            <img src="/koi-mark.svg" alt="" style={{ width: 26, height: 26 }} />
-            <h2>Pond Care</h2>
-            <div
-              className="x"
-              role="button"
-              tabIndex={0}
-              aria-label="Close Pond Care"
-              onClick={() => nav.setCareOpen(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  nav.setCareOpen(false);
-                }
-              }}
-            >
-              ✕
-            </div>
+      <div className="care-head">
+        <div className="top">
+          <img src="/koi-mark.svg" alt="" style={{ width: 26, height: 26 }} />
+          <h2>Pond Care</h2>
+          <div
+            className="x"
+            role="button"
+            tabIndex={0}
+            aria-label="Close Pond Care"
+            onClick={() => nav.setCareOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                nav.setCareOpen(false);
+              }
+            }}
+          >
+            ✕
           </div>
-          <p>
-            Settings for the whole pond — language, look, behavior, generation
-            defaults, providers, and your data.
-          </p>
         </div>
+        <p>
+          Settings for the whole pond — language, look, behavior, generation
+          defaults, providers, and your data.
+        </p>
+      </div>
 
-        <div className="care-tabs">
-          {CARE_TABS.map((tab, i) => (
-            <div
-              key={tab.label}
-              className={`ctab${nav.careTab === i ? " on" : ""}`}
-              role="tab"
-              tabIndex={0}
-              aria-selected={nav.careTab === i}
-              onClick={() => nav.setCareTab(i)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  nav.setCareTab(i);
+      <div className="care-tabs">
+        {CARE_TABS.map((tab, i) => (
+          <div
+            key={tab.label}
+            className={`ctab${nav.careTab === i ? " on" : ""}`}
+            role="tab"
+            tabIndex={0}
+            aria-selected={nav.careTab === i}
+            onClick={() => nav.setCareTab(i)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                nav.setCareTab(i);
+              }
+            }}
+          >
+            {tab.label} <small>{tab.hint}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="care-body">
+        {nav.careTab === 0 ? (
+          <>
+            <p className="care-intro">
+              Language and regional preferences for the whole pond.
+            </p>
+
+            <div className="field">
+              <label htmlFor="care-language">Language</label>
+              <select className="pondsel" id="care-language">
+                <option>English</option>
+              </select>
+              <div className="help">
+                English is the only bundled language for now. New languages will
+                surface here as they're stocked — without disturbing your
+                layout.
+              </div>
+            </div>
+          </>
+        ) : nav.careTab === 1 ? (
+          <>
+            <p className="care-intro">
+              Change how the pond looks. Changes apply instantly.
+            </p>
+
+            <SettingSection title="Accent">
+              <Chip
+                options={[
+                  { value: "koi", label: "Koi" },
+                  { value: "jade", label: "Jade" },
+                  { value: "amber", label: "Amber" },
+                ]}
+                value={accent}
+                onChange={(v) =>
+                  nav.updateAppSettings({
+                    accent: v as "koi" | "jade" | "amber",
+                  })
                 }
+                ariaLabel="Accent color"
+              />
+            </SettingSection>
+
+            <SettingSection title="Motion">
+              <Seg
+                options={[
+                  { value: "auto", label: "Auto" },
+                  { value: "reduced", label: "Reduced" },
+                  { value: "off", label: "Off" },
+                ]}
+                value={motion}
+                onChange={(v) =>
+                  nav.updateAppSettings({
+                    motion: v as "auto" | "reduced" | "off",
+                  })
+                }
+                ariaLabel="Motion preference"
+              />
+              <div className="help" style={{ marginTop: 0 }}>
+                Auto follows your system&rsquo;s reduced-motion setting.
+              </div>
+            </SettingSection>
+
+            <SettingSection title="Density">
+              <Seg
+                options={[
+                  { value: "comfortable", label: "Comfortable" },
+                  { value: "compact", label: "Compact" },
+                ]}
+                value={density}
+                onChange={(v) =>
+                  nav.updateAppSettings({
+                    density: v as "comfortable" | "compact",
+                  })
+                }
+                ariaLabel="Density preference"
+              />
+            </SettingSection>
+
+            <SettingSection title="Text size">
+              <Slider
+                value={fontScale}
+                onChange={(v) => nav.updateAppSettings({ fontScale: v })}
+                ariaLabel="Text size"
+                min={90}
+                max={120}
+                step={5}
+              />
+              <div className="track-ends">
+                <span>Small</span>
+                <span>Large</span>
+              </div>
+            </SettingSection>
+          </>
+        ) : nav.careTab === 2 ? (
+          <>
+            <p className="care-intro">How the pond responds to your touch.</p>
+
+            <div className="toggle-row">
+              <div className="tl">
+                <b>Let replies ripple in</b>
+                <i>stream responses word by word</i>
+              </div>
+              <Switch
+                checked={streamReplies}
+                onChange={(v) => nav.updateAppSettings({ streamReplies: v })}
+                ariaLabel="Let replies ripple in"
+              />
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Ripple speed</b>
+                <span>{rippleSpeed}</span>
+              </div>
+              <Slider
+                value={rippleSpeed}
+                onChange={(v) => nav.updateAppSettings({ rippleSpeed: v })}
+                ariaLabel="Ripple speed"
+              />
+              <div className="track-ends">
+                <span>Still</span>
+                <span>Rushing</span>
+              </div>
+            </div>
+
+            <div className="toggle-row">
+              <div className="tl">
+                <b>Surface all text at once</b>
+                <i>skip the reveal, show it all</i>
+              </div>
+              <Switch
+                checked={surfaceAllText}
+                onChange={(v) => nav.updateAppSettings({ surfaceAllText: v })}
+                ariaLabel="Surface all text at once"
+              />
+            </div>
+            <div className="toggle-row">
+              <div className="tl">
+                <b>Wheel + click to navigate</b>
+                <i>scroll through the depths</i>
+              </div>
+              <Switch
+                checked={wheelNavigate}
+                onChange={(v) => nav.updateAppSettings({ wheelNavigate: v })}
+                ariaLabel="Wheel + click to navigate"
+              />
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Narration drift</b>
+                <span>{narrationDrift}</span>
+              </div>
+              <Slider
+                value={narrationDrift}
+                onChange={(v) => nav.updateAppSettings({ narrationDrift: v })}
+                ariaLabel="Narration drift"
+              />
+              <div className="track-ends">
+                <span>Still</span>
+                <span>Rushing</span>
+              </div>
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Auto-play pause between segments</b>
+                <span>{(autoplayPause / 10).toFixed(1)}s</span>
+              </div>
+              <Slider
+                value={autoplayPause}
+                onChange={(v) => nav.updateAppSettings({ autoplayPause: v })}
+                ariaLabel="Auto-play pause between segments"
+              />
+              <div className="track-ends">
+                <span>Short</span>
+                <span>Long</span>
+              </div>
+            </div>
+
+            <div className="field">
+              <label>Send on Enter</label>
+              <div className="help" style={{ marginTop: 0, marginBottom: 10 }}>
+                Choose which surface sends when you press Enter.
+              </div>
+              <Seg
+                options={SEND_ON_ENTER_SURFACES}
+                value={nav.appSettings.sendOnEnterSurface}
+                onChange={nav.setSendOnEnterSurface}
+                ariaLabel="Send on Enter surface"
+              />
+            </div>
+
+            <div className="toggle-row" style={{ borderBottom: "none" }}>
+              <div className="tl">
+                <b>Ask before releasing a koi</b>
+                <i>confirm before deleting</i>
+              </div>
+              <Switch
+                checked={nav.appSettings.confirmRelease}
+                onChange={nav.setConfirmRelease}
+                ariaLabel="Ask before releasing a koi"
+              />
+            </div>
+          </>
+        ) : nav.careTab === 3 ? (
+          <>
+            <p className="care-intro">
+              Default generation parameters for new threads.
+            </p>
+
+            <SettingSection
+              title="Generation"
+              description="Global defaults for model output"
+            >
+              <div className="slider-field">
+                <div className="sl-top">
+                  <b>Temperature</b>
+                  <span>{(defaultTemperature / 100).toFixed(2)}</span>
+                </div>
+                <Slider
+                  value={defaultTemperature}
+                  onChange={(v) =>
+                    nav.updateAppSettings({ defaultTemperature: v })
+                  }
+                  min={0}
+                  max={200}
+                  step={5}
+                  ariaLabel="Temperature"
+                />
+                <div className="track-ends">
+                  <span>Precise</span>
+                  <span>Creative</span>
+                </div>
+              </div>
+
+              <div className="slider-field">
+                <div className="sl-top">
+                  <b>Max tokens</b>
+                  <span>{defaultMaxTokens}</span>
+                </div>
+                <NumberField
+                  value={defaultMaxTokens}
+                  onChange={(v) =>
+                    nav.updateAppSettings({ defaultMaxTokens: v })
+                  }
+                  min={64}
+                  max={8192}
+                  step={64}
+                  ariaLabel="Max tokens"
+                />
+              </div>
+
+              <div className="slider-field">
+                <div className="sl-top">
+                  <b>Top-p</b>
+                  <span>{(defaultTopP / 100).toFixed(2)}</span>
+                </div>
+                <Slider
+                  value={defaultTopP}
+                  onChange={(v) => nav.updateAppSettings({ defaultTopP: v })}
+                  min={0}
+                  max={100}
+                  step={1}
+                  ariaLabel="Top-p"
+                />
+                <div className="track-ends">
+                  <span>Focused</span>
+                  <span>Diverse</span>
+                </div>
+              </div>
+            </SettingSection>
+
+            <p
+              style={{
+                color: "var(--mist-dim)",
+                fontSize: 11,
+                lineHeight: 1.45,
               }}
             >
-              {tab.label} <small>{tab.hint}</small>
-            </div>
-          ))}
-        </div>
-
-        <div className="care-body">
-          {nav.careTab === 0 ? (
-            <>
-              <p className="care-intro">
-                Language and regional preferences for the whole pond.
-              </p>
+              These are global defaults. You can override them per thread in the
+              messenger.
+            </p>
+          </>
+        ) : nav.careTab === 4 ? (
+          <>
+            {renderConnectionManager()}
+            <hr className="care-divider" />
+            <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
+              <p className="care-intro">Runtime host and storage mode.</p>
 
               <div className="field">
-                <label htmlFor="care-language">Language</label>
-                <select className="pondsel" id="care-language">
-                  <option>English</option>
-                </select>
+                <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
+                <input
+                  className="pondinput"
+                  id="remote-runtime-url"
+                  type="url"
+                  placeholder="http://127.0.0.1:7341 or desktop://runtime"
+                  value={runtimeUrl}
+                  onChange={(event) => setRuntimeUrl(event.target.value)}
+                />
                 <div className="help">
-                  English is the only bundled language for now. New languages
-                  will surface here as they're stocked — without disturbing your
-                  layout.
-                </div>
-              </div>
-            </>
-          ) : nav.careTab === 1 ? (
-            <>
-              <p className="care-intro">
-                Change how the pond looks. Changes apply instantly.
-              </p>
-
-              <SettingSection title="Accent">
-                <Chip
-                  options={[
-                    { value: "koi", label: "Koi" },
-                    { value: "jade", label: "Jade" },
-                    { value: "amber", label: "Amber" },
-                  ]}
-                  value={accent}
-                  onChange={(v) =>
-                    nav.updateAppSettings({
-                      accent: v as "koi" | "jade" | "amber",
-                    })
-                  }
-                  ariaLabel="Accent color"
-                />
-              </SettingSection>
-
-              <SettingSection title="Motion">
-                <Seg
-                  options={[
-                    { value: "auto", label: "Auto" },
-                    { value: "reduced", label: "Reduced" },
-                    { value: "off", label: "Off" },
-                  ]}
-                  value={motion}
-                  onChange={(v) =>
-                    nav.updateAppSettings({
-                      motion: v as "auto" | "reduced" | "off",
-                    })
-                  }
-                  ariaLabel="Motion preference"
-                />
-                <div className="help" style={{ marginTop: 0 }}>
-                  Auto follows your system&rsquo;s reduced-motion setting.
-                </div>
-              </SettingSection>
-
-              <SettingSection title="Density">
-                <Seg
-                  options={[
-                    { value: "comfortable", label: "Comfortable" },
-                    { value: "compact", label: "Compact" },
-                  ]}
-                  value={density}
-                  onChange={(v) =>
-                    nav.updateAppSettings({
-                      density: v as "comfortable" | "compact",
-                    })
-                  }
-                  ariaLabel="Density preference"
-                />
-              </SettingSection>
-
-              <SettingSection title="Text size">
-                <Slider
-                  value={fontScale}
-                  onChange={(v) => nav.updateAppSettings({ fontScale: v })}
-                  ariaLabel="Text size"
-                  min={90}
-                  max={120}
-                  step={5}
-                />
-                <div className="track-ends">
-                  <span>Small</span>
-                  <span>Large</span>
-                </div>
-              </SettingSection>
-            </>
-          ) : nav.careTab === 2 ? (
-            <>
-              <p className="care-intro">How the pond responds to your touch.</p>
-
-              <div className="toggle-row">
-                <div className="tl">
-                  <b>Let replies ripple in</b>
-                  <i>stream responses word by word</i>
-                </div>
-                <Switch
-                  checked={streamReplies}
-                  onChange={(v) => nav.updateAppSettings({ streamReplies: v })}
-                  ariaLabel="Let replies ripple in"
-                />
-              </div>
-
-              <div className="slider-field">
-                <div className="sl-top">
-                  <b>Ripple speed</b>
-                  <span>{rippleSpeed}</span>
-                </div>
-                <Slider
-                  value={rippleSpeed}
-                  onChange={(v) => nav.updateAppSettings({ rippleSpeed: v })}
-                  ariaLabel="Ripple speed"
-                />
-                <div className="track-ends">
-                  <span>Still</span>
-                  <span>Rushing</span>
+                  Leave empty for desktop host storage inside Tauri.
+                  Browser-only sessions are temporary.
                 </div>
               </div>
 
-              <div className="toggle-row">
-                <div className="tl">
-                  <b>Surface all text at once</b>
-                  <i>skip the reveal, show it all</i>
-                </div>
-                <Switch
-                  checked={surfaceAllText}
-                  onChange={(v) => nav.updateAppSettings({ surfaceAllText: v })}
-                  ariaLabel="Surface all text at once"
-                />
-              </div>
-              <div className="toggle-row">
-                <div className="tl">
-                  <b>Wheel + click to navigate</b>
-                  <i>scroll through the depths</i>
-                </div>
-                <Switch
-                  checked={wheelNavigate}
-                  onChange={(v) => nav.updateAppSettings({ wheelNavigate: v })}
-                  ariaLabel="Wheel + click to navigate"
-                />
+              <div className={`runtime-status ${nav.messengerStorageStatus}`}>
+                <b>
+                  {nav.messengerStorageMode === "remote"
+                    ? "Remote runtime"
+                    : nav.messengerStorageMode === "desktop"
+                      ? "Desktop host"
+                      : "Storage unavailable"}
+                </b>
+                <span>{runtimeStatusMessage}</span>
               </div>
 
-              <div className="slider-field">
-                <div className="sl-top">
-                  <b>Narration drift</b>
-                  <span>{narrationDrift}</span>
-                </div>
-                <Slider
-                  value={narrationDrift}
-                  onChange={(v) => nav.updateAppSettings({ narrationDrift: v })}
-                  ariaLabel="Narration drift"
-                />
-                <div className="track-ends">
-                  <span>Still</span>
-                  <span>Rushing</span>
-                </div>
+              <div className="runtime-status">
+                <b>
+                  {desktopHostStatus?.hostKind === "tauri"
+                    ? "Desktop host"
+                    : "Browser host"}
+                </b>
+                <span>
+                  {desktopHostStatus?.message ??
+                    "Check whether native host capabilities are available."}
+                </span>
               </div>
 
-              <div className="slider-field">
-                <div className="sl-top">
-                  <b>Auto-play pause between segments</b>
-                  <span>{(autoplayPause / 10).toFixed(1)}s</span>
+              {desktopHostStatus && (
+                <div className="host-flags" aria-label="Desktop host readiness">
+                  <span className={desktopHostStatus.storageReady ? "on" : ""}>
+                    Storage
+                  </span>
+                  <span className={desktopHostStatus.secretsReady ? "on" : ""}>
+                    Secrets
+                  </span>
+                  <span className={desktopHostStatus.runtimeReady ? "on" : ""}>
+                    Runtime
+                  </span>
                 </div>
-                <Slider
-                  value={autoplayPause}
-                  onChange={(v) => nav.updateAppSettings({ autoplayPause: v })}
-                  ariaLabel="Auto-play pause between segments"
-                />
-                <div className="track-ends">
-                  <span>Short</span>
-                  <span>Long</span>
-                </div>
-              </div>
+              )}
 
               <div className="field">
-                <label>Send on Enter</label>
+                <label>Messenger connection</label>
                 <div
                   className="help"
                   style={{ marginTop: 0, marginBottom: 10 }}
                 >
-                  Choose which surface sends when you press Enter.
+                  New Messenger threads use this connection. Existing threads
+                  keep the connection they were created with.
                 </div>
                 <Seg
-                  options={SEND_ON_ENTER_SURFACES}
-                  value={nav.appSettings.sendOnEnterSurface}
-                  onChange={nav.setSendOnEnterSurface}
-                  ariaLabel="Send on Enter surface"
+                  options={messengerConnectionOptions}
+                  value={nav.appSettings.activeMessengerConnectionId}
+                  onChange={nav.setActiveMessengerConnectionId}
+                  ariaLabel="Messenger connection"
                 />
               </div>
-
-              <div className="toggle-row" style={{ borderBottom: "none" }}>
-                <div className="tl">
-                  <b>Ask before releasing a koi</b>
-                  <i>confirm before deleting</i>
-                </div>
-                <Switch
-                  checked={nav.appSettings.confirmRelease}
-                  onChange={nav.setConfirmRelease}
-                  ariaLabel="Ask before releasing a koi"
-                />
-              </div>
-            </>
-          ) : nav.careTab === 3 ? (
-            <>
-              <p className="care-intro">
-                Default generation parameters for new threads.
-              </p>
-
-              <SettingSection
-                title="Generation"
-                description="Global defaults for model output"
-              >
-                <div className="slider-field">
-                  <div className="sl-top">
-                    <b>Temperature</b>
-                    <span>{(defaultTemperature / 100).toFixed(2)}</span>
-                  </div>
-                  <Slider
-                    value={defaultTemperature}
-                    onChange={(v) =>
-                      nav.updateAppSettings({ defaultTemperature: v })
-                    }
-                    min={0}
-                    max={200}
-                    step={5}
-                    ariaLabel="Temperature"
-                  />
-                  <div className="track-ends">
-                    <span>Precise</span>
-                    <span>Creative</span>
-                  </div>
-                </div>
-
-                <div className="slider-field">
-                  <div className="sl-top">
-                    <b>Max tokens</b>
-                    <span>{defaultMaxTokens}</span>
-                  </div>
-                  <NumberField
-                    value={defaultMaxTokens}
-                    onChange={(v) =>
-                      nav.updateAppSettings({ defaultMaxTokens: v })
-                    }
-                    min={64}
-                    max={8192}
-                    step={64}
-                    ariaLabel="Max tokens"
-                  />
-                </div>
-
-                <div className="slider-field">
-                  <div className="sl-top">
-                    <b>Top-p</b>
-                    <span>{(defaultTopP / 100).toFixed(2)}</span>
-                  </div>
-                  <Slider
-                    value={defaultTopP}
-                    onChange={(v) => nav.updateAppSettings({ defaultTopP: v })}
-                    min={0}
-                    max={100}
-                    step={1}
-                    ariaLabel="Top-p"
-                  />
-                  <div className="track-ends">
-                    <span>Focused</span>
-                    <span>Diverse</span>
-                  </div>
-                </div>
-              </SettingSection>
-
-              <p
-                style={{
-                  color: "var(--mist-dim)",
-                  fontSize: 11,
-                  lineHeight: 1.45,
-                }}
-              >
-                These are global defaults. You can override them per thread in
-                the messenger.
-              </p>
-            </>
-          ) : nav.careTab === 4 ? (
-            <>
-              {renderConnectionManager()}
-              <hr className="care-divider" />
-              <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
-                <p className="care-intro">Runtime host and storage mode.</p>
-
-                <div className="field">
-                  <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
-                  <input
-                    className="pondinput"
-                    id="remote-runtime-url"
-                    type="url"
-                    placeholder="http://127.0.0.1:7341 or desktop://runtime"
-                    value={runtimeUrl}
-                    onChange={(event) => setRuntimeUrl(event.target.value)}
-                  />
-                  <div className="help">
-                    Leave empty for desktop host storage inside Tauri.
-                    Browser-only sessions are temporary.
-                  </div>
-                </div>
-
-                <div className={`runtime-status ${nav.messengerStorageStatus}`}>
-                  <b>
-                    {nav.messengerStorageMode === "remote"
-                      ? "Remote runtime"
-                      : nav.messengerStorageMode === "desktop"
-                        ? "Desktop host"
-                        : "Storage unavailable"}
-                  </b>
-                  <span>{runtimeStatusMessage}</span>
-                </div>
-
-                <div className="runtime-status">
-                  <b>
-                    {desktopHostStatus?.hostKind === "tauri"
-                      ? "Desktop host"
-                      : "Browser host"}
-                  </b>
-                  <span>
-                    {desktopHostStatus?.message ??
-                      "Check whether native host capabilities are available."}
-                  </span>
-                </div>
-
-                {desktopHostStatus && (
-                  <div
-                    className="host-flags"
-                    aria-label="Desktop host readiness"
-                  >
-                    <span
-                      className={desktopHostStatus.storageReady ? "on" : ""}
-                    >
-                      Storage
-                    </span>
-                    <span
-                      className={desktopHostStatus.secretsReady ? "on" : ""}
-                    >
-                      Secrets
-                    </span>
-                    <span
-                      className={desktopHostStatus.runtimeReady ? "on" : ""}
-                    >
-                      Runtime
-                    </span>
-                  </div>
-                )}
-
-                <div className="field">
-                  <label>Messenger connection</label>
-                  <div
-                    className="help"
-                    style={{ marginTop: 0, marginBottom: 10 }}
-                  >
-                    New Messenger threads use this connection. Existing threads
-                    keep the connection they were created with.
-                  </div>
-                  <Seg
-                    options={messengerConnectionOptions}
-                    value={nav.appSettings.activeMessengerConnectionId}
-                    onChange={nav.setActiveMessengerConnectionId}
-                    ariaLabel="Messenger connection"
-                  />
-                </div>
-
-                <div className="runtime-actions">
-                  <button type="submit">Apply</button>
-                  <button type="button" onClick={handleRuntimeTest}>
-                    Test
-                  </button>
-                  <button type="button" onClick={handleUseLocalStorage}>
-                    Use host default
-                  </button>
-                  <button type="button" onClick={handleUseDesktopRuntime}>
-                    Use desktop
-                  </button>
-                  <button
-                    type="button"
-                    disabled={desktopHostBusy}
-                    onClick={handleDesktopHostCheck}
-                  >
-                    {desktopHostBusy ? "Checking host" : "Check host"}
-                  </button>
-                </div>
-              </form>
-            </>
-          ) : (
-            <>
-              <p className="care-intro">
-                Export, import, and manage your DeKoi data.
-              </p>
-              {renderStockingTools()}
 
               <div className="runtime-actions">
-                <button
-                  type="button"
-                  disabled={desktopStorageBusy}
-                  onClick={handleDesktopStorageSave}
-                >
-                  Save host bundle
+                <button type="submit" className="care-btn primary">
+                  Apply
+                </button>
+                <button type="button" onClick={handleRuntimeTest}>
+                  Test
+                </button>
+                <button type="button" onClick={handleUseLocalStorage}>
+                  Use host default
+                </button>
+                <button type="button" onClick={handleUseDesktopRuntime}>
+                  Use desktop
                 </button>
                 <button
                   type="button"
-                  disabled={desktopStorageBusy}
-                  onClick={handleDesktopStorageLoad}
+                  disabled={desktopHostBusy}
+                  onClick={handleDesktopHostCheck}
                 >
-                  Load host bundle
+                  {desktopHostBusy ? "Checking host" : "Check host"}
                 </button>
               </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="care-intro">
+              Export, import, and manage your DeKoi data.
+            </p>
+            {renderStockingTools()}
 
-              {desktopStorageStatus && (
-                <p className="bundle-status">{desktopStorageStatus}</p>
-              )}
-            </>
-          )}
-        </div>
+            <div className="runtime-actions">
+              <button
+                type="button"
+                className="care-btn primary"
+                disabled={desktopStorageBusy}
+                onClick={handleDesktopStorageSave}
+              >
+                Save host bundle
+              </button>
+              <button
+                type="button"
+                disabled={desktopStorageBusy}
+                onClick={handleDesktopStorageLoad}
+              >
+                Load host bundle
+              </button>
+            </div>
+
+            {desktopStorageStatus && (
+              <p className="bundle-status">{desktopStorageStatus}</p>
+            )}
+          </>
+        )}
+      </div>
     </aside>
   );
 }
