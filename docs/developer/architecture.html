@@ -164,6 +164,10 @@
               <td>Transport wrappers should be below runtime storage/import adapters, not depend on them.</td>
             </tr>
             <tr>
+              <td>App composition must be imported through its public entrypoint.</td>
+              <td>The React bootstrap depends on the app package, not individual provider or root files.</td>
+            </tr>
+            <tr>
               <td>Top-level feature folders must be <code>catalog</code>, <code>modes</code>, <code>navigation</code>, or <code>shell</code>.</td>
               <td>This keeps the repo physically aligned with the target feature layers.</td>
             </tr>
@@ -216,7 +220,7 @@
 
         <h2>Migration Direction</h2>
         <ol>
-          <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin.</li>
+          <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>

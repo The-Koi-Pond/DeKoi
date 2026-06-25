@@ -43,6 +43,11 @@ function isUnder(filePath, directoryPath) {
   return filePath === directoryPath || filePath.startsWith(`${directoryPath}/`);
 }
 
+function getAppPackageRoot(filePath) {
+  if (!isUnder(filePath, "src/app")) return null;
+  return "src/app";
+}
+
 function getFeatureLayer(filePath) {
   const match = filePath.match(/^src\/features\/([^/]+)/);
   if (!match || !featureLayerRank.has(match[1])) return null;
@@ -150,6 +155,7 @@ function checkImport(sourceFile, specifier, targetFile) {
   const sourceIsFeature = isUnder(sourceFile, "src/features");
   const sourceIsFeatureRuntime = isUnder(sourceFile, "src/features/runtime");
   const sourceIsNonNavigationFeature = sourceIsFeature && !sourceIsNavigation;
+  const sourceAppPackageRoot = getAppPackageRoot(sourceFile);
   const sourceFeatureLayer = getFeatureLayer(sourceFile);
   const sourceCatalogResourcePackageRoot =
     getCatalogResourcePackageRoot(sourceFile);
@@ -213,6 +219,7 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   const targetFeatureLayer = getFeatureLayer(targetFile);
+  const targetAppPackageRoot = getAppPackageRoot(targetFile);
   const targetCatalogResourcePackageRoot =
     getCatalogResourcePackageRoot(targetFile);
   const sourceModePackageRoot = getModePackageRoot(sourceFile);
@@ -239,6 +246,14 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   if (sourceIsFeature && isUnder(targetFile, "src/app")) {
     failures.push("Feature modules must not import app composition modules.");
+  }
+
+  if (
+    targetAppPackageRoot &&
+    targetFile !== targetAppPackageRoot &&
+    sourceAppPackageRoot !== targetAppPackageRoot
+  ) {
+    failures.push("App composition must be imported through its public entrypoint.");
   }
 
   if (

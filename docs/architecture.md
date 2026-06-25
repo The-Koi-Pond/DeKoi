@@ -77,6 +77,7 @@ The check currently enforces these rules:
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
 - `src/shared/api` must not import the `src/runtime` bridge.
+- App composition must be imported through its public entrypoint.
 - Top-level feature folders must be `catalog`, `modes`, `navigation`, or
   `shell`.
 - If old-shape feature layer folders exist, their direction is
@@ -107,7 +108,7 @@ adapters still live under `src/runtime`. Do not route shell or mode UI around
 Move toward the old De-Koi skeleton in small, validated slices:
 
 1. Keep provider/startup composition in `src/app`; root entry files should stay
-   thin.
+   thin and import app composition through the app package entrypoint.
 2. Keep app provider wiring in `src/app`; move the remaining navigation
    controller/state bridge toward app or mode router ownership as those
    boundaries become concrete. Import navigation through its package entrypoint
