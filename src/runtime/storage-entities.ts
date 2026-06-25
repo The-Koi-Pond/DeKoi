@@ -9,7 +9,8 @@ export const HOST_STORAGE_ENTITIES = [
   "ripple-states",
 ] as const;
 
-export type HostStorageEntity = (typeof HOST_STORAGE_ENTITIES)[number];
+export type StorageEntity = (typeof HOST_STORAGE_ENTITIES)[number];
+export type HostStorageEntity = StorageEntity;
 
 export const STORAGE_ENTITIES = {
   appSettings: "app-settings",
@@ -20,4 +21,4 @@ export const STORAGE_ENTITIES = {
   personas: "personas",
   providerConnections: "provider-connections",
   rippleStates: "ripple-states",
-} as const satisfies Record<string, HostStorageEntity>;
+} as const satisfies Record<string, StorageEntity>;

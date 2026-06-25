@@ -10,7 +10,7 @@ import {
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
 } from "../shared/api/runtime-target";
-import type { HostStorageEntity } from "./storage-entities";
+import type { StorageEntity } from "./storage-entities";
 import type {
   StorageCollectionRepository,
   StorageMode,
@@ -93,7 +93,7 @@ async function invokeHostStorage<T>(
 }
 
 export async function loadHostRecords<T extends StorageRecord>(
-  entity: HostStorageEntity,
+  entity: StorageEntity,
   normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<T[]> {
@@ -112,7 +112,7 @@ export async function loadHostRecords<T extends StorageRecord>(
 }
 
 export async function saveHostRecords<T extends StorageRecord>(
-  entity: HostStorageEntity,
+  entity: StorageEntity,
   records: T[],
   normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
@@ -202,7 +202,7 @@ export async function loadHostRecordsSnapshot<T extends StorageRecord>({
   rawUrl = readRemoteRuntimeUrl(),
   seedRecords,
 }: {
-  entity: HostStorageEntity;
+  entity: StorageEntity;
   normalizeRecord: StorageRecordNormalizer<T>;
   rawUrl?: string;
   seedRecords: T[];

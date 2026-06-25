@@ -1,4 +1,4 @@
-import type { HostStorageEntity } from "./storage-entities";
+import type { StorageEntity } from "./storage-entities";
 
 export type StorageMode = "desktop" | "remote" | "unavailable";
 export type StorageStatus = "ready" | "error";
@@ -41,7 +41,7 @@ export interface StorageCollectionRepository<T extends StorageRecord> {
 }
 
 export interface StorageRepositoryInput<T extends StorageRecord> {
-  entity: HostStorageEntity;
+  entity: StorageEntity;
   normalizeRecord: StorageRecordNormalizer<T>;
   seedRecords: T[];
 }

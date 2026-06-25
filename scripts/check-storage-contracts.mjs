@@ -17,6 +17,7 @@ const expectedRuntimeStorageRepositoryExports = [
   "StorageResult",
   "StorageStatus",
 ];
+const expectedRuntimeStorageEntityExports = ["StorageEntity"];
 const expectedRuntimeStorageRepositoryValueExports = ["mergeStorageResults"];
 
 function readFile(filePath) {
@@ -36,7 +37,7 @@ function parseTypeScriptEntities(source) {
 
 function parseTypeScriptEntityAliases(source) {
   const match = source.match(
-    /export const STORAGE_ENTITIES = \{([\s\S]*?)\} as const satisfies Record<string, HostStorageEntity>;/,
+    /export const STORAGE_ENTITIES = \{([\s\S]*?)\} as const satisfies Record<string, StorageEntity>;/,
   );
   if (!match) {
     throw new Error("Could not find STORAGE_ENTITIES in storage-entities.ts.");
@@ -95,15 +96,22 @@ function parseDocumentedCollections(source) {
 }
 
 function parseRuntimeStorageRepositoryExports(source) {
-  const match = source.match(
-    /export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-repository";/,
+  return [
+    ...source.matchAll(
+      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-repository";$/gm,
+    ),
+  ].flatMap((match) =>
+    [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
   );
-  if (!match) {
-    return [];
-  }
+}
 
-  return [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map(
-    (item) => item[0],
+function parseRuntimeStorageEntityExports(source) {
+  return [
+    ...source.matchAll(
+      /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-entities";$/gm,
+    ),
+  ].flatMap((match) =>
+    [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
   );
 }
 
@@ -141,6 +149,9 @@ const rustEntities = parseRustEntities(readFile(rustHostPath));
 const documentedCollections = parseDocumentedCollections(readFile(storageDocsPath));
 const documentedEntities = documentedCollections.map((collection) => collection.entity);
 const runtimeStorageRepositoryExports = parseRuntimeStorageRepositoryExports(
+  readFile(runtimeIndexPath),
+);
+const runtimeStorageEntityExports = parseRuntimeStorageEntityExports(
   readFile(runtimeIndexPath),
 );
 const runtimeStorageRepositoryValueExports =
@@ -191,6 +202,15 @@ if (duplicateRuntimeStorageRepositoryValueExports.length > 0) {
   );
 }
 
+const duplicateRuntimeStorageEntityExports = runtimeStorageEntityExports.filter(
+  (exportName, index, exports) => exports.indexOf(exportName) !== index,
+);
+if (duplicateRuntimeStorageEntityExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint contains duplicate storage entity exports:\n${formatList(unique(duplicateRuntimeStorageEntityExports))}`,
+  );
+}
+
 const missingRuntimeStorageRepositoryExports = listDifference(
   expectedRuntimeStorageRepositoryExports,
   runtimeStorageRepositoryExports,
@@ -198,6 +218,16 @@ const missingRuntimeStorageRepositoryExports = listDifference(
 if (missingRuntimeStorageRepositoryExports.length > 0) {
   failures.push(
     `Runtime public entrypoint must re-export storage repository contract types from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryExports)}`,
+  );
+}
+
+const missingRuntimeStorageEntityExports = listDifference(
+  expectedRuntimeStorageEntityExports,
+  runtimeStorageEntityExports,
+);
+if (missingRuntimeStorageEntityExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint must re-export storage entity types from ./storage-entities:\n${formatList(missingRuntimeStorageEntityExports)}`,
   );
 }
 

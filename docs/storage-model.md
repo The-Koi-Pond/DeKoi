@@ -46,6 +46,9 @@ names:
 
 - `src/runtime/storage-entities.ts`
 
+The public collection entity type is `StorageEntity`. `HostStorageEntity`
+remains a compatibility alias for host-backed storage code.
+
 Runtime storage adapters live under `src/runtime`; durable product record shapes
 live under `src/engine`.
 
