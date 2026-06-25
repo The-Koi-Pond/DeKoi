@@ -4,8 +4,19 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const tsRegistryPath = path.join(root, "src", "runtime", "storage-entities.ts");
+const runtimeIndexPath = path.join(root, "src", "runtime", "index.ts");
 const rustHostPath = path.join(root, "src-tauri", "src", "storage.rs");
 const storageDocsPath = path.join(root, "docs", "storage-model.md");
+const expectedRuntimeStorageRepositoryExports = [
+  "StorageCollectionRepository",
+  "StorageMode",
+  "StorageRecord",
+  "StorageRecordNormalizer",
+  "StorageRecordsSnapshot",
+  "StorageRepositoryInput",
+  "StorageResult",
+  "StorageStatus",
+];
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -82,6 +93,19 @@ function parseDocumentedCollections(source) {
   );
 }
 
+function parseRuntimeStorageRepositoryExports(source) {
+  const match = source.match(
+    /export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage-repository";/,
+  );
+  if (!match) {
+    return [];
+  }
+
+  return [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map(
+    (item) => item[0],
+  );
+}
+
 function unique(values) {
   return [...new Set(values)];
 }
@@ -105,6 +129,9 @@ const tsAliasEntities = tsEntityAliases.map((alias) => alias.entity);
 const rustEntities = parseRustEntities(readFile(rustHostPath));
 const documentedCollections = parseDocumentedCollections(readFile(storageDocsPath));
 const documentedEntities = documentedCollections.map((collection) => collection.entity);
+const runtimeStorageRepositoryExports = parseRuntimeStorageRepositoryExports(
+  readFile(runtimeIndexPath),
+);
 const failures = [];
 
 if (tsEntities.length !== unique(tsEntities).length) {
@@ -130,6 +157,25 @@ if (rustEntities.length !== unique(rustEntities).length) {
 
 if (documentedEntities.length !== unique(documentedEntities).length) {
   failures.push("Storage model documentation contains duplicate collection rows.");
+}
+
+const duplicateRuntimeStorageRepositoryExports = runtimeStorageRepositoryExports.filter(
+  (exportName, index, exports) => exports.indexOf(exportName) !== index,
+);
+if (duplicateRuntimeStorageRepositoryExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint contains duplicate storage repository exports:\n${formatList(unique(duplicateRuntimeStorageRepositoryExports))}`,
+  );
+}
+
+const missingRuntimeStorageRepositoryExports = listDifference(
+  expectedRuntimeStorageRepositoryExports,
+  runtimeStorageRepositoryExports,
+);
+if (missingRuntimeStorageRepositoryExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint must re-export storage repository contract types from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryExports)}`,
+  );
 }
 
 const missingInRust = listDifference(tsEntities, rustEntities);
