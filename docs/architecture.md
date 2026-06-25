@@ -82,12 +82,13 @@ The check currently enforces these rules:
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
 - `src/features/navigation` must not import sibling feature UI modules.
-- Non-navigation feature modules must not add new direct `src/runtime` imports.
+- `src/features/runtime` is the only feature layer that may adapt the remaining
+  `src/runtime` bridge. Shell, mode, and catalog modules must not import
+  `src/runtime` directly.
 
-The last rule has a small explicit legacy allowlist because older UI still calls
-runtime generation, settings, and care-drawer host helpers directly. Keep that
-allowlist shrinking. Do not add to it unless the alternative would be a larger
-unsafe refactor in the same slice.
+The feature-runtime exception exists only while storage and import/export
+adapters still live under `src/runtime`. Do not route shell or mode UI around
+`features/runtime` for new runtime-facing work.
 
 ## Migration Direction
 

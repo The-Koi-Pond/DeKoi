@@ -14,32 +14,26 @@ import type {
 import {
   getDeKoiStorageBundleCounts,
   normalizeDeKoiStorageBundle,
+  exportDesktopBundleFile,
+  importDesktopBundleFile,
+  readDesktopStorageBundle,
+  writeDesktopStorageBundle,
+  normalizeLegacyImport,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
-} from "../../../runtime/dekoi-storage-bundle";
+  type DeKoiLegacyImportPreview,
+} from "../../runtime/storage-bundle-workflows";
 import {
   checkDesktopHostStatus,
   type DeKoiDesktopHostStatus,
 } from "../../../shared/api/desktop-host-status";
-import {
-  exportDesktopBundleFile,
-  importDesktopBundleFile,
-} from "../../../runtime/desktop-bundle-file";
 import {
   deleteDesktopProviderSecret,
   getDesktopProviderSecretStatus,
   writeDesktopProviderSecret,
   type DeKoiDesktopProviderSecretStatus,
 } from "../../../shared/api/desktop-provider-secrets";
-import {
-  readDesktopStorageBundle,
-  writeDesktopStorageBundle,
-} from "../../../runtime/desktop-storage-bundle";
 import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
-import {
-  normalizeLegacyImport,
-  type DeKoiLegacyImportPreview,
-} from "../../../runtime/legacy-import";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";

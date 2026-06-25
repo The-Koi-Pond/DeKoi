@@ -176,8 +176,8 @@
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>
             <tr>
-              <td>Non-navigation features must not add new direct <code>src/runtime</code> imports.</td>
-              <td>Existing runtime callers are frozen as legacy exceptions while they move behind app/runtime APIs.</td>
+              <td><code>src/features/runtime</code> is the only feature layer that may adapt the remaining <code>src/runtime</code> bridge.</td>
+              <td>Shell, mode, and catalog modules route runtime-facing work through <code>features/runtime</code>.</td>
             </tr>
           </tbody>
         </table>

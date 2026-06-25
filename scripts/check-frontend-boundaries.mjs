@@ -17,13 +17,6 @@ const allowedFeatureRoots = new Set([
   "navigation",
 ]);
 
-const legacyFeatureRuntimeImports = new Set([
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/dekoi-storage-bundle",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-bundle-file",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-storage-bundle",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/legacy-import",
-]);
-
 function toPosix(value) {
   return value.split(path.sep).join("/");
 }
@@ -94,7 +87,7 @@ function describeImport(sourceFile, specifier, targetFile) {
   return `${sourceFile} imports ${specifier}${targetFile ? ` (${targetFile})` : ""}`;
 }
 
-function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
+function checkImport(sourceFile, specifier, targetFile) {
   const failures = [];
   const sourceIsApp = isUnder(sourceFile, "src/app");
   const sourceIsEngine = isUnder(sourceFile, "src/engine");
@@ -180,13 +173,12 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
     failures.push("Navigation orchestration must not import sibling feature UI modules.");
   }
 
-  if (sourceIsNonNavigationFeature && isUnder(targetFile, "src/runtime")) {
-    const legacyKey = `${sourceFile} -> ${targetFile}`;
-    if (legacyFeatureRuntimeImports.has(legacyKey)) {
-      usedLegacyImports.add(legacyKey);
-    } else {
-      failures.push("Non-navigation features must not add direct runtime imports.");
-    }
+  if (
+    sourceIsNonNavigationFeature &&
+    sourceFeatureLayer !== "runtime" &&
+    isUnder(targetFile, "src/runtime")
+  ) {
+    failures.push("Shell, mode, and catalog features must route runtime bridge imports through features/runtime.");
   }
 
   return failures;
@@ -195,7 +187,6 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
 const sourceFiles = listSourceFiles(srcRoot).map((filePath) =>
   toPosix(path.relative(root, filePath)),
 );
-const usedLegacyImports = new Set();
 const failures = [];
 const unknownFeatureRoots = new Set();
 
@@ -208,12 +199,7 @@ for (const sourceFile of sourceFiles) {
   const source = fs.readFileSync(path.join(root, sourceFile), "utf8");
   for (const specifier of collectModuleSpecifiers(source)) {
     const targetFile = resolveRelativeImport(sourceFile, specifier);
-    const importFailures = checkImport(
-      sourceFile,
-      specifier,
-      targetFile,
-      usedLegacyImports,
-    );
+    const importFailures = checkImport(sourceFile, specifier, targetFile);
 
     for (const failure of importFailures) {
       failures.push(`${failure}\n  - ${describeImport(sourceFile, specifier, targetFile)}`);
@@ -226,19 +212,6 @@ if (unknownFeatureRoots.size > 0) {
     [
       "Top-level feature folders must be catalog, modes, navigation, or shell.",
       ...[...unknownFeatureRoots].sort().map((featureRoot) => `  - src/features/${featureRoot}`),
-    ].join("\n"),
-  );
-}
-
-const staleLegacyImports = [...legacyFeatureRuntimeImports].filter(
-  (legacyKey) => !usedLegacyImports.has(legacyKey),
-);
-
-if (staleLegacyImports.length > 0) {
-  failures.push(
-    [
-      "Legacy feature runtime import allowlist contains unused entries.",
-      ...staleLegacyImports.map((legacyKey) => `  - ${legacyKey}`),
     ].join("\n"),
   );
 }
