@@ -59,7 +59,7 @@ owning runtime adapter for each collection.
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
 entrypoint in `src/runtime/index.ts`. The current host-backed implementation
-lives in `src/runtime/host-storage.ts`. Future SQLite or database-backed storage
+lives in `src/runtime/storage/host-storage.ts`. Future SQLite or database-backed storage
 should implement the same repository shape behind runtime adapters rather than
 leaking database details into feature code or engine records.
 The shared repository module also owns storage result aggregation, so snapshot

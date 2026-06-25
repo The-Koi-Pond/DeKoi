@@ -6,7 +6,7 @@ import {
   readString,
   readTimestamp,
 } from "./storage/storage-json";
-import { createHostStorageRepository } from "./host-storage";
+import { createHostStorageRepository } from "./storage/host-storage";
 import { STORAGE_ENTITIES } from "./storage/storage-entities";
 
 export function normalizePersonaRecord(value: unknown): PersonaRecord | null {

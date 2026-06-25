@@ -7,7 +7,7 @@ import type {
 import {
   createHostStorageRepository,
   type HostStorageMode,
-} from "./host-storage";
+} from "./storage/host-storage";
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
 import {
   isRecord,

@@ -4,7 +4,7 @@ import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
   createHostStorageRepository,
   type HostStorageMode,
-} from "./host-storage";
+} from "./storage/host-storage";
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "./storage/storage-entities";
 

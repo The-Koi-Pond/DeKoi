@@ -1,17 +1,17 @@
-import { isDesktopHostAvailable } from "../shared/api/desktop-host-common";
-import { invokeDesktopRuntime } from "../shared/api/desktop-runtime";
-import { invokeRemote } from "../shared/api/remote-runtime";
+import { isDesktopHostAvailable } from "../../shared/api/desktop-host-common";
+import { invokeDesktopRuntime } from "../../shared/api/desktop-runtime";
+import { invokeRemote } from "../../shared/api/remote-runtime";
 import {
   RUNTIME_COMMANDS,
   type StorageRuntimeCommand,
-} from "../shared/api/runtime-commands";
+} from "../../shared/api/runtime-commands";
 import {
   isDesktopRuntimeUrl,
   readRemoteRuntimeUrl,
   remoteRuntimeTarget,
-} from "../shared/api/runtime-target";
-import type { StorageEntity } from "./storage/storage-entities";
-import { planStorageRecordSync } from "./storage/storage-record-sync";
+} from "../../shared/api/runtime-target";
+import type { StorageEntity } from "./storage-entities";
+import { planStorageRecordSync } from "./storage-record-sync";
 import type {
   StorageCollectionRepository,
   StorageMode,
@@ -21,13 +21,13 @@ import type {
   StorageRepositoryInput,
   StorageResult,
   StorageStatus,
-} from "./storage/storage-repository";
+} from "./storage-repository";
 
 export type HostStorageMode = StorageMode;
 export type HostStorageStatus = StorageStatus;
 
 export type HostStorageResult = StorageResult;
-export { mergeStorageResults as mergeHostStorageResults } from "./storage/storage-repository";
+export { mergeStorageResults as mergeHostStorageResults } from "./storage-repository";
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
