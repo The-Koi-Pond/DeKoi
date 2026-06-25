@@ -5,6 +5,7 @@ import {
   type SideRailView,
   type NavContextType,
 } from "./features/navigation/nav-context";
+import { useCharacterActions } from "./features/navigation/use-character-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
@@ -12,21 +13,13 @@ import { useViewActions } from "./features/navigation/use-view-actions";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
-import {
-  createCharacterRecord,
-  deleteCharacterRecord,
-  duplicateCharacterRecord,
-  removeCharacterLorebook,
-  updateCharacterRecord,
-  type CharacterRecordInput,
-} from "./engine/character-actions";
+import { removeCharacterLorebook } from "./engine/character-actions";
 import type { ClassicThread } from "./engine/classic";
 import {
   clearClassicThreadPersona,
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
-  removeClassicThreadCharacter,
   removeClassicThreadLorebook,
   replaceClassicThreadProviderConnection,
   renameClassicThread as renameClassicThreadRecord,
@@ -49,7 +42,6 @@ import {
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
-  removeMessengerThreadCharacter,
   removeMessengerThreadLorebook,
   replaceMessengerThreadProviderConnection,
   renameMessengerThread as renameMessengerThreadRecord,
@@ -207,69 +199,17 @@ export default function App() {
   const closeCareDrawer = useCallback(() => setCareOpen(false), []);
   useEscapeKey(careOpen, closeCareDrawer);
 
-  const createCharacter = useCallback((input: CharacterRecordInput) => {
-    const now = currentIsoTimestamp();
-    const character = createCharacterRecord({
-      id: createRecordId("character"),
-      input,
-      now,
-    });
-    setCharacters((currentCharacters) => [character, ...currentCharacters]);
-    return character;
-  }, []);
-
-  const updateCharacter = useCallback(
-    (characterId: string, input: CharacterRecordInput) => {
-      const now = currentIsoTimestamp();
-      setCharacters((currentCharacters) =>
-        currentCharacters.map((character) =>
-          character.id === characterId
-            ? updateCharacterRecord(character, input, now)
-            : character,
-        ),
-      );
-    },
-    [],
-  );
-
-  const duplicateCharacter = useCallback(
-    (characterId: string) => {
-      const character = characters.find(
-        (currentCharacter) => currentCharacter.id === characterId,
-      );
-      if (!character) return null;
-
-      const now = currentIsoTimestamp();
-      const duplicatedCharacter = duplicateCharacterRecord(
-        character,
-        createRecordId("character"),
-        now,
-      );
-      setCharacters((currentCharacters) => [
-        duplicatedCharacter,
-        ...currentCharacters,
-      ]);
-      return duplicatedCharacter;
-    },
-    [characters],
-  );
-
-  const deleteCharacter = useCallback((characterId: string) => {
-    const now = currentIsoTimestamp();
-    setCharacters((currentCharacters) =>
-      deleteCharacterRecord(currentCharacters, characterId),
-    );
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        removeMessengerThreadCharacter(thread, characterId, now),
-      ),
-    );
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        removeClassicThreadCharacter(thread, characterId, now),
-      ),
-    );
-  }, []);
+  const {
+    createCharacter,
+    updateCharacter,
+    duplicateCharacter,
+    deleteCharacter,
+  } = useCharacterActions({
+    characters,
+    setCharacters,
+    setClassicThreads,
+    setMessengerThreads,
+  });
 
   const createPersona = useCallback((input: PersonaRecordInput) => {
     const now = currentIsoTimestamp();
