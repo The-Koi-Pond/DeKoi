@@ -144,6 +144,10 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
     failures.push("Runtime adapters must not import app composition or React feature modules.");
   }
 
+  if (sourceIsRuntime && targetFile === "src/shared/api/desktop-commands") {
+    failures.push("Runtime adapters must use shared API wrappers instead of the desktop command catalog.");
+  }
+
   if (sourceIsShared && (isUnder(targetFile, "src/app") || isUnder(targetFile, "src/features"))) {
     failures.push("Shared modules must not import app composition or feature modules.");
   }

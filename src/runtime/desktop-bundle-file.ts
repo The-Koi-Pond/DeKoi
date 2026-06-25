@@ -1,10 +1,11 @@
-import { invoke } from "@tauri-apps/api/core";
 import type { DeKoiStorageBundle } from "./dekoi-storage-bundle";
-import { DESKTOP_COMMANDS } from "../shared/api/desktop-commands";
+import {
+  exportDesktopBundleFile as exportDesktopBundleFilePayload,
+  importDesktopBundleFileSnapshot,
+} from "../shared/api/desktop-bundle-file";
 import {
   asDesktopHostErrorMessage,
   normalizeDesktopStorageBundleSnapshot,
-  requireTauriForDesktopHost,
   type DeKoiDesktopStorageBundleInfo,
   type DeKoiDesktopStorageBundleResult,
   type DeKoiDesktopStorageBundleSnapshot,
@@ -18,31 +19,13 @@ export async function exportDesktopBundleFile(
   bundle: DeKoiStorageBundle,
   defaultFileName: string,
 ): Promise<DeKoiDesktopStorageBundleInfo | null> {
-  requireTauriForDesktopHost(
-    "Desktop file import/export is only available inside the Tauri app.",
-  );
-
-  return await invoke<DeKoiDesktopStorageBundleInfo | null>(
-    DESKTOP_COMMANDS.fileExportBundle,
-    { bundle, defaultFileName },
-  );
+  return await exportDesktopBundleFilePayload(bundle, defaultFileName);
 }
 
 export async function importDesktopBundleFile(): Promise<DeKoiDesktopBundleFileImportResult> {
-  try {
-    requireTauriForDesktopHost(
-      "Desktop file import/export is only available inside the Tauri app.",
-    );
-  } catch (error) {
-    return { ok: false, error: asDesktopHostErrorMessage(error) };
-  }
-
   let snapshot: DeKoiDesktopStorageBundleSnapshot | null;
   try {
-    snapshot =
-      await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
-        DESKTOP_COMMANDS.fileImportBundle,
-      );
+    snapshot = await importDesktopBundleFileSnapshot();
   } catch (error) {
     return { ok: false, error: asDesktopHostErrorMessage(error) };
   }

@@ -2,21 +2,18 @@ import {
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
 } from "./dekoi-storage-bundle";
+import type {
+  DeKoiDesktopStorageBundleInfo,
+  DeKoiDesktopStorageBundleSnapshot,
+} from "../shared/api/desktop-storage-bundle";
 export {
   asDesktopHostErrorMessage,
   requireTauriForDesktopHost,
 } from "../shared/api/desktop-host-common";
-
-export interface DeKoiDesktopStorageBundleInfo {
-  path: string;
-  byteLength: number;
-  updatedAtMs: number | null;
-}
-
-export interface DeKoiDesktopStorageBundleSnapshot
-  extends DeKoiDesktopStorageBundleInfo {
-  bundle: unknown;
-}
+export type {
+  DeKoiDesktopStorageBundleInfo,
+  DeKoiDesktopStorageBundleSnapshot,
+} from "../shared/api/desktop-storage-bundle";
 
 export type DeKoiDesktopStorageBundleResult =
   | {

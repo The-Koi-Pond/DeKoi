@@ -1,10 +1,11 @@
-import { invoke } from "@tauri-apps/api/core";
 import type { DeKoiStorageBundle } from "./dekoi-storage-bundle";
-import { DESKTOP_COMMANDS } from "../shared/api/desktop-commands";
+import {
+  readDesktopStorageBundleSnapshot,
+  writeDesktopStorageBundle as writeDesktopStorageBundlePayload,
+} from "../shared/api/desktop-storage-bundle";
 import {
   asDesktopHostErrorMessage,
   normalizeDesktopStorageBundleSnapshot,
-  requireTauriForDesktopHost,
   type DeKoiDesktopStorageBundleInfo,
   type DeKoiDesktopStorageBundleResult,
   type DeKoiDesktopStorageBundleSnapshot,
@@ -15,20 +16,9 @@ export type DeKoiDesktopStorageReadResult =
   | { ok: false; error: string };
 
 export async function readDesktopStorageBundle(): Promise<DeKoiDesktopStorageReadResult> {
-  try {
-    requireTauriForDesktopHost(
-      "Desktop host storage is only available inside the Tauri app.",
-    );
-  } catch (error) {
-    return { ok: false, error: asDesktopHostErrorMessage(error) };
-  }
-
   let snapshot: DeKoiDesktopStorageBundleSnapshot | null;
   try {
-    snapshot =
-      await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
-        DESKTOP_COMMANDS.storageReadBundle,
-      );
+    snapshot = await readDesktopStorageBundleSnapshot();
   } catch (error) {
     return { ok: false, error: asDesktopHostErrorMessage(error) };
   }
@@ -43,12 +33,5 @@ export async function readDesktopStorageBundle(): Promise<DeKoiDesktopStorageRea
 export async function writeDesktopStorageBundle(
   bundle: DeKoiStorageBundle,
 ): Promise<DeKoiDesktopStorageBundleInfo> {
-  requireTauriForDesktopHost(
-    "Desktop host storage is only available inside the Tauri app.",
-  );
-
-  return await invoke<DeKoiDesktopStorageBundleInfo>(
-    DESKTOP_COMMANDS.storageWriteBundle,
-    { bundle },
-  );
+  return await writeDesktopStorageBundlePayload(bundle);
 }

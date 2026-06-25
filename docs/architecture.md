@@ -71,7 +71,8 @@ The check currently enforces these rules:
 - `src/engine` must not import `src/runtime`, `src/features`, `src/shared`,
   `src/app`, React, or Tauri packages.
 - `src/app` must not import runtime adapters or engine modules directly.
-- `src/runtime` must not import `src/app`, `src/features`, or React.
+- `src/runtime` must not import `src/app`, `src/features`, React, or the
+  desktop command catalog directly.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
@@ -101,10 +102,10 @@ Move toward the old De-Koi skeleton in small, validated slices:
    surfaces there too.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too.
-5. Keep desktop/remote transport, desktop host status, and provider secret
-   wrappers in `src/shared/api`; continue moving remaining `src/runtime`
-   storage/generation systems toward `src/shared/api` or `features/runtime`
-   where appropriate.
+5. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
+   desktop host status, and provider secret wrappers in `src/shared/api`;
+   continue moving remaining `src/runtime` storage/generation systems toward
+   `src/shared/api` or `features/runtime` where appropriate.
 6. Deepen `features/catalog` into resource-owned packages as collections grow.
 7. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
