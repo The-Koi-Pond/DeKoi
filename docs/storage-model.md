@@ -30,14 +30,14 @@ adapters.
 
 | Entity | Native owner | Record | Runtime adapter |
 | --- | --- | --- | --- |
-| `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/app-settings.ts` |
-| `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/character-storage.ts` |
-| `classic-threads` | `src/engine/classic.ts` | `ClassicThread` | `src/runtime/classic-storage.ts` |
-| `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/lorebook-storage.ts` |
-| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/messenger-storage.ts` |
-| `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/persona-storage.ts` |
-| `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/provider-connection-storage.ts` |
-| `ripple-states` | `src/engine/ripples.ts` | `RippleState` | `src/runtime/ripple-state-storage.ts` |
+| `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/storage/collections/app-settings.ts` |
+| `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/storage/collections/character-storage.ts` |
+| `classic-threads` | `src/engine/classic.ts` | `ClassicThread` | `src/runtime/storage/collections/classic-storage.ts` |
+| `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/storage/collections/lorebook-storage.ts` |
+| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/storage/collections/messenger-storage.ts` |
+| `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/storage/collections/persona-storage.ts` |
+| `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts` |
+| `ripple-states` | `src/engine/ripples.ts` | `RippleState` | `src/runtime/storage/collections/ripple-state-storage.ts` |
 
 ## Source Of Truth
 
@@ -49,8 +49,8 @@ names:
 The public collection entity type is `StorageEntity`. `HostStorageEntity`
 remains a compatibility alias for host-backed storage code.
 
-Runtime storage adapters live under `src/runtime`; durable product record shapes
-live under `src/engine`.
+Runtime collection adapters live under `src/runtime/storage/collections`;
+durable product record shapes live under `src/engine`.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

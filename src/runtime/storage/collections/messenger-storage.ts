@@ -1,12 +1,12 @@
-import type { MessengerMessage, MessengerThread } from "../engine/messenger";
-import { sampleMessengerThread } from "../engine/sample-messenger";
+import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import { sampleMessengerThread } from "../../../engine/sample-messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
   createHostStorageRepository,
   type HostStorageMode,
-} from "./storage/host-storage";
-import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../host-storage";
+import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 export type MessengerStorageMode = HostStorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";

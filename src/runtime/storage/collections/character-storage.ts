@@ -1,14 +1,14 @@
-import type { CharacterRecord } from "../engine/character";
-import { sampleCompanions } from "../engine/sample-messenger";
+import type { CharacterRecord } from "../../../engine/character";
+import { sampleCompanions } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readNullableString,
   readString,
   readStringArray,
   readTimestamp,
-} from "./storage/storage-json";
-import { createHostStorageRepository } from "./storage/host-storage";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../storage-json";
+import { createHostStorageRepository } from "../host-storage";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
   if (!isRecord(value)) return null;

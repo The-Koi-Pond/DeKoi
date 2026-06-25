@@ -1,13 +1,13 @@
-import type { PersonaRecord } from "../engine/persona";
-import { samplePersona } from "../engine/sample-messenger";
+import type { PersonaRecord } from "../../../engine/persona";
+import { samplePersona } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readNullableString,
   readString,
   readTimestamp,
-} from "./storage/storage-json";
-import { createHostStorageRepository } from "./storage/host-storage";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../storage-json";
+import { createHostStorageRepository } from "../host-storage";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
   if (!isRecord(value)) return null;

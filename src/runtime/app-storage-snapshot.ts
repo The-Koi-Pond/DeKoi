@@ -8,36 +8,36 @@ import type { RippleState } from "../engine/ripples";
 import {
   loadAppSettingsFromStorage,
   saveAppSettingsToStorage,
-} from "./app-settings";
+} from "./storage/collections/app-settings";
 import type { AppSettings } from "../engine/app-settings";
 import {
   loadCharacterRecordsFromStorage,
   saveCharacterRecordsToStorage,
-} from "./character-storage";
+} from "./storage/collections/character-storage";
 import {
   loadClassicThreadsFromStorage,
   saveClassicThreadsToStorage,
-} from "./classic-storage";
+} from "./storage/collections/classic-storage";
 import {
   loadLorebookRecordsFromStorage,
   saveLorebookRecordsToStorage,
-} from "./lorebook-storage";
+} from "./storage/collections/lorebook-storage";
 import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
-} from "./messenger-storage";
+} from "./storage/collections/messenger-storage";
 import {
   loadPersonaRecordsFromStorage,
   savePersonaRecordsToStorage,
-} from "./persona-storage";
+} from "./storage/collections/persona-storage";
 import {
   loadProviderConnectionRecordsFromStorage,
   saveProviderConnectionRecordsToStorage,
-} from "./provider-connection-storage";
+} from "./storage/collections/provider-connection-storage";
 import {
   loadRippleStatesFromStorage,
   saveRippleStatesToStorage,
-} from "./ripple-state-storage";
+} from "./storage/collections/ripple-state-storage";
 import {
   mergeStorageResults,
   type StorageResult,

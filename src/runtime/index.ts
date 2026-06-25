@@ -4,9 +4,9 @@ export {
   type AppStorageRecords,
   type AppStorageSnapshot,
 } from "./app-storage-snapshot";
-export { loadAppSettings } from "./app-settings";
-export { loadCharacterRecords } from "./character-storage";
-export { loadClassicThreads } from "./classic-storage";
+export { loadAppSettings } from "./storage/collections/app-settings";
+export { loadCharacterRecords } from "./storage/collections/character-storage";
+export { loadClassicThreads } from "./storage/collections/classic-storage";
 export {
   createDeKoiStorageBundle,
   getDeKoiStorageBundleCounts,
@@ -32,15 +32,15 @@ export {
   type DeKoiLegacyImportParseResult,
   type DeKoiLegacyImportPreview,
 } from "./legacy-import";
-export { loadLorebookRecords } from "./lorebook-storage";
+export { loadLorebookRecords } from "./storage/collections/lorebook-storage";
 export {
   loadInitialMessengerThreads,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "./messenger-storage";
-export { loadPersonaRecords } from "./persona-storage";
-export { loadProviderConnectionRecords } from "./provider-connection-storage";
-export { loadRippleStates } from "./ripple-state-storage";
+} from "./storage/collections/messenger-storage";
+export { loadPersonaRecords } from "./storage/collections/persona-storage";
+export { loadProviderConnectionRecords } from "./storage/collections/provider-connection-storage";
+export { loadRippleStates } from "./storage/collections/ripple-state-storage";
 export type { StorageEntity } from "./storage/storage-entities";
 export { mergeStorageResults } from "./storage/storage-repository";
 export type {

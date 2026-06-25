@@ -3,19 +3,19 @@ import type {
   RippleState,
   RippleStateOwnerKind,
   RippleTone,
-} from "../engine/ripples";
+} from "../../../engine/ripples";
 import {
   createHostStorageRepository,
   type HostStorageMode,
-} from "./storage/host-storage";
-import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
+} from "../host-storage";
+import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import {
   isRecord,
   normalizeStorageRecordList,
   readString,
   readTimestamp,
-} from "./storage/storage-json";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../storage-json";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 export type RippleStateStorageMode = HostStorageMode;
 export type RippleStateStorageStatus = "ready" | "error";

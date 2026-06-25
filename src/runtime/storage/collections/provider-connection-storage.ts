@@ -3,15 +3,15 @@ import {
   type ProviderConnectionKind,
   type ProviderConnectionRecord,
   type ProviderConnectionStatus,
-} from "../engine/provider-connection";
+} from "../../../engine/provider-connection";
 import {
   isRecord,
   readNullableString,
   readString,
   readTimestamp,
-} from "./storage/storage-json";
-import { createHostStorageRepository } from "./storage/host-storage";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../storage-json";
+import { createHostStorageRepository } from "../host-storage";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";

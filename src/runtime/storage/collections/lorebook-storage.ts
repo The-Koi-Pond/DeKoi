@@ -1,12 +1,12 @@
-import type { LorebookEntryRecord, LorebookRecord } from "../engine/lorebook";
-import { sampleLorebook } from "../engine/sample-messenger";
+import type { LorebookEntryRecord, LorebookRecord } from "../../../engine/lorebook";
+import { sampleLorebook } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readString,
   readTimestamp,
-} from "./storage/storage-json";
-import { createHostStorageRepository } from "./storage/host-storage";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../storage-json";
+import { createHostStorageRepository } from "../host-storage";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 function normalizeLorebookEntryRecord(value: unknown): LorebookEntryRecord | null {
   if (!isRecord(value)) return null;

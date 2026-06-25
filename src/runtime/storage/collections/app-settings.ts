@@ -2,10 +2,10 @@ import {
   DEFAULT_APP_SETTINGS,
   normalizeAppSettings,
   type AppSettings,
-} from "../engine/app-settings";
-import { isRecord, readString } from "./storage/storage-json";
-import { createHostStorageRepository } from "./storage/host-storage";
-import { STORAGE_ENTITIES } from "./storage/storage-entities";
+} from "../../../engine/app-settings";
+import { isRecord, readString } from "../storage-json";
+import { createHostStorageRepository } from "../host-storage";
+import { STORAGE_ENTITIES } from "../storage-entities";
 
 const APP_SETTINGS_RECORD_ID = "app-settings";
 
@@ -22,7 +22,7 @@ export {
   type DensityPref,
   type MotionPref,
   type ShoalSortMode,
-} from "../engine/app-settings";
+} from "../../../engine/app-settings";
 
 function normalizeAppSettingsRecord(value: unknown): AppSettingsRecord | null {
   if (!isRecord(value)) return null;
