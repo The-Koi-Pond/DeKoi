@@ -1,7 +1,15 @@
 import { useCallback } from "react";
-import { CLASSIC, MESSENGER, type SurfaceId } from "../../../engine/surfaces";
-import type { PondView, SideRailView } from "../context/nav-types";
-import type { StateSetter } from "../../../shared/react/state-setter";
+import type {
+  NavViewState,
+  PondView,
+  SideRailView,
+} from "../features/navigation";
+import type { StateSetter } from "../shared/react/state-setter";
+
+type SurfaceId = NavViewState["selectedSurface"];
+
+const CLASSIC_SURFACE: SurfaceId = "classic";
+const MESSENGER_SURFACE: SurfaceId = "messenger";
 
 type UseViewActionsInput = {
   setView: StateSetter<PondView>;
@@ -39,7 +47,7 @@ export function useViewActions({
   const openClassicThread = useCallback(
     (threadId: string) => {
       setSideRailView("shoal");
-      setSelectedSurface(CLASSIC);
+      setSelectedSurface(CLASSIC_SURFACE);
       setView({ kind: "classic", threadId });
     },
     [setSelectedSurface, setSideRailView, setView],
@@ -48,7 +56,7 @@ export function useViewActions({
   const openMessengerThread = useCallback(
     (threadId: string) => {
       setSideRailView("shoal");
-      setSelectedSurface(MESSENGER);
+      setSelectedSurface(MESSENGER_SURFACE);
       setView({ kind: "messenger", threadId });
     },
     [setSelectedSurface, setSideRailView, setView],

@@ -1,20 +1,27 @@
 import { useState } from "react";
-import type { SurfaceId } from "../../../engine/surfaces";
-import { MESSENGER } from "../../../engine/surfaces";
 import {
   loadInitialAppStorageRecords,
   readRuntimeTargetUrl,
   type AppStorageRecords,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../../runtime";
-import type { PondView, SideRailView } from "../context/nav-types";
+} from "../features/runtime";
+import type {
+  NavViewState,
+  PondView,
+  SideRailView,
+} from "../features/navigation";
+
+type SurfaceId = NavViewState["selectedSurface"];
+
+const MESSENGER_SURFACE: SurfaceId = "messenger";
 
 export function useAppState() {
   const [initialStorageRecords] = useState(loadInitialAppStorageRecords);
   const [view, setView] = useState<PondView>({ kind: "pond" });
   const [sideRailView, setSideRailView] = useState<SideRailView>("shoal");
-  const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(MESSENGER);
+  const [selectedSurface, setSelectedSurface] =
+    useState<SurfaceId>(MESSENGER_SURFACE);
   const [characters, setCharacters] = useState(initialStorageRecords.characters);
   const [personas, setPersonas] = useState(initialStorageRecords.personas);
   const [lorebooks, setLorebooks] = useState(initialStorageRecords.lorebooks);

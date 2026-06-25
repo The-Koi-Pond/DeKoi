@@ -106,13 +106,13 @@
           <tbody>
             <tr>
               <td><code>src/app</code>, <code>src/main.tsx</code></td>
-              <td>Provider wiring, navigation controller assembly, and first render composition.</td>
+              <td>Provider wiring, app state/storage/view controller assembly, and first render composition.</td>
               <td>Keep root entry files thin; app composition belongs in <code>src/app</code>.</td>
             </tr>
             <tr>
               <td><code>src/features/navigation</code></td>
-              <td>Navigation context, app state/storage sync hooks, and remaining view/ripple action hooks.</td>
-              <td>Provider/controller assembly now lives in <code>src/app</code>; catalog, mode, shell, and import/export actions move to their feature owners.</td>
+              <td>Navigation context and nav state/action contracts.</td>
+              <td>Provider state/storage/view assembly lives in <code>src/app</code>; catalog, mode, shell, runtime, and import/export actions live with their feature owners.</td>
             </tr>
             <tr>
               <td><code>src/runtime</code></td>
@@ -164,12 +164,8 @@
               <td><code>src/runtime/index.ts</code> stays the public entrypoint instead of becoming an implementation folder.</td>
             </tr>
             <tr>
-              <td>Navigation bridge implementation files must live in <code>context</code>, <code>state</code>, or <code>actions</code> packages under <code>src/features/navigation</code>.</td>
-              <td>Only the navigation package entrypoint stays at the navigation root.</td>
-            </tr>
-            <tr>
-              <td>Navigation action bridge files are limited to the remaining view/ripple hooks.</td>
-              <td>Catalog, mode, shell, and import/export actions stay with their feature owners.</td>
+              <td>Navigation bridge implementation files must live in <code>context</code> under <code>src/features/navigation</code>.</td>
+              <td>Only the navigation package entrypoint stays at the navigation root; state, action, and runtime hooks live with app or feature owners.</td>
             </tr>
             <tr>
               <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
@@ -221,7 +217,7 @@
             </tr>
             <tr>
               <td>Navigation must be imported through its public entrypoint.</td>
-              <td>The bridge exposes context, types, app state/storage sync hooks, and remaining view/ripple hooks while app composition owns controller assembly.</td>
+              <td>The bridge exposes context and nav contracts while app composition owns controller assembly.</td>
             </tr>
             <tr>
               <td>Shell must be imported through its public entrypoint.</td>
@@ -257,11 +253,11 @@
         <h2>Migration Direction</h2>
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
-          <li>Keep app provider wiring and top-level navigation controller assembly in <code>src/app</code>; move the remaining navigation state/view bridge toward app or mode router ownership as those boundaries become concrete. Catalog owns catalog record actions, modes own thread actions, and shell care owns settings/import/export actions. Import navigation through its package entrypoint while it remains a bridge. Keep navigation internals organized under <code>context</code>, <code>state</code>, and <code>actions</code> until those owners split out.</li>
+          <li>Keep app provider wiring plus top-level state, storage sync, and view controller assembly in <code>src/app</code>. Catalog owns catalog record actions, modes own thread actions, shell care owns settings/import/export actions, and feature-runtime owns ripple/runtime actions. Import navigation through its package entrypoint while it remains a context/contracts bridge.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Pass navigation state/actions through narrow feature-owned props into shell, mode, and catalog surfaces. Build those contracts from exported navigation state/action groups rather than reading the navigation context, importing <code>NavContextType</code>, accepting it directly, or picking from it inside non-navigation feature modules.</li>
-          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. Navigation should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
+          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. App composition should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow. Import catalog surfaces through the catalog feature entrypoint from outside the catalog feature.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>

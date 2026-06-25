@@ -107,11 +107,13 @@ The short version:
   generation requests.
 - `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
   surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
-  controller for the app provider. `src/features/navigation` owns the
-  navigation context, app state/storage sync hooks, and remaining view/ripple
-  bridge hooks while the seed still uses a single top-level app state provider.
+  controller for the app provider, including top-level app state, storage sync,
+  and view actions. `src/features/navigation` owns only the navigation context
+  and nav contracts while the seed still uses a single top-level app state
+  provider.
   Catalog owns catalog record action hooks, modes own thread action hooks, and
-  shell care owns settings/import/export action hooks.
+  shell care owns settings/import/export action hooks. `src/features/runtime`
+  owns ripple actions and runtime-facing workflows.
   `src/features/runtime` owns runtime-facing workflows such as generation,
   initial app-storage record loading, and runtime target URL changes.
   Non-navigation feature modules receive navigation state/actions through narrow
@@ -130,5 +132,5 @@ The short version:
 
 1. Keep hardening `src/runtime/storage` package boundaries before adding a real
    database adapter.
-2. Keep splitting the remaining navigation state/view bridge toward app or a
-   mode router when that ownership becomes stable.
+2. Keep hardening the navigation context/contracts boundary as a future app or
+   mode router shape becomes concrete.

@@ -3,15 +3,15 @@ import {
   cancelIdle,
   requestIdle,
   type IdleHandle,
-} from "../../../shared/browser/idle-callback";
+} from "../shared/browser/idle-callback";
 import {
   loadAppStorageSnapshot,
   saveAppStorageSnapshot,
   type AppStorageRecords,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../../runtime";
-import type { StateSetter } from "../../../shared/react/state-setter";
+} from "../features/runtime";
+import type { StateSetter } from "../shared/react/state-setter";
 
 type UseAppStorageSyncInput = AppStorageRecords & {
   remoteRuntimeUrl: string;

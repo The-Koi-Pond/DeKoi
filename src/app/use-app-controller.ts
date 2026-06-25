@@ -8,18 +8,16 @@ import {
   useClassicThreadActions,
   useMessengerThreadActions,
 } from "../features/modes";
-import {
-  type NavContextType,
-  useAppState,
-  useAppStorageSync,
-  useRippleActions,
-  useViewActions,
-} from "../features/navigation";
+import { type NavContextType } from "../features/navigation";
 import {
   useAppImportExportActions,
   useAppSettingsActions,
   useCareDrawerActions,
 } from "../features/shell";
+import { useAppState } from "./use-app-state";
+import { useAppStorageSync } from "./use-app-storage-sync";
+import { useRippleActions } from "./use-ripple-actions";
+import { useViewActions } from "./use-view-actions";
 
 export function useAppController(): NavContextType {
   const {
