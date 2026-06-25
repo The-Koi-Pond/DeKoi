@@ -11,6 +11,7 @@ import {
   remoteRuntimeTarget,
 } from "../shared/api/runtime-target";
 import type { StorageEntity } from "./storage-entities";
+import { planStorageRecordSync } from "./storage-record-sync";
 import type {
   StorageCollectionRepository,
   StorageMode,
@@ -33,18 +34,6 @@ export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
 
 function asErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
-}
-
-function comparableRecord(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const record = { ...(value as Record<string, unknown>) };
-  delete record.createdAt;
-  delete record.updatedAt;
-  return record;
-}
-
-function recordsMatch(left: unknown, right: unknown) {
-  return JSON.stringify(comparableRecord(left)) === JSON.stringify(comparableRecord(right));
 }
 
 function remoteTargetIsAvailable(rawUrl: string) {
@@ -130,53 +119,45 @@ export async function saveHostRecords<T extends StorageRecord>(
     const currentRecords = await loadHostRecords(entity, normalizeRecord, rawUrl).catch(
       () => [],
     );
-    const currentById = new Map(
-      currentRecords.map((record) => [record.id, record] as const),
-    );
-    const currentIds = new Set(currentById.keys());
-    const nextIds = new Set(records.map((record) => record.id));
+    const operations = planStorageRecordSync({
+      currentRecords,
+      nextRecords: records,
+    });
 
     await Promise.all(
-      records.flatMap((record) => {
-        const currentRecord = currentById.get(record.id);
-        if (currentRecord && recordsMatch(currentRecord, record)) return [];
-
-        return [
-          currentIds.has(record.id)
-            ? invokeHostStorage(
-                RUNTIME_COMMANDS.storageUpdate,
-                {
-                  entity,
-                  id: record.id,
-                  patch: record as unknown as Record<string, unknown>,
-                },
-                rawUrl,
-              )
-            : invokeHostStorage(
-                RUNTIME_COMMANDS.storageCreate,
-                {
-                  entity,
-                  value: record as unknown as Record<string, unknown>,
-                },
-                rawUrl,
-              ),
-        ];
-      }),
-    );
-
-    await Promise.all(
-      currentRecords
-        .filter((record) => !nextIds.has(record.id))
-        .map((record) =>
-          invokeHostStorage(
+      operations.map((operation) => {
+        if (operation.type === "delete") {
+          return invokeHostStorage(
             RUNTIME_COMMANDS.storageDelete,
             {
               entity,
-              id: record.id,
+              id: operation.record.id,
             },
             rawUrl,
-          ),
-        ),
+          );
+        }
+
+        if (operation.type === "update") {
+          return invokeHostStorage(
+            RUNTIME_COMMANDS.storageUpdate,
+            {
+              entity,
+              id: operation.record.id,
+              patch: operation.record as unknown as Record<string, unknown>,
+            },
+            rawUrl,
+          );
+        }
+
+        return invokeHostStorage(
+          RUNTIME_COMMANDS.storageCreate,
+          {
+            entity,
+            value: operation.record as unknown as Record<string, unknown>,
+          },
+          rawUrl,
+        );
+      }),
     );
 
     return {
