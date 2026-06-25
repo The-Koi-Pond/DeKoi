@@ -14,7 +14,7 @@ import {
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { AppSettings } from "../../../engine/app-settings";
-import type { StateSetter } from "../state/state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseProviderConnectionActionsInput = {
   providerConnections: ProviderConnectionRecord[];

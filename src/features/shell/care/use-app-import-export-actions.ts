@@ -12,8 +12,8 @@ import {
   type DeKoiLegacyImportData,
   type DeKoiStorageBundle,
 } from "../../runtime";
-import type { PondView } from "../context/nav-types";
-import type { StateSetter } from "../state/state-setter";
+import type { PondView } from "../../navigation";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppImportExportActionsInput = AppStorageRecords & {
   providerConnections: AppStorageRecords["providerConnections"];

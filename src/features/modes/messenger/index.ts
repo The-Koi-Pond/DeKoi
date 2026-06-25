@@ -7,3 +7,4 @@ export {
   sortMessengerThreads,
   sortMessengerThreadsByUpdatedAt,
 } from "./thread-display";
+export { useMessengerThreadActions } from "./use-messenger-thread-actions";

@@ -11,7 +11,7 @@ import {
   type MessengerStorageMode,
   type MessengerStorageStatus,
 } from "../../runtime";
-import type { StateSetter } from "./state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppStorageSyncInput = AppStorageRecords & {
   remoteRuntimeUrl: string;

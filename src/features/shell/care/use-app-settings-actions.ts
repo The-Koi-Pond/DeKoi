@@ -10,7 +10,7 @@ import {
   type MessengerStorageStatus,
   writeRuntimeTargetUrl,
 } from "../../runtime";
-import type { StateSetter } from "../state/state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppSettingsActionsInput = {
   setAppSettings: StateSetter<AppSettings>;

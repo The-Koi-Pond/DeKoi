@@ -49,7 +49,7 @@
             <tr>
               <td><code>src/app</code></td>
               <td>App composition</td>
-              <td>React bootstrap, providers, startup effects, and app-level wiring.</td>
+              <td>React bootstrap, providers, startup effects, top-level navigation controller assembly, and app-level wiring.</td>
             </tr>
             <tr>
               <td><code>src/features/catalog</code></td>
@@ -106,13 +106,13 @@
           <tbody>
             <tr>
               <td><code>src/app</code>, <code>src/main.tsx</code></td>
-              <td>Provider wiring and first render composition.</td>
+              <td>Provider wiring, navigation controller assembly, and first render composition.</td>
               <td>Keep root entry files thin; app composition belongs in <code>src/app</code>.</td>
             </tr>
             <tr>
               <td><code>src/features/navigation</code></td>
-              <td>App state, persistence sync, action hooks, import/export, navigation context, and controller logic.</td>
-              <td>Provider wiring now lives in <code>src/app</code>; move mode routing ownership toward <code>features/modes</code>.</td>
+              <td>Navigation context, app state/storage sync hooks, and remaining view/ripple action hooks.</td>
+              <td>Provider/controller assembly now lives in <code>src/app</code>; catalog, mode, shell, and import/export actions move to their feature owners.</td>
             </tr>
             <tr>
               <td><code>src/runtime</code></td>
@@ -165,7 +165,11 @@
             </tr>
             <tr>
               <td>Navigation bridge implementation files must live in <code>context</code>, <code>state</code>, or <code>actions</code> packages under <code>src/features/navigation</code>.</td>
-              <td>Only the navigation package entrypoint and controller stay at the navigation root.</td>
+              <td>Only the navigation package entrypoint stays at the navigation root.</td>
+            </tr>
+            <tr>
+              <td>Navigation action bridge files are limited to the remaining view/ripple hooks.</td>
+              <td>Catalog, mode, shell, and import/export actions stay with their feature owners.</td>
             </tr>
             <tr>
               <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
@@ -217,7 +221,7 @@
             </tr>
             <tr>
               <td>Navigation must be imported through its public entrypoint.</td>
-              <td>The bridge can expose context, types, and controller hooks without leaking its internal action files.</td>
+              <td>The bridge exposes context, types, app state/storage sync hooks, and remaining view/ripple hooks while app composition owns controller assembly.</td>
             </tr>
             <tr>
               <td>Shell must be imported through its public entrypoint.</td>
@@ -253,7 +257,7 @@
         <h2>Migration Direction</h2>
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
-          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge. Keep navigation internals organized under <code>context</code>, <code>state</code>, and <code>actions</code> until those owners split out.</li>
+          <li>Keep app provider wiring and top-level navigation controller assembly in <code>src/app</code>; move the remaining navigation state/view bridge toward app or mode router ownership as those boundaries become concrete. Catalog owns catalog record actions, modes own thread actions, and shell care owns settings/import/export actions. Import navigation through its package entrypoint while it remains a bridge. Keep navigation internals organized under <code>context</code>, <code>state</code>, and <code>actions</code> until those owners split out.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Pass navigation state/actions through narrow feature-owned props into shell, mode, and catalog surfaces. Build those contracts from exported navigation state/action groups rather than reading the navigation context, importing <code>NavContextType</code>, accepting it directly, or picking from it inside non-navigation feature modules.</li>

@@ -1,5 +1,9 @@
 export { CompanionsSurface } from "./companions";
 export type { CompanionsSurfaceNav } from "./companions";
+export { useCharacterActions } from "./actions/use-character-actions";
+export { useLorebookActions } from "./actions/use-lorebook-actions";
+export { usePersonaActions } from "./actions/use-persona-actions";
+export { useProviderConnectionActions } from "./actions/use-provider-connection-actions";
 export { LorebooksSurface } from "./lorebooks";
 export type { LorebooksSurfaceNav } from "./lorebooks";
 export { PersonasSurface } from "./personas";

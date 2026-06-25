@@ -106,9 +106,12 @@ The short version:
 - `src/engine/messenger-generation.ts` builds provider-neutral Messenger
   generation requests.
 - `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
-  surfaces. `src/features/navigation` owns the app-level navigation context
-  while the seed still uses a single top-level app state provider; its bridge
-  internals are grouped into `context`, `state`, and `actions`.
+  surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
+  controller for the app provider. `src/features/navigation` owns the
+  navigation context, app state/storage sync hooks, and remaining view/ripple
+  bridge hooks while the seed still uses a single top-level app state provider.
+  Catalog owns catalog record action hooks, modes own thread action hooks, and
+  shell care owns settings/import/export action hooks.
   `src/features/runtime` owns runtime-facing workflows such as generation,
   initial app-storage record loading, and runtime target URL changes.
   Non-navigation feature modules receive navigation state/actions through narrow
@@ -127,5 +130,5 @@ The short version:
 
 1. Keep hardening `src/runtime/storage` package boundaries before adding a real
    database adapter.
-2. Keep moving runtime-facing orchestration into `features/runtime` when UI
-   workflows no longer need bridge-layer state.
+2. Keep splitting the remaining navigation state/view bridge toward app or a
+   mode router when that ownership becomes stable.

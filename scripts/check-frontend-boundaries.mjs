@@ -26,6 +26,10 @@ const shellPackageNames = new Set([
   "waterline",
 ]);
 const modePackageNames = new Set(["classic", "messenger"]);
+const allowedNavigationActionFiles = new Set([
+  "src/features/navigation/actions/use-ripple-actions.ts",
+  "src/features/navigation/actions/use-view-actions.ts",
+]);
 const allowedFeatureRoots = new Set([
   ...featureLayerRank.keys(),
   "navigation",
@@ -107,6 +111,10 @@ function getNavigationPackageRoot(filePath) {
 
 function isNavigationRootSourceFile(filePath) {
   return /^src\/features\/navigation\/[^/]+\.[jt]sx?$/.test(filePath);
+}
+
+function isNavigationActionSourceFile(filePath) {
+  return /^src\/features\/navigation\/actions\/[^/]+\.[jt]sx?$/.test(filePath);
 }
 
 function getFeatureRuntimePackageRoot(filePath) {
@@ -415,11 +423,19 @@ for (const sourceFile of sourceFiles) {
 
   if (
     isNavigationRootSourceFile(sourceFile) &&
-    sourceFile !== "src/features/navigation/index.ts" &&
-    sourceFile !== "src/features/navigation/use-navigation-controller.ts"
+    sourceFile !== "src/features/navigation/index.ts"
   ) {
     failures.push(
-      `Navigation bridge implementation files must live in context, state, or actions packages.\n  - ${sourceFile}`,
+      `Navigation bridge implementation files must live in context, state, or actions packages; only the entrypoint may stay at the navigation root.\n  - ${sourceFile}`,
+    );
+  }
+
+  if (
+    isNavigationActionSourceFile(sourceFile) &&
+    !allowedNavigationActionFiles.has(sourceFile)
+  ) {
+    failures.push(
+      `Navigation action bridge files are limited to view/ripple hooks; move feature-owned actions to catalog, modes, or shell.\n  - ${sourceFile}`,
     );
   }
 

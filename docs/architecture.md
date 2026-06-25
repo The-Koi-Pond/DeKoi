@@ -50,10 +50,10 @@ src-tauri/
 
 | Layer | Path | Owns | Must not own |
 | --- | --- | --- | --- |
-| App composition | `src/app`, `src/main.tsx` | Provider wiring and first render composition. | Product rules, storage adapters, or host I/O. |
+| App composition | `src/app`, `src/main.tsx` | Provider wiring, navigation controller assembly, and first render composition. | Product rules, storage adapters, or host I/O. |
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
 | Runtime adapter bridge | `src/runtime` | Public runtime entrypoint plus the `src/runtime/storage` package for storage contracts, collection adapters, app snapshot orchestration, bundle import/export normalization, and legacy import. | React features, UI orchestration, generation orchestration, or raw desktop/remote transport. |
-| Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, navigation context, and the navigation controller until mode router boundaries exist. | Concrete feature screens, shell UI, or app provider wiring. |
+| Navigation bridge | `src/features/navigation` | Navigation context, app state/storage sync hooks, and remaining view/ripple action hooks until mode router boundaries exist. | Catalog, mode, shell, or import/export actions that already have clearer feature owners; concrete feature screens; app provider/controller assembly. |
 | Feature UI bridge | None currently. New feature folders must enter `catalog`, `modes`, `navigation`, or `shell`. | User workflows, screens, local presentation state, and component composition. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
 | Desktop host | `src-tauri` | Native capabilities, local filesystem storage, secrets, and runtime command dispatch. | React UI concerns or TypeScript product rules. |
@@ -79,7 +79,9 @@ The check currently enforces these rules:
   leaving `src/runtime/index.ts` as the public entrypoint.
 - Navigation bridge implementation files must live in `context`, `state`, or
   `actions` packages under `src/features/navigation`; only the package
-  entrypoint and controller stay at the navigation root.
+  entrypoint stays at the navigation root.
+- Navigation action bridge files are limited to the remaining view/ripple
+  hooks; feature-owned actions must live with catalog, modes, or shell.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
@@ -126,11 +128,13 @@ Move toward the old De-Koi skeleton in small, validated slices:
 
 1. Keep provider/startup composition in `src/app`; root entry files should stay
    thin and import app composition through the app package entrypoint.
-2. Keep app provider wiring in `src/app`; move the remaining navigation
-   controller/state bridge toward app or mode router ownership as those
-   boundaries become concrete. Import navigation through its package entrypoint
-   while it remains a bridge. Keep navigation internals organized under
-   `context`, `state`, and `actions` until those owners split out.
+2. Keep app provider wiring and top-level navigation controller assembly in
+   `src/app`; move the remaining navigation state/view bridge toward app or
+   mode router ownership as those boundaries become concrete. Catalog owns
+   catalog record actions, modes own thread actions, and shell care owns
+   settings/import/export actions. Import navigation through its package
+   entrypoint while it remains a bridge. Keep navigation internals organized
+   under `context`, `state`, and `actions` until those owners split out.
 3. Keep Messenger and Classic screens under `features/modes`; move future mode
    surfaces there too, with a feature entrypoint plus package entrypoints for
    each mode.

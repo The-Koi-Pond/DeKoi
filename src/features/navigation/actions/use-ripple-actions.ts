@@ -8,7 +8,7 @@ import {
 } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { StateSetter } from "../state/state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseRippleActionsInput = {
   rippleStates: RippleState[];

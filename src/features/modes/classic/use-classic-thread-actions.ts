@@ -17,8 +17,8 @@ import type { RippleState } from "../../../engine/ripples";
 import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { PondView } from "../context/nav-types";
-import type { StateSetter } from "../state/state-setter";
+import type { PondView } from "../../navigation";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseClassicThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;

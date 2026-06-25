@@ -5,6 +5,7 @@ export {
   getClassicThreadPreview,
   sortClassicThreads,
   sortClassicThreadsByUpdatedAt,
+  useClassicThreadActions,
 } from "./classic";
 export {
   MessengerThread,
@@ -14,4 +15,5 @@ export {
   getMessengerThreadTimeLabel,
   sortMessengerThreads,
   sortMessengerThreadsByUpdatedAt,
+  useMessengerThreadActions,
 } from "./messenger";

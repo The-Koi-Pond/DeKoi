@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useEscapeKey } from "../../../shared/ui/use-escape-key";
-import type { StateSetter } from "../state/state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseCareDrawerActionsInput = {
   careOpen: boolean;

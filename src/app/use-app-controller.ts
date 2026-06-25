@@ -1,19 +1,27 @@
-import { useAppImportExportActions } from "./actions/use-app-import-export-actions";
-import { useAppSettingsActions } from "./actions/use-app-settings-actions";
-import { useCareDrawerActions } from "./actions/use-care-drawer-actions";
-import { useCharacterActions } from "./actions/use-character-actions";
-import { useClassicThreadActions } from "./actions/use-classic-thread-actions";
-import { useLorebookActions } from "./actions/use-lorebook-actions";
-import { useMessengerThreadActions } from "./actions/use-messenger-thread-actions";
-import { usePersonaActions } from "./actions/use-persona-actions";
-import { useProviderConnectionActions } from "./actions/use-provider-connection-actions";
-import { useRippleActions } from "./actions/use-ripple-actions";
-import { useViewActions } from "./actions/use-view-actions";
-import type { NavContextType } from "./context/nav-types";
-import { useAppState } from "./state/use-app-state";
-import { useAppStorageSync } from "./state/use-app-storage-sync";
+import {
+  useCharacterActions,
+  useLorebookActions,
+  usePersonaActions,
+  useProviderConnectionActions,
+} from "../features/catalog";
+import {
+  useClassicThreadActions,
+  useMessengerThreadActions,
+} from "../features/modes";
+import {
+  type NavContextType,
+  useAppState,
+  useAppStorageSync,
+  useRippleActions,
+  useViewActions,
+} from "../features/navigation";
+import {
+  useAppImportExportActions,
+  useAppSettingsActions,
+  useCareDrawerActions,
+} from "../features/shell";
 
-export function useNavigationController(): NavContextType {
+export function useAppController(): NavContextType {
   const {
     view,
     setView,

@@ -20,7 +20,7 @@ import type { MessengerThread } from "../../../engine/messenger";
 import { removeMessengerThreadLorebook } from "../../../engine/messenger-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { StateSetter } from "../state/state-setter";
+import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseLorebookActionsInput = {
   lorebooks: LorebookRecord[];

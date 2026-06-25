@@ -6,3 +6,4 @@ export {
   sortClassicThreads,
   sortClassicThreadsByUpdatedAt,
 } from "./classic-display";
+export { useClassicThreadActions } from "./use-classic-thread-actions";
