@@ -1,47 +1,47 @@
-import type { CharacterRecord } from "../engine/character";
-import type { ClassicThread } from "../engine/classic";
-import type { LorebookRecord } from "../engine/lorebook";
-import type { MessengerThread } from "../engine/messenger";
-import type { PersonaRecord } from "../engine/persona";
-import type { ProviderConnectionRecord } from "../engine/provider-connection";
-import type { RippleState } from "../engine/ripples";
+import type { CharacterRecord } from "../../engine/character";
+import type { ClassicThread } from "../../engine/classic";
+import type { LorebookRecord } from "../../engine/lorebook";
+import type { MessengerThread } from "../../engine/messenger";
+import type { PersonaRecord } from "../../engine/persona";
+import type { ProviderConnectionRecord } from "../../engine/provider-connection";
+import type { RippleState } from "../../engine/ripples";
 import {
   loadAppSettingsFromStorage,
   saveAppSettingsToStorage,
-} from "./storage/collections/app-settings";
-import type { AppSettings } from "../engine/app-settings";
+} from "./collections/app-settings";
+import type { AppSettings } from "../../engine/app-settings";
 import {
   loadCharacterRecordsFromStorage,
   saveCharacterRecordsToStorage,
-} from "./storage/collections/character-storage";
+} from "./collections/character-storage";
 import {
   loadClassicThreadsFromStorage,
   saveClassicThreadsToStorage,
-} from "./storage/collections/classic-storage";
+} from "./collections/classic-storage";
 import {
   loadLorebookRecordsFromStorage,
   saveLorebookRecordsToStorage,
-} from "./storage/collections/lorebook-storage";
+} from "./collections/lorebook-storage";
 import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
-} from "./storage/collections/messenger-storage";
+} from "./collections/messenger-storage";
 import {
   loadPersonaRecordsFromStorage,
   savePersonaRecordsToStorage,
-} from "./storage/collections/persona-storage";
+} from "./collections/persona-storage";
 import {
   loadProviderConnectionRecordsFromStorage,
   saveProviderConnectionRecordsToStorage,
-} from "./storage/collections/provider-connection-storage";
+} from "./collections/provider-connection-storage";
 import {
   loadRippleStatesFromStorage,
   saveRippleStatesToStorage,
-} from "./storage/collections/ripple-state-storage";
+} from "./collections/ripple-state-storage";
 import {
   mergeStorageResults,
   type StorageResult,
-} from "./storage/storage-repository";
+} from "./storage-repository";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;

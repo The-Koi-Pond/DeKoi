@@ -3,7 +3,7 @@ export {
   saveAppStorageSnapshot,
   type AppStorageRecords,
   type AppStorageSnapshot,
-} from "./app-storage-snapshot";
+} from "./storage/app-storage-snapshot";
 export { loadAppSettings } from "./storage/collections/app-settings";
 export { loadCharacterRecords } from "./storage/collections/character-storage";
 export { loadClassicThreads } from "./storage/collections/classic-storage";
