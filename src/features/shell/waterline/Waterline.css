@@ -9,7 +9,6 @@
   border-bottom: 1px solid var(--reed-soft);
   background: linear-gradient(180deg, rgba(19, 36, 43, 0.9), rgba(14, 27, 33, 0.7));
   backdrop-filter: blur(8px);
-  -webkit-app-region: drag;
   user-select: none;
 }
 

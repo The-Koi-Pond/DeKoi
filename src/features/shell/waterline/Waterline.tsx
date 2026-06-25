@@ -82,7 +82,7 @@ export function Waterline({ nav }: WaterlineProps) {
   }
 
   const isNoDragTarget = useCallback((target: EventTarget | null) => {
-    return target instanceof HTMLElement && !!target.closest("[data-window-no-drag]");
+    return target instanceof Element && !!target.closest("[data-window-no-drag]");
   }, []);
 
   const startWindowDrag = useCallback(
