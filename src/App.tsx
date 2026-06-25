@@ -8,6 +8,7 @@ import {
 import { useCharacterActions } from "./features/navigation/use-character-actions";
 import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
 import { usePersonaActions } from "./features/navigation/use-persona-actions";
+import { useProviderConnectionActions } from "./features/navigation/use-provider-connection-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
@@ -20,7 +21,6 @@ import {
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
-  replaceClassicThreadProviderConnection,
   renameClassicThread as renameClassicThreadRecord,
 } from "./engine/classic-actions";
 import type { MessengerThread } from "./engine/messenger";
@@ -28,16 +28,8 @@ import {
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
-  replaceMessengerThreadProviderConnection,
   renameMessengerThread as renameMessengerThreadRecord,
 } from "./engine/messenger-actions";
-import {
-  createProviderConnectionRecord,
-  deleteProviderConnectionRecord,
-  duplicateProviderConnectionRecord,
-  updateProviderConnectionRecord,
-  type ProviderConnectionInput,
-} from "./engine/provider-connection-actions";
 import type { RippleState, RippleStateOwnerKind } from "./engine/ripples";
 import {
   createRippleRecord,
@@ -217,103 +209,18 @@ export default function App() {
     setMessengerThreads,
   });
 
-  const createProviderConnection = useCallback(
-    (input: ProviderConnectionInput) => {
-      const now = currentIsoTimestamp();
-      const connection = createProviderConnectionRecord({
-        id: createRecordId("connection"),
-        input,
-        now,
-      });
-      setProviderConnections((currentConnections) => [
-        connection,
-        ...currentConnections,
-      ]);
-      return connection;
-    },
-    [],
-  );
-
-  const updateProviderConnection = useCallback(
-    (connectionId: string, input: ProviderConnectionInput) => {
-      const now = currentIsoTimestamp();
-      setProviderConnections((currentConnections) =>
-        currentConnections.map((connection) =>
-          connection.id === connectionId
-            ? updateProviderConnectionRecord(connection, input, now)
-            : connection,
-        ),
-      );
-    },
-    [],
-  );
-
-  const duplicateProviderConnection = useCallback(
-    (connectionId: string) => {
-      const connection = providerConnections.find(
-        (currentConnection) => currentConnection.id === connectionId,
-      );
-      if (!connection) return null;
-
-      const now = currentIsoTimestamp();
-      const duplicatedConnection = duplicateProviderConnectionRecord(
-        connection,
-        createRecordId("connection"),
-        now,
-      );
-      setProviderConnections((currentConnections) => [
-        duplicatedConnection,
-        ...currentConnections,
-      ]);
-      return duplicatedConnection;
-    },
-    [providerConnections],
-  );
-
-  const deleteProviderConnection = useCallback(
-    (connectionId: string) => {
-      if (providerConnections.length <= 1) return;
-
-      const nextConnections = deleteProviderConnectionRecord(
-        providerConnections,
-        connectionId,
-      );
-      if (nextConnections.length === providerConnections.length) return;
-
-      const fallbackConnection = nextConnections[0];
-      const now = currentIsoTimestamp();
-      setProviderConnections(nextConnections);
-      setAppSettings((currentSettings) =>
-        currentSettings.activeMessengerConnectionId === connectionId
-          ? {
-              ...currentSettings,
-              activeMessengerConnectionId: fallbackConnection.id,
-            }
-          : currentSettings,
-      );
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          replaceMessengerThreadProviderConnection(
-            thread,
-            connectionId,
-            fallbackConnection.id,
-            now,
-          ),
-        ),
-      );
-      setClassicThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          replaceClassicThreadProviderConnection(
-            thread,
-            connectionId,
-            fallbackConnection.id,
-            now,
-          ),
-        ),
-      );
-    },
-    [providerConnections],
-  );
+  const {
+    createProviderConnection,
+    updateProviderConnection,
+    duplicateProviderConnection,
+    deleteProviderConnection,
+  } = useProviderConnectionActions({
+    providerConnections,
+    setProviderConnections,
+    setAppSettings,
+    setClassicThreads,
+    setMessengerThreads,
+  });
 
   const createClassicThread = useCallback(() => {
     const now = currentIsoTimestamp();
