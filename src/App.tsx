@@ -6,6 +6,7 @@ import {
   type NavContextType,
 } from "./features/navigation/nav-context";
 import { useCharacterActions } from "./features/navigation/use-character-actions";
+import { usePersonaActions } from "./features/navigation/use-persona-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
@@ -16,7 +17,6 @@ import { useEscapeKey } from "./shared/ui/use-escape-key";
 import { removeCharacterLorebook } from "./engine/character-actions";
 import type { ClassicThread } from "./engine/classic";
 import {
-  clearClassicThreadPersona,
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
@@ -38,7 +38,6 @@ import {
 } from "./engine/lorebook-actions";
 import type { MessengerThread } from "./engine/messenger";
 import {
-  clearMessengerThreadPersona,
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
@@ -46,13 +45,6 @@ import {
   replaceMessengerThreadProviderConnection,
   renameMessengerThread as renameMessengerThreadRecord,
 } from "./engine/messenger-actions";
-import {
-  createPersonaRecord,
-  deletePersonaRecord,
-  duplicatePersonaRecord,
-  updatePersonaRecord,
-  type PersonaRecordInput,
-} from "./engine/persona-actions";
 import {
   createProviderConnectionRecord,
   deleteProviderConnectionRecord,
@@ -211,66 +203,17 @@ export default function App() {
     setMessengerThreads,
   });
 
-  const createPersona = useCallback((input: PersonaRecordInput) => {
-    const now = currentIsoTimestamp();
-    const persona = createPersonaRecord({
-      id: createRecordId("persona"),
-      input,
-      now,
-    });
-    setPersonas((currentPersonas) => [persona, ...currentPersonas]);
-    return persona;
-  }, []);
-
-  const updatePersona = useCallback(
-    (personaId: string, input: PersonaRecordInput) => {
-      const now = currentIsoTimestamp();
-      setPersonas((currentPersonas) =>
-        currentPersonas.map((persona) =>
-          persona.id === personaId
-            ? updatePersonaRecord(persona, input, now)
-            : persona,
-        ),
-      );
-    },
-    [],
-  );
-
-  const duplicatePersona = useCallback(
-    (personaId: string) => {
-      const persona = personas.find(
-        (currentPersona) => currentPersona.id === personaId,
-      );
-      if (!persona) return null;
-
-      const now = currentIsoTimestamp();
-      const duplicatedPersona = duplicatePersonaRecord(
-        persona,
-        createRecordId("persona"),
-        now,
-      );
-      setPersonas((currentPersonas) => [duplicatedPersona, ...currentPersonas]);
-      return duplicatedPersona;
-    },
-    [personas],
-  );
-
-  const deletePersona = useCallback((personaId: string) => {
-    const now = currentIsoTimestamp();
-    setPersonas((currentPersonas) =>
-      deletePersonaRecord(currentPersonas, personaId),
-    );
-    setMessengerThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        clearMessengerThreadPersona(thread, personaId, now),
-      ),
-    );
-    setClassicThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        clearClassicThreadPersona(thread, personaId, now),
-      ),
-    );
-  }, []);
+  const {
+    createPersona,
+    updatePersona,
+    duplicatePersona,
+    deletePersona,
+  } = usePersonaActions({
+    personas,
+    setPersonas,
+    setClassicThreads,
+    setMessengerThreads,
+  });
 
   const createLorebookEntry = useCallback(
     (lorebookId: string, input: LorebookEntryInput) => {
