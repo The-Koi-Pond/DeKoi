@@ -6,10 +6,10 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { useNav } from "../navigation/nav-context";
-import { type MessengerMessage } from "../../engine/messenger";
-import { getProviderConnectionById } from "../../engine/provider-connection";
-import { MESSENGER } from "../../engine/surfaces";
+import { useNav } from "../../navigation/nav-context";
+import { type MessengerMessage } from "../../../engine/messenger";
+import { getProviderConnectionById } from "../../../engine/provider-connection";
+import { MESSENGER } from "../../../engine/surfaces";
 import {
   appendMessengerMessages,
   createPersonaMessengerMessage,
@@ -17,17 +17,17 @@ import {
   setMessengerThreadParticipants,
   setMessengerThreadPersona,
   setMessengerThreadProviderConnection,
-} from "../../engine/messenger-actions";
+} from "../../../engine/messenger-actions";
 import {
   RIPPLE_DOCK_SURFACE_LABEL,
   type Ripple,
   type RippleTone,
-} from "../../engine/ripples";
+} from "../../../engine/ripples";
 import {
   generateMessengerThreadReply,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
-} from "../../runtime/messenger-generation";
+} from "../../../runtime/messenger-generation";
 import "./messenger-thread.css";
 
 const EMPTY_RIPPLE_DRAFT = {

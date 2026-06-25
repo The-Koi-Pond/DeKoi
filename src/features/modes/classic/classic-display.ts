@@ -1,5 +1,5 @@
-import type { ClassicThread } from "../../engine/classic";
-import type { ShoalSortMode } from "../../runtime/app-settings";
+import type { ClassicThread } from "../../../engine/classic";
+import type { ShoalSortMode } from "../../../runtime/app-settings";
 
 export function sortClassicThreadsByUpdatedAt(threads: ClassicThread[]) {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

@@ -55,7 +55,7 @@ src-tauri/
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
 | Runtime adapter bridge | `src/runtime` | Storage contracts, desktop/remote runtime transport, import/export normalization, app settings, and generation adapters until wrappers move toward `src/shared/api` and `features/runtime`. | React features or UI orchestration. |
 | Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, navigation context, and the navigation controller until mode router boundaries exist. | Concrete feature screens, shell UI, or app provider wiring. |
-| Feature UI bridge | `src/features/classic`, `src/features/messenger`, `src/features/pond`, current flat feature folders | User workflows, screens, local presentation state, and component composition until moved under `features/modes`, `features/shell`, or `features/catalog`. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
+| Feature UI bridge | `src/features/pond` and other current flat feature folders | User workflows, screens, local presentation state, and component composition until moved under `features/modes`, `features/shell`, or `features/catalog`. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
 | Desktop host | `src-tauri` | Native capabilities, local filesystem storage, secrets, and runtime command dispatch. | React UI concerns or TypeScript product rules. |
 
@@ -95,7 +95,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
 2. Keep app provider wiring in `src/app`; move the remaining navigation
    controller/state bridge toward app or mode router ownership as those
    boundaries become concrete.
-3. Move Messenger and Classic screens under `features/modes`.
+3. Keep Messenger and Classic screens under `features/modes`; move future mode
+   surfaces there too.
 4. Move Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`.
 5. Split current `src/runtime` into typed `src/shared/api` wrappers and

@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { updateClassicSceneText } from "../../engine/classic-actions";
-import { getProviderConnectionById } from "../../engine/provider-connection";
+import { updateClassicSceneText } from "../../../engine/classic-actions";
+import { getProviderConnectionById } from "../../../engine/provider-connection";
 import {
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
-} from "../../runtime/messenger-generation";
-import { generateClassicThreadTurn } from "../../runtime/classic-generation";
-import { useNav } from "../navigation/nav-context";
+} from "../../../runtime/messenger-generation";
+import { generateClassicThreadTurn } from "../../../runtime/classic-generation";
+import { useNav } from "../../navigation/nav-context";
 import "./classic-thread.css";
 
 function createLocalId(prefix: string) {

@@ -8,7 +8,7 @@ import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   sortMessengerThreadsByUpdatedAt,
-} from "../../messenger/thread-display";
+} from "../../modes/messenger/thread-display";
 import "./Waterline.css";
 
 type CatalogPanel = "media" | "connections";
