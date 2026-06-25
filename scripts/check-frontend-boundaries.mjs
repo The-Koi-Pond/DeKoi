@@ -20,14 +20,11 @@ const allowedFeatureRoots = new Set([
 const legacyFeatureRuntimeImports = new Set([
   "src/features/modes/classic/ClassicThread.tsx -> src/runtime/classic-generation",
   "src/features/modes/classic/ClassicThread.tsx -> src/runtime/messenger-generation",
-  "src/features/modes/classic/classic-display.ts -> src/runtime/app-settings",
   "src/features/modes/messenger/MessengerThread.tsx -> src/runtime/messenger-generation",
-  "src/features/modes/messenger/thread-display.ts -> src/runtime/app-settings",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/dekoi-storage-bundle",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-bundle-file",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-storage-bundle",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/legacy-import",
-  "src/features/shell/shoal/Shoal.tsx -> src/runtime/app-settings",
 ]);
 
 function toPosix(value) {

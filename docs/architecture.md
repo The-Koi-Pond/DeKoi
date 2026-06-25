@@ -52,7 +52,7 @@ src-tauri/
 | --- | --- | --- | --- |
 | App composition | `src/app`, `src/main.tsx` | Provider wiring and first render composition. | Product rules, storage adapters, or host I/O. |
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
-| Runtime adapter bridge | `src/runtime` | Storage contracts, import/export normalization, app settings, and generation adapters until remaining systems move toward `src/shared/api` or `features/runtime`. | React features, UI orchestration, or raw desktop/remote transport. |
+| Runtime adapter bridge | `src/runtime` | Storage contracts, import/export normalization, app settings storage, and generation adapters until remaining systems move toward `src/shared/api` or `features/runtime`. | React features, UI orchestration, or raw desktop/remote transport. |
 | Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, navigation context, and the navigation controller until mode router boundaries exist. | Concrete feature screens, shell UI, or app provider wiring. |
 | Feature UI bridge | None currently. New feature folders must enter `catalog`, `modes`, `navigation`, or `shell`. | User workflows, screens, local presentation state, and component composition. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |

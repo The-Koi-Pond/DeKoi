@@ -1,5 +1,5 @@
 import type { MessengerThread } from "../../../engine/messenger";
-import type { ShoalSortMode } from "../../../runtime/app-settings";
+import type { ShoalSortMode } from "../../../engine/app-settings";
 
 export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

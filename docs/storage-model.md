@@ -30,7 +30,7 @@ adapters.
 
 | Entity | Native owner | Record |
 | --- | --- | --- |
-| `app-settings` | `src/runtime/app-settings.ts` | `AppSettings` |
+| `app-settings` | `src/engine/app-settings.ts` | `AppSettings` |
 | `characters` | `src/engine/character.ts` | `CharacterRecord` |
 | `classic-threads` | `src/engine/classic.ts` | `ClassicThread` |
 | `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` |
@@ -45,6 +45,9 @@ The frontend registry is the TypeScript source of truth for DeKoi storage entity
 names:
 
 - `src/runtime/storage-entities.ts`
+
+Runtime storage adapters live under `src/runtime`; durable product record shapes
+live under `src/engine`.
 
 The desktop host keeps a Rust allowlist for local file access:
 

@@ -20,7 +20,7 @@ import type { ProviderConnectionInput } from "../../engine/provider-connection-a
 import type { RippleState, RippleStateOwnerKind } from "../../engine/ripples";
 import type { RippleInput } from "../../engine/ripple-actions";
 import type { SurfaceId } from "../../engine/surfaces";
-import type { AppSettings, ShoalSortMode } from "../../runtime/app-settings";
+import type { AppSettings, ShoalSortMode } from "../../engine/app-settings";
 import type { DeKoiStorageBundle } from "../../runtime/dekoi-storage-bundle";
 import type { DeKoiLegacyImportData } from "../../runtime/legacy-import";
 import type {

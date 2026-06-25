@@ -8,8 +8,8 @@ import type { RippleState } from "../engine/ripples";
 import {
   loadAppSettingsFromStorage,
   saveAppSettingsToStorage,
-  type AppSettings,
 } from "./app-settings";
+import type { AppSettings } from "../engine/app-settings";
 import {
   loadCharacterRecordsFromStorage,
   saveCharacterRecordsToStorage,

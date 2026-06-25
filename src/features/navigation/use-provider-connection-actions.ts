@@ -13,7 +13,7 @@ import {
 } from "../../engine/provider-connection-actions";
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
-import type { AppSettings } from "../../runtime/app-settings";
+import type { AppSettings } from "../../engine/app-settings";
 import type { StateSetter } from "./state-setter";
 
 type UseProviderConnectionActionsInput = {

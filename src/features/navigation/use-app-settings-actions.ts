@@ -5,7 +5,7 @@ import {
   normalizeSurfaceStatus,
   type AppSettings,
   type ShoalSortMode,
-} from "../../runtime/app-settings";
+} from "../../engine/app-settings";
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,

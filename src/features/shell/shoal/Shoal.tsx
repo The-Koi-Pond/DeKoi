@@ -11,7 +11,7 @@ import {
   sortMessengerThreads,
 } from "../../modes/messenger/thread-display";
 import { useNav } from "../../navigation/nav-context";
-import type { ShoalSortMode } from "../../../runtime/app-settings";
+import type { ShoalSortMode } from "../../../engine/app-settings";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
