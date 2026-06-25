@@ -52,6 +52,10 @@ remains a compatibility alias for host-backed storage code.
 Runtime storage adapters live under `src/runtime`; durable product record shapes
 live under `src/engine`.
 
+Generic JSON reader helpers for storage/import normalization live in
+`src/runtime/storage-json.ts`. Product-specific normalization stays in the
+owning runtime adapter for each collection.
+
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage-repository.ts`, re-exported through the runtime public
 entrypoint in `src/runtime/index.ts`. The current host-backed implementation

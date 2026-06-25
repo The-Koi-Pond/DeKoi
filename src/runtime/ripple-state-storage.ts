@@ -11,10 +11,10 @@ import {
 import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
 import {
   isRecord,
-  normalizeCatalogList,
+  normalizeStorageRecordList,
   readString,
   readTimestamp,
-} from "./catalog-storage";
+} from "./storage-json";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
 export type RippleStateStorageMode = HostStorageMode;
@@ -89,7 +89,7 @@ export function normalizeRippleState(value: unknown): RippleState | null {
 }
 
 export function normalizeRippleStates(value: unknown): RippleState[] {
-  return normalizeCatalogList(value, normalizeRippleState) ?? [];
+  return normalizeStorageRecordList(value, normalizeRippleState) ?? [];
 }
 
 export function loadRippleStates() {

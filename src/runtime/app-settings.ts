@@ -3,7 +3,7 @@ import {
   normalizeAppSettings,
   type AppSettings,
 } from "../engine/app-settings";
-import { isRecord, readString } from "./catalog-storage";
+import { isRecord, readString } from "./storage-json";
 import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 

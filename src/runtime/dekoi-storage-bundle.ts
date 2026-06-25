@@ -7,7 +7,7 @@ import type { ProviderConnectionRecord } from "../engine/provider-connection";
 import type { RippleState } from "../engine/ripples";
 import type { AppSettings } from "../engine/app-settings";
 import { normalizeAppSettings } from "../engine/app-settings";
-import { isRecord, normalizeCatalogList } from "./catalog-storage";
+import { isRecord, normalizeStorageRecordList } from "./storage-json";
 import { normalizeCharacterRecord } from "./character-storage";
 import { normalizeClassicThread } from "./classic-storage";
 import { normalizeLorebookRecord } from "./lorebook-storage";
@@ -76,7 +76,7 @@ function normalizeList<T extends { id: string }>(
     return [];
   }
 
-  const normalized = normalizeCatalogList(value, normalizeRecord);
+  const normalized = normalizeStorageRecordList(value, normalizeRecord);
   if (normalized === null) {
     warnings.push(`${label} did not contain valid schema version 1 records.`);
     return [];

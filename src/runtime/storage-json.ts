@@ -21,7 +21,7 @@ export function readTimestamp(value: unknown, fallback: string) {
     : fallback;
 }
 
-export function normalizeCatalogList<T extends { id: string }>(
+export function normalizeStorageRecordList<T extends { id: string }>(
   value: unknown,
   normalizeRecord: (value: unknown) => T | null,
 ): T[] | null {

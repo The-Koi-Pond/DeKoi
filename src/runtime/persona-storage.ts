@@ -5,7 +5,7 @@ import {
   readNullableString,
   readString,
   readTimestamp,
-} from "./catalog-storage";
+} from "./storage-json";
 import { createHostStorageRepository } from "./host-storage";
 import { STORAGE_ENTITIES } from "./storage-entities";
 
