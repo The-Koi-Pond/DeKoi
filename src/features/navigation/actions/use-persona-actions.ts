@@ -1,19 +1,19 @@
 import { useCallback } from "react";
-import type { ClassicThread } from "../../engine/classic";
-import { clearClassicThreadPersona } from "../../engine/classic-actions";
-import type { MessengerThread } from "../../engine/messenger";
-import { clearMessengerThreadPersona } from "../../engine/messenger-actions";
-import type { PersonaRecord } from "../../engine/persona";
+import type { ClassicThread } from "../../../engine/classic";
+import { clearClassicThreadPersona } from "../../../engine/classic-actions";
+import type { MessengerThread } from "../../../engine/messenger";
+import { clearMessengerThreadPersona } from "../../../engine/messenger-actions";
+import type { PersonaRecord } from "../../../engine/persona";
 import {
   createPersonaRecord,
   deletePersonaRecord,
   duplicatePersonaRecord,
   updatePersonaRecord,
   type PersonaRecordInput,
-} from "../../engine/persona-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/persona-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { StateSetter } from "../state/state-setter";
 
 type UsePersonaActionsInput = {
   personas: PersonaRecord[];

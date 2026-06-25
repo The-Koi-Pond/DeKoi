@@ -164,12 +164,20 @@
               <td><code>src/runtime/index.ts</code> stays the public entrypoint instead of becoming an implementation folder.</td>
             </tr>
             <tr>
+              <td>Navigation bridge implementation files must live in <code>context</code>, <code>state</code>, or <code>actions</code> packages under <code>src/features/navigation</code>.</td>
+              <td>Only the navigation package entrypoint and controller stay at the navigation root.</td>
+            </tr>
+            <tr>
               <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
               <td>Shared helpers stay generic, while <code>shared/api</code> remains the typed runtime wrapper exception.</td>
             </tr>
             <tr>
               <td><code>src/shared/api</code> must not import the <code>src/runtime</code> bridge.</td>
               <td>Transport wrappers should be below runtime storage/import adapters, not depend on them.</td>
+            </tr>
+            <tr>
+              <td><code>src/features/navigation</code> must route host and runtime API wrapper calls through <code>src/features/runtime</code>.</td>
+              <td>The navigation bridge owns orchestration, while feature-runtime owns reusable runtime-facing workflow adapters.</td>
             </tr>
             <tr>
               <td>App composition must be imported through its public entrypoint.</td>
@@ -220,11 +228,15 @@
               <td>App-level panels keep their internal components package-owned while the shell composes stable surfaces.</td>
             </tr>
             <tr>
+              <td>Non-navigation feature modules should receive navigation state/actions through typed props instead of reading <code>useNav()</code> directly.</td>
+              <td>Shell, mode, and catalog surfaces stay composed UI layers while the navigation bridge remains temporary.</td>
+            </tr>
+            <tr>
               <td>Feature package entrypoints must use explicit exports, not wildcard exports.</td>
               <td>Package APIs stay intentional instead of leaking new internals through barrel files.</td>
             </tr>
             <tr>
-              <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> directly.</td>
+              <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> or <code>src/shared/api</code> directly.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>
             <tr>
@@ -241,10 +253,11 @@
         <h2>Migration Direction</h2>
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
-          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
+          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge. Keep navigation internals organized under <code>context</code>, <code>state</code>, and <code>actions</code> until those owners split out.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
-          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
+          <li>Pass navigation state/actions through typed props into shell, mode, and catalog surfaces rather than reading the navigation context inside non-navigation feature modules.</li>
+          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. Navigation should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow. Import catalog surfaces through the catalog feature entrypoint from outside the catalog feature.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>

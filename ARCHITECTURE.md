@@ -107,7 +107,12 @@ The short version:
   generation requests.
 - `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
   surfaces. `src/features/navigation` owns the app-level navigation context
-  while the seed still uses a single top-level app state provider.
+  while the seed still uses a single top-level app state provider; its bridge
+  internals are grouped into `context`, `state`, and `actions`.
+  `src/features/runtime` owns runtime-facing workflows such as generation,
+  initial app-storage record loading, and runtime target URL changes.
+  Non-navigation feature modules receive navigation state/actions through typed
+  props rather than reading navigation context directly.
 - `src/runtime/index.ts` is the public runtime bridge. `src/runtime/storage/*`
   adapts native records to desktop or remote storage, DeKoi bundle
   import/export, and legacy import while using shared API wrappers for host or
@@ -120,5 +125,5 @@ The short version:
 
 1. Keep hardening `src/runtime/storage` package boundaries before adding a real
    database adapter.
-2. Move more runtime-facing orchestration into `features/runtime` when UI
+2. Keep moving runtime-facing orchestration into `features/runtime` when UI
    workflows no longer need bridge-layer state.

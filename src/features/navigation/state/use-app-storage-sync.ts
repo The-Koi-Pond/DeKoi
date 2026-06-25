@@ -3,14 +3,14 @@ import {
   cancelIdle,
   requestIdle,
   type IdleHandle,
-} from "../../shared/browser/idle-callback";
+} from "../../../shared/browser/idle-callback";
 import {
   loadAppStorageSnapshot,
   saveAppStorageSnapshot,
   type AppStorageRecords,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../runtime";
+} from "../../runtime";
 import type { StateSetter } from "./state-setter";
 
 type UseAppStorageSyncInput = AppStorageRecords & {

@@ -1,14 +1,17 @@
 import { PondEye } from "./PondEye";
 import "./hero.css";
 
-import { useNav } from "../../../navigation";
+import type { NavContextType } from "../../../navigation";
 import {
   sortClassicThreadsByUpdatedAt,
   sortMessengerThreadsByUpdatedAt,
 } from "../../../modes";
 
-export function Hero() {
-  const nav = useNav();
+interface HeroProps {
+  nav: NavContextType;
+}
+
+export function Hero({ nav }: HeroProps) {
   return (
     <div className="hero">
       <PondEye />

@@ -37,14 +37,14 @@ export function Pond({ nav }: PondProps) {
 
   // Catalog surfaces render their own banner — only show the pond banner for
   // pond home / messenger / classic views.
-  if (inCompanions) return <CompanionsSurface />;
-  if (inPersonas) return <PersonasSurface />;
+  if (inCompanions) return <CompanionsSurface nav={nav} />;
+  if (inPersonas) return <PersonasSurface nav={nav} />;
   if (inLorebooks) {
     const key =
       nav.view.kind === "lorebooks"
         ? `${nav.view.lorebookId ?? "all"}:${nav.view.mode ?? "view"}`
         : "lorebooks";
-    return <LorebooksSurface key={key} />;
+    return <LorebooksSurface key={key} nav={nav} />;
   }
 
   return (
@@ -57,9 +57,9 @@ export function Pond({ nav }: PondProps) {
       </div>
       <div className="pond-inner">
         {inMessenger ? (
-          <MessengerThread />
+          <MessengerThread nav={nav} />
         ) : inClassic ? (
-          <ClassicThread />
+          <ClassicThread nav={nav} />
         ) : (
           <PondHome nav={nav} />
         )}

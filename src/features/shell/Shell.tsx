@@ -40,9 +40,9 @@ export function Shell({ nav }: ShellProps) {
       <div className="caustics" aria-hidden="true" />
       <div className="caustics b" aria-hidden="true" />
 
-      <Waterline />
-      <Bank />
-      <Shoal />
+      <Waterline nav={nav} />
+      <Bank nav={nav} />
+      <Shoal nav={nav} />
       <Pond nav={nav} />
       <Tide nav={nav} />
       <CareDrawer nav={nav} />

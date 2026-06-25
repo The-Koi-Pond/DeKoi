@@ -1,9 +1,9 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../engine/character";
-import { removeCharacterLorebook } from "../../engine/character-actions";
-import type { ClassicThread } from "../../engine/classic";
-import { removeClassicThreadLorebook } from "../../engine/classic-actions";
-import type { LorebookRecord } from "../../engine/lorebook";
+import type { CharacterRecord } from "../../../engine/character";
+import { removeCharacterLorebook } from "../../../engine/character-actions";
+import type { ClassicThread } from "../../../engine/classic";
+import { removeClassicThreadLorebook } from "../../../engine/classic-actions";
+import type { LorebookRecord } from "../../../engine/lorebook";
 import {
   createLorebookEntryRecord,
   createLorebookRecord,
@@ -15,12 +15,12 @@ import {
   upsertLorebookEntry,
   type LorebookEntryInput,
   type LorebookInput,
-} from "../../engine/lorebook-actions";
-import type { MessengerThread } from "../../engine/messenger";
-import { removeMessengerThreadLorebook } from "../../engine/messenger-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/lorebook-actions";
+import type { MessengerThread } from "../../../engine/messenger";
+import { removeMessengerThreadLorebook } from "../../../engine/messenger-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { StateSetter } from "../state/state-setter";
 
 type UseLorebookActionsInput = {
   lorebooks: LorebookRecord[];

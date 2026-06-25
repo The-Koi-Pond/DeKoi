@@ -77,10 +77,15 @@ The check currently enforces these rules:
   entrypoint.
 - Runtime implementation files must live in owner packages under `src/runtime`,
   leaving `src/runtime/index.ts` as the public entrypoint.
+- Navigation bridge implementation files must live in `context`, `state`, or
+  `actions` packages under `src/features/navigation`; only the package
+  entrypoint and controller stay at the navigation root.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
 - `src/shared/api` must not import the `src/runtime` bridge.
+- `src/features/navigation` must route host and runtime API wrapper calls
+  through `src/features/runtime`.
 - App composition must be imported through its public entrypoint.
 - Top-level feature folders must be `catalog`, `modes`, `navigation`, or
   `shell`.
@@ -96,10 +101,13 @@ The check currently enforces these rules:
 - Navigation must be imported through its public entrypoint.
 - Shell must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
+- Non-navigation feature modules should receive navigation state/actions
+  through typed props instead of reading `useNav()` directly.
 - Feature package entrypoints must use explicit exports, not wildcard exports.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
-  bridge layer, and it must not import `src/runtime` directly.
+  bridge layer, and it must not import `src/runtime` or `src/shared/api`
+  directly.
 - `src/features/runtime` is the only feature layer that may adapt the remaining
   `src/runtime` bridge. Shell, mode, and catalog modules must not import
   `src/runtime` directly.
@@ -119,26 +127,32 @@ Move toward the old De-Koi skeleton in small, validated slices:
 2. Keep app provider wiring in `src/app`; move the remaining navigation
    controller/state bridge toward app or mode router ownership as those
    boundaries become concrete. Import navigation through its package entrypoint
-   while it remains a bridge.
+   while it remains a bridge. Keep navigation internals organized under
+   `context`, `state`, and `actions` until those owners split out.
 3. Keep Messenger and Classic screens under `features/modes`; move future mode
    surfaces there too, with a feature entrypoint plus package entrypoints for
    each mode.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too. Import the shell
    feature through its package entrypoint from app composition.
-5. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
+5. Pass navigation state/actions through typed props into shell, mode, and
+   catalog surfaces rather than reading the navigation context inside
+   non-navigation feature modules.
+6. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;
    keep DeKoi storage contracts, collection adapters, and bundle normalization
    organized under `src/runtime/storage`. Import
    feature runtime workflows through their package entrypoint from outside the
    package, and import the lower runtime bridge through its public entrypoint.
-   Shell UI should use feature-runtime workflows for storage bundle file
-   previews rather than calling raw bundle normalizers directly.
-6. Keep `features/catalog` organized as resource-owned packages with public
+   Navigation should use feature-runtime workflows for storage startup and
+   runtime target changes. Shell UI should use feature-runtime workflows for
+   storage bundle file previews rather than calling raw bundle normalizers
+   directly.
+7. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow. Import catalog surfaces through the catalog
    feature entrypoint from outside the catalog feature.
-7. Keep shell packages behind public entrypoints as they grow.
-8. Add stricter private-folder and public-entrypoint checks once those packages
+8. Keep shell packages behind public entrypoints as they grow.
+9. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
 
 ## Storage And DB Direction

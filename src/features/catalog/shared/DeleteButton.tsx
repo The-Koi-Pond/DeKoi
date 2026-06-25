@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNav } from "../../navigation";
 
 /**
  * Delete affordance for catalog cards. Honors the global
@@ -15,11 +14,14 @@ import { useNav } from "../../navigation";
 interface DeleteButtonProps {
   onConfirm: () => void;
   ariaLabel: string;
+  confirmRelease: boolean;
 }
 
-export function DeleteButton({ onConfirm, ariaLabel }: DeleteButtonProps) {
-  const nav = useNav();
-  const confirmRelease = nav.appSettings.confirmRelease;
+export function DeleteButton({
+  onConfirm,
+  ariaLabel,
+  confirmRelease,
+}: DeleteButtonProps) {
   const [pending, setPending] = useState(false);
   const [lastConfirmRelease, setLastConfirmRelease] = useState(confirmRelease);
 

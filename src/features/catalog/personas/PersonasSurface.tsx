@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import type { PersonaRecordInput } from "../../../engine/persona-actions";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
+
+interface PersonasSurfaceProps {
+  nav: NavContextType;
+}
 
 interface DraftState {
   displayName: string;
@@ -125,8 +129,7 @@ function PersonaEditor({
   );
 }
 
-export function PersonasSurface() {
-  const nav = useNav();
+export function PersonasSurface({ nav }: PersonasSurfaceProps) {
   const activePersonaId =
     nav.view.kind === "personas" ? nav.view.personaId : null;
   const activePersona = activePersonaId
@@ -241,6 +244,7 @@ export function PersonasSurface() {
                 </button>
                 <DeleteButton
                   ariaLabel={`Delete ${persona.displayName}`}
+                  confirmRelease={nav.appSettings.confirmRelease}
                   onConfirm={() => handleDelete(persona.id)}
                 />
               </div>

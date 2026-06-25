@@ -1,24 +1,24 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../engine/character";
-import type { ClassicThread } from "../../engine/classic";
+import type { CharacterRecord } from "../../../engine/character";
+import type { ClassicThread } from "../../../engine/classic";
 import {
   clearClassicEntries,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
   renameClassicThread as renameClassicThreadRecord,
-} from "../../engine/classic-actions";
-import type { LorebookRecord } from "../../engine/lorebook";
-import type { PersonaRecord } from "../../engine/persona";
+} from "../../../engine/classic-actions";
+import type { LorebookRecord } from "../../../engine/lorebook";
+import type { PersonaRecord } from "../../../engine/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../engine/provider-connection";
-import type { RippleState } from "../../engine/ripples";
-import { deleteRippleStateForOwner } from "../../engine/ripple-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { PondView } from "./nav-types";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/provider-connection";
+import type { RippleState } from "../../../engine/ripples";
+import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { PondView } from "../context/nav-types";
+import type { StateSetter } from "../state/state-setter";
 
 type UseClassicThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;

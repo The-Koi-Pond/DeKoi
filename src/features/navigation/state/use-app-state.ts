@@ -1,42 +1,35 @@
 import { useState } from "react";
-import type { ClassicThread } from "../../engine/classic";
-import type { MessengerThread } from "../../engine/messenger";
-import type { RippleState } from "../../engine/ripples";
-import type { SurfaceId } from "../../engine/surfaces";
-import { MESSENGER } from "../../engine/surfaces";
-import type { AppSettings } from "../../engine/app-settings";
+import type { SurfaceId } from "../../../engine/surfaces";
+import { MESSENGER } from "../../../engine/surfaces";
 import {
-  loadAppSettings,
-  loadCharacterRecords,
-  loadClassicThreads,
-  loadInitialMessengerThreads,
-  loadLorebookRecords,
-  loadPersonaRecords,
-  loadProviderConnectionRecords,
-  loadRippleStates,
+  loadInitialAppStorageRecords,
+  readRuntimeTargetUrl,
+  type AppStorageRecords,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../runtime";
-import { readRemoteRuntimeUrl } from "../../shared/api/runtime-target";
-import type { PondView, SideRailView } from "./nav-types";
+} from "../../runtime";
+import type { PondView, SideRailView } from "../context/nav-types";
 
 export function useAppState() {
+  const [initialStorageRecords] = useState(loadInitialAppStorageRecords);
   const [view, setView] = useState<PondView>({ kind: "pond" });
   const [sideRailView, setSideRailView] = useState<SideRailView>("shoal");
   const [selectedSurface, setSelectedSurface] = useState<SurfaceId>(MESSENGER);
-  const [characters, setCharacters] = useState(loadCharacterRecords);
-  const [personas, setPersonas] = useState(loadPersonaRecords);
-  const [lorebooks, setLorebooks] = useState(loadLorebookRecords);
+  const [characters, setCharacters] = useState(initialStorageRecords.characters);
+  const [personas, setPersonas] = useState(initialStorageRecords.personas);
+  const [lorebooks, setLorebooks] = useState(initialStorageRecords.lorebooks);
   const [providerConnections, setProviderConnections] = useState(
-    loadProviderConnectionRecords,
+    initialStorageRecords.providerConnections,
   );
-  const [classicThreads, setClassicThreads] =
-    useState<ClassicThread[]>(loadClassicThreads);
-  const [messengerThreads, setMessengerThreads] = useState<MessengerThread[]>(
-    loadInitialMessengerThreads,
+  const [classicThreads, setClassicThreads] = useState(
+    initialStorageRecords.classicThreads,
   );
-  const [rippleStates, setRippleStates] =
-    useState<RippleState[]>(loadRippleStates);
+  const [messengerThreads, setMessengerThreads] = useState(
+    initialStorageRecords.messengerThreads,
+  );
+  const [rippleStates, setRippleStates] = useState(
+    initialStorageRecords.rippleStates,
+  );
   const [messengerStorageMode, setMessengerStorageMode] =
     useState<MessengerStorageMode>("unavailable");
   const [messengerStorageStatus, setMessengerStorageStatus] =
@@ -45,8 +38,10 @@ export function useAppState() {
     "Loading Messenger storage.",
   );
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] =
-    useState(readRemoteRuntimeUrl);
-  const [appSettings, setAppSettings] = useState<AppSettings>(loadAppSettings);
+    useState(readRuntimeTargetUrl);
+  const [appSettings, setAppSettings] = useState<
+    AppStorageRecords["appSettings"]
+  >(initialStorageRecords.appSettings);
   const [storageReady, setStorageReady] = useState(false);
   const [careOpen, setCareOpen] = useState(false);
   const [careTab, setCareTab] = useState(0);

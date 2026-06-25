@@ -1,19 +1,19 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../engine/character";
+import type { CharacterRecord } from "../../../engine/character";
 import {
   createCharacterRecord,
   deleteCharacterRecord,
   duplicateCharacterRecord,
   updateCharacterRecord,
   type CharacterRecordInput,
-} from "../../engine/character-actions";
-import type { ClassicThread } from "../../engine/classic";
-import { removeClassicThreadCharacter } from "../../engine/classic-actions";
-import type { MessengerThread } from "../../engine/messenger";
-import { removeMessengerThreadCharacter } from "../../engine/messenger-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/character-actions";
+import type { ClassicThread } from "../../../engine/classic";
+import { removeClassicThreadCharacter } from "../../../engine/classic-actions";
+import type { MessengerThread } from "../../../engine/messenger";
+import { removeMessengerThreadCharacter } from "../../../engine/messenger-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { StateSetter } from "../state/state-setter";
 
 type UseCharacterActionsInput = {
   characters: CharacterRecord[];

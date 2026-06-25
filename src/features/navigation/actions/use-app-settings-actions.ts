@@ -1,17 +1,16 @@
 import { useCallback } from "react";
-import type { ProviderConnectionId } from "../../engine/provider-connection";
-import type { SurfaceId } from "../../engine/surfaces";
+import type { ProviderConnectionId } from "../../../engine/provider-connection";
+import type { SurfaceId } from "../../../engine/surfaces";
 import {
   normalizeSurfaceStatus,
   type AppSettings,
   type ShoalSortMode,
-} from "../../engine/app-settings";
+} from "../../../engine/app-settings";
 import {
-  readRemoteRuntimeUrl,
-  writeRemoteRuntimeUrl,
-} from "../../shared/api/runtime-target";
-import type { MessengerStorageStatus } from "../runtime";
-import type { StateSetter } from "./state-setter";
+  type MessengerStorageStatus,
+  writeRuntimeTargetUrl,
+} from "../../runtime";
+import type { StateSetter } from "../state/state-setter";
 
 type UseAppSettingsActionsInput = {
   setAppSettings: StateSetter<AppSettings>;
@@ -30,11 +29,11 @@ export function useAppSettingsActions({
 }: UseAppSettingsActionsInput) {
   const setRemoteRuntimeUrl = useCallback(
     (url: string) => {
-      writeRemoteRuntimeUrl(url);
+      const runtimeTargetUrl = writeRuntimeTargetUrl(url);
       setStorageReady(false);
       setMessengerStorageStatus("loading");
       setMessengerStorageMessage("Loading Messenger storage.");
-      setRemoteRuntimeUrlState(readRemoteRuntimeUrl());
+      setRemoteRuntimeUrlState(runtimeTargetUrl);
     },
     [
       setMessengerStorageMessage,

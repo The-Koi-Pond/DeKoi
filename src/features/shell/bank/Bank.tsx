@@ -1,6 +1,5 @@
 import "./Bank.css";
 
-import { useNav } from "../../navigation";
 import {
   CLASSIC,
   MESSENGER,
@@ -8,7 +7,11 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
-import type { SideRailView } from "../../navigation";
+import type { NavContextType, SideRailView } from "../../navigation";
+
+interface BankProps {
+  nav: NavContextType;
+}
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {
@@ -70,9 +73,7 @@ const RAILS: {
   },
 ];
 
-export function Bank() {
-  const nav = useNav();
-
+export function Bank({ nav }: BankProps) {
   return (
     <nav className="bank" aria-label="Surface dock">
       <div className="bank-label">The Bank</div>

@@ -105,6 +105,10 @@ function getNavigationPackageRoot(filePath) {
   return "src/features/navigation";
 }
 
+function isNavigationRootSourceFile(filePath) {
+  return /^src\/features\/navigation\/[^/]+\.[jt]sx?$/.test(filePath);
+}
+
 function getFeatureRuntimePackageRoot(filePath) {
   if (!isUnder(filePath, "src/features/runtime")) return null;
   return "src/features/runtime";
@@ -232,6 +236,10 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   if (sourceIsSharedApi && isUnder(targetFile, "src/runtime")) {
     failures.push("Shared API wrappers must not import runtime bridge modules.");
+  }
+
+  if (sourceIsNavigation && isUnder(targetFile, "src/shared/api")) {
+    failures.push("Navigation orchestration must route host and runtime API wrappers through features/runtime.");
   }
 
   if (
@@ -405,7 +413,27 @@ for (const sourceFile of sourceFiles) {
     );
   }
 
+  if (
+    isNavigationRootSourceFile(sourceFile) &&
+    sourceFile !== "src/features/navigation/index.ts" &&
+    sourceFile !== "src/features/navigation/use-navigation-controller.ts"
+  ) {
+    failures.push(
+      `Navigation bridge implementation files must live in context, state, or actions packages.\n  - ${sourceFile}`,
+    );
+  }
+
   const source = fs.readFileSync(path.join(root, sourceFile), "utf8");
+  if (
+    isUnder(sourceFile, "src/features") &&
+    !isUnder(sourceFile, "src/features/navigation") &&
+    /\bimport\s+\{\s*useNav\b[^}]*\}\s+from\s+["'][^"']*navigation["']/.test(source)
+  ) {
+    failures.push(
+      `Feature modules should receive navigation state/actions through typed props instead of useNav().\n  - ${sourceFile}`,
+    );
+  }
+
   if (isFeatureEntryPoint(sourceFile) && /\bexport\s+\*\s+from\b/.test(source)) {
     failures.push(
       `Feature package entrypoints must use explicit exports.\n  - ${sourceFile}`,

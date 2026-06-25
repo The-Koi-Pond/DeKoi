@@ -8,7 +8,7 @@ import {
   getMessengerThreadPreview,
   sortMessengerThreads,
 } from "../../modes";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import "./Shoal.css";
 
@@ -20,6 +20,10 @@ const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
 };
 
 type PeopleTab = "companions" | "personas";
+
+interface ShoalProps {
+  nav: NavContextType;
+}
 
 interface CatalogRailCardProps {
   active?: boolean;
@@ -56,8 +60,7 @@ function CatalogRailCard({
   );
 }
 
-function PeopleCatalogRail() {
-  const nav = useNav();
+function PeopleCatalogRail({ nav }: ShoalProps) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PeopleTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
@@ -216,8 +219,7 @@ function PeopleCatalogRail() {
   );
 }
 
-function LorebookCatalogRail() {
-  const nav = useNav();
+function LorebookCatalogRail({ nav }: ShoalProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
   const activeLorebookId =
@@ -313,8 +315,7 @@ function LorebookCatalogRail() {
   );
 }
 
-function ThreadShoal() {
-  const nav = useNav();
+function ThreadShoal({ nav }: ShoalProps) {
   const [query, setQuery] = useState("");
   const sortMode = nav.appSettings.shoalSortMode;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
@@ -503,11 +504,9 @@ function ThreadShoal() {
   );
 }
 
-export function Shoal() {
-  const nav = useNav();
+export function Shoal({ nav }: ShoalProps) {
+  if (nav.sideRailView === "lorebooks") return <LorebookCatalogRail nav={nav} />;
+  if (nav.sideRailView === "people") return <PeopleCatalogRail nav={nav} />;
 
-  if (nav.sideRailView === "lorebooks") return <LorebookCatalogRail />;
-  if (nav.sideRailView === "people") return <PeopleCatalogRail />;
-
-  return <ThreadShoal />;
+  return <ThreadShoal nav={nav} />;
 }

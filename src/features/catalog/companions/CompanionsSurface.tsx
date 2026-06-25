@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
+
+interface CompanionsSurfaceProps {
+  nav: NavContextType;
+}
 
 interface DraftState {
   displayName: string;
@@ -141,8 +145,7 @@ function CompanionEditor({
   );
 }
 
-export function CompanionsSurface() {
-  const nav = useNav();
+export function CompanionsSurface({ nav }: CompanionsSurfaceProps) {
   const activeCharacterId =
     nav.view.kind === "companions" ? nav.view.characterId : null;
   const activeCharacter = activeCharacterId
@@ -266,6 +269,7 @@ export function CompanionsSurface() {
                 </button>
                 <DeleteButton
                   ariaLabel={`Delete ${character.displayName}`}
+                  confirmRelease={nav.appSettings.confirmRelease}
                   onConfirm={() => handleDelete(character.id)}
                 />
               </div>

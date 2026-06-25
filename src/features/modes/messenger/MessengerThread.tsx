@@ -6,7 +6,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
@@ -64,8 +64,11 @@ function readRippleTone(value: string): RippleTone {
   return "note";
 }
 
-export function MessengerThread() {
-  const nav = useNav();
+interface MessengerThreadProps {
+  nav: NavContextType;
+}
+
+export function MessengerThread({ nav }: MessengerThreadProps) {
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const messengerThread =
     nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;

@@ -1,17 +1,17 @@
-import type { NavContextType } from "./nav-types";
-import { useAppState } from "./use-app-state";
-import { useCareDrawerActions } from "./use-care-drawer-actions";
-import { useCharacterActions } from "./use-character-actions";
-import { useClassicThreadActions } from "./use-classic-thread-actions";
-import { useLorebookActions } from "./use-lorebook-actions";
-import { useMessengerThreadActions } from "./use-messenger-thread-actions";
-import { usePersonaActions } from "./use-persona-actions";
-import { useProviderConnectionActions } from "./use-provider-connection-actions";
-import { useRippleActions } from "./use-ripple-actions";
-import { useAppImportExportActions } from "./use-app-import-export-actions";
-import { useAppSettingsActions } from "./use-app-settings-actions";
-import { useAppStorageSync } from "./use-app-storage-sync";
-import { useViewActions } from "./use-view-actions";
+import { useAppImportExportActions } from "./actions/use-app-import-export-actions";
+import { useAppSettingsActions } from "./actions/use-app-settings-actions";
+import { useCareDrawerActions } from "./actions/use-care-drawer-actions";
+import { useCharacterActions } from "./actions/use-character-actions";
+import { useClassicThreadActions } from "./actions/use-classic-thread-actions";
+import { useLorebookActions } from "./actions/use-lorebook-actions";
+import { useMessengerThreadActions } from "./actions/use-messenger-thread-actions";
+import { usePersonaActions } from "./actions/use-persona-actions";
+import { useProviderConnectionActions } from "./actions/use-provider-connection-actions";
+import { useRippleActions } from "./actions/use-ripple-actions";
+import { useViewActions } from "./actions/use-view-actions";
+import type { NavContextType } from "./context/nav-types";
+import { useAppState } from "./state/use-app-state";
+import { useAppStorageSync } from "./state/use-app-storage-sync";
 
 export function useNavigationController(): NavContextType {
   const {

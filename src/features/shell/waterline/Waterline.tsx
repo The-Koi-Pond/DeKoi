@@ -1,5 +1,5 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import {
   getProviderConnectionById,
   getProviderConnectionStatusLabel,
@@ -13,8 +13,11 @@ import "./Waterline.css";
 
 type CatalogPanel = "media" | "connections";
 
-export function Waterline() {
-  const nav = useNav();
+interface WaterlineProps {
+  nav: NavContextType;
+}
+
+export function Waterline({ nav }: WaterlineProps) {
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [activeCatalog, setActiveCatalog] = useState<CatalogPanel | null>(null);

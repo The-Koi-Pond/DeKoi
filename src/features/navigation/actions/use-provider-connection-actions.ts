@@ -1,20 +1,20 @@
 import { useCallback } from "react";
-import type { ClassicThread } from "../../engine/classic";
-import { replaceClassicThreadProviderConnection } from "../../engine/classic-actions";
-import type { MessengerThread } from "../../engine/messenger";
-import { replaceMessengerThreadProviderConnection } from "../../engine/messenger-actions";
-import type { ProviderConnectionRecord } from "../../engine/provider-connection";
+import type { ClassicThread } from "../../../engine/classic";
+import { replaceClassicThreadProviderConnection } from "../../../engine/classic-actions";
+import type { MessengerThread } from "../../../engine/messenger";
+import { replaceMessengerThreadProviderConnection } from "../../../engine/messenger-actions";
+import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import {
   createProviderConnectionRecord,
   deleteProviderConnectionRecord,
   duplicateProviderConnectionRecord,
   updateProviderConnectionRecord,
   type ProviderConnectionInput,
-} from "../../engine/provider-connection-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { AppSettings } from "../../engine/app-settings";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/provider-connection-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { AppSettings } from "../../../engine/app-settings";
+import type { StateSetter } from "../state/state-setter";
 
 type UseProviderConnectionActionsInput = {
   providerConnections: ProviderConnectionRecord[];

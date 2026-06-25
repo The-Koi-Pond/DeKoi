@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import type {
   LorebookEntryInput,
   LorebookInput,
@@ -7,6 +7,10 @@ import type {
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
+
+interface LorebooksSurfaceProps {
+  nav: NavContextType;
+}
 
 interface DraftState {
   title: string;
@@ -38,8 +42,7 @@ function draftToInput(draft: DraftState): LorebookEntryInput {
   };
 }
 
-export function LorebooksSurface() {
-  const nav = useNav();
+export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   const routedLorebookId =
     nav.view.kind === "lorebooks" ? nav.view.lorebookId : null;
   const initialLorebookId =
@@ -288,6 +291,7 @@ export function LorebooksSurface() {
               >
                 <DeleteButton
                   ariaLabel={`Delete lorebook ${lb.title}`}
+                  confirmRelease={nav.appSettings.confirmRelease}
                   onConfirm={() => handleDeleteLorebook(lb.id)}
                 />
               </span>
@@ -366,6 +370,7 @@ export function LorebooksSurface() {
                     </button>
                     <DeleteButton
                       ariaLabel={`Delete ${entry.title}`}
+                      confirmRelease={nav.appSettings.confirmRelease}
                       onConfirm={() => handleDelete(entry.id)}
                     />
                   </div>

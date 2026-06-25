@@ -1,4 +1,3 @@
-import { useNav } from "../../navigation";
 import { SURFACES, type SurfaceId } from "../../../engine/surfaces";
 import "./koi-card.css";
 
@@ -10,7 +9,7 @@ interface KoiCardProps {
   active?: boolean;
   online?: boolean;
   onDelete?: () => void;
-  onOpen?: () => void;
+  onOpen: () => void;
   onRename?: () => void;
 }
 
@@ -33,19 +32,12 @@ export function KoiCard({
   onOpen,
   onRename,
 }: KoiCardProps) {
-  const nav = useNav();
   const meta = SURFACES[mode];
   const locked = meta.locked;
 
   function handleClick() {
     if (locked) return;
-    if (onOpen) {
-      onOpen();
-      return;
-    }
-
-    nav.setSelectedSurface(mode);
-    nav.createMessengerThread();
+    onOpen();
   }
 
   return (

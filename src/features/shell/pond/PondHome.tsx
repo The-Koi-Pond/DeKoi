@@ -11,12 +11,12 @@ interface PondHomeProps {
 export function PondHome({ nav }: PondHomeProps) {
   return (
     <>
-      <Hero />
+      <Hero nav={nav} />
       <div className="pond-divider" aria-hidden="true">
         <img src="/lotus-divider.svg" alt="" />
       </div>
       <ModePools nav={nav} />
-      <RecentCurrents />
+      <RecentCurrents nav={nav} />
       <Depths nav={nav} />
     </>
   );

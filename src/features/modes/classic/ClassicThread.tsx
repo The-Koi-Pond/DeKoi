@@ -6,7 +6,7 @@ import {
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
-import { useNav } from "../../navigation";
+import type { NavContextType } from "../../navigation";
 import "./classic-thread.css";
 
 function createLocalId(prefix: string) {
@@ -16,8 +16,11 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function ClassicThread() {
-  const nav = useNav();
+interface ClassicThreadProps {
+  nav: NavContextType;
+}
+
+export function ClassicThread({ nav }: ClassicThreadProps) {
   const activeThreadId = nav.view.kind === "classic" ? nav.view.threadId : null;
   const thread =
     nav.classicThreads.find((candidate) => candidate.id === activeThreadId) ??

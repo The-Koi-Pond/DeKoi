@@ -1,14 +1,14 @@
 import { useCallback } from "react";
-import type { RippleState, RippleStateOwnerKind } from "../../engine/ripples";
+import type { RippleState, RippleStateOwnerKind } from "../../../engine/ripples";
 import {
   createRippleRecord,
   createRippleState,
   updateRippleRecord,
   type RippleInput,
-} from "../../engine/ripple-actions";
-import { currentIsoTimestamp } from "../../shared/browser/current-time";
-import { createRecordId } from "../../shared/browser/record-id";
-import type { StateSetter } from "./state-setter";
+} from "../../../engine/ripple-actions";
+import { currentIsoTimestamp } from "../../../shared/browser/current-time";
+import { createRecordId } from "../../../shared/browser/record-id";
+import type { StateSetter } from "../state/state-setter";
 
 type UseRippleActionsInput = {
   rippleStates: RippleState[];
