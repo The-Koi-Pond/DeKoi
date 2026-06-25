@@ -32,7 +32,7 @@
         </p>
 
         <div class="callout">
-          The current repo is still migrating. Treat today's flat feature folders, <code>src/runtime</code>, and
+          The current repo is still migrating. Treat <code>src/runtime</code> and
           <code>src/features/navigation</code> as bridge layers, not the final shape.
         </div>
 
@@ -120,9 +120,9 @@
               <td>Split typed transport wrappers into <code>src/shared/api</code> and shared frontend systems into <code>features/runtime</code>.</td>
             </tr>
             <tr>
-              <td>Current flat feature folders outside <code>catalog</code>, <code>modes</code>, <code>navigation</code>, and <code>shell</code></td>
-              <td>Current flat feature screens.</td>
-              <td>Move mode surfaces under <code>features/modes</code> and shell surfaces under <code>features/shell</code>.</td>
+              <td>None currently</td>
+              <td>New feature folders must enter <code>catalog</code>, <code>modes</code>, <code>navigation</code>, or <code>shell</code>.</td>
+              <td>Do not add new flat feature roots.</td>
             </tr>
             <tr>
               <td><code>src/features/catalog</code>, <code>src/features/shell</code></td>
@@ -158,6 +158,10 @@
             <tr>
               <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
               <td>Shared helpers stay generic, while <code>shared/api</code> remains the typed runtime wrapper exception.</td>
+            </tr>
+            <tr>
+              <td>Top-level feature folders must be <code>catalog</code>, <code>modes</code>, <code>navigation</code>, or <code>shell</code>.</td>
+              <td>This keeps the repo physically aligned with the target feature layers.</td>
             </tr>
             <tr>
               <td>Old-shape feature layer direction is <code>shell -&gt; modes -&gt; runtime -&gt; catalog</code>.</td>

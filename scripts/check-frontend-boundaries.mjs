@@ -12,6 +12,10 @@ const featureLayerRank = new Map([
   ["modes", 2],
   ["shell", 3],
 ]);
+const allowedFeatureRoots = new Set([
+  ...featureLayerRank.keys(),
+  "navigation",
+]);
 
 const legacyFeatureRuntimeImports = new Set([
   "src/features/modes/classic/ClassicThread.tsx -> src/runtime/classic-generation",
@@ -195,8 +199,14 @@ const sourceFiles = listSourceFiles(srcRoot).map((filePath) =>
 );
 const usedLegacyImports = new Set();
 const failures = [];
+const unknownFeatureRoots = new Set();
 
 for (const sourceFile of sourceFiles) {
+  const featureRootMatch = sourceFile.match(/^src\/features\/([^/]+)/);
+  if (featureRootMatch && !allowedFeatureRoots.has(featureRootMatch[1])) {
+    unknownFeatureRoots.add(featureRootMatch[1]);
+  }
+
   const source = fs.readFileSync(path.join(root, sourceFile), "utf8");
   for (const specifier of collectModuleSpecifiers(source)) {
     const targetFile = resolveRelativeImport(sourceFile, specifier);
@@ -211,6 +221,15 @@ for (const sourceFile of sourceFiles) {
       failures.push(`${failure}\n  - ${describeImport(sourceFile, specifier, targetFile)}`);
     }
   }
+}
+
+if (unknownFeatureRoots.size > 0) {
+  failures.push(
+    [
+      "Top-level feature folders must be catalog, modes, navigation, or shell.",
+      ...[...unknownFeatureRoots].sort().map((featureRoot) => `  - src/features/${featureRoot}`),
+    ].join("\n"),
+  );
 }
 
 const staleLegacyImports = [...legacyFeatureRuntimeImports].filter(

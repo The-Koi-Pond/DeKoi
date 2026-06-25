@@ -5,9 +5,8 @@ is project-agnostic and keeps ownership visible: app composition, layered React
 features, shared runtime APIs, a React-free product engine, and native host
 capabilities stay separate.
 
-The current repo is still migrating toward that shape. Treat today's flat
-feature folders, `src/runtime`, and `src/features/navigation` as bridge layers,
-not as the final architecture.
+The current repo is still migrating toward that shape. Treat `src/runtime` and
+`src/features/navigation` as bridge layers, not as the final architecture.
 
 ## Target Source Shape
 
@@ -55,7 +54,7 @@ src-tauri/
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
 | Runtime adapter bridge | `src/runtime` | Storage contracts, desktop/remote runtime transport, import/export normalization, app settings, and generation adapters until wrappers move toward `src/shared/api` and `features/runtime`. | React features or UI orchestration. |
 | Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, navigation context, and the navigation controller until mode router boundaries exist. | Concrete feature screens, shell UI, or app provider wiring. |
-| Feature UI bridge | Current flat feature folders outside `catalog`, `modes`, `navigation`, and `shell` | User workflows, screens, local presentation state, and component composition until moved under `features/modes`, `features/shell`, or `features/catalog`. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
+| Feature UI bridge | None currently. New feature folders must enter `catalog`, `modes`, `navigation`, or `shell`. | User workflows, screens, local presentation state, and component composition. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
 | Desktop host | `src-tauri` | Native capabilities, local filesystem storage, secrets, and runtime command dispatch. | React UI concerns or TypeScript product rules. |
 
@@ -76,6 +75,8 @@ The check currently enforces these rules:
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
+- Top-level feature folders must be `catalog`, `modes`, `navigation`, or
+  `shell`.
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
 - `src/features/navigation` must not import sibling feature UI modules.
