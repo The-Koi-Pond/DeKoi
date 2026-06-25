@@ -29,7 +29,7 @@ type UseAppImportExportActionsInput = AppStorageRecords & {
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
   setMessengerStorageMessage: StateSetter<string>;
   setSelectedSurface: StateSetter<SurfaceId>;
-  setView: StateSetter<PondView>;
+  setView: (view: PondView) => void;
 };
 
 export function useAppImportExportActions({

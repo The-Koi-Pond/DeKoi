@@ -8,6 +8,7 @@ import {
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
+import { useViewActions } from "./features/navigation/use-view-actions";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
@@ -76,7 +77,7 @@ import {
   type RippleInput,
 } from "./engine/ripple-actions";
 import type { SurfaceId } from "./engine/surfaces";
-import { CLASSIC, MESSENGER } from "./engine/surfaces";
+import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
 import { loadAppSettings, type AppSettings } from "./runtime/app-settings";
 import {
@@ -122,6 +123,18 @@ export default function App() {
   const [storageReady, setStorageReady] = useState(false);
   const [careOpen, setCareOpen] = useState(false);
   const [careTab, setCareTab] = useState(0);
+
+  const {
+    setView: setNavView,
+    setSideRailView: setNavSideRailView,
+    setSelectedSurface: setNavSelectedSurface,
+    openClassicThread,
+    openMessengerThread,
+  } = useViewActions({
+    setView,
+    setSideRailView,
+    setSelectedSurface,
+  });
 
   useAppStorageSync({
     appSettings,
@@ -188,7 +201,7 @@ export default function App() {
     setMessengerStorageStatus,
     setMessengerStorageMessage,
     setSelectedSurface,
-    setView,
+    setView: setNavView,
   });
 
   const closeCareDrawer = useCallback(() => setCareOpen(false), []);
@@ -554,12 +567,6 @@ export default function App() {
     [providerConnections],
   );
 
-  const openClassicThread = useCallback((threadId: string) => {
-    setSideRailView("shoal");
-    setSelectedSurface(CLASSIC);
-    setView({ kind: "classic", threadId });
-  }, []);
-
   const createClassicThread = useCallback(() => {
     const now = currentIsoTimestamp();
     const activePersona = personas[0] ?? null;
@@ -581,15 +588,14 @@ export default function App() {
     });
 
     setClassicThreads((currentThreads) => [thread, ...currentThreads]);
-    setSideRailView("shoal");
-    setSelectedSurface(CLASSIC);
-    setView({ kind: "classic", threadId: thread.id });
+    openClassicThread(thread.id);
     return thread;
   }, [
     appSettings.activeMessengerConnectionId,
     characters,
     classicThreads.length,
     lorebooks,
+    openClassicThread,
     personas,
     providerConnections,
   ]);
@@ -637,17 +643,11 @@ export default function App() {
       );
 
       if (view.kind === "classic" && view.threadId === threadId) {
-        setView({ kind: "pond" });
+        setNavView({ kind: "pond" });
       }
     },
-    [view],
+    [setNavView, view],
   );
-
-  const openMessengerThread = useCallback((threadId: string) => {
-    setSideRailView("shoal");
-    setSelectedSurface(MESSENGER);
-    setView({ kind: "messenger", threadId });
-  }, []);
 
   const createMessengerThread = useCallback(() => {
     const now = currentIsoTimestamp();
@@ -670,15 +670,14 @@ export default function App() {
     });
 
     setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
-    setSideRailView("shoal");
-    setSelectedSurface(MESSENGER);
-    setView({ kind: "messenger", threadId: thread.id });
+    openMessengerThread(thread.id);
     return thread;
   }, [
     appSettings.activeMessengerConnectionId,
     characters,
     lorebooks,
     messengerThreads.length,
+    openMessengerThread,
     personas,
     providerConnections,
   ]);
@@ -729,10 +728,10 @@ export default function App() {
       );
 
       if (view.kind === "messenger" && view.threadId === threadId) {
-        setView({ kind: "pond" });
+        setNavView({ kind: "pond" });
       }
     },
-    [view],
+    [setNavView, view],
   );
 
   const getRippleState = useCallback(
@@ -852,15 +851,9 @@ export default function App() {
     appSettings,
     careOpen,
     careTab,
-    setView: useCallback((v: PondView) => setView(v), []),
-    setSideRailView: useCallback((v: SideRailView) => setSideRailView(v), []),
-    setSelectedSurface: useCallback(
-      (s: SurfaceId) => {
-        setSideRailView("shoal");
-        setSelectedSurface(s);
-      },
-      [],
-    ),
+    setView: setNavView,
+    setSideRailView: setNavSideRailView,
+    setSelectedSurface: setNavSelectedSurface,
     createCharacter,
     updateCharacter,
     duplicateCharacter,
