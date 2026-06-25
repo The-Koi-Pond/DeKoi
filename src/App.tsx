@@ -84,8 +84,6 @@ import { Shell } from "./features/shell/Shell";
 import {
   loadAppSettings,
   normalizeSurfaceStatus,
-  loadAppSettingsFromStorage,
-  saveAppSettingsToStorage,
   type AppSettings,
   type ShoalSortMode,
 } from "./runtime/app-settings";
@@ -96,42 +94,19 @@ import {
 import type { DeKoiLegacyImportData } from "./runtime/legacy-import";
 import {
   loadInitialMessengerThreads,
-  loadMessengerThreadsFromStorage,
-  saveMessengerThreadsToStorage,
   type MessengerStorageMode,
   type MessengerStorageStatus,
 } from "./runtime/messenger-storage";
+import { loadCharacterRecords } from "./runtime/character-storage";
+import { loadClassicThreads } from "./runtime/classic-storage";
+import { loadLorebookRecords } from "./runtime/lorebook-storage";
+import { loadPersonaRecords } from "./runtime/persona-storage";
+import { loadProviderConnectionRecords } from "./runtime/provider-connection-storage";
+import { loadRippleStates } from "./runtime/ripple-state-storage";
 import {
-  loadCharacterRecords,
-  loadCharacterRecordsFromStorage,
-  saveCharacterRecordsToStorage,
-} from "./runtime/character-storage";
-import {
-  loadClassicThreads,
-  loadClassicThreadsFromStorage,
-  saveClassicThreadsToStorage,
-} from "./runtime/classic-storage";
-import {
-  loadLorebookRecords,
-  loadLorebookRecordsFromStorage,
-  saveLorebookRecordsToStorage,
-} from "./runtime/lorebook-storage";
-import {
-  loadPersonaRecords,
-  loadPersonaRecordsFromStorage,
-  savePersonaRecordsToStorage,
-} from "./runtime/persona-storage";
-import {
-  loadProviderConnectionRecords,
-  loadProviderConnectionRecordsFromStorage,
-  saveProviderConnectionRecordsToStorage,
-} from "./runtime/provider-connection-storage";
-import {
-  loadRippleStates,
-  loadRippleStatesFromStorage,
-  saveRippleStatesToStorage,
-} from "./runtime/ripple-state-storage";
-import { mergeHostStorageResults } from "./runtime/host-storage";
+  loadAppStorageSnapshot,
+  saveAppStorageSnapshot,
+} from "./runtime/app-storage-snapshot";
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
@@ -172,51 +147,21 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([
-      loadAppSettingsFromStorage(remoteRuntimeUrl),
-      loadCharacterRecordsFromStorage(remoteRuntimeUrl),
-      loadPersonaRecordsFromStorage(remoteRuntimeUrl),
-      loadLorebookRecordsFromStorage(remoteRuntimeUrl),
-      loadProviderConnectionRecordsFromStorage(remoteRuntimeUrl),
-      loadClassicThreadsFromStorage(remoteRuntimeUrl),
-      loadMessengerThreadsFromStorage(remoteRuntimeUrl),
-      loadRippleStatesFromStorage(remoteRuntimeUrl),
-    ]).then(
-      ([
-        appSettingsSnapshot,
-        characterSnapshot,
-        personaSnapshot,
-        lorebookSnapshot,
-        providerConnectionSnapshot,
-        classicSnapshot,
-        messengerSnapshot,
-        rippleSnapshot,
-      ]) => {
-        if (cancelled) return;
-        const storageResult = mergeHostStorageResults([
-          appSettingsSnapshot,
-          characterSnapshot,
-          personaSnapshot,
-          lorebookSnapshot,
-          providerConnectionSnapshot,
-          classicSnapshot,
-          messengerSnapshot,
-          rippleSnapshot,
-        ]);
-        setAppSettings(appSettingsSnapshot.settings);
-        setCharacters(characterSnapshot.records);
-        setPersonas(personaSnapshot.records);
-        setLorebooks(lorebookSnapshot.records);
-        setProviderConnections(providerConnectionSnapshot.records);
-        setClassicThreads(classicSnapshot.records);
-        setMessengerThreads(messengerSnapshot.threads);
-        setRippleStates(rippleSnapshot.states);
-        setMessengerStorageMode(storageResult.mode);
-        setMessengerStorageStatus(storageResult.status);
-        setMessengerStorageMessage(storageResult.message);
-        setStorageReady(storageResult.status === "ready");
-      },
-    );
+    loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
+      if (cancelled) return;
+      setAppSettings(snapshot.appSettings);
+      setCharacters(snapshot.characters);
+      setPersonas(snapshot.personas);
+      setLorebooks(snapshot.lorebooks);
+      setProviderConnections(snapshot.providerConnections);
+      setClassicThreads(snapshot.classicThreads);
+      setMessengerThreads(snapshot.messengerThreads);
+      setRippleStates(snapshot.rippleStates);
+      setMessengerStorageMode(snapshot.storageResult.mode);
+      setMessengerStorageStatus(snapshot.storageResult.status);
+      setMessengerStorageMessage(snapshot.storageResult.message);
+      setStorageReady(snapshot.storageResult.status === "ready");
+    });
 
     return () => {
       cancelled = true;
@@ -238,21 +183,20 @@ export default function App() {
       saveRequestId.current = requestId;
 
       idleHandle = requestIdle(() => {
-        Promise.all([
-          saveAppSettingsToStorage(appSettings, remoteRuntimeUrl),
-          saveCharacterRecordsToStorage(characters, remoteRuntimeUrl),
-          savePersonaRecordsToStorage(personas, remoteRuntimeUrl),
-          saveLorebookRecordsToStorage(lorebooks, remoteRuntimeUrl),
-          saveProviderConnectionRecordsToStorage(
+        saveAppStorageSnapshot(
+          {
+            appSettings,
+            characters,
+            personas,
+            lorebooks,
             providerConnections,
-            remoteRuntimeUrl,
-          ),
-          saveClassicThreadsToStorage(classicThreads, remoteRuntimeUrl),
-          saveMessengerThreadsToStorage(messengerThreads, remoteRuntimeUrl),
-          saveRippleStatesToStorage(rippleStates, remoteRuntimeUrl),
-        ]).then((results) => {
+            classicThreads,
+            messengerThreads,
+            rippleStates,
+          },
+          remoteRuntimeUrl,
+        ).then((storageResult) => {
           if (saveRequestId.current !== requestId) return;
-          const storageResult = mergeHostStorageResults(results);
           setMessengerStorageMode(storageResult.mode);
           setMessengerStorageStatus(storageResult.status);
           setMessengerStorageMessage(storageResult.message);
