@@ -25,6 +25,7 @@ const shellPackageNames = new Set([
   "tide",
   "waterline",
 ]);
+const modePackageNames = new Set(["classic", "messenger"]);
 const allowedFeatureRoots = new Set([
   ...featureLayerRank.keys(),
   "navigation",
@@ -58,6 +59,12 @@ function getShellPackageRoot(filePath) {
   const match = filePath.match(/^src\/features\/shell\/([^/]+)/);
   if (!match || !shellPackageNames.has(match[1])) return null;
   return `src/features/shell/${match[1]}`;
+}
+
+function getModePackageRoot(filePath) {
+  const match = filePath.match(/^src\/features\/modes\/([^/]+)/);
+  if (!match || !modePackageNames.has(match[1])) return null;
+  return `src/features/modes/${match[1]}`;
 }
 
 function listSourceFiles(directoryPath) {
@@ -193,6 +200,8 @@ function checkImport(sourceFile, specifier, targetFile) {
   const targetFeatureLayer = getFeatureLayer(targetFile);
   const targetCatalogResourcePackageRoot =
     getCatalogResourcePackageRoot(targetFile);
+  const sourceModePackageRoot = getModePackageRoot(sourceFile);
+  const targetModePackageRoot = getModePackageRoot(targetFile);
   const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
   const targetShellPackageRoot = getShellPackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
@@ -215,6 +224,14 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceCatalogResourcePackageRoot !== targetCatalogResourcePackageRoot
   ) {
     failures.push("Catalog resource packages must be imported through their public entrypoints.");
+  }
+
+  if (
+    targetModePackageRoot &&
+    targetFile !== targetModePackageRoot &&
+    sourceModePackageRoot !== targetModePackageRoot
+  ) {
+    failures.push("Mode packages must be imported through their public entrypoints.");
   }
 
   if (

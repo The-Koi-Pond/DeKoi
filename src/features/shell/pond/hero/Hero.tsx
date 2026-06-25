@@ -2,8 +2,8 @@ import { PondEye } from "./PondEye";
 import "./hero.css";
 
 import { useNav } from "../../../navigation/nav-context";
-import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic/classic-display";
-import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger/thread-display";
+import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic";
+import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger";
 
 export function Hero() {
   const nav = useNav();

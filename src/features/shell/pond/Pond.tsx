@@ -1,7 +1,7 @@
 import type { NavContextType } from "../../navigation/nav-types";
-import { ClassicThread } from "../../modes/classic/ClassicThread";
+import { ClassicThread } from "../../modes/classic";
 import { PondHome } from "./PondHome";
-import { MessengerThread } from "../../modes/messenger/MessengerThread";
+import { MessengerThread } from "../../modes/messenger";
 import { CompanionsSurface } from "../../catalog/companions";
 import { PersonasSurface } from "../../catalog/personas";
 import { LorebooksSurface } from "../../catalog/lorebooks";

@@ -4,12 +4,12 @@ import {
   getClassicThreadInitials,
   getClassicThreadPreview,
   sortClassicThreads,
-} from "../../modes/classic/classic-display";
+} from "../../modes/classic";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   sortMessengerThreads,
-} from "../../modes/messenger/thread-display";
+} from "../../modes/messenger";
 import { useNav } from "../../navigation/nav-context";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import "./Shoal.css";
