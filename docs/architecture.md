@@ -129,6 +129,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    toward `src/shared/api` or `features/runtime` where appropriate. Import
    feature runtime workflows through their package entrypoint from outside the
    package, and import the lower runtime bridge through its public entrypoint.
+   Shell UI should use feature-runtime workflows for storage bundle file
+   previews rather than calling raw bundle normalizers directly.
 6. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow. Import catalog surfaces through the catalog
    feature entrypoint from outside the catalog feature.

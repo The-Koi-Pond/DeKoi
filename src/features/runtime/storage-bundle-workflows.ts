@@ -1,7 +1,6 @@
 export {
   createDeKoiStorageBundle,
   getDeKoiStorageBundleCounts,
-  normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
@@ -17,7 +16,6 @@ export {
   type DeKoiDesktopStorageReadResult,
 } from "../../runtime";
 export {
-  normalizeLegacyImport,
   type DeKoiLegacyImportData,
   type DeKoiLegacyImportPreview,
   type DeKoiLegacyImportParseResult,
