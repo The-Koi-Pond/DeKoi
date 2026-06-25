@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { ClassicThread } from "../../engine/classic";
 import { clearClassicThreadPersona } from "../../engine/classic-actions";
 import type { MessengerThread } from "../../engine/messenger";
@@ -13,8 +13,7 @@ import {
 } from "../../engine/persona-actions";
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UsePersonaActionsInput = {
   personas: PersonaRecord[];

@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { ClassicThread } from "../../engine/classic";
 import { replaceClassicThreadProviderConnection } from "../../engine/classic-actions";
 import type { MessengerThread } from "../../engine/messenger";
@@ -14,8 +14,7 @@ import {
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
 import type { AppSettings } from "../../runtime/app-settings";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseProviderConnectionActionsInput = {
   providerConnections: ProviderConnectionRecord[];

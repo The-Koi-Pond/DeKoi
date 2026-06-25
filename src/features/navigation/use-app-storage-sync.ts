@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef } from "react";
 import {
   cancelIdle,
   requestIdle,
@@ -13,8 +13,7 @@ import type {
   MessengerStorageMode,
   MessengerStorageStatus,
 } from "../../runtime/messenger-storage";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseAppStorageSyncInput = AppStorageRecords & {
   remoteRuntimeUrl: string;

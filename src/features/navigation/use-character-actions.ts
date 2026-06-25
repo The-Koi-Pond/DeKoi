@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { CharacterRecord } from "../../engine/character";
 import {
   createCharacterRecord,
@@ -13,8 +13,7 @@ import type { MessengerThread } from "../../engine/messenger";
 import { removeMessengerThreadCharacter } from "../../engine/messenger-actions";
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseCharacterActionsInput = {
   characters: CharacterRecord[];

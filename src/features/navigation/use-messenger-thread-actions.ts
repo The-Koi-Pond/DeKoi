@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { CharacterRecord } from "../../engine/character";
 import type { LorebookRecord } from "../../engine/lorebook";
 import type { MessengerThread } from "../../engine/messenger";
@@ -18,8 +18,7 @@ import { deleteRippleStateForOwner } from "../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
 import type { PondView } from "./nav-types";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseMessengerThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;

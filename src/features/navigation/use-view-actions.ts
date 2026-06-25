@@ -1,8 +1,7 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import { CLASSIC, MESSENGER, type SurfaceId } from "../../engine/surfaces";
 import type { PondView, SideRailView } from "./nav-types";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseViewActionsInput = {
   setView: StateSetter<PondView>;

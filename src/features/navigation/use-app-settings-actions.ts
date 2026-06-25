@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { ProviderConnectionId } from "../../engine/provider-connection";
 import type { SurfaceId } from "../../engine/surfaces";
 import {
@@ -11,8 +11,7 @@ import {
   writeRemoteRuntimeUrl,
 } from "../../runtime/runtime-target";
 import type { MessengerStorageStatus } from "../../runtime/messenger-storage";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseAppSettingsActionsInput = {
   setAppSettings: StateSetter<AppSettings>;

@@ -1,7 +1,6 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import { useEscapeKey } from "../../shared/ui/use-escape-key";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseCareDrawerActionsInput = {
   careOpen: boolean;

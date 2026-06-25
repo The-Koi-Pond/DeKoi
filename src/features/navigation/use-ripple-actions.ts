@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback } from "react";
 import type { RippleState, RippleStateOwnerKind } from "../../engine/ripples";
 import {
   createRippleRecord,
@@ -8,8 +8,7 @@ import {
 } from "../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../shared/browser/current-time";
 import { createRecordId } from "../../shared/browser/record-id";
-
-type StateSetter<T> = Dispatch<SetStateAction<T>>;
+import type { StateSetter } from "./state-setter";
 
 type UseRippleActionsInput = {
   rippleStates: RippleState[];
