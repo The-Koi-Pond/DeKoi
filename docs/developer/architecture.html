@@ -116,8 +116,8 @@
             </tr>
             <tr>
               <td><code>src/runtime</code></td>
-              <td>Storage contracts, import/export normalization, app settings storage, and remaining migration bridge code.</td>
-              <td>Keep desktop/remote transport wrappers in <code>src/shared/api</code>; keep generation orchestration in <code>features/runtime</code>; move remaining shared frontend systems into <code>features/runtime</code>.</td>
+              <td>Public runtime entrypoint plus the <code>src/runtime/storage</code> package for storage contracts, collection adapters, app snapshot orchestration, bundle import/export normalization, and legacy import.</td>
+              <td>Keep desktop/remote transport wrappers in <code>src/shared/api</code>; keep generation orchestration in <code>features/runtime</code>.</td>
             </tr>
             <tr>
               <td>None currently</td>
@@ -158,6 +158,10 @@
             <tr>
               <td><code>src/runtime</code> bridge modules must be imported through the runtime public entrypoint.</td>
               <td>Storage and import/export adapters can be reorganized behind one bridge surface.</td>
+            </tr>
+            <tr>
+              <td>Runtime implementation files must live in owner packages under <code>src/runtime</code>.</td>
+              <td><code>src/runtime/index.ts</code> stays the public entrypoint instead of becoming an implementation folder.</td>
             </tr>
             <tr>
               <td><code>src/shared</code> must not import app composition or features; generic shared code outside <code>src/shared/api</code> must not import engine or runtime adapters.</td>
@@ -240,7 +244,7 @@
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
-          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
+          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, and import the lower runtime bridge through its public entrypoint. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow. Import catalog surfaces through the catalog feature entrypoint from outside the catalog feature.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>

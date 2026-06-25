@@ -57,6 +57,10 @@ function getRuntimeBridgeRoot(filePath) {
   return "src/runtime";
 }
 
+function isRuntimeRootSourceFile(filePath) {
+  return /^src\/runtime\/[^/]+\.[jt]sx?$/.test(filePath);
+}
+
 function getFeatureLayer(filePath) {
   const match = filePath.match(/^src\/features\/([^/]+)/);
   if (!match || !featureLayerRank.has(match[1])) return null;
@@ -392,6 +396,12 @@ for (const sourceFile of sourceFiles) {
   if (isCatalogRootSourceFile(sourceFile) && sourceFile !== "src/features/catalog/index.ts") {
     failures.push(
       `Catalog source files must live in resource or shared packages.\n  - ${sourceFile}`,
+    );
+  }
+
+  if (isRuntimeRootSourceFile(sourceFile) && sourceFile !== "src/runtime/index.ts") {
+    failures.push(
+      `Runtime implementation files must live in owner packages.\n  - ${sourceFile}`,
     );
   }
 

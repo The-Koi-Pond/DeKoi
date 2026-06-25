@@ -52,7 +52,7 @@ src-tauri/
 | --- | --- | --- | --- |
 | App composition | `src/app`, `src/main.tsx` | Provider wiring and first render composition. | Product rules, storage adapters, or host I/O. |
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
-| Runtime adapter bridge | `src/runtime` | Storage contracts, import/export normalization, app settings storage, and remaining migration bridge code until systems move toward `src/shared/api` or `features/runtime`. | React features, UI orchestration, generation orchestration, or raw desktop/remote transport. |
+| Runtime adapter bridge | `src/runtime` | Public runtime entrypoint plus the `src/runtime/storage` package for storage contracts, collection adapters, app snapshot orchestration, bundle import/export normalization, and legacy import. | React features, UI orchestration, generation orchestration, or raw desktop/remote transport. |
 | Navigation bridge | `src/features/navigation` | App state, persistence sync, user action hooks, import/export actions, navigation context, and the navigation controller until mode router boundaries exist. | Concrete feature screens, shell UI, or app provider wiring. |
 | Feature UI bridge | None currently. New feature folders must enter `catalog`, `modes`, `navigation`, or `shell`. | User workflows, screens, local presentation state, and component composition. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
@@ -75,6 +75,8 @@ The check currently enforces these rules:
   packages, or the desktop command catalog directly.
 - `src/runtime` bridge modules must be imported through the runtime public
   entrypoint.
+- Runtime implementation files must live in owner packages under `src/runtime`,
+  leaving `src/runtime/index.ts` as the public entrypoint.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
@@ -126,8 +128,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    feature through its package entrypoint from app composition.
 5. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;
-   continue moving remaining `src/runtime` storage and import/export systems
-   toward `src/shared/api` or `features/runtime` where appropriate. Import
+   keep DeKoi storage contracts, collection adapters, and bundle normalization
+   organized under `src/runtime/storage`. Import
    feature runtime workflows through their package entrypoint from outside the
    package, and import the lower runtime bridge through its public entrypoint.
    Shell UI should use feature-runtime workflows for storage bundle file
@@ -158,9 +160,9 @@ Storage owns persistence mechanics. Engine owns product meaning.
 ## Adding Or Moving Code
 
 1. Put product record types and pure mutations in `src/engine`.
-2. Put typed desktop/remote runtime calls in `src/shared/api`; use current
-   `src/runtime` only for remaining storage and import/export migration bridge
-   code.
+2. Put typed desktop/remote runtime calls in `src/shared/api`; use
+   `src/runtime/storage` for storage contracts, collection adapters, app
+   snapshots, bundle normalization, and legacy import bridge code.
 3. Put app-level composition in `src/app`.
 4. Put shell tools in `src/features/shell`.
 5. Put mode surfaces in `src/features/modes`.

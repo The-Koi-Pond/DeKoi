@@ -16,9 +16,9 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   collection names, relationships, and import/export contract.
 - Runtime commands are explicit and allowlisted. Generation, storage, secrets,
   files, and provider transport stay separate.
-- Runtime command names are registered in `src/runtime/runtime-commands.ts` and
-  checked against the Rust desktop runtime and fixture server.
-- Desktop Tauri command names are registered in `src/runtime/desktop-commands.ts`
+- Runtime command names are registered in `src/shared/api/runtime-commands.ts`
+  and checked against the Rust desktop runtime and fixture server.
+- Desktop Tauri command names are registered in `src/shared/api/desktop-commands.ts`
   and checked against the Rust command registration.
 - Legacy import is a one-way adapter into DeKoi-native records. Legacy names and
   old storage shapes do not become the core model.
@@ -31,10 +31,10 @@ Use the prior architecture skeleton in DeKoi-owned terms:
 - `src/features`: React surfaces and workflows. Feature code renders UI,
   gathers user intent, calls engine helpers for product behavior, and calls
   runtime adapters for persistence or host work.
-- `src/runtime`: frontend runtime boundary for this seed. It owns host storage,
-  remote runtime, desktop runtime, generation adapters, import/export
-  normalization, and Tauri-facing browser code. If it grows, split narrow
-  host/API wrappers from product-specific adapter modules.
+- `src/runtime`: frontend storage boundary for this seed. Its public entrypoint
+  exports DeKoi storage contracts, collection adapters, app snapshot
+  orchestration, bundle import/export normalization, and legacy import. Host and
+  remote transport wrappers live in `src/shared/api`.
 - `src/shared`: reusable UI primitives, styling tokens, browser-only helpers,
   and other code that is genuinely generic across feature owners.
 - `src-tauri`: privileged desktop and hostable capabilities: local files,
@@ -50,7 +50,7 @@ features -> engine
 features -> runtime
 features -> shared
 runtime  -> engine types/contracts
-runtime  -> Tauri or remote HTTP boundary
+runtime  -> shared API wrappers
 shared   -> no feature owners
 engine   -> no React, features, runtime, Tauri, or browser APIs
 src-tauri -> no TypeScript product imports
@@ -108,16 +108,17 @@ The short version:
 - `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
   surfaces. `src/features/navigation` owns the app-level navigation context
   while the seed still uses a single top-level app state provider.
-- `src/runtime/*` adapts native records to desktop storage, remote storage,
-  DeKoi bundle import/export, and generation runtimes. Runtime command names,
-  target URL handling, health result types, remote runtime HTTP/health/invoke
-  wrappers, and desktop host capability wrappers have narrow owner modules.
+- `src/runtime/index.ts` is the public runtime bridge. `src/runtime/storage/*`
+  adapts native records to desktop or remote storage, DeKoi bundle
+  import/export, and legacy import while using shared API wrappers for host or
+  remote transport.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
   status, and the desktop runtime bridge.
 
 ## Next Architecture Work
 
-1. Move `src/runtime` toward narrower adapter modules before adding real
-   provider transport.
-2. Add legacy import only after native records and storage contracts are stable.
+1. Keep hardening `src/runtime/storage` package boundaries before adding a real
+   database adapter.
+2. Move more runtime-facing orchestration into `features/runtime` when UI
+   workflows no longer need bridge-layer state.
