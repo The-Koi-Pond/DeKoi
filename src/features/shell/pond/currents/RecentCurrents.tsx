@@ -5,7 +5,7 @@ import {
   getMessengerThreadPreview,
   getMessengerThreadTimeLabel,
   sortMessengerThreadsByUpdatedAt,
-} from "../../../modes/messenger";
+} from "../../../modes";
 import "./currents.css";
 
 export function RecentCurrents() {

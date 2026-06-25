@@ -1,8 +1,10 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { RESERVED } from "../../../../engine/surfaces";
 import type { NavContextType } from "../../../navigation";
-import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic";
-import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger";
+import {
+  sortClassicThreadsByUpdatedAt,
+  sortMessengerThreadsByUpdatedAt,
+} from "../../../modes";
 import "./depths.css";
 
 type FeatureDepth = "Shallows" | "Deep" | "Murky" | "Surfacing soon";

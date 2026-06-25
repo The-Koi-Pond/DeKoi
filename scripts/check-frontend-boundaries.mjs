@@ -60,6 +60,16 @@ function getCatalogResourcePackageRoot(filePath) {
   return `src/features/catalog/${match[1]}`;
 }
 
+function getCatalogRoot(filePath) {
+  if (!isUnder(filePath, "src/features/catalog")) return null;
+  return "src/features/catalog";
+}
+
+function getModesRoot(filePath) {
+  if (!isUnder(filePath, "src/features/modes")) return null;
+  return "src/features/modes";
+}
+
 function getShellPackageRoot(filePath) {
   const match = filePath.match(/^src\/features\/shell\/([^/]+)/);
   if (!match || !shellPackageNames.has(match[1])) return null;
@@ -220,8 +230,12 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   const targetFeatureLayer = getFeatureLayer(targetFile);
   const targetAppPackageRoot = getAppPackageRoot(targetFile);
+  const sourceCatalogRoot = getCatalogRoot(sourceFile);
+  const targetCatalogRoot = getCatalogRoot(targetFile);
   const targetCatalogResourcePackageRoot =
     getCatalogResourcePackageRoot(targetFile);
+  const sourceModesRoot = getModesRoot(sourceFile);
+  const targetModesRoot = getModesRoot(targetFile);
   const sourceModePackageRoot = getModePackageRoot(sourceFile);
   const targetModePackageRoot = getModePackageRoot(targetFile);
   const sourceNavigationPackageRoot = getNavigationPackageRoot(sourceFile);
@@ -257,11 +271,27 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   if (
+    targetCatalogRoot &&
+    targetFile !== targetCatalogRoot &&
+    sourceCatalogRoot !== targetCatalogRoot
+  ) {
+    failures.push("Catalog must be imported through its public entrypoint.");
+  }
+
+  if (
     targetCatalogResourcePackageRoot &&
     targetFile !== targetCatalogResourcePackageRoot &&
     sourceCatalogResourcePackageRoot !== targetCatalogResourcePackageRoot
   ) {
     failures.push("Catalog resource packages must be imported through their public entrypoints.");
+  }
+
+  if (
+    targetModesRoot &&
+    targetFile !== targetModesRoot &&
+    sourceModesRoot !== targetModesRoot
+  ) {
+    failures.push("Modes must be imported through their public entrypoint.");
   }
 
   if (

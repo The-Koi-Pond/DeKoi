@@ -176,6 +176,10 @@
               <td>Higher layers compose lower layers; lower resource/runtime layers do not depend on app screens.</td>
             </tr>
             <tr>
+              <td>Catalog must be imported through its public entrypoint.</td>
+              <td>Callers depend on the catalog feature package, not individual resource package paths.</td>
+            </tr>
+            <tr>
               <td>Catalog resource packages must be imported through their public entrypoints.</td>
               <td>Companions, personas, and lorebooks keep their internal components package-owned.</td>
             </tr>
@@ -186,6 +190,10 @@
             <tr>
               <td>Feature runtime must be imported through its public entrypoint.</td>
               <td>Generation and storage workflows expose stable calls while their adapter layout can keep changing.</td>
+            </tr>
+            <tr>
+              <td>Modes must be imported through their public entrypoint.</td>
+              <td>Shell composes the modes feature package instead of depending on individual mode package paths.</td>
             </tr>
             <tr>
               <td>Mode packages must be imported through their public entrypoints.</td>
@@ -222,10 +230,10 @@
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
-          <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with package entrypoints for each mode.</li>
+          <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate. Import feature runtime workflows through their package entrypoint from outside the package.</li>
-          <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow.</li>
+          <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow. Import catalog surfaces through the catalog feature entrypoint from outside the catalog feature.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>
         </ol>

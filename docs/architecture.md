@@ -82,10 +82,12 @@ The check currently enforces these rules:
   `shell`.
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
+- Catalog must be imported through its public entrypoint.
 - Catalog resource packages must be imported through their public entrypoints.
 - Catalog source files must live in resource or shared packages, not directly
   under `src/features/catalog`.
 - Feature runtime must be imported through its public entrypoint.
+- Modes must be imported through their public entrypoint.
 - Mode packages must be imported through their public entrypoints.
 - Navigation must be imported through its public entrypoint.
 - Shell must be imported through its public entrypoint.
@@ -114,7 +116,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    boundaries become concrete. Import navigation through its package entrypoint
    while it remains a bridge.
 3. Keep Messenger and Classic screens under `features/modes`; move future mode
-   surfaces there too, with package entrypoints for each mode.
+   surfaces there too, with a feature entrypoint plus package entrypoints for
+   each mode.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too. Import the shell
    feature through its package entrypoint from app composition.
@@ -125,7 +128,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    feature runtime workflows through their package entrypoint from outside the
    package.
 6. Keep `features/catalog` organized as resource-owned packages with public
-   entrypoints as collections grow.
+   entrypoints as collections grow. Import catalog surfaces through the catalog
+   feature entrypoint from outside the catalog feature.
 7. Keep shell packages behind public entrypoints as they grow.
 8. Add stricter private-folder and public-entrypoint checks once those packages
    exist.

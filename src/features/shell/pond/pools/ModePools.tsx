@@ -6,8 +6,10 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../../engine/surfaces";
-import { sortClassicThreadsByUpdatedAt } from "../../../modes/classic";
-import { sortMessengerThreadsByUpdatedAt } from "../../../modes/messenger";
+import {
+  sortClassicThreadsByUpdatedAt,
+  sortMessengerThreadsByUpdatedAt,
+} from "../../../modes";
 import "./pools.css";
 
 interface ModePoolsProps {
