@@ -1,11 +1,11 @@
 import { KoiSprite } from "../../shared/ui/KoiSprite";
-import { Waterline } from "./waterline/Waterline";
-import { Bank } from "./bank/Bank";
-import { Shoal } from "./shoal/Shoal";
-import { Tide } from "./tide/Tide";
+import { Waterline } from "./waterline";
+import { Bank } from "./bank";
+import { Shoal } from "./shoal";
+import { Tide } from "./tide";
 import { useEffect } from "react";
-import { CareDrawer } from "./care/CareDrawer";
-import { Pond } from "./pond/Pond";
+import { CareDrawer } from "./care";
+import { Pond } from "./pond";
 import type { NavContextType } from "../navigation/nav-types";
 
 interface ShellProps {

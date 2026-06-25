@@ -17,6 +17,14 @@ const catalogResourcePackageNames = new Set([
   "lorebooks",
   "personas",
 ]);
+const shellPackageNames = new Set([
+  "bank",
+  "care",
+  "pond",
+  "shoal",
+  "tide",
+  "waterline",
+]);
 const allowedFeatureRoots = new Set([
   ...featureLayerRank.keys(),
   "navigation",
@@ -44,6 +52,12 @@ function getCatalogResourcePackageRoot(filePath) {
   const match = filePath.match(/^src\/features\/catalog\/([^/]+)/);
   if (!match || !catalogResourcePackageNames.has(match[1])) return null;
   return `src/features/catalog/${match[1]}`;
+}
+
+function getShellPackageRoot(filePath) {
+  const match = filePath.match(/^src\/features\/shell\/([^/]+)/);
+  if (!match || !shellPackageNames.has(match[1])) return null;
+  return `src/features/shell/${match[1]}`;
 }
 
 function listSourceFiles(directoryPath) {
@@ -179,6 +193,8 @@ function checkImport(sourceFile, specifier, targetFile) {
   const targetFeatureLayer = getFeatureLayer(targetFile);
   const targetCatalogResourcePackageRoot =
     getCatalogResourcePackageRoot(targetFile);
+  const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
+  const targetShellPackageRoot = getShellPackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
     const sourceRank = featureLayerRank.get(sourceFeatureLayer);
     const targetRank = featureLayerRank.get(targetFeatureLayer);
@@ -199,6 +215,14 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceCatalogResourcePackageRoot !== targetCatalogResourcePackageRoot
   ) {
     failures.push("Catalog resource packages must be imported through their public entrypoints.");
+  }
+
+  if (
+    targetShellPackageRoot &&
+    targetFile !== targetShellPackageRoot &&
+    sourceShellPackageRoot !== targetShellPackageRoot
+  ) {
+    failures.push("Shell packages must be imported through their public entrypoints.");
   }
 
   if (sourceIsFeatureRuntime && isUnder(targetFile, "src/features/navigation")) {

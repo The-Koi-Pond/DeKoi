@@ -84,6 +84,7 @@ The check currently enforces these rules:
 - Catalog resource packages must be imported through their public entrypoints.
 - Catalog source files must live in resource or shared packages, not directly
   under `src/features/catalog`.
+- Shell packages must be imported through their public entrypoints.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
   bridge layer, and it must not import `src/runtime` directly.
@@ -116,7 +117,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    toward `src/shared/api` or `features/runtime` where appropriate.
 6. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow.
-7. Add stricter private-folder and public-entrypoint checks once those packages
+7. Keep shell packages behind public entrypoints as they grow.
+8. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
 
 ## Storage And DB Direction

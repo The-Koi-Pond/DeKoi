@@ -180,6 +180,10 @@
               <td>The catalog root stays a package namespace rather than an implementation folder.</td>
             </tr>
             <tr>
+              <td>Shell packages must be imported through their public entrypoints.</td>
+              <td>App-level panels keep their internal components package-owned while the shell composes stable surfaces.</td>
+            </tr>
+            <tr>
               <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> directly.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>
@@ -202,6 +206,7 @@
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
           <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow.</li>
+          <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>
         </ol>
 
