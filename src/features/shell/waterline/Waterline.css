@@ -229,9 +229,9 @@
 .window-controls {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-left: 6px;
-  padding-left: 12px;
+  padding-left: 10px;
   border-left: 1px solid var(--reed-soft);
   -webkit-app-region: no-drag;
 }
@@ -239,11 +239,11 @@
 .window-control {
   --window-control-color: var(--mist);
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 38px;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: var(--window-control-color);
   cursor: pointer;
@@ -252,8 +252,8 @@
 }
 
 .window-control svg {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -275,11 +275,11 @@
 
 .window-control:hover,
 .window-control:focus-visible {
-  border-color: var(--reed-soft);
-  background: var(--shallow);
+  border-color: color-mix(in srgb, var(--window-control-color) 38%, var(--reed-soft));
+  background: color-mix(in srgb, var(--window-control-color) 12%, var(--shallow));
   color: var(--window-control-color);
   outline: none;
-  transform: translateY(-1px);
+  box-shadow: 0 0 18px -12px var(--window-control-color);
 }
 
 .window-control.close:hover,
