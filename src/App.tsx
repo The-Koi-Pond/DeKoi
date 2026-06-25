@@ -11,22 +11,15 @@ import { useLorebookActions } from "./features/navigation/use-lorebook-actions";
 import { useMessengerThreadActions } from "./features/navigation/use-messenger-thread-actions";
 import { usePersonaActions } from "./features/navigation/use-persona-actions";
 import { useProviderConnectionActions } from "./features/navigation/use-provider-connection-actions";
+import { useRippleActions } from "./features/navigation/use-ripple-actions";
 import { useAppImportExportActions } from "./features/navigation/use-app-import-export-actions";
 import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
 import { useViewActions } from "./features/navigation/use-view-actions";
-import { currentIsoTimestamp } from "./shared/browser/current-time";
-import { createRecordId } from "./shared/browser/record-id";
 import { useEscapeKey } from "./shared/ui/use-escape-key";
 import type { ClassicThread } from "./engine/classic";
 import type { MessengerThread } from "./engine/messenger";
-import type { RippleState, RippleStateOwnerKind } from "./engine/ripples";
-import {
-  createRippleRecord,
-  createRippleState,
-  updateRippleRecord,
-  type RippleInput,
-} from "./engine/ripple-actions";
+import type { RippleState } from "./engine/ripples";
 import type { SurfaceId } from "./engine/surfaces";
 import { MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
@@ -251,104 +244,15 @@ export default function App() {
     openMessengerThread,
   });
 
-  const getRippleState = useCallback(
-    (ownerKind: RippleStateOwnerKind, ownerId: string) =>
-      rippleStates.find(
-        (state) => state.ownerKind === ownerKind && state.ownerId === ownerId,
-      ) ?? null,
-    [rippleStates],
-  );
-
-  const createRipple = useCallback(
-    (ownerKind: RippleStateOwnerKind, ownerId: string, input: RippleInput) => {
-      const now = currentIsoTimestamp();
-      const ripple = createRippleRecord({
-        id: createRecordId("ripple"),
-        input,
-        now,
-      });
-
-      setRippleStates((currentStates) => {
-        const existingState = currentStates.find(
-          (state) => state.ownerKind === ownerKind && state.ownerId === ownerId,
-        );
-
-        if (!existingState) {
-          return [
-            createRippleState({
-              id: createRecordId("ripple-state"),
-              now,
-              ownerId,
-              ownerKind,
-              ripples: [ripple],
-            }),
-            ...currentStates,
-          ];
-        }
-
-        return currentStates.map((state) =>
-          state.id === existingState.id
-            ? {
-                ...state,
-                ripples: [ripple, ...state.ripples],
-                updatedAt: now,
-              }
-            : state,
-        );
-      });
-
-      return ripple;
-    },
-    [],
-  );
-
-  const updateRipple = useCallback(
-    (
-      ownerKind: RippleStateOwnerKind,
-      ownerId: string,
-      rippleId: string,
-      input: RippleInput,
-    ) => {
-      const now = currentIsoTimestamp();
-      setRippleStates((currentStates) =>
-        currentStates.map((state) =>
-          state.ownerKind === ownerKind && state.ownerId === ownerId
-            ? {
-                ...state,
-                ripples: state.ripples.map((ripple) =>
-                  ripple.id === rippleId
-                    ? updateRippleRecord(ripple, input, now)
-                    : ripple,
-                ),
-                updatedAt: now,
-              }
-            : state,
-        ),
-      );
-    },
-    [],
-  );
-
-  const deleteRipple = useCallback(
-    (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string) => {
-      const now = currentIsoTimestamp();
-      setRippleStates((currentStates) =>
-        currentStates.flatMap((state) => {
-          if (state.ownerKind !== ownerKind || state.ownerId !== ownerId) {
-            return [state];
-          }
-
-          const ripples = state.ripples.filter(
-            (ripple) => ripple.id !== rippleId,
-          );
-          return ripples.length > 0
-            ? [{ ...state, ripples, updatedAt: now }]
-            : [];
-        }),
-      );
-    },
-    [],
-  );
+  const {
+    getRippleState,
+    createRipple,
+    updateRipple,
+    deleteRipple,
+  } = useRippleActions({
+    rippleStates,
+    setRippleStates,
+  });
 
   const nav: NavContextType = {
     view,
