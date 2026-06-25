@@ -2,10 +2,10 @@ import { useState, type FormEvent } from "react";
 import { updateClassicSceneText } from "../../../engine/classic-actions";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
 import {
+  generateClassicThreadTurn,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
-} from "../../runtime/generation/messenger-generation";
-import { generateClassicThreadTurn } from "../../runtime/generation/classic-generation";
+} from "../../runtime";
 import { useNav } from "../../navigation";
 import "./classic-thread.css";
 

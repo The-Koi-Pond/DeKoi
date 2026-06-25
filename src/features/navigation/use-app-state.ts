@@ -16,7 +16,7 @@ import {
   loadRippleStates,
   type MessengerStorageMode,
   type MessengerStorageStatus,
-} from "../runtime/app-storage-workflows";
+} from "../runtime";
 import { readRemoteRuntimeUrl } from "../../shared/api/runtime-target";
 import type { PondView, SideRailView } from "./nav-types";
 

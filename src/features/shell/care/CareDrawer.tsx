@@ -22,7 +22,7 @@ import {
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
   type DeKoiLegacyImportPreview,
-} from "../../runtime/storage-bundle-workflows";
+} from "../../runtime";
 import {
   checkDesktopHostStatus,
   type DeKoiDesktopHostStatus,

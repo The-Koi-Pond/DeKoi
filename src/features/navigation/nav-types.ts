@@ -24,11 +24,11 @@ import type { AppSettings, ShoalSortMode } from "../../engine/app-settings";
 import type {
   DeKoiLegacyImportData,
   DeKoiStorageBundle,
-} from "../runtime/storage-bundle-workflows";
+} from "../runtime";
 import type {
   MessengerStorageMode,
   MessengerStorageStatus,
-} from "../runtime/app-storage-workflows";
+} from "../runtime";
 
 export type PondView =
   | { kind: "pond" }

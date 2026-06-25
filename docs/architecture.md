@@ -84,6 +84,7 @@ The check currently enforces these rules:
 - Catalog resource packages must be imported through their public entrypoints.
 - Catalog source files must live in resource or shared packages, not directly
   under `src/features/catalog`.
+- Feature runtime must be imported through its public entrypoint.
 - Mode packages must be imported through their public entrypoints.
 - Navigation must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
@@ -117,7 +118,9 @@ Move toward the old De-Koi skeleton in small, validated slices:
 5. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;
    continue moving remaining `src/runtime` storage and import/export systems
-   toward `src/shared/api` or `features/runtime` where appropriate.
+   toward `src/shared/api` or `features/runtime` where appropriate. Import
+   feature runtime workflows through their package entrypoint from outside the
+   package.
 6. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow.
 7. Keep shell packages behind public entrypoints as they grow.

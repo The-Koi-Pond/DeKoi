@@ -180,6 +180,10 @@
               <td>The catalog root stays a package namespace rather than an implementation folder.</td>
             </tr>
             <tr>
+              <td>Feature runtime must be imported through its public entrypoint.</td>
+              <td>Generation and storage workflows expose stable calls while their adapter layout can keep changing.</td>
+            </tr>
+            <tr>
               <td>Mode packages must be imported through their public entrypoints.</td>
               <td>Classic and Messenger expose stable mode surfaces and display helpers without leaking file layout.</td>
             </tr>
@@ -212,7 +216,7 @@
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete. Import navigation through its package entrypoint while it remains a bridge.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
-          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
+          <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage and import/export systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate. Import feature runtime workflows through their package entrypoint from outside the package.</li>
           <li>Keep <code>features/catalog</code> organized as resource-owned packages with public entrypoints as collections grow.</li>
           <li>Keep shell packages behind public entrypoints as they grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>

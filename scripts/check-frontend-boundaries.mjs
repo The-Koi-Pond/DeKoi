@@ -72,6 +72,11 @@ function getNavigationPackageRoot(filePath) {
   return "src/features/navigation";
 }
 
+function getFeatureRuntimePackageRoot(filePath) {
+  if (!isUnder(filePath, "src/features/runtime")) return null;
+  return "src/features/runtime";
+}
+
 function listSourceFiles(directoryPath) {
   const files = [];
 
@@ -209,6 +214,10 @@ function checkImport(sourceFile, specifier, targetFile) {
   const targetModePackageRoot = getModePackageRoot(targetFile);
   const sourceNavigationPackageRoot = getNavigationPackageRoot(sourceFile);
   const targetNavigationPackageRoot = getNavigationPackageRoot(targetFile);
+  const sourceFeatureRuntimePackageRoot =
+    getFeatureRuntimePackageRoot(sourceFile);
+  const targetFeatureRuntimePackageRoot =
+    getFeatureRuntimePackageRoot(targetFile);
   const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
   const targetShellPackageRoot = getShellPackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
@@ -247,6 +256,14 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceNavigationPackageRoot !== targetNavigationPackageRoot
   ) {
     failures.push("Navigation must be imported through its public entrypoint.");
+  }
+
+  if (
+    targetFeatureRuntimePackageRoot &&
+    targetFile !== targetFeatureRuntimePackageRoot &&
+    sourceFeatureRuntimePackageRoot !== targetFeatureRuntimePackageRoot
+  ) {
+    failures.push("Feature runtime must be imported through its public entrypoint.");
   }
 
   if (
