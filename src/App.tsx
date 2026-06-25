@@ -10,6 +10,9 @@ import {
   requestIdle,
   type IdleHandle,
 } from "./shared/browser/idle-callback";
+import { currentIsoTimestamp } from "./shared/browser/current-time";
+import { createRecordId } from "./shared/browser/record-id";
+import { useEscapeKey } from "./shared/ui/use-escape-key";
 import {
   createCharacterRecord,
   deleteCharacterRecord,
@@ -133,13 +136,6 @@ import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
 } from "./runtime/runtime-target";
-
-function createLocalId(prefix: string) {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 export default function App() {
   const [view, setView] = useState<PondView>({ kind: "pond" });
@@ -281,20 +277,13 @@ export default function App() {
     storageReady,
   ]);
 
-  // Esc key closes CareDrawer
-  useEffect(() => {
-    if (!careOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setCareOpen(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [careOpen]);
+  const closeCareDrawer = useCallback(() => setCareOpen(false), []);
+  useEscapeKey(careOpen, closeCareDrawer);
 
   const createCharacter = useCallback((input: CharacterRecordInput) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     const character = createCharacterRecord({
-      id: createLocalId("character"),
+      id: createRecordId("character"),
       input,
       now,
     });
@@ -304,7 +293,7 @@ export default function App() {
 
   const updateCharacter = useCallback(
     (characterId: string, input: CharacterRecordInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setCharacters((currentCharacters) =>
         currentCharacters.map((character) =>
           character.id === characterId
@@ -323,10 +312,10 @@ export default function App() {
       );
       if (!character) return null;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const duplicatedCharacter = duplicateCharacterRecord(
         character,
-        createLocalId("character"),
+        createRecordId("character"),
         now,
       );
       setCharacters((currentCharacters) => [
@@ -339,7 +328,7 @@ export default function App() {
   );
 
   const deleteCharacter = useCallback((characterId: string) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setCharacters((currentCharacters) =>
       deleteCharacterRecord(currentCharacters, characterId),
     );
@@ -356,9 +345,9 @@ export default function App() {
   }, []);
 
   const createPersona = useCallback((input: PersonaRecordInput) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     const persona = createPersonaRecord({
-      id: createLocalId("persona"),
+      id: createRecordId("persona"),
       input,
       now,
     });
@@ -368,7 +357,7 @@ export default function App() {
 
   const updatePersona = useCallback(
     (personaId: string, input: PersonaRecordInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setPersonas((currentPersonas) =>
         currentPersonas.map((persona) =>
           persona.id === personaId
@@ -387,10 +376,10 @@ export default function App() {
       );
       if (!persona) return null;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const duplicatedPersona = duplicatePersonaRecord(
         persona,
-        createLocalId("persona"),
+        createRecordId("persona"),
         now,
       );
       setPersonas((currentPersonas) => [duplicatedPersona, ...currentPersonas]);
@@ -400,7 +389,7 @@ export default function App() {
   );
 
   const deletePersona = useCallback((personaId: string) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setPersonas((currentPersonas) =>
       deletePersonaRecord(currentPersonas, personaId),
     );
@@ -421,9 +410,9 @@ export default function App() {
       if (!lorebooks.some((lorebook) => lorebook.id === lorebookId))
         return null;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const entry = createLorebookEntryRecord({
-        id: createLocalId("lore-entry"),
+        id: createRecordId("lore-entry"),
         input,
         now,
       });
@@ -442,7 +431,7 @@ export default function App() {
 
   const updateLorebookEntry = useCallback(
     (lorebookId: string, entryId: string, input: LorebookEntryInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setLorebooks((currentLorebooks) =>
         currentLorebooks.map((lorebook) => {
           if (lorebook.id !== lorebookId) return lorebook;
@@ -473,10 +462,10 @@ export default function App() {
       );
       if (!entry) return null;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const duplicatedEntry = duplicateLorebookEntryRecord(
         entry,
-        createLocalId("lore-entry"),
+        createRecordId("lore-entry"),
         now,
       );
 
@@ -494,7 +483,7 @@ export default function App() {
 
   const removeLorebookEntry = useCallback(
     (lorebookId: string, entryId: string) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setLorebooks((currentLorebooks) =>
         currentLorebooks.map((lorebook) =>
           lorebook.id === lorebookId
@@ -507,9 +496,9 @@ export default function App() {
   );
 
   const createLorebook = useCallback((input: LorebookInput) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     const lorebook = createLorebookRecord({
-      id: createLocalId("lorebook"),
+      id: createRecordId("lorebook"),
       input,
       now,
     });
@@ -519,7 +508,7 @@ export default function App() {
 
   const updateLorebook = useCallback(
     (lorebookId: string, input: LorebookInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setLorebooks((currentLorebooks) =>
         currentLorebooks.map((lorebook) =>
           lorebook.id === lorebookId
@@ -532,7 +521,7 @@ export default function App() {
   );
 
   const deleteLorebook = useCallback((lorebookId: string) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setLorebooks((currentLorebooks) =>
       deleteLorebookRecord(currentLorebooks, lorebookId),
     );
@@ -555,9 +544,9 @@ export default function App() {
 
   const createProviderConnection = useCallback(
     (input: ProviderConnectionInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const connection = createProviderConnectionRecord({
-        id: createLocalId("connection"),
+        id: createRecordId("connection"),
         input,
         now,
       });
@@ -572,7 +561,7 @@ export default function App() {
 
   const updateProviderConnection = useCallback(
     (connectionId: string, input: ProviderConnectionInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setProviderConnections((currentConnections) =>
         currentConnections.map((connection) =>
           connection.id === connectionId
@@ -591,10 +580,10 @@ export default function App() {
       );
       if (!connection) return null;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const duplicatedConnection = duplicateProviderConnectionRecord(
         connection,
-        createLocalId("connection"),
+        createRecordId("connection"),
         now,
       );
       setProviderConnections((currentConnections) => [
@@ -617,7 +606,7 @@ export default function App() {
       if (nextConnections.length === providerConnections.length) return;
 
       const fallbackConnection = nextConnections[0];
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setProviderConnections(nextConnections);
       setAppSettings((currentSettings) =>
         currentSettings.activeMessengerConnectionId === connectionId
@@ -658,7 +647,7 @@ export default function App() {
   }, []);
 
   const createClassicThread = useCallback(() => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     const activePersona = personas[0] ?? null;
     const activeConnection =
       providerConnections.find(
@@ -670,7 +659,7 @@ export default function App() {
     const thread = buildClassicThread({
       activePersonaId: activePersona?.id ?? null,
       characterIds: characters.slice(0, 1).map((companion) => companion.id),
-      id: createLocalId("classic-thread"),
+      id: createRecordId("classic-thread"),
       lorebookIds: lorebooks.map((lorebook) => lorebook.id),
       now,
       providerConnectionId: activeConnection?.id ?? null,
@@ -705,7 +694,7 @@ export default function App() {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setClassicThreads((currentThreads) =>
       currentThreads.map((thread) =>
         thread.id === threadId
@@ -716,7 +705,7 @@ export default function App() {
   }, []);
 
   const clearClassicThreadEntries = useCallback((threadId: string) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setClassicThreads((currentThreads) =>
       currentThreads.map((thread) =>
         thread.id === threadId ? clearClassicEntries(thread, now) : thread,
@@ -747,7 +736,7 @@ export default function App() {
   }, []);
 
   const createMessengerThread = useCallback(() => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     const activePersona = personas[0] ?? null;
     const activeConnection =
       providerConnections.find(
@@ -759,7 +748,7 @@ export default function App() {
     const thread = buildMessengerThread({
       activePersonaId: activePersona?.id ?? null,
       characterIds: characters.map((companion) => companion.id),
-      id: createLocalId("messenger-thread"),
+      id: createRecordId("messenger-thread"),
       lorebookIds: lorebooks.map((lorebook) => lorebook.id),
       now,
       providerConnectionId: activeConnection?.id ?? null,
@@ -795,7 +784,7 @@ export default function App() {
       const trimmedTitle = title.trim();
       if (!trimmedTitle) return;
 
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setMessengerThreads((currentThreads) =>
         currentThreads.map((thread) =>
           thread.id === threadId
@@ -808,7 +797,7 @@ export default function App() {
   );
 
   const clearMessengerThreadMessages = useCallback((threadId: string) => {
-    const now = new Date().toISOString();
+    const now = currentIsoTimestamp();
     setMessengerThreads((currentThreads) =>
       currentThreads.map((thread) =>
         thread.id === threadId ? clearMessengerMessages(thread, now) : thread,
@@ -842,9 +831,9 @@ export default function App() {
 
   const createRipple = useCallback(
     (ownerKind: RippleStateOwnerKind, ownerId: string, input: RippleInput) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       const ripple = createRippleRecord({
-        id: createLocalId("ripple"),
+        id: createRecordId("ripple"),
         input,
         now,
       });
@@ -857,7 +846,7 @@ export default function App() {
         if (!existingState) {
           return [
             createRippleState({
-              id: createLocalId("ripple-state"),
+              id: createRecordId("ripple-state"),
               now,
               ownerId,
               ownerKind,
@@ -890,7 +879,7 @@ export default function App() {
       rippleId: string,
       input: RippleInput,
     ) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setRippleStates((currentStates) =>
         currentStates.map((state) =>
           state.ownerKind === ownerKind && state.ownerId === ownerId
@@ -912,7 +901,7 @@ export default function App() {
 
   const deleteRipple = useCallback(
     (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string) => {
-      const now = new Date().toISOString();
+      const now = currentIsoTimestamp();
       setRippleStates((currentStates) =>
         currentStates.flatMap((state) => {
           if (state.ownerKind !== ownerKind || state.ownerId !== ownerId) {
@@ -988,7 +977,7 @@ export default function App() {
 
   const importLegacyData = useCallback((data: DeKoiLegacyImportData) => {
     const importedThreads = data.messengerThreads.map((thread) => {
-      const id = createLocalId("messenger-thread");
+      const id = createRecordId("messenger-thread");
       return {
         ...thread,
         id,
