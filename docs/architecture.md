@@ -81,6 +81,7 @@ The check currently enforces these rules:
   `shell`.
 - If old-shape feature layer folders exist, their direction is
   `shell -> modes -> runtime -> catalog`.
+- Catalog resource packages must be imported through their public entrypoints.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
   bridge layer, and it must not import `src/runtime` directly.
@@ -111,7 +112,8 @@ Move toward the old De-Koi skeleton in small, validated slices:
    desktop host status, and provider secret wrappers in `src/shared/api`;
    continue moving remaining `src/runtime` storage and import/export systems
    toward `src/shared/api` or `features/runtime` where appropriate.
-6. Deepen `features/catalog` into resource-owned packages as collections grow.
+6. Keep `features/catalog` organized as resource-owned packages with public
+   entrypoints as collections grow.
 7. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
 

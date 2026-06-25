@@ -2,9 +2,9 @@ import type { NavContextType } from "../../navigation/nav-types";
 import { ClassicThread } from "../../modes/classic/ClassicThread";
 import { PondHome } from "./PondHome";
 import { MessengerThread } from "../../modes/messenger/MessengerThread";
-import { CompanionsSurface } from "../../catalog/CompanionsSurface";
-import { PersonasSurface } from "../../catalog/PersonasSurface";
-import { LorebooksSurface } from "../../catalog/LorebooksSurface";
+import { CompanionsSurface } from "../../catalog/companions";
+import { PersonasSurface } from "../../catalog/personas";
+import { LorebooksSurface } from "../../catalog/lorebooks";
 import "./Pond.css";
 
 interface PondProps {

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNav } from "../navigation/nav-context";
-import type { PersonaRecordInput } from "../../engine/persona-actions";
-import { DeleteButton } from "./DeleteButton";
-import "./CatalogSurface.css";
+import { useNav } from "../../navigation/nav-context";
+import type { CharacterRecordInput } from "../../../engine/character-actions";
+import { DeleteButton } from "../shared/DeleteButton";
+import "../CatalogSurface.css";
 
 interface DraftState {
   displayName: string;
+  shortName: string;
   summary: string;
   description: string;
   avatarUrl: string;
@@ -13,47 +14,51 @@ interface DraftState {
 
 const EMPTY_DRAFT: DraftState = {
   displayName: "",
+  shortName: "",
   summary: "",
   description: "",
   avatarUrl: "",
 };
 
-function draftFromPersona(record: {
+function draftFromCharacter(record: {
   displayName: string;
+  shortName: string | null;
   summary: string;
   description: string;
   avatarUrl: string | null;
 }): DraftState {
   return {
     displayName: record.displayName,
+    shortName: record.shortName ?? "",
     summary: record.summary,
     description: record.description,
     avatarUrl: record.avatarUrl ?? "",
   };
 }
 
-function draftToInput(draft: DraftState): PersonaRecordInput {
+function draftToInput(draft: DraftState): CharacterRecordInput {
   return {
     displayName: draft.displayName.trim(),
+    shortName: draft.shortName.trim() || null,
     summary: draft.summary.trim(),
     description: draft.description.trim(),
     avatarUrl: draft.avatarUrl.trim() || null,
   };
 }
 
-interface PersonaEditorProps {
+interface CompanionEditorProps {
   editingId: string | null;
   initialDraft: DraftState;
   onCancel: () => void;
-  onSave: (input: PersonaRecordInput) => void;
+  onSave: (input: CharacterRecordInput) => void;
 }
 
-function PersonaEditor({
+function CompanionEditor({
   editingId,
   initialDraft,
   onCancel,
   onSave,
-}: PersonaEditorProps) {
+}: CompanionEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
 
   function handleSave() {
@@ -65,25 +70,36 @@ function PersonaEditor({
   return (
     <div className="catalog-editor">
       <h3 className="catalog-editor-heading">
-        {editingId ? "Edit Persona" : "New Persona"}
+        {editingId ? "Edit Companion" : "New Companion"}
       </h3>
       <div className="catalog-editor-field">
-        <label htmlFor="pers-name">Display Name</label>
+        <label htmlFor="comp-name">Display Name</label>
         <input
-          id="pers-name"
+          id="comp-name"
           className="pondinput"
           type="text"
           value={draft.displayName}
           onChange={(e) =>
             setDraft({ ...draft, displayName: e.target.value })
           }
-          placeholder="e.g. Ripples"
+          placeholder="e.g. Hikari"
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="pers-summary">Summary</label>
+        <label htmlFor="comp-short">Short Name</label>
         <input
-          id="pers-summary"
+          id="comp-short"
+          className="pondinput"
+          type="text"
+          value={draft.shortName}
+          onChange={(e) => setDraft({ ...draft, shortName: e.target.value })}
+          placeholder="Optional nickname"
+        />
+      </div>
+      <div className="catalog-editor-field">
+        <label htmlFor="comp-summary">Summary</label>
+        <input
+          id="comp-summary"
           className="pondinput"
           type="text"
           value={draft.summary}
@@ -92,9 +108,9 @@ function PersonaEditor({
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="pers-desc">Description</label>
+        <label htmlFor="comp-desc">Description</label>
         <textarea
-          id="pers-desc"
+          id="comp-desc"
           className="pondinput pondtextarea"
           rows={4}
           value={draft.description}
@@ -103,9 +119,9 @@ function PersonaEditor({
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="pers-avatar">Avatar URL</label>
+        <label htmlFor="comp-avatar">Avatar URL</label>
         <input
-          id="pers-avatar"
+          id="comp-avatar"
           className="pondinput"
           type="text"
           value={draft.avatarUrl}
@@ -125,57 +141,61 @@ function PersonaEditor({
   );
 }
 
-export function PersonasSurface() {
+export function CompanionsSurface() {
   const nav = useNav();
-  const activePersonaId =
-    nav.view.kind === "personas" ? nav.view.personaId : null;
-  const activePersona = activePersonaId
-    ? nav.personas.find((persona) => persona.id === activePersonaId) ?? null
+  const activeCharacterId =
+    nav.view.kind === "companions" ? nav.view.characterId : null;
+  const activeCharacter = activeCharacterId
+    ? nav.characters.find((character) => character.id === activeCharacterId) ??
+      null
     : null;
-  const isCreating = nav.view.kind === "personas" && nav.view.mode === "new";
-  const editingId = activePersona?.id ?? null;
-  const showEditor = isCreating || activePersona !== null;
-  const initialDraft = activePersona ? draftFromPersona(activePersona) : EMPTY_DRAFT;
+  const isCreating =
+    nav.view.kind === "companions" && nav.view.mode === "new";
+  const editingId = activeCharacter?.id ?? null;
+  const showEditor = isCreating || activeCharacter !== null;
+  const initialDraft = activeCharacter
+    ? draftFromCharacter(activeCharacter)
+    : EMPTY_DRAFT;
 
   function openNew() {
-    nav.setView({ kind: "personas", mode: "new" });
+    nav.setView({ kind: "companions", mode: "new" });
   }
 
-  function openEdit(personaId: string) {
-    nav.setView({ kind: "personas", personaId });
+  function openEdit(characterId: string) {
+    nav.setView({ kind: "companions", characterId });
   }
 
-  function handleSave(input: PersonaRecordInput) {
+  function handleSave(input: CharacterRecordInput) {
     if (editingId) {
-      nav.updatePersona(editingId, input);
+      nav.updateCharacter(editingId, input);
     } else {
-      nav.createPersona(input);
+      nav.createCharacter(input);
     }
-    nav.setView({ kind: "personas" });
+    nav.setView({ kind: "companions" });
   }
 
-  function handleDuplicate(personaId: string) {
-    nav.duplicatePersona(personaId);
+  function handleDuplicate(characterId: string) {
+    nav.duplicateCharacter(characterId);
   }
 
-  function handleDelete(personaId: string) {
-    nav.deletePersona(personaId);
-    if (editingId === personaId) {
-      nav.setView({ kind: "personas" });
+  function handleDelete(characterId: string) {
+    nav.deleteCharacter(characterId);
+    if (editingId === characterId) {
+      nav.setView({ kind: "companions" });
     }
   }
 
   function handleCancel() {
-    nav.setView({ kind: "personas" });
+    nav.setView({ kind: "companions" });
   }
 
   return (
     <main className="pond catalog-surface">
       <div className="pond-banner">
         <span className="ic" aria-hidden="true">
-          ◎
+          ⚇
         </span>
-        Personas
+        Companions
         <button
           type="button"
           className="back-btn"
@@ -186,39 +206,44 @@ export function PersonasSurface() {
       </div>
       <div className="pond-inner catalog-inner">
         <div className="catalog-toolbar">
-          <span className="catalog-count">{nav.personas.length} personas</span>
+          <span className="catalog-count">
+            {nav.characters.length} companions
+          </span>
           <button type="button" className="catalog-new-btn" onClick={openNew}>
-            + New Persona
+            + New Companion
           </button>
         </div>
 
-        {nav.personas.length === 0 && !showEditor && (
+        {nav.characters.length === 0 && !showEditor && (
           <p className="catalog-empty">
-            No personas yet. Create one to define how you appear in threads.
+            No companions yet. Create one to stock your shoal.
           </p>
         )}
 
         <div className="catalog-list">
-          {nav.personas.map((persona) => (
+          {nav.characters.map((character) => (
             <article
               className={`catalog-card${
-                editingId === persona.id ? " selected" : ""
+                editingId === character.id ? " selected" : ""
               }`}
-              key={persona.id}
+              key={character.id}
             >
               <button
                 type="button"
                 className="catalog-card-body catalog-card-open"
-                aria-label={`Edit ${persona.displayName}`}
-                onClick={() => openEdit(persona.id)}
+                aria-label={`Edit ${character.displayName}`}
+                onClick={() => openEdit(character.id)}
               >
                 <div className="catalog-avatar">
-                  {persona.displayName.charAt(0).toUpperCase()}
+                  {character.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="catalog-card-copy">
-                  <b>{persona.displayName}</b>
+                  <b>{character.displayName}</b>
+                  {character.shortName && (
+                    <small>aka {character.shortName}</small>
+                  )}
                   <span className="catalog-card-summary">
-                    {persona.summary}
+                    {character.summary}
                   </span>
                 </div>
               </button>
@@ -226,22 +251,22 @@ export function PersonasSurface() {
                 <button
                   type="button"
                   className="catalog-action"
-                  aria-label={`Edit ${persona.displayName}`}
-                  onClick={() => openEdit(persona.id)}
+                  aria-label={`Edit ${character.displayName}`}
+                  onClick={() => openEdit(character.id)}
                 >
                   ✎
                 </button>
                 <button
                   type="button"
                   className="catalog-action"
-                  aria-label={`Duplicate ${persona.displayName}`}
-                  onClick={() => handleDuplicate(persona.id)}
+                  aria-label={`Duplicate ${character.displayName}`}
+                  onClick={() => handleDuplicate(character.id)}
                 >
                   ⧉
                 </button>
                 <DeleteButton
-                  ariaLabel={`Delete ${persona.displayName}`}
-                  onConfirm={() => handleDelete(persona.id)}
+                  ariaLabel={`Delete ${character.displayName}`}
+                  onConfirm={() => handleDelete(character.id)}
                 />
               </div>
             </article>
@@ -249,8 +274,8 @@ export function PersonasSurface() {
         </div>
 
         {showEditor && (
-          <PersonaEditor
-            key={editingId ?? "new-persona"}
+          <CompanionEditor
+            key={editingId ?? "new-companion"}
             editingId={editingId}
             initialDraft={initialDraft}
             onCancel={handleCancel}

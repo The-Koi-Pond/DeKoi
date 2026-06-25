@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNav } from "../navigation/nav-context";
+import { useNav } from "../../navigation/nav-context";
 
 /**
  * Delete affordance for catalog cards. Honors the global

@@ -12,6 +12,11 @@ const featureLayerRank = new Map([
   ["modes", 2],
   ["shell", 3],
 ]);
+const catalogResourcePackageNames = new Set([
+  "companions",
+  "lorebooks",
+  "personas",
+]);
 const allowedFeatureRoots = new Set([
   ...featureLayerRank.keys(),
   "navigation",
@@ -29,6 +34,12 @@ function getFeatureLayer(filePath) {
   const match = filePath.match(/^src\/features\/([^/]+)/);
   if (!match || !featureLayerRank.has(match[1])) return null;
   return match[1];
+}
+
+function getCatalogResourcePackageRoot(filePath) {
+  const match = filePath.match(/^src\/features\/catalog\/([^/]+)/);
+  if (!match || !catalogResourcePackageNames.has(match[1])) return null;
+  return `src/features/catalog/${match[1]}`;
 }
 
 function listSourceFiles(directoryPath) {
@@ -100,6 +111,8 @@ function checkImport(sourceFile, specifier, targetFile) {
   const sourceIsFeatureRuntime = isUnder(sourceFile, "src/features/runtime");
   const sourceIsNonNavigationFeature = sourceIsFeature && !sourceIsNavigation;
   const sourceFeatureLayer = getFeatureLayer(sourceFile);
+  const sourceCatalogResourcePackageRoot =
+    getCatalogResourcePackageRoot(sourceFile);
 
   if (sourceIsEngine && (isReactPackage(specifier) || isTauriPackage(specifier))) {
     failures.push("Engine modules must stay React-free and host-free.");
@@ -160,6 +173,8 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   const targetFeatureLayer = getFeatureLayer(targetFile);
+  const targetCatalogResourcePackageRoot =
+    getCatalogResourcePackageRoot(targetFile);
   if (sourceFeatureLayer && targetFeatureLayer) {
     const sourceRank = featureLayerRank.get(sourceFeatureLayer);
     const targetRank = featureLayerRank.get(targetFeatureLayer);
@@ -172,6 +187,14 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   if (sourceIsFeature && isUnder(targetFile, "src/app")) {
     failures.push("Feature modules must not import app composition modules.");
+  }
+
+  if (
+    targetCatalogResourcePackageRoot &&
+    targetFile !== targetCatalogResourcePackageRoot &&
+    sourceCatalogResourcePackageRoot !== targetCatalogResourcePackageRoot
+  ) {
+    failures.push("Catalog resource packages must be imported through their public entrypoints.");
   }
 
   if (sourceIsFeatureRuntime && isUnder(targetFile, "src/features/navigation")) {

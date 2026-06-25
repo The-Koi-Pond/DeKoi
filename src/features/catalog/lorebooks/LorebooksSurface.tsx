@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNav } from "../navigation/nav-context";
+import { useNav } from "../../navigation/nav-context";
 import type {
   LorebookEntryInput,
   LorebookInput,
-} from "../../engine/lorebook-actions";
-import { Switch } from "../../shared/ui/primitives/Switch";
-import { DeleteButton } from "./DeleteButton";
-import "./CatalogSurface.css";
+} from "../../../engine/lorebook-actions";
+import { Switch } from "../../../shared/ui/primitives/Switch";
+import { DeleteButton } from "../shared/DeleteButton";
+import "../CatalogSurface.css";
 
 interface DraftState {
   title: string;

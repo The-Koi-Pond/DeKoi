@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNav } from "../navigation/nav-context";
-import type { CharacterRecordInput } from "../../engine/character-actions";
-import { DeleteButton } from "./DeleteButton";
-import "./CatalogSurface.css";
+import { useNav } from "../../navigation/nav-context";
+import type { PersonaRecordInput } from "../../../engine/persona-actions";
+import { DeleteButton } from "../shared/DeleteButton";
+import "../CatalogSurface.css";
 
 interface DraftState {
   displayName: string;
-  shortName: string;
   summary: string;
   description: string;
   avatarUrl: string;
@@ -14,51 +13,47 @@ interface DraftState {
 
 const EMPTY_DRAFT: DraftState = {
   displayName: "",
-  shortName: "",
   summary: "",
   description: "",
   avatarUrl: "",
 };
 
-function draftFromCharacter(record: {
+function draftFromPersona(record: {
   displayName: string;
-  shortName: string | null;
   summary: string;
   description: string;
   avatarUrl: string | null;
 }): DraftState {
   return {
     displayName: record.displayName,
-    shortName: record.shortName ?? "",
     summary: record.summary,
     description: record.description,
     avatarUrl: record.avatarUrl ?? "",
   };
 }
 
-function draftToInput(draft: DraftState): CharacterRecordInput {
+function draftToInput(draft: DraftState): PersonaRecordInput {
   return {
     displayName: draft.displayName.trim(),
-    shortName: draft.shortName.trim() || null,
     summary: draft.summary.trim(),
     description: draft.description.trim(),
     avatarUrl: draft.avatarUrl.trim() || null,
   };
 }
 
-interface CompanionEditorProps {
+interface PersonaEditorProps {
   editingId: string | null;
   initialDraft: DraftState;
   onCancel: () => void;
-  onSave: (input: CharacterRecordInput) => void;
+  onSave: (input: PersonaRecordInput) => void;
 }
 
-function CompanionEditor({
+function PersonaEditor({
   editingId,
   initialDraft,
   onCancel,
   onSave,
-}: CompanionEditorProps) {
+}: PersonaEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
 
   function handleSave() {
@@ -70,36 +65,25 @@ function CompanionEditor({
   return (
     <div className="catalog-editor">
       <h3 className="catalog-editor-heading">
-        {editingId ? "Edit Companion" : "New Companion"}
+        {editingId ? "Edit Persona" : "New Persona"}
       </h3>
       <div className="catalog-editor-field">
-        <label htmlFor="comp-name">Display Name</label>
+        <label htmlFor="pers-name">Display Name</label>
         <input
-          id="comp-name"
+          id="pers-name"
           className="pondinput"
           type="text"
           value={draft.displayName}
           onChange={(e) =>
             setDraft({ ...draft, displayName: e.target.value })
           }
-          placeholder="e.g. Hikari"
+          placeholder="e.g. Ripples"
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="comp-short">Short Name</label>
+        <label htmlFor="pers-summary">Summary</label>
         <input
-          id="comp-short"
-          className="pondinput"
-          type="text"
-          value={draft.shortName}
-          onChange={(e) => setDraft({ ...draft, shortName: e.target.value })}
-          placeholder="Optional nickname"
-        />
-      </div>
-      <div className="catalog-editor-field">
-        <label htmlFor="comp-summary">Summary</label>
-        <input
-          id="comp-summary"
+          id="pers-summary"
           className="pondinput"
           type="text"
           value={draft.summary}
@@ -108,9 +92,9 @@ function CompanionEditor({
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="comp-desc">Description</label>
+        <label htmlFor="pers-desc">Description</label>
         <textarea
-          id="comp-desc"
+          id="pers-desc"
           className="pondinput pondtextarea"
           rows={4}
           value={draft.description}
@@ -119,9 +103,9 @@ function CompanionEditor({
         />
       </div>
       <div className="catalog-editor-field">
-        <label htmlFor="comp-avatar">Avatar URL</label>
+        <label htmlFor="pers-avatar">Avatar URL</label>
         <input
-          id="comp-avatar"
+          id="pers-avatar"
           className="pondinput"
           type="text"
           value={draft.avatarUrl}
@@ -141,61 +125,57 @@ function CompanionEditor({
   );
 }
 
-export function CompanionsSurface() {
+export function PersonasSurface() {
   const nav = useNav();
-  const activeCharacterId =
-    nav.view.kind === "companions" ? nav.view.characterId : null;
-  const activeCharacter = activeCharacterId
-    ? nav.characters.find((character) => character.id === activeCharacterId) ??
-      null
+  const activePersonaId =
+    nav.view.kind === "personas" ? nav.view.personaId : null;
+  const activePersona = activePersonaId
+    ? nav.personas.find((persona) => persona.id === activePersonaId) ?? null
     : null;
-  const isCreating =
-    nav.view.kind === "companions" && nav.view.mode === "new";
-  const editingId = activeCharacter?.id ?? null;
-  const showEditor = isCreating || activeCharacter !== null;
-  const initialDraft = activeCharacter
-    ? draftFromCharacter(activeCharacter)
-    : EMPTY_DRAFT;
+  const isCreating = nav.view.kind === "personas" && nav.view.mode === "new";
+  const editingId = activePersona?.id ?? null;
+  const showEditor = isCreating || activePersona !== null;
+  const initialDraft = activePersona ? draftFromPersona(activePersona) : EMPTY_DRAFT;
 
   function openNew() {
-    nav.setView({ kind: "companions", mode: "new" });
+    nav.setView({ kind: "personas", mode: "new" });
   }
 
-  function openEdit(characterId: string) {
-    nav.setView({ kind: "companions", characterId });
+  function openEdit(personaId: string) {
+    nav.setView({ kind: "personas", personaId });
   }
 
-  function handleSave(input: CharacterRecordInput) {
+  function handleSave(input: PersonaRecordInput) {
     if (editingId) {
-      nav.updateCharacter(editingId, input);
+      nav.updatePersona(editingId, input);
     } else {
-      nav.createCharacter(input);
+      nav.createPersona(input);
     }
-    nav.setView({ kind: "companions" });
+    nav.setView({ kind: "personas" });
   }
 
-  function handleDuplicate(characterId: string) {
-    nav.duplicateCharacter(characterId);
+  function handleDuplicate(personaId: string) {
+    nav.duplicatePersona(personaId);
   }
 
-  function handleDelete(characterId: string) {
-    nav.deleteCharacter(characterId);
-    if (editingId === characterId) {
-      nav.setView({ kind: "companions" });
+  function handleDelete(personaId: string) {
+    nav.deletePersona(personaId);
+    if (editingId === personaId) {
+      nav.setView({ kind: "personas" });
     }
   }
 
   function handleCancel() {
-    nav.setView({ kind: "companions" });
+    nav.setView({ kind: "personas" });
   }
 
   return (
     <main className="pond catalog-surface">
       <div className="pond-banner">
         <span className="ic" aria-hidden="true">
-          ⚇
+          ◎
         </span>
-        Companions
+        Personas
         <button
           type="button"
           className="back-btn"
@@ -206,44 +186,39 @@ export function CompanionsSurface() {
       </div>
       <div className="pond-inner catalog-inner">
         <div className="catalog-toolbar">
-          <span className="catalog-count">
-            {nav.characters.length} companions
-          </span>
+          <span className="catalog-count">{nav.personas.length} personas</span>
           <button type="button" className="catalog-new-btn" onClick={openNew}>
-            + New Companion
+            + New Persona
           </button>
         </div>
 
-        {nav.characters.length === 0 && !showEditor && (
+        {nav.personas.length === 0 && !showEditor && (
           <p className="catalog-empty">
-            No companions yet. Create one to stock your shoal.
+            No personas yet. Create one to define how you appear in threads.
           </p>
         )}
 
         <div className="catalog-list">
-          {nav.characters.map((character) => (
+          {nav.personas.map((persona) => (
             <article
               className={`catalog-card${
-                editingId === character.id ? " selected" : ""
+                editingId === persona.id ? " selected" : ""
               }`}
-              key={character.id}
+              key={persona.id}
             >
               <button
                 type="button"
                 className="catalog-card-body catalog-card-open"
-                aria-label={`Edit ${character.displayName}`}
-                onClick={() => openEdit(character.id)}
+                aria-label={`Edit ${persona.displayName}`}
+                onClick={() => openEdit(persona.id)}
               >
                 <div className="catalog-avatar">
-                  {character.displayName.charAt(0).toUpperCase()}
+                  {persona.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="catalog-card-copy">
-                  <b>{character.displayName}</b>
-                  {character.shortName && (
-                    <small>aka {character.shortName}</small>
-                  )}
+                  <b>{persona.displayName}</b>
                   <span className="catalog-card-summary">
-                    {character.summary}
+                    {persona.summary}
                   </span>
                 </div>
               </button>
@@ -251,22 +226,22 @@ export function CompanionsSurface() {
                 <button
                   type="button"
                   className="catalog-action"
-                  aria-label={`Edit ${character.displayName}`}
-                  onClick={() => openEdit(character.id)}
+                  aria-label={`Edit ${persona.displayName}`}
+                  onClick={() => openEdit(persona.id)}
                 >
                   ✎
                 </button>
                 <button
                   type="button"
                   className="catalog-action"
-                  aria-label={`Duplicate ${character.displayName}`}
-                  onClick={() => handleDuplicate(character.id)}
+                  aria-label={`Duplicate ${persona.displayName}`}
+                  onClick={() => handleDuplicate(persona.id)}
                 >
                   ⧉
                 </button>
                 <DeleteButton
-                  ariaLabel={`Delete ${character.displayName}`}
-                  onConfirm={() => handleDelete(character.id)}
+                  ariaLabel={`Delete ${persona.displayName}`}
+                  onConfirm={() => handleDelete(persona.id)}
                 />
               </div>
             </article>
@@ -274,8 +249,8 @@ export function CompanionsSurface() {
         </div>
 
         {showEditor && (
-          <CompanionEditor
-            key={editingId ?? "new-companion"}
+          <PersonaEditor
+            key={editingId ?? "new-persona"}
             editingId={editingId}
             initialDraft={initialDraft}
             onCancel={handleCancel}
