@@ -5,6 +5,7 @@ import {
   type SideRailView,
   type NavContextType,
 } from "./features/navigation/nav-context";
+import { useAppSettingsActions } from "./features/navigation/use-app-settings-actions";
 import { useAppStorageSync } from "./features/navigation/use-app-storage-sync";
 import { currentIsoTimestamp } from "./shared/browser/current-time";
 import { createRecordId } from "./shared/browser/record-id";
@@ -58,7 +59,6 @@ import {
   updatePersonaRecord,
   type PersonaRecordInput,
 } from "./engine/persona-actions";
-import type { ProviderConnectionId } from "./engine/provider-connection";
 import {
   createProviderConnectionRecord,
   deleteProviderConnectionRecord,
@@ -77,12 +77,7 @@ import {
 import type { SurfaceId } from "./engine/surfaces";
 import { CLASSIC, MESSENGER } from "./engine/surfaces";
 import { Shell } from "./features/shell/Shell";
-import {
-  loadAppSettings,
-  normalizeSurfaceStatus,
-  type AppSettings,
-  type ShoalSortMode,
-} from "./runtime/app-settings";
+import { loadAppSettings, type AppSettings } from "./runtime/app-settings";
 import {
   createDeKoiStorageBundle,
   type DeKoiStorageBundle,
@@ -99,10 +94,7 @@ import { loadLorebookRecords } from "./runtime/lorebook-storage";
 import { loadPersonaRecords } from "./runtime/persona-storage";
 import { loadProviderConnectionRecords } from "./runtime/provider-connection-storage";
 import { loadRippleStates } from "./runtime/ripple-state-storage";
-import {
-  readRemoteRuntimeUrl,
-  writeRemoteRuntimeUrl,
-} from "./runtime/runtime-target";
+import { readRemoteRuntimeUrl } from "./runtime/runtime-target";
 
 export default function App() {
   const [view, setView] = useState<PondView>({ kind: "pond" });
@@ -158,6 +150,22 @@ export default function App() {
     setMessengerStorageMessage,
     setStorageReady,
     storageReady,
+  });
+
+  const {
+    setRemoteRuntimeUrl,
+    setSendOnEnterSurface,
+    setConfirmRelease,
+    setSurfaceStatus,
+    setShoalSortMode,
+    setActiveMessengerConnectionId,
+    updateAppSettings,
+  } = useAppSettingsActions({
+    setAppSettings,
+    setRemoteRuntimeUrlState,
+    setStorageReady,
+    setMessengerStorageStatus,
+    setMessengerStorageMessage,
   });
 
   const closeCareDrawer = useCallback(() => setCareOpen(false), []);
@@ -885,59 +893,6 @@ export default function App() {
         ? { kind: "messenger", threadId: firstImportedThreadId }
         : { kind: "pond" },
     );
-  }, []);
-
-  const setRemoteRuntimeUrl = useCallback((url: string) => {
-    writeRemoteRuntimeUrl(url);
-    setStorageReady(false);
-    setMessengerStorageStatus("loading");
-    setMessengerStorageMessage("Loading Messenger storage.");
-    setRemoteRuntimeUrlState(readRemoteRuntimeUrl());
-  }, []);
-
-  const setSendOnEnterSurface = useCallback((surface: SurfaceId) => {
-    setAppSettings((currentSettings) => ({
-      ...currentSettings,
-      sendOnEnterSurface: surface,
-    }));
-  }, []);
-
-  const setConfirmRelease = useCallback((confirmRelease: boolean) => {
-    setAppSettings((currentSettings) => ({
-      ...currentSettings,
-      confirmRelease,
-    }));
-  }, []);
-
-  const setSurfaceStatus = useCallback((surfaceStatus: string) => {
-    setAppSettings((currentSettings) => ({
-      ...currentSettings,
-      surfaceStatus: normalizeSurfaceStatus(surfaceStatus),
-    }));
-  }, []);
-
-  const setShoalSortMode = useCallback((shoalSortMode: ShoalSortMode) => {
-    setAppSettings((currentSettings) => ({
-      ...currentSettings,
-      shoalSortMode,
-    }));
-  }, []);
-
-  const setActiveMessengerConnectionId = useCallback(
-    (activeMessengerConnectionId: ProviderConnectionId) => {
-      setAppSettings((currentSettings) => ({
-        ...currentSettings,
-        activeMessengerConnectionId,
-      }));
-    },
-    [],
-  );
-
-  const updateAppSettings = useCallback((patch: Partial<AppSettings>) => {
-    setAppSettings((currentSettings) => ({
-      ...currentSettings,
-      ...patch,
-    }));
   }, []);
 
   const nav: NavContextType = {
