@@ -59,7 +59,9 @@ Run this check after any collection change:
 pnpm check:storage-contracts
 ```
 
-The check fails if the TypeScript registry and Rust allowlist drift.
+The check fails if the TypeScript registry, Rust allowlist, or documented
+collection table drift. It also verifies each documented native owner file
+exists and names the documented record type.
 
 ## Record Rules
 

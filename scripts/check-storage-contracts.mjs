@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const tsRegistryPath = path.join(root, "src", "runtime", "storage-entities.ts");
 const rustHostPath = path.join(root, "src-tauri", "src", "storage.rs");
+const storageDocsPath = path.join(root, "docs", "storage-model.md");
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -47,6 +48,23 @@ function parseRustEntities(source) {
   );
 }
 
+function parseDocumentedCollections(source) {
+  const sectionMatch = source.match(
+    /## Current Collections\s+([\s\S]*?)\n## Source Of Truth/,
+  );
+  if (!sectionMatch) {
+    throw new Error("Could not find Current Collections table in docs/storage-model.md.");
+  }
+
+  return [...sectionMatch[1].matchAll(/^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|$/gm)].map(
+    (match) => ({
+      entity: match[1],
+      ownerPath: match[2],
+      recordName: match[3],
+    }),
+  );
+}
+
 function unique(values) {
   return [...new Set(values)];
 }
@@ -62,6 +80,8 @@ function formatList(values) {
 
 const tsEntities = parseTypeScriptEntities(readFile(tsRegistryPath));
 const rustEntities = parseRustEntities(readFile(rustHostPath));
+const documentedCollections = parseDocumentedCollections(readFile(storageDocsPath));
+const documentedEntities = documentedCollections.map((collection) => collection.entity);
 const failures = [];
 
 if (tsEntities.length !== unique(tsEntities).length) {
@@ -72,8 +92,14 @@ if (rustEntities.length !== unique(rustEntities).length) {
   failures.push("Rust collection allowlist contains duplicate values.");
 }
 
+if (documentedEntities.length !== unique(documentedEntities).length) {
+  failures.push("Storage model documentation contains duplicate collection rows.");
+}
+
 const missingInRust = listDifference(tsEntities, rustEntities);
 const missingInTypeScript = listDifference(rustEntities, tsEntities);
+const missingInDocs = listDifference(tsEntities, documentedEntities);
+const extraInDocs = listDifference(documentedEntities, tsEntities);
 if (missingInRust.length > 0) {
   failures.push(
     `Entities present in TypeScript but missing from Rust:\n${formatList(missingInRust)}`,
@@ -86,6 +112,18 @@ if (missingInTypeScript.length > 0) {
   );
 }
 
+if (missingInDocs.length > 0) {
+  failures.push(
+    `Entities present in TypeScript but missing from docs/storage-model.md:\n${formatList(missingInDocs)}`,
+  );
+}
+
+if (extraInDocs.length > 0) {
+  failures.push(
+    `Entities present in docs/storage-model.md but missing from TypeScript:\n${formatList(extraInDocs)}`,
+  );
+}
+
 if (
   missingInRust.length === 0 &&
   missingInTypeScript.length === 0 &&
@@ -94,10 +132,37 @@ if (
   failures.push("TypeScript and Rust storage entities match but are in different order.");
 }
 
+if (
+  missingInDocs.length === 0 &&
+  extraInDocs.length === 0 &&
+  tsEntities.join("\n") !== documentedEntities.join("\n")
+) {
+  failures.push("TypeScript and documented storage entities match but are in different order.");
+}
+
+for (const collection of documentedCollections) {
+  const ownerPath = path.join(root, collection.ownerPath);
+  if (!fs.existsSync(ownerPath)) {
+    failures.push(
+      `Documented storage owner does not exist for ${collection.entity}: ${collection.ownerPath}`,
+    );
+    continue;
+  }
+
+  const ownerSource = readFile(ownerPath);
+  if (!new RegExp(`\\b${collection.recordName}\\b`).test(ownerSource)) {
+    failures.push(
+      `Documented record ${collection.recordName} was not found in ${collection.ownerPath}.`,
+    );
+  }
+}
+
 if (failures.length > 0) {
   console.error("Storage contract check failed.");
   console.error(failures.join("\n\n"));
   process.exit(1);
 }
 
-console.log(`Storage contract check passed for ${tsEntities.length} entities.`);
+console.log(
+  `Storage contract check passed for ${tsEntities.length} entities and ${documentedCollections.length} documented collections.`,
+);
