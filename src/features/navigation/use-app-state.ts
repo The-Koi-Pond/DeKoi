@@ -17,7 +17,7 @@ import { loadPersonaRecords } from "../../runtime/persona-storage";
 import { loadProviderConnectionRecords } from "../../runtime/provider-connection-storage";
 import { loadRippleStates } from "../../runtime/ripple-state-storage";
 import { readRemoteRuntimeUrl } from "../../runtime/runtime-target";
-import type { PondView, SideRailView } from "./nav-context";
+import type { PondView, SideRailView } from "./nav-types";
 
 export function useAppState() {
   const [view, setView] = useState<PondView>({ kind: "pond" });

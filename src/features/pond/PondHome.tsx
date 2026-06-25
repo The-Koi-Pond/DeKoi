@@ -1,4 +1,4 @@
-import type { NavContextType } from "../navigation/nav-context";
+import type { NavContextType } from "../navigation/nav-types";
 import { Hero } from "./hero/Hero";
 import { ModePools } from "./pools/ModePools";
 import { RecentCurrents } from "./currents/RecentCurrents";

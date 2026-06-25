@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import type { NavContextType } from "../../navigation/nav-context";
+import type { NavContextType } from "../../navigation/nav-types";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { Slider } from "../../../shared/ui/primitives/Slider";
 import { NumberField } from "../../../shared/ui/primitives/NumberField";

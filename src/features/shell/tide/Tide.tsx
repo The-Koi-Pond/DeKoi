@@ -1,5 +1,5 @@
 import './Tide.css'
-import type { NavContextType } from '../../navigation/nav-context'
+import type { NavContextType } from '../../navigation/nav-types'
 
 interface TideProps {
   nav: NavContextType

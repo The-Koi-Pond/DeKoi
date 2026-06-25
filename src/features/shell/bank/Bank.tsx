@@ -8,7 +8,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/surfaces";
-import type { SideRailView } from "../../navigation/nav-context";
+import type { SideRailView } from "../../navigation/nav-types";
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
   {

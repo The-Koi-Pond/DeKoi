@@ -9,7 +9,7 @@ import {
 } from "../../runtime/dekoi-storage-bundle";
 import type { DeKoiLegacyImportData } from "../../runtime/legacy-import";
 import type { MessengerStorageStatus } from "../../runtime/messenger-storage";
-import type { PondView } from "./nav-context";
+import type { PondView } from "./nav-types";
 import type { AppStorageRecords } from "../../runtime/app-storage-snapshot";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;

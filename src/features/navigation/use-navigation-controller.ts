@@ -1,4 +1,4 @@
-import type { NavContextType } from "./nav-context";
+import type { NavContextType } from "./nav-types";
 import { useAppState } from "./use-app-state";
 import { useCareDrawerActions } from "./use-care-drawer-actions";
 import { useCharacterActions } from "./use-character-actions";

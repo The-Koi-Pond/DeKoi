@@ -1,4 +1,4 @@
-import type { NavContextType } from "../navigation/nav-context";
+import type { NavContextType } from "../navigation/nav-types";
 import { ClassicThread } from "../classic/ClassicThread";
 import { PondHome } from "./PondHome";
 import { MessengerThread } from "../messenger/MessengerThread";
