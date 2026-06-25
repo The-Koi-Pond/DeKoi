@@ -123,20 +123,15 @@ export async function saveHostRecords<T extends StorageRecord>(
       currentRecords,
       nextRecords: records,
     });
+    const upsertOperations = operations.filter(
+      (operation) => operation.type !== "delete",
+    );
+    const deleteOperations = operations.filter(
+      (operation) => operation.type === "delete",
+    );
 
     await Promise.all(
-      operations.map((operation) => {
-        if (operation.type === "delete") {
-          return invokeHostStorage(
-            RUNTIME_COMMANDS.storageDelete,
-            {
-              entity,
-              id: operation.record.id,
-            },
-            rawUrl,
-          );
-        }
-
+      upsertOperations.map((operation) => {
         if (operation.type === "update") {
           return invokeHostStorage(
             RUNTIME_COMMANDS.storageUpdate,
@@ -158,6 +153,19 @@ export async function saveHostRecords<T extends StorageRecord>(
           rawUrl,
         );
       }),
+    );
+
+    await Promise.all(
+      deleteOperations.map((operation) =>
+        invokeHostStorage(
+          RUNTIME_COMMANDS.storageDelete,
+          {
+            entity,
+            id: operation.record.id,
+          },
+          rawUrl,
+        ),
+      ),
     );
 
     return {
