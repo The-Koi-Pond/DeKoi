@@ -11,37 +11,21 @@ import {
   remoteRuntimeTarget,
 } from "../shared/api/runtime-target";
 import type { HostStorageEntity } from "./storage-entities";
+import type {
+  StorageCollectionRepository,
+  StorageMode,
+  StorageRecord,
+  StorageRecordNormalizer,
+  StorageRecordsSnapshot,
+  StorageRepositoryInput,
+  StorageResult,
+  StorageStatus,
+} from "./storage-repository";
 
-export type HostStorageMode = "desktop" | "remote" | "unavailable";
-export type HostStorageStatus = "ready" | "error";
+export type HostStorageMode = StorageMode;
+export type HostStorageStatus = StorageStatus;
 
-export type HostStorageResult = {
-  mode: HostStorageMode;
-  status: HostStorageStatus;
-  message: string;
-};
-
-export type StorageRecord = { id: string };
-
-export type StorageRecordNormalizer<T extends StorageRecord> = (
-  value: unknown,
-) => T | null;
-
-export type StorageRecordsSnapshot<T extends StorageRecord> = {
-  records: T[];
-} & HostStorageResult;
-
-export interface StorageCollectionRepository<T extends StorageRecord> {
-  load: (rawUrl?: string) => Promise<T[]>;
-  loadSnapshot: (rawUrl?: string) => Promise<StorageRecordsSnapshot<T>>;
-  save: (records: T[], rawUrl?: string) => Promise<HostStorageResult>;
-}
-
-interface HostStorageRepositoryInput<T extends StorageRecord> {
-  entity: HostStorageEntity;
-  normalizeRecord: StorageRecordNormalizer<T>;
-  seedRecords: T[];
-}
+export type HostStorageResult = StorageResult;
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
@@ -272,7 +256,7 @@ export function createHostStorageRepository<T extends StorageRecord>({
   entity,
   normalizeRecord,
   seedRecords,
-}: HostStorageRepositoryInput<T>): StorageCollectionRepository<T> {
+}: StorageRepositoryInput<T>): StorageCollectionRepository<T> {
   return {
     load: (rawUrl) => loadHostRecords(entity, normalizeRecord, rawUrl),
     loadSnapshot: (rawUrl) =>

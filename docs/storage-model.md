@@ -50,9 +50,10 @@ Runtime storage adapters live under `src/runtime`; durable product record shapes
 live under `src/engine`.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
-`src/runtime/host-storage.ts`. Future SQLite or database-backed storage should
-implement the same repository shape behind runtime adapters rather than leaking
-database details into feature code or engine records.
+`src/runtime/storage-repository.ts`. The current host-backed implementation
+lives in `src/runtime/host-storage.ts`. Future SQLite or database-backed storage
+should implement the same repository shape behind runtime adapters rather than
+leaking database details into feature code or engine records.
 
 The desktop host keeps a Rust allowlist for local file access:
 
