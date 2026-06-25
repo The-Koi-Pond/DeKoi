@@ -25,8 +25,6 @@ const legacyFeatureRuntimeImports = new Set([
   "src/features/modes/messenger/thread-display.ts -> src/runtime/app-settings",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/dekoi-storage-bundle",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-bundle-file",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-host-status",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-provider-secrets",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-storage-bundle",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/legacy-import",
   "src/features/shell/shoal/Shoal.tsx -> src/runtime/app-settings",

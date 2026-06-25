@@ -188,7 +188,7 @@
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
-          <li>Keep desktop/remote transport wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage/generation systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
+          <li>Keep desktop/remote transport, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage/generation systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
           <li>Deepen <code>features/catalog</code> into resource-owned packages as collections grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>
         </ol>

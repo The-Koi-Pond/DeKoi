@@ -1,8 +1,11 @@
-import { isTauri } from "@tauri-apps/api/core";
 import {
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
 } from "./dekoi-storage-bundle";
+export {
+  asDesktopHostErrorMessage,
+  requireTauriForDesktopHost,
+} from "../shared/api/desktop-host-common";
 
 export interface DeKoiDesktopStorageBundleInfo {
   path: string;
@@ -23,15 +26,6 @@ export type DeKoiDesktopStorageBundleResult =
       warnings: string[];
     }
   | { ok: false; cancelled?: boolean; error: string };
-
-export function asDesktopHostErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
-export function requireTauriForDesktopHost(message: string) {
-  if (!isTauri()) throw new Error(message);
-}
 
 export function normalizeDesktopStorageBundleSnapshot(
   snapshot: DeKoiDesktopStorageBundleSnapshot,

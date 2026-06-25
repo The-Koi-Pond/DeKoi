@@ -20,7 +20,7 @@ import {
 import {
   checkDesktopHostStatus,
   type DeKoiDesktopHostStatus,
-} from "../../../runtime/desktop-host-status";
+} from "../../../shared/api/desktop-host-status";
 import {
   exportDesktopBundleFile,
   importDesktopBundleFile,
@@ -30,7 +30,7 @@ import {
   getDesktopProviderSecretStatus,
   writeDesktopProviderSecret,
   type DeKoiDesktopProviderSecretStatus,
-} from "../../../runtime/desktop-provider-secrets";
+} from "../../../shared/api/desktop-provider-secrets";
 import {
   readDesktopStorageBundle,
   writeDesktopStorageBundle,

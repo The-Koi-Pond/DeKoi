@@ -101,9 +101,10 @@ Move toward the old De-Koi skeleton in small, validated slices:
    surfaces there too.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too.
-5. Keep desktop/remote transport wrappers in `src/shared/api`; continue moving
-   remaining `src/runtime` storage/generation systems toward `src/shared/api`
-   or `features/runtime` where appropriate.
+5. Keep desktop/remote transport, desktop host status, and provider secret
+   wrappers in `src/shared/api`; continue moving remaining `src/runtime`
+   storage/generation systems toward `src/shared/api` or `features/runtime`
+   where appropriate.
 6. Deepen `features/catalog` into resource-owned packages as collections grow.
 7. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
