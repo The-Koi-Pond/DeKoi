@@ -111,8 +111,8 @@
             </tr>
             <tr>
               <td><code>src/features/navigation</code></td>
-              <td>App state, persistence sync, action hooks, import/export, and provider/controller logic.</td>
-              <td>Move provider/startup ownership toward <code>src/app</code> and mode routing ownership toward <code>features/modes</code>.</td>
+              <td>App state, persistence sync, action hooks, import/export, navigation context, and controller logic.</td>
+              <td>Provider wiring now lives in <code>src/app</code>; move mode routing ownership toward <code>features/modes</code>.</td>
             </tr>
             <tr>
               <td><code>src/runtime</code></td>
@@ -177,7 +177,7 @@
         <h2>Migration Direction</h2>
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin.</li>
-          <li>Move navigation provider/controller ownership toward app providers and mode router boundaries.</li>
+          <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete.</li>
           <li>Move Messenger and Classic screens under <code>features/modes</code>.</li>
           <li>Move Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>.</li>
           <li>Split current <code>src/runtime</code> into typed <code>src/shared/api</code> wrappers and <code>features/runtime</code> systems where appropriate.</li>

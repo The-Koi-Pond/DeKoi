@@ -1,8 +1,6 @@
-import { NavigationProvider } from "../features/navigation/NavigationProvider";
 import { Shell } from "../features/shell/Shell";
+import { AppProviders } from "./AppProviders";
 
 export function AppRoot() {
-  return (
-    <NavigationProvider>{(nav) => <Shell nav={nav} />}</NavigationProvider>
-  );
+  return <AppProviders>{(nav) => <Shell nav={nav} />}</AppProviders>;
 }
