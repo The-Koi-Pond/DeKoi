@@ -229,7 +229,7 @@
 .window-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin-left: 6px;
   padding-left: 10px;
   border-left: 1px solid var(--reed-soft);
@@ -237,23 +237,29 @@
 }
 
 .window-control {
-  --window-control-color: var(--mist);
-  display: grid;
+  --window-control-fg: var(--foam);
+  display: inline-flex;
   width: 44px;
   height: 38px;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--window-control-color);
+  color: var(--window-control-fg);
   cursor: pointer;
-  transition: 0.16s;
+  filter: drop-shadow(0 2px 3px rgba(9, 19, 23, 0.42));
+  transition:
+    background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-app-region: no-drag;
 }
 
 .window-control svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -262,28 +268,52 @@
 }
 
 .window-control.minimize {
-  --window-control-color: var(--amber-hot);
+  --window-control-fg: color-mix(in srgb, var(--amber-hot) 82%, var(--foam));
 }
 
 .window-control.maximize {
-  --window-control-color: var(--jade-hot);
+  --window-control-fg: color-mix(in srgb, var(--jade-hot) 76%, var(--foam));
 }
 
 .window-control.close {
-  --window-control-color: var(--koi-hot);
+  --window-control-fg: color-mix(in srgb, var(--koi-hot) 82%, var(--foam));
 }
 
 .window-control:hover,
 .window-control:focus-visible {
-  border-color: color-mix(in srgb, var(--window-control-color) 38%, var(--reed-soft));
-  background: color-mix(in srgb, var(--window-control-color) 12%, var(--shallow));
-  color: var(--window-control-color);
+  background: transparent;
+  color: var(--window-control-fg);
+  filter:
+    drop-shadow(0 2px 3px rgba(9, 19, 23, 0.36))
+    drop-shadow(0 0 7px currentColor);
   outline: none;
-  box-shadow: 0 0 18px -12px var(--window-control-color);
+  transform: translateY(-1px) rotate(-8deg) scale(1.16);
 }
 
-.window-control.close:hover,
-.window-control.close:focus-visible {
-  border-color: rgba(244, 122, 53, 0.5);
-  background: rgba(244, 122, 53, 0.14);
+.window-control.maximize:hover,
+.window-control.maximize:focus-visible {
+  transform: translateY(-1px) rotate(8deg) scale(1.16);
+}
+
+.window-control:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.window-control.close:hover {
+  animation: window-control-wiggle 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes window-control-wiggle {
+  0%,
+  100% {
+    transform: translateY(-1px) rotate(-7deg) scale(1.08);
+  }
+
+  35% {
+    transform: translateY(-1px) rotate(8deg) scale(1.1);
+  }
+
+  70% {
+    transform: translateY(-1px) rotate(-4deg) scale(1.08);
+  }
 }
