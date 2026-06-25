@@ -1,6 +1,7 @@
 import {
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
+  type DeKoiStorageBundleCounts,
 } from "./dekoi-storage-bundle";
 import type {
   DeKoiDesktopStorageBundleInfo,
@@ -15,6 +16,7 @@ export type DeKoiDesktopStorageBundleResult =
   | {
       ok: true;
       bundle: DeKoiStorageBundle;
+      counts: DeKoiStorageBundleCounts;
       info: DeKoiDesktopStorageBundleInfo;
       warnings: string[];
     }
@@ -29,6 +31,7 @@ export function normalizeDesktopStorageBundleSnapshot(
   return {
     ok: true,
     bundle: normalized.preview.bundle,
+    counts: normalized.preview.counts,
     info: {
       path: snapshot.path,
       byteLength: snapshot.byteLength,

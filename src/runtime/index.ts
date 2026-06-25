@@ -13,6 +13,7 @@ export {
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
+  type DeKoiStorageBundleParseResult,
   type DeKoiStorageBundlePreview,
 } from "./dekoi-storage-bundle";
 export {

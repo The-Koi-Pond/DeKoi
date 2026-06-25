@@ -13,12 +13,12 @@ import type {
 } from "../../../engine/provider-connection";
 import {
   getDeKoiStorageBundleCounts,
-  normalizeDeKoiStorageBundle,
   exportDesktopBundleFile,
   importDesktopBundleFile,
   readDesktopStorageBundle,
   writeDesktopStorageBundle,
-  normalizeLegacyImport,
+  previewDeKoiStorageBundleFile,
+  previewLegacyImportFile,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
   type DeKoiLegacyImportPreview,
@@ -35,6 +35,7 @@ import {
 } from "../../../shared/api/desktop-provider-secrets";
 import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
+import { downloadJsonFile } from "../../../shared/browser/download-json";
 import "./CareDrawer.css";
 import "./care-fields.css";
 import "../../../shared/ui/primitives/Chip.css";
@@ -395,17 +396,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   }
 
   function handleBundleExport() {
-    const bundle = nav.createStorageBundle();
-    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-      type: "application/json",
+    downloadJsonFile({
+      data: nav.createStorageBundle(),
+      filename: getBundleFilename(),
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = getBundleFilename();
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
     setBundleStatus("Exported a DeKoi JSON bundle.");
   }
 
@@ -439,21 +433,16 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
     if (!file) return;
 
-    try {
-      const parsed = JSON.parse(await file.text()) as unknown;
-      const result = normalizeDeKoiStorageBundle(parsed);
-      if (!result.ok) {
-        setBundleStatus(result.error);
-        return;
-      }
-
-      setBundlePreview(result.preview);
-      setBundleStatus(`Previewing ${file.name}.`);
-    } catch {
-      setBundleStatus("Import file must be valid JSON.");
-    } finally {
+    const result = await previewDeKoiStorageBundleFile(file);
+    if (!result.ok) {
+      setBundleStatus(result.error);
       input.value = "";
+      return;
     }
+
+    setBundlePreview(result.preview);
+    setBundleStatus(`Previewing ${file.name}.`);
+    input.value = "";
   }
 
   function handleBundleImport() {
@@ -486,7 +475,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
       setBundlePreview({
         bundle: result.bundle,
-        counts: getDeKoiStorageBundleCounts(result.bundle.data),
+        counts: result.counts,
         warnings: result.warnings,
       });
       setBundleStatus(
@@ -508,21 +497,16 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
     if (!file) return;
 
-    try {
-      const parsed = JSON.parse(await file.text()) as unknown;
-      const result = normalizeLegacyImport(parsed);
-      if (!result.ok) {
-        setLegacyStatus(result.error);
-        return;
-      }
-
-      setLegacyPreview(result.preview);
-      setLegacyStatus(`Previewing ${file.name}.`);
-    } catch {
-      setLegacyStatus("Legacy import file must be valid JSON.");
-    } finally {
+    const result = await previewLegacyImportFile(file);
+    if (!result.ok) {
+      setLegacyStatus(result.error);
       input.value = "";
+      return;
     }
+
+    setLegacyPreview(result.preview);
+    setLegacyStatus(`Previewing ${file.name}.`);
+    input.value = "";
   }
 
   function handleLegacyImport() {
