@@ -1,7 +1,7 @@
 import { PondEye } from "./PondEye";
 import "./hero.css";
 
-import { useNav } from "../../../shared/ui/nav-context";
+import { useNav } from "../../navigation/nav-context";
 import { sortClassicThreadsByUpdatedAt } from "../../classic/classic-display";
 import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 

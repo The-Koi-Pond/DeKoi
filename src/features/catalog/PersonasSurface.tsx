@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNav } from "../../shared/ui/nav-context";
+import { useNav } from "../navigation/nav-context";
 import type { PersonaRecordInput } from "../../engine/persona-actions";
 import { DeleteButton } from "./DeleteButton";
 import "./CatalogSurface.css";

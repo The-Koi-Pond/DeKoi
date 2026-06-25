@@ -106,7 +106,8 @@ The short version:
 - `src/engine/messenger-generation.ts` builds provider-neutral Messenger
   generation requests.
 - `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
-  surfaces.
+  surfaces. `src/features/navigation` owns the app-level navigation context
+  while the seed still uses a single top-level app state provider.
 - `src/runtime/*` adapts native records to desktop storage, remote storage,
   DeKoi bundle import/export, and generation runtimes. Runtime command names,
   target URL handling, health result types, remote runtime HTTP/health/invoke

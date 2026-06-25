@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNav } from "../../shared/ui/nav-context";
+import { useNav } from "../navigation/nav-context";
 import type {
   LorebookEntryInput,
   LorebookInput,

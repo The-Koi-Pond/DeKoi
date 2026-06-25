@@ -30,7 +30,7 @@ import {
   type PondView,
   type SideRailView,
   type NavContextType,
-} from "./shared/ui/nav-context";
+} from "./features/navigation/nav-context";
 import {
   createCharacterRecord,
   deleteCharacterRecord,

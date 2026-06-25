@@ -1,5 +1,5 @@
 import { SURFACES } from "../../../engine/surfaces";
-import { useNav } from "../../../shared/ui/nav-context";
+import { useNav } from "../../navigation/nav-context";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,

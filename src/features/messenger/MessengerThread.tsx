@@ -6,7 +6,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { useNav } from "../../shared/ui/nav-context";
+import { useNav } from "../navigation/nav-context";
 import { type MessengerMessage } from "../../engine/messenger";
 import { getProviderConnectionById } from "../../engine/provider-connection";
 import { MESSENGER } from "../../engine/surfaces";

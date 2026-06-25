@@ -6,7 +6,7 @@ import { Tide } from "./tide/Tide";
 import { useEffect } from "react";
 import { CareDrawer } from "./care/CareDrawer";
 import { Pond } from "../pond/Pond";
-import type { NavContextType } from "../../shared/ui/nav-context";
+import type { NavContextType } from "../navigation/nav-context";
 
 interface ShellProps {
   nav: NavContextType;

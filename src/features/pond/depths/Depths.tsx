@@ -1,6 +1,6 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { RESERVED } from "../../../engine/surfaces";
-import type { NavContextType } from "../../../shared/ui/nav-context";
+import type { NavContextType } from "../../navigation/nav-context";
 import { sortClassicThreadsByUpdatedAt } from "../../classic/classic-display";
 import { sortMessengerThreadsByUpdatedAt } from "../../messenger/thread-display";
 import "./depths.css";

@@ -10,7 +10,7 @@ import {
   getMessengerThreadPreview,
   sortMessengerThreads,
 } from "../../messenger/thread-display";
-import { useNav } from "../../../shared/ui/nav-context";
+import { useNav } from "../../navigation/nav-context";
 import type { ShoalSortMode } from "../../../runtime/app-settings";
 import "./Shoal.css";
 
