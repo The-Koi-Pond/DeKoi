@@ -9,6 +9,21 @@ export type StorageResult = {
   message: string;
 };
 
+export function mergeStorageResults<T extends StorageResult>(
+  results: readonly T[],
+): T {
+  const fallback = results[0];
+  if (!fallback) {
+    throw new Error("Cannot merge an empty storage result list.");
+  }
+
+  return (
+    results.find((result) => result.status === "error") ??
+    results.find((result) => result.mode !== "unavailable") ??
+    fallback
+  );
+}
+
 export type StorageRecord = { id: string };
 
 export type StorageRecordNormalizer<T extends StorageRecord> = (

@@ -55,6 +55,9 @@ entrypoint in `src/runtime/index.ts`. The current host-backed implementation
 lives in `src/runtime/host-storage.ts`. Future SQLite or database-backed storage
 should implement the same repository shape behind runtime adapters rather than
 leaking database details into feature code or engine records.
+The shared repository module also owns storage result aggregation, so snapshot
+and import/export orchestration can combine adapter outcomes without depending
+on a concrete host implementation.
 
 The desktop host keeps a Rust allowlist for local file access:
 

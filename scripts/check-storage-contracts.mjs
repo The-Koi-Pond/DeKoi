@@ -17,6 +17,7 @@ const expectedRuntimeStorageRepositoryExports = [
   "StorageResult",
   "StorageStatus",
 ];
+const expectedRuntimeStorageRepositoryValueExports = ["mergeStorageResults"];
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -106,6 +107,16 @@ function parseRuntimeStorageRepositoryExports(source) {
   );
 }
 
+function parseRuntimeStorageRepositoryValueExports(source) {
+  return [
+    ...source.matchAll(
+      /^export\s+\{([^}]*)\}\s+from\s+"\.\/storage-repository";$/gm,
+    ),
+  ].flatMap((match) =>
+    [...match[1].matchAll(/\b[a-z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
+  );
+}
+
 function unique(values) {
   return [...new Set(values)];
 }
@@ -132,6 +143,8 @@ const documentedEntities = documentedCollections.map((collection) => collection.
 const runtimeStorageRepositoryExports = parseRuntimeStorageRepositoryExports(
   readFile(runtimeIndexPath),
 );
+const runtimeStorageRepositoryValueExports =
+  parseRuntimeStorageRepositoryValueExports(readFile(runtimeIndexPath));
 const failures = [];
 
 if (tsEntities.length !== unique(tsEntities).length) {
@@ -168,6 +181,16 @@ if (duplicateRuntimeStorageRepositoryExports.length > 0) {
   );
 }
 
+const duplicateRuntimeStorageRepositoryValueExports =
+  runtimeStorageRepositoryValueExports.filter(
+    (exportName, index, exports) => exports.indexOf(exportName) !== index,
+  );
+if (duplicateRuntimeStorageRepositoryValueExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint contains duplicate storage repository value exports:\n${formatList(unique(duplicateRuntimeStorageRepositoryValueExports))}`,
+  );
+}
+
 const missingRuntimeStorageRepositoryExports = listDifference(
   expectedRuntimeStorageRepositoryExports,
   runtimeStorageRepositoryExports,
@@ -175,6 +198,16 @@ const missingRuntimeStorageRepositoryExports = listDifference(
 if (missingRuntimeStorageRepositoryExports.length > 0) {
   failures.push(
     `Runtime public entrypoint must re-export storage repository contract types from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryExports)}`,
+  );
+}
+
+const missingRuntimeStorageRepositoryValueExports = listDifference(
+  expectedRuntimeStorageRepositoryValueExports,
+  runtimeStorageRepositoryValueExports,
+);
+if (missingRuntimeStorageRepositoryValueExports.length > 0) {
+  failures.push(
+    `Runtime public entrypoint must re-export storage repository helpers from ./storage-repository:\n${formatList(missingRuntimeStorageRepositoryValueExports)}`,
   );
 }
 

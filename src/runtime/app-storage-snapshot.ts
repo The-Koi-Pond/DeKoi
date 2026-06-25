@@ -39,9 +39,9 @@ import {
   saveRippleStatesToStorage,
 } from "./ripple-state-storage";
 import {
-  mergeHostStorageResults,
-  type HostStorageResult,
-} from "./host-storage";
+  mergeStorageResults,
+  type StorageResult,
+} from "./storage-repository";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;
@@ -55,7 +55,7 @@ export type AppStorageRecords = {
 };
 
 export type AppStorageSnapshot = AppStorageRecords & {
-  storageResult: HostStorageResult;
+  storageResult: StorageResult;
 };
 
 export async function loadAppStorageSnapshot(
@@ -90,7 +90,7 @@ export async function loadAppStorageSnapshot(
     classicThreads: classicSnapshot.records,
     messengerThreads: messengerSnapshot.threads,
     rippleStates: rippleSnapshot.states,
-    storageResult: mergeHostStorageResults([
+    storageResult: mergeStorageResults([
       appSettingsSnapshot,
       characterSnapshot,
       personaSnapshot,
@@ -106,8 +106,8 @@ export async function loadAppStorageSnapshot(
 export async function saveAppStorageSnapshot(
   snapshot: AppStorageRecords,
   rawUrl: string,
-): Promise<HostStorageResult> {
-  return mergeHostStorageResults(
+): Promise<StorageResult> {
+  return mergeStorageResults(
     await Promise.all([
       saveAppSettingsToStorage(snapshot.appSettings, rawUrl),
       saveCharacterRecordsToStorage(snapshot.characters, rawUrl),
