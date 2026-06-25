@@ -94,6 +94,7 @@ The check currently enforces these rules:
 - Navigation must be imported through its public entrypoint.
 - Shell must be imported through its public entrypoint.
 - Shell packages must be imported through their public entrypoints.
+- Feature package entrypoints must use explicit exports, not wildcard exports.
 - `src/features/navigation` must not import sibling shell, mode, or catalog UI
   modules. It may call lower `features/runtime` workflows while navigation is a
   bridge layer, and it must not import `src/runtime` directly.

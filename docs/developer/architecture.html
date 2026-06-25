@@ -216,6 +216,10 @@
               <td>App-level panels keep their internal components package-owned while the shell composes stable surfaces.</td>
             </tr>
             <tr>
+              <td>Feature package entrypoints must use explicit exports, not wildcard exports.</td>
+              <td>Package APIs stay intentional instead of leaking new internals through barrel files.</td>
+            </tr>
+            <tr>
               <td><code>src/features/navigation</code> must not import sibling shell, mode, or catalog UI modules; it may call lower <code>features/runtime</code> workflows while it is a bridge layer, and it must not import <code>src/runtime</code> directly.</td>
               <td>The navigation bridge owns orchestration and state, not concrete screen composition.</td>
             </tr>

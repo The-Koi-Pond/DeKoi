@@ -35,6 +35,10 @@ function isCatalogRootSourceFile(filePath) {
   return /^src\/features\/catalog\/[^/]+\.[jt]sx?$/.test(filePath);
 }
 
+function isFeatureEntryPoint(filePath) {
+  return /^src\/features\/.+\/index\.[jt]sx?$/.test(filePath);
+}
+
 function toPosix(value) {
   return value.split(path.sep).join("/");
 }
@@ -392,6 +396,12 @@ for (const sourceFile of sourceFiles) {
   }
 
   const source = fs.readFileSync(path.join(root, sourceFile), "utf8");
+  if (isFeatureEntryPoint(sourceFile) && /\bexport\s+\*\s+from\b/.test(source)) {
+    failures.push(
+      `Feature package entrypoints must use explicit exports.\n  - ${sourceFile}`,
+    );
+  }
+
   for (const specifier of collectModuleSpecifiers(source)) {
     const targetFile = resolveRelativeImport(sourceFile, specifier);
     const importFailures = checkImport(sourceFile, specifier, targetFile);
