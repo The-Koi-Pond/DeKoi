@@ -20,6 +20,7 @@ import type {
   NavViewState,
 } from "../../navigation";
 import type { ShoalSortMode } from "../../../engine/app-settings";
+import { getProviderConnectionStatusLabel } from "../../../engine/provider-connection";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -37,7 +38,7 @@ interface ShoalProps {
 
 export type ShoalNav = Pick<
   NavCatalogState,
-  "characters" | "lorebooks" | "personas"
+  "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<
     NavClassicThreadActions,
@@ -47,7 +48,7 @@ export type ShoalNav = Pick<
     NavMessengerThreadActions,
     "createMessengerThread" | "deleteMessengerThread" | "renameMessengerThread"
   > &
-  Pick<NavSettingsActions, "setShoalSortMode"> &
+  Pick<NavSettingsActions, "setActiveMessengerConnectionId" | "setShoalSortMode"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<
     NavStorageState,
@@ -347,6 +348,119 @@ function LorebookCatalogRail({ nav }: ShoalProps) {
   );
 }
 
+function ConnectionsCatalogRail({ nav }: ShoalProps) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const activeConnectionId = nav.appSettings.activeMessengerConnectionId;
+  const activeConnection = nav.providerConnections.find(
+    (connection) => connection.id === activeConnectionId,
+  );
+  const filteredConnections = useMemo(() => {
+    if (!normalizedQuery) return nav.providerConnections;
+
+    return nav.providerConnections.filter((connection) =>
+      [
+        connection.label,
+        connection.summary,
+        connection.kind,
+        connection.modelLabel ?? "",
+        getProviderConnectionStatusLabel(connection.status),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [nav.providerConnections, normalizedQuery]);
+
+  return (
+    <aside className="shoal catalog-rail" aria-label="Catalog — connections">
+      <div className="shoal-head">
+        <div className="shoal-title">
+          <h2>
+            <span className="shoal-symbol" aria-hidden="true">
+              ⌗
+            </span>
+            Connections
+          </h2>
+          <span className="count">{nav.providerConnections.length} stocked</span>
+        </div>
+        <div className="shoal-search">
+          <label
+            className="glyph"
+            aria-hidden="true"
+            htmlFor="catalog-connections-search-input"
+          >
+            ⌕
+          </label>
+          <input
+            id="catalog-connections-search-input"
+            type="search"
+            placeholder="Find connections..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+      </div>
+      <div className="shoal-meta">
+        <span>Default: {activeConnection?.label ?? "None"}</span>
+        <span className="mark-chip">{filteredConnections.length} shown</span>
+      </div>
+      <div className="shoal-list">
+        <div className="group-label">Provider connections</div>
+        {filteredConnections.map((connection) => (
+          <CatalogRailCard
+            key={connection.id}
+            active={connection.id === activeConnectionId}
+            badge={getProviderConnectionStatusLabel(connection.status)}
+            initials={getMessengerThreadInitials(connection.label)}
+            name={connection.label}
+            sub={
+              connection.summary ||
+              connection.modelLabel ||
+              connection.kind.replace("-", " ")
+            }
+            tone={connection.status === "ready" ? "jade" : "amber"}
+            onOpen={() => nav.setActiveMessengerConnectionId(connection.id)}
+          />
+        ))}
+        {filteredConnections.length === 0 && (
+          <div className="shoal-empty">
+            <p>No connections match this search.</p>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function MediaCatalogRail() {
+  return (
+    <aside className="shoal catalog-rail" aria-label="Catalog — media">
+      <div className="shoal-head">
+        <div className="shoal-title">
+          <h2>
+            <span className="shoal-symbol" aria-hidden="true">
+              ◐
+            </span>
+            Media
+          </h2>
+          <span className="count">0 stocked</span>
+        </div>
+      </div>
+      <div className="shoal-meta">
+        <span>Assets</span>
+        <span className="mark-chip">0 shown</span>
+      </div>
+      <div className="shoal-list">
+        <div className="group-label">Media</div>
+        <div className="shoal-empty">
+          <p>No media assets yet.</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function ThreadShoal({ nav }: ShoalProps) {
   const [query, setQuery] = useState("");
   const sortMode = nav.appSettings.shoalSortMode;
@@ -539,6 +653,10 @@ function ThreadShoal({ nav }: ShoalProps) {
 export function Shoal({ nav }: ShoalProps) {
   if (nav.sideRailView === "lorebooks") return <LorebookCatalogRail nav={nav} />;
   if (nav.sideRailView === "people") return <PeopleCatalogRail nav={nav} />;
+  if (nav.sideRailView === "media") return <MediaCatalogRail />;
+  if (nav.sideRailView === "connections") {
+    return <ConnectionsCatalogRail nav={nav} />;
+  }
 
   return <ThreadShoal nav={nav} />;
 }

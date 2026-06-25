@@ -198,8 +198,10 @@
   transform: translateY(-50%);
 }
 
+.rail-tool.connections { --c: var(--koi); --c2: var(--koi-hot); }
 .rail-tool.lorebooks { --c: var(--amber); --c2: var(--amber-hot); }
 .rail-tool.people { --c: var(--jade); --c2: var(--jade-hot); }
+.rail-tool.media { --c: var(--koi); --c2: var(--koi-hot); }
 
 .bank-spacer {
   flex: 1;

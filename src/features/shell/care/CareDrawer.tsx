@@ -47,6 +47,7 @@ import {
 import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
 import { downloadJsonFile } from "../../../shared/browser/download-json";
+import { CARE_TABS } from "./care-tabs";
 import "./CareDrawer.css";
 import "./care-fields.css";
 import "../../../shared/ui/primitives/Chip.css";
@@ -93,16 +94,6 @@ export type CareDrawerNav = Pick<
     | "remoteRuntimeUrl"
   > &
   Pick<NavThreadState, "classicThreads" | "messengerThreads">;
-
-// Six settings-only tabs: all render real content or phase-appropriate placeholders.
-const CARE_TABS = [
-  { label: "General", hint: "basics" },
-  { label: "Appearance", hint: "look" },
-  { label: "Behavior", hint: "interaction" },
-  { label: "Generation", hint: "defaults" },
-  { label: "Connections", hint: "providers" },
-  { label: "Data & Backup", hint: "storage" },
-] as const;
 
 // DeKoi-native surface ids for the Send-on-Enter segmented control.
 const SEND_ON_ENTER_SURFACES = [

@@ -52,7 +52,7 @@ const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
 ];
 
 const RAILS: {
-  view: Exclude<SideRailView, "shoal">;
+  view: Exclude<SideRailView, "shoal" | "connections">;
   label: string;
   note: string;
   icon: React.ReactNode;
@@ -80,6 +80,18 @@ const RAILS: {
         <path d="M15.8 12.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
         <path d="M3.8 20a4.7 4.7 0 0 1 8.8-2.3" />
         <path d="M12.8 20a4 4 0 0 1 7.4-2.2" />
+      </>
+    ),
+  },
+  {
+    view: "media",
+    label: "Media",
+    note: "assets library",
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M8 13l2.2-2.2 3 3L15 12l3 3" />
+        <path d="M8.5 8.5h.01" />
       </>
     ),
   },
@@ -193,6 +205,37 @@ export function Bank({ nav }: BankProps) {
           </button>
         );
       })}
+
+      <div className="bank-divider" aria-hidden="true" />
+
+      <button
+        type="button"
+        className={`rail-tool connections${
+          nav.sideRailView === "connections" ? " on" : ""
+        }`}
+        title="Connections"
+        aria-label="Connections"
+        aria-pressed={nav.sideRailView === "connections"}
+        onClick={() => nav.setSideRailView("connections")}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          aria-hidden="true"
+        >
+          <path d="M7 7h.01" />
+          <path d="M17 17h.01" />
+          <path d="M8.4 8.4 15.6 15.6" />
+          <path d="M16 6.5a4 4 0 0 0-5.2.4l-1.1 1.1" />
+          <path d="M8 17.5a4 4 0 0 0 5.2-.4l1.1-1.1" />
+        </svg>
+        <span className="tag">
+          <b>Connections</b>
+          <i>provider settings</i>
+        </span>
+      </button>
 
       <div className="bank-spacer" />
       <button

@@ -1,16 +1,9 @@
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
 import type {
   NavCareActions,
-  NavCatalogState,
-  NavSettingsActions,
-  NavSettingsState,
   NavThreadState,
   NavViewActions,
 } from "../../navigation";
-import {
-  getProviderConnectionById,
-  getProviderConnectionStatusLabel,
-} from "../../../engine/provider-connection";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -18,31 +11,18 @@ import {
 } from "../../modes";
 import "./Waterline.css";
 
-type CatalogPanel = "media" | "connections";
-
 interface WaterlineProps {
   nav: WaterlineNav;
 }
 
-export type WaterlineNav = Pick<
-  NavCatalogState,
-  "providerConnections"
-> &
-  Pick<NavCareActions, "setCareOpen"> &
-  Pick<NavSettingsActions, "setActiveMessengerConnectionId"> &
-  Pick<NavSettingsState, "appSettings"> &
+export type WaterlineNav = Pick<NavCareActions, "setCareOpen"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "openMessengerThread">;
 
 export function Waterline({ nav }: WaterlineProps) {
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const [activeCatalog, setActiveCatalog] = useState<CatalogPanel | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
-  const activeConnection = getProviderConnectionById(
-    nav.appSettings.activeMessengerConnectionId,
-    nav.providerConnections,
-  );
   const threadResults = useMemo(() => {
     if (!normalizedQuery) return [];
 
@@ -84,82 +64,6 @@ export function Waterline({ nav }: WaterlineProps) {
   function handleSearchBlur(event: FocusEvent<HTMLDivElement>) {
     if (event.currentTarget.contains(event.relatedTarget)) return;
     setSearchFocused(false);
-  }
-
-  function toggleCatalog(panel: CatalogPanel) {
-    setActiveCatalog((currentPanel) => (currentPanel === panel ? null : panel));
-  }
-
-  function handleCatalogBlur(event: FocusEvent<HTMLDivElement>) {
-    if (event.currentTarget.contains(event.relatedTarget)) return;
-    setActiveCatalog(null);
-  }
-
-  function renderCatalogPanel() {
-    if (!activeCatalog) return null;
-
-    if (activeCatalog === "connections") {
-      return (
-        <div className="pebble-panel" role="region" aria-label="Connections">
-          <div className="pebble-panel-head">
-            <b>Connections</b>
-            <span>{nav.providerConnections.length} stocked</span>
-          </div>
-          <p>New Messenger threads use {activeConnection.label}.</p>
-          <div className="panel-list">
-            {nav.providerConnections.map((connection) => {
-              const selected =
-                connection.id === nav.appSettings.activeMessengerConnectionId;
-
-              return (
-                <button
-                  type="button"
-                  className={`panel-row connection-row${
-                    selected ? " selected" : ""
-                  }`}
-                  aria-pressed={selected}
-                  key={connection.id}
-                  onClick={() =>
-                    nav.setActiveMessengerConnectionId(connection.id)
-                  }
-                >
-                  <span className="connection-copy">
-                    <b>{connection.label}</b>
-                    <small>{connection.summary}</small>
-                  </span>
-                  <span className="connection-status">
-                    {getProviderConnectionStatusLabel(connection.status)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            className="panel-action"
-            onClick={() => {
-              setActiveCatalog(null);
-              nav.setCareOpen(true);
-            }}
-          >
-            Open Pond Care
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="pebble-panel" role="region" aria-label="Media">
-        <div className="pebble-panel-head">
-          <b>Media</b>
-          <span>empty</span>
-        </div>
-        <p>
-          Sprites, backgrounds, audio, and generated assets will surface here
-          once the media library is stocked.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -228,42 +132,22 @@ export function Waterline({ nav }: WaterlineProps) {
           </div>
         )}
       </div>
-      <div className="pebbles" onBlur={handleCatalogBlur}>
+      <div className="pebbles">
         <button
-          className={`pebble${activeCatalog === "media" ? " on" : ""}`}
-          title="Media"
-          aria-label="Media"
-          aria-expanded={activeCatalog === "media"}
-          onClick={() => toggleCatalog("media")}
+          type="button"
+          className="settings-button"
+          title="Settings"
+          aria-label="Settings"
+          onClick={() => nav.setCareOpen(true)}
         >
-          ◐
-        </button>
-        <button
-          className={`pebble${activeCatalog === "connections" ? " on" : ""}`}
-          title="Connections"
-          aria-label="Connections"
-          aria-expanded={activeCatalog === "connections"}
-          onClick={() => toggleCatalog("connections")}
-        >
-          ⌗
-        </button>
-        <button
-          className="pebble care"
-          title="Pond Care"
-          aria-label="Pond Care"
-          onClick={() => {
-            setActiveCatalog(null);
-            nav.setCareOpen(true);
-          }}
-        >
-          ⚙
+          <span aria-hidden="true">⚙</span>
+          <span>Settings</span>
         </button>
         <div className="win-dots" aria-hidden="true">
           <span></span>
           <span></span>
           <span></span>
         </div>
-        {renderCatalogPanel()}
       </div>
     </header>
   );

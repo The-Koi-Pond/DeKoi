@@ -38,7 +38,12 @@ export type PondView =
   | { kind: "personas"; personaId?: string; mode?: "new" }
   | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" };
 
-export type SideRailView = "shoal" | "lorebooks" | "people";
+export type SideRailView =
+  | "shoal"
+  | "lorebooks"
+  | "people"
+  | "media"
+  | "connections";
 
 export interface NavViewState {
   view: PondView;
