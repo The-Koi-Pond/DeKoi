@@ -48,6 +48,11 @@ function getAppPackageRoot(filePath) {
   return "src/app";
 }
 
+function getRuntimeBridgeRoot(filePath) {
+  if (!isUnder(filePath, "src/runtime")) return null;
+  return "src/runtime";
+}
+
 function getFeatureLayer(filePath) {
   const match = filePath.match(/^src\/features\/([^/]+)/);
   if (!match || !featureLayerRank.has(match[1])) return null;
@@ -230,6 +235,8 @@ function checkImport(sourceFile, specifier, targetFile) {
 
   const targetFeatureLayer = getFeatureLayer(targetFile);
   const targetAppPackageRoot = getAppPackageRoot(targetFile);
+  const sourceRuntimeBridgeRoot = getRuntimeBridgeRoot(sourceFile);
+  const targetRuntimeBridgeRoot = getRuntimeBridgeRoot(targetFile);
   const sourceCatalogRoot = getCatalogRoot(sourceFile);
   const targetCatalogRoot = getCatalogRoot(targetFile);
   const targetCatalogResourcePackageRoot =
@@ -268,6 +275,14 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceAppPackageRoot !== targetAppPackageRoot
   ) {
     failures.push("App composition must be imported through its public entrypoint.");
+  }
+
+  if (
+    targetRuntimeBridgeRoot &&
+    targetFile !== targetRuntimeBridgeRoot &&
+    sourceRuntimeBridgeRoot !== targetRuntimeBridgeRoot
+  ) {
+    failures.push("Runtime bridge modules must be imported through their public entrypoint.");
   }
 
   if (

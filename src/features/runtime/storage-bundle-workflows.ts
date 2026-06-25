@@ -5,20 +5,20 @@ export {
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
-} from "../../runtime/dekoi-storage-bundle";
+} from "../../runtime";
 export {
   exportDesktopBundleFile,
   importDesktopBundleFile,
   type DeKoiDesktopBundleFileImportResult,
-} from "../../runtime/desktop-bundle-file";
+} from "../../runtime";
 export {
   readDesktopStorageBundle,
   writeDesktopStorageBundle,
   type DeKoiDesktopStorageReadResult,
-} from "../../runtime/desktop-storage-bundle";
+} from "../../runtime";
 export {
   normalizeLegacyImport,
   type DeKoiLegacyImportData,
   type DeKoiLegacyImportPreview,
   type DeKoiLegacyImportParseResult,
-} from "../../runtime/legacy-import";
+} from "../../runtime";

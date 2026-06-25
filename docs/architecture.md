@@ -73,6 +73,8 @@ The check currently enforces these rules:
 - `src/app` must not import runtime adapters or engine modules directly.
 - `src/runtime` must not import `src/app`, `src/features`, React, Tauri
   packages, or the desktop command catalog directly.
+- `src/runtime` bridge modules must be imported through the runtime public
+  entrypoint.
 - `src/shared` must not import `src/app` or `src/features`; generic shared code
   outside `src/shared/api` also must not import engine or runtime adapter
   modules.
@@ -126,7 +128,7 @@ Move toward the old De-Koi skeleton in small, validated slices:
    continue moving remaining `src/runtime` storage and import/export systems
    toward `src/shared/api` or `features/runtime` where appropriate. Import
    feature runtime workflows through their package entrypoint from outside the
-   package.
+   package, and import the lower runtime bridge through its public entrypoint.
 6. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow. Import catalog surfaces through the catalog
    feature entrypoint from outside the catalog feature.
