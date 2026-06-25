@@ -1,6 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { asDesktopHostErrorMessage } from "./desktop-host-common";
-import { DESKTOP_COMMANDS } from "./desktop-commands";
+import { DESKTOP_COMMANDS } from "../shared/api/desktop-commands";
 
 export interface DeKoiDesktopHostStatus {
   appName: string;

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { DESKTOP_COMMANDS } from "./desktop-commands";
+import { DESKTOP_COMMANDS } from "../shared/api/desktop-commands";
 import { requireTauriForDesktopHost } from "./desktop-host-common";
 
 export interface DeKoiDesktopProviderSecretStatus {

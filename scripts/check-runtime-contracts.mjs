@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const tsRegistryPath = path.join(root, "src", "runtime", "runtime-commands.ts");
+const tsRegistryPath = path.join(root, "src", "shared", "api", "runtime-commands.ts");
 const rustRuntimePath = path.join(root, "src-tauri", "src", "runtime.rs");
 const fixturePath = path.join(root, "scripts", "remote-runtime-fixture.mjs");
 

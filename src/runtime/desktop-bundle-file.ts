@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { DeKoiStorageBundle } from "./dekoi-storage-bundle";
-import { DESKTOP_COMMANDS } from "./desktop-commands";
+import { DESKTOP_COMMANDS } from "../shared/api/desktop-commands";
 import {
   asDesktopHostErrorMessage,
   normalizeDesktopStorageBundleSnapshot,

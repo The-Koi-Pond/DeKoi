@@ -9,7 +9,7 @@ import {
 import {
   readRemoteRuntimeUrl,
   writeRemoteRuntimeUrl,
-} from "../../runtime/runtime-target";
+} from "../../shared/api/runtime-target";
 import type { MessengerStorageStatus } from "../../runtime/messenger-storage";
 import type { StateSetter } from "./state-setter";
 

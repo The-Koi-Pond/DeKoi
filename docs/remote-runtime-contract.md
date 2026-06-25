@@ -117,7 +117,7 @@ Generation and storage commands must remain separately named. Do not overload
 `messenger_generate` to persist messages or overload storage commands to run
 generation.
 
-The TypeScript command registry is `src/runtime/runtime-commands.ts`. Run this
+The TypeScript command registry is `src/shared/api/runtime-commands.ts`. Run this
 after changing the command list:
 
 ```sh

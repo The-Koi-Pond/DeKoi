@@ -116,8 +116,8 @@
             </tr>
             <tr>
               <td><code>src/runtime</code></td>
-              <td>Storage contracts, desktop/remote runtime transport, import/export normalization, app settings, and generation adapters.</td>
-              <td>Split typed transport wrappers into <code>src/shared/api</code> and shared frontend systems into <code>features/runtime</code>.</td>
+              <td>Storage contracts, import/export normalization, app settings, and generation adapters.</td>
+              <td>Keep desktop/remote transport wrappers in <code>src/shared/api</code>; move remaining shared frontend systems into <code>features/runtime</code>.</td>
             </tr>
             <tr>
               <td>None currently</td>
@@ -160,6 +160,10 @@
               <td>Shared helpers stay generic, while <code>shared/api</code> remains the typed runtime wrapper exception.</td>
             </tr>
             <tr>
+              <td><code>src/shared/api</code> must not import the <code>src/runtime</code> bridge.</td>
+              <td>Transport wrappers should be below runtime storage/generation adapters, not depend on them.</td>
+            </tr>
+            <tr>
               <td>Top-level feature folders must be <code>catalog</code>, <code>modes</code>, <code>navigation</code>, or <code>shell</code>.</td>
               <td>This keeps the repo physically aligned with the target feature layers.</td>
             </tr>
@@ -184,7 +188,7 @@
           <li>Keep app provider wiring in <code>src/app</code>; move the remaining navigation controller/state bridge toward app or mode router ownership as those boundaries become concrete.</li>
           <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too.</li>
-          <li>Split current <code>src/runtime</code> into typed <code>src/shared/api</code> wrappers and <code>features/runtime</code> systems where appropriate.</li>
+          <li>Keep desktop/remote transport wrappers in <code>src/shared/api</code>; continue moving remaining <code>src/runtime</code> storage/generation systems toward <code>src/shared/api</code> or <code>features/runtime</code> where appropriate.</li>
           <li>Deepen <code>features/catalog</code> into resource-owned packages as collections grow.</li>
           <li>Add stricter private-folder and public-entrypoint checks once those packages exist.</li>
         </ol>

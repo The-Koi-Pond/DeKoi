@@ -29,8 +29,6 @@ const legacyFeatureRuntimeImports = new Set([
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-provider-secrets",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/desktop-storage-bundle",
   "src/features/shell/care/CareDrawer.tsx -> src/runtime/legacy-import",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/remote-runtime",
-  "src/features/shell/care/CareDrawer.tsx -> src/runtime/runtime-target",
   "src/features/shell/shoal/Shoal.tsx -> src/runtime/app-settings",
 ]);
 
@@ -150,6 +148,10 @@ function checkImport(sourceFile, specifier, targetFile, usedLegacyImports) {
 
   if (sourceIsShared && (isUnder(targetFile, "src/app") || isUnder(targetFile, "src/features"))) {
     failures.push("Shared modules must not import app composition or feature modules.");
+  }
+
+  if (sourceIsSharedApi && isUnder(targetFile, "src/runtime")) {
+    failures.push("Shared API wrappers must not import runtime bridge modules.");
   }
 
   if (

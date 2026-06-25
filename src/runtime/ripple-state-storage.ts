@@ -9,7 +9,7 @@ import {
   saveHostRecords,
   type HostStorageMode,
 } from "./host-storage";
-import { readRemoteRuntimeUrl } from "./runtime-target";
+import { readRemoteRuntimeUrl } from "../shared/api/runtime-target";
 import {
   isRecord,
   normalizeCatalogList,

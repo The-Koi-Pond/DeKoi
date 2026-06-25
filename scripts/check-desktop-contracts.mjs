@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const tsRegistryPath = path.join(root, "src", "runtime", "desktop-commands.ts");
+const tsRegistryPath = path.join(root, "src", "shared", "api", "desktop-commands.ts");
 const rustLibPath = path.join(root, "src-tauri", "src", "lib.rs");
 
 function readFile(filePath) {

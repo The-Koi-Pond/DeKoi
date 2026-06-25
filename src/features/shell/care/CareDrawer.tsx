@@ -35,12 +35,12 @@ import {
   readDesktopStorageBundle,
   writeDesktopStorageBundle,
 } from "../../../runtime/desktop-storage-bundle";
-import { DESKTOP_RUNTIME_URL } from "../../../runtime/runtime-target";
+import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
 import {
   normalizeLegacyImport,
   type DeKoiLegacyImportPreview,
 } from "../../../runtime/legacy-import";
-import { checkRemoteRuntimeHealth } from "../../../runtime/remote-runtime";
+import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
 import "./CareDrawer.css";
 import "./care-fields.css";
 import "../../../shared/ui/primitives/Chip.css";
