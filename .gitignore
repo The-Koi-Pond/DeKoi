@@ -19,6 +19,9 @@ dist-ssr
 # Local scratch / dev screenshots
 /screenshot.png
 
+# Windows reserved device name sometimes created by POSIX-like shells.
+/nul
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
