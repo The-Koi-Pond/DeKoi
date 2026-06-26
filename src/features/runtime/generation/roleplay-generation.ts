@@ -1,9 +1,9 @@
 import type { CharacterRecord } from "../../../engine/character";
 import {
-  appendClassicEntries,
-  createGeneratedClassicEntry,
-} from "../../../engine/classic-actions";
-import type { ClassicThread } from "../../../engine/classic";
+  appendRoleplayEntries,
+  createGeneratedRoleplayEntry,
+} from "../../../engine/roleplay-actions";
+import type { RoleplayThread } from "../../../engine/roleplay";
 import type { LorebookRecord } from "../../../engine/lorebook";
 import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
@@ -15,8 +15,8 @@ import type { ProviderConnectionRecord } from "../../../engine/provider-connecti
 import type { MessengerGenerationRuntimeMode } from "./messenger-generation";
 import { generateMessengerThreadReply } from "./messenger-generation";
 
-export interface GenerateClassicThreadTurnInput {
-  thread: ClassicThread;
+export interface GenerateRoleplayThreadTurnInput {
+  thread: RoleplayThread;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
@@ -32,14 +32,14 @@ export interface GenerateClassicThreadTurnInput {
   createId: (prefix: string) => string;
 }
 
-export interface GenerateClassicThreadTurnResult {
-  thread: ClassicThread;
+export interface GenerateRoleplayThreadTurnResult {
+  thread: RoleplayThread;
   warnings: string[];
   generatedEntryCount: number;
 }
 
-function classicEntriesToMessengerMessages(
-  thread: ClassicThread,
+function roleplayEntriesToMessengerMessages(
+  thread: RoleplayThread,
 ): MessengerMessage[] {
   return thread.entries.flatMap((entry): MessengerMessage[] => {
     if (entry.role === "character" && entry.characterId) {
@@ -99,7 +99,7 @@ function classicEntriesToMessengerMessages(
   });
 }
 
-function classicThreadToMessengerThread(thread: ClassicThread): MessengerThread {
+function roleplayThreadToMessengerThread(thread: RoleplayThread): MessengerThread {
   return {
     id: thread.id,
     schemaVersion: 1,
@@ -113,20 +113,20 @@ function classicThreadToMessengerThread(thread: ClassicThread): MessengerThread 
     providerConnectionId: thread.providerConnectionId,
     systemPromptMode: "default",
     systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
-    messages: classicEntriesToMessengerMessages(thread),
+    messages: roleplayEntriesToMessengerMessages(thread),
     createdAt: thread.createdAt,
     updatedAt: thread.updatedAt,
   };
 }
 
-function createClassicUserMessage({
+function createRoleplayUserMessage({
   createId,
   now,
   thread,
 }: {
   createId: (prefix: string) => string;
   now: string;
-  thread: ClassicThread;
+  thread: RoleplayThread;
 }): MessengerMessage {
   const lastEntry = thread.entries.at(-1);
   if (lastEntry?.role === "persona" && lastEntry.personaId) {
@@ -161,20 +161,20 @@ function createClassicUserMessage({
   }
 
   return {
-    id: createId("classic-generation-prompt"),
+    id: createId("roleplay-generation-prompt"),
     threadId: thread.id,
     author: {
       kind: "system",
-      label: "Classic",
+      label: "Roleplay",
     },
-    body: "Continue this Classic chat with the next in-character turn.",
+    body: "Continue this Roleplay chat with the next in-character turn.",
     origin: "manual",
     createdAt: now,
     updatedAt: now,
   };
 }
 
-export async function generateClassicThreadTurn({
+export async function generateRoleplayThreadTurn({
   characters,
   createId,
   fallbackProviderConnectionId = null,
@@ -185,9 +185,9 @@ export async function generateClassicThreadTurn({
   personas,
   providerConnections,
   thread,
-}: GenerateClassicThreadTurnInput): Promise<GenerateClassicThreadTurnResult> {
-  const messengerThread = classicThreadToMessengerThread(thread);
-  const userMessage = createClassicUserMessage({ createId, now, thread });
+}: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
+  const messengerThread = roleplayThreadToMessengerThread(thread);
+  const userMessage = createRoleplayUserMessage({ createId, now, thread });
   const result = await generateMessengerThreadReply({
     characters,
     createId,
@@ -211,9 +211,9 @@ export async function generateClassicThreadTurn({
     if (!companion) return [];
 
     return [
-      createGeneratedClassicEntry({
+      createGeneratedRoleplayEntry({
         companion,
-        id: createId("classic-entry"),
+        id: createId("roleplay-entry"),
         message,
         now: message.createdAt,
         thread,
@@ -224,7 +224,7 @@ export async function generateClassicThreadTurn({
   return {
     thread:
       entries.length > 0
-        ? appendClassicEntries(thread, entries, result.thread.updatedAt)
+        ? appendRoleplayEntries(thread, entries, result.thread.updatedAt)
         : thread,
     warnings: result.warnings,
     generatedEntryCount: entries.length,

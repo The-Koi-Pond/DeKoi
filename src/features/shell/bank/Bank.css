@@ -91,7 +91,7 @@
 }
 
 .dive.messenger { --c: var(--koi); --c2: var(--koi-hot); }
-.dive.classic { --c: var(--jade); --c2: var(--jade-hot); }
+.dive.roleplay { --c: var(--jade); --c2: var(--jade-hot); }
 .dive.reserved { --c: var(--amber); --c2: var(--amber-hot); }
 
 .bank-divider {

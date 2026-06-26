@@ -1,5 +1,5 @@
 import type { CharacterRecord } from "../../engine/character";
-import type { ClassicThread } from "../../engine/classic";
+import type { RoleplayThread } from "../../engine/roleplay";
 import type { LorebookRecord } from "../../engine/lorebook";
 import type { MessengerThread } from "../../engine/messenger";
 import type { PersonaRecord } from "../../engine/persona";
@@ -15,9 +15,9 @@ import {
   saveCharacterRecordsToStorage,
 } from "./collections/character-storage";
 import {
-  loadClassicThreadsFromStorage,
-  saveClassicThreadsToStorage,
-} from "./collections/classic-storage";
+  loadRoleplayThreadsFromStorage,
+  saveRoleplayThreadsToStorage,
+} from "./collections/roleplay-storage";
 import {
   loadLorebookRecordsFromStorage,
   saveLorebookRecordsToStorage,
@@ -49,7 +49,7 @@ export type AppStorageRecords = {
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   providerConnections: ProviderConnectionRecord[];
-  classicThreads: ClassicThread[];
+  roleplayThreads: RoleplayThread[];
   messengerThreads: MessengerThread[];
   rippleStates: RippleState[];
 };
@@ -67,7 +67,7 @@ export async function loadAppStorageSnapshot(
     personaSnapshot,
     lorebookSnapshot,
     providerConnectionSnapshot,
-    classicSnapshot,
+    roleplaySnapshot,
     messengerSnapshot,
     rippleSnapshot,
   ] = await Promise.all([
@@ -76,7 +76,7 @@ export async function loadAppStorageSnapshot(
     loadPersonaRecordsFromStorage(rawUrl),
     loadLorebookRecordsFromStorage(rawUrl),
     loadProviderConnectionRecordsFromStorage(rawUrl),
-    loadClassicThreadsFromStorage(rawUrl),
+    loadRoleplayThreadsFromStorage(rawUrl),
     loadMessengerThreadsFromStorage(rawUrl),
     loadRippleStatesFromStorage(rawUrl),
   ]);
@@ -87,7 +87,7 @@ export async function loadAppStorageSnapshot(
     personas: personaSnapshot.records,
     lorebooks: lorebookSnapshot.records,
     providerConnections: providerConnectionSnapshot.records,
-    classicThreads: classicSnapshot.records,
+    roleplayThreads: roleplaySnapshot.records,
     messengerThreads: messengerSnapshot.threads,
     rippleStates: rippleSnapshot.states,
     storageResult: mergeStorageResults([
@@ -96,7 +96,7 @@ export async function loadAppStorageSnapshot(
       personaSnapshot,
       lorebookSnapshot,
       providerConnectionSnapshot,
-      classicSnapshot,
+      roleplaySnapshot,
       messengerSnapshot,
       rippleSnapshot,
     ]),
@@ -117,7 +117,7 @@ export async function saveAppStorageSnapshot(
         snapshot.providerConnections,
         rawUrl,
       ),
-      saveClassicThreadsToStorage(snapshot.classicThreads, rawUrl),
+      saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl),
       saveMessengerThreadsToStorage(snapshot.messengerThreads, rawUrl),
       saveRippleStatesToStorage(snapshot.rippleStates, rawUrl),
     ]),

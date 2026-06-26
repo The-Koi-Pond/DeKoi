@@ -1,14 +1,14 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/character";
-import type { ClassicThread } from "../../../engine/classic";
+import type { RoleplayThread } from "../../../engine/roleplay";
 import {
-  appendClassicEntries,
-  clearClassicEntries,
-  createCompanionClassicEntry,
-  createClassicThread as buildClassicThread,
-  deleteClassicThread as deleteClassicThreadRecord,
-  renameClassicThread as renameClassicThreadRecord,
-} from "../../../engine/classic-actions";
+  appendRoleplayEntries,
+  clearRoleplayEntries,
+  createCompanionRoleplayEntry,
+  createRoleplayThread as buildRoleplayThread,
+  deleteRoleplayThread as deleteRoleplayThreadRecord,
+  renameRoleplayThread as renameRoleplayThreadRecord,
+} from "../../../engine/roleplay-actions";
 import type { LorebookRecord } from "../../../engine/lorebook";
 import type { PersonaRecord } from "../../../engine/persona";
 import type {
@@ -19,37 +19,37 @@ import type { RippleState } from "../../../engine/ripples";
 import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { ClassicThreadCreateInput, PondView } from "../../navigation";
+import type { RoleplayThreadCreateInput, PondView } from "../../navigation";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
-type UseClassicThreadActionsInput = {
+type UseRoleplayThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
   characters: CharacterRecord[];
-  classicThreads: ClassicThread[];
+  roleplayThreads: RoleplayThread[];
   lorebooks: LorebookRecord[];
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
-  setClassicThreads: StateSetter<ClassicThread[]>;
+  setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
-  openClassicThread: (threadId: string) => void;
+  openRoleplayThread: (threadId: string) => void;
 };
 
-export function useClassicThreadActions({
+export function useRoleplayThreadActions({
   activeMessengerConnectionId,
   characters,
-  classicThreads,
+  roleplayThreads,
   lorebooks,
   personas,
   providerConnections,
-  setClassicThreads,
+  setRoleplayThreads,
   setRippleStates,
   setView,
   view,
-  openClassicThread,
-}: UseClassicThreadActionsInput) {
-  const createClassicThread = useCallback((input?: ClassicThreadCreateInput) => {
+  openRoleplayThread,
+}: UseRoleplayThreadActionsInput) {
+  const createRoleplayThread = useCallback((input?: RoleplayThreadCreateInput) => {
     const now = currentIsoTimestamp();
     const activePersonaId =
       input?.activePersonaId === undefined
@@ -80,14 +80,14 @@ export function useClassicThreadActions({
       ) ??
       providerConnections[0] ??
       null;
-    const thread = buildClassicThread({
+    const thread = buildRoleplayThread({
       activePersonaId,
       characterIds,
-      id: createRecordId("classic-thread"),
+      id: createRecordId("roleplay-thread"),
       lorebookIds,
       now,
       providerConnectionId: activeConnection?.id ?? null,
-      title: input?.title?.trim() || `New Classic ${classicThreads.length + 1}`,
+      title: input?.title?.trim() || `New Roleplay ${roleplayThreads.length + 1}`,
     });
     const openingCompanion =
       characterIds
@@ -97,13 +97,13 @@ export function useClassicThreadActions({
         )
         .find((character) => !!character?.firstMessage.trim()) ?? null;
     const threadWithOpeningEntry = openingCompanion
-      ? appendClassicEntries(
+      ? appendRoleplayEntries(
           thread,
           [
-            createCompanionClassicEntry({
+            createCompanionRoleplayEntry({
               body: openingCompanion.firstMessage,
               companion: openingCompanion,
-              id: createRecordId("classic-entry"),
+              id: createRecordId("roleplay-entry"),
               now,
               thread,
             }),
@@ -112,23 +112,23 @@ export function useClassicThreadActions({
         )
       : thread;
 
-    setClassicThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
-    openClassicThread(threadWithOpeningEntry.id);
+    setRoleplayThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
+    openRoleplayThread(threadWithOpeningEntry.id);
     return threadWithOpeningEntry;
   }, [
     activeMessengerConnectionId,
     characters,
-    classicThreads.length,
+    roleplayThreads.length,
     lorebooks,
-    openClassicThread,
+    openRoleplayThread,
     personas,
     providerConnections,
-    setClassicThreads,
+    setRoleplayThreads,
   ]);
 
-  const updateClassicThread = useCallback(
-    (thread: ClassicThread) => {
-      setClassicThreads((currentThreads) =>
+  const updateRoleplayThread = useCallback(
+    (thread: RoleplayThread) => {
+      setRoleplayThreads((currentThreads) =>
         currentThreads.some((currentThread) => currentThread.id === thread.id)
           ? currentThreads.map((currentThread) =>
               currentThread.id === thread.id ? thread : currentThread,
@@ -136,59 +136,59 @@ export function useClassicThreadActions({
           : [thread, ...currentThreads],
       );
     },
-    [setClassicThreads],
+    [setRoleplayThreads],
   );
 
-  const renameClassicThread = useCallback(
+  const renameRoleplayThread = useCallback(
     (threadId: string, title: string) => {
       const trimmedTitle = title.trim();
       if (!trimmedTitle) return;
 
       const now = currentIsoTimestamp();
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
           thread.id === threadId
-            ? renameClassicThreadRecord(thread, trimmedTitle, now)
+            ? renameRoleplayThreadRecord(thread, trimmedTitle, now)
             : thread,
         ),
       );
     },
-    [setClassicThreads],
+    [setRoleplayThreads],
   );
 
-  const clearClassicThreadEntries = useCallback(
+  const clearRoleplayThreadEntries = useCallback(
     (threadId: string) => {
       const now = currentIsoTimestamp();
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.id === threadId ? clearClassicEntries(thread, now) : thread,
+          thread.id === threadId ? clearRoleplayEntries(thread, now) : thread,
         ),
       );
     },
-    [setClassicThreads],
+    [setRoleplayThreads],
   );
 
-  const deleteClassicThread = useCallback(
+  const deleteRoleplayThread = useCallback(
     (threadId: string) => {
-      setClassicThreads((currentThreads) =>
-        deleteClassicThreadRecord(currentThreads, threadId),
+      setRoleplayThreads((currentThreads) =>
+        deleteRoleplayThreadRecord(currentThreads, threadId),
       );
       setRippleStates((currentStates) =>
-        deleteRippleStateForOwner(currentStates, "classic-thread", threadId),
+        deleteRippleStateForOwner(currentStates, "roleplay-thread", threadId),
       );
 
-      if (view.kind === "classic" && view.threadId === threadId) {
+      if (view.kind === "roleplay" && view.threadId === threadId) {
         setView({ kind: "pond" });
       }
     },
-    [setClassicThreads, setRippleStates, setView, view],
+    [setRoleplayThreads, setRippleStates, setView, view],
   );
 
   return {
-    createClassicThread,
-    updateClassicThread,
-    renameClassicThread,
-    clearClassicThreadEntries,
-    deleteClassicThread,
+    createRoleplayThread,
+    updateRoleplayThread,
+    renameRoleplayThread,
+    clearRoleplayThreadEntries,
+    deleteRoleplayThread,
   };
 }

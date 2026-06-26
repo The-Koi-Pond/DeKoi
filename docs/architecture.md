@@ -23,7 +23,7 @@ src/features/runtime/
   ripples, visuals, trackers, and mode-neutral live state.
 
 src/features/modes/
-  Concrete user mode surfaces and their shared mode UI: Messenger, Classic,
+  Concrete user mode surfaces and their shared mode UI: Messenger, Roleplay,
   future adventure/gameplay modes, and the mode router/composition point.
 
 src/features/shell/
@@ -138,7 +138,7 @@ Move toward the old De-Koi skeleton in small, validated slices:
    modes own thread actions, shell care owns settings/import/export actions,
    and feature-runtime owns ripple/runtime actions. Import navigation through
    its package entrypoint while it remains a context/contracts bridge.
-3. Keep Messenger and Classic screens under `features/modes`; move future mode
+3. Keep Messenger and Roleplay screens under `features/modes`; move future mode
    surfaces there too, with a feature entrypoint plus package entrypoints for
    each mode.
 4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under

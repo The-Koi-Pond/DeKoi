@@ -1,7 +1,7 @@
 import "./Bank.css";
 
 import {
-  CLASSIC,
+  ROLEPLAY,
   MESSENGER,
   RESERVED,
   SURFACES,
@@ -27,7 +27,7 @@ const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
     icon: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />,
   },
   {
-    mode: CLASSIC,
+    mode: ROLEPLAY,
     icon: (
       <>
         <rect x="4" y="4" width="16" height="16" rx="3" />

@@ -2,7 +2,7 @@ export const RIPPLES_SURFACE_LABEL = "Ripples";
 export const RIPPLE_DOCK_SURFACE_LABEL = "Ripple Dock";
 
 export type RippleTone = "note" | "shift" | "meter";
-export type RippleStateOwnerKind = "messenger-thread" | "classic-thread";
+export type RippleStateOwnerKind = "messenger-thread" | "roleplay-thread";
 
 export interface Ripple {
   id: string;

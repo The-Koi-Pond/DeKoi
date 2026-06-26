@@ -23,7 +23,7 @@ A Messenger thread is a DM-style thread between the user and one or more
 characters. It should feel like a private or group message chat: compact turns,
 quick replies, clear speakers, and saved history.
 
-Classic is reserved as the second major surface. It should reuse characters,
+Roleplay is reserved as the second major surface. It should reuse characters,
 personas, lorebooks, presets, and providers where that makes sense, but its
 scene presentation and continuity needs can diverge from Messenger.
 
@@ -34,7 +34,7 @@ Game/adventure-style play is intentionally out of scope for now.
 ### Character
 
 A character is someone or something the user can talk with or place into
-Classic.
+Roleplay.
 The current public surface label for characters is **Companions**.
 
 Purpose:
@@ -46,7 +46,7 @@ Purpose:
 Likely relationships:
 
 - Can appear in many Messenger threads.
-- Can appear in many Classic threads.
+- Can appear in many Roleplay threads.
 - Can reference lorebooks, presets, or media later.
 
 Not decided yet:
@@ -61,14 +61,14 @@ A persona is one of the user's in-world or chat identities.
 
 Purpose:
 
-- Let the user choose who they are in Messenger or Classic.
+- Let the user choose who they are in Messenger or Roleplay.
 - Hold user-facing description, display name, and optional style/context.
 - Avoid hard-coding a single global user identity.
 
 Likely relationships:
 
 - A Messenger thread may have one active persona.
-- A Classic thread may have one active persona.
+- A Roleplay thread may have one active persona.
 - A persona can be reused across many threads.
 
 Not decided yet:
@@ -89,7 +89,7 @@ Purpose:
 Likely relationships:
 
 - Can be attached to characters.
-- Can be attached to Messenger or Classic threads.
+- Can be attached to Messenger or Roleplay threads.
 - Can contain many lore entries.
 
 Not decided yet:
@@ -111,7 +111,7 @@ Purpose:
 Likely relationships:
 
 - A Messenger thread may use one active preset.
-- A Classic thread may use one active preset.
+- A Roleplay thread may use one active preset.
 - Presets may be global or copied into a thread later if needed.
 
 Not decided yet:
@@ -132,7 +132,7 @@ Purpose:
 
 Likely relationships:
 
-- A Messenger or Classic thread may choose a connection.
+- A Messenger or Roleplay thread may choose a connection.
 - A preset may be compatible with some connections.
 
 Not decided yet:
@@ -165,7 +165,7 @@ Important behavior:
 
 - One-on-one and group Messenger threads should be the same record kind with different
   participant counts.
-- A MessengerThread should not require Classic scene state.
+- A MessengerThread should not require Roleplay scene state.
 - A MessengerThread should be understandable even before generation support exists.
 
 Not decided yet:
@@ -203,11 +203,11 @@ Not decided yet:
 - Edit history.
 - Attachment format.
 
-## Classic Records
+## Roleplay Records
 
-### ClassicThread
+### RoleplayThread
 
-A ClassicThread is a saved visual-novel-style character scene.
+A RoleplayThread is a saved visual-novel-style character scene.
 
 Purpose:
 
@@ -225,8 +225,8 @@ Likely relationships:
 
 Not decided yet:
 
-- Exact Classic turn model.
-- Whether Classic uses MessengerMessage-compatible messages or a separate scene-entry
+- Exact Roleplay turn model.
+- Whether Roleplay uses MessengerMessage-compatible messages or a separate scene-entry
   record.
 - Sprite/background ownership.
 
@@ -242,19 +242,19 @@ Purpose:
 - Replace game-state/tracker-style wording with a DeKoi-owned concept.
 - Track changing conditions without making game/adventure-style play part of the
   first product slice.
-- Give Messenger and Classic a future place for continuity changes, counters, moods,
+- Give Messenger and Roleplay a future place for continuity changes, counters, moods,
   relationship notes, or other stateful details.
 
 Likely relationships:
 
-- Belongs to one MessengerThread or ClassicThread.
+- Belongs to one MessengerThread or RoleplayThread.
 - May be updated manually or by future helper modules.
 - May contain many individual Ripples.
 
 Not decided yet:
 
 - Whether Ripples stay freeform notes or grow structured fields/event logs.
-- Whether Classic and Messenger share one state shape.
+- Whether Roleplay and Messenger share one state shape.
 
 ### RippleDock
 
@@ -269,12 +269,12 @@ Purpose:
 
 Likely relationships:
 
-- Reads and edits RippleState for the active MessengerThread or ClassicThread.
+- Reads and edits RippleState for the active MessengerThread or RoleplayThread.
 - May be hidden, docked, or expanded depending on layout.
 
 Not decided yet:
 
-- Exact Classic panel layout.
+- Exact Roleplay panel layout.
 - Which future structured Ripple fields are editable.
 
 Current implementation:
@@ -294,7 +294,7 @@ The first useful implementation should prove:
 5. Save and reload the thread locally.
 
 This proves the DeKoi-native model before adding providers, Tauri file storage,
-Classic presentation, or legacy import.
+Roleplay presentation, or legacy import.
 
 ## Later Boundaries
 

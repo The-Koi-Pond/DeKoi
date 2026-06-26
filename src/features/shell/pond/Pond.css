@@ -56,7 +56,7 @@
 }
 
 .pond-inner-thread > .messenger-thread,
-.pond-inner-thread > .classic-thread {
+.pond-inner-thread > .roleplay-thread {
   flex: 1;
   min-height: 0;
 }

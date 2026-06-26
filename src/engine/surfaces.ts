@@ -2,15 +2,15 @@
  * DeKoi surface/pond-mode identifiers — the single source of truth.
  *
  * Per SURFACE_LABELS.md and DOMAIN_MODEL.md: the first-slice surfaces are
- * Messenger (DM-style chat) and Classic (visual novel). The third slot is Reserved —
+ * Messenger (DM-style chat) and Roleplay (visual novel). The third slot is Reserved —
  * a placeholder for a not-yet-decided surface (the mockup's amber "deep water"
  * lane). Reserved is intentionally out of scope for the first slice.
  */
 export const MESSENGER = "messenger";
-export const CLASSIC = "classic";
+export const ROLEPLAY = "roleplay";
 export const RESERVED = "reserved";
 
-export type SurfaceId = typeof MESSENGER | typeof CLASSIC | typeof RESERVED;
+export type SurfaceId = typeof MESSENGER | typeof ROLEPLAY | typeof RESERVED;
 
 export interface SurfaceMeta {
   id: SurfaceId;
@@ -24,7 +24,7 @@ export interface SurfaceMeta {
 
 export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
   [MESSENGER]: { id: MESSENGER, label: "Messenger", locked: false, lockedNote: null },
-  [CLASSIC]: { id: CLASSIC, label: "Classic", locked: false, lockedNote: null },
+  [ROLEPLAY]: { id: ROLEPLAY, label: "Roleplay", locked: false, lockedNote: null },
   [RESERVED]: {
     id: RESERVED,
     label: "Reserved",
@@ -33,7 +33,7 @@ export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
   },
 };
 
-export const SURFACE_ORDER: SurfaceId[] = [MESSENGER, CLASSIC, RESERVED];
+export const SURFACE_ORDER: SurfaceId[] = [MESSENGER, ROLEPLAY, RESERVED];
 
 export function isLockedSurface(surface: SurfaceId): boolean {
   return SURFACES[surface].locked;

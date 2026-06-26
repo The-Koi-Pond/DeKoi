@@ -8,7 +8,7 @@ import {
 } from 'react'
 import './Tide.css'
 import type {
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavCatalogState,
   NavMessengerThreadActions,
   NavSettingsActions,
@@ -17,7 +17,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from '../../navigation'
-import { setClassicThreadPersona } from '../../../engine/classic-actions'
+import { setRoleplayThreadPersona } from '../../../engine/roleplay-actions'
 import { setMessengerThreadPersona } from '../../../engine/messenger-actions'
 import {
   getMessengerThreadInitials,
@@ -31,10 +31,10 @@ interface TideProps {
 
 export type TideNav = Pick<NavSettingsActions, 'setSurfaceStatus'> &
   Pick<NavCatalogState, 'personas'> &
-  Pick<NavClassicThreadActions, 'updateClassicThread'> &
+  Pick<NavRoleplayThreadActions, 'updateRoleplayThread'> &
   Pick<NavMessengerThreadActions, 'updateMessengerThread'> &
   Pick<NavSettingsState, 'appSettings'> &
-  Pick<NavThreadState, 'classicThreads' | 'messengerThreads'> &
+  Pick<NavThreadState, 'roleplayThreads' | 'messengerThreads'> &
   Pick<NavViewActions, 'openMessengerThread'> &
   Pick<NavViewState, 'view'>
 
@@ -64,10 +64,10 @@ export function Tide({ nav }: TideProps) {
     selectedPersonaId =
       nav.messengerThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
       null
-  } else if (nav.view.kind === 'classic') {
+  } else if (nav.view.kind === 'roleplay') {
     const threadId = nav.view.threadId
     selectedPersonaId =
-      nav.classicThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
+      nav.roleplayThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
       null
   } else if (nav.view.kind === 'personas') {
     selectedPersonaId = nav.view.personaId ?? null
@@ -162,12 +162,12 @@ export function Tide({ nav }: TideProps) {
           setMessengerThreadPersona(thread, personaId, now),
         )
       }
-    } else if (nav.view.kind === 'classic') {
+    } else if (nav.view.kind === 'roleplay') {
       const threadId = nav.view.threadId
       const thread =
-        nav.classicThreads.find((candidate) => candidate.id === threadId) ?? null
+        nav.roleplayThreads.find((candidate) => candidate.id === threadId) ?? null
       if (thread) {
-        nav.updateClassicThread(setClassicThreadPersona(thread, personaId, now))
+        nav.updateRoleplayThread(setRoleplayThreadPersona(thread, personaId, now))
       }
     }
 

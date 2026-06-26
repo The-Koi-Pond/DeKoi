@@ -1,5 +1,5 @@
 import type { CharacterRecord } from "../../../engine/character";
-import type { ClassicThread } from "../../../engine/classic";
+import type { RoleplayThread } from "../../../engine/roleplay";
 import type { LorebookRecord } from "../../../engine/lorebook";
 import type { MessengerThread } from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/persona";
@@ -9,7 +9,7 @@ import type { AppSettings } from "../../../engine/app-settings";
 import { normalizeAppSettings } from "../../../engine/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
-import { normalizeClassicThread } from "../collections/classic-storage";
+import { normalizeRoleplayThread } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
 import { normalizeMessengerThreads } from "../collections/messenger-storage";
 import { normalizePersonaRecord } from "../collections/persona-storage";
@@ -21,7 +21,7 @@ export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
 
 export interface DeKoiStorageBundleData {
   characters: CharacterRecord[];
-  classicThreads: ClassicThread[];
+  roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   providerConnections: ProviderConnectionRecord[];
@@ -39,8 +39,8 @@ export interface DeKoiStorageBundle {
 
 export interface DeKoiStorageBundleCounts {
   characters: number;
-  classicThreads: number;
-  classicEntries: number;
+  roleplayThreads: number;
+  roleplayEntries: number;
   personas: number;
   lorebooks: number;
   lorebookEntries: number;
@@ -94,8 +94,8 @@ export function getDeKoiStorageBundleCounts(
 ): DeKoiStorageBundleCounts {
   return {
     characters: data.characters.length,
-    classicThreads: data.classicThreads.length,
-    classicEntries: data.classicThreads.reduce(
+    roleplayThreads: data.roleplayThreads.length,
+    roleplayEntries: data.roleplayThreads.reduce(
       (count, thread) => count + thread.entries.length,
       0,
     ),
@@ -122,7 +122,7 @@ export function getDeKoiStorageBundleCounts(
 export function createDeKoiStorageBundle({
   appSettings,
   characters,
-  classicThreads,
+  roleplayThreads,
   lorebooks,
   messengerThreads,
   personas,
@@ -136,7 +136,7 @@ export function createDeKoiStorageBundle({
     data: {
       appSettings: normalizeAppSettings(appSettings),
       characters: cloneRecords(characters),
-      classicThreads: cloneRecords(classicThreads),
+      roleplayThreads: cloneRecords(roleplayThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
       providerConnections: cloneRecords(providerConnections),
@@ -174,10 +174,10 @@ export function normalizeDeKoiStorageBundle(
       normalizeCharacterRecord,
       warnings,
     ),
-    classicThreads: normalizeList(
-      value.data.classicThreads,
-      "Classic threads",
-      normalizeClassicThread,
+    roleplayThreads: normalizeList(
+      value.data.roleplayThreads,
+      "Roleplay threads",
+      normalizeRoleplayThread,
       warnings,
     ),
     personas: normalizeList(
@@ -215,13 +215,13 @@ export function normalizeDeKoiStorageBundle(
     );
   }
 
-  const classicThreadIds = new Set(data.classicThreads.map((thread) => thread.id));
+  const roleplayThreadIds = new Set(data.roleplayThreads.map((thread) => thread.id));
   const messengerThreadIds = new Set(
     data.messengerThreads.map((thread) => thread.id),
   );
   const validRippleStates = data.rippleStates.filter((state) =>
-    state.ownerKind === "classic-thread"
-      ? classicThreadIds.has(state.ownerId)
+    state.ownerKind === "roleplay-thread"
+      ? roleplayThreadIds.has(state.ownerId)
       : messengerThreadIds.has(state.ownerId),
   );
   if (validRippleStates.length !== data.rippleStates.length) {

@@ -1,5 +1,5 @@
 import type { CharacterRecord } from "./character";
-import type { ClassicEntry, ClassicThread } from "./classic";
+import type { RoleplayEntry, RoleplayThread } from "./roleplay";
 import type { MessengerMessage } from "./messenger";
 import type { PersonaRecord } from "./persona";
 
@@ -11,7 +11,7 @@ function cleanIds(ids: string[]) {
   return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
 }
 
-export function createClassicThread({
+export function createRoleplayThread({
   activePersonaId,
   characterIds,
   id,
@@ -27,13 +27,13 @@ export function createClassicThread({
   now: string;
   providerConnectionId?: string | null;
   title: string;
-}): ClassicThread {
+}): RoleplayThread {
   return {
     id,
     schemaVersion: 1,
-    kind: "classic",
+    kind: "roleplay",
     mode: "scene",
-    title: cleanText(title, "New Classic Chat"),
+    title: cleanText(title, "New Roleplay Chat"),
     sceneText: "",
     characterIds: cleanIds(characterIds),
     activePersonaId,
@@ -45,11 +45,11 @@ export function createClassicThread({
   };
 }
 
-export function renameClassicThread(
-  thread: ClassicThread,
+export function renameRoleplayThread(
+  thread: RoleplayThread,
   title: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   return {
     ...thread,
     title: cleanText(title, thread.title),
@@ -57,11 +57,11 @@ export function renameClassicThread(
   };
 }
 
-export function updateClassicSceneText(
-  thread: ClassicThread,
+export function updateRoleplaySceneText(
+  thread: RoleplayThread,
   sceneText: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   return {
     ...thread,
     sceneText,
@@ -69,11 +69,11 @@ export function updateClassicSceneText(
   };
 }
 
-export function appendClassicEntries(
-  thread: ClassicThread,
-  entries: ClassicEntry[],
+export function appendRoleplayEntries(
+  thread: RoleplayThread,
+  entries: RoleplayEntry[],
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   return {
     ...thread,
     entries: [...thread.entries, ...entries],
@@ -81,10 +81,10 @@ export function appendClassicEntries(
   };
 }
 
-export function clearClassicEntries(
-  thread: ClassicThread,
+export function clearRoleplayEntries(
+  thread: RoleplayThread,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   return {
     ...thread,
     entries: [],
@@ -92,12 +92,12 @@ export function clearClassicEntries(
   };
 }
 
-export function updateClassicEntryBody(
-  thread: ClassicThread,
+export function updateRoleplayEntryBody(
+  thread: RoleplayThread,
   entryId: string,
   body: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   const cleanBody = cleanText(body);
   if (!cleanBody) return thread;
 
@@ -116,11 +116,11 @@ export function updateClassicEntryBody(
   };
 }
 
-export function deleteClassicEntry(
-  thread: ClassicThread,
+export function deleteRoleplayEntry(
+  thread: RoleplayThread,
   entryId: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   if (!thread.entries.some((entry) => entry.id === entryId)) return thread;
 
   return {
@@ -130,7 +130,7 @@ export function deleteClassicEntry(
   };
 }
 
-export function createPersonaClassicEntry({
+export function createPersonaRoleplayEntry({
   body,
   id,
   now,
@@ -141,8 +141,8 @@ export function createPersonaClassicEntry({
   id: string;
   now: string;
   persona: PersonaRecord;
-  thread: ClassicThread;
-}): ClassicEntry {
+  thread: RoleplayThread;
+}): RoleplayEntry {
   return {
     id,
     threadId: thread.id,
@@ -157,7 +157,7 @@ export function createPersonaClassicEntry({
   };
 }
 
-export function createNarrationClassicEntry({
+export function createNarrationRoleplayEntry({
   body,
   id,
   label = "Anonymous",
@@ -168,8 +168,8 @@ export function createNarrationClassicEntry({
   id: string;
   label?: string;
   now: string;
-  thread: ClassicThread;
-}): ClassicEntry {
+  thread: RoleplayThread;
+}): RoleplayEntry {
   return {
     id,
     threadId: thread.id,
@@ -184,7 +184,7 @@ export function createNarrationClassicEntry({
   };
 }
 
-export function createCompanionClassicEntry({
+export function createCompanionRoleplayEntry({
   body,
   companion,
   id,
@@ -195,8 +195,8 @@ export function createCompanionClassicEntry({
   companion: CharacterRecord;
   id: string;
   now: string;
-  thread: ClassicThread;
-}): ClassicEntry {
+  thread: RoleplayThread;
+}): RoleplayEntry {
   return {
     id,
     threadId: thread.id,
@@ -211,15 +211,15 @@ export function createCompanionClassicEntry({
   };
 }
 
-export function deleteClassicThread(records: ClassicThread[], id: string) {
+export function deleteRoleplayThread(records: RoleplayThread[], id: string) {
   return records.filter((record) => record.id !== id);
 }
 
-export function removeClassicThreadCharacter(
-  thread: ClassicThread,
+export function removeRoleplayThreadCharacter(
+  thread: RoleplayThread,
   characterId: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   if (!thread.characterIds.includes(characterId)) return thread;
 
   return {
@@ -229,11 +229,11 @@ export function removeClassicThreadCharacter(
   };
 }
 
-export function setClassicThreadPersona(
-  thread: ClassicThread,
+export function setRoleplayThreadPersona(
+  thread: RoleplayThread,
   activePersonaId: string | null,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   return {
     ...thread,
     activePersonaId: activePersonaId?.trim() || null,
@@ -241,20 +241,20 @@ export function setClassicThreadPersona(
   };
 }
 
-export function clearClassicThreadPersona(
-  thread: ClassicThread,
+export function clearRoleplayThreadPersona(
+  thread: RoleplayThread,
   personaId: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   if (thread.activePersonaId !== personaId) return thread;
-  return setClassicThreadPersona(thread, null, updatedAt);
+  return setRoleplayThreadPersona(thread, null, updatedAt);
 }
 
-export function removeClassicThreadLorebook(
-  thread: ClassicThread,
+export function removeRoleplayThreadLorebook(
+  thread: RoleplayThread,
   lorebookId: string,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   if (!thread.lorebookIds.includes(lorebookId)) return thread;
 
   return {
@@ -264,12 +264,12 @@ export function removeClassicThreadLorebook(
   };
 }
 
-export function replaceClassicThreadProviderConnection(
-  thread: ClassicThread,
+export function replaceRoleplayThreadProviderConnection(
+  thread: RoleplayThread,
   deletedConnectionId: string,
   fallbackConnectionId: string | null,
   updatedAt: string,
-): ClassicThread {
+): RoleplayThread {
   if (thread.providerConnectionId !== deletedConnectionId) return thread;
 
   return {
@@ -279,7 +279,7 @@ export function replaceClassicThreadProviderConnection(
   };
 }
 
-export function createGeneratedClassicEntry({
+export function createGeneratedRoleplayEntry({
   companion,
   id,
   message,
@@ -290,10 +290,10 @@ export function createGeneratedClassicEntry({
   id: string;
   message: MessengerMessage;
   now: string;
-  thread: ClassicThread;
-}): ClassicEntry {
+  thread: RoleplayThread;
+}): RoleplayEntry {
   return {
-    ...createCompanionClassicEntry({
+    ...createCompanionRoleplayEntry({
       body: message.body,
       companion,
       id,

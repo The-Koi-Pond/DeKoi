@@ -1,19 +1,19 @@
 import type {
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavMessengerThreadActions,
   NavThreadState,
   NavViewActions,
   NavViewState,
 } from "../../../navigation";
 import {
-  CLASSIC,
+  ROLEPLAY,
   MESSENGER,
   RESERVED,
   SURFACES,
   type SurfaceId,
 } from "../../../../engine/surfaces";
 import {
-  sortClassicThreadsByUpdatedAt,
+  sortRoleplayThreadsByUpdatedAt,
   sortMessengerThreadsByUpdatedAt,
 } from "../../../modes";
 import "./pools.css";
@@ -23,14 +23,14 @@ interface ModePoolsProps {
 }
 
 export type ModePoolsNav = Pick<
-  NavClassicThreadActions,
-  "createClassicThread"
+  NavRoleplayThreadActions,
+  "createRoleplayThread"
 > &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
-  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
   Pick<
     NavViewActions,
-    "openClassicThread" | "openMessengerThread" | "setSelectedSurface"
+    "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"
   > &
   Pick<NavViewState, "selectedSurface">;
 
@@ -45,7 +45,7 @@ const POOLS: {
     desc: "Open water. Talk freely with the AI, no scene, no rules.",
   },
   {
-    mode: CLASSIC,
+    mode: ROLEPLAY,
     icon: (
       <>
         <rect x="4" y="4" width="16" height="16" rx="3" />
@@ -78,14 +78,14 @@ export function ModePools({ nav }: ModePoolsProps) {
     nav.createMessengerThread();
   }
 
-  function openLatestClassicThread() {
-    const latestThread = sortClassicThreadsByUpdatedAt(nav.classicThreads)[0];
+  function openLatestRoleplayThread() {
+    const latestThread = sortRoleplayThreadsByUpdatedAt(nav.roleplayThreads)[0];
     if (latestThread) {
-      nav.openClassicThread(latestThread.id);
+      nav.openRoleplayThread(latestThread.id);
       return;
     }
 
-    nav.createClassicThread();
+    nav.createRoleplayThread();
   }
 
   function openPool(mode: SurfaceId) {
@@ -95,8 +95,8 @@ export function ModePools({ nav }: ModePoolsProps) {
       return;
     }
 
-    if (mode === CLASSIC) {
-      openLatestClassicThread();
+    if (mode === ROLEPLAY) {
+      openLatestRoleplayThread();
     }
   }
 

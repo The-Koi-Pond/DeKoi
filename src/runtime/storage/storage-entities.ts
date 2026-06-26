@@ -1,7 +1,7 @@
 export const HOST_STORAGE_ENTITIES = [
   "app-settings",
   "characters",
-  "classic-threads",
+  "roleplay-threads",
   "lorebooks",
   "messenger-threads",
   "personas",
@@ -15,7 +15,7 @@ export type HostStorageEntity = StorageEntity;
 export const STORAGE_ENTITIES = {
   appSettings: "app-settings",
   characters: "characters",
-  classicThreads: "classic-threads",
+  roleplayThreads: "roleplay-threads",
   lorebooks: "lorebooks",
   messengerThreads: "messenger-threads",
   personas: "personas",

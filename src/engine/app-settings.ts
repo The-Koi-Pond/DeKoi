@@ -58,7 +58,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 function isSurfaceId(value: unknown): value is SurfaceId {
-  return value === "messenger" || value === "classic" || value === "reserved";
+  return value === "messenger" || value === "roleplay" || value === "reserved";
 }
 
 function isShoalSortMode(value: unknown): value is ShoalSortMode {

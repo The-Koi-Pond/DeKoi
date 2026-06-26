@@ -38,9 +38,9 @@ export {
   type DeKoiStorageBundlePreview,
 } from "./storage";
 export {
-  generateClassicThreadTurn,
-  type GenerateClassicThreadTurnInput,
-  type GenerateClassicThreadTurnResult,
+  generateRoleplayThreadTurn,
+  type GenerateRoleplayThreadTurnInput,
+  type GenerateRoleplayThreadTurnResult,
 } from "./generation";
 export {
   generateMessengerResponse,

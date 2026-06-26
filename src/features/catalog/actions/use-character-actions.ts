@@ -7,8 +7,8 @@ import {
   updateCharacterRecord,
   type CharacterRecordInput,
 } from "../../../engine/character-actions";
-import type { ClassicThread } from "../../../engine/classic";
-import { removeClassicThreadCharacter } from "../../../engine/classic-actions";
+import type { RoleplayThread } from "../../../engine/roleplay";
+import { removeRoleplayThreadCharacter } from "../../../engine/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { removeMessengerThreadCharacter } from "../../../engine/messenger-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
@@ -18,14 +18,14 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 type UseCharacterActionsInput = {
   characters: CharacterRecord[];
   setCharacters: StateSetter<CharacterRecord[]>;
-  setClassicThreads: StateSetter<ClassicThread[]>;
+  setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setMessengerThreads: StateSetter<MessengerThread[]>;
 };
 
 export function useCharacterActions({
   characters,
   setCharacters,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
 }: UseCharacterActionsInput) {
   const createCharacter = useCallback(
@@ -89,13 +89,13 @@ export function useCharacterActions({
           removeMessengerThreadCharacter(thread, characterId, now),
         ),
       );
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          removeClassicThreadCharacter(thread, characterId, now),
+          removeRoleplayThreadCharacter(thread, characterId, now),
         ),
       );
     },
-    [setCharacters, setClassicThreads, setMessengerThreads],
+    [setCharacters, setRoleplayThreads, setMessengerThreads],
   );
 
   return {

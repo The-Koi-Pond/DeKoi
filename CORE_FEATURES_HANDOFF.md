@@ -17,7 +17,7 @@ and provider connections, plus a provider connection selector.
 Recent architecture direction:
 
 - Messenger is the first real product loop.
-- Classic stays reserved until Messenger records, storage, and generation are
+- Roleplay stays reserved until Messenger records, storage, and generation are
   stable.
 - Provider/runtime work should stay behind explicit runtime adapters.
 - Legacy import remains blocked until native DeKoi records are stable.
@@ -33,7 +33,7 @@ Build in this order unless the user explicitly redirects:
 3. Harden generation request assembly from real selected records.
 4. Harden remote runtime command contract and test fixture.
 5. Harden storage/export/import for DeKoi-native records.
-6. Harden Classic first slice.
+6. Harden Roleplay first slice.
 7. Harden legacy import adapters.
 8. Tauri/Rust host features.
 
@@ -197,29 +197,29 @@ Acceptance:
 - Import previews counts before applying.
 - Import never overwrites without explicit confirmation.
 
-## 6. Classic First Slice
+## 6. Roleplay First Slice
 
-Goal: start Classic only after Messenger core records are stable.
+Goal: start Roleplay only after Messenger core records are stable.
 
-Status: initial Classic scene records, local storage, Shoal reopening, and a
-minimal scene surface are implemented. Classic can generate a character turn by
+Status: initial Roleplay scene records, local storage, Shoal reopening, and a
+minimal scene surface are implemented. Roleplay can generate a character turn by
 adapting the scene into the existing provider-neutral Messenger generation
 boundary.
 
 Implementation:
 
-- Continue hardening `ClassicThread` and `ClassicEntry` records in `src/engine`.
+- Continue hardening `RoleplayThread` and `RoleplayEntry` records in `src/engine`.
 - Reuse characters, personas, lorebooks, provider connections, and generation
   runtime where practical.
-- Keep building out the minimal Classic surface with scene text and speaker
+- Keep building out the minimal Roleplay surface with scene text and speaker
   turns.
 - Avoid importing Messenger UI internals directly.
 
 Acceptance:
 
-- Classic can create a scene, save it, reopen it, and generate one turn through
+- Roleplay can create a scene, save it, reopen it, and generate one turn through
   the same provider boundary.
-- Classic has separate record types where presentation/continuity differs from
+- Roleplay has separate record types where presentation/continuity differs from
   Messenger.
 
 ## 7. Legacy Import Adapters

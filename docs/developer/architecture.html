@@ -64,7 +64,7 @@
             <tr>
               <td><code>src/features/modes</code></td>
               <td>User mode surfaces</td>
-              <td>Messenger, Classic, future adventure/gameplay modes, shared mode UI, and the mode router.</td>
+              <td>Messenger, Roleplay, future adventure/gameplay modes, shared mode UI, and the mode router.</td>
             </tr>
             <tr>
               <td><code>src/features/shell</code></td>
@@ -221,7 +221,7 @@
             </tr>
             <tr>
               <td>Mode packages must be imported through their public entrypoints.</td>
-              <td>Classic and Messenger expose stable mode surfaces and display helpers without leaking file layout.</td>
+              <td>Roleplay and Messenger expose stable mode surfaces and display helpers without leaking file layout.</td>
             </tr>
             <tr>
               <td>Navigation must be imported through its public entrypoint.</td>
@@ -262,7 +262,7 @@
         <ol>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
           <li>Keep app provider wiring plus top-level state, storage sync, and view controller assembly in <code>src/app</code>. Catalog owns catalog record actions, modes own thread actions, shell care owns settings/import/export actions, and feature-runtime owns ripple/runtime actions. Import navigation through its package entrypoint while it remains a context/contracts bridge.</li>
-          <li>Keep Messenger and Classic screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
+          <li>Keep Messenger and Roleplay screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Pass navigation state/actions through narrow feature-owned props into shell, mode, and catalog surfaces. Build those contracts from exported navigation state/action groups rather than reading the navigation context, importing <code>NavContextType</code>, accepting it directly, or picking from it inside non-navigation feature modules.</li>
           <li>Keep desktop/remote transport, desktop bundle file/storage command wrappers, desktop host status, and provider secret wrappers in <code>src/shared/api</code>; keep DeKoi storage contracts, collection adapters, and bundle normalization organized under <code>src/runtime/storage</code>. Import feature runtime workflows through their package entrypoint from outside the package, keep feature-runtime implementation files under <code>storage</code>, <code>generation</code>, or <code>ripples</code>, and import the lower runtime bridge through its public entrypoint. App composition should use feature-runtime workflows for storage startup and runtime target changes. Shell UI should use feature-runtime workflows for storage bundle file previews rather than calling raw bundle normalizers directly.</li>

@@ -1,4 +1,4 @@
-.classic-thread {
+.roleplay-thread {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-.classic-header {
+.roleplay-header {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -19,14 +19,14 @@
   backdrop-filter: blur(6px);
 }
 
-.classic-header-icons {
+.roleplay-header-icons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
 }
 
-.classic-chat-settings-button {
+.roleplay-chat-settings-button {
   display: grid;
   width: 34px;
   height: 24px;
@@ -41,12 +41,12 @@
   line-height: 1;
 }
 
-.classic-chat-settings-button:disabled {
+.roleplay-chat-settings-button:disabled {
   cursor: default;
   opacity: 0.78;
 }
 
-.classic-entries {
+.roleplay-entries {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -56,7 +56,7 @@
   padding: 16px 22px 248px;
 }
 
-.classic-entry {
+.roleplay-entry {
   display: grid;
   grid-template-columns: 36px minmax(0, min(680px, calc(100% - 92px))) 36px;
   column-gap: 10px;
@@ -66,7 +66,7 @@
   width: 100%;
 }
 
-.classic-entry-avatar {
+.roleplay-entry-avatar {
   grid-row: 1 / span 2;
   display: grid;
   width: 36px;
@@ -81,20 +81,20 @@
   font-weight: 750;
 }
 
-.classic-entry.own .classic-entry-avatar {
+.roleplay-entry.own .roleplay-entry-avatar {
   grid-column: 3;
   border-color: rgba(39, 179, 170, 0.38);
   background: rgba(39, 179, 170, 0.12);
   color: var(--jade-hot);
 }
 
-.classic-entry-avatar img {
+.roleplay-entry-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.classic-entry-bubble {
+.roleplay-entry-bubble {
   grid-column: 2;
   grid-row: 2;
   min-width: 0;
@@ -104,21 +104,21 @@
   padding: 11px 13px;
 }
 
-.classic-entry.own .classic-entry-bubble {
+.roleplay-entry.own .roleplay-entry-bubble {
   grid-column: 2;
   grid-row: 2;
 }
 
-.classic-entry.character .classic-entry-bubble {
+.roleplay-entry.character .roleplay-entry-bubble {
   border-color: rgba(244, 122, 53, 0.22);
 }
 
-.classic-entry.persona .classic-entry-bubble,
-.classic-entry.narration .classic-entry-bubble {
+.roleplay-entry.persona .roleplay-entry-bubble,
+.roleplay-entry.narration .roleplay-entry-bubble {
   border-color: rgba(39, 179, 170, 0.22);
 }
 
-.classic-entry-head {
+.roleplay-entry-head {
   grid-column: 2;
   grid-row: 1;
   display: flex;
@@ -129,7 +129,7 @@
   padding: 0 2px 1px;
 }
 
-.classic-entry-author {
+.roleplay-entry-author {
   display: inline-flex;
   flex: 1 1 auto;
   align-items: center;
@@ -137,16 +137,16 @@
   min-width: 0;
 }
 
-.classic-entry.own .classic-entry-head {
+.roleplay-entry.own .roleplay-entry-head {
   justify-content: flex-end;
 }
 
-.classic-entry.own .classic-entry-author {
+.roleplay-entry.own .roleplay-entry-author {
   flex: 0 1 auto;
   justify-content: flex-end;
 }
 
-.classic-entry-author b {
+.roleplay-entry-author b {
   min-width: 0;
   overflow: hidden;
   color: var(--foam);
@@ -156,7 +156,7 @@
   white-space: nowrap;
 }
 
-.classic-entry-timestamp {
+.roleplay-entry-timestamp {
   flex: 0 0 auto;
   color: var(--mist-dim);
   font-size: 10.5px;
@@ -164,14 +164,14 @@
   line-height: 1;
 }
 
-.classic-entry-actions,
-.classic-entry-edit-actions {
+.roleplay-entry-actions,
+.roleplay-entry-edit-actions {
   display: flex;
   flex: 0 0 auto;
   gap: 5px;
 }
 
-.classic-entry-actions {
+.roleplay-entry-actions {
   align-items: center;
   max-height: 0;
   margin-top: 0;
@@ -186,8 +186,8 @@
     transform 0.14s;
 }
 
-.classic-entry:hover .classic-entry-actions,
-.classic-entry:focus-within .classic-entry-actions {
+.roleplay-entry:hover .roleplay-entry-actions,
+.roleplay-entry:focus-within .roleplay-entry-actions {
   max-height: 22px;
   margin-top: 5px;
   opacity: 1;
@@ -195,7 +195,7 @@
   transform: translateY(0);
 }
 
-.classic-entry-edit-actions button {
+.roleplay-entry-edit-actions button {
   min-height: 22px;
   padding: 0 7px;
   border: 1px solid rgba(117, 143, 146, 0.2);
@@ -207,7 +207,7 @@
   font-size: 10px;
 }
 
-.classic-entry-actions button {
+.roleplay-entry-actions button {
   display: grid;
   width: 22px;
   height: 20px;
@@ -223,35 +223,35 @@
   line-height: 1;
 }
 
-.classic-entry-actions button:hover,
-.classic-entry-actions button:focus-visible,
-.classic-entry-edit-actions button:hover:not(:disabled),
-.classic-entry-edit-actions button:focus-visible:not(:disabled) {
+.roleplay-entry-actions button:hover,
+.roleplay-entry-actions button:focus-visible,
+.roleplay-entry-edit-actions button:hover:not(:disabled),
+.roleplay-entry-edit-actions button:focus-visible:not(:disabled) {
   border-color: rgba(39, 179, 170, 0.32);
   background: rgba(39, 179, 170, 0.1);
   color: var(--jade-hot);
   outline: none;
 }
 
-.classic-entry-edit-actions button:disabled {
+.roleplay-entry-edit-actions button:disabled {
   cursor: default;
   opacity: 0.45;
 }
 
-.classic-entry p,
-.classic-empty-note {
+.roleplay-entry p,
+.roleplay-empty-note {
   color: var(--foam);
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
 }
 
-.classic-entry-edit-form {
+.roleplay-entry-edit-form {
   display: grid;
   gap: 7px;
 }
 
-.classic-entry-edit-form textarea {
+.roleplay-entry-edit-form textarea {
   width: 100%;
   min-height: 92px;
   resize: vertical;
@@ -266,32 +266,32 @@
   padding: 9px;
 }
 
-.classic-entry-edit-form textarea:focus,
-.classic-entry-edit-form textarea:focus-visible {
+.roleplay-entry-edit-form textarea:focus,
+.roleplay-entry-edit-form textarea:focus-visible {
   border-color: rgba(39, 179, 170, 0.48);
   box-shadow: 0 0 0 1px rgba(39, 179, 170, 0.12);
   outline: none;
 }
 
-.classic-entry-edit-actions {
+.roleplay-entry-edit-actions {
   justify-content: flex-end;
 }
 
-.classic-empty-note {
+.roleplay-empty-note {
   color: var(--mist-dim);
 }
 
-.classic-thread-empty {
+.roleplay-thread-empty {
   min-height: 320px;
 }
 
-.classic-empty {
+.roleplay-empty {
   display: grid;
   flex: 1;
   place-items: center;
 }
 
-.classic-empty button {
+.roleplay-empty button {
   min-height: 38px;
   border: 1px solid transparent;
   border-radius: var(--r-md);

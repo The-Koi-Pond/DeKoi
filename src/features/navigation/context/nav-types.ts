@@ -1,6 +1,6 @@
 import type { CharacterRecord } from "../../../engine/character";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
-import type { ClassicThread } from "../../../engine/classic";
+import type { RoleplayThread } from "../../../engine/roleplay";
 import type {
   LorebookEntryRecord,
   LorebookRecord,
@@ -32,7 +32,7 @@ import type {
 
 export type PondView =
   | { kind: "pond" }
-  | { kind: "classic"; threadId: string }
+  | { kind: "roleplay"; threadId: string }
   | { kind: "messenger"; threadId: string }
   | { kind: "companions"; characterId?: string; mode?: "new" }
   | { kind: "connections"; connectionId?: ProviderConnectionId; mode?: "new" }
@@ -61,7 +61,7 @@ export interface NavCatalogState {
 }
 
 export interface NavThreadState {
-  classicThreads: ClassicThread[];
+  roleplayThreads: RoleplayThread[];
   messengerThreads: MessengerThread[];
 }
 
@@ -98,7 +98,7 @@ export interface NavViewActions {
   setView: (view: PondView) => void;
   setSideRailView: (view: SideRailView) => void;
   setSelectedSurface: (surface: SurfaceId) => void;
-  openClassicThread: (threadId: string) => void;
+  openRoleplayThread: (threadId: string) => void;
   openMessengerThread: (threadId: string) => void;
 }
 
@@ -168,7 +168,7 @@ export interface MessengerThreadCreateInput {
   title?: string;
 }
 
-export interface ClassicThreadCreateInput {
+export interface RoleplayThreadCreateInput {
   activePersonaId?: string | null;
   characterIds?: string[];
   lorebookIds?: string[];
@@ -176,12 +176,12 @@ export interface ClassicThreadCreateInput {
   title?: string;
 }
 
-export interface NavClassicThreadActions {
-  createClassicThread: (input?: ClassicThreadCreateInput) => ClassicThread;
-  updateClassicThread: (thread: ClassicThread) => void;
-  renameClassicThread: (threadId: string, title: string) => void;
-  clearClassicThreadEntries: (threadId: string) => void;
-  deleteClassicThread: (threadId: string) => void;
+export interface NavRoleplayThreadActions {
+  createRoleplayThread: (input?: RoleplayThreadCreateInput) => RoleplayThread;
+  updateRoleplayThread: (thread: RoleplayThread) => void;
+  renameRoleplayThread: (threadId: string, title: string) => void;
+  clearRoleplayThreadEntries: (threadId: string) => void;
+  deleteRoleplayThread: (threadId: string) => void;
 }
 
 export interface NavMessengerThreadActions {
@@ -233,7 +233,7 @@ export interface NavActions
     NavPersonaActions,
     NavLorebookActions,
     NavProviderConnectionActions,
-    NavClassicThreadActions,
+    NavRoleplayThreadActions,
     NavMessengerThreadActions,
     NavRippleActions,
     NavStorageBundleActions,

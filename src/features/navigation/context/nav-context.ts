@@ -7,7 +7,7 @@ export type {
   NavCareState,
   NavCatalogState,
   NavCharacterActions,
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavContextType,
   NavLorebookActions,
   NavMessengerThreadActions,

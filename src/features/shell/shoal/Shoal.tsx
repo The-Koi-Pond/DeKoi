@@ -17,15 +17,15 @@ import {
   setMessengerThreadSystemPrompt,
 } from "../../../engine/messenger-actions";
 import {
-  getClassicThreadPreview,
-  sortClassicThreads,
+  getRoleplayThreadPreview,
+  sortRoleplayThreads,
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   sortMessengerThreads,
 } from "../../modes";
 import type {
   NavCatalogState,
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavMessengerThreadActions,
   NavSettingsActions,
   NavSettingsState,
@@ -44,7 +44,7 @@ import {
   getProviderConnectionProviderOption,
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import { CLASSIC, MESSENGER } from "../../../engine/surfaces";
+import { ROLEPLAY, MESSENGER } from "../../../engine/surfaces";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -73,7 +73,7 @@ const CHAT_SETTINGS_DRAWER_DEFAULTS: Record<ChatSettingsDrawerId, boolean> = {
 
 type ThreadReleaseRequest = {
   id: string;
-  kind: "classic" | "messenger";
+  kind: "roleplay" | "messenger";
   title: string;
 };
 
@@ -103,8 +103,8 @@ export type ShoalNav = Pick<
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<
-    NavClassicThreadActions,
-    "createClassicThread" | "deleteClassicThread" | "renameClassicThread"
+    NavRoleplayThreadActions,
+    "createRoleplayThread" | "deleteRoleplayThread" | "renameRoleplayThread"
   > &
   Pick<
     NavMessengerThreadActions,
@@ -118,8 +118,8 @@ export type ShoalNav = Pick<
     "setActiveMessengerConnectionId" | "setShoalSortMode" | "updateAppSettings"
   > &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
-  Pick<NavViewActions, "openClassicThread" | "openMessengerThread" | "setView"> &
+  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setView"> &
   Pick<NavViewState, "selectedSurface" | "sideRailView" | "view">;
 
 interface CatalogRailCardProps {
@@ -140,8 +140,8 @@ function ShoalTopBar({
   shoalClosed,
 }: ShoalTopBarProps) {
   const chatSettingsLabel =
-    nav.selectedSurface === CLASSIC
-      ? "Classic Settings"
+    nav.selectedSurface === ROLEPLAY
+      ? "Roleplay Settings"
       : nav.selectedSurface === MESSENGER
         ? "Messenger Settings"
         : "Chat Settings";
@@ -183,7 +183,7 @@ function FolderIcon() {
   );
 }
 
-function ClassicCardIcon() {
+function RoleplayCardIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M5 5.5h5.7c1.2 0 2.3.5 3.1 1.3v11.7c-.8-.8-1.9-1.3-3.1-1.3H5z" />
@@ -261,7 +261,7 @@ function getMessengerCardDetails(
   };
 }
 
-function getClassicCardAvatarDetails(
+function getRoleplayCardAvatarDetails(
   characterIds: string[],
   fallbackName: string,
   characterById: Map<string, CharacterRecord>,
@@ -336,7 +336,7 @@ function PeopleCatalogRail({
   const shownCount = isCompanionTab
     ? filteredCharacters.length
     : filteredPersonas.length;
-  const actionTone = isCompanionTab ? "koi" : "classic";
+  const actionTone = isCompanionTab ? "koi" : "roleplay";
   const searchKind = isCompanionTab ? "companions" : "personas";
 
   function openNew() {
@@ -807,8 +807,8 @@ function ChatSettingsRail({
   shoalClosed,
 }: ShoalRailProps) {
   const settingsLabel =
-    nav.selectedSurface === CLASSIC
-      ? "Classic Settings"
+    nav.selectedSurface === ROLEPLAY
+      ? "Roleplay Settings"
       : nav.selectedSurface === MESSENGER
         ? "Messenger Settings"
         : "Chat Settings";
@@ -1428,25 +1428,25 @@ function ThreadShoal({
   const [newMessengerCharacterIds, setNewMessengerCharacterIds] = useState<string[]>([]);
   const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
     useState(false);
-  const [newClassicOpen, setNewClassicOpen] = useState(false);
-  const [newClassicName, setNewClassicName] = useState("");
-  const [newClassicNameEdited, setNewClassicNameEdited] = useState(false);
-  const [newClassicConnectionId, setNewClassicConnectionId] = useState("");
-  const [newClassicPersonaId, setNewClassicPersonaId] = useState("");
-  const [newClassicCharacterIds, setNewClassicCharacterIds] = useState<string[]>([]);
-  const [newClassicLorebookIds, setNewClassicLorebookIds] = useState<string[]>([]);
-  const [newClassicCompanionMenuOpen, setNewClassicCompanionMenuOpen] =
+  const [newRoleplayOpen, setNewRoleplayOpen] = useState(false);
+  const [newRoleplayName, setNewRoleplayName] = useState("");
+  const [newRoleplayNameEdited, setNewRoleplayNameEdited] = useState(false);
+  const [newRoleplayConnectionId, setNewRoleplayConnectionId] = useState("");
+  const [newRoleplayPersonaId, setNewRoleplayPersonaId] = useState("");
+  const [newRoleplayCharacterIds, setNewRoleplayCharacterIds] = useState<string[]>([]);
+  const [newRoleplayLorebookIds, setNewRoleplayLorebookIds] = useState<string[]>([]);
+  const [newRoleplayCompanionMenuOpen, setNewRoleplayCompanionMenuOpen] =
     useState(false);
-  const [newClassicLorebookMenuOpen, setNewClassicLorebookMenuOpen] =
+  const [newRoleplayLorebookMenuOpen, setNewRoleplayLorebookMenuOpen] =
     useState(false);
   const [releaseRequest, setReleaseRequest] =
     useState<ThreadReleaseRequest | null>(null);
   const sortMode = nav.appSettings.shoalSortMode;
-  const activeSurface = nav.selectedSurface === CLASSIC ? CLASSIC : MESSENGER;
-  const isClassicSurface = activeSurface === CLASSIC;
+  const activeSurface = nav.selectedSurface === ROLEPLAY ? ROLEPLAY : MESSENGER;
+  const isRoleplaySurface = activeSurface === ROLEPLAY;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
-  const activeClassicThreadId =
-    nav.view.kind === "classic" ? nav.view.threadId : null;
+  const activeRoleplayThreadId =
+    nav.view.kind === "roleplay" ? nav.view.threadId : null;
   const characterById = useMemo(
     () => new Map(nav.characters.map((character) => [character.id, character])),
     [nav.characters],
@@ -1479,9 +1479,9 @@ function ThreadShoal({
       );
     });
   }, [characterById, nav.messengerThreads, sortMode]);
-  const sortedClassicThreads = useMemo(
-    () => sortClassicThreads(nav.classicThreads, sortMode),
-    [nav.classicThreads, sortMode],
+  const sortedRoleplayThreads = useMemo(
+    () => sortRoleplayThreads(nav.roleplayThreads, sortMode),
+    [nav.roleplayThreads, sortMode],
   );
   const filteredThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -1492,33 +1492,33 @@ function ThreadShoal({
       return details.searchText.includes(normalizedQuery);
     });
   }, [characterById, query, sortedThreads]);
-  const filteredClassicThreads = useMemo(() => {
+  const filteredRoleplayThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return sortedClassicThreads;
+    if (!normalizedQuery) return sortedRoleplayThreads;
 
-    return sortedClassicThreads.filter((thread) => {
-      const preview = getClassicThreadPreview(thread);
+    return sortedRoleplayThreads.filter((thread) => {
+      const preview = getRoleplayThreadPreview(thread);
       return (
         thread.title.toLowerCase().includes(normalizedQuery) ||
         preview.toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [query, sortedClassicThreads]);
+  }, [query, sortedRoleplayThreads]);
 
   useEffect(() => {
-    if (!newMessengerOpen && !newClassicOpen) return;
+    if (!newMessengerOpen && !newRoleplayOpen) return;
 
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
       setNewMessengerOpen(false);
-      setNewClassicOpen(false);
+      setNewRoleplayOpen(false);
     }
 
     document.addEventListener("keydown", handleDocumentKeyDown);
     return () => {
       document.removeEventListener("keydown", handleDocumentKeyDown);
     };
-  }, [newClassicOpen, newMessengerOpen]);
+  }, [newRoleplayOpen, newMessengerOpen]);
 
   useEffect(() => {
     if (!releaseRequest) return;
@@ -1550,12 +1550,12 @@ function ThreadShoal({
     return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
   }
 
-  function getDraftClassicName(characterIds: string[]) {
+  function getDraftRoleplayName(characterIds: string[]) {
     return (
       characterIds
         .map((characterId) => characterById.get(characterId)?.displayName ?? "")
         .filter(Boolean)
-        .join(" + ") || `New Classic ${nav.classicThreads.length + 1}`
+        .join(" + ") || `New Roleplay ${nav.roleplayThreads.length + 1}`
     );
   }
 
@@ -1574,7 +1574,7 @@ function ThreadShoal({
 
   function openNewMessengerThreadPopover() {
     const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
-    setNewClassicOpen(false);
+    setNewRoleplayOpen(false);
     setNewMessengerCharacterIds(initialCharacterIds);
     setNewMessengerName(getDraftCompanionName(initialCharacterIds));
     setNewMessengerNameEdited(false);
@@ -1584,18 +1584,18 @@ function ThreadShoal({
     setNewMessengerOpen(true);
   }
 
-  function openNewClassicThreadPopover() {
+  function openNewRoleplayThreadPopover() {
     const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
     setNewMessengerOpen(false);
-    setNewClassicCharacterIds(initialCharacterIds);
-    setNewClassicName(getDraftClassicName(initialCharacterIds));
-    setNewClassicNameEdited(false);
-    setNewClassicConnectionId(defaultMessengerConnectionId);
-    setNewClassicPersonaId(nav.personas[0]?.id ?? "");
-    setNewClassicLorebookIds(nav.lorebooks.map((lorebook) => lorebook.id));
-    setNewClassicCompanionMenuOpen(false);
-    setNewClassicLorebookMenuOpen(false);
-    setNewClassicOpen(true);
+    setNewRoleplayCharacterIds(initialCharacterIds);
+    setNewRoleplayName(getDraftRoleplayName(initialCharacterIds));
+    setNewRoleplayNameEdited(false);
+    setNewRoleplayConnectionId(defaultMessengerConnectionId);
+    setNewRoleplayPersonaId(nav.personas[0]?.id ?? "");
+    setNewRoleplayLorebookIds(nav.lorebooks.map((lorebook) => lorebook.id));
+    setNewRoleplayCompanionMenuOpen(false);
+    setNewRoleplayLorebookMenuOpen(false);
+    setNewRoleplayOpen(true);
   }
 
   function updateNewMessengerCharacterIds(characterIds: string[]) {
@@ -1612,22 +1612,22 @@ function ThreadShoal({
     updateNewMessengerCharacterIds(nextIds);
   }
 
-  function updateNewClassicCharacterIds(characterIds: string[]) {
-    setNewClassicCharacterIds(characterIds);
-    if (!newClassicNameEdited) {
-      setNewClassicName(getDraftClassicName(characterIds));
+  function updateNewRoleplayCharacterIds(characterIds: string[]) {
+    setNewRoleplayCharacterIds(characterIds);
+    if (!newRoleplayNameEdited) {
+      setNewRoleplayName(getDraftRoleplayName(characterIds));
     }
   }
 
-  function toggleNewClassicCharacter(characterId: string) {
-    const nextIds = newClassicCharacterIds.includes(characterId)
-      ? newClassicCharacterIds.filter((id) => id !== characterId)
-      : [...newClassicCharacterIds, characterId];
-    updateNewClassicCharacterIds(nextIds);
+  function toggleNewRoleplayCharacter(characterId: string) {
+    const nextIds = newRoleplayCharacterIds.includes(characterId)
+      ? newRoleplayCharacterIds.filter((id) => id !== characterId)
+      : [...newRoleplayCharacterIds, characterId];
+    updateNewRoleplayCharacterIds(nextIds);
   }
 
-  function toggleNewClassicLorebook(lorebookId: string) {
-    setNewClassicLorebookIds((currentIds) =>
+  function toggleNewRoleplayLorebook(lorebookId: string) {
+    setNewRoleplayLorebookIds((currentIds) =>
       currentIds.includes(lorebookId)
         ? currentIds.filter((id) => id !== lorebookId)
         : [...currentIds, lorebookId],
@@ -1650,32 +1650,32 @@ function ThreadShoal({
     setNewMessengerOpen(false);
   }
 
-  function handleCreateClassicThread(event: FormEvent<HTMLFormElement>) {
+  function handleCreateRoleplayThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (newClassicCharacterIds.length === 0) return;
+    if (newRoleplayCharacterIds.length === 0) return;
 
     const title =
-      newClassicName.trim() || getDraftClassicName(newClassicCharacterIds);
-    nav.createClassicThread({
-      activePersonaId: newClassicPersonaId || null,
-      characterIds: newClassicCharacterIds,
-      lorebookIds: newClassicLorebookIds,
-      providerConnectionId: newClassicConnectionId || null,
+      newRoleplayName.trim() || getDraftRoleplayName(newRoleplayCharacterIds);
+    nav.createRoleplayThread({
+      activePersonaId: newRoleplayPersonaId || null,
+      characterIds: newRoleplayCharacterIds,
+      lorebookIds: newRoleplayLorebookIds,
+      providerConnectionId: newRoleplayConnectionId || null,
       title,
     });
-    setNewClassicCompanionMenuOpen(false);
-    setNewClassicLorebookMenuOpen(false);
-    setNewClassicOpen(false);
+    setNewRoleplayCompanionMenuOpen(false);
+    setNewRoleplayLorebookMenuOpen(false);
+    setNewRoleplayOpen(false);
   }
 
   function handleCreateActiveThread() {
-    if (isClassicSurface) {
-      if (newClassicOpen) {
-        setNewClassicOpen(false);
+    if (isRoleplaySurface) {
+      if (newRoleplayOpen) {
+        setNewRoleplayOpen(false);
         return;
       }
 
-      openNewClassicThreadPopover();
+      openNewRoleplayThreadPopover();
       return;
     }
 
@@ -1687,10 +1687,10 @@ function ThreadShoal({
     openNewMessengerThreadPopover();
   }
 
-  function handleRenameClassic(threadId: string, currentTitle: string) {
-    const nextTitle = window.prompt("Rename Classic scene", currentTitle);
+  function handleRenameRoleplay(threadId: string, currentTitle: string) {
+    const nextTitle = window.prompt("Rename Roleplay thread", currentTitle);
     if (nextTitle === null) return;
-    nav.renameClassicThread(threadId, nextTitle);
+    nav.renameRoleplayThread(threadId, nextTitle);
   }
 
   function handleDeleteMessenger(threadId: string, title: string) {
@@ -1702,13 +1702,13 @@ function ThreadShoal({
     setReleaseRequest({ id: threadId, kind: "messenger", title });
   }
 
-  function handleDeleteClassic(threadId: string, title: string) {
+  function handleDeleteRoleplay(threadId: string, title: string) {
     if (!nav.appSettings.confirmRelease) {
-      nav.deleteClassicThread(threadId);
+      nav.deleteRoleplayThread(threadId);
       return;
     }
 
-    setReleaseRequest({ id: threadId, kind: "classic", title });
+    setReleaseRequest({ id: threadId, kind: "roleplay", title });
   }
 
   function confirmReleaseThread() {
@@ -1717,7 +1717,7 @@ function ThreadShoal({
     if (releaseRequest.kind === "messenger") {
       nav.deleteMessengerThread(releaseRequest.id);
     } else {
-      nav.deleteClassicThread(releaseRequest.id);
+      nav.deleteRoleplayThread(releaseRequest.id);
     }
 
     setReleaseRequest(null);
@@ -1730,11 +1730,11 @@ function ThreadShoal({
     nav.setShoalSortMode(SHOAL_SORT_ORDER[nextIndex]);
   }
 
-  const visibleCount = isClassicSurface
-    ? filteredClassicThreads.length
+  const visibleCount = isRoleplaySurface
+    ? filteredRoleplayThreads.length
     : filteredThreads.length;
-  const activeSurfaceLabel = isClassicSurface ? "Classic" : "Messenger";
-  const searchPlaceholder = isClassicSurface
+  const activeSurfaceLabel = isRoleplaySurface ? "Roleplay" : "Messenger";
+  const searchPlaceholder = isRoleplaySurface
     ? "Find a scene by name or text..."
     : "Find a character by name or message...";
 
@@ -1752,20 +1752,20 @@ function ThreadShoal({
         <div className="shoal-head">
           <div className="shoal-title">
             <button
-              className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
+              className={`pill ${isRoleplaySurface ? "roleplay" : "koi"} title-cast`}
               type="button"
               aria-controls={
-                isClassicSurface
-                  ? "new-classic-thread-popover"
+                isRoleplaySurface
+                  ? "new-roleplay-thread-popover"
                   : "new-messenger-thread-popover"
               }
-              aria-expanded={isClassicSurface ? newClassicOpen : newMessengerOpen}
+              aria-expanded={isRoleplaySurface ? newRoleplayOpen : newMessengerOpen}
               onClick={handleCreateActiveThread}
             >
-              {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
+              {isRoleplaySurface ? "+ New Roleplay" : "+ Cast a Line"}
             </button>
             <button
-              className={`pill ${isClassicSurface ? "classic" : "koi"} title-folder`}
+              className={`pill ${isRoleplaySurface ? "roleplay" : "koi"} title-folder`}
               type="button"
               title="Add grouping folder"
               aria-label="Add grouping folder"
@@ -1804,9 +1804,9 @@ function ThreadShoal({
           </button>
         </div>
         <div className="shoal-list">
-          {isClassicSurface
-            ? filteredClassicThreads.map((thread) => {
-                const avatarDetails = getClassicCardAvatarDetails(
+          {isRoleplaySurface
+            ? filteredRoleplayThreads.map((thread) => {
+                const avatarDetails = getRoleplayCardAvatarDetails(
                   thread.characterIds,
                   thread.title,
                   characterById,
@@ -1818,17 +1818,17 @@ function ThreadShoal({
                     avatarLabel={avatarDetails.avatarLabel}
                     avatarUrl={avatarDetails.avatarUrl}
                     icon={
-                      avatarDetails.hasCharacter ? undefined : <ClassicCardIcon />
+                      avatarDetails.hasCharacter ? undefined : <RoleplayCardIcon />
                     }
                     initials={avatarDetails.initials}
                     name={thread.title}
-                    sub={getClassicThreadPreview(thread)}
-                    mode="classic"
-                    active={thread.id === activeClassicThreadId}
+                    sub={getRoleplayThreadPreview(thread)}
+                    mode="roleplay"
+                    active={thread.id === activeRoleplayThreadId}
                     showStatus={false}
-                    onOpen={() => nav.openClassicThread(thread.id)}
-                    onRename={() => handleRenameClassic(thread.id, thread.title)}
-                    onDelete={() => handleDeleteClassic(thread.id, thread.title)}
+                    onOpen={() => nav.openRoleplayThread(thread.id)}
+                    onRename={() => handleRenameRoleplay(thread.id, thread.title)}
+                    onDelete={() => handleDeleteRoleplay(thread.id, thread.title)}
                   />
                 );
               })
@@ -1855,13 +1855,13 @@ function ThreadShoal({
             <div className="shoal-empty">
               <p>No saved currents match this search.</p>
               <button type="button" onClick={handleCreateActiveThread}>
-                {isClassicSurface ? "Start scene" : "Cast a line"}
+                {isRoleplaySurface ? "Start roleplay" : "Cast a line"}
               </button>
             </div>
           )}
         </div>
       </div>
-      {!isClassicSurface && newMessengerOpen && (
+      {!isRoleplaySurface && newMessengerOpen && (
         <div
           className="new-thread-backdrop"
           role="presentation"
@@ -2012,27 +2012,27 @@ function ThreadShoal({
           </form>
         </div>
       )}
-      {isClassicSurface && newClassicOpen && (
+      {isRoleplaySurface && newRoleplayOpen && (
         <div
           className="new-thread-backdrop"
           role="presentation"
-          onClick={() => setNewClassicOpen(false)}
+          onClick={() => setNewRoleplayOpen(false)}
         >
           <form
             className="new-thread-popover"
-            id="new-classic-thread-popover"
+            id="new-roleplay-thread-popover"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="new-classic-thread-title"
+            aria-labelledby="new-roleplay-thread-title"
             onClick={(event) => event.stopPropagation()}
-            onSubmit={handleCreateClassicThread}
+            onSubmit={handleCreateRoleplayThread}
           >
             <div className="new-thread-popover-head">
-              <b id="new-classic-thread-title">New Classic Thread</b>
+              <b id="new-roleplay-thread-title">New Roleplay Thread</b>
               <button
                 type="button"
-                aria-label="Close new Classic thread"
-                onClick={() => setNewClassicOpen(false)}
+                aria-label="Close new Roleplay thread"
+                onClick={() => setNewRoleplayOpen(false)}
               >
                 ×
               </button>
@@ -2040,19 +2040,19 @@ function ThreadShoal({
             <label className="new-thread-field">
               <span>Thread Name</span>
               <input
-                value={newClassicName}
+                value={newRoleplayName}
                 onChange={(event) => {
-                  setNewClassicName(event.target.value);
-                  setNewClassicNameEdited(true);
+                  setNewRoleplayName(event.target.value);
+                  setNewRoleplayNameEdited(true);
                 }}
-                placeholder={getDraftClassicName(newClassicCharacterIds)}
+                placeholder={getDraftRoleplayName(newRoleplayCharacterIds)}
               />
             </label>
             <label className="new-thread-field">
               <span>Connection</span>
               <select
-                value={newClassicConnectionId}
-                onChange={(event) => setNewClassicConnectionId(event.target.value)}
+                value={newRoleplayConnectionId}
+                onChange={(event) => setNewRoleplayConnectionId(event.target.value)}
                 disabled={sanitizedProviderConnections.length === 0}
               >
                 {sanitizedProviderConnections.map((connection) => (
@@ -2065,8 +2065,8 @@ function ThreadShoal({
             <label className="new-thread-field">
               <span>Persona</span>
               <select
-                value={newClassicPersonaId}
-                onChange={(event) => setNewClassicPersonaId(event.target.value)}
+                value={newRoleplayPersonaId}
+                onChange={(event) => setNewRoleplayPersonaId(event.target.value)}
               >
                 <option value="">No persona</option>
                 {nav.personas.map((persona) => (
@@ -2080,36 +2080,36 @@ function ThreadShoal({
               className="new-thread-dropdown-field"
               onBlur={(event) => {
                 if (event.currentTarget.contains(event.relatedTarget)) return;
-                setNewClassicCompanionMenuOpen(false);
+                setNewRoleplayCompanionMenuOpen(false);
               }}
             >
-              <span id="new-classic-companions-label">Companions</span>
+              <span id="new-roleplay-companions-label">Companions</span>
               <button
                 type="button"
                 className="new-thread-select-button"
-                aria-controls="new-classic-companion-menu"
-                aria-expanded={newClassicCompanionMenuOpen}
+                aria-controls="new-roleplay-companion-menu"
+                aria-expanded={newRoleplayCompanionMenuOpen}
                 aria-haspopup="listbox"
-                aria-labelledby="new-classic-companions-label"
+                aria-labelledby="new-roleplay-companions-label"
                 disabled={nav.characters.length === 0}
                 onClick={() => {
-                  setNewClassicLorebookMenuOpen(false);
-                  setNewClassicCompanionMenuOpen((open) => !open);
+                  setNewRoleplayLorebookMenuOpen(false);
+                  setNewRoleplayCompanionMenuOpen((open) => !open);
                 }}
               >
-                <span>{getCompanionSelectionLabel(newClassicCharacterIds)}</span>
-                <small>{newClassicCharacterIds.length}</small>
+                <span>{getCompanionSelectionLabel(newRoleplayCharacterIds)}</span>
+                <small>{newRoleplayCharacterIds.length}</small>
               </button>
-              {newClassicCompanionMenuOpen && (
+              {newRoleplayCompanionMenuOpen && (
                 <div
                   className="new-thread-select-menu"
-                  id="new-classic-companion-menu"
+                  id="new-roleplay-companion-menu"
                   role="listbox"
-                  aria-labelledby="new-classic-companions-label"
+                  aria-labelledby="new-roleplay-companions-label"
                   aria-multiselectable="true"
                 >
                   {nav.characters.map((character) => {
-                    const selected = newClassicCharacterIds.includes(character.id);
+                    const selected = newRoleplayCharacterIds.includes(character.id);
 
                     return (
                       <label
@@ -2121,7 +2121,7 @@ function ThreadShoal({
                         <input
                           type="checkbox"
                           checked={selected}
-                          onChange={() => toggleNewClassicCharacter(character.id)}
+                          onChange={() => toggleNewRoleplayCharacter(character.id)}
                         />
                         <span>
                           <b>{character.displayName}</b>
@@ -2138,7 +2138,7 @@ function ThreadShoal({
               )}
               {nav.characters.length === 0 && (
                 <p className="new-thread-empty">
-                  Add a companion before starting a Classic thread.
+                  Add a companion before starting a Roleplay thread.
                 </p>
               )}
             </div>
@@ -2146,36 +2146,36 @@ function ThreadShoal({
               className="new-thread-dropdown-field"
               onBlur={(event) => {
                 if (event.currentTarget.contains(event.relatedTarget)) return;
-                setNewClassicLorebookMenuOpen(false);
+                setNewRoleplayLorebookMenuOpen(false);
               }}
             >
-              <span id="new-classic-lorebooks-label">Lorebooks</span>
+              <span id="new-roleplay-lorebooks-label">Lorebooks</span>
               <button
                 type="button"
                 className="new-thread-select-button"
-                aria-controls="new-classic-lorebook-menu"
-                aria-expanded={newClassicLorebookMenuOpen}
+                aria-controls="new-roleplay-lorebook-menu"
+                aria-expanded={newRoleplayLorebookMenuOpen}
                 aria-haspopup="listbox"
-                aria-labelledby="new-classic-lorebooks-label"
+                aria-labelledby="new-roleplay-lorebooks-label"
                 disabled={nav.lorebooks.length === 0}
                 onClick={() => {
-                  setNewClassicCompanionMenuOpen(false);
-                  setNewClassicLorebookMenuOpen((open) => !open);
+                  setNewRoleplayCompanionMenuOpen(false);
+                  setNewRoleplayLorebookMenuOpen((open) => !open);
                 }}
               >
-                <span>{getLorebookSelectionLabel(newClassicLorebookIds)}</span>
-                <small>{newClassicLorebookIds.length}</small>
+                <span>{getLorebookSelectionLabel(newRoleplayLorebookIds)}</span>
+                <small>{newRoleplayLorebookIds.length}</small>
               </button>
-              {newClassicLorebookMenuOpen && (
+              {newRoleplayLorebookMenuOpen && (
                 <div
                   className="new-thread-select-menu"
-                  id="new-classic-lorebook-menu"
+                  id="new-roleplay-lorebook-menu"
                   role="listbox"
-                  aria-labelledby="new-classic-lorebooks-label"
+                  aria-labelledby="new-roleplay-lorebooks-label"
                   aria-multiselectable="true"
                 >
                   {nav.lorebooks.map((lorebook) => {
-                    const selected = newClassicLorebookIds.includes(lorebook.id);
+                    const selected = newRoleplayLorebookIds.includes(lorebook.id);
 
                     return (
                       <label
@@ -2187,7 +2187,7 @@ function ThreadShoal({
                         <input
                           type="checkbox"
                           checked={selected}
-                          onChange={() => toggleNewClassicLorebook(lorebook.id)}
+                          onChange={() => toggleNewRoleplayLorebook(lorebook.id)}
                         />
                         <span>
                           <b>{lorebook.title}</b>
@@ -2200,12 +2200,12 @@ function ThreadShoal({
               )}
             </div>
             <div className="new-thread-actions">
-              <button type="button" onClick={() => setNewClassicOpen(false)}>
+              <button type="button" onClick={() => setNewRoleplayOpen(false)}>
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={newClassicCharacterIds.length === 0}
+                disabled={newRoleplayCharacterIds.length === 0}
               >
                 Create
               </button>
@@ -2232,7 +2232,7 @@ function ThreadShoal({
             </div>
             <div className="release-dialog-copy">
               <h2 id="release-thread-title">
-                Release {releaseRequest.kind === "classic" ? "scene" : "thread"}?
+                Release {releaseRequest.kind === "roleplay" ? "scene" : "thread"}?
               </h2>
               <p id="release-thread-copy">
                 <b>{releaseRequest.title}</b> will be removed from the Shoal.

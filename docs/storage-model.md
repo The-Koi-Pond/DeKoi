@@ -32,7 +32,7 @@ adapters.
 | --- | --- | --- | --- |
 | `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/storage/collections/app-settings.ts` |
 | `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/storage/collections/character-storage.ts` |
-| `classic-threads` | `src/engine/classic.ts` | `ClassicThread` | `src/runtime/storage/collections/classic-storage.ts` |
+| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThread` | `src/runtime/storage/collections/roleplay-storage.ts` |
 | `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/storage/collections/lorebook-storage.ts` |
 | `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/storage/collections/messenger-storage.ts` |
 | `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/storage/collections/persona-storage.ts` |
@@ -115,12 +115,12 @@ Current relationships:
 | `messenger-threads` | `activePersonaId` | `personas.id` | Deleted personas clear the active persona. |
 | `messenger-threads` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from thread context. |
 | `messenger-threads` | `providerConnectionId` | `provider-connections.id` | Deleted connections clear the selected connection. |
-| `classic-threads` | `characterIds[]` | `characters.id` | Deleted characters are removed from scene participants. |
-| `classic-threads` | `activePersonaId` | `personas.id` | Deleted personas clear the active persona. |
-| `classic-threads` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from scene context. |
-| `classic-threads` | `providerConnectionId` | `provider-connections.id` | Deleted connections clear the selected connection. |
+| `roleplay-threads` | `characterIds[]` | `characters.id` | Deleted characters are removed from scene participants. |
+| `roleplay-threads` | `activePersonaId` | `personas.id` | Deleted personas clear the active persona. |
+| `roleplay-threads` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from scene context. |
+| `roleplay-threads` | `providerConnectionId` | `provider-connections.id` | Deleted connections clear the selected connection. |
 | `characters` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from character context. |
-| `ripple-states` | `ownerId` | `messenger-threads.id` or `classic-threads.id` | Orphaned ripple states are skipped on bundle import. |
+| `ripple-states` | `ownerId` | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import. |
 
 ## Import And Export
 

@@ -24,7 +24,7 @@ type UseAppImportExportActionsInput = AppStorageRecords & {
   setProviderConnections: StateSetter<
     AppStorageRecords["providerConnections"]
   >;
-  setClassicThreads: StateSetter<AppStorageRecords["classicThreads"]>;
+  setRoleplayThreads: StateSetter<AppStorageRecords["roleplayThreads"]>;
   setMessengerThreads: StateSetter<AppStorageRecords["messengerThreads"]>;
   setRippleStates: StateSetter<AppStorageRecords["rippleStates"]>;
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
@@ -39,7 +39,7 @@ export function useAppImportExportActions({
   personas,
   lorebooks,
   providerConnections,
-  classicThreads,
+  roleplayThreads,
   messengerThreads,
   rippleStates,
   setAppSettings,
@@ -47,7 +47,7 @@ export function useAppImportExportActions({
   setPersonas,
   setLorebooks,
   setProviderConnections,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
   setRippleStates,
   setMessengerStorageStatus,
@@ -60,7 +60,7 @@ export function useAppImportExportActions({
       createDeKoiStorageBundle({
         appSettings,
         characters,
-        classicThreads,
+        roleplayThreads,
         lorebooks,
         messengerThreads,
         personas,
@@ -70,7 +70,7 @@ export function useAppImportExportActions({
     [
       appSettings,
       characters,
-      classicThreads,
+      roleplayThreads,
       lorebooks,
       messengerThreads,
       personas,
@@ -99,7 +99,7 @@ export function useAppImportExportActions({
       setPersonas(bundle.data.personas);
       setLorebooks(bundle.data.lorebooks);
       setProviderConnections(importedConnections);
-      setClassicThreads(bundle.data.classicThreads);
+      setRoleplayThreads(bundle.data.roleplayThreads);
       setMessengerThreads(bundle.data.messengerThreads);
       setRippleStates(bundle.data.rippleStates);
       setAppSettings(importedSettings);
@@ -111,7 +111,7 @@ export function useAppImportExportActions({
     [
       setAppSettings,
       setCharacters,
-      setClassicThreads,
+      setRoleplayThreads,
       setLorebooks,
       setMessengerStorageMessage,
       setMessengerStorageStatus,

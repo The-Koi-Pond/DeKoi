@@ -33,7 +33,7 @@ function normalizeRippleTone(value: unknown): RippleTone {
 }
 
 function normalizeOwnerKind(value: unknown): RippleStateOwnerKind | null {
-  if (value === "messenger-thread" || value === "classic-thread") return value;
+  if (value === "messenger-thread" || value === "roleplay-thread") return value;
   return null;
 }
 

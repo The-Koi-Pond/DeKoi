@@ -16,7 +16,7 @@ import { NumberField } from "../../../shared/ui/primitives/NumberField";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Chip } from "../../../shared/ui/primitives/Chip";
 import { SettingSection } from "./SettingSection";
-import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
+import { ROLEPLAY, MESSENGER, RESERVED } from "../../../engine/surfaces";
 import {
   getDeKoiStorageBundleCounts,
   exportDesktopBundleFile,
@@ -71,11 +71,11 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     | "messengerStorageStatus"
     | "remoteRuntimeUrl"
   > &
-  Pick<NavThreadState, "classicThreads" | "messengerThreads">;
+  Pick<NavThreadState, "roleplayThreads" | "messengerThreads">;
 
 // DeKoi-native surface ids for the Send-on-Enter segmented control.
 const SEND_ON_ENTER_SURFACES = [
-  { value: CLASSIC, label: "Classic" },
+  { value: ROLEPLAY, label: "Roleplay" },
   { value: MESSENGER, label: "Messenger" },
   { value: RESERVED, label: "Reserved" },
 ] as const;
@@ -119,7 +119,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const currentBundleCounts = getDeKoiStorageBundleCounts({
     appSettings: nav.appSettings,
     characters: nav.characters,
-    classicThreads: nav.classicThreads,
+    roleplayThreads: nav.roleplayThreads,
     lorebooks: nav.lorebooks,
     messengerThreads: nav.messengerThreads,
     personas: nav.personas,
@@ -366,10 +366,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           <b>{counts.personas}</b> personas
         </span>
         <span>
-          <b>{counts.classicThreads}</b> Classic scenes
+          <b>{counts.roleplayThreads}</b> Roleplay threads
         </span>
         <span>
-          <b>{counts.classicEntries}</b> Classic turns
+          <b>{counts.roleplayEntries}</b> Roleplay turns
         </span>
         <span>
           <b>{counts.lorebooks}</b> lorebooks

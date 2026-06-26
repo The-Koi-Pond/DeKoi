@@ -270,7 +270,7 @@ Supported storage entities:
 
 - `app-settings`
 - `characters`
-- `classic-threads`
+- `roleplay-threads`
 - `lorebooks`
 - `messenger-threads`
 - `personas`

@@ -9,7 +9,7 @@ use tauri::Manager;
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
 const APP_SETTINGS_ENTITY: &str = "app-settings";
 const CHARACTERS_ENTITY: &str = "characters";
-const CLASSIC_THREADS_ENTITY: &str = "classic-threads";
+const ROLEPLAY_THREADS_ENTITY: &str = "roleplay-threads";
 const LOREBOOKS_ENTITY: &str = "lorebooks";
 const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
 const PERSONAS_ENTITY: &str = "personas";
@@ -19,7 +19,7 @@ const LEGACY_BUBBLE_THREADS_ENTITY: &str = "bubble-threads";
 const COLLECTION_ENTITIES: &[&str] = &[
     APP_SETTINGS_ENTITY,
     CHARACTERS_ENTITY,
-    CLASSIC_THREADS_ENTITY,
+    ROLEPLAY_THREADS_ENTITY,
     LOREBOOKS_ENTITY,
     MESSENGER_THREADS_ENTITY,
     PERSONAS_ENTITY,

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import type { ClassicThread } from "../../../engine/classic";
-import { clearClassicThreadPersona } from "../../../engine/classic-actions";
+import type { RoleplayThread } from "../../../engine/roleplay";
+import { clearRoleplayThreadPersona } from "../../../engine/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { clearMessengerThreadPersona } from "../../../engine/messenger-actions";
 import type { PersonaRecord } from "../../../engine/persona";
@@ -18,14 +18,14 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 type UsePersonaActionsInput = {
   personas: PersonaRecord[];
   setPersonas: StateSetter<PersonaRecord[]>;
-  setClassicThreads: StateSetter<ClassicThread[]>;
+  setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setMessengerThreads: StateSetter<MessengerThread[]>;
 };
 
 export function usePersonaActions({
   personas,
   setPersonas,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
 }: UsePersonaActionsInput) {
   const createPersona = useCallback(
@@ -86,13 +86,13 @@ export function usePersonaActions({
           clearMessengerThreadPersona(thread, personaId, now),
         ),
       );
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          clearClassicThreadPersona(thread, personaId, now),
+          clearRoleplayThreadPersona(thread, personaId, now),
         ),
       );
     },
-    [setClassicThreads, setMessengerThreads, setPersonas],
+    [setRoleplayThreads, setMessengerThreads, setPersonas],
   );
 
   return {

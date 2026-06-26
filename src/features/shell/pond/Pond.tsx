@@ -1,7 +1,7 @@
 import type { NavViewState } from "../../navigation";
 import {
-  ClassicThread,
-  type ClassicThreadNav,
+  RoleplayThread,
+  type RoleplayThreadNav,
   MessengerThread,
   type MessengerThreadNav,
 } from "../../modes";
@@ -26,7 +26,7 @@ export type PondNav = Pick<
   NavViewState,
   "view"
 > &
-  ClassicThreadNav &
+  RoleplayThreadNav &
   CompanionsSurfaceNav &
   ConnectionsSurfaceNav &
   LorebooksSurfaceNav &
@@ -36,8 +36,8 @@ export type PondNav = Pick<
 
 export function Pond({ nav }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";
-  const inClassic = nav.view.kind === "classic";
-  const inThread = inMessenger || inClassic;
+  const inRoleplay = nav.view.kind === "roleplay";
+  const inThread = inMessenger || inRoleplay;
   const inCompanions = nav.view.kind === "companions";
   const inConnections = nav.view.kind === "connections";
   const inPersonas = nav.view.kind === "personas";
@@ -58,8 +58,8 @@ export function Pond({ nav }: PondProps) {
       <div className={`pond-inner${inThread ? " pond-inner-thread" : ""}`}>
         {inMessenger ? (
           <MessengerThread nav={nav} />
-        ) : inClassic ? (
-          <ClassicThread nav={nav} />
+        ) : inRoleplay ? (
+          <RoleplayThread nav={nav} />
         ) : (
           <PondHome nav={nav} />
         )}

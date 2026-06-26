@@ -5,23 +5,23 @@ import {
   type KeyboardEvent,
 } from "react";
 import {
-  appendClassicEntries,
-  createNarrationClassicEntry,
-  createPersonaClassicEntry,
-  deleteClassicEntry,
-  updateClassicEntryBody,
-} from "../../../engine/classic-actions";
-import type { ClassicEntry } from "../../../engine/classic";
+  appendRoleplayEntries,
+  createNarrationRoleplayEntry,
+  createPersonaRoleplayEntry,
+  deleteRoleplayEntry,
+  updateRoleplayEntryBody,
+} from "../../../engine/roleplay-actions";
+import type { RoleplayEntry } from "../../../engine/roleplay";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
-import { CLASSIC } from "../../../engine/surfaces";
+import { ROLEPLAY } from "../../../engine/surfaces";
 import {
-  generateClassicThreadTurn,
+  generateRoleplayThreadTurn,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
 import type {
   NavCatalogState,
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavSettingsState,
   NavThreadState,
   NavViewState,
@@ -31,15 +31,15 @@ import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
-import "./classic-thread.css";
+import "./roleplay-thread.css";
 
-export type ClassicThreadNav = Pick<
+export type RoleplayThreadNav = Pick<
   NavCatalogState,
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
-  Pick<NavClassicThreadActions, "createClassicThread" | "updateClassicThread"> &
+  Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<NavThreadState, "classicThreads"> &
+  Pick<NavThreadState, "roleplayThreads"> &
   Pick<NavViewState, "view">;
 
 function createLocalId(prefix: string) {
@@ -49,8 +49,8 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-interface ClassicThreadProps {
-  nav: ClassicThreadNav;
+interface RoleplayThreadProps {
+  nav: RoleplayThreadNav;
 }
 
 function getInitials(name: string) {
@@ -62,15 +62,15 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function isOwnClassicEntry(entry: ClassicEntry) {
+function isOwnRoleplayEntry(entry: RoleplayEntry) {
   return entry.role === "persona" || entry.role === "narration";
 }
 
-function ClassicChatSettingsButton() {
+function RoleplayChatSettingsButton() {
   return (
     <button
       type="button"
-      className="classic-chat-settings-button"
+      className="roleplay-chat-settings-button"
       title="Chat settings"
       aria-label="Chat settings"
       disabled
@@ -80,10 +80,10 @@ function ClassicChatSettingsButton() {
   );
 }
 
-export function ClassicThread({ nav }: ClassicThreadProps) {
-  const activeThreadId = nav.view.kind === "classic" ? nav.view.threadId : null;
+export function RoleplayThread({ nav }: RoleplayThreadProps) {
+  const activeThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
   const thread =
-    nav.classicThreads.find((candidate) => candidate.id === activeThreadId) ??
+    nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ??
     null;
   const [draftState, setDraftState] = useState<{
     threadId: string | null;
@@ -128,7 +128,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     entryListRef.current.scrollTop = entryListRef.current.scrollHeight;
   }, [thread, thread?.entries.length]);
 
-  function handleEditEntry(entry: ClassicEntry) {
+  function handleEditEntry(entry: RoleplayEntry) {
     setEditingEntry({ id: entry.id, body: entry.body });
   }
 
@@ -141,8 +141,8 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     const trimmedBody = editingEntry.body.trim();
     if (!trimmedBody) return;
 
-    nav.updateClassicThread(
-      updateClassicEntryBody(
+    nav.updateRoleplayThread(
+      updateRoleplayEntryBody(
         thread,
         editingEntry.id,
         trimmedBody,
@@ -154,8 +154,8 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
 
   function handleDeleteEntry(entryId: string) {
     if (!thread) return;
-    nav.updateClassicThread(
-      deleteClassicEntry(thread, entryId, new Date().toISOString()),
+    nav.updateRoleplayThread(
+      deleteRoleplayEntry(thread, entryId, new Date().toISOString()),
     );
     if (editingEntry?.id === entryId) {
       setEditingEntry(null);
@@ -179,22 +179,22 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
 
     const sentAt = new Date().toISOString();
     const userEntry = activePersona
-      ? createPersonaClassicEntry({
+      ? createPersonaRoleplayEntry({
           body: trimmedDraft,
-          id: createLocalId("classic-entry"),
+          id: createLocalId("roleplay-entry"),
           now: sentAt,
           persona: activePersona,
           thread,
         })
-      : createNarrationClassicEntry({
+      : createNarrationRoleplayEntry({
           body: trimmedDraft,
-          id: createLocalId("classic-entry"),
+          id: createLocalId("roleplay-entry"),
           now: sentAt,
           thread,
         });
-    const threadWithUserEntry = appendClassicEntries(thread, [userEntry], sentAt);
+    const threadWithUserEntry = appendRoleplayEntries(thread, [userEntry], sentAt);
 
-    nav.updateClassicThread(threadWithUserEntry);
+    nav.updateRoleplayThread(threadWithUserEntry);
     setDraftState({ body: "", threadId: activeThreadId });
     setGenerationState({
       threadId: thread.id,
@@ -203,7 +203,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     });
 
     try {
-      const result = await generateClassicThreadTurn({
+      const result = await generateRoleplayThreadTurn({
         characters: nav.characters,
         createId: createLocalId,
         fallbackProviderConnectionId: threadConnection.id,
@@ -221,7 +221,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       });
 
       if (result.generatedEntryCount > 0) {
-        nav.updateClassicThread(result.thread);
+        nav.updateRoleplayThread(result.thread);
       }
 
       setGenerationState(
@@ -236,7 +236,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
               status: "error",
               message:
                 result.warnings[0] ??
-                `${generationRuntime.label} did not return a Classic reply.`,
+                `${generationRuntime.label} did not return a Roleplay reply.`,
             },
       );
     } catch (error) {
@@ -244,7 +244,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         threadId: thread.id,
         status: "error",
         message:
-          error instanceof Error ? error.message : "Classic generation failed.",
+          error instanceof Error ? error.message : "Roleplay generation failed.",
       });
     }
 
@@ -267,7 +267,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       event.ctrlKey ||
       event.metaKey ||
       event.nativeEvent.isComposing ||
-      nav.appSettings.sendOnEnterSurface !== CLASSIC
+      nav.appSettings.sendOnEnterSurface !== ROLEPLAY
     ) {
       return;
     }
@@ -276,7 +276,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     void sendDraft();
   }
 
-  function getEntryAuthorAvatar(entry: ClassicEntry) {
+  function getEntryAuthorAvatar(entry: RoleplayEntry) {
     if (entry.role === "character" && entry.characterId) {
       const character =
         nav.characters.find((candidate) => candidate.id === entry.characterId) ??
@@ -305,15 +305,15 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
 
   if (!thread) {
     return (
-      <section className="classic-thread classic-thread-empty">
-        <header className="classic-header">
-          <div className="classic-header-icons">
-            <ClassicChatSettingsButton />
+      <section className="roleplay-thread roleplay-thread-empty">
+        <header className="roleplay-header">
+          <div className="roleplay-header-icons">
+            <RoleplayChatSettingsButton />
           </div>
         </header>
-        <div className="classic-empty">
-          <button type="button" onClick={() => nav.createClassicThread()}>
-            + Start a Classic chat
+        <div className="roleplay-empty">
+          <button type="button" onClick={() => nav.createRoleplayThread()}>
+            + Start a Roleplay chat
           </button>
         </div>
       </section>
@@ -321,16 +321,16 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
   }
 
   return (
-    <section className="classic-thread" aria-label="Classic thread">
-      <header className="classic-header">
-        <div className="classic-header-icons">
-          <ClassicChatSettingsButton />
+    <section className="roleplay-thread" aria-label="Roleplay thread">
+      <header className="roleplay-header">
+        <div className="roleplay-header-icons">
+          <RoleplayChatSettingsButton />
         </div>
       </header>
 
       <div
-        className="classic-entries"
-        aria-label="Classic chat messages"
+        className="roleplay-entries"
+        aria-label="Roleplay chat messages"
         ref={entryListRef}
       >
         {thread.entries.map((entry) => {
@@ -340,24 +340,24 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
 
           return (
             <article
-              className={`classic-entry ${entry.role}${
-                isOwnClassicEntry(entry) ? " own" : ""
+              className={`roleplay-entry ${entry.role}${
+                isOwnRoleplayEntry(entry) ? " own" : ""
               }${isEditing ? " editing" : ""}`}
               key={entry.id}
             >
-              <span className="classic-entry-avatar" aria-hidden="true">
+              <span className="roleplay-entry-avatar" aria-hidden="true">
                 {authorAvatar.avatarUrl ? (
                   <img src={authorAvatar.avatarUrl} alt="" />
                 ) : (
                   authorAvatar.initials
                 )}
               </span>
-              <div className="classic-entry-head">
-                <div className="classic-entry-author">
+              <div className="roleplay-entry-head">
+                <div className="roleplay-entry-author">
                   <b>{entry.label}</b>
                   {timeLabel && (
                     <time
-                      className="classic-entry-timestamp"
+                      className="roleplay-entry-timestamp"
                       dateTime={entry.createdAt}
                       title={getMessageDateTimeTitle(entry.createdAt)}
                     >
@@ -366,11 +366,11 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                   )}
                 </div>
               </div>
-              <div className="classic-entry-bubble">
+              <div className="roleplay-entry-bubble">
                 {isEditing ? (
-                  <div className="classic-entry-edit-form">
+                  <div className="roleplay-entry-edit-form">
                     <textarea
-                      aria-label={`Edit Classic entry from ${entry.label}`}
+                      aria-label={`Edit Roleplay entry from ${entry.label}`}
                       value={editingEntry.body}
                       onChange={(event) =>
                         setEditingEntry({
@@ -379,7 +379,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                         })
                       }
                     />
-                    <div className="classic-entry-edit-actions">
+                    <div className="roleplay-entry-edit-actions">
                       <button
                         type="button"
                         onClick={handleSaveEditedEntry}
@@ -395,10 +395,10 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                 ) : (
                   <>
                     <p>{entry.body}</p>
-                    <div className="classic-entry-actions" aria-label="Entry actions">
+                    <div className="roleplay-entry-actions" aria-label="Entry actions">
                       <button
                         type="button"
-                        aria-label={`Edit Classic entry from ${entry.label}`}
+                        aria-label={`Edit Roleplay entry from ${entry.label}`}
                         title="Edit"
                         onClick={() => handleEditEntry(entry)}
                       >
@@ -406,7 +406,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                       </button>
                       <button
                         type="button"
-                        aria-label={`Delete Classic entry from ${entry.label}`}
+                        aria-label={`Delete Roleplay entry from ${entry.label}`}
                         title="Delete"
                         onClick={() => handleDeleteEntry(entry.id)}
                       >
@@ -420,7 +420,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
           );
         })}
         {thread.entries.length === 0 && (
-          <p className="classic-empty-note">No messages yet.</p>
+          <p className="roleplay-empty-note">No messages yet.</p>
         )}
       </div>
 
@@ -448,14 +448,14 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       )}
 
       <ChatComposer
-        ariaLabel="Classic composer"
-        draftAriaLabel="Draft Classic message"
+        ariaLabel="Roleplay composer"
+        draftAriaLabel="Draft Roleplay message"
         disabled={!canSend}
         hint={
           generationNotice ||
           (isGenerating
             ? `${generationRuntime.label} is replying through the provider-neutral path.`
-            : nav.appSettings.sendOnEnterSurface === CLASSIC
+            : nav.appSettings.sendOnEnterSurface === ROLEPLAY
               ? "Enter sends. Shift+Enter adds a new line."
               : "Enter adds a new line. Use Send to release the message.")
         }
@@ -468,7 +468,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         }
         onKeyDown={handleDraftKeyDown}
         onSubmit={handleSend}
-        placeholder="Write a Classic message..."
+        placeholder="Write a Roleplay message..."
         submitBusyLabel="Generating reply"
         submitLabel="Send message"
         value={draft}

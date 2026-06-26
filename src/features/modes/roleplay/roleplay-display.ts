@@ -1,12 +1,12 @@
-import type { ClassicThread } from "../../../engine/classic";
+import type { RoleplayThread } from "../../../engine/roleplay";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 
-export function sortClassicThreadsByUpdatedAt(threads: ClassicThread[]) {
+export function sortRoleplayThreadsByUpdatedAt(threads: RoleplayThread[]) {
   return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export function sortClassicThreads(
-  threads: ClassicThread[],
+export function sortRoleplayThreads(
+  threads: RoleplayThread[],
   sortMode: ShoalSortMode,
 ) {
   const sortedThreads = [...threads];
@@ -26,7 +26,7 @@ export function sortClassicThreads(
   return sortedThreads.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export function getClassicThreadInitials(title: string) {
+export function getRoleplayThreadInitials(title: string) {
   const initials = title
     .split(/\s+/)
     .filter(Boolean)
@@ -38,7 +38,7 @@ export function getClassicThreadInitials(title: string) {
   return initials || "C";
 }
 
-export function getClassicThreadPreview(thread: ClassicThread) {
+export function getRoleplayThreadPreview(thread: RoleplayThread) {
   const lastEntry = thread.entries.at(-1);
   if (lastEntry) return `${lastEntry.label}: ${lastEntry.body}`;
   return thread.sceneText || "No messages yet";

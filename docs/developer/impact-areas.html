@@ -98,12 +98,12 @@ flowchart LR
           </tbody>
         </table>
 
-        <h2>Classic</h2>
+        <h2>Roleplay</h2>
         <pre class="mermaid">
 flowchart LR
-  ClassicUI[features/modes/Classic]
+  RoleplayUI[features/modes/Roleplay]
   Visuals[features/runtime/visuals]
-  ClassicMode[engine/modes/Classic]
+  RoleplayMode[engine/modes/Roleplay]
   Generation[engine/generation]
   Capabilities[engine/capabilities<br/>storage and llm ports]
   Assets[shared/api/assets-api]
@@ -112,15 +112,15 @@ flowchart LR
   RustAssets[src-tauri crates/assets]
   RustStorage[src-tauri crates/storage]
 
-  ClassicUI --> ClassicMode
-  ClassicUI --> Visuals
-  ClassicUI --> Storage
-  ClassicUI --> LLM
-  ClassicMode --> Capabilities
-  ClassicMode --> Generation
-  Capabilities -. implemented by Classic feature adapter .-> Storage
-  Capabilities -. implemented by Classic feature adapter .-> LLM
-  ClassicUI --> Assets
+  RoleplayUI --> RoleplayMode
+  RoleplayUI --> Visuals
+  RoleplayUI --> Storage
+  RoleplayUI --> LLM
+  RoleplayMode --> Capabilities
+  RoleplayMode --> Generation
+  Capabilities -. implemented by Roleplay feature adapter .-> Storage
+  Capabilities -. implemented by Roleplay feature adapter .-> LLM
+  RoleplayUI --> Assets
   Assets --> RustAssets
   Storage --> RustStorage
         </pre>
@@ -129,20 +129,20 @@ flowchart LR
             <tr>
               <th>Touching</th>
               <td>
-                Scenes, scene memory, scene analysis, Classic encounters, sprites, Classic choices, Classic
+                Scenes, scene memory, scene analysis, Roleplay encounters, sprites, Roleplay choices, Roleplay
                 prompt continuity.
               </td>
             </tr>
             <tr>
               <th>Review</th>
               <td>
-                Classic screen, visual primitives, origin Messenger updates, persisted scene metadata, asset reads/writes.
+                Roleplay screen, visual primitives, origin Messenger updates, persisted scene metadata, asset reads/writes.
               </td>
             </tr>
             <tr>
               <th>Verify</th>
               <td>
-                Typecheck Classic paths; verify sibling future adventure scene logic only if shared visuals or lower-layer scene
+                Typecheck Roleplay paths; verify sibling future adventure scene logic only if shared visuals or lower-layer scene
                 utilities changed.
               </td>
             </tr>
@@ -418,7 +418,7 @@ flowchart LR
           </div>
           <div class="panel">
             <h3><code>engine/generation-core</code></h3>
-            <p>Review Messenger, Classic, future adventure systems, helpers, prompt preview, and replay behavior.</p>
+            <p>Review Messenger, Roleplay, future adventure systems, helpers, prompt preview, and replay behavior.</p>
           </div>
           <div class="panel">
             <h3><code>src/shared/api</code></h3>

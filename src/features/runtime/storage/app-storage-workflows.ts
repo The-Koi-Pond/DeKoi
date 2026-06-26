@@ -1,7 +1,7 @@
 import {
   loadAppSettings,
   loadCharacterRecords,
-  loadClassicThreads,
+  loadRoleplayThreads,
   loadInitialMessengerThreads,
   loadLorebookRecords,
   loadPersonaRecords,
@@ -32,7 +32,7 @@ export function loadInitialAppStorageRecords(): AppStorageRecords {
     personas: loadPersonaRecords(),
     lorebooks: loadLorebookRecords(),
     providerConnections: loadProviderConnectionRecords(),
-    classicThreads: loadClassicThreads(),
+    roleplayThreads: loadRoleplayThreads(),
     messengerThreads: loadInitialMessengerThreads(),
     rippleStates: loadRippleStates(),
   };

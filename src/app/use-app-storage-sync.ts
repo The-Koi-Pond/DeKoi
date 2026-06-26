@@ -23,7 +23,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setProviderConnections: StateSetter<
     AppStorageRecords["providerConnections"]
   >;
-  setClassicThreads: StateSetter<AppStorageRecords["classicThreads"]>;
+  setRoleplayThreads: StateSetter<AppStorageRecords["roleplayThreads"]>;
   setMessengerThreads: StateSetter<AppStorageRecords["messengerThreads"]>;
   setRippleStates: StateSetter<AppStorageRecords["rippleStates"]>;
   setMessengerStorageMode: StateSetter<MessengerStorageMode>;
@@ -38,7 +38,7 @@ export function useAppStorageSync({
   personas,
   lorebooks,
   providerConnections,
-  classicThreads,
+  roleplayThreads,
   messengerThreads,
   rippleStates,
   remoteRuntimeUrl,
@@ -48,7 +48,7 @@ export function useAppStorageSync({
   setPersonas,
   setLorebooks,
   setProviderConnections,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
   setRippleStates,
   setMessengerStorageMode,
@@ -68,7 +68,7 @@ export function useAppStorageSync({
       setPersonas(snapshot.personas);
       setLorebooks(snapshot.lorebooks);
       setProviderConnections(snapshot.providerConnections);
-      setClassicThreads(snapshot.classicThreads);
+      setRoleplayThreads(snapshot.roleplayThreads);
       setMessengerThreads(snapshot.messengerThreads);
       setRippleStates(snapshot.rippleStates);
       setMessengerStorageMode(snapshot.storageResult.mode);
@@ -84,7 +84,7 @@ export function useAppStorageSync({
     remoteRuntimeUrl,
     setAppSettings,
     setCharacters,
-    setClassicThreads,
+    setRoleplayThreads,
     setLorebooks,
     setMessengerStorageMessage,
     setMessengerStorageMode,
@@ -118,7 +118,7 @@ export function useAppStorageSync({
             personas,
             lorebooks,
             providerConnections,
-            classicThreads,
+            roleplayThreads,
             messengerThreads,
             rippleStates,
           },
@@ -139,7 +139,7 @@ export function useAppStorageSync({
   }, [
     appSettings,
     characters,
-    classicThreads,
+    roleplayThreads,
     lorebooks,
     messengerThreads,
     personas,

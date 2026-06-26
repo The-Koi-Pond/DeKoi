@@ -2,13 +2,13 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { RESERVED } from "../../../../engine/surfaces";
 import type {
   NavCareActions,
-  NavClassicThreadActions,
+  NavRoleplayThreadActions,
   NavMessengerThreadActions,
   NavThreadState,
   NavViewActions,
 } from "../../../navigation";
 import {
-  sortClassicThreadsByUpdatedAt,
+  sortRoleplayThreadsByUpdatedAt,
   sortMessengerThreadsByUpdatedAt,
 } from "../../../modes";
 import "./depths.css";
@@ -16,7 +16,7 @@ import "./depths.css";
 type FeatureDepth = "Shallows" | "Deep" | "Murky" | "Surfacing soon";
 type FeatureSurface =
   | "Messenger"
-  | "Classic"
+  | "Roleplay"
   | "Lore library"
   | "Companions"
   | "Media"
@@ -30,7 +30,7 @@ interface FeatureResult {
   description: string;
   surface: FeatureSurface;
   depth: FeatureDepth;
-  action: "messenger" | "care" | "classic" | "reserved" | "none";
+  action: "messenger" | "care" | "roleplay" | "reserved" | "none";
 }
 
 interface DepthsProps {
@@ -41,18 +41,18 @@ export type DepthsNav = Pick<
   NavCareActions,
   "setCareOpen" | "setCareTab"
 > &
-  Pick<NavClassicThreadActions, "createClassicThread"> &
+  Pick<NavRoleplayThreadActions, "createRoleplayThread"> &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
-  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
   Pick<
     NavViewActions,
-    "openClassicThread" | "openMessengerThread" | "setSelectedSurface"
+    "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"
   >;
 
 const surfaceChips: Array<"All surfaces" | FeatureSurface> = [
   "All surfaces",
   "Messenger",
-  "Classic",
+  "Roleplay",
   "Lore library",
   "Companions",
   "Media",
@@ -111,12 +111,12 @@ const featureResults: FeatureResult[] = [
     action: "care",
   },
   {
-    id: "classic-scenes",
-    label: "Classic scene surface",
+    id: "roleplay-scenes",
+    label: "Roleplay thread surface",
     description: "Create or reopen a saved visual-novel-style scene.",
-    surface: "Classic",
+    surface: "Roleplay",
     depth: "Shallows",
-    action: "classic",
+    action: "roleplay",
   },
   {
     id: "media-library",
@@ -180,14 +180,14 @@ export function Depths({ nav }: DepthsProps) {
     nav.createMessengerThread();
   }
 
-  function openLatestClassicThread() {
-    const latestThread = sortClassicThreadsByUpdatedAt(nav.classicThreads)[0];
+  function openLatestRoleplayThread() {
+    const latestThread = sortRoleplayThreadsByUpdatedAt(nav.roleplayThreads)[0];
     if (latestThread) {
-      nav.openClassicThread(latestThread.id);
+      nav.openRoleplayThread(latestThread.id);
       return;
     }
 
-    nav.createClassicThread();
+    nav.createRoleplayThread();
   }
 
   function activateResult(result: FeatureResult) {
@@ -202,8 +202,8 @@ export function Depths({ nav }: DepthsProps) {
       return;
     }
 
-    if (result.action === "classic") {
-      openLatestClassicThread();
+    if (result.action === "roleplay") {
+      openLatestRoleplayThread();
       return;
     }
 

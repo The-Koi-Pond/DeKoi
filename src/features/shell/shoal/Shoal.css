@@ -810,13 +810,13 @@
   color: var(--koi-hot);
 }
 
-.pill.classic {
+.pill.roleplay {
   color: var(--jade);
   border-color: rgba(39, 179, 170, 0.3);
   background: rgba(39, 179, 170, 0.08);
 }
 
-.pill.classic:hover {
+.pill.roleplay:hover {
   background: rgba(39, 179, 170, 0.16);
   color: var(--jade-hot);
 }

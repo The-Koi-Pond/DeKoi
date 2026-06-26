@@ -1,4 +1,4 @@
-import type { ClassicEntry, ClassicThread } from "../../../engine/classic";
+import type { RoleplayEntry, RoleplayThread } from "../../../engine/roleplay";
 import {
   isRecord,
   readNullableString,
@@ -9,7 +9,7 @@ import {
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
+function normalizeRoleplayEntryRole(value: unknown): RoleplayEntry["role"] {
   if (
     value === "scene" ||
     value === "persona" ||
@@ -22,7 +22,7 @@ function normalizeClassicEntryRole(value: unknown): ClassicEntry["role"] {
   return "narration";
 }
 
-function normalizeClassicEntryOrigin(value: unknown): ClassicEntry["origin"] {
+function normalizeRoleplayEntryOrigin(value: unknown): RoleplayEntry["origin"] {
   if (
     value === "manual" ||
     value === "generated" ||
@@ -35,7 +35,7 @@ function normalizeClassicEntryOrigin(value: unknown): ClassicEntry["origin"] {
   return "manual";
 }
 
-function normalizeClassicEntry(value: unknown, threadId: string): ClassicEntry | null {
+function normalizeRoleplayEntry(value: unknown, threadId: string): RoleplayEntry | null {
   if (!isRecord(value)) return null;
 
   const id = readString(value.id).trim();
@@ -46,18 +46,18 @@ function normalizeClassicEntry(value: unknown, threadId: string): ClassicEntry |
   return {
     id,
     threadId,
-    role: normalizeClassicEntryRole(value.role),
+    role: normalizeRoleplayEntryRole(value.role),
     characterId: readNullableString(value.characterId),
     personaId: readNullableString(value.personaId),
-    label: readString(value.label, "Classic").trim() || "Classic",
+    label: readString(value.label, "Roleplay").trim() || "Roleplay",
     body,
-    origin: normalizeClassicEntryOrigin(value.origin),
+    origin: normalizeRoleplayEntryOrigin(value.origin),
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
   };
 }
 
-export function normalizeClassicThread(value: unknown): ClassicThread | null {
+export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
   if (!isRecord(value)) return null;
   if (value.schemaVersion !== 1) return null;
 
@@ -68,14 +68,14 @@ export function normalizeClassicThread(value: unknown): ClassicThread | null {
   const now = new Date().toISOString();
   const entries = Array.isArray(value.entries)
     ? value.entries
-        .map((entry) => normalizeClassicEntry(entry, id))
-        .filter((entry): entry is ClassicEntry => entry !== null)
+        .map((entry) => normalizeRoleplayEntry(entry, id))
+        .filter((entry): entry is RoleplayEntry => entry !== null)
     : [];
 
   return {
     id,
     schemaVersion: 1,
-    kind: "classic",
+    kind: "roleplay",
     mode: "scene",
     title,
     sceneText: readString(value.sceneText).trim(),
@@ -89,23 +89,23 @@ export function normalizeClassicThread(value: unknown): ClassicThread | null {
   };
 }
 
-export function loadClassicThreads() {
+export function loadRoleplayThreads() {
   return [];
 }
 
-const classicThreadRepository = createStorageRepository({
-  entity: STORAGE_ENTITIES.classicThreads,
-  normalizeRecord: normalizeClassicThread,
+const roleplayThreadRepository = createStorageRepository({
+  entity: STORAGE_ENTITIES.roleplayThreads,
+  normalizeRecord: normalizeRoleplayThread,
   seedRecords: [],
 });
 
-export function loadClassicThreadsFromStorage(rawUrl?: string) {
-  return classicThreadRepository.loadSnapshot(rawUrl);
+export function loadRoleplayThreadsFromStorage(rawUrl?: string) {
+  return roleplayThreadRepository.loadSnapshot(rawUrl);
 }
 
-export function saveClassicThreadsToStorage(
-  records: ClassicThread[],
+export function saveRoleplayThreadsToStorage(
+  records: RoleplayThread[],
   rawUrl?: string,
 ) {
-  return classicThreadRepository.save(records, rawUrl);
+  return roleplayThreadRepository.save(records, rawUrl);
 }

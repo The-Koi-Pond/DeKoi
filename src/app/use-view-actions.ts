@@ -8,7 +8,7 @@ import type { StateSetter } from "../shared/react/state-setter";
 
 type SurfaceId = NavViewState["selectedSurface"];
 
-const CLASSIC_SURFACE: SurfaceId = "classic";
+const ROLEPLAY_SURFACE: SurfaceId = "roleplay";
 const MESSENGER_SURFACE: SurfaceId = "messenger";
 
 type UseViewActionsInput = {
@@ -44,11 +44,11 @@ export function useViewActions({
     [setSelectedSurface, setSideRailView],
   );
 
-  const openClassicThread = useCallback(
+  const openRoleplayThread = useCallback(
     (threadId: string) => {
       setSideRailView("shoal");
-      setSelectedSurface(CLASSIC_SURFACE);
-      setView({ kind: "classic", threadId });
+      setSelectedSurface(ROLEPLAY_SURFACE);
+      setView({ kind: "roleplay", threadId });
     },
     [setSelectedSurface, setSideRailView, setView],
   );
@@ -66,7 +66,7 @@ export function useViewActions({
     setView: setNavView,
     setSideRailView: setNavSideRailView,
     setSelectedSurface: setNavSelectedSurface,
-    openClassicThread,
+    openRoleplayThread,
     openMessengerThread,
   };
 }

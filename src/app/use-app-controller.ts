@@ -5,7 +5,7 @@ import {
   useProviderConnectionActions,
 } from "../features/catalog";
 import {
-  useClassicThreadActions,
+  useRoleplayThreadActions,
   useMessengerThreadActions,
 } from "../features/modes";
 import { type NavContextType } from "../features/navigation";
@@ -35,8 +35,8 @@ export function useAppController(): NavContextType {
     setLorebooks,
     providerConnections,
     setProviderConnections,
-    classicThreads,
-    setClassicThreads,
+    roleplayThreads,
+    setRoleplayThreads,
     messengerThreads,
     setMessengerThreads,
     rippleStates,
@@ -63,7 +63,7 @@ export function useAppController(): NavContextType {
     setView: setNavView,
     setSideRailView: setNavSideRailView,
     setSelectedSurface: setNavSelectedSurface,
-    openClassicThread,
+    openRoleplayThread,
     openMessengerThread,
   } = useViewActions({
     setView,
@@ -77,7 +77,7 @@ export function useAppController(): NavContextType {
     personas,
     lorebooks,
     providerConnections,
-    classicThreads,
+    roleplayThreads,
     messengerThreads,
     rippleStates,
     remoteRuntimeUrl,
@@ -86,7 +86,7 @@ export function useAppController(): NavContextType {
     setPersonas,
     setLorebooks,
     setProviderConnections,
-    setClassicThreads,
+    setRoleplayThreads,
     setMessengerThreads,
     setRippleStates,
     setMessengerStorageMode,
@@ -119,7 +119,7 @@ export function useAppController(): NavContextType {
       personas,
       lorebooks,
       providerConnections,
-      classicThreads,
+      roleplayThreads,
       messengerThreads,
       rippleStates,
       setAppSettings,
@@ -127,7 +127,7 @@ export function useAppController(): NavContextType {
       setPersonas,
       setLorebooks,
       setProviderConnections,
-      setClassicThreads,
+      setRoleplayThreads,
       setMessengerThreads,
       setRippleStates,
       setMessengerStorageStatus,
@@ -151,7 +151,7 @@ export function useAppController(): NavContextType {
   } = useCharacterActions({
     characters,
     setCharacters,
-    setClassicThreads,
+    setRoleplayThreads,
     setMessengerThreads,
   });
 
@@ -159,7 +159,7 @@ export function useAppController(): NavContextType {
     usePersonaActions({
       personas,
       setPersonas,
-      setClassicThreads,
+      setRoleplayThreads,
       setMessengerThreads,
     });
 
@@ -175,7 +175,7 @@ export function useAppController(): NavContextType {
     lorebooks,
     setLorebooks,
     setCharacters,
-    setClassicThreads,
+    setRoleplayThreads,
     setMessengerThreads,
   });
 
@@ -188,28 +188,28 @@ export function useAppController(): NavContextType {
     providerConnections,
     setProviderConnections,
     setAppSettings,
-    setClassicThreads,
+    setRoleplayThreads,
     setMessengerThreads,
   });
 
   const {
-    createClassicThread,
-    updateClassicThread,
-    renameClassicThread,
-    clearClassicThreadEntries,
-    deleteClassicThread,
-  } = useClassicThreadActions({
+    createRoleplayThread,
+    updateRoleplayThread,
+    renameRoleplayThread,
+    clearRoleplayThreadEntries,
+    deleteRoleplayThread,
+  } = useRoleplayThreadActions({
     activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
     characters,
-    classicThreads,
+    roleplayThreads,
     lorebooks,
     personas,
     providerConnections,
-    setClassicThreads,
+    setRoleplayThreads,
     setRippleStates,
     setView: setNavView,
     view,
-    openClassicThread,
+    openRoleplayThread,
   });
 
   const {
@@ -244,7 +244,7 @@ export function useAppController(): NavContextType {
     personas,
     lorebooks,
     providerConnections,
-    classicThreads,
+    roleplayThreads,
     messengerThreads,
     messengerStorageMode,
     messengerStorageStatus,
@@ -276,12 +276,12 @@ export function useAppController(): NavContextType {
     updateProviderConnection,
     duplicateProviderConnection,
     deleteProviderConnection,
-    createClassicThread,
-    updateClassicThread,
-    renameClassicThread,
-    clearClassicThreadEntries,
-    deleteClassicThread,
-    openClassicThread,
+    createRoleplayThread,
+    updateRoleplayThread,
+    renameRoleplayThread,
+    clearRoleplayThreadEntries,
+    deleteRoleplayThread,
+    openRoleplayThread,
     createMessengerThread,
     updateMessengerThread,
     renameMessengerThread,

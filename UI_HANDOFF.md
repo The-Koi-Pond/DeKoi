@@ -21,7 +21,7 @@ project rules.
 **Out of scope (do not build yet)**
 
 - Provider/generation runtime, real model replies.
-- Classic and Reserved surfaces beyond visual placeholders.
+- Roleplay and Reserved surfaces beyond visual placeholders.
 - Legacy import, Tauri storage, media library, webhook surfaces.
 - Anything labeled "Deep water" / "Surfacing soon" in the mockup — render as
   disabled/locked affordances only.
@@ -61,7 +61,7 @@ Regions (class → role):
 | Region | Class | Lines | Contents |
 | --- | --- | --- | --- |
 | Top bar | `.waterline` | 86–124 | Brand mark, "DeKoi" wordmark, `.ripple-search` omni-search, `.pebbles` catalog buttons (Lore/Companions/Media/Connections + Pond Care), `.win-dots`. |
-| Mode dock | `.bank` | 140–209 | Vertical rail. `.dive` buttons (messenger/classic/reserved — see §5.1) with hover `.tag` tooltips and `.on` indicator; `.cast-fab` (new chat); `.me` profile bubble. |
+| Mode dock | `.bank` | 140–209 | Vertical rail. `.dive` buttons (messenger/roleplay/reserved — see §5.1) with hover `.tag` tooltips and `.on` indicator; `.cast-fab` (new chat); `.me` profile bubble. |
 | Chat list | `.shoal` | 211–291 | `.shoal-head` (title, search, action pills), `.shoal-meta`, scrollable `.shoal-list` of `.koi-card` entries grouped by `.group-label`. |
 | Main canvas | `.pond` | 293–403 | Sticky `.pond-banner`, centered `.pond-inner` containing: `.hero` (animated koi `.pond-eye`), `.pools` (3 organic blob cards), `.section-head` + `.current` (recent drifters), `.depths` (feature finder). |
 | Status bar | `.tide` | 487–507 | `.swim-state` pulse, `.surface-input`, `.vitals` bars (Clarity/Stock). |
@@ -80,7 +80,7 @@ JS behaviors (lines 1002–1062): Pond Care open/close + Esc + scrim click; care
 tab single-select; `[data-toggle]` switch toggle; `selectMode(mode)` syncing
 `.dive` and `.pool`; `#surfaceChips`/`#depthChips` single-select chip groups;
 `.seg` single-select; `[data-track]` pointer-drag sliders. (`selectMode` reads
-`data-mode`, whose values are now the DeKoi ids `messenger`/`classic`/`reserved`.)
+`data-mode`, whose values are now the DeKoi ids `messenger`/`roleplay`/`reserved`.)
 
 ## 4. Conflicts and decisions
 
@@ -98,7 +98,7 @@ The original mockup used three "modes": Conversation / Roleplay / Game
   Mode` as public text or `roleplay` as a native DeKoi mode ID."
 - `DOMAIN_MODEL.md` line 30: "Game/adventure-style play is intentionally out of
   scope for now."
-- The agreed DeKoi labels are **Messenger** (DM-style chat) and **Classic** (visual
+- The agreed DeKoi labels are **Messenger** (DM-style chat) and **Roleplay** (visual
   novel). Game is not a first-slice surface.
 
 Per the user's decision ("amend the docs to reflect DeKoi's docs"), the mockup
@@ -148,7 +148,7 @@ out-of-scope surface is marked Reserved.
 | Original mockup `data-mode` | Original label | DeKoi surface (now in mockup) | `data-mode` (now) | Color token | First-slice status |
 | --- | --- | --- | --- | --- | --- |
 | `talk` | Conversation | **Messenger** | `messenger` | `--koi` | Active. Routes to the Messenger surface. |
-| `tale` | Roleplay | **Classic** | `classic` | `--jade` | Placeholder. Lock with "Surfacing soon" in the React port. |
+| `tale` | Roleplay | **Roleplay** | `roleplay` | `--jade` | Placeholder. Lock with "Surfacing soon" in the React port. |
 | `quest` | Game | **Reserved** (no native label yet) | `reserved` | `--amber` | Out of scope. Lock as "Deep water" in the React port. |
 
 Where this already landed in the mockup: `.dive .tag` copy (lines 651, 655,
@@ -156,13 +156,13 @@ Where this already landed in the mockup: `.dive .tag` copy (lines 651, 655,
 titles (lines 800, 811, 822), `.drifter .dmode` chips (lines 842, 850, 858), the
 Depths pop-results (lines 894–895), and the Send-on-Enter `.seg` options
 (lines 989–991). CSS class hooks were renamed to match: `.dive.messenger` /
-`.dive.classic` / `.dive.reserved`, `.pool.messenger` / `.pool.classic` / `.pool.reserved`,
-`.kc-mode.messenger` / `.kc-mode.classic` / `.kc-mode.reserved`, `.dmode.classic` /
+`.dive.roleplay` / `.dive.reserved`, `.pool.messenger` / `.pool.roleplay` / `.pool.reserved`,
+`.kc-mode.messenger` / `.kc-mode.roleplay` / `.kc-mode.reserved`, `.dmode.roleplay` /
 `.dmode.reserved`. Two free-text spots were also fixed: the hero eyebrow is now
 "The Pond · character story engine" (was "AI roleplay engine"), and the Pond
 Care toggle is now "Surface all text at once" (was "Surface game text at once").
 
-Note: the mockup shows Classic and Reserved as visually-present but not yet locked.
+Note: the mockup shows Roleplay and Reserved as visually-present but not yet locked.
 The React port adds the locked/disabled + tooltip treatment per their
 first-slice status above.
 
@@ -241,7 +241,7 @@ src/features/shell/waterline/
   Waterline.tsx + Waterline.css         brand, wordmark, RippleSearch, Pebbles, win-dots
 
 src/features/shell/bank/
-  Bank.tsx + Bank.css                   bank-label, Dive buttons (Messenger/Classic/Reserved), CastFab, Me
+  Bank.tsx + Bank.css                   bank-label, Dive buttons (Messenger/Roleplay/Reserved), CastFab, Me
 
 src/features/shell/shoal/
   Shoal.tsx + Shoal.css                 head, search, action pills, meta, list
@@ -325,8 +325,8 @@ passing. Phase 0 is already complete (the mockup itself was amended).
 ### Phase 0 — Reconcile naming (DONE)
 
 The mockup (`design/pond-mockup.html`) already uses DeKoi-native labels and
-mode ids (Messenger / Classic / Reserved); see §5.1. Before coding, add DeKoi surface
-id constants to the engine (e.g. `MESSENGER`, `CLASSIC`, `RESERVED`) if not present,
+mode ids (Messenger / Roleplay / Reserved); see §5.1. Before coding, add DeKoi surface
+id constants to the engine (e.g. `MESSENGER`, `ROLEPLAY`, `RESERVED`) if not present,
 so the React port has a single source of truth to import. No change to
 `SURFACE_LABELS.md` or `DOMAIN_MODEL.md` is needed — they already mandate these
 labels.
@@ -351,7 +351,7 @@ grid skeleton visible; `pnpm build` passes.
 Port each region's markup + CSS as static React, using the §5.1 labels:
 
 - Waterline (brand, wordmark, omni-search input, pebbles, win-dots).
-- Bank (Messenger/Classic/Reserved dives with tooltips; CastFab; Me).
+- Bank (Messenger/Roleplay/Reserved dives with tooltips; CastFab; Me).
 - Shoal (head, search, pills, meta, sample koi cards from `sampleMessengerThread`/
   `sampleCompanions` — map each thread to a `KoiCard`).
 - Tide (swim-state pulse, surface-input, vitals).
@@ -365,9 +365,9 @@ work via CSS; `pnpm build` passes.
 ### Phase 3 — Interactions and state
 
 - `nav-context.ts`: `view`, `selectedThreadId`, `selectedSurface`
-  (`'messenger'|'classic'|'reserved'`), `careOpen`, `careTab`.
+  (`'messenger'|'roleplay'|'reserved'`), `careOpen`, `careTab`.
 - Bank dive + ModePools click → set `selectedSurface` (sync both, like the
-  mockup's `selectMode`). Reserved/Classic are locked (aria-disabled, tooltip
+  mockup's `selectMode`). Reserved/Roleplay are locked (aria-disabled, tooltip
   "Surfacing soon").
 - CastFab + Messenger pool + koi-card click → `setView({kind:'messenger',
   threadId})`.
@@ -478,7 +478,7 @@ Restate each mockup JS behavior so it survives the React rewrite:
   the shell full-viewport; only `.pond` and `.shoal-list`/`.care-body` scroll
   internally.
 - **Surface IDs vs labels** — internal attributes use DeKoi ids (`messenger`,
-  `classic`, `reserved`), never the mockup's `talk/tale/quest` or the forbidden
+  `roleplay`, `reserved`), never the mockup's `talk/tale/quest` or the forbidden
   words `conversation`/`roleplay`/`game`.
 - **Clean room** — do not copy UI text wholesale from the mockup if it
   contradicts DeKoi voice (it's fine to keep decorative phrases like "Cast a
@@ -494,7 +494,7 @@ Restate each mockup JS behavior so it survives the React rewrite:
       drawer animation match the mockup.
 - [ ] Messenger dive / Cast-a-line / koi-card navigates to the Messenger surface;
       send → placeholder reply → reload preserves history.
-- [ ] Classic and Reserved dives/pools are locked with "Surfacing soon"/"Deep water".
+- [ ] Roleplay and Reserved dives/pools are locked with "Surfacing soon"/"Deep water".
 - [ ] Pond Care opens via gear, closes via X / scrim / Esc; tabs, switches,
       chips, seg, and slider all respond.
 - [ ] Keyboard-only and reduced-motion walkthroughs succeed.
@@ -509,14 +509,14 @@ Restate each mockup JS behavior so it survives the React rewrite:
 3. Any DeKoi-native copy preference for the hero subtitle / pool descriptions,
    or keep the mockup's wording?
 
-(Naming — Messenger / Classic locked / Reserved locked — is settled; see §5.1.)
+(Naming — Messenger / Roleplay locked / Reserved locked — is settled; see §5.1.)
 
 ## 14. Follow-ups (later, not in this handoff)
 
 - Persist Pond Care settings behind a real settings store.
 - Real Shoal with multiple threads, create/rename/delete, and "Ask before
   releasing a koi".
-- Classic surface behind the same shell.
+- Roleplay surface behind the same shell.
 - Self-hosted fonts + offline assets.
 - Router + deep-linking once a third top-level surface exists.
 - Media/Net, Inlets/Connections, Keepers surfaces (currently pebbles only).

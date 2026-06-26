@@ -1,12 +1,12 @@
 export {
-  ClassicThread,
-  type ClassicThreadNav,
-  getClassicThreadInitials,
-  getClassicThreadPreview,
-  sortClassicThreads,
-  sortClassicThreadsByUpdatedAt,
-  useClassicThreadActions,
-} from "./classic";
+  RoleplayThread,
+  type RoleplayThreadNav,
+  getRoleplayThreadInitials,
+  getRoleplayThreadPreview,
+  sortRoleplayThreads,
+  sortRoleplayThreadsByUpdatedAt,
+  useRoleplayThreadActions,
+} from "./roleplay";
 export {
   MessengerThread,
   type MessengerThreadNav,

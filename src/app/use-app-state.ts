@@ -28,8 +28,8 @@ export function useAppState() {
   const [providerConnections, setProviderConnections] = useState(
     initialStorageRecords.providerConnections,
   );
-  const [classicThreads, setClassicThreads] = useState(
-    initialStorageRecords.classicThreads,
+  const [roleplayThreads, setRoleplayThreads] = useState(
+    initialStorageRecords.roleplayThreads,
   );
   const [messengerThreads, setMessengerThreads] = useState(
     initialStorageRecords.messengerThreads,
@@ -68,8 +68,8 @@ export function useAppState() {
     setLorebooks,
     providerConnections,
     setProviderConnections,
-    classicThreads,
-    setClassicThreads,
+    roleplayThreads,
+    setRoleplayThreads,
     messengerThreads,
     setMessengerThreads,
     rippleStates,

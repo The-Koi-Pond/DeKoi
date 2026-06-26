@@ -25,7 +25,7 @@ const shellPackageNames = new Set([
   "tide",
   "waterline",
 ]);
-const modePackageNames = new Set(["classic", "messenger"]);
+const modePackageNames = new Set(["roleplay", "messenger"]);
 const featureRuntimeOwnerPackageNames = new Set([
   "generation",
   "ripples",

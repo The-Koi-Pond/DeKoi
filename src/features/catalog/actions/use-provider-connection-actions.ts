@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import type { ClassicThread } from "../../../engine/classic";
-import { replaceClassicThreadProviderConnection } from "../../../engine/classic-actions";
+import type { RoleplayThread } from "../../../engine/roleplay";
+import { replaceRoleplayThreadProviderConnection } from "../../../engine/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { replaceMessengerThreadProviderConnection } from "../../../engine/messenger-actions";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
@@ -20,7 +20,7 @@ type UseProviderConnectionActionsInput = {
   providerConnections: ProviderConnectionRecord[];
   setProviderConnections: StateSetter<ProviderConnectionRecord[]>;
   setAppSettings: StateSetter<AppSettings>;
-  setClassicThreads: StateSetter<ClassicThread[]>;
+  setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setMessengerThreads: StateSetter<MessengerThread[]>;
 };
 
@@ -28,7 +28,7 @@ export function useProviderConnectionActions({
   providerConnections,
   setProviderConnections,
   setAppSettings,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
 }: UseProviderConnectionActionsInput) {
   const createProviderConnection = useCallback(
@@ -113,9 +113,9 @@ export function useProviderConnectionActions({
           ),
         ),
       );
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          replaceClassicThreadProviderConnection(
+          replaceRoleplayThreadProviderConnection(
             thread,
             connectionId,
             fallbackConnection?.id ?? null,
@@ -127,7 +127,7 @@ export function useProviderConnectionActions({
     [
       providerConnections,
       setAppSettings,
-      setClassicThreads,
+      setRoleplayThreads,
       setMessengerThreads,
       setProviderConnections,
     ],

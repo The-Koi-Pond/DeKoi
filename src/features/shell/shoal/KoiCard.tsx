@@ -22,7 +22,7 @@ interface KoiCardProps {
 // non-navigable status rows.
 const AVA_VARIANT: Record<SurfaceId, string> = {
   messenger: "k1",
-  classic: "k2",
+  roleplay: "k2",
   reserved: "k3",
 };
 

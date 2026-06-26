@@ -1,8 +1,8 @@
 export {
-  generateClassicThreadTurn,
-  type GenerateClassicThreadTurnInput,
-  type GenerateClassicThreadTurnResult,
-} from "./classic-generation";
+  generateRoleplayThreadTurn,
+  type GenerateRoleplayThreadTurnInput,
+  type GenerateRoleplayThreadTurnResult,
+} from "./roleplay-generation";
 export {
   generateMessengerResponse,
   generateMessengerThreadReply,

@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/character";
 import { removeCharacterLorebook } from "../../../engine/character-actions";
-import type { ClassicThread } from "../../../engine/classic";
-import { removeClassicThreadLorebook } from "../../../engine/classic-actions";
+import type { RoleplayThread } from "../../../engine/roleplay";
+import { removeRoleplayThreadLorebook } from "../../../engine/roleplay-actions";
 import type { LorebookRecord } from "../../../engine/lorebook";
 import {
   createLorebookEntryRecord,
@@ -26,7 +26,7 @@ type UseLorebookActionsInput = {
   lorebooks: LorebookRecord[];
   setLorebooks: StateSetter<LorebookRecord[]>;
   setCharacters: StateSetter<CharacterRecord[]>;
-  setClassicThreads: StateSetter<ClassicThread[]>;
+  setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setMessengerThreads: StateSetter<MessengerThread[]>;
 };
 
@@ -34,7 +34,7 @@ export function useLorebookActions({
   lorebooks,
   setLorebooks,
   setCharacters,
-  setClassicThreads,
+  setRoleplayThreads,
   setMessengerThreads,
 }: UseLorebookActionsInput) {
   const createLorebookEntry = useCallback(
@@ -172,13 +172,13 @@ export function useLorebookActions({
           removeMessengerThreadLorebook(thread, lorebookId, now),
         ),
       );
-      setClassicThreads((currentThreads) =>
+      setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          removeClassicThreadLorebook(thread, lorebookId, now),
+          removeRoleplayThreadLorebook(thread, lorebookId, now),
         ),
       );
     },
-    [setCharacters, setClassicThreads, setLorebooks, setMessengerThreads],
+    [setCharacters, setRoleplayThreads, setLorebooks, setMessengerThreads],
   );
 
   return {

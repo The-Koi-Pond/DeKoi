@@ -20,10 +20,10 @@ concepts while mapping old records into DeKoi-owned models.
 | Legacy source concept | DeKoi public label | DeKoi internal noun | Purpose |
 | --- | --- | --- | --- |
 | Conversation-style mode | Messenger | messenger thread | Direct and group DM-style chats with compact message turns. |
-| Roleplay-style mode | Classic | classic thread | Visual-novel-style character scenes with cast, continuity, and world context. |
-| Chat list/sidebar | Pond | thread list | Saved Messenger and Classic records. |
-| Character catalog | Companions | character record | People/entities the user can talk with or place into Classic threads. |
-| Persona catalog | Personas | persona record | User-facing identities for participation in Messenger and Classic threads. |
+| Roleplay-style mode | Roleplay | roleplay thread | Visual-novel-style character scenes with cast, continuity, and world context. |
+| Chat list/sidebar | Pond | thread list | Saved Messenger and Roleplay records. |
+| Character catalog | Companions | character record | People/entities the user can talk with or place into Roleplay threads. |
+| Persona catalog | Personas | persona record | User-facing identities for participation in Messenger and Roleplay threads. |
 | Lorebook/knowledge catalog | Lorebooks | lorebook record | Reusable facts, setting notes, references, and continuity material. |
 | Presets/chat presets | Currents | prompt recipe | Reusable generation settings and prompt structure. |
 | Game-state/tracker-style data | Ripples | ripple state | Dynamic per-thread state, counters, summaries, and continuity changes. |
@@ -61,17 +61,17 @@ Close alternates:
 - `Pings`: clear DM meaning, but weaker DeKoi identity.
 - `Pondlines`: distinctive, but may be too coined for first-run users.
 
-## Classic Name
+## Roleplay Name
 
-Use **Classic** as the public surface label for visual-novel-style character
+Use **Roleplay** as the public surface label for visual-novel-style character
 scenes.
 
 Suggested language:
 
-- Public navigation: `Classic`
-- Primary action: `New Classic`
-- Internal kind: `classic`
-- Core record: `ClassicThread`
+- Public navigation: `Roleplay`
+- Primary action: `New Roleplay`
+- Internal kind: `roleplay`
+- Core record: `RoleplayThread`
 - Import adapter alias only: `legacy roleplay source`
 
 Avoid using `Roleplay Mode` as public text or `roleplay` as a native DeKoi mode

@@ -76,7 +76,7 @@ src/engine/core          IDs, timestamps, result helpers, JSON primitives.
 src/engine/capabilities  Ports for storage, secrets, provider transport, files.
 src/engine/entities      Pure record operations for characters, threads, lore.
 src/engine/generation    Provider-neutral request/response assembly.
-src/engine/modes         Messenger and Classic orchestration.
+src/engine/modes         Messenger and Roleplay orchestration.
 ```
 
 Higher engine layers may use lower ones. Lower layers do not import higher
@@ -100,14 +100,14 @@ The short version:
 
 - `src/engine/messenger.ts` and `src/engine/messenger-actions.ts` define native
   Messenger records and mutations.
-- `src/engine/classic.ts` and `src/engine/classic-actions.ts` define the first
-  Classic scene records.
+- `src/engine/roleplay.ts` and `src/engine/roleplay-actions.ts` define the first
+  Roleplay scene records.
 - `src/engine/character.ts`, `src/engine/persona.ts`,
   `src/engine/lorebook.ts`, `src/engine/provider-connection.ts`, and
   `src/engine/ripples.ts` define the first catalog/context records.
 - `src/engine/messenger-generation.ts` builds provider-neutral Messenger
   generation requests.
-- `src/features/*` renders Pond, Messenger, Classic, shell, and catalog
+- `src/features/*` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
   controller for the app provider, including top-level app state, storage sync,
   and view actions. `src/features/navigation` owns only the navigation context
