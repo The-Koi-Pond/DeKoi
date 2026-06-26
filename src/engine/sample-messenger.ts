@@ -1,4 +1,5 @@
 import type { MessengerThread } from './messenger'
+import { DEFAULT_MESSENGER_SYSTEM_PROMPT } from './messenger'
 import type { CharacterRecord } from './character'
 import type { LorebookRecord } from './lorebook'
 import type { PersonaRecord } from './persona'
@@ -124,6 +125,8 @@ export const sampleMessengerThread: MessengerThread = {
   lorebookIds: [sampleLorebook.id],
   presetId: null,
   providerConnectionId: null,
+  systemPromptMode: 'default',
+  systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
   messages: [
     {
       id: 'messenger-message-1',

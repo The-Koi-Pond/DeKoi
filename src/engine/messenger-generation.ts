@@ -1,6 +1,10 @@
 import type { CharacterRecord } from "./character";
 import type { LorebookRecord } from "./lorebook";
-import type { MessengerMessage, MessengerThread } from "./messenger";
+import {
+  resolveMessengerSystemPrompt,
+  type MessengerMessage,
+  type MessengerThread,
+} from "./messenger";
 import { getNextMessengerCompanion } from "./messenger-actions";
 import type { PersonaRecord } from "./persona";
 import type { ProviderConnectionRecord } from "./provider-connection";
@@ -218,17 +222,22 @@ function buildSystemPrompt({
   companions,
   lorebooks,
   targetCompanion,
+  thread,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
   targetCompanion: CharacterRecord | null;
+  thread: MessengerThread;
 }) {
   const targetName = targetCompanion?.displayName ?? "the selected companion";
+  const userName = activePersona?.displayName ?? "the user";
+  const selectedPrompt = resolveMessengerSystemPrompt(thread)
+    .replaceAll("{{charName}}", targetName)
+    .replaceAll("{{userName}}", userName);
+
   return [
-    `You are writing the next message in a Messenger-style character chat.`,
-    `Reply only as ${targetName}. Do not include a speaker label, prefix, markdown heading, or out-of-character commentary.`,
-    `Keep the reply conversational, in-character, and grounded in the provided chat history.`,
+    selectedPrompt,
     ...namedBlock(
       "Active persona",
       activePersona ? personaContext(activePersona) : ["Anonymous user"],
@@ -279,6 +288,7 @@ function createMessengerPromptMessages({
         companions,
         lorebooks,
         targetCompanion,
+        thread,
       }),
     },
     ...transcript,

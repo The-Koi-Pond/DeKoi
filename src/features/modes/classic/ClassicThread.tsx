@@ -27,6 +27,10 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { ChatComposer } from "../shared";
+import {
+  getMessageDateTimeTitle,
+  getMessageTimeLabel,
+} from "../shared/message-time";
 import "./classic-thread.css";
 
 export type ClassicThreadNav = Pick<
@@ -230,6 +234,10 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     void sendDraft();
   }
 
+  function dismissGenerationNotice() {
+    setGenerationState({ threadId: null, status: "idle", message: "" });
+  }
+
   function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (
       event.key !== "Enter" ||
@@ -279,6 +287,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       >
         {thread.entries.map((entry) => {
           const isEditing = editingEntry?.id === entry.id;
+          const timeLabel = getMessageTimeLabel(entry.createdAt);
 
           return (
             <article
@@ -286,7 +295,18 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
               key={entry.id}
             >
               <div className="classic-entry-head">
-                <b>{entry.label}</b>
+                <div className="classic-entry-author">
+                  <b>{entry.label}</b>
+                  {timeLabel && (
+                    <time
+                      className="classic-entry-timestamp"
+                      dateTime={entry.createdAt}
+                      title={getMessageDateTimeTitle(entry.createdAt)}
+                    >
+                      {timeLabel}
+                    </time>
+                  )}
+                </div>
                 <span className="classic-entry-badges">
                   {entry.origin === "generated" && <span>Generated</span>}
                 </span>
@@ -352,8 +372,21 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
           className={`thread-generation-notice ${visibleGenerationStatus}`}
           role={visibleGenerationStatus === "error" ? "alert" : "status"}
         >
-          {generationNotice ||
-            `${generationRuntime.label} is replying through the provider path.`}
+          <span>
+            {generationNotice ||
+              `${generationRuntime.label} is replying through the provider path.`}
+          </span>
+          {(visibleGenerationStatus === "error" ||
+            visibleGenerationStatus === "warning") && (
+            <button
+              type="button"
+              aria-label="Dismiss generation message"
+              title="Dismiss"
+              onClick={dismissGenerationNotice}
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
 

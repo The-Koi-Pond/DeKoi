@@ -1,4 +1,9 @@
-import type { MessengerMessage, MessengerThread } from './messenger'
+import {
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  type MessengerMessage,
+  type MessengerSystemPromptMode,
+  type MessengerThread,
+} from './messenger'
 import type { CharacterRecord } from './character'
 import type { PersonaRecord } from './persona'
 
@@ -30,6 +35,8 @@ export function createMessengerThread({
     lorebookIds,
     presetId: null,
     providerConnectionId,
+    systemPromptMode: 'default',
+    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages: [],
     createdAt: now,
     updatedAt: now,
@@ -156,6 +163,20 @@ export function setMessengerThreadProviderConnection(
   return {
     ...thread,
     providerConnectionId,
+    updatedAt,
+  }
+}
+
+export function setMessengerThreadSystemPrompt(
+  thread: MessengerThread,
+  systemPromptMode: MessengerSystemPromptMode,
+  systemPrompt: string,
+  updatedAt: string,
+): MessengerThread {
+  return {
+    ...thread,
+    systemPromptMode,
+    systemPrompt,
     updatedAt,
   }
 }

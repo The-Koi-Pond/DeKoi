@@ -14,6 +14,7 @@ import {
   setMessengerThreadParticipants,
   setMessengerThreadPersona,
   setMessengerThreadProviderConnection,
+  setMessengerThreadSystemPrompt,
 } from "../../../engine/messenger-actions";
 import {
   getClassicThreadPreview,
@@ -33,7 +34,11 @@ import type {
   NavViewState,
 } from "../../navigation";
 import type { CharacterRecord } from "../../../engine/character";
-import type { MessengerThread } from "../../../engine/messenger";
+import {
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  type MessengerSystemPromptMode,
+  type MessengerThread,
+} from "../../../engine/messenger";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import {
   getProviderConnectionProviderOption,
@@ -54,12 +59,14 @@ type ChatSettingsDrawerId =
   | "connection"
   | "persona"
   | "companions"
+  | "prompt"
   | "lorebooks"
   | "advanced";
 const CHAT_SETTINGS_DRAWER_DEFAULTS: Record<ChatSettingsDrawerId, boolean> = {
   connection: true,
   persona: false,
   companions: false,
+  prompt: false,
   lorebooks: false,
   advanced: false,
 };
@@ -822,6 +829,15 @@ function ChatSettingsRail({
   });
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
+  const [promptEditor, setPromptEditor] = useState<{
+    open: boolean;
+    threadId: string | null;
+    value: string;
+  }>({
+    open: false,
+    threadId: null,
+    value: "",
+  });
   const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
 
   if (
@@ -933,6 +949,52 @@ function ChatSettingsRail({
     );
   }
 
+  function handleMessengerSystemPromptModeChange(
+    systemPromptMode: MessengerSystemPromptMode,
+  ) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadSystemPrompt(
+        thread,
+        systemPromptMode,
+        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
+        updatedAt,
+      ),
+    );
+  }
+
+  function openPromptEditor() {
+    if (!activeMessengerThread) return;
+    setPromptEditor({
+      open: true,
+      threadId: activeMessengerThread.id,
+      value:
+        activeMessengerThread.systemPromptMode === "custom"
+          ? activeMessengerThread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT
+          : DEFAULT_MESSENGER_SYSTEM_PROMPT,
+    });
+  }
+
+  function closePromptEditor() {
+    setPromptEditor({
+      open: false,
+      threadId: null,
+      value: "",
+    });
+  }
+
+  function savePromptEditor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activeMessengerThread || promptEditor.threadId !== activeMessengerThread.id) {
+      closePromptEditor();
+      return;
+    }
+
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadSystemPrompt(thread, "custom", promptEditor.value, updatedAt),
+    );
+    closePromptEditor();
+  }
+
   const sanitizedProviderConnections = useMemo(
     () =>
       nav.providerConnections.map((connection) =>
@@ -962,6 +1024,7 @@ function ChatSettingsRail({
   const companionSelectionLabel =
     selectedCompanionNames.join(", ") || "Choose companions";
   const selectedLorebookCount = activeMessengerThread?.lorebookIds.length ?? 0;
+  const systemPromptMode = activeMessengerThread?.systemPromptMode ?? "default";
 
   return (
     <aside className="shoal chat-settings-shoal" aria-label={`The Shoal — ${settingsLabel}`}>
@@ -1157,6 +1220,45 @@ function ChatSettingsRail({
           </ChatSettingsDrawer>
 
           <ChatSettingsDrawer
+            drawerId="prompt"
+            open={openDrawers.prompt}
+            summary={
+              systemPromptMode === "custom"
+                ? "Custom system prompt"
+                : "Default system prompt"
+            }
+            title="Prompt"
+            onToggle={toggleChatSettingsDrawer}
+          >
+            <label className="chat-settings-field">
+              <span>System prompt</span>
+              <div className="chat-settings-prompt-select">
+                <select
+                  className="pondsel"
+                  value={systemPromptMode}
+                  disabled={!activeMessengerThread}
+                  onChange={(event) =>
+                    handleMessengerSystemPromptModeChange(
+                      event.currentTarget.value as MessengerSystemPromptMode,
+                    )
+                  }
+                >
+                  <option value="default">Default</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <button
+                  type="button"
+                  className="chat-settings-edit-button"
+                  disabled={!activeMessengerThread}
+                  onClick={openPromptEditor}
+                >
+                  Edit
+                </button>
+              </div>
+            </label>
+          </ChatSettingsDrawer>
+
+          <ChatSettingsDrawer
             drawerId="lorebooks"
             open={openDrawers.lorebooks}
             summary={`${selectedLorebookCount} lorebooks`}
@@ -1260,6 +1362,52 @@ function ChatSettingsRail({
           </ChatSettingsDrawer>
         </div>
       </div>
+      {promptEditor.open && activeMessengerThread && (
+        <div
+          className="prompt-editor-backdrop"
+          role="presentation"
+          onClick={closePromptEditor}
+        >
+          <form
+            className="prompt-editor-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="messenger-prompt-editor-title"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={savePromptEditor}
+          >
+            <div className="prompt-editor-head">
+              <b id="messenger-prompt-editor-title">System Prompt</b>
+              <button
+                type="button"
+                aria-label="Close system prompt editor"
+                onClick={closePromptEditor}
+              >
+                ×
+              </button>
+            </div>
+            <label className="prompt-editor-field">
+              <span>Prompt</span>
+              <textarea
+                autoFocus
+                value={promptEditor.value}
+                onChange={(event) =>
+                  setPromptEditor((current) => ({
+                    ...current,
+                    value: event.currentTarget.value,
+                  }))
+                }
+              />
+            </label>
+            <div className="prompt-editor-actions">
+              <button type="button" onClick={closePromptEditor}>
+                Cancel
+              </button>
+              <button type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      )}
     </aside>
   );
 }

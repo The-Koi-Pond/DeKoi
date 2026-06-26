@@ -12,6 +12,10 @@ import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
 
 type ProviderJson = Record<string, unknown>;
+type ProviderTextResult = {
+  text: string;
+  warning?: string;
+};
 
 function isRecord(value: unknown): value is ProviderJson {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -111,6 +115,16 @@ function appendEndpoint(baseUrl: string, endpoint: string) {
   return trimmed.endsWith(endpoint) ? trimmed : `${trimmed}${endpoint}`;
 }
 
+function appendOpenAiChatCompletionsEndpoint(baseUrl: string) {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith("/chat/completions")) return trimmed;
+  if (/\/(?:v\d+|api\/v\d+)$/i.test(trimmed)) {
+    return `${trimmed}/chat/completions`;
+  }
+
+  return `${trimmed}/v1/chat/completions`;
+}
+
 function authHeaders(provider: ProviderConnectionProvider, apiKey: string) {
   const trimmedKey = apiKey.trim();
   const headers: Record<string, string> = {
@@ -147,6 +161,21 @@ function openAiCompatibleProviders(provider: ProviderConnectionProvider) {
   );
 }
 
+function providerPayloadErrorMessage(payload: unknown) {
+  if (!isRecord(payload) || !("error" in payload)) return "";
+
+  if (typeof payload.error === "string") return payload.error.trim();
+  if (!isRecord(payload.error)) return "Provider returned an error response.";
+
+  return (
+    readString(payload.error.message) ||
+    readString(payload.error.detail) ||
+    readString(payload.error.type) ||
+    readString(payload.error.code) ||
+    "Provider returned an error response."
+  ).trim();
+}
+
 async function postJson(url: string, headers: Record<string, string>, body: ProviderJson) {
   const response = await fetch(url, {
     method: "POST",
@@ -154,59 +183,179 @@ async function postJson(url: string, headers: Record<string, string>, body: Prov
     body: JSON.stringify(body),
   });
   const payload = (await response.json().catch(() => null)) as unknown;
+  const payloadError = providerPayloadErrorMessage(payload);
 
   if (!response.ok) {
     const message =
-      isRecord(payload) && isRecord(payload.error)
-        ? readString(payload.error.message)
-        : isRecord(payload)
+      payloadError ||
+      (isRecord(payload)
           ? readString(payload.message) || readString(payload.error)
-          : "";
+          : "");
     throw new Error(message || `Provider returned HTTP ${response.status}.`);
   }
 
+  if (payloadError) {
+    throw new Error(payloadError);
+  }
+
   return payload;
+}
+
+function responseShape(value: unknown): string {
+  if (Array.isArray(value)) return `array(${value.length})`;
+  if (!isRecord(value)) return typeof value;
+
+  const keys = Object.keys(value);
+  if (keys.length === 0) return "object(no fields)";
+
+  const visibleKeys = keys.slice(0, 8).join(", ");
+  return keys.length > 8 ? `fields: ${visibleKeys}, ...` : `fields: ${visibleKeys}`;
 }
 
 function firstText(value: unknown): string {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) {
     return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (isRecord(item)) return readString(item.text);
-        return "";
-      })
+      .map((item) => firstText(item))
       .filter(Boolean)
       .join("\n");
   }
+
+  if (isRecord(value)) {
+    return (
+      firstText(value.text) ||
+      firstText(value.output_text) ||
+      firstText(value.response_text) ||
+      firstText(value.generated_text) ||
+      firstText(value.content) ||
+      firstText(value.parts) ||
+      firstText(value.message) ||
+      firstText(value.response) ||
+      firstText(value.generation) ||
+      firstText(value.completion) ||
+      firstText(value.result) ||
+      firstText(value.results) ||
+      firstText(value.value)
+    );
+  }
+
   return "";
 }
 
-function openAiText(payload: unknown) {
-  if (!isRecord(payload) || !Array.isArray(payload.choices)) return "";
-  const choice = payload.choices.find(isRecord);
-  if (!choice) return "";
-  if (isRecord(choice.message)) return firstText(choice.message.content).trim();
-  return firstText(choice.text).trim();
+function genericProviderText(payload: unknown) {
+  if (!isRecord(payload)) return firstText(payload).trim();
+
+  return (
+    firstText(payload.message) ||
+    firstText(payload.response) ||
+    firstText(payload.response_text) ||
+    firstText(payload.output_text) ||
+    firstText(payload.output) ||
+    firstText(payload.generated_text) ||
+    firstText(payload.generation) ||
+    firstText(payload.completion) ||
+    firstText(payload.result) ||
+    firstText(payload.results) ||
+    firstText(payload.content) ||
+    firstText(payload.text) ||
+    firstText(payload.data)
+  ).trim();
 }
 
-function anthropicText(payload: unknown) {
-  if (!isRecord(payload)) return "";
-  return firstText(payload.content).trim();
+function emptyProviderWarning(payload: unknown) {
+  return `Provider returned no text (${responseShape(payload)}).`;
 }
 
-function googleText(payload: unknown) {
-  if (!isRecord(payload) || !Array.isArray(payload.candidates)) return "";
-  const candidate = payload.candidates.find(isRecord);
-  const parts = isRecord(candidate?.content) && Array.isArray(candidate.content.parts)
-    ? candidate.content.parts
-    : [];
-  return parts
-    .map((part) => (isRecord(part) ? readString(part.text) : ""))
-    .filter(Boolean)
-    .join("\n")
-    .trim();
+function openAiText(payload: unknown): ProviderTextResult {
+  if (!isRecord(payload)) {
+    return { text: "", warning: emptyProviderWarning(payload) };
+  }
+
+  const responseText = genericProviderText(payload);
+  if (responseText.trim()) return { text: responseText.trim() };
+
+  if (!Array.isArray(payload.choices)) {
+    return { text: "", warning: emptyProviderWarning(payload) };
+  }
+
+  for (const choice of payload.choices) {
+    if (!isRecord(choice)) continue;
+
+    const text = isRecord(choice.message)
+      ? firstText(choice.message.content)
+      : firstText(choice.text);
+    if (text.trim()) return { text: text.trim() };
+  }
+
+  const firstChoice = payload.choices.find(isRecord);
+  const message = isRecord(firstChoice?.message) ? firstChoice.message : null;
+  const refusal = message ? readString(message.refusal).trim() : "";
+  if (refusal) return { text: "", warning: `Provider refused the reply: ${refusal}` };
+
+  const finishReason = firstChoice ? readString(firstChoice.finish_reason).trim() : "";
+  return {
+    text: "",
+    warning: finishReason
+      ? `Provider returned no text (finish reason: ${finishReason}).`
+      : emptyProviderWarning(payload),
+  };
+}
+
+function anthropicText(payload: unknown): ProviderTextResult {
+  if (!isRecord(payload)) {
+    return { text: "", warning: emptyProviderWarning(payload) };
+  }
+  const text = genericProviderText(payload);
+  if (text) return { text };
+
+  const stopReason = readString(payload.stop_reason).trim();
+  return {
+    text: "",
+    warning: stopReason
+      ? `Provider returned no text (stop reason: ${stopReason}).`
+      : emptyProviderWarning(payload),
+  };
+}
+
+function googleText(payload: unknown): ProviderTextResult {
+  if (!isRecord(payload)) {
+    return { text: "", warning: emptyProviderWarning(payload) };
+  }
+
+  if (!Array.isArray(payload.candidates)) {
+    const text = genericProviderText(payload);
+    if (text) return { text };
+
+    const promptFeedback = isRecord(payload.promptFeedback)
+      ? payload.promptFeedback
+      : null;
+    const blockReason = promptFeedback
+      ? readString(promptFeedback.blockReason).trim()
+      : "";
+    return {
+      text: "",
+      warning: blockReason
+        ? `Provider blocked the prompt (${blockReason}).`
+        : emptyProviderWarning(payload),
+    };
+  }
+
+  for (const candidate of payload.candidates) {
+    if (!isRecord(candidate)) continue;
+    const text = firstText(candidate.content).trim();
+    if (text) return { text };
+  }
+
+  const firstCandidate = payload.candidates.find(isRecord);
+  const finishReason = firstCandidate
+    ? readString(firstCandidate.finishReason).trim()
+    : "";
+  return {
+    text: "",
+    warning: finishReason
+      ? `Provider returned no text (finish reason: ${finishReason}).`
+      : emptyProviderWarning(payload),
+  };
 }
 
 function stripSpeakerPrefix(body: string, speakerName: string | null) {
@@ -219,18 +368,29 @@ function stripSpeakerPrefix(body: string, speakerName: string | null) {
 
 function createProviderResponse(
   request: MessengerGenerationRequest,
-  body: string,
+  result: ProviderTextResult,
 ): MessengerGenerationResponse {
   const targetCharacterId = request.targetCharacterId;
-  const strippedBody = stripSpeakerPrefix(body, request.targetCharacterName);
-  if (!targetCharacterId || !strippedBody) {
+  if (!targetCharacterId) {
     return {
       schemaVersion: 1,
       requestId: request.id,
       providerKind: "external-provider",
       createdAt: new Date().toISOString(),
       messages: [],
-      warnings: ["Provider did not return a usable companion reply."],
+      warnings: ["No companion is available for this thread."],
+    };
+  }
+
+  const strippedBody = stripSpeakerPrefix(result.text, request.targetCharacterName);
+  if (!strippedBody) {
+    return {
+      schemaVersion: 1,
+      requestId: request.id,
+      providerKind: "external-provider",
+      createdAt: new Date().toISOString(),
+      messages: [],
+      warnings: [result.warning ?? "Provider returned no text."],
     };
   }
 
@@ -262,9 +422,13 @@ async function generateWithBrowserProvider(
   const headers = authHeaders(connection.provider, connection.apiKey);
   const { maxTokens, temperature, topP } = request.parameters;
 
+  if (!request.targetCharacterId) {
+    return createProviderResponse(request, { text: "" });
+  }
+
   if (openAiCompatibleProviders(connection.provider)) {
     const payload = await postJson(
-      appendEndpoint(connection.baseUrl, "/chat/completions"),
+      appendOpenAiChatCompletionsEndpoint(connection.baseUrl),
       headers,
       {
         model: connection.model,

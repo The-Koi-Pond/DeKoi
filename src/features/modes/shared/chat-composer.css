@@ -114,6 +114,10 @@
   bottom: 96px;
   left: 28px;
   z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   min-height: 30px;
   padding: 7px 10px;
   border: 1px solid rgba(117, 143, 146, 0.22);
@@ -123,7 +127,34 @@
   font-family: var(--ui);
   font-size: 12px;
   line-height: 1.3;
-  pointer-events: none;
+}
+
+.thread-generation-notice span {
+  min-width: 0;
+}
+
+.thread-generation-notice button {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.72;
+}
+
+.thread-generation-notice button:hover,
+.thread-generation-notice button:focus-visible {
+  border-color: currentColor;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+  opacity: 1;
 }
 
 .thread-generation-notice.generating {

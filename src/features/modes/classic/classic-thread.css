@@ -81,12 +81,30 @@
   margin-bottom: 6px;
 }
 
-.classic-entry-head b {
+.classic-entry-author {
+  display: inline-flex;
   flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+}
+
+.classic-entry-author b {
+  min-width: 0;
+  overflow: hidden;
   color: var(--foam);
   font-size: 12px;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classic-entry-timestamp {
+  flex: 0 0 auto;
+  color: var(--mist-dim);
+  font-size: 10.5px;
+  font-weight: 550;
+  line-height: 1;
 }
 
 .classic-entry-badges {

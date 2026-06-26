@@ -1,9 +1,10 @@
-import type {
-  MessengerMessage,
-  MessengerMessageAuthor,
-  MessengerMessageOrigin,
-  MessengerThread,
-  MessengerThreadMode,
+import {
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  type MessengerMessage,
+  type MessengerMessageAuthor,
+  type MessengerMessageOrigin,
+  type MessengerThread,
+  type MessengerThreadMode,
 } from "../../../engine/messenger";
 import { isRecord, readNullableString, readString, readStringArray, readTimestamp } from "../storage-json";
 
@@ -152,6 +153,8 @@ function normalizeLegacyThread(value: unknown, index: number): MessengerThread |
     lorebookIds: readStringArray(value.lorebookIds),
     presetId: readNullableString(value.presetId),
     providerConnectionId: readNullableString(value.providerConnectionId),
+    systemPromptMode: "default",
+    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages,
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),

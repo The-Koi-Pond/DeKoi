@@ -1,4 +1,9 @@
-import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import {
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  normalizeMessengerSystemPromptMode,
+  type MessengerMessage,
+  type MessengerThread,
+} from "../../../engine/messenger";
 import { sampleMessengerThread } from "../../../engine/sample-messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
@@ -75,6 +80,13 @@ export function normalizeMessengerThread(value: unknown): MessengerThread | null
         typeof candidate.providerConnectionId === "string"
           ? candidate.providerConnectionId
           : null,
+      systemPromptMode: normalizeMessengerSystemPromptMode(
+        candidate.systemPromptMode,
+      ),
+      systemPrompt:
+        typeof candidate.systemPrompt === "string"
+          ? candidate.systemPrompt
+          : DEFAULT_MESSENGER_SYSTEM_PROMPT,
       messages,
     } as MessengerThread;
   }

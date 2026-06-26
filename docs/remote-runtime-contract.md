@@ -147,6 +147,8 @@ Request:
         "lorebookIds": ["lorebook-main"],
         "presetId": null,
         "providerConnectionId": "connection-remote-runtime",
+        "systemPromptMode": "default",
+        "systemPrompt": "<default messenger system prompt>",
         "messages": [],
         "createdAt": "2026-06-24T07:10:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"

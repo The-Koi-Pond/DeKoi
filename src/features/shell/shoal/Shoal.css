@@ -592,7 +592,6 @@
 .chat-settings-card .pondinput,
 .chat-settings-card .pondsel {
   width: 100%;
-  height: 34px;
   border: 1px solid var(--reed-soft);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.22);
@@ -600,7 +599,6 @@
   font-family: var(--ui);
   font-size: 12px;
   outline: none;
-  padding: 0 10px;
 }
 
 .chat-settings-card .pondinput:focus,
@@ -609,8 +607,51 @@
   box-shadow: 0 0 0 2px rgba(39, 179, 170, 0.12);
 }
 
+.chat-settings-card .pondinput,
+.chat-settings-card .pondsel {
+  height: 34px;
+  padding: 0 10px;
+}
+
 .chat-settings-card .pondsel {
   cursor: pointer;
+}
+
+.chat-settings-prompt-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-settings-prompt-select .pondsel {
+  min-width: 0;
+}
+
+.chat-settings-edit-button {
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(39, 179, 170, 0.28);
+  border-radius: 8px;
+  background: rgba(39, 179, 170, 0.09);
+  color: var(--jade-hot);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-settings-edit-button:hover:not(:disabled),
+.chat-settings-edit-button:focus-visible:not(:disabled) {
+  border-color: rgba(39, 179, 170, 0.54);
+  background: rgba(39, 179, 170, 0.16);
+  color: var(--foam);
+  outline: none;
+}
+
+.chat-settings-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .chat-settings-card .track {
@@ -1056,6 +1097,127 @@
 .new-thread-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.prompt-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 9, 12, 0.46);
+  backdrop-filter: blur(4px);
+}
+
+.prompt-editor-popover {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 36px);
+  gap: 12px;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 12px;
+  background: rgba(9, 19, 23, 0.98);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.035) inset;
+}
+
+.prompt-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--foam);
+  font-size: 12.5px;
+}
+
+.prompt-editor-head button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mist-dim);
+  cursor: pointer;
+  font-family: var(--ui);
+}
+
+.prompt-editor-head button:hover,
+.prompt-editor-head button:focus-visible {
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  color: var(--foam);
+  outline: none;
+}
+
+.prompt-editor-field {
+  display: grid;
+  min-height: 0;
+  gap: 6px;
+}
+
+.prompt-editor-field span {
+  color: var(--mist-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.prompt-editor-field textarea {
+  min-height: min(520px, 58vh);
+  resize: vertical;
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  background: var(--abyss);
+  color: var(--foam);
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1.45;
+  outline: none;
+  padding: 10px;
+}
+
+.prompt-editor-field textarea:focus {
+  border-color: rgba(39, 179, 170, 0.54);
+  box-shadow: 0 0 0 2px rgba(39, 179, 170, 0.12);
+}
+
+.prompt-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.prompt-editor-actions button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 8px;
+  background: var(--shallow);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+}
+
+.prompt-editor-actions button[type="submit"] {
+  border-color: rgba(39, 179, 170, 0.36);
+  background: rgba(39, 179, 170, 0.13);
+  color: var(--jade-hot);
+}
+
+.prompt-editor-actions button:hover,
+.prompt-editor-actions button:focus-visible {
+  border-color: var(--jade);
+  color: var(--foam);
+  outline: none;
 }
 
 .release-dialog-backdrop {

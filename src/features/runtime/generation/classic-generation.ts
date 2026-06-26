@@ -5,7 +5,11 @@ import {
 } from "../../../engine/classic-actions";
 import type { ClassicThread } from "../../../engine/classic";
 import type { LorebookRecord } from "../../../engine/lorebook";
-import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import {
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  type MessengerMessage,
+  type MessengerThread,
+} from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import type { MessengerGenerationRuntimeMode } from "./messenger-generation";
@@ -107,6 +111,8 @@ function classicThreadToMessengerThread(thread: ClassicThread): MessengerThread 
     lorebookIds: thread.lorebookIds,
     presetId: null,
     providerConnectionId: thread.providerConnectionId,
+    systemPromptMode: "default",
+    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages: classicEntriesToMessengerMessages(thread),
     createdAt: thread.createdAt,
     updatedAt: thread.updatedAt,

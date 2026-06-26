@@ -38,39 +38,223 @@ fn append_endpoint(base_url: &str, endpoint: &str) -> String {
     }
 }
 
+fn append_openai_chat_completions_endpoint(base_url: &str) -> String {
+    let trimmed = base_url.trim().trim_end_matches('/');
+    if trimmed.ends_with("/chat/completions") {
+        return trimmed.to_string();
+    }
+
+    let lower = trimmed.to_lowercase();
+    if lower.ends_with("/api/v1")
+        || lower.ends_with("/v1")
+        || lower.ends_with("/api/v2")
+        || lower.ends_with("/v2")
+    {
+        return format!("{trimmed}/chat/completions");
+    }
+
+    format!("{trimmed}/v1/chat/completions")
+}
+
+fn response_shape(value: &serde_json::Value) -> String {
+    if let Some(items) = value.as_array() {
+        return format!("array({})", items.len());
+    }
+
+    if let Some(record) = value.as_object() {
+        if record.is_empty() {
+            return "object(no fields)".to_string();
+        }
+
+        let keys = record.keys().take(8).cloned().collect::<Vec<String>>();
+        let suffix = if record.len() > 8 { ", ..." } else { "" };
+        return format!("fields: {}{suffix}", keys.join(", "));
+    }
+
+    match value {
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Bool(_) => "boolean".to_string(),
+        serde_json::Value::Number(_) => "number".to_string(),
+        serde_json::Value::String(_) => "string".to_string(),
+        serde_json::Value::Array(_) | serde_json::Value::Object(_) => "unknown".to_string(),
+    }
+}
+
 fn first_text(value: &serde_json::Value) -> String {
     if let Some(text) = value.as_str() {
         return text.to_string();
     }
 
-    value
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| {
-                    item.as_str()
-                        .map(ToString::to_string)
-                        .or_else(|| item.get("text").and_then(|text| text.as_str()).map(ToString::to_string))
-                })
-                .collect::<Vec<String>>()
-                .join("\n")
-        })
-        .unwrap_or_default()
+    if let Some(items) = value.as_array() {
+        return items
+            .iter()
+            .map(first_text)
+            .filter(|text| !text.trim().is_empty())
+            .collect::<Vec<String>>()
+            .join("\n");
+    }
+
+    if let Some(record) = value.as_object() {
+        for key in [
+            "text",
+            "output_text",
+            "response_text",
+            "generated_text",
+            "content",
+            "parts",
+            "message",
+            "response",
+            "generation",
+            "completion",
+            "result",
+            "results",
+            "value",
+        ] {
+            if let Some(field) = record.get(key) {
+                let text = first_text(field);
+                if !text.trim().is_empty() {
+                    return text;
+                }
+            }
+        }
+    }
+
+    String::new()
+}
+
+fn generic_provider_text(payload: &serde_json::Value) -> String {
+    if let Some(record) = payload.as_object() {
+        for key in [
+            "message",
+            "response",
+            "response_text",
+            "output_text",
+            "output",
+            "generated_text",
+            "generation",
+            "completion",
+            "result",
+            "results",
+            "content",
+            "text",
+            "data",
+        ] {
+            if let Some(field) = record.get(key) {
+                let text = first_text(field);
+                if !text.trim().is_empty() {
+                    return text.trim().to_string();
+                }
+            }
+        }
+    }
+
+    first_text(payload).trim().to_string()
+}
+
+fn empty_provider_warning(payload: &serde_json::Value) -> String {
+    format!("Provider returned no text ({}).", response_shape(payload))
 }
 
 fn openai_text(payload: &serde_json::Value) -> String {
+    let response_text = generic_provider_text(payload);
+    if !response_text.trim().is_empty() {
+        return response_text.trim().to_string();
+    }
+
     payload
         .get("choices")
         .and_then(|choices| choices.as_array())
-        .and_then(|choices| choices.first())
-        .map(|choice| {
-            choice
-                .get("message")
-                .and_then(|message| message.get("content"))
-                .map(first_text)
-                .filter(|text| !text.trim().is_empty())
-                .unwrap_or_else(|| first_text(choice.get("text").unwrap_or(&serde_json::Value::Null)))
+        .and_then(|choices| {
+            choices.iter().find_map(|choice| {
+                let text = choice
+                    .get("message")
+                    .and_then(|message| message.get("content"))
+                    .map(first_text)
+                    .filter(|text| !text.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        first_text(choice.get("text").unwrap_or(&serde_json::Value::Null))
+                    });
+                (!text.trim().is_empty()).then(|| text)
+            })
+        })
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+fn provider_empty_warning(provider: &str, payload: &serde_json::Value) -> String {
+    if is_openai_compatible(provider) {
+        let first_choice = payload
+            .get("choices")
+            .and_then(|choices| choices.as_array())
+            .and_then(|choices| choices.first());
+        let refusal = first_choice
+            .and_then(|choice| choice.get("message"))
+            .and_then(|message| message.get("refusal"))
+            .and_then(|refusal| refusal.as_str())
+            .unwrap_or("")
+            .trim();
+        if !refusal.is_empty() {
+            return format!("Provider refused the reply: {refusal}");
+        }
+
+        let finish_reason = first_choice
+            .and_then(|choice| choice.get("finish_reason"))
+            .and_then(|reason| reason.as_str())
+            .unwrap_or("")
+            .trim();
+        if !finish_reason.is_empty() {
+            return format!("Provider returned no text (finish reason: {finish_reason}).");
+        }
+    }
+
+    if provider == "anthropic" {
+        let stop_reason = payload
+            .get("stop_reason")
+            .and_then(|reason| reason.as_str())
+            .unwrap_or("")
+            .trim();
+        if !stop_reason.is_empty() {
+            return format!("Provider returned no text (stop reason: {stop_reason}).");
+        }
+    }
+
+    if provider == "google" {
+        let block_reason = payload
+            .get("promptFeedback")
+            .and_then(|feedback| feedback.get("blockReason"))
+            .and_then(|reason| reason.as_str())
+            .unwrap_or("")
+            .trim();
+        if !block_reason.is_empty() {
+            return format!("Provider blocked the prompt ({block_reason}).");
+        }
+
+        let finish_reason = payload
+            .get("candidates")
+            .and_then(|candidates| candidates.as_array())
+            .and_then(|candidates| candidates.first())
+            .and_then(|candidate| candidate.get("finishReason"))
+            .and_then(|reason| reason.as_str())
+            .unwrap_or("")
+            .trim();
+        if !finish_reason.is_empty() {
+            return format!("Provider returned no text (finish reason: {finish_reason}).");
+        }
+    }
+
+    empty_provider_warning(payload)
+}
+
+fn google_text(payload: &serde_json::Value) -> String {
+    payload
+        .get("candidates")
+        .and_then(|candidates| candidates.as_array())
+        .and_then(|candidates| {
+            candidates.iter().find_map(|candidate| {
+                let text = first_text(candidate.get("content").unwrap_or(&serde_json::Value::Null));
+                (!text.trim().is_empty()).then(|| text)
+            })
         })
         .unwrap_or_default()
         .trim()
@@ -78,29 +262,7 @@ fn openai_text(payload: &serde_json::Value) -> String {
 }
 
 fn anthropic_text(payload: &serde_json::Value) -> String {
-    first_text(payload.get("content").unwrap_or(&serde_json::Value::Null))
-        .trim()
-        .to_string()
-}
-
-fn google_text(payload: &serde_json::Value) -> String {
-    payload
-        .get("candidates")
-        .and_then(|candidates| candidates.as_array())
-        .and_then(|candidates| candidates.first())
-        .and_then(|candidate| candidate.get("content"))
-        .and_then(|content| content.get("parts"))
-        .and_then(|parts| parts.as_array())
-        .map(|parts| {
-            parts
-                .iter()
-                .filter_map(|part| part.get("text").and_then(|text| text.as_str()))
-                .collect::<Vec<&str>>()
-                .join("\n")
-        })
-        .unwrap_or_default()
-        .trim()
-        .to_string()
+    generic_provider_text(payload)
 }
 
 fn system_prompt(prompt_messages: &[serde_json::Value]) -> String {
@@ -126,7 +288,8 @@ fn non_system_messages(prompt_messages: &[serde_json::Value]) -> Vec<serde_json:
 fn strip_speaker_prefix(body: String, speaker_name: &str) -> String {
     let trimmed = body.trim();
     let prefix = format!("{speaker_name}:");
-    if !speaker_name.trim().is_empty() && trimmed.to_lowercase().starts_with(&prefix.to_lowercase()) {
+    if !speaker_name.trim().is_empty() && trimmed.to_lowercase().starts_with(&prefix.to_lowercase())
+    {
         trimmed[prefix.len()..].trim().to_string()
     } else {
         trimmed.to_string()
@@ -142,6 +305,36 @@ fn provider_error(payload: &serde_json::Value, status: reqwest::StatusCode) -> S
         .or_else(|| payload.get("error").and_then(|error| error.as_str()))
         .map(ToString::to_string)
         .unwrap_or_else(|| format!("Provider returned HTTP {status}."))
+}
+
+fn provider_payload_error(payload: &serde_json::Value) -> Option<String> {
+    let error = payload.get("error")?;
+    if error.is_null() {
+        return None;
+    }
+
+    if let Some(message) = error
+        .as_str()
+        .map(str::trim)
+        .filter(|message| !message.is_empty())
+    {
+        return Some(message.to_string());
+    }
+
+    let message = error
+        .get("message")
+        .and_then(|message| message.as_str())
+        .or_else(|| error.get("detail").and_then(|detail| detail.as_str()))
+        .or_else(|| error.get("type").and_then(|kind| kind.as_str()))
+        .or_else(|| error.get("code").and_then(|code| code.as_str()))
+        .unwrap_or("")
+        .trim();
+
+    Some(if message.is_empty() {
+        "Provider returned an error response.".to_string()
+    } else {
+        message.to_string()
+    })
 }
 
 async fn post_provider_json(
@@ -166,6 +359,10 @@ async fn post_provider_json(
         return Err(provider_error(&payload, status));
     }
 
+    if let Some(error) = provider_payload_error(&payload) {
+        return Err(error);
+    }
+
     Ok(payload)
 }
 
@@ -188,8 +385,9 @@ fn provider_headers(provider: &str, api_key: &str) -> Result<reqwest::header::He
     if provider == "anthropic" {
         headers.insert(
             "x-api-key",
-            reqwest::header::HeaderValue::from_str(key)
-                .map_err(|error| format!("Provider API key is not a valid header value. {error}"))?,
+            reqwest::header::HeaderValue::from_str(key).map_err(|error| {
+                format!("Provider API key is not a valid header value. {error}")
+            })?,
         );
         headers.insert(
             "anthropic-version",
@@ -201,8 +399,9 @@ fn provider_headers(provider: &str, api_key: &str) -> Result<reqwest::header::He
     if provider == "google" {
         headers.insert(
             "x-goog-api-key",
-            reqwest::header::HeaderValue::from_str(key)
-                .map_err(|error| format!("Provider API key is not a valid header value. {error}"))?,
+            reqwest::header::HeaderValue::from_str(key).map_err(|error| {
+                format!("Provider API key is not a valid header value. {error}")
+            })?,
         );
         return Ok(headers);
     }
@@ -284,10 +483,10 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
 
     let client = reqwest::Client::new();
     let headers = provider_headers(provider, api_key)?;
-    let text = if is_openai_compatible(provider) {
+    let (text, empty_warning) = if is_openai_compatible(provider) {
         let payload = post_provider_json(
             &client,
-            append_endpoint(base_url, "/chat/completions"),
+            append_openai_chat_completions_endpoint(base_url),
             headers,
             serde_json::json!({
                 "model": model,
@@ -298,7 +497,10 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
             }),
         )
         .await?;
-        openai_text(&payload)
+        (
+            openai_text(&payload),
+            provider_empty_warning(provider, &payload),
+        )
     } else if provider == "anthropic" {
         let payload = post_provider_json(
             &client,
@@ -314,7 +516,10 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
             }),
         )
         .await?;
-        anthropic_text(&payload)
+        (
+            anthropic_text(&payload),
+            provider_empty_warning(provider, &payload),
+        )
     } else if provider == "google" {
         let normalized_model = model.trim_start_matches("models/");
         let payload = post_provider_json(
@@ -351,7 +556,10 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
             }),
         )
         .await?;
-        google_text(&payload)
+        (
+            google_text(&payload),
+            provider_empty_warning(provider, &payload),
+        )
     } else {
         return Err(format!(
             "{provider} is not supported by the bare-minimum Messenger provider adapter yet."
@@ -366,7 +574,7 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
             "providerKind": "external-provider",
             "createdAt": read_string_field(request, "createdAt"),
             "messages": [],
-            "warnings": ["Provider did not return a usable companion reply."]
+            "warnings": [empty_warning]
         }));
     }
 
