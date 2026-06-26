@@ -17,3 +17,4 @@ export {
   sortMessengerThreadsByUpdatedAt,
   useMessengerThreadActions,
 } from "./messenger";
+export { ChatComposer } from "./shared";

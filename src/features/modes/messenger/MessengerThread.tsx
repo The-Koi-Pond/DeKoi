@@ -3,13 +3,11 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type FormEvent,
   type KeyboardEvent,
 } from "react";
 import type {
   NavCatalogState,
   NavMessengerThreadActions,
-  NavRippleActions,
   NavSettingsState,
   NavStorageState,
   NavThreadState,
@@ -31,35 +29,23 @@ import {
   setMessengerThreadProviderConnection,
 } from "../../../engine/messenger-actions";
 import {
-  RIPPLE_DOCK_SURFACE_LABEL,
-  type Ripple,
-  type RippleTone,
-} from "../../../engine/ripples";
-import {
   generateMessengerThreadReply,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
+import { ChatComposer } from "../shared";
 import "./messenger-thread.css";
 
 export type MessengerThreadNav = Pick<
   NavCatalogState,
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
-  Pick<NavMessengerThreadActions, "clearMessengerThreadMessages" | "createMessengerThread" | "updateMessengerThread"> &
-  Pick<NavRippleActions, "createRipple" | "deleteRipple" | "getRippleState" | "updateRipple"> &
+  Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavStorageState, "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
-
-const EMPTY_RIPPLE_DRAFT = {
-  body: "",
-  threadId: null as string | null,
-  title: "",
-  tone: "note" as RippleTone,
-};
 
 function getInitials(name: string) {
   return name
@@ -83,11 +69,6 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function readRippleTone(value: string): RippleTone {
-  if (value === "shift" || value === "meter") return value;
-  return "note";
-}
-
 interface MessengerThreadProps {
   nav: MessengerThreadNav;
 }
@@ -109,29 +90,8 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     threadId: string | null;
     open: boolean;
   }>({ threadId: null, open: false });
-  const [rippleDraft, setRippleDraft] = useState<{
-    body: string;
-    threadId: string | null;
-    title: string;
-    tone: RippleTone;
-  }>(EMPTY_RIPPLE_DRAFT);
-  const [editingRipple, setEditingRipple] = useState<{
-    rippleId: string | null;
-    threadId: string | null;
-  }>({ rippleId: null, threadId: null });
   const settingsOpen =
     settingsState.threadId === activeThreadId && settingsState.open;
-  const activeRippleState = messengerThread
-    ? nav.getRippleState("messenger-thread", messengerThread.id)
-    : null;
-  const activeRipples = activeRippleState?.ripples ?? [];
-  const activeRippleDraft =
-    rippleDraft.threadId === activeThreadId ? rippleDraft : EMPTY_RIPPLE_DRAFT;
-  const activeEditingRippleId =
-    editingRipple.threadId === activeThreadId ? editingRipple.rippleId : null;
-  const canSaveRipple =
-    activeRippleDraft.title.trim().length > 0 ||
-    activeRippleDraft.body.trim().length > 0;
   const messageListRef = useRef<HTMLDivElement>(null);
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) =>
@@ -305,54 +265,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     nav.setView({ kind: "lorebooks" });
   }
 
-  function resetRippleDraft() {
-    setRippleDraft(EMPTY_RIPPLE_DRAFT);
-    setEditingRipple({ rippleId: null, threadId: null });
-  }
-
-  function editRipple(ripple: Ripple) {
-    if (!messengerThread) return;
-    setRippleDraft({
-      body: ripple.body,
-      threadId: messengerThread.id,
-      title: ripple.title,
-      tone: ripple.tone,
-    });
-    setEditingRipple({ rippleId: ripple.id, threadId: messengerThread.id });
-  }
-
-  function handleRippleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!messengerThread || !canSaveRipple) return;
-
-    const input = {
-      body: activeRippleDraft.body,
-      title: activeRippleDraft.title,
-      tone: activeRippleDraft.tone,
-    };
-
-    if (activeEditingRippleId) {
-      nav.updateRipple(
-        "messenger-thread",
-        messengerThread.id,
-        activeEditingRippleId,
-        input,
-      );
-    } else {
-      nav.createRipple("messenger-thread", messengerThread.id, input);
-    }
-
-    resetRippleDraft();
-  }
-
-  function handleRippleDelete(rippleId: string) {
-    if (!messengerThread) return;
-    nav.deleteRipple("messenger-thread", messengerThread.id, rippleId);
-    if (activeEditingRippleId === rippleId) {
-      resetRippleDraft();
-    }
-  }
-
   async function sendDraft() {
     if (!messengerThread) return false;
     if (isGenerating) return false;
@@ -447,8 +359,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     return true;
   }
 
-  function handleSend(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function handleSend() {
     void sendDraft();
   }
 
@@ -469,29 +380,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     void sendDraft();
   }
 
-  function handleResetThread() {
-    if (!messengerThread) return;
-    nav.clearMessengerThreadMessages(messengerThread.id);
-    setDraftState({ body: "", threadId: activeThreadId });
-    setGenerationState({ threadId: activeThreadId, status: "idle", message: "" });
-  }
-
-  function handleBack() {
-    nav.setView({ kind: "pond" });
-  }
-
   if (!messengerThread) {
     return (
       <section className="messenger-thread messenger-thread-empty">
         <header className="messenger-header">
           <div>
-            <button
-              className="messenger-back"
-              onClick={handleBack}
-              aria-label="Back to the Pond"
-            >
-              ← Back to the Pond
-            </button>
             <h2>No Messenger thread selected</h2>
             <p className="thread-meta">Cast a line to start a local thread.</p>
           </div>
@@ -509,13 +402,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     <section className="messenger-thread" aria-labelledby="messenger-thread-title">
       <header className="messenger-header">
         <div>
-          <button
-            className="messenger-back"
-            onClick={handleBack}
-            aria-label="Back to the Pond"
-          >
-            ← Back to the Pond
-          </button>
           <h2 id="messenger-thread-title">{messengerThread.title}</h2>
           <p className="thread-meta">Group Messenger with {participantSummary}</p>
         </div>
@@ -692,90 +578,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         </section>
       )}
 
-      <section className="ripple-dock" aria-labelledby="messenger-ripple-title">
-        <div className="ripple-dock-head">
-          <div>
-            <h3 id="messenger-ripple-title">{RIPPLE_DOCK_SURFACE_LABEL}</h3>
-            <span>{activeRipples.length} active</span>
-          </div>
-        </div>
-
-        <div className="ripple-list">
-          {activeRipples.map((ripple) => (
-            <article className="ripple-item" data-tone={ripple.tone} key={ripple.id}>
-              <div>
-                <b>{ripple.title}</b>
-                {ripple.body && <p>{ripple.body}</p>}
-              </div>
-              <div className="ripple-item-tools">
-                <span>{ripple.tone}</span>
-                <button type="button" onClick={() => editRipple(ripple)}>
-                  Edit
-                </button>
-                <button type="button" onClick={() => handleRippleDelete(ripple.id)}>
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))}
-          {activeRipples.length === 0 && (
-            <p className="ripple-empty">No Ripples yet.</p>
-          )}
-        </div>
-
-        <form className="ripple-form" onSubmit={handleRippleSubmit}>
-          <select
-            aria-label="Ripple tone"
-            value={activeRippleDraft.tone}
-            onChange={(event) =>
-              setRippleDraft({
-                ...activeRippleDraft,
-                threadId: messengerThread.id,
-                tone: readRippleTone(event.target.value),
-              })
-            }
-          >
-            <option value="note">Note</option>
-            <option value="shift">Shift</option>
-            <option value="meter">Meter</option>
-          </select>
-          <input
-            aria-label="Ripple title"
-            placeholder="Ripple title"
-            value={activeRippleDraft.title}
-            onChange={(event) =>
-              setRippleDraft({
-                ...activeRippleDraft,
-                threadId: messengerThread.id,
-                title: event.target.value,
-              })
-            }
-          />
-          <input
-            aria-label="Ripple body"
-            placeholder="Current value or note"
-            value={activeRippleDraft.body}
-            onChange={(event) =>
-              setRippleDraft({
-                ...activeRippleDraft,
-                body: event.target.value,
-                threadId: messengerThread.id,
-              })
-            }
-          />
-          <div className="ripple-form-actions">
-            {activeEditingRippleId && (
-              <button type="button" onClick={resetRippleDraft}>
-                Cancel
-              </button>
-            )}
-            <button type="submit" disabled={!canSaveRipple}>
-              {activeEditingRippleId ? "Save" : "Add"}
-            </button>
-          </div>
-        </form>
-      </section>
-
       <div
         className="message-list"
         aria-label="Messenger messages"
@@ -793,45 +595,32 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         ))}
       </div>
 
-      <form
-        className="messenger-composer"
-        aria-label="Messenger composer"
-        onSubmit={handleSend}
-      >
-        <textarea
-          aria-label="Draft Messenger message"
-          onKeyDown={handleDraftKeyDown}
-          onChange={(event) =>
-            setDraftState({
-              body: event.target.value,
-              threadId: activeThreadId,
-            })
-          }
-          placeholder="Write a Messenger message..."
-          value={draft}
-        />
-        <div className="composer-actions">
-          <button type="submit" disabled={!canSend}>
-            {isGenerating ? "Generating" : "Send"}
-          </button>
-          <button
-            type="button"
-            className="reset-btn"
-            onClick={handleResetThread}
-            title="Reset thread"
-          >
-            ↺
-          </button>
-        </div>
-        <p className="composer-hint">
-          {generationNotice ||
+      <ChatComposer
+        ariaLabel="Messenger composer"
+        draftAriaLabel="Draft Messenger message"
+        disabled={!canSend}
+        hint={
+          generationNotice ||
           (isGenerating
             ? `${generationRuntime.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER
             ? "Enter sends. Shift+Enter adds a new line."
-            : "Enter adds a new line. Use Send to release the message.")}
-        </p>
-      </form>
+            : "Enter adds a new line. Use Send to release the message.")
+        }
+        isSubmitting={isGenerating}
+        onChange={(value) =>
+          setDraftState({
+            body: value,
+            threadId: activeThreadId,
+          })
+        }
+        onKeyDown={handleDraftKeyDown}
+        onSubmit={handleSend}
+        placeholder="Write a Messenger message..."
+        submitBusyLabel="Generating reply"
+        submitLabel="Send message"
+        value={draft}
+      />
     </section>
   );
 }

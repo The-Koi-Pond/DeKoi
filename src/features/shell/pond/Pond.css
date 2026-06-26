@@ -4,6 +4,12 @@
   position: relative;
 }
 
+.pond-thread-surface {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .pond::-webkit-scrollbar {
   width: 9px;
 }
@@ -36,6 +42,23 @@
   max-width: 920px;
   margin: 0 auto;
   padding: 26px 26px 60px;
+}
+
+.pond-inner-thread {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.pond-inner-thread > .messenger-thread,
+.pond-inner-thread > .classic-thread {
+  flex: 1;
+  min-height: 0;
 }
 
 .pond-divider {

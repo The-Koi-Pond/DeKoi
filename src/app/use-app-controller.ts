@@ -226,7 +226,6 @@ export function useAppController(): NavContextType {
     personas,
     providerConnections,
     setMessengerThreads,
-    setRippleStates,
     setView: setNavView,
     view,
     openMessengerThread,

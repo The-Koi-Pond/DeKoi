@@ -11,7 +11,6 @@ import type {
   NavClassicThreadActions,
   NavSettingsState,
   NavThreadState,
-  NavViewActions,
   NavViewState,
 } from "../../navigation";
 import "./classic-thread.css";
@@ -23,7 +22,6 @@ export type ClassicThreadNav = Pick<
   Pick<NavClassicThreadActions, "clearClassicThreadEntries" | "createClassicThread" | "updateClassicThread"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "classicThreads"> &
-  Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
 function createLocalId(prefix: string) {
@@ -77,10 +75,6 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       : "";
   const canGenerate =
     !!thread && threadCharacters.length > 0 && sceneText.trim().length > 0 && !isGenerating;
-
-  function handleBack() {
-    nav.setView({ kind: "pond" });
-  }
 
   function saveSceneDraft() {
     if (!thread) return thread;
@@ -177,13 +171,6 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       <section className="classic-thread classic-thread-empty">
         <header className="classic-header">
           <div>
-            <button
-              className="classic-back"
-              onClick={handleBack}
-              aria-label="Back to the Pond"
-            >
-              ← Back to the Pond
-            </button>
             <h2>No Classic scene selected</h2>
             <p className="classic-meta">Create a scene to start writing.</p>
           </div>
@@ -201,13 +188,6 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     <section className="classic-thread" aria-labelledby="classic-thread-title">
       <header className="classic-header">
         <div>
-          <button
-            className="classic-back"
-            onClick={handleBack}
-            aria-label="Back to the Pond"
-          >
-            ← Back to the Pond
-          </button>
           <h2 id="classic-thread-title">{thread.title}</h2>
           <p className="classic-meta">
             Scene with {threadCharacters.map((character) => character.displayName).join(" + ") || "no companions"}

@@ -13,8 +13,6 @@ import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import type { RippleState } from "../../../engine/ripples";
-import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { PondView } from "../../navigation";
@@ -28,7 +26,6 @@ type UseMessengerThreadActionsInput = {
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
   setMessengerThreads: StateSetter<MessengerThread[]>;
-  setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
   openMessengerThread: (threadId: string) => void;
@@ -42,7 +39,6 @@ export function useMessengerThreadActions({
   personas,
   providerConnections,
   setMessengerThreads,
-  setRippleStates,
   setView,
   view,
   openMessengerThread,
@@ -129,15 +125,12 @@ export function useMessengerThreadActions({
       setMessengerThreads((currentThreads) =>
         deleteMessengerThreadRecord(currentThreads, threadId),
       );
-      setRippleStates((currentStates) =>
-        deleteRippleStateForOwner(currentStates, "messenger-thread", threadId),
-      );
 
       if (view.kind === "messenger" && view.threadId === threadId) {
         setView({ kind: "pond" });
       }
     },
-    [setMessengerThreads, setRippleStates, setView, view],
+    [setMessengerThreads, setView, view],
   );
 
   return {

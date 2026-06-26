@@ -1,4 +1,4 @@
-import type { NavStorageState, NavViewState } from "../../navigation";
+import type { NavViewState } from "../../navigation";
 import {
   ClassicThread,
   type ClassicThreadNav,
@@ -23,10 +23,9 @@ interface PondProps {
 }
 
 export type PondNav = Pick<
-  NavStorageState,
-  "messengerStorageMode" | "messengerStorageStatus"
+  NavViewState,
+  "view"
 > &
-  Pick<NavViewState, "view"> &
   ClassicThreadNav &
   CompanionsSurfaceNav &
   ConnectionsSurfaceNav &
@@ -38,27 +37,11 @@ export type PondNav = Pick<
 export function Pond({ nav }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";
   const inClassic = nav.view.kind === "classic";
+  const inThread = inMessenger || inClassic;
   const inCompanions = nav.view.kind === "companions";
   const inConnections = nav.view.kind === "connections";
   const inPersonas = nav.view.kind === "personas";
   const inLorebooks = nav.view.kind === "lorebooks";
-  const storagePhrase =
-    nav.messengerStorageMode === "remote" &&
-    nav.messengerStorageStatus !== "error"
-      ? "through the remote runtime"
-      : nav.messengerStorageMode === "desktop" &&
-          nav.messengerStorageStatus !== "error"
-        ? "through desktop host storage"
-        : "only in this temporary session";
-  // Thread views keep a contextual save/runtime banner; Pond home stays quiet.
-  const banner = inMessenger
-    ? `Reading the water — your Messenger thread is saved ${storagePhrase} as you swim.`
-    : inClassic
-      ? "Classic scene current — write the scene, then generate the next turn through the shared runtime."
-      : null;
-
-  // Catalog surfaces render their own banner — only show the pond banner for
-  // pond home / messenger / classic views.
   if (inCompanions) return <CompanionsSurface nav={nav} />;
   if (inConnections) return <ConnectionsSurface nav={nav} />;
   if (inPersonas) return <PersonasSurface nav={nav} />;
@@ -71,16 +54,8 @@ export function Pond({ nav }: PondProps) {
   }
 
   return (
-    <main className="pond">
-      {banner && (
-        <div className="pond-banner">
-          <span className="ic" aria-hidden="true">
-            ◇
-          </span>{" "}
-          {banner}
-        </div>
-      )}
-      <div className="pond-inner">
+    <main className={`pond${inThread ? " pond-thread-surface" : ""}`}>
+      <div className={`pond-inner${inThread ? " pond-inner-thread" : ""}`}>
         {inMessenger ? (
           <MessengerThread nav={nav} />
         ) : inClassic ? (

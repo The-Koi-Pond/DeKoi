@@ -2,7 +2,7 @@
   grid-area: tide;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   padding: 0 16px;
   border-top: 1px solid var(--reed-soft);
   background: rgba(9, 19, 23, 0.7);
@@ -10,31 +10,80 @@
   font-size: 12px;
 }
 
-.swim-state {
+.user-presence {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
+  flex: 0 1 auto;
   min-width: 0;
   color: var(--foam);
 }
 
-.swim-state .pulse {
-  width: 9px;
-  height: 9px;
+.persona-avatar {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  overflow: visible;
+  border: 1px solid rgba(244, 122, 53, 0.42);
   border-radius: 50%;
-  background: #52d273;
-  box-shadow: 0 0 0 0 rgba(82, 210, 115, 0.6);
-  animation: pulse 2.6s infinite;
+  background: rgba(244, 122, 53, 0.12);
+  color: var(--koi-hot);
+  font-size: 11px;
+  font-weight: 750;
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(82, 210, 115, 0.5); }
-  70% { box-shadow: 0 0 0 7px rgba(82, 210, 115, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(82, 210, 115, 0); }
+.persona-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.presence-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(9, 19, 23, 0.92);
+  border-radius: 50%;
+  background: #52d273;
+}
+
+.presence-copy {
+  display: grid;
+  gap: 1px;
+  max-width: min(150px, 18vw);
+  min-width: 0;
+}
+
+.persona-name,
+.presence-status {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.persona-name {
+  color: var(--foam);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.presence-status {
+  color: var(--mist);
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .surface-status {
-  max-width: min(24vw, 260px);
+  display: inline;
+  max-width: min(18vw, 180px);
   overflow: hidden;
   color: var(--mist);
   text-overflow: ellipsis;
@@ -43,14 +92,14 @@
 
 .surface-status::before {
   content: "·";
-  margin-right: 8px;
+  margin: 0 6px;
   color: var(--mist-dim);
 }
 
 .surface-input {
   position: relative;
-  flex: 1;
-  max-width: 380px;
+  flex: 0 1 260px;
+  width: min(260px, 26vw);
 }
 
 .surface-input input {

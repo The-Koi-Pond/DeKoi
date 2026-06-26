@@ -8,10 +8,12 @@ import {
 } from 'react'
 import './Tide.css'
 import type {
+  NavCatalogState,
   NavSettingsActions,
   NavSettingsState,
   NavThreadState,
   NavViewActions,
+  NavViewState,
 } from '../../navigation'
 import {
   getMessengerThreadInitials,
@@ -24,13 +26,46 @@ interface TideProps {
 }
 
 export type TideNav = Pick<NavSettingsActions, 'setSurfaceStatus'> &
+  Pick<NavCatalogState, 'personas'> &
   Pick<NavSettingsState, 'appSettings'> &
-  Pick<NavThreadState, 'messengerThreads'> &
-  Pick<NavViewActions, 'openMessengerThread'>
+  Pick<NavThreadState, 'classicThreads' | 'messengerThreads'> &
+  Pick<NavViewActions, 'openMessengerThread'> &
+  Pick<NavViewState, 'view'>
+
+function getPersonaInitials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
 
 export function Tide({ nav }: TideProps) {
   const surfaceStatus = nav.appSettings.surfaceStatus
   const trimmedSurfaceStatus = surfaceStatus.trim()
+  let selectedPersonaId: string | null = null
+
+  if (nav.view.kind === 'messenger') {
+    const threadId = nav.view.threadId
+    selectedPersonaId =
+      nav.messengerThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
+      null
+  } else if (nav.view.kind === 'classic') {
+    const threadId = nav.view.threadId
+    selectedPersonaId =
+      nav.classicThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
+      null
+  } else if (nav.view.kind === 'personas') {
+    selectedPersonaId = nav.view.personaId ?? null
+  }
+
+  const activePersona = selectedPersonaId
+    ? nav.personas.find((persona) => persona.id === selectedPersonaId) ??
+      nav.personas[0] ??
+      null
+    : nav.personas[0] ?? null
+  const personaName = activePersona?.displayName ?? 'No persona'
   const [query, setQuery] = useState('')
   const [searchExpanded, setSearchExpanded] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -99,14 +134,28 @@ export function Tide({ nav }: TideProps) {
 
   return (
     <footer className="tide">
-      <div className="swim-state">
-        <span className="pulse" />
-        <span>Swimming</span>
-        {trimmedSurfaceStatus && (
-          <span className="surface-status" title={trimmedSurfaceStatus}>
-            {trimmedSurfaceStatus}
+      <div className="user-presence">
+        <span className="persona-avatar" aria-hidden="true">
+          {activePersona?.avatarUrl ? (
+            <img src={activePersona.avatarUrl} alt="" />
+          ) : (
+            getPersonaInitials(personaName)
+          )}
+          <span className="presence-dot" />
+        </span>
+        <span className="presence-copy">
+          <span className="persona-name" title={personaName}>
+            {personaName}
           </span>
-        )}
+          <span className="presence-status">
+            Online
+            {trimmedSurfaceStatus && (
+              <span className="surface-status" title={trimmedSurfaceStatus}>
+                {trimmedSurfaceStatus}
+              </span>
+            )}
+          </span>
+        </span>
       </div>
       <div className="surface-input">
         <input
