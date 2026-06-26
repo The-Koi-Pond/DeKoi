@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useRef,
   useState,
@@ -30,6 +31,8 @@ import {
 import { ChatComposer } from "../shared";
 import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
 import {
+  getMessageDateKey,
+  getMessageDateSeparatorLabel,
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
@@ -378,89 +381,103 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         aria-label="Messenger messages"
         ref={messageListRef}
       >
-        {messengerThread.messages.map((message) => {
+        {messengerThread.messages.map((message, index) => {
           const authorAvatar = getMessageAuthorAvatar(message);
+          const dateKey = getMessageDateKey(message.createdAt);
+          const previousDateKey =
+            index > 0
+              ? getMessageDateKey(messengerThread.messages[index - 1].createdAt)
+              : "";
+          const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
           const isEditing = editingMessage?.id === message.id;
           const timeLabel = getMessageTimeLabel(message.createdAt);
 
           return (
-            <article
-              className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}`}
-              key={message.id}
-            >
-              <span className="message-avatar" aria-hidden="true">
-                {authorAvatar.avatarUrl ? (
-                  <img src={authorAvatar.avatarUrl} alt="" />
-                ) : (
-                  authorAvatar.initials
-                )}
-              </span>
-              <div className="message-content">
-                <div className="message-heading">
-                  <div className="message-author">
-                    {message.author.label}
-                    {timeLabel && (
-                      <time
-                        className="message-timestamp"
-                        dateTime={message.createdAt}
-                        title={getMessageDateTimeTitle(message.createdAt)}
-                      >
-                        {timeLabel}
-                      </time>
-                    )}
-                    {message.origin === "placeholder" && <span>Placeholder</span>}
-                  </div>
+            <Fragment key={message.id}>
+              {showDateSeparator && (
+                <div className="message-date-separator">
+                  <time dateTime={dateKey}>
+                    {getMessageDateSeparatorLabel(message.createdAt)}
+                  </time>
                 </div>
-                {isEditing ? (
-                  <div className="message-edit-form">
-                    <textarea
-                      aria-label={`Edit message from ${message.author.label}`}
-                      value={editingMessage.body}
-                      onChange={(event) =>
-                        setEditingMessage({
-                          id: message.id,
-                          body: event.target.value,
-                        })
-                      }
-                    />
-                    <div className="message-edit-actions">
-                      <button
-                        type="button"
-                        onClick={handleSaveEditedMessage}
-                        disabled={!editingMessage.body.trim()}
-                      >
-                        Save
-                      </button>
-                      <button type="button" onClick={handleCancelEditMessage}>
-                        Cancel
-                      </button>
+              )}
+              <article
+                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}`}
+              >
+                <span className="message-avatar" aria-hidden="true">
+                  {authorAvatar.avatarUrl ? (
+                    <img src={authorAvatar.avatarUrl} alt="" />
+                  ) : (
+                    authorAvatar.initials
+                  )}
+                </span>
+                <div className="message-content">
+                  <div className="message-heading">
+                    <div className="message-author">
+                      {message.author.label}
+                      {timeLabel && (
+                        <time
+                          className="message-timestamp"
+                          dateTime={message.createdAt}
+                          title={getMessageDateTimeTitle(message.createdAt)}
+                        >
+                          {timeLabel}
+                        </time>
+                      )}
+                      {message.origin === "placeholder" && <span>Placeholder</span>}
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <p>{message.body}</p>
-                    <div className="message-actions" aria-label="Message actions">
-                      <button
-                        type="button"
+                  {isEditing ? (
+                    <div className="message-edit-form">
+                      <textarea
                         aria-label={`Edit message from ${message.author.label}`}
-                        title="Edit"
-                        onClick={() => handleEditMessage(message)}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete message from ${message.author.label}`}
-                        title="Delete"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        ×
-                      </button>
+                        value={editingMessage.body}
+                        onChange={(event) =>
+                          setEditingMessage({
+                            id: message.id,
+                            body: event.target.value,
+                          })
+                        }
+                      />
+                      <div className="message-edit-actions">
+                        <button
+                          type="button"
+                          onClick={handleSaveEditedMessage}
+                          disabled={!editingMessage.body.trim()}
+                        >
+                          Save
+                        </button>
+                        <button type="button" onClick={handleCancelEditMessage}>
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
-            </article>
+                  ) : (
+                    <>
+                      <p>{message.body}</p>
+                      <div className="message-actions" aria-label="Message actions">
+                        <button
+                          type="button"
+                          aria-label={`Edit message from ${message.author.label}`}
+                          title="Edit"
+                          onClick={() => handleEditMessage(message)}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete message from ${message.author.label}`}
+                          title="Delete"
+                          onClick={() => handleDeleteMessage(message.id)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </article>
+            </Fragment>
           );
         })}
       </div>
