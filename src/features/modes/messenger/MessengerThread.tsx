@@ -207,6 +207,14 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
+    if (!threadConnection) {
+      setGenerationState({
+        threadId: messengerThread.id,
+        status: "error",
+        message: "Create or select a connection before generating.",
+      });
+      return false;
+    }
 
     const sentAt = new Date().toISOString();
     const hasConfiguredConnection =

@@ -89,15 +89,15 @@ const featureResults: FeatureResult[] = [
   {
     id: "lore-library",
     label: "Review lorebook entries",
-    description: "Read the stocked First Pond lore and native-record notes.",
+    description: "Read saved lorebook entries and native-record notes.",
     surface: "Lore library",
     depth: "Shallows",
     action: "none",
   },
   {
     id: "companions",
-    label: "Check stocked Companions",
-    description: "View the sample cast currently available to Messenger.",
+    label: "Check Companions",
+    description: "View companions currently available to Messenger.",
     surface: "Companions",
     depth: "Shallows",
     action: "none",

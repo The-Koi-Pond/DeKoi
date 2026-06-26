@@ -86,8 +86,6 @@ export function useProviderConnectionActions({
 
   const deleteProviderConnection = useCallback(
     (connectionId: string) => {
-      if (providerConnections.length <= 1) return;
-
       const nextConnections = deleteProviderConnectionRecord(
         providerConnections,
         connectionId,
@@ -101,7 +99,7 @@ export function useProviderConnectionActions({
         currentSettings.activeMessengerConnectionId === connectionId
           ? {
               ...currentSettings,
-              activeMessengerConnectionId: fallbackConnection.id,
+              activeMessengerConnectionId: fallbackConnection?.id ?? "",
             }
           : currentSettings,
       );
@@ -110,7 +108,7 @@ export function useProviderConnectionActions({
           replaceMessengerThreadProviderConnection(
             thread,
             connectionId,
-            fallbackConnection.id,
+            fallbackConnection?.id ?? null,
             now,
           ),
         ),
@@ -120,7 +118,7 @@ export function useProviderConnectionActions({
           replaceClassicThreadProviderConnection(
             thread,
             connectionId,
-            fallbackConnection.id,
+            fallbackConnection?.id ?? null,
             now,
           ),
         ),

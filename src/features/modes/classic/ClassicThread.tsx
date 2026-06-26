@@ -155,6 +155,14 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
+    if (!threadConnection) {
+      setGenerationState({
+        threadId: thread.id,
+        status: "error",
+        message: "Create or select a connection before generating.",
+      });
+      return false;
+    }
 
     const sentAt = new Date().toISOString();
     const userEntry = activePersona

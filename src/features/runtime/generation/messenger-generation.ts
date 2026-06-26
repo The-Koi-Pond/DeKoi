@@ -87,9 +87,9 @@ export function selectMessengerGenerationRuntime(
 }
 
 export function getMessengerGenerationModeForConnection(
-  connection: ProviderConnectionRecord,
+  connection: ProviderConnectionRecord | null | undefined,
 ): MessengerGenerationRuntimeMode {
-  return connection.kind === "remote-runtime" ? "remote-runtime" : "mock";
+  return connection?.kind === "remote-runtime" ? "remote-runtime" : "mock";
 }
 
 export async function generateMessengerResponse(

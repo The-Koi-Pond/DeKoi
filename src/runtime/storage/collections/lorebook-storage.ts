@@ -1,5 +1,4 @@
 import type { LorebookEntryRecord, LorebookRecord } from "../../../engine/lorebook";
-import { sampleLorebook } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readString,
@@ -54,13 +53,13 @@ export function normalizeLorebookRecord(value: unknown): LorebookRecord | null {
 }
 
 export function loadLorebookRecords() {
-  return [sampleLorebook];
+  return [];
 }
 
 const lorebookRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.lorebooks,
   normalizeRecord: normalizeLorebookRecord,
-  seedRecords: [sampleLorebook],
+  seedRecords: [],
 });
 
 export function loadLorebookRecordsFromStorage(rawUrl?: string) {

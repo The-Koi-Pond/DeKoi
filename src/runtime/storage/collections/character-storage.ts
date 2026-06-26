@@ -1,5 +1,4 @@
 import type { CharacterNoteRole, CharacterRecord } from "../../../engine/character";
-import { sampleCompanions } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readNullableString,
@@ -71,13 +70,13 @@ export function normalizeCharacterRecord(value: unknown): CharacterRecord | null
 }
 
 export function loadCharacterRecords() {
-  return sampleCompanions;
+  return [];
 }
 
 const characterRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.characters,
   normalizeRecord: normalizeCharacterRecord,
-  seedRecords: sampleCompanions,
+  seedRecords: [],
 });
 
 export function loadCharacterRecordsFromStorage(rawUrl?: string) {

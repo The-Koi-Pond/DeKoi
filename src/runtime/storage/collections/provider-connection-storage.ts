@@ -1,7 +1,6 @@
 import {
   getProviderConnectionProviderOption,
   normalizeProviderConnectionProvider,
-  providerConnections,
   sanitizeProviderConnectionRecord,
   type ProviderConnectionKind,
   type ProviderConnectionProvider,
@@ -114,13 +113,13 @@ export function normalizeProviderConnectionRecord(
 }
 
 export function loadProviderConnectionRecords() {
-  return providerConnections;
+  return [];
 }
 
 const providerConnectionRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.providerConnections,
   normalizeRecord: normalizeProviderConnectionRecord,
-  seedRecords: providerConnections,
+  seedRecords: [],
 });
 
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {

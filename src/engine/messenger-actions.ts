@@ -219,7 +219,7 @@ export function removeMessengerThreadLorebook(
 export function replaceMessengerThreadProviderConnection(
   thread: MessengerThread,
   deletedConnectionId: string,
-  fallbackConnectionId: string,
+  fallbackConnectionId: string | null,
   updatedAt: string,
 ): MessengerThread {
   if (thread.providerConnectionId !== deletedConnectionId) return thread
@@ -279,34 +279,6 @@ export function createAnonymousMessengerMessage({
   }
 }
 
-export function createPlaceholderCompanionMessage({
-  body,
-  companion,
-  id,
-  now,
-  thread,
-}: {
-  body: string
-  companion: CharacterRecord
-  id: string
-  now: string
-  thread: MessengerThread
-}): MessengerMessage {
-  return {
-    id,
-    threadId: thread.id,
-    author: {
-      kind: 'character',
-      characterId: companion.id,
-      label: companion.displayName,
-    },
-    body,
-    origin: 'placeholder',
-    createdAt: now,
-    updatedAt: now,
-  }
-}
-
 export function createGeneratedCompanionMessage({
   body,
   companion,
@@ -341,21 +313,4 @@ export function getNextMessengerCompanion(thread: MessengerThread, companions: C
 
   const companionMessageCount = thread.messages.filter((message) => message.author.kind === 'character').length
   return availableCompanions[companionMessageCount % availableCompanions.length]
-}
-
-export function getNextPlaceholderCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
-  return getNextMessengerCompanion(thread, companions)
-}
-
-export function getPlaceholderReplyText(messageBody: string) {
-  const trimmedBody = messageBody.trim()
-  if (trimmedBody.endsWith('?')) {
-    return 'I can answer for the local prototype: this Messenger thread is saved in your browser for now.'
-  }
-
-  if (trimmedBody.length > 120) {
-    return 'Got it. I kept the important part in this local Messenger thread so we can reload and keep going.'
-  }
-
-  return 'Noted. This is a placeholder reply until provider support exists.'
 }

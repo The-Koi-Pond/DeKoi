@@ -4,7 +4,6 @@ import {
   type MessengerMessage,
   type MessengerThread,
 } from "../../../engine/messenger";
-import { sampleMessengerThread } from "../../../engine/sample-messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
   createStorageRepository,
@@ -102,13 +101,13 @@ export function normalizeMessengerThreads(value: unknown): MessengerThread[] {
 }
 
 export function loadInitialMessengerThreads(): MessengerThread[] {
-  return [sampleMessengerThread];
+  return [];
 }
 
 const messengerThreadRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.messengerThreads,
   normalizeRecord: normalizeMessengerThread,
-  seedRecords: [sampleMessengerThread],
+  seedRecords: [],
 });
 
 export async function loadMessengerThreadsFromStorage(

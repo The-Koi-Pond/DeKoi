@@ -59,11 +59,6 @@ export interface ProviderConnectionRecord {
   updatedAt: string;
 }
 
-export const LOCAL_MOCK_PROVIDER_CONNECTION_ID: ProviderConnectionId =
-  "connection-local-mock";
-export const REMOTE_RUNTIME_PROVIDER_CONNECTION_ID: ProviderConnectionId =
-  "connection-remote-runtime";
-
 const defaultTimestamp = "2026-06-23T09:30:00.000Z";
 
 export const PROVIDER_CONNECTION_PROVIDER_OPTIONS: ProviderConnectionProviderOption[] =
@@ -264,44 +259,7 @@ export function sanitizeProviderConnectionRecord(
   };
 }
 
-export const providerConnections: ProviderConnectionRecord[] = [
-  {
-    id: LOCAL_MOCK_PROVIDER_CONNECTION_ID,
-    schemaVersion: 1,
-    kind: "mock",
-    provider: "custom",
-    label: "Local",
-    apiKey: "",
-    baseUrl: "",
-    model: "local",
-    summary: "Local offline replies for development and testing.",
-    status: "ready",
-    modelLabel: "local",
-    keeperDefault: false,
-    maxContext: null,
-    maxOutput: null,
-    createdAt: defaultTimestamp,
-    updatedAt: defaultTimestamp,
-  },
-  {
-    id: REMOTE_RUNTIME_PROVIDER_CONNECTION_ID,
-    schemaVersion: 1,
-    kind: "remote-runtime",
-    provider: "openai",
-    label: "OpenAI",
-    apiKey: "",
-    baseUrl: "https://api.openai.com/v1",
-    model: "gpt-4o-mini",
-    summary: "OpenAI-compatible chat completion provider.",
-    status: "needs-key",
-    modelLabel: "gpt-4o-mini",
-    keeperDefault: true,
-    maxContext: null,
-    maxOutput: null,
-    createdAt: defaultTimestamp,
-    updatedAt: defaultTimestamp,
-  },
-];
+export const providerConnections: ProviderConnectionRecord[] = [];
 
 export function isProviderConnectionId(
   value: unknown,
@@ -316,9 +274,9 @@ export function getProviderConnectionById(
   const connection =
     connections.find((connection) => connection.id === connectionId) ??
     connections[0] ??
-    providerConnections[0];
+    null;
 
-  return sanitizeProviderConnectionRecord(connection);
+  return connection ? sanitizeProviderConnectionRecord(connection) : null;
 }
 
 export function getProviderConnectionStatusLabel(

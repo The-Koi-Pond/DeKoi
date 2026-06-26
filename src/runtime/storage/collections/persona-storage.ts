@@ -1,5 +1,4 @@
 import type { PersonaNoteRole, PersonaRecord } from "../../../engine/persona";
-import { samplePersona } from "../../../engine/sample-messenger";
 import {
   isRecord,
   readNullableString,
@@ -65,13 +64,13 @@ export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
 }
 
 export function loadPersonaRecords() {
-  return [samplePersona];
+  return [];
 }
 
 const personaRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.personas,
   normalizeRecord: normalizePersonaRecord,
-  seedRecords: [samplePersona],
+  seedRecords: [],
 });
 
 export function loadPersonaRecordsFromStorage(rawUrl?: string) {

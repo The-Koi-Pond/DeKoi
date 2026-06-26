@@ -240,7 +240,7 @@ export function removeClassicThreadLorebook(
 export function replaceClassicThreadProviderConnection(
   thread: ClassicThread,
   deletedConnectionId: string,
-  fallbackConnectionId: string,
+  fallbackConnectionId: string | null,
   updatedAt: string,
 ): ClassicThread {
   if (thread.providerConnectionId !== deletedConnectionId) return thread;

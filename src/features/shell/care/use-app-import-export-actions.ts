@@ -87,11 +87,12 @@ export function useAppImportExportActions({
         (connection) =>
           connection.id === importedSettings.activeMessengerConnectionId,
       );
-      const fallbackConnection =
-        importedConnections[0] ?? providerConnections[0];
+      const fallbackConnection = importedConnections[0] ?? null;
 
       if (!hasActiveConnection && fallbackConnection) {
         importedSettings.activeMessengerConnectionId = fallbackConnection.id;
+      } else if (!hasActiveConnection) {
+        importedSettings.activeMessengerConnectionId = "";
       }
 
       setCharacters(bundle.data.characters);
@@ -108,7 +109,6 @@ export function useAppImportExportActions({
       setView({ kind: "pond" });
     },
     [
-      providerConnections,
       setAppSettings,
       setCharacters,
       setClassicThreads,
