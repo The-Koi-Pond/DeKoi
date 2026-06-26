@@ -307,9 +307,6 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                     </time>
                   )}
                 </div>
-                <span className="classic-entry-badges">
-                  {entry.origin === "generated" && <span>Generated</span>}
-                </span>
               </div>
               {isEditing ? (
                 <div className="classic-entry-edit-form">

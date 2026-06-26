@@ -28,6 +28,7 @@ import {
   selectMessengerGenerationRuntime,
 } from "../../runtime";
 import { ChatComposer } from "../shared";
+import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
 import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
@@ -119,6 +120,8 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     (generationState.status === "error" || generationState.status === "warning")
       ? generationState.message
       : "";
+  const generationStatusMessage =
+    generationState.threadId === activeThreadId ? generationState.message : "";
   const canSend = draft.trim().length > 0 && !isGenerating;
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
@@ -264,6 +267,19 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       });
 
       if (result.generatedMessages.length > 0) {
+        const typingNames = [
+          ...new Set(
+            result.generatedMessages.map((message) => message.author.label),
+          ),
+        ].join(" + ");
+        setGenerationState({
+          threadId: messengerThread.id,
+          status: "generating",
+          message: `${typingNames || companionDisplayName} is typing...`,
+        });
+        await waitForGeneratedTypingDelay(
+          result.generatedMessages.map((message) => message.body).join("\n"),
+        );
         nav.updateMessengerThread(result.thread);
       }
 
@@ -384,7 +400,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                         {timeLabel}
                       </time>
                     )}
-                    {message.origin === "generated" && <span>Generated</span>}
                     {message.origin === "placeholder" && <span>Placeholder</span>}
                   </div>
                 </div>
@@ -448,7 +463,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           role={visibleGenerationStatus === "error" ? "alert" : "status"}
         >
           <span>
-            {generationNotice ||
+            {generationStatusMessage ||
               `${generationRuntime.label} is replying through the provider path.`}
           </span>
           {(visibleGenerationStatus === "error" ||
@@ -472,7 +487,8 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         hint={
           generationNotice ||
           (isGenerating
-            ? `${generationRuntime.label} is replying through the provider-neutral path.`
+            ? generationStatusMessage ||
+              `${generationRuntime.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER
             ? "Enter sends. Shift+Enter adds a new line."
             : "Enter adds a new line. Use Send to release the message.")

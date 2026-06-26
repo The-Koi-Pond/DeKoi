@@ -107,20 +107,6 @@
   line-height: 1;
 }
 
-.classic-entry-badges {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 5px;
-}
-
-.classic-entry-badges > span {
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  color: var(--jade);
-  padding: 2px 6px;
-  font-size: 9px;
-}
-
 .classic-entry-actions,
 .classic-entry-edit-actions {
   display: flex;
