@@ -9,6 +9,8 @@ import { PondHome, type PondHomeNav } from "./PondHome";
 import {
   CompanionsSurface,
   type CompanionsSurfaceNav,
+  ConnectionsSurface,
+  type ConnectionsSurfaceNav,
   LorebooksSurface,
   type LorebooksSurfaceNav,
   PersonasSurface,
@@ -27,6 +29,7 @@ export type PondNav = Pick<
   Pick<NavViewState, "view"> &
   ClassicThreadNav &
   CompanionsSurfaceNav &
+  ConnectionsSurfaceNav &
   LorebooksSurfaceNav &
   MessengerThreadNav &
   PersonasSurfaceNav &
@@ -36,6 +39,7 @@ export function Pond({ nav }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";
   const inClassic = nav.view.kind === "classic";
   const inCompanions = nav.view.kind === "companions";
+  const inConnections = nav.view.kind === "connections";
   const inPersonas = nav.view.kind === "personas";
   const inLorebooks = nav.view.kind === "lorebooks";
   const storagePhrase =
@@ -56,6 +60,7 @@ export function Pond({ nav }: PondProps) {
   // Catalog surfaces render their own banner — only show the pond banner for
   // pond home / messenger / classic views.
   if (inCompanions) return <CompanionsSurface nav={nav} />;
+  if (inConnections) return <ConnectionsSurface nav={nav} />;
   if (inPersonas) return <PersonasSurface nav={nav} />;
   if (inLorebooks) {
     const key =

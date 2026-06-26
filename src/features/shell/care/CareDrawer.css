@@ -53,7 +53,7 @@
 
 .care-head {
     position: relative;
-    padding: 22px 24px 16px;
+    padding: 9px 16px;
     border-bottom: 1px solid var(--reed-soft);
     background: radial-gradient(
         120% 80% at 100% 0%,
@@ -65,23 +65,11 @@
 .care-head .top {
     display: flex;
     align-items: center;
-    gap: 12px;
-}
-
-.care-head .top img {
-    width: 30px;
-    height: 30px;
-    filter: drop-shadow(0 2px 6px rgba(244, 122, 53, 0.35));
-}
-
-.care-head .top svg {
-    width: 30px;
-    height: 30px;
 }
 
 .care-head h2 {
     font-family: var(--display);
-    font-size: 21px;
+    font-size: 17px;
     font-weight: 600;
     letter-spacing: 0.3px;
     color: var(--foam);
@@ -90,15 +78,15 @@
 
 .care-head .x {
     margin-left: auto;
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     cursor: pointer;
     color: var(--mist);
     border: 1px solid transparent;
-    font-size: 14px;
+    font-size: 12px;
     transition: 0.16s;
 }
 

@@ -186,6 +186,18 @@ Storage owns persistence mechanics. Engine owns product meaning.
   behind the existing factory/contracts, not leak clients into features,
   collection adapters, or engine code.
 
+## UI State Conventions
+
+Edit surfaces should make pending edits visible without adding explanatory text.
+
+- Primary save actions such as `Save Changes` stay present in the same location
+  when a surface is clean, but use a darker, quieter, lower-emphasis state.
+- When local edits differ from the last saved record, the primary save action
+  should light up with the surface accent and a restrained glow.
+- Dirty-state comparisons should use normalized draft values where the save path
+  normalizes them, so whitespace-only differences do not create false pending
+  states.
+
 ## Adding Or Moving Code
 
 1. Put product record types and pure mutations in `src/engine`.

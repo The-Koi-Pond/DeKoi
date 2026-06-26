@@ -7,7 +7,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import type {
-  NavCareActions,
   NavCatalogState,
   NavMessengerThreadActions,
   NavRippleActions,
@@ -18,7 +17,10 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
-import { getProviderConnectionById } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionById,
+  sanitizeProviderConnectionRecord,
+} from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
 import {
   appendMessengerMessages,
@@ -50,8 +52,7 @@ export type MessengerThreadNav = Pick<
   Pick<NavStorageState, "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "setView"> &
-  Pick<NavViewState, "view"> &
-  Pick<NavCareActions, "setCareOpen" | "setCareTab">;
+  Pick<NavViewState, "view">;
 
 const EMPTY_RIPPLE_DRAFT = {
   body: "",
@@ -296,9 +297,12 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     );
   }
 
-  function openCatalogCare() {
-    nav.setCareTab(4);
-    nav.setCareOpen(true);
+  function openCompanionsCatalog() {
+    nav.setView({ kind: "companions" });
+  }
+
+  function openLorebooksCatalog() {
+    nav.setView({ kind: "lorebooks" });
   }
 
   function resetRippleDraft() {
@@ -586,11 +590,14 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                     Missing connection
                   </option>
                 )}
-                {nav.providerConnections.map((connection) => (
-                  <option value={connection.id} key={connection.id}>
-                    {connection.label}
-                  </option>
-                ))}
+                {nav.providerConnections.map((rawConnection) => {
+                  const connection = sanitizeProviderConnectionRecord(rawConnection);
+                  return (
+                    <option value={connection.id} key={connection.id}>
+                      {connection.label}
+                    </option>
+                  );
+                })}
               </select>
             </label>
           </div>
@@ -630,7 +637,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                   <button
                     type="button"
                     className="thread-open-catalog"
-                    onClick={openCatalogCare}
+                    onClick={openCompanionsCatalog}
                   >
                     Open Catalog
                   </button>
@@ -668,7 +675,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                   <button
                     type="button"
                     className="thread-open-catalog"
-                    onClick={openCatalogCare}
+                    onClick={openLorebooksCatalog}
                   >
                     Open Catalog
                   </button>

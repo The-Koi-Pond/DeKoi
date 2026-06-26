@@ -14,13 +14,15 @@ import type {
   NavMessengerThreadActions,
   NavSettingsActions,
   NavSettingsState,
-  NavStorageState,
   NavThreadState,
   NavViewActions,
   NavViewState,
 } from "../../navigation";
 import type { ShoalSortMode } from "../../../engine/app-settings";
-import { getProviderConnectionStatusLabel } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionProviderOption,
+  sanitizeProviderConnectionRecord,
+} from "../../../engine/provider-connection";
 import { CLASSIC, MESSENGER } from "../../../engine/surfaces";
 import "./Shoal.css";
 
@@ -50,19 +52,14 @@ export type ShoalNav = Pick<
     NavMessengerThreadActions,
     "createMessengerThread" | "deleteMessengerThread" | "renameMessengerThread"
   > &
-  Pick<NavSettingsActions, "setActiveMessengerConnectionId" | "setShoalSortMode"> &
+  Pick<NavSettingsActions, "setShoalSortMode"> &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<
-    NavStorageState,
-    "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"
-  > &
   Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
   Pick<NavViewActions, "openClassicThread" | "openMessengerThread" | "setView"> &
   Pick<NavViewState, "selectedSurface" | "sideRailView" | "view">;
 
 interface CatalogRailCardProps {
   active?: boolean;
-  badge: string;
   initials: string;
   name: string;
   onOpen: () => void;
@@ -97,7 +94,6 @@ function FolderIcon() {
 
 function CatalogRailCard({
   active,
-  badge,
   initials,
   name,
   onOpen,
@@ -115,7 +111,6 @@ function CatalogRailCard({
         <b>{name}</b>
         <small>{sub}</small>
       </span>
-      <span className="catalog-rail-badge">{badge}</span>
     </button>
   );
 }
@@ -229,18 +224,17 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
           </button>
         </div>
       </div>
-      <div className="shoal-meta">
-        <span>{isCompanionTab ? "Companions" : "Personas"}</span>
-      </div>
       <div className="shoal-list">
         {isCompanionTab ? (
           <>
-            <div className="group-label">Companions</div>
+            <div className="group-label people-label">
+              <span>Companions</span>
+              <span className="count-bubble">{nav.characters.length}</span>
+            </div>
             {filteredCharacters.map((character) => (
               <CatalogRailCard
                 key={character.id}
                 active={character.id === activeCharacterId}
-                badge="Companion"
                 initials={getMessengerThreadInitials(character.displayName)}
                 name={character.displayName}
                 sub={character.summary || character.shortName || "No summary yet."}
@@ -253,12 +247,14 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
           </>
         ) : (
           <>
-            <div className="group-label">Personas</div>
+            <div className="group-label people-label">
+              <span>Personas</span>
+              <span className="count-bubble">{nav.personas.length}</span>
+            </div>
             {filteredPersonas.map((persona) => (
               <CatalogRailCard
                 key={persona.id}
                 active={persona.id === activePersonaId}
-                badge="Persona"
                 initials={getMessengerThreadInitials(persona.displayName)}
                 name={persona.displayName}
                 sub={persona.summary || "No summary yet."}
@@ -342,19 +338,23 @@ function LorebookCatalogRail({ nav, onCollapse }: ShoalProps) {
           >
             ＋ Lorebook
           </button>
+          <button
+            className="pill amber title-folder"
+            type="button"
+            title="Add grouping folder"
+            aria-label="Add grouping folder"
+            disabled
+          >
+            <FolderIcon />
+            Folder
+          </button>
         </div>
       </div>
-      <div className="shoal-meta">
-        <span>Lorebooks</span>
-        <span className="mark-chip">{filteredLorebooks.length} shown</span>
-      </div>
       <div className="shoal-list">
-        <div className="group-label">Lorebooks</div>
         {filteredLorebooks.map((lorebook) => (
           <CatalogRailCard
             key={lorebook.id}
             active={lorebook.id === activeLorebookId}
-            badge={`${lorebook.entries.length} notes`}
             initials={getMessengerThreadInitials(lorebook.title)}
             name={lorebook.title}
             sub={lorebook.summary || "No summary yet."}
@@ -379,28 +379,12 @@ function LorebookCatalogRail({ nav, onCollapse }: ShoalProps) {
 }
 
 function ConnectionsCatalogRail({ nav, onCollapse }: ShoalProps) {
-  const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
-  const activeConnectionId = nav.appSettings.activeMessengerConnectionId;
-  const activeConnection = nav.providerConnections.find(
-    (connection) => connection.id === activeConnectionId,
-  );
-  const filteredConnections = useMemo(() => {
-    if (!normalizedQuery) return nav.providerConnections;
+  const activeConnectionId =
+    nav.view.kind === "connections" ? nav.view.connectionId : null;
 
-    return nav.providerConnections.filter((connection) =>
-      [
-        connection.label,
-        connection.summary,
-        connection.kind,
-        connection.modelLabel ?? "",
-        getProviderConnectionStatusLabel(connection.status),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery),
-    );
-  }, [nav.providerConnections, normalizedQuery]);
+  function openNewConnection() {
+    nav.setView({ kind: "connections", mode: "new" });
+  }
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">
@@ -409,54 +393,55 @@ function ConnectionsCatalogRail({ nav, onCollapse }: ShoalProps) {
         <div className="shoal-title">
           <h2>
             <span className="shoal-symbol" aria-hidden="true">
-              ⌗
+              <svg viewBox="0 0 24 24">
+                <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
+                <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
+              </svg>
             </span>
             Connections
           </h2>
-          <span className="count">{nav.providerConnections.length} stocked</span>
         </div>
-        <div className="shoal-search">
-          <label
-            className="glyph"
-            aria-hidden="true"
-            htmlFor="catalog-connections-search-input"
+        <div className="shoal-actions">
+          <button className="pill koi" type="button" onClick={openNewConnection}>
+            ＋ Connection
+          </button>
+          <button
+            className="pill koi title-folder"
+            type="button"
+            title="Add grouping folder"
+            aria-label="Add grouping folder"
+            disabled
           >
-            ⌕
-          </label>
-          <input
-            id="catalog-connections-search-input"
-            type="search"
-            placeholder="Find connections..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+            <FolderIcon />
+            Folder
+          </button>
         </div>
-      </div>
-      <div className="shoal-meta">
-        <span>Default: {activeConnection?.label ?? "None"}</span>
-        <span className="mark-chip">{filteredConnections.length} shown</span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">Provider connections</div>
-        {filteredConnections.map((connection) => (
-          <CatalogRailCard
-            key={connection.id}
-            active={connection.id === activeConnectionId}
-            badge={getProviderConnectionStatusLabel(connection.status)}
-            initials={getMessengerThreadInitials(connection.label)}
-            name={connection.label}
-            sub={
-              connection.summary ||
-              connection.modelLabel ||
-              connection.kind.replace("-", " ")
-            }
-            tone={connection.status === "ready" ? "jade" : "amber"}
-            onOpen={() => nav.setActiveMessengerConnectionId(connection.id)}
-          />
-        ))}
-        {filteredConnections.length === 0 && (
+        {nav.providerConnections.map((rawConnection) => {
+          const connection = sanitizeProviderConnectionRecord(rawConnection);
+          const provider = getProviderConnectionProviderOption(connection.provider);
+          const subtitle = [provider.label, connection.model]
+            .filter(Boolean)
+            .join(" / ");
+
+          return (
+            <CatalogRailCard
+              key={connection.id}
+              active={connection.id === activeConnectionId}
+              initials={getMessengerThreadInitials(connection.label)}
+              name={connection.label}
+              sub={subtitle}
+              tone={connection.status === "ready" ? "jade" : "amber"}
+              onOpen={() =>
+                nav.setView({ kind: "connections", connectionId: connection.id })
+              }
+            />
+          );
+        })}
+        {nav.providerConnections.length === 0 && (
           <div className="shoal-empty">
-            <p>No connections match this search.</p>
+            <p>No connections yet.</p>
           </div>
         )}
       </div>
@@ -476,15 +461,12 @@ function MediaCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
             </span>
             Media
           </h2>
-          <span className="count">0 stocked</span>
         </div>
       </div>
       <div className="shoal-meta">
         <span>Assets</span>
-        <span className="mark-chip">0 shown</span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">Media</div>
         <div className="shoal-empty">
           <p>No media assets yet.</p>
         </div>
@@ -538,12 +520,6 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
     () => sortClassicThreads(nav.classicThreads, sortMode),
     [nav.classicThreads, sortMode],
   );
-  const storageLabel =
-    nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
-      ? "remote runtime"
-      : nav.messengerStorageMode === "desktop" && nav.messengerStorageStatus !== "error"
-        ? "desktop host"
-        : "storage unavailable";
   const filteredThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sortedThreads;
@@ -624,6 +600,7 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   return (
     <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
       <ShoalTopBar onCollapse={onCollapse} />
+      <div className="shoal-surface-title">{activeSurfaceLabel}</div>
       <div className="shoal-head">
         <div className="shoal-title">
           <button
@@ -671,14 +648,8 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
         >
           ↕ {SHOAL_SORT_LABELS[sortMode]}
         </button>
-        <span className="mark-chip" title={nav.messengerStorageMessage}>
-          ⌗ {visibleCount} shown
-        </span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">
-          {activeSurfaceLabel} — {storageLabel}
-        </div>
         {isClassicSurface
           ? filteredClassicThreads.map((thread) => (
               <KoiCard

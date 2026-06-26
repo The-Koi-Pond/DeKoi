@@ -118,7 +118,6 @@ export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
           type="button"
           className="shoal-reopen"
           aria-label="Open The Shoal"
-          title="Open The Shoal"
           onClick={onOpenShoal}
         >
           ›
@@ -144,7 +143,6 @@ export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
               role="button"
               aria-disabled="true"
               aria-label={`${meta.label} — ${meta.lockedNote}`}
-              title={meta.lockedNote ?? undefined}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -211,7 +209,6 @@ export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
             key={view}
             type="button"
             className={`rail-tool ${view}${isActive ? " on" : ""}`}
-            title={label}
             aria-label={label}
             aria-pressed={isActive}
             onClick={() => {
@@ -243,7 +240,6 @@ export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
         className={`rail-tool connections${
           nav.sideRailView === "connections" ? " on" : ""
         }`}
-        title="Connections"
         aria-label="Connections"
         aria-pressed={nav.sideRailView === "connections"}
         onClick={() => {
@@ -258,11 +254,8 @@ export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
           strokeWidth="1.6"
           aria-hidden="true"
         >
-          <path d="M7 7h.01" />
-          <path d="M17 17h.01" />
-          <path d="M8.4 8.4 15.6 15.6" />
-          <path d="M16 6.5a4 4 0 0 0-5.2.4l-1.1 1.1" />
-          <path d="M8 17.5a4 4 0 0 0 5.2-.4l1.1-1.1" />
+          <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
+          <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
         </svg>
         <span className="tag">
           <b>Connections</b>

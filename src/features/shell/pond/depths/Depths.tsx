@@ -20,7 +20,7 @@ type FeatureSurface =
   | "Lore library"
   | "Companions"
   | "Media"
-  | "Pond Care"
+  | "Settings"
   | "Deep water"
   | "Help";
 
@@ -56,7 +56,7 @@ const surfaceChips: Array<"All surfaces" | FeatureSurface> = [
   "Lore library",
   "Companions",
   "Media",
-  "Pond Care",
+  "Settings",
   "Deep water",
   "Help",
 ];
@@ -105,8 +105,8 @@ const featureResults: FeatureResult[] = [
   {
     id: "remote-runtime",
     label: "Configure remote runtime",
-    description: "Point Messenger storage and generation at a remote runtime host.",
-    surface: "Pond Care",
+    description: "Point future profile and save data at a remote runtime host.",
+    surface: "Settings",
     depth: "Deep",
     action: "care",
   },
@@ -129,7 +129,7 @@ const featureResults: FeatureResult[] = [
   {
     id: "deep-water",
     label: "Deep Water settings",
-    description: "Advanced runtime and storage controls.",
+    description: "Advanced profile, save data, and storage controls.",
     surface: "Deep water",
     depth: "Murky",
     action: "care",
@@ -197,7 +197,7 @@ export function Depths({ nav }: DepthsProps) {
     }
 
     if (result.action === "care") {
-      nav.setCareTab(7);
+      nav.setCareTab(4);
       nav.setCareOpen(true);
       return;
     }

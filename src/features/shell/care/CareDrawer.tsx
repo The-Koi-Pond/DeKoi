@@ -3,7 +3,6 @@ import type {
   NavCareActions,
   NavCareState,
   NavCatalogState,
-  NavProviderConnectionActions,
   NavRippleState,
   NavSettingsActions,
   NavSettingsState,
@@ -18,10 +17,6 @@ import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Chip } from "../../../shared/ui/primitives/Chip";
 import { SettingSection } from "./SettingSection";
 import { CLASSIC, MESSENGER, RESERVED } from "../../../engine/surfaces";
-import type {
-  ProviderConnectionKind,
-  ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
 import {
   getDeKoiStorageBundleCounts,
   exportDesktopBundleFile,
@@ -38,12 +33,6 @@ import {
   checkDesktopHostStatus,
   type DeKoiDesktopHostStatus,
 } from "../../../shared/api/desktop-host-status";
-import {
-  deleteDesktopProviderSecret,
-  getDesktopProviderSecretStatus,
-  writeDesktopProviderSecret,
-  type DeKoiDesktopProviderSecretStatus,
-} from "../../../shared/api/desktop-provider-secrets";
 import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
 import { downloadJsonFile } from "../../../shared/browser/download-json";
@@ -62,17 +51,9 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     NavCatalogState,
     "characters" | "lorebooks" | "personas" | "providerConnections"
   > &
-  Pick<
-    NavProviderConnectionActions,
-    | "createProviderConnection"
-    | "deleteProviderConnection"
-    | "duplicateProviderConnection"
-    | "updateProviderConnection"
-  > &
   Pick<NavRippleState, "rippleStates"> &
   Pick<
     NavSettingsActions,
-    | "setActiveMessengerConnectionId"
     | "setConfirmRelease"
     | "setRemoteRuntimeUrl"
     | "setSendOnEnterSurface"
@@ -99,39 +80,8 @@ const SEND_ON_ENTER_SURFACES = [
   { value: RESERVED, label: "Reserved" },
 ] as const;
 
-interface ProviderConnectionDraft {
-  kind: ProviderConnectionKind;
-  label: string;
-  summary: string;
-  modelLabel: string;
-}
-
-const EMPTY_CONNECTION_DRAFT: ProviderConnectionDraft = {
-  kind: "mock",
-  label: "",
-  summary: "",
-  modelLabel: "",
-};
-
-function connectionDraftFrom(
-  record: ProviderConnectionRecord,
-): ProviderConnectionDraft {
-  return {
-    kind: record.kind,
-    label: record.label,
-    summary: record.summary,
-    modelLabel: record.modelLabel ?? "",
-  };
-}
-
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
-  const messengerConnectionOptions = nav.providerConnections.map(
-    (connection) => ({
-      value: connection.id,
-      label: connection.label,
-    }),
-  );
 
   // Product settings live in nav.appSettings and persist across reloads.
   const {
@@ -156,17 +106,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopHostBusy, setDesktopHostBusy] = useState(false);
   const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
-  const [editingConnectionId, setEditingConnectionId] = useState<string | null>(
-    null,
-  );
-  const [connectionDraft, setConnectionDraft] =
-    useState<ProviderConnectionDraft>(EMPTY_CONNECTION_DRAFT);
-  const [connectionSecretInput, setConnectionSecretInput] = useState("");
-  const [connectionSecretBusy, setConnectionSecretBusy] = useState(false);
-  const [connectionSecretStatus, setConnectionSecretStatus] = useState("");
-  const [connectionSecrets, setConnectionSecrets] = useState<
-    Record<string, DeKoiDesktopProviderSecretStatus>
-  >({});
   const [bundlePreview, setBundlePreview] =
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
@@ -209,19 +148,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   }
 
   function handleUseDesktopRuntime() {
-    const runtimeConnection = nav.providerConnections.find(
-      (connection) => connection.kind === "remote-runtime",
-    );
     setRuntimeUrl(DESKTOP_RUNTIME_URL);
     nav.setRemoteRuntimeUrl(DESKTOP_RUNTIME_URL);
-    if (runtimeConnection) {
-      nav.setActiveMessengerConnectionId(runtimeConnection.id);
-    }
-    setRuntimeHealth(
-      runtimeConnection
-        ? "Desktop runtime selected."
-        : "Desktop runtime selected. Add a remote-runtime connection to use desktop generation.",
-    );
+    setRuntimeHealth("Desktop runtime selected for storage and profile data.");
   }
 
   async function handleDesktopHostCheck() {
@@ -293,139 +222,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       );
     } finally {
       setDesktopStorageBusy(false);
-    }
-  }
-
-  function resetConnectionDraft() {
-    setEditingConnectionId(null);
-    setConnectionDraft(EMPTY_CONNECTION_DRAFT);
-    setConnectionSecretInput("");
-    setConnectionSecretStatus("");
-  }
-
-  function handleConnectionSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (editingConnectionId) {
-      nav.updateProviderConnection(editingConnectionId, connectionDraft);
-      return;
-    }
-
-    const connection = nav.createProviderConnection(connectionDraft);
-    setEditingConnectionId(connection.id);
-    setConnectionDraft(connectionDraftFrom(connection));
-    setConnectionSecretInput("");
-    setConnectionSecretStatus("");
-  }
-
-  function editConnection(connection: ProviderConnectionRecord) {
-    setEditingConnectionId(connection.id);
-    setConnectionDraft(connectionDraftFrom(connection));
-    setConnectionSecretInput("");
-    setConnectionSecretStatus("");
-  }
-
-  function copyConnection(connectionId: string) {
-    const connection = nav.duplicateProviderConnection(connectionId);
-    if (!connection) return;
-    editConnection(connection);
-  }
-
-  function removeConnection(connectionId: string) {
-    nav.deleteProviderConnection(connectionId);
-    setConnectionSecrets((currentSecrets) => {
-      const remainingSecrets = { ...currentSecrets };
-      delete remainingSecrets[connectionId];
-      return remainingSecrets;
-    });
-    void deleteDesktopProviderSecret(connectionId).catch(() => undefined);
-    if (editingConnectionId === connectionId) resetConnectionDraft();
-  }
-
-  function updateConnectionSecretStatus(
-    status: DeKoiDesktopProviderSecretStatus,
-  ) {
-    setConnectionSecrets((currentSecrets) => ({
-      ...currentSecrets,
-      [status.connectionId]: status,
-    }));
-  }
-
-  async function handleConnectionSecretCheck(
-    connectionId = editingConnectionId,
-  ) {
-    if (!connectionId) {
-      setConnectionSecretStatus("Save the connection before managing its key.");
-      return;
-    }
-
-    setConnectionSecretBusy(true);
-    setConnectionSecretStatus("Checking provider key...");
-
-    try {
-      const status = await getDesktopProviderSecretStatus(connectionId);
-      updateConnectionSecretStatus(status);
-      setConnectionSecretStatus(
-        status.hasSecret
-          ? "Provider key is saved in the desktop host."
-          : "No provider key is saved for this connection.",
-      );
-    } catch (error) {
-      setConnectionSecretStatus(
-        error instanceof Error ? error.message : String(error),
-      );
-    } finally {
-      setConnectionSecretBusy(false);
-    }
-  }
-
-  async function handleConnectionSecretSave() {
-    if (!editingConnectionId) {
-      setConnectionSecretStatus("Save the connection before managing its key.");
-      return;
-    }
-
-    setConnectionSecretBusy(true);
-    setConnectionSecretStatus("Saving provider key...");
-
-    try {
-      const status = await writeDesktopProviderSecret(
-        editingConnectionId,
-        connectionSecretInput,
-      );
-      updateConnectionSecretStatus(status);
-      setConnectionSecretInput("");
-      await refreshDesktopHostStatus();
-      setConnectionSecretStatus("Provider key saved in the desktop host.");
-    } catch (error) {
-      setConnectionSecretStatus(
-        error instanceof Error ? error.message : String(error),
-      );
-    } finally {
-      setConnectionSecretBusy(false);
-    }
-  }
-
-  async function handleConnectionSecretClear() {
-    if (!editingConnectionId) {
-      setConnectionSecretStatus("Save the connection before managing its key.");
-      return;
-    }
-
-    setConnectionSecretBusy(true);
-    setConnectionSecretStatus("Clearing provider key...");
-
-    try {
-      const status = await deleteDesktopProviderSecret(editingConnectionId);
-      updateConnectionSecretStatus(status);
-      setConnectionSecretInput("");
-      await refreshDesktopHostStatus();
-      setConnectionSecretStatus("Provider key cleared.");
-    } catch (error) {
-      setConnectionSecretStatus(
-        error instanceof Error ? error.message : String(error),
-      );
-    } finally {
-      setConnectionSecretBusy(false);
     }
   }
 
@@ -664,7 +460,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             </button>
           </div>
           <p className="bundle-note">
-            Remote Runtime URL and credentials are not included.
+            Remote Runtime URL is not included. Saved connection fields,
+            including API keys, are included in exports.
           </p>
         </section>
 
@@ -779,204 +576,20 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     );
   }
 
-  function renderConnectionManager() {
-    return (
-      <section
-        className="catalog-section"
-        aria-labelledby="catalog-connections"
-      >
-        <div className="catalog-section-head">
-          <div>
-            <h3 id="catalog-connections">Connections</h3>
-            <span>{nav.providerConnections.length} stocked</span>
-          </div>
-          <button
-            type="button"
-            className="care-btn primary"
-            onClick={resetConnectionDraft}
-          >
-            New
-          </button>
-        </div>
-
-        <div className="catalog-list">
-          {nav.providerConnections.map((connection) => (
-            <article className="catalog-row" key={connection.id}>
-              <span>
-                <b>{connection.label}</b>
-                <small>
-                  {connection.summary || connection.kind}
-                  {connectionSecrets[connection.id]?.hasSecret
-                    ? " · key saved"
-                    : ""}
-                </small>
-              </span>
-              <span className="catalog-actions">
-                <button
-                  type="button"
-                  onClick={() => editConnection(connection)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => copyConnection(connection.id)}
-                >
-                  Copy
-                </button>
-                <button
-                  type="button"
-                  className="care-btn danger"
-                  disabled={nav.providerConnections.length <= 1}
-                  onClick={() => removeConnection(connection.id)}
-                >
-                  Delete
-                </button>
-              </span>
-            </article>
-          ))}
-        </div>
-
-        <form className="catalog-form" onSubmit={handleConnectionSubmit}>
-          <div className="field">
-            <label htmlFor="connection-kind">Kind</label>
-            <select
-              className="pondsel"
-              id="connection-kind"
-              value={connectionDraft.kind}
-              onChange={(event) =>
-                setConnectionDraft((draft) => ({
-                  ...draft,
-                  kind: event.target.value as ProviderConnectionKind,
-                }))
-              }
-            >
-              <option value="mock">Mock</option>
-              <option value="remote-runtime">Remote runtime</option>
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="connection-label">Label</label>
-            <input
-              className="pondinput"
-              id="connection-label"
-              value={connectionDraft.label}
-              onChange={(event) =>
-                setConnectionDraft((draft) => ({
-                  ...draft,
-                  label: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="connection-summary">Summary</label>
-            <input
-              className="pondinput"
-              id="connection-summary"
-              value={connectionDraft.summary}
-              onChange={(event) =>
-                setConnectionDraft((draft) => ({
-                  ...draft,
-                  summary: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="connection-model">Model label</label>
-            <input
-              className="pondinput"
-              id="connection-model"
-              value={connectionDraft.modelLabel}
-              onChange={(event) =>
-                setConnectionDraft((draft) => ({
-                  ...draft,
-                  modelLabel: event.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="connection-secret">Provider key</label>
-            <input
-              className="pondinput"
-              id="connection-secret"
-              type="password"
-              autoComplete="off"
-              placeholder={
-                editingConnectionId
-                  ? "Stored only in the desktop host"
-                  : "Save the connection first"
-              }
-              value={connectionSecretInput}
-              onChange={(event) => setConnectionSecretInput(event.target.value)}
-              disabled={!editingConnectionId || connectionSecretBusy}
-            />
-            <div className="help">
-              Keys are not saved in DeKoi bundles or browser storage.
-            </div>
-          </div>
-
-          <div className="runtime-actions">
-            <button
-              type="button"
-              disabled={!editingConnectionId || connectionSecretBusy}
-              onClick={() => handleConnectionSecretCheck()}
-            >
-              Check key
-            </button>
-            <button
-              type="button"
-              disabled={
-                !editingConnectionId ||
-                connectionSecretBusy ||
-                !connectionSecretInput.trim()
-              }
-              onClick={handleConnectionSecretSave}
-            >
-              Save key
-            </button>
-            <button
-              type="button"
-              className="care-btn danger"
-              disabled={!editingConnectionId || connectionSecretBusy}
-              onClick={handleConnectionSecretClear}
-            >
-              Clear key
-            </button>
-          </div>
-
-          {connectionSecretStatus && (
-            <p className="bundle-status">{connectionSecretStatus}</p>
-          )}
-
-          <div className="runtime-actions">
-            <button type="submit" className="care-btn primary">
-              {editingConnectionId ? "Save connection" : "Create connection"}
-            </button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
   return (
     <aside
       className={`care${open ? " open" : ""}`}
-      aria-label="Pond Care"
+      aria-label="Settings"
       aria-hidden={open ? undefined : true}
     >
       <div className="care-head">
         <div className="top">
-          <img src="/koi-mark.svg" alt="" style={{ width: 26, height: 26 }} />
-          <h2>Pond Care</h2>
+          <h2>Settings</h2>
           <div
             className="x"
             role="button"
             tabIndex={0}
-            aria-label="Close Pond Care"
+            aria-label="Close Settings"
             onClick={() => nav.setCareOpen(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -988,10 +601,6 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             ✕
           </div>
         </div>
-        <p>
-          Settings for the whole pond — language, look, behavior, generation
-          defaults, providers, and your data.
-        </p>
       </div>
 
       <div className="care-tabs">
@@ -1299,13 +908,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               messenger.
             </p>
           </>
-        ) : nav.careTab === 4 ? (
+        ) : (
           <>
-            {renderConnectionManager()}
-            <hr className="care-divider" />
             <form className="runtime-panel" onSubmit={handleRuntimeSubmit}>
-              <p className="care-intro">Runtime host and storage mode.</p>
-
               <div className="field">
                 <label htmlFor="remote-runtime-url">Remote Runtime URL</label>
                 <input
@@ -1317,8 +922,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   onChange={(event) => setRuntimeUrl(event.target.value)}
                 />
                 <div className="help">
-                  Leave empty for desktop host storage inside Tauri.
-                  Browser-only sessions are temporary.
+                  Later profile and save-data sync will use this host. Leave
+                  empty for desktop host storage inside Tauri.
                 </div>
               </div>
 
@@ -1350,31 +955,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   <span className={desktopHostStatus.storageReady ? "on" : ""}>
                     Storage
                   </span>
-                  <span className={desktopHostStatus.secretsReady ? "on" : ""}>
-                    Secrets
-                  </span>
                   <span className={desktopHostStatus.runtimeReady ? "on" : ""}>
                     Runtime
                   </span>
                 </div>
               )}
-
-              <div className="field">
-                <label>Messenger connection</label>
-                <div
-                  className="help"
-                  style={{ marginTop: 0, marginBottom: 10 }}
-                >
-                  New Messenger threads use this connection. Existing threads
-                  keep the connection they were created with.
-                </div>
-                <Seg
-                  options={messengerConnectionOptions}
-                  value={nav.appSettings.activeMessengerConnectionId}
-                  onChange={nav.setActiveMessengerConnectionId}
-                  ariaLabel="Messenger connection"
-                />
-              </div>
 
               <div className="runtime-actions">
                 <button type="submit" className="care-btn primary">
@@ -1398,12 +983,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </button>
               </div>
             </form>
-          </>
-        ) : (
-          <>
-            <p className="care-intro">
-              Export, import, and manage your DeKoi data.
-            </p>
+
+            <hr className="care-divider" />
             {renderStockingTools()}
 
             <div className="runtime-actions">

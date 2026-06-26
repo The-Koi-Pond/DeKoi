@@ -40,6 +40,44 @@
     color: var(--jade-hot);
 }
 
+.catalog-surface-banner .back-btn.icon-only {
+    width: 28px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    margin-left: 0;
+    padding: 0;
+    border-radius: var(--r-sm);
+    font-size: 15px;
+    line-height: 1;
+}
+
+.catalog-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.catalog-banner-actions .catalog-save-btn,
+.catalog-banner-actions .catalog-cancel-btn {
+    height: 30px;
+    padding: 0 13px;
+    font-size: 12px;
+}
+
+.catalog-banner-actions .catalog-cancel-btn.danger {
+    border-color: rgba(244, 70, 70, 0.38);
+    color: #f55;
+}
+
+.catalog-banner-actions .catalog-cancel-btn.danger:hover,
+.catalog-banner-actions .catalog-cancel-btn.danger:focus-visible {
+    border-color: rgba(244, 70, 70, 0.45);
+    background: rgba(244, 70, 70, 0.1);
+    color: #f55;
+}
+
 /* Toolbar */
 .catalog-toolbar {
     display: flex;
@@ -249,6 +287,12 @@
     margin-bottom: 14px;
 }
 
+.catalog-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+
 .catalog-editor-field label {
     display: block;
     color: var(--mist);
@@ -261,6 +305,49 @@
 
 .catalog-editor-field .pondinput {
     width: 100%;
+}
+
+.catalog-model-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.catalog-model-control .pondinput {
+    min-width: 0;
+    flex: 1;
+}
+
+.catalog-model-fetch {
+    flex: none;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--reed-soft);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 12px;
+    transition: 0.18s;
+}
+
+.catalog-model-fetch:hover,
+.catalog-model-fetch:focus-visible {
+    border-color: var(--jade);
+    color: var(--jade-hot);
+}
+
+.catalog-model-fetch:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.catalog-model-status {
+    color: var(--mist-dim);
+    font-size: 11px;
+    line-height: 1.35;
+    margin-top: 5px;
 }
 
 .catalog-editor-field .pondtextarea {
@@ -293,6 +380,36 @@
     border-color: var(--jade);
     color: var(--jade-hot);
     background: rgba(39, 179, 170, 0.08);
+}
+
+.catalog-save-btn-clean {
+    border-color: var(--reed-soft);
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--mist-dim);
+    opacity: 0.72;
+}
+
+.catalog-save-btn-clean:hover,
+.catalog-save-btn-clean:focus-visible {
+    border-color: var(--reed);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--mist);
+    opacity: 0.88;
+}
+
+.catalog-save-btn-pending {
+    border-color: rgba(39, 179, 170, 0.62);
+    background: rgba(39, 179, 170, 0.14);
+    color: var(--jade-hot);
+    box-shadow: 0 0 0 1px rgba(39, 179, 170, 0.1), 0 0 18px rgba(39, 179, 170, 0.24);
+}
+
+.catalog-save-btn-pending:hover,
+.catalog-save-btn-pending:focus-visible {
+    border-color: rgba(39, 179, 170, 0.82);
+    background: rgba(39, 179, 170, 0.2);
+    color: var(--foam);
+    box-shadow: 0 0 0 1px rgba(39, 179, 170, 0.16), 0 0 24px rgba(39, 179, 170, 0.34);
 }
 
 .catalog-cancel-btn {
@@ -457,4 +574,11 @@
     font-size: 12.5px;
     font-weight: 600;
     color: var(--foam);
+}
+
+@media (max-width: 720px) {
+    .catalog-editor-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
 }

@@ -1,6 +1,10 @@
 import {
+  getProviderConnectionProviderOption,
+  normalizeProviderConnectionProvider,
   providerConnections,
+  sanitizeProviderConnectionRecord,
   type ProviderConnectionKind,
+  type ProviderConnectionProvider,
   type ProviderConnectionRecord,
   type ProviderConnectionStatus,
 } from "../../../engine/provider-connection";
@@ -17,12 +21,44 @@ function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
 }
 
-function normalizeConnectionStatus(
+function normalizeConnectionProvider(
   value: unknown,
   kind: ProviderConnectionKind,
+) {
+  return normalizeProviderConnectionProvider(
+    value,
+    kind === "remote-runtime" ? "openai" : "custom",
+  );
+}
+
+function normalizeConnectionStatus(
+  value: unknown,
+  provider: ProviderConnectionProvider,
+  apiKey: string,
 ): ProviderConnectionStatus {
-  if (value === "ready" || value === "needs-runtime") return value;
-  return kind === "remote-runtime" ? "needs-runtime" : "ready";
+  if (value === "ready" || value === "needs-key") return value;
+  if (value === "needs-runtime") return "needs-key";
+
+  const providerOption = getProviderConnectionProviderOption(provider);
+  return providerOption.apiKeyRequired && !apiKey.trim() ? "needs-key" : "ready";
+}
+
+function normalizeLegacyLabel(label: string, kind: ProviderConnectionKind) {
+  if (label === "Local mock") return "Local";
+  if (label === "Remote runtime") return "OpenAI";
+  return label || (kind === "remote-runtime" ? "OpenAI" : "Local");
+}
+
+function normalizeLegacySummary(summary: string, label: string) {
+  if (label === "OpenAI" && summary.includes("configured runtime")) {
+    return "OpenAI-compatible chat completion provider.";
+  }
+  return summary;
+}
+
+function normalizeLegacyModel(model: string, label: string) {
+  if (label === "Local" && model === "Mock adapter") return "local";
+  return model;
 }
 
 export function normalizeProviderConnectionRecord(
@@ -32,19 +68,46 @@ export function normalizeProviderConnectionRecord(
   if (value.schemaVersion !== 1) return null;
 
   const id = readString(value.id).trim();
-  const label = readString(value.label).trim();
+  const kind = normalizeConnectionKind(value.kind);
+  const label = normalizeLegacyLabel(
+    readString(value.label, readString(value.name)).trim(),
+    kind,
+  );
   if (!id || !label) return null;
 
-  const kind = normalizeConnectionKind(value.kind);
+  const provider = normalizeConnectionProvider(value.provider, kind);
+  const providerOption = getProviderConnectionProviderOption(provider);
+  const apiKey = readString(value.apiKey).trim();
+  const baseUrl = readString(value.baseUrl, readString(value.url)).trim();
+  const model = normalizeLegacyModel(
+    readString(value.model, readString(value.modelLabel)).trim(),
+    label,
+  );
+  const summary = normalizeLegacySummary(readString(value.summary).trim(), label);
   const now = new Date().toISOString();
   return {
     id,
     schemaVersion: 1,
     kind,
+    provider,
     label,
-    summary: readString(value.summary).trim(),
-    status: normalizeConnectionStatus(value.status, kind),
-    modelLabel: readNullableString(value.modelLabel),
+    apiKey,
+    baseUrl: baseUrl || providerOption.defaultBaseUrl,
+    model: model || providerOption.defaultModel,
+    summary,
+    status: normalizeConnectionStatus(value.status, provider, apiKey),
+    modelLabel:
+      readNullableString(value.modelLabel) ??
+      readNullableString(model || providerOption.defaultModel),
+    keeperDefault: value.keeperDefault === true,
+    maxContext:
+      typeof value.maxContext === "number" && Number.isFinite(value.maxContext)
+        ? Math.round(value.maxContext)
+        : null,
+    maxOutput:
+      typeof value.maxOutput === "number" && Number.isFinite(value.maxOutput)
+        ? Math.round(value.maxOutput)
+        : null,
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
   };
@@ -68,5 +131,8 @@ export function saveProviderConnectionRecordsToStorage(
   records: ProviderConnectionRecord[],
   rawUrl?: string,
 ) {
-  return providerConnectionRepository.save(records, rawUrl);
+  return providerConnectionRepository.save(
+    records.map(sanitizeProviderConnectionRecord),
+    rawUrl,
+  );
 }

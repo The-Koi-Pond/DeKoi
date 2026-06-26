@@ -1,14 +1,22 @@
 import type {
   ProviderConnectionKind,
+  ProviderConnectionProvider,
   ProviderConnectionRecord,
   ProviderConnectionStatus,
 } from "./provider-connection";
+import { getProviderConnectionProviderOption } from "./provider-connection";
 
 export interface ProviderConnectionInput {
-  kind: ProviderConnectionKind;
   label: string;
+  provider: ProviderConnectionProvider;
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
   summary?: string;
   modelLabel?: string | null;
+  keeperDefault?: boolean;
+  maxContext?: number | null;
+  maxOutput?: number | null;
 }
 
 function cleanText(value: string | undefined, fallback = "") {
@@ -20,8 +28,25 @@ function cleanNullableText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-function statusForKind(kind: ProviderConnectionKind): ProviderConnectionStatus {
-  return kind === "remote-runtime" ? "needs-runtime" : "ready";
+function cleanNullableNumber(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.round(value)
+    : null;
+}
+
+function connectionKindForInput(
+  input: ProviderConnectionInput,
+): ProviderConnectionKind {
+  return input.provider === "custom" && !input.baseUrl?.trim()
+    ? "mock"
+    : "remote-runtime";
+}
+
+function statusForInput(input: ProviderConnectionInput): ProviderConnectionStatus {
+  const provider = getProviderConnectionProviderOption(input.provider);
+  return provider.apiKeyRequired && !input.apiKey?.trim()
+    ? "needs-key"
+    : "ready";
 }
 
 export function createProviderConnectionRecord({
@@ -33,14 +58,23 @@ export function createProviderConnectionRecord({
   input: ProviderConnectionInput;
   now: string;
 }): ProviderConnectionRecord {
+  const provider = getProviderConnectionProviderOption(input.provider);
+  const model = cleanText(input.model);
   return {
     id,
     schemaVersion: 1,
-    kind: input.kind,
+    kind: connectionKindForInput(input),
+    provider: provider.value,
     label: cleanText(input.label, "Unnamed connection"),
+    apiKey: cleanText(input.apiKey),
+    baseUrl: cleanText(input.baseUrl),
+    model,
     summary: cleanText(input.summary),
-    status: statusForKind(input.kind),
-    modelLabel: cleanNullableText(input.modelLabel),
+    status: statusForInput(input),
+    modelLabel: cleanNullableText(input.modelLabel) ?? cleanNullableText(model),
+    keeperDefault: input.keeperDefault ?? false,
+    maxContext: cleanNullableNumber(input.maxContext),
+    maxOutput: cleanNullableNumber(input.maxOutput),
     createdAt: now,
     updatedAt: now,
   };
@@ -51,13 +85,22 @@ export function updateProviderConnectionRecord(
   input: ProviderConnectionInput,
   updatedAt: string,
 ): ProviderConnectionRecord {
+  const provider = getProviderConnectionProviderOption(input.provider);
+  const model = cleanText(input.model);
   return {
     ...record,
-    kind: input.kind,
+    kind: connectionKindForInput(input),
+    provider: provider.value,
     label: cleanText(input.label, record.label),
+    apiKey: cleanText(input.apiKey),
+    baseUrl: cleanText(input.baseUrl),
+    model,
     summary: cleanText(input.summary),
-    status: statusForKind(input.kind),
-    modelLabel: cleanNullableText(input.modelLabel),
+    status: statusForInput(input),
+    modelLabel: cleanNullableText(input.modelLabel) ?? cleanNullableText(model),
+    keeperDefault: input.keeperDefault ?? record.keeperDefault,
+    maxContext: cleanNullableNumber(input.maxContext),
+    maxOutput: cleanNullableNumber(input.maxOutput),
     updatedAt,
   };
 }

@@ -35,6 +35,7 @@ export type PondView =
   | { kind: "classic"; threadId: string }
   | { kind: "messenger"; threadId: string }
   | { kind: "companions"; characterId?: string; mode?: "new" }
+  | { kind: "connections"; connectionId?: ProviderConnectionId; mode?: "new" }
   | { kind: "personas"; personaId?: string; mode?: "new" }
   | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" };
 
