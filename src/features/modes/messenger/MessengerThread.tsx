@@ -628,7 +628,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                       />
                       <span>
                         <b>{companion.displayName}</b>
-                        <small>{companion.summary || "No summary."}</small>
+                        <small>{companion.personality || "No personality summary."}</small>
                       </span>
                     </label>
                   );

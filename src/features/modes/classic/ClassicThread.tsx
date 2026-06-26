@@ -214,7 +214,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
           </p>
         </div>
         <div className="classic-header-tools">
-          <span title={activePersona?.summary || ""}>
+          <span title={activePersona?.personality || ""}>
             {activePersona?.displayName ?? "No persona"}
           </span>
           <span title={threadConnection.summary}>{threadConnection.label}</span>

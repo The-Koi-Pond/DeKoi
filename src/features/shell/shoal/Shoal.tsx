@@ -128,9 +128,13 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
     return nav.characters.filter((character) =>
       [
         character.displayName,
-        character.shortName ?? "",
-        character.summary,
+        character.nickname ?? "",
+        character.personality,
         character.description,
+        character.scenario,
+        character.creator,
+        character.creatorNotes,
+        character.tags.join(" "),
       ]
         .join(" ")
         .toLowerCase()
@@ -141,7 +145,16 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
     if (!normalizedQuery) return nav.personas;
 
     return nav.personas.filter((persona) =>
-      [persona.displayName, persona.summary, persona.description]
+      [
+        persona.displayName,
+        persona.nickname ?? "",
+        persona.personality,
+        persona.description,
+        persona.scenario,
+        persona.creator,
+        persona.creatorNotes,
+        persona.tags.join(" "),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery),
@@ -237,7 +250,7 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
                 active={character.id === activeCharacterId}
                 initials={getMessengerThreadInitials(character.displayName)}
                 name={character.displayName}
-                sub={character.summary || character.shortName || "No summary yet."}
+                sub={character.personality || character.nickname || "No personality yet."}
                 tone="koi"
                 onOpen={() =>
                   nav.setView({ kind: "companions", characterId: character.id })
@@ -257,7 +270,7 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
                 active={persona.id === activePersonaId}
                 initials={getMessengerThreadInitials(persona.displayName)}
                 name={persona.displayName}
-                sub={persona.summary || "No summary yet."}
+                sub={persona.personality || persona.nickname || "No personality yet."}
                 tone="jade"
                 onOpen={() => nav.setView({ kind: "personas", personaId: persona.id })}
               />

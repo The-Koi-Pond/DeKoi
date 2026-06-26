@@ -52,6 +52,97 @@
     line-height: 1;
 }
 
+.catalog-banner-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.catalog-banner-avatar {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(244, 122, 53, 0.45);
+    border-radius: 50%;
+    background: rgba(244, 122, 53, 0.12);
+    color: var(--koi-hot);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.catalog-banner-avatar.editable {
+    cursor: pointer;
+    transition:
+        border-color 0.16s,
+        box-shadow 0.16s,
+        transform 0.16s;
+}
+
+.catalog-banner-avatar.editable:hover,
+.catalog-banner-avatar.editable:focus-within {
+    border-color: var(--jade);
+    box-shadow: 0 0 0 3px rgba(39, 179, 170, 0.12);
+    transform: translateY(-1px);
+}
+
+.catalog-banner-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.catalog-banner-avatar svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.catalog-banner-avatar-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.catalog-banner-profile-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.catalog-banner-profile-copy b {
+    max-width: min(360px, 36vw);
+    overflow: hidden;
+    color: var(--foam);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.catalog-banner-profile-copy small {
+    max-width: min(360px, 36vw);
+    overflow: hidden;
+    color: var(--mist);
+    font-size: 11px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .catalog-banner-actions {
     display: flex;
     align-items: center;
@@ -283,6 +374,25 @@
     margin-bottom: 16px;
 }
 
+.catalog-editor-section {
+    padding: 14px 0;
+    border-top: 1px solid var(--reed-soft);
+}
+
+.catalog-editor-section:first-of-type {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.catalog-editor-section h4 {
+    color: var(--foam);
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
 .catalog-editor-field {
     margin-bottom: 14px;
 }
@@ -291,6 +401,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px;
+}
+
+.catalog-editor-grid.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .catalog-editor-field label {
@@ -305,6 +419,37 @@
 
 .catalog-editor-field .pondinput {
     width: 100%;
+    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid var(--reed-soft);
+    border-radius: var(--r-sm);
+    color: var(--foam);
+    font-family: var(--ui);
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s,
+        background 0.15s;
+}
+
+.catalog-editor-field input.pondinput,
+.catalog-editor-field select.pondinput {
+    height: 40px;
+    padding: 0 12px;
+}
+
+.catalog-editor-field select.pondinput {
+    cursor: pointer;
+}
+
+.catalog-editor-field .pondinput::placeholder {
+    color: var(--mist-dim);
+}
+
+.catalog-editor-field .pondinput:focus {
+    border-color: var(--accent, var(--jade));
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 3px rgba(39, 179, 170, 0.12);
 }
 
 .catalog-model-control {
@@ -351,6 +496,7 @@
 }
 
 .catalog-editor-field .pondtextarea {
+    padding: 10px 12px;
     resize: vertical;
     font-family: var(--ui);
     line-height: 1.5;
@@ -580,5 +726,9 @@
     .catalog-editor-grid {
         grid-template-columns: 1fr;
         gap: 0;
+    }
+
+    .catalog-editor-grid.compact {
+        grid-template-columns: 1fr;
     }
 }

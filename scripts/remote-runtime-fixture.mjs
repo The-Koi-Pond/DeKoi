@@ -164,7 +164,7 @@ function generateMessengerReply(args) {
     };
   }
 
-  const companionName = readString(companion.shortName) || readString(companion.displayName, "Companion");
+  const companionName = readString(companion.nickname) || readString(companion.displayName, "Companion");
   const companionId = readString(companion.id).trim();
   const personaName = isRecord(request.activePersona)
     ? readString(request.activePersona.displayName, "the active persona")

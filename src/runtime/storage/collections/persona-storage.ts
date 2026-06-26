@@ -1,4 +1,4 @@
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaNoteRole, PersonaRecord } from "../../../engine/persona";
 import { samplePersona } from "../../../engine/sample-messenger";
 import {
   isRecord,
@@ -8,6 +8,28 @@ import {
 } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
+
+function readTrimmedStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function readNumberInRange(value: unknown, fallback: number, min: number, max: number) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(min, Math.min(max, Math.round(value)))
+    : fallback;
+}
+
+function readPersonaNoteRole(value: unknown): PersonaNoteRole {
+  return value === "user" || value === "assistant" ? value : "system";
+}
 
 export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
   if (!isRecord(value)) return null;
@@ -22,8 +44,20 @@ export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
     id,
     schemaVersion: 1,
     displayName,
-    summary: readString(value.summary).trim(),
+    nickname: readNullableString(value.nickname),
     description: readString(value.description).trim(),
+    personality: readString(value.personality).trim() || readString(value.summary).trim(),
+    scenario: readString(value.scenario).trim(),
+    systemPrompt: readString(value.systemPrompt).trim(),
+    postHistoryInstructions: readString(value.postHistoryInstructions).trim(),
+    creator: readString(value.creator).trim(),
+    characterVersion: readString(value.characterVersion).trim(),
+    creatorNotes: readString(value.creatorNotes).trim(),
+    tags: readTrimmedStringArray(value.tags),
+    characterNote: readString(value.characterNote).trim(),
+    characterNoteDepth: readNumberInRange(value.characterNoteDepth, 4, 0, 99),
+    characterNoteRole: readPersonaNoteRole(value.characterNoteRole),
+    talkativeness: readNumberInRange(value.talkativeness, 50, 0, 100),
     avatarUrl: readNullableString(value.avatarUrl),
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),

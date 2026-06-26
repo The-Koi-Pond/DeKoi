@@ -56,7 +56,7 @@ const RAILS: {
 }[] = [
   {
     view: "people",
-    label: "Companions / Characters",
+    label: "Companions / Personas",
     note: "character catalog",
     icon: (
       <>

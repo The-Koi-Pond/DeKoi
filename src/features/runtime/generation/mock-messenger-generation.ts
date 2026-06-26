@@ -17,7 +17,7 @@ function getMockReplyText(
       .filter((entry) => entry.enabled)
       .map((entry) => `${lorebook.title}: ${entry.title}`),
   );
-  const companionName = companion.shortName ?? companion.displayName;
+  const companionName = companion.nickname ?? companion.displayName;
   const personaName = request.activePersona?.displayName ?? "no persona";
   const loreSummary =
     enabledLoreEntries.length > 0

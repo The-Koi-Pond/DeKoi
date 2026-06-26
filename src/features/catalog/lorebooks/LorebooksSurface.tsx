@@ -11,6 +11,7 @@ import type {
   LorebookInput,
 } from "../../../engine/lorebook-actions";
 import { Switch } from "../../../shared/ui/primitives/Switch";
+import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
@@ -133,12 +134,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     }
   }
 
-  function handleCancel() {
-    setShowEditor(false);
-    setDraft(EMPTY_DRAFT);
-    setEditingEntryId(null);
-  }
-
   function openNewLorebook() {
     setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
     setShowLorebookEditor(true);
@@ -156,11 +151,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
   }
 
-  function handleLorebookCancel() {
-    setShowLorebookEditor(false);
-    setLorebookDraft(EMPTY_LOREBOOK_DRAFT);
-  }
-
   function handleDeleteLorebook(lorebookId: string) {
     nav.deleteLorebook(lorebookId);
     if (selectedLorebookId === lorebookId) {
@@ -168,14 +158,39 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     }
   }
 
+  function renderBanner() {
+    const saveAction = showLorebookEditor
+      ? handleLorebookSave
+      : showEditor
+        ? handleSave
+        : undefined;
+    const saveLabel = showLorebookEditor
+      ? "Create Lorebook"
+      : editingEntryId
+        ? "Save Changes"
+        : "Create";
+    const deleteAction =
+      showEditor && editingEntryId
+        ? () => handleDelete(editingEntryId)
+        : undefined;
+
+    return (
+      <CatalogSurfaceBanner
+        icon="▤"
+        onBack={() => nav.setView({ kind: "pond" })}
+        onDelete={deleteAction}
+        onSave={saveAction}
+        saveLabel={saveLabel}
+        saveState={saveAction ? "pending" : "clean"}
+        title="Lorebooks"
+      />
+    );
+  }
+
   function renderLorebookEditor({
     heading,
-    onSave,
-    onCancel,
   }: {
     heading: string;
-    onSave: () => void;
-    onCancel: () => void;
   }) {
     return (
       <div className="catalog-editor">
@@ -206,18 +221,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
             placeholder="Optional description"
           />
         </div>
-        <div className="catalog-editor-actions">
-          <button type="button" className="catalog-save-btn" onClick={onSave}>
-            Create Lorebook
-          </button>
-          <button
-            type="button"
-            className="catalog-cancel-btn"
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-        </div>
       </div>
     );
   }
@@ -225,19 +228,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   if (nav.lorebooks.length === 0) {
     return (
       <main className="pond catalog-surface">
-        <div className="pond-banner">
-          <span className="ic" aria-hidden="true">
-            ▤
-          </span>
-          Lorebooks
-          <button
-            type="button"
-            className="back-btn"
-            onClick={() => nav.setView({ kind: "pond" })}
-          >
-            ← Back to Pond
-          </button>
-        </div>
+        {renderBanner()}
         <div className="pond-inner catalog-inner">
           {!showLorebookEditor && (
             <>
@@ -257,8 +248,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           {showLorebookEditor &&
             renderLorebookEditor({
               heading: "New Lorebook",
-              onSave: handleLorebookSave,
-              onCancel: handleLorebookCancel,
             })}
         </div>
       </main>
@@ -269,19 +258,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
 
   return (
     <main className="pond catalog-surface">
-      <div className="pond-banner">
-        <span className="ic" aria-hidden="true">
-          ▤
-        </span>
-        Lorebooks
-        <button
-          type="button"
-          className="back-btn"
-          onClick={() => nav.setView({ kind: "pond" })}
-        >
-          ← Back to Pond
-        </button>
-      </div>
+      {renderBanner()}
       <div className="pond-inner catalog-inner">
         {/* Lorebook category selector */}
         <div className="lorebook-tabs" role="tablist" aria-label="Lorebooks">
@@ -333,8 +310,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
         {showLorebookEditor &&
           renderLorebookEditor({
             heading: "New Lorebook",
-            onSave: handleLorebookSave,
-            onCancel: handleLorebookCancel,
           })}
 
         {activeLorebook && (
@@ -439,22 +414,6 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     onChange={(v) => setDraft({ ...draft, enabled: v })}
                     ariaLabel="Entry enabled"
                   />
-                </div>
-                <div className="catalog-editor-actions">
-                  <button
-                    type="button"
-                    className="catalog-save-btn"
-                    onClick={handleSave}
-                  >
-                    {editingEntryId ? "Save Changes" : "Create"}
-                  </button>
-                  <button
-                    type="button"
-                    className="catalog-cancel-btn"
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </button>
                 </div>
               </div>
             )}

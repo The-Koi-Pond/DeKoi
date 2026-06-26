@@ -1,4 +1,4 @@
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterNoteRole, CharacterRecord } from "../../../engine/character";
 import { sampleCompanions } from "../../../engine/sample-messenger";
 import {
   isRecord,
@@ -9,6 +9,28 @@ import {
 } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
+
+function readTrimmedStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function readNumberInRange(value: unknown, fallback: number, min: number, max: number) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(min, Math.min(max, Math.round(value)))
+    : fallback;
+}
+
+function readCharacterNoteRole(value: unknown): CharacterNoteRole {
+  return value === "user" || value === "assistant" ? value : "system";
+}
 
 export function normalizeCharacterRecord(value: unknown): CharacterRecord | null {
   if (!isRecord(value)) return null;
@@ -23,9 +45,24 @@ export function normalizeCharacterRecord(value: unknown): CharacterRecord | null
     id,
     schemaVersion: 1,
     displayName,
-    shortName: readNullableString(value.shortName),
-    summary: readString(value.summary).trim(),
+    nickname: readNullableString(value.nickname) ?? readNullableString(value.shortName),
     description: readString(value.description).trim(),
+    personality: readString(value.personality).trim() || readString(value.summary).trim(),
+    scenario: readString(value.scenario).trim(),
+    firstMessage: readString(value.firstMessage).trim(),
+    alternateGreetings: readTrimmedStringArray(value.alternateGreetings),
+    groupOnlyGreetings: readTrimmedStringArray(value.groupOnlyGreetings),
+    exampleMessages: readString(value.exampleMessages).trim(),
+    systemPrompt: readString(value.systemPrompt).trim(),
+    postHistoryInstructions: readString(value.postHistoryInstructions).trim(),
+    creator: readString(value.creator).trim(),
+    characterVersion: readString(value.characterVersion).trim(),
+    creatorNotes: readString(value.creatorNotes).trim(),
+    tags: readTrimmedStringArray(value.tags),
+    characterNote: readString(value.characterNote).trim(),
+    characterNoteDepth: readNumberInRange(value.characterNoteDepth, 4, 0, 99),
+    characterNoteRole: readCharacterNoteRole(value.characterNoteRole),
+    talkativeness: readNumberInRange(value.talkativeness, 50, 0, 100),
     avatarUrl: readNullableString(value.avatarUrl),
     lorebookIds: readStringArray(value.lorebookIds),
     createdAt: readTimestamp(value.createdAt, now),

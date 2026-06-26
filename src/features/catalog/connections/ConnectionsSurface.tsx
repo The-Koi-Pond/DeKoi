@@ -15,6 +15,7 @@ import {
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/provider-connection-actions";
+import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
 interface ConnectionsSurfaceProps {
@@ -170,72 +171,49 @@ interface ConnectionEditorProps {
   onSave: (input: ProviderConnectionInput) => void;
 }
 
-interface ConnectionsBannerProps {
-  onBack: () => void;
-  onDelete?: () => void;
-  onSave?: () => void;
-  saveLabel?: string;
-  saveState?: "clean" | "pending";
+function ConnectionIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+    >
+      <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
+      <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
+    </svg>
+  );
 }
 
 function ConnectionsBanner({
   onBack,
   onDelete,
   onSave,
-  saveLabel = "Save Changes",
-  saveState = "clean",
-}: ConnectionsBannerProps) {
+  saveLabel,
+  saveState,
+}: {
+  onBack: () => void;
+  onDelete?: () => void;
+  onSave?: () => void;
+  saveLabel?: string;
+  saveState?: "clean" | "pending";
+}) {
   return (
-    <div className="pond-banner catalog-surface-banner">
-      <button
-        type="button"
-        className="back-btn icon-only"
-        onClick={onBack}
-        aria-label="Back to Pond"
-        title="Back to Pond"
-      >
-        ←
-      </button>
-      <span className="ic" aria-hidden="true">
-        <svg
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        >
-          <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
-          <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
-        </svg>
-      </span>
-      <span>Connections</span>
-      {onSave && (
-        <div className="catalog-banner-actions">
-          <button
-            type="button"
-            className={`catalog-save-btn catalog-save-btn-${saveState}`}
-            onClick={onSave}
-          >
-            {saveLabel}
-          </button>
-          {onDelete && (
-            <button
-              type="button"
-              className="catalog-cancel-btn danger"
-              onClick={onDelete}
-            >
-              Delete
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    <CatalogSurfaceBanner
+      icon={<ConnectionIcon />}
+      onBack={onBack}
+      onDelete={onDelete}
+      onSave={onSave}
+      saveLabel={saveLabel}
+      saveState={saveState}
+      title="Connections"
+    />
   );
 }
-
 function ConnectionEditor({
   editingId,
   initialDraft,
