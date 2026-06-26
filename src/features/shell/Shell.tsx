@@ -55,12 +55,12 @@ export function Shell({ nav }: ShellProps) {
       <div className="caustics b" aria-hidden="true" />
 
       <Waterline nav={nav} />
-      <Bank
+      <Bank nav={nav} onOpenShoal={() => setShoalClosed(false)} />
+      <Shoal
         nav={nav}
         shoalClosed={shoalClosed}
-        onOpenShoal={() => setShoalClosed(false)}
+        onToggleShoal={() => setShoalClosed((closed) => !closed)}
       />
-      <Shoal nav={nav} onCollapse={() => setShoalClosed(true)} />
       <Pond nav={nav} />
       <Tide nav={nav} />
       <CareDrawer nav={nav} />

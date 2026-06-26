@@ -119,12 +119,15 @@ body {
 
 /* ---- app shell grid ---- */
 .app {
+  --bank-width: 56px;
+  --shoal-collapsed-width: 0;
+  --waterline-height: 38px;
   position: relative;
   z-index: 1;
   height: 100vh;
   display: grid;
-  grid-template-columns: 56px minmax(264px, 300px) minmax(0, 1fr) 0;
-  grid-template-rows: 38px 1fr 46px;
+  grid-template-columns: var(--bank-width) minmax(264px, 300px) minmax(0, 1fr) 0;
+  grid-template-rows: var(--waterline-height) 1fr 46px;
   grid-template-areas:
     "waterline waterline waterline waterline"
     "bank      shoal     pond      care"
@@ -133,7 +136,7 @@ body {
 }
 
 .app.care-open {
-  grid-template-columns: 56px minmax(264px, 300px) minmax(0, 1fr) clamp(360px, 30vw, 430px);
+  grid-template-columns: var(--bank-width) minmax(264px, 300px) minmax(0, 1fr) clamp(360px, 30vw, 430px);
 }
 
 .app::after {
@@ -146,11 +149,11 @@ body {
 }
 
 .app.shoal-closed {
-  grid-template-columns: 56px 0 minmax(0, 1fr) 0;
+  grid-template-columns: var(--bank-width) var(--shoal-collapsed-width) minmax(0, 1fr) 0;
 }
 
 .app.shoal-closed.care-open {
-  grid-template-columns: 56px 0 minmax(0, 1fr) clamp(360px, 30vw, 430px);
+  grid-template-columns: var(--bank-width) var(--shoal-collapsed-width) minmax(0, 1fr) clamp(360px, 30vw, 430px);
 }
 
 /* ---- scrollbar ---- */

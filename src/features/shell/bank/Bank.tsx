@@ -16,7 +16,6 @@ import type {
 interface BankProps {
   nav: BankNav;
   onOpenShoal: () => void;
-  shoalClosed: boolean;
 }
 
 export type BankNav = Pick<NavViewActions, "setSelectedSurface" | "setSideRailView"> &
@@ -109,20 +108,10 @@ const RAILS: {
   },
 ];
 
-export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
+export function Bank({ nav, onOpenShoal }: BankProps) {
   return (
     <nav className="bank" aria-label="Surface dock">
       <div className="bank-label">The Bank</div>
-      {shoalClosed && (
-        <button
-          type="button"
-          className="shoal-reopen"
-          aria-label="Open The Shoal"
-          onClick={onOpenShoal}
-        >
-          ›
-        </button>
-      )}
 
       {DIVES.map(({ mode, icon }) => {
         const meta = SURFACES[mode];

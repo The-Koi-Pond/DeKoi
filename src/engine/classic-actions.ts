@@ -1,6 +1,7 @@
 import type { CharacterRecord } from "./character";
 import type { ClassicEntry, ClassicThread } from "./classic";
 import type { MessengerMessage } from "./messenger";
+import type { PersonaRecord } from "./persona";
 
 function cleanText(value: string | undefined, fallback = "") {
   return value?.trim() || fallback;
@@ -32,7 +33,7 @@ export function createClassicThread({
     schemaVersion: 1,
     kind: "classic",
     mode: "scene",
-    title: cleanText(title, "New Classic Scene"),
+    title: cleanText(title, "New Classic Chat"),
     sceneText: "",
     characterIds: cleanIds(characterIds),
     activePersonaId,
@@ -88,6 +89,60 @@ export function clearClassicEntries(
     ...thread,
     entries: [],
     updatedAt,
+  };
+}
+
+export function createPersonaClassicEntry({
+  body,
+  id,
+  now,
+  persona,
+  thread,
+}: {
+  body: string;
+  id: string;
+  now: string;
+  persona: PersonaRecord;
+  thread: ClassicThread;
+}): ClassicEntry {
+  return {
+    id,
+    threadId: thread.id,
+    role: "persona",
+    characterId: null,
+    personaId: persona.id,
+    label: persona.displayName,
+    body: cleanText(body),
+    origin: "manual",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function createNarrationClassicEntry({
+  body,
+  id,
+  label = "Anonymous",
+  now,
+  thread,
+}: {
+  body: string;
+  id: string;
+  label?: string;
+  now: string;
+  thread: ClassicThread;
+}): ClassicEntry {
+  return {
+    id,
+    threadId: thread.id,
+    role: "narration",
+    characterId: null,
+    personaId: null,
+    label: cleanText(label, "Anonymous"),
+    body: cleanText(body),
+    origin: "manual",
+    createdAt: now,
+    updatedAt: now,
   };
 }
 

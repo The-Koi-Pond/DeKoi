@@ -48,7 +48,8 @@ type ThreadReleaseRequest = {
 
 interface ShoalProps {
   nav: ShoalNav;
-  onCollapse: () => void;
+  onToggleShoal: () => void;
+  shoalClosed: boolean;
 }
 
 export type ShoalNav = Pick<
@@ -78,18 +79,23 @@ interface CatalogRailCardProps {
   tone: "koi" | "jade" | "amber";
 }
 
-function ShoalTopBar({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
+function ShoalTopBar({
+  onToggleShoal,
+  shoalClosed,
+}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
   return (
     <div className="shoal-topbar">
-      <span>The Shoal</span>
       <button
         type="button"
-        aria-label="Collapse The Shoal"
-        title="Collapse The Shoal"
-        onClick={onCollapse}
+        className="shoal-toggle"
+        aria-label={shoalClosed ? "Open The Shoal" : "Collapse The Shoal"}
+        aria-expanded={!shoalClosed}
+        title={shoalClosed ? "Open The Shoal" : "Collapse The Shoal"}
+        onClick={onToggleShoal}
       >
-        ‹
+        {shoalClosed ? "›" : "‹"}
       </button>
+      <span>The Shoal</span>
     </div>
   );
 }
@@ -198,7 +204,7 @@ function getClassicCardAvatarDetails(
   };
 }
 
-function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
+function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PeopleTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
@@ -261,119 +267,121 @@ function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — characters">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-head">
-        <div
-          className="catalog-rail-tabs"
-          role="tablist"
-          aria-label="Character catalog"
-        >
-          <button
-            type="button"
-            className={isCompanionTab ? "on" : ""}
-            role="tab"
-            aria-selected={isCompanionTab}
-            onClick={() => setActiveTab("companions")}
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-head">
+          <div
+            className="catalog-rail-tabs"
+            role="tablist"
+            aria-label="Character catalog"
           >
-            Companions
-          </button>
-          <button
-            type="button"
-            className={!isCompanionTab ? "on" : ""}
-            role="tab"
-            aria-selected={!isCompanionTab}
-            onClick={() => setActiveTab("personas")}
-          >
-            Personas
-          </button>
-        </div>
-        <div className="shoal-search">
-          <label
-            className="glyph"
-            aria-hidden="true"
-            htmlFor="catalog-people-search-input"
-          >
-            ⌕
-          </label>
-          <input
-            id="catalog-people-search-input"
-            type="search"
-            aria-label={`Find ${searchKind}`}
-            placeholder={`Find ${searchKind}...`}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-        <div className="shoal-actions">
-          <button className={`pill ${actionTone}`} type="button" onClick={openNew}>
-            ＋ {isCompanionTab ? "Companion" : "Persona"}
-          </button>
-          <button
-            className={`pill ${actionTone} title-folder`}
-            type="button"
-            title="Add grouping folder"
-            aria-label="Add grouping folder"
-            disabled
-          >
-            <FolderIcon />
-            Folder
-          </button>
-        </div>
-      </div>
-      <div className="shoal-list">
-        {isCompanionTab ? (
-          <>
-            <div className="group-label people-label">
-              <span>Companions</span>
-              <span className="count-bubble">{nav.characters.length}</span>
-            </div>
-            {filteredCharacters.map((character) => (
-              <CatalogRailCard
-                key={character.id}
-                active={character.id === activeCharacterId}
-                initials={getMessengerThreadInitials(character.displayName)}
-                name={character.displayName}
-                sub={character.personality || character.nickname || "No personality yet."}
-                tone="koi"
-                onOpen={() =>
-                  nav.setView({ kind: "companions", characterId: character.id })
-                }
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            <div className="group-label people-label">
-              <span>Personas</span>
-              <span className="count-bubble">{nav.personas.length}</span>
-            </div>
-            {filteredPersonas.map((persona) => (
-              <CatalogRailCard
-                key={persona.id}
-                active={persona.id === activePersonaId}
-                initials={getMessengerThreadInitials(persona.displayName)}
-                name={persona.displayName}
-                sub={persona.personality || persona.nickname || "No personality yet."}
-                tone="jade"
-                onOpen={() => nav.setView({ kind: "personas", personaId: persona.id })}
-              />
-            ))}
-          </>
-        )}
-        {shownCount === 0 && (
-          <div className="shoal-empty">
-            <p>No catalog records match this search.</p>
-            <button type="button" onClick={openNew}>
-              ＋ {isCompanionTab ? "Companion" : "Persona"}
+            <button
+              type="button"
+              className={isCompanionTab ? "on" : ""}
+              role="tab"
+              aria-selected={isCompanionTab}
+              onClick={() => setActiveTab("companions")}
+            >
+              Companions
+            </button>
+            <button
+              type="button"
+              className={!isCompanionTab ? "on" : ""}
+              role="tab"
+              aria-selected={!isCompanionTab}
+              onClick={() => setActiveTab("personas")}
+            >
+              Personas
             </button>
           </div>
-        )}
+          <div className="shoal-search">
+            <label
+              className="glyph"
+              aria-hidden="true"
+              htmlFor="catalog-people-search-input"
+            >
+              ⌕
+            </label>
+            <input
+              id="catalog-people-search-input"
+              type="search"
+              aria-label={`Find ${searchKind}`}
+              placeholder={`Find ${searchKind}...`}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <div className="shoal-actions">
+            <button className={`pill ${actionTone}`} type="button" onClick={openNew}>
+              ＋ {isCompanionTab ? "Companion" : "Persona"}
+            </button>
+            <button
+              className={`pill ${actionTone} title-folder`}
+              type="button"
+              title="Add grouping folder"
+              aria-label="Add grouping folder"
+              disabled
+            >
+              <FolderIcon />
+              Folder
+            </button>
+          </div>
+        </div>
+        <div className="shoal-list">
+          {isCompanionTab ? (
+            <>
+              <div className="group-label people-label">
+                <span>Companions</span>
+                <span className="count-bubble">{nav.characters.length}</span>
+              </div>
+              {filteredCharacters.map((character) => (
+                <CatalogRailCard
+                  key={character.id}
+                  active={character.id === activeCharacterId}
+                  initials={getMessengerThreadInitials(character.displayName)}
+                  name={character.displayName}
+                  sub={character.personality || character.nickname || "No personality yet."}
+                  tone="koi"
+                  onOpen={() =>
+                    nav.setView({ kind: "companions", characterId: character.id })
+                  }
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="group-label people-label">
+                <span>Personas</span>
+                <span className="count-bubble">{nav.personas.length}</span>
+              </div>
+              {filteredPersonas.map((persona) => (
+                <CatalogRailCard
+                  key={persona.id}
+                  active={persona.id === activePersonaId}
+                  initials={getMessengerThreadInitials(persona.displayName)}
+                  name={persona.displayName}
+                  sub={persona.personality || persona.nickname || "No personality yet."}
+                  tone="jade"
+                  onOpen={() => nav.setView({ kind: "personas", personaId: persona.id })}
+                />
+              ))}
+            </>
+          )}
+          {shownCount === 0 && (
+            <div className="shoal-empty">
+              <p>No catalog records match this search.</p>
+              <button type="button" onClick={openNew}>
+                ＋ {isCompanionTab ? "Companion" : "Persona"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
-function LorebookCatalogRail({ nav, onCollapse }: ShoalProps) {
+function LorebookCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
   const activeLorebookId =
@@ -399,82 +407,84 @@ function LorebookCatalogRail({ nav, onCollapse }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — lorebooks">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-head">
-        <div className="shoal-title">
-          <h2>
-            <span className="shoal-symbol" aria-hidden="true">
-              ▤
-            </span>
-            Lorebooks
-          </h2>
-          <span className="count">{entryCount} entries</span>
-        </div>
-        <div className="shoal-search">
-          <label
-            className="glyph"
-            aria-hidden="true"
-            htmlFor="catalog-lorebook-search-input"
-          >
-            ⌕
-          </label>
-          <input
-            id="catalog-lorebook-search-input"
-            type="search"
-            placeholder="Find lorebooks or entries..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-        <div className="shoal-actions">
-          <button
-            className="pill koi"
-            type="button"
-            onClick={() => nav.setView({ kind: "lorebooks", mode: "new-lorebook" })}
-          >
-            ＋ Lorebook
-          </button>
-          <button
-            className="pill amber title-folder"
-            type="button"
-            title="Add grouping folder"
-            aria-label="Add grouping folder"
-            disabled
-          >
-            <FolderIcon />
-            Folder
-          </button>
-        </div>
-      </div>
-      <div className="shoal-list">
-        {filteredLorebooks.map((lorebook) => (
-          <CatalogRailCard
-            key={lorebook.id}
-            active={lorebook.id === activeLorebookId}
-            initials={getMessengerThreadInitials(lorebook.title)}
-            name={lorebook.title}
-            sub={lorebook.summary || "No summary yet."}
-            tone="amber"
-            onOpen={() => nav.setView({ kind: "lorebooks", lorebookId: lorebook.id })}
-          />
-        ))}
-        {filteredLorebooks.length === 0 && (
-          <div className="shoal-empty">
-            <p>No lorebooks match this search.</p>
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-head">
+          <div className="shoal-title">
+            <h2>
+              <span className="shoal-symbol" aria-hidden="true">
+                ▤
+              </span>
+              Lorebooks
+            </h2>
+            <span className="count">{entryCount} entries</span>
+          </div>
+          <div className="shoal-search">
+            <label
+              className="glyph"
+              aria-hidden="true"
+              htmlFor="catalog-lorebook-search-input"
+            >
+              ⌕
+            </label>
+            <input
+              id="catalog-lorebook-search-input"
+              type="search"
+              placeholder="Find lorebooks or entries..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <div className="shoal-actions">
             <button
+              className="pill koi"
               type="button"
               onClick={() => nav.setView({ kind: "lorebooks", mode: "new-lorebook" })}
             >
               ＋ Lorebook
             </button>
+            <button
+              className="pill amber title-folder"
+              type="button"
+              title="Add grouping folder"
+              aria-label="Add grouping folder"
+              disabled
+            >
+              <FolderIcon />
+              Folder
+            </button>
           </div>
-        )}
+        </div>
+        <div className="shoal-list">
+          {filteredLorebooks.map((lorebook) => (
+            <CatalogRailCard
+              key={lorebook.id}
+              active={lorebook.id === activeLorebookId}
+              initials={getMessengerThreadInitials(lorebook.title)}
+              name={lorebook.title}
+              sub={lorebook.summary || "No summary yet."}
+              tone="amber"
+              onOpen={() => nav.setView({ kind: "lorebooks", lorebookId: lorebook.id })}
+            />
+          ))}
+          {filteredLorebooks.length === 0 && (
+            <div className="shoal-empty">
+              <p>No lorebooks match this search.</p>
+              <button
+                type="button"
+                onClick={() => nav.setView({ kind: "lorebooks", mode: "new-lorebook" })}
+              >
+                ＋ Lorebook
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
-function ConnectionsCatalogRail({ nav, onCollapse }: ShoalProps) {
+function ConnectionsCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   const activeConnectionId =
     nav.view.kind === "connections" ? nav.view.connectionId : null;
 
@@ -484,123 +494,135 @@ function ConnectionsCatalogRail({ nav, onCollapse }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-head">
-        <div className="shoal-title">
-          <h2>
-            <span className="shoal-symbol" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
-                <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
-              </svg>
-            </span>
-            Connections
-          </h2>
-        </div>
-        <div className="shoal-actions">
-          <button className="pill koi" type="button" onClick={openNewConnection}>
-            ＋ Connection
-          </button>
-          <button
-            className="pill koi title-folder"
-            type="button"
-            title="Add grouping folder"
-            aria-label="Add grouping folder"
-            disabled
-          >
-            <FolderIcon />
-            Folder
-          </button>
-        </div>
-      </div>
-      <div className="shoal-list">
-        {nav.providerConnections.map((rawConnection) => {
-          const connection = sanitizeProviderConnectionRecord(rawConnection);
-          const provider = getProviderConnectionProviderOption(connection.provider);
-          const subtitle = [provider.label, connection.model]
-            .filter(Boolean)
-            .join(" / ");
-
-          return (
-            <CatalogRailCard
-              key={connection.id}
-              active={connection.id === activeConnectionId}
-              initials={getMessengerThreadInitials(connection.label)}
-              name={connection.label}
-              sub={subtitle}
-              tone={connection.status === "ready" ? "jade" : "amber"}
-              onOpen={() =>
-                nav.setView({ kind: "connections", connectionId: connection.id })
-              }
-            />
-          );
-        })}
-        {nav.providerConnections.length === 0 && (
-          <div className="shoal-empty">
-            <p>No connections yet.</p>
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-head">
+          <div className="shoal-title">
+            <h2>
+              <span className="shoal-symbol" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M10.2 13.8a4.2 4.2 0 0 0 5.9 0l2-2a4.2 4.2 0 0 0-5.9-5.9l-1.1 1.1" />
+                  <path d="M13.8 10.2a4.2 4.2 0 0 0-5.9 0l-2 2a4.2 4.2 0 0 0 5.9 5.9l1.1-1.1" />
+                </svg>
+              </span>
+              Connections
+            </h2>
           </div>
-        )}
+          <div className="shoal-actions">
+            <button className="pill koi" type="button" onClick={openNewConnection}>
+              ＋ Connection
+            </button>
+            <button
+              className="pill koi title-folder"
+              type="button"
+              title="Add grouping folder"
+              aria-label="Add grouping folder"
+              disabled
+            >
+              <FolderIcon />
+              Folder
+            </button>
+          </div>
+        </div>
+        <div className="shoal-list">
+          {nav.providerConnections.map((rawConnection) => {
+            const connection = sanitizeProviderConnectionRecord(rawConnection);
+            const provider = getProviderConnectionProviderOption(connection.provider);
+            const subtitle = [provider.label, connection.model]
+              .filter(Boolean)
+              .join(" / ");
+
+            return (
+              <CatalogRailCard
+                key={connection.id}
+                active={connection.id === activeConnectionId}
+                initials={getMessengerThreadInitials(connection.label)}
+                name={connection.label}
+                sub={subtitle}
+                tone={connection.status === "ready" ? "jade" : "amber"}
+                onOpen={() =>
+                  nav.setView({ kind: "connections", connectionId: connection.id })
+                }
+              />
+            );
+          })}
+          {nav.providerConnections.length === 0 && (
+            <div className="shoal-empty">
+              <p>No connections yet.</p>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
 }
 
-function MediaCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
+function MediaCatalogRail({
+  onToggleShoal,
+  shoalClosed,
+}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — media">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-head">
-        <div className="shoal-title">
-          <h2>
-            <span className="shoal-symbol" aria-hidden="true">
-              ◐
-            </span>
-            Media
-          </h2>
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-head">
+          <div className="shoal-title">
+            <h2>
+              <span className="shoal-symbol" aria-hidden="true">
+                ◐
+              </span>
+              Media
+            </h2>
+          </div>
         </div>
-      </div>
-      <div className="shoal-meta">
-        <span>Assets</span>
-      </div>
-      <div className="shoal-list">
-        <div className="shoal-empty">
-          <p>No media assets yet.</p>
+        <div className="shoal-meta">
+          <span>Assets</span>
+        </div>
+        <div className="shoal-list">
+          <div className="shoal-empty">
+            <p>No media assets yet.</p>
+          </div>
         </div>
       </div>
     </aside>
   );
 }
 
-function PresetsCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
+function PresetsCatalogRail({
+  onToggleShoal,
+  shoalClosed,
+}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — presets">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-head">
-        <div className="shoal-title">
-          <h2>
-            <span className="shoal-symbol" aria-hidden="true">
-              ≡
-            </span>
-            Presets
-          </h2>
-          <span className="count">0 stocked</span>
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-head">
+          <div className="shoal-title">
+            <h2>
+              <span className="shoal-symbol" aria-hidden="true">
+                ≡
+              </span>
+              Presets
+            </h2>
+            <span className="count">0 stocked</span>
+          </div>
         </div>
-      </div>
-      <div className="shoal-meta">
-        <span>Presets</span>
-        <span className="mark-chip">0 shown</span>
-      </div>
-      <div className="shoal-list">
-        <div className="group-label">Presets</div>
-        <div className="shoal-empty">
-          <p>No presets yet.</p>
+        <div className="shoal-meta">
+          <span>Presets</span>
+          <span className="mark-chip">0 shown</span>
+        </div>
+        <div className="shoal-list">
+          <div className="group-label">Presets</div>
+          <div className="shoal-empty">
+            <p>No presets yet.</p>
+          </div>
         </div>
       </div>
     </aside>
   );
 }
 
-function ThreadShoal({ nav, onCollapse }: ShoalProps) {
+function ThreadShoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   const [query, setQuery] = useState("");
   const [newMessengerOpen, setNewMessengerOpen] = useState(false);
   const [newMessengerName, setNewMessengerName] = useState("");
@@ -827,116 +849,118 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
 
   return (
     <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
-      <ShoalTopBar onCollapse={onCollapse} />
-      <div className="shoal-surface-title">{activeSurfaceLabel}</div>
-      <div className="shoal-head">
-        <div className="shoal-title">
-          <button
-            className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
-            type="button"
-            aria-controls={
-              isClassicSurface ? undefined : "new-messenger-thread-popover"
-            }
-            aria-expanded={isClassicSurface ? undefined : newMessengerOpen}
-            onClick={handleCreateActiveThread}
-          >
-            {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
-          </button>
-          <button
-            className={`pill ${isClassicSurface ? "classic" : "koi"} title-folder`}
-            type="button"
-            title="Add grouping folder"
-            aria-label="Add grouping folder"
-            disabled
-          >
-            <FolderIcon />
-            Folder
-          </button>
-        </div>
-        <div className="shoal-search">
-          <label
-            className="glyph"
-            aria-hidden="true"
-            htmlFor="shoal-search-input"
-          >
-            ⌕
-          </label>
-          <input
-            id="shoal-search-input"
-            type="search"
-            placeholder={searchPlaceholder}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-      </div>
-      <div className="shoal-meta">
-        <button
-          type="button"
-          className="sort"
-          aria-label={`Sort ${activeSurfaceLabel} threads: ${SHOAL_SORT_LABELS[sortMode]}`}
-          title="Change thread sort"
-          onClick={cycleSortMode}
-        >
-          ↕ {SHOAL_SORT_LABELS[sortMode]}
-        </button>
-      </div>
-      <div className="shoal-list">
-        {isClassicSurface
-          ? filteredClassicThreads.map((thread) => {
-              const avatarDetails = getClassicCardAvatarDetails(
-                thread.characterIds,
-                thread.title,
-                characterById,
-              );
-
-              return (
-                <KoiCard
-                  key={thread.id}
-                  avatarLabel={avatarDetails.avatarLabel}
-                  avatarUrl={avatarDetails.avatarUrl}
-                  icon={
-                    avatarDetails.hasCharacter ? undefined : <ClassicCardIcon />
-                  }
-                  initials={avatarDetails.initials}
-                  name={thread.title}
-                  sub={getClassicThreadPreview(thread)}
-                  mode="classic"
-                  active={thread.id === activeClassicThreadId}
-                  showStatus={false}
-                  onOpen={() => nav.openClassicThread(thread.id)}
-                  onRename={() => handleRenameClassic(thread.id, thread.title)}
-                  onDelete={() => handleDeleteClassic(thread.id, thread.title)}
-                />
-              );
-            })
-          : filteredThreads.map((thread) => {
-              const details = getMessengerCardDetails(thread, characterById);
-
-              return (
-                <KoiCard
-                  key={thread.id}
-                  avatarLabel={details.name}
-                  avatarUrl={details.avatarUrl}
-                  initials={details.initials}
-                  name={details.name}
-                  sub={details.preview}
-                  mode="messenger"
-                  active={thread.id === activeThreadId}
-                  online
-                  onOpen={() => nav.openMessengerThread(thread.id)}
-                  onDelete={() => handleDeleteMessenger(thread.id, details.name)}
-                />
-              );
-            })}
-        {visibleCount === 0 && (
-          <div className="shoal-empty">
-            <p>No saved currents match this search.</p>
-            <button type="button" onClick={handleCreateActiveThread}>
-              {isClassicSurface ? "Start scene" : "Cast a line"}
+      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <div className="shoal-body">
+        <div className="shoal-surface-title">{activeSurfaceLabel}</div>
+        <div className="shoal-head">
+          <div className="shoal-title">
+            <button
+              className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
+              type="button"
+              aria-controls={
+                isClassicSurface ? undefined : "new-messenger-thread-popover"
+              }
+              aria-expanded={isClassicSurface ? undefined : newMessengerOpen}
+              onClick={handleCreateActiveThread}
+            >
+              {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
+            </button>
+            <button
+              className={`pill ${isClassicSurface ? "classic" : "koi"} title-folder`}
+              type="button"
+              title="Add grouping folder"
+              aria-label="Add grouping folder"
+              disabled
+            >
+              <FolderIcon />
+              Folder
             </button>
           </div>
-        )}
+          <div className="shoal-search">
+            <label
+              className="glyph"
+              aria-hidden="true"
+              htmlFor="shoal-search-input"
+            >
+              ⌕
+            </label>
+            <input
+              id="shoal-search-input"
+              type="search"
+              placeholder={searchPlaceholder}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+        </div>
+        <div className="shoal-meta">
+          <button
+            type="button"
+            className="sort"
+            aria-label={`Sort ${activeSurfaceLabel} threads: ${SHOAL_SORT_LABELS[sortMode]}`}
+            title="Change thread sort"
+            onClick={cycleSortMode}
+          >
+            ↕ {SHOAL_SORT_LABELS[sortMode]}
+          </button>
+        </div>
+        <div className="shoal-list">
+          {isClassicSurface
+            ? filteredClassicThreads.map((thread) => {
+                const avatarDetails = getClassicCardAvatarDetails(
+                  thread.characterIds,
+                  thread.title,
+                  characterById,
+                );
+
+                return (
+                  <KoiCard
+                    key={thread.id}
+                    avatarLabel={avatarDetails.avatarLabel}
+                    avatarUrl={avatarDetails.avatarUrl}
+                    icon={
+                      avatarDetails.hasCharacter ? undefined : <ClassicCardIcon />
+                    }
+                    initials={avatarDetails.initials}
+                    name={thread.title}
+                    sub={getClassicThreadPreview(thread)}
+                    mode="classic"
+                    active={thread.id === activeClassicThreadId}
+                    showStatus={false}
+                    onOpen={() => nav.openClassicThread(thread.id)}
+                    onRename={() => handleRenameClassic(thread.id, thread.title)}
+                    onDelete={() => handleDeleteClassic(thread.id, thread.title)}
+                  />
+                );
+              })
+            : filteredThreads.map((thread) => {
+                const details = getMessengerCardDetails(thread, characterById);
+
+                return (
+                  <KoiCard
+                    key={thread.id}
+                    avatarLabel={details.name}
+                    avatarUrl={details.avatarUrl}
+                    initials={details.initials}
+                    name={details.name}
+                    sub={details.preview}
+                    mode="messenger"
+                    active={thread.id === activeThreadId}
+                    online
+                    onOpen={() => nav.openMessengerThread(thread.id)}
+                    onDelete={() => handleDeleteMessenger(thread.id, details.name)}
+                  />
+                );
+              })}
+          {visibleCount === 0 && (
+            <div className="shoal-empty">
+              <p>No saved currents match this search.</p>
+              <button type="button" onClick={handleCreateActiveThread}>
+                {isClassicSurface ? "Start scene" : "Cast a line"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {!isClassicSurface && newMessengerOpen && (
         <div
@@ -1129,22 +1153,56 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   );
 }
 
-export function Shoal({ nav, onCollapse }: ShoalProps) {
+export function Shoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   if (nav.sideRailView === "lorebooks") {
-    return <LorebookCatalogRail nav={nav} onCollapse={onCollapse} />;
+    return (
+      <LorebookCatalogRail
+        nav={nav}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+    );
   }
   if (nav.sideRailView === "people") {
-    return <PeopleCatalogRail nav={nav} onCollapse={onCollapse} />;
+    return (
+      <PeopleCatalogRail
+        nav={nav}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+    );
   }
   if (nav.sideRailView === "media") {
-    return <MediaCatalogRail onCollapse={onCollapse} />;
+    return (
+      <MediaCatalogRail
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+    );
   }
   if (nav.sideRailView === "presets") {
-    return <PresetsCatalogRail onCollapse={onCollapse} />;
+    return (
+      <PresetsCatalogRail
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+    );
   }
   if (nav.sideRailView === "connections") {
-    return <ConnectionsCatalogRail nav={nav} onCollapse={onCollapse} />;
+    return (
+      <ConnectionsCatalogRail
+        nav={nav}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+    );
   }
 
-  return <ThreadShoal nav={nav} onCollapse={onCollapse} />;
+  return (
+    <ThreadShoal
+      nav={nav}
+      onToggleShoal={onToggleShoal}
+      shoalClosed={shoalClosed}
+    />
+  );
 }

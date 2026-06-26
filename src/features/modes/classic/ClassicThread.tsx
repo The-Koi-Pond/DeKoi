@@ -1,6 +1,16 @@
-import { useState, type FormEvent } from "react";
-import { updateClassicSceneText } from "../../../engine/classic-actions";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import {
+  appendClassicEntries,
+  createNarrationClassicEntry,
+  createPersonaClassicEntry,
+} from "../../../engine/classic-actions";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
+import { CLASSIC } from "../../../engine/surfaces";
 import {
   generateClassicThreadTurn,
   getMessengerGenerationModeForConnection,
@@ -13,13 +23,14 @@ import type {
   NavThreadState,
   NavViewState,
 } from "../../navigation";
+import { ChatComposer } from "../shared";
 import "./classic-thread.css";
 
 export type ClassicThreadNav = Pick<
   NavCatalogState,
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
-  Pick<NavClassicThreadActions, "clearClassicThreadEntries" | "createClassicThread" | "updateClassicThread"> &
+  Pick<NavClassicThreadActions, "createClassicThread" | "updateClassicThread"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "classicThreads"> &
   Pick<NavViewState, "view">;
@@ -35,12 +46,26 @@ interface ClassicThreadProps {
   nav: ClassicThreadNav;
 }
 
+function ClassicChatSettingsButton() {
+  return (
+    <button
+      type="button"
+      className="classic-chat-settings-button"
+      title="Chat settings"
+      aria-label="Chat settings"
+      disabled
+    >
+      <span aria-hidden="true">⚙</span>
+    </button>
+  );
+}
+
 export function ClassicThread({ nav }: ClassicThreadProps) {
   const activeThreadId = nav.view.kind === "classic" ? nav.view.threadId : null;
   const thread =
     nav.classicThreads.find((candidate) => candidate.id === activeThreadId) ??
     null;
-  const [sceneDraft, setSceneDraft] = useState<{
+  const [draftState, setDraftState] = useState<{
     threadId: string | null;
     body: string;
   }>({ threadId: null, body: "" });
@@ -49,16 +74,12 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     status: "idle" | "generating" | "warning" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
-  const sceneText =
-    sceneDraft.threadId === activeThreadId ? sceneDraft.body : thread?.sceneText ?? "";
-  const threadCharacters = thread
-    ? nav.characters.filter((character) => thread.characterIds.includes(character.id))
-    : [];
-  const activePersona =
-    thread?.activePersonaId
-      ? nav.personas.find((persona) => persona.id === thread.activePersonaId) ??
-        null
-      : null;
+  const entryListRef = useRef<HTMLDivElement>(null);
+  const draft = draftState.threadId === activeThreadId ? draftState.body : "";
+  const activePersona = thread?.activePersonaId
+    ? nav.personas.find((persona) => persona.id === thread.activePersonaId) ??
+      null
+    : null;
   const threadConnection = getProviderConnectionById(
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
@@ -73,46 +94,40 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     (generationState.status === "warning" || generationState.status === "error")
       ? generationState.message
       : "";
-  const canGenerate =
-    !!thread && threadCharacters.length > 0 && sceneText.trim().length > 0 && !isGenerating;
+  const canSend = !!thread && draft.trim().length > 0 && !isGenerating;
 
-  function saveSceneDraft() {
-    if (!thread) return thread;
-    if (sceneText === thread.sceneText) return thread;
-
-    const updatedThread = updateClassicSceneText(
-      thread,
-      sceneText,
-      new Date().toISOString(),
-    );
-    nav.updateClassicThread(updatedThread);
-    return updatedThread;
-  }
-
-  async function generateTurn() {
+  useEffect(() => {
+    if (!entryListRef.current) return;
     if (!thread) return;
-    const threadForGeneration = saveSceneDraft();
-    if (!threadForGeneration) return;
+    entryListRef.current.scrollTop = entryListRef.current.scrollHeight;
+  }, [thread, thread?.entries.length]);
 
-    if (threadCharacters.length === 0) {
-      setGenerationState({
-        threadId: thread.id,
-        status: "error",
-        message: "Add a companion before generating a Classic turn.",
-      });
-      return;
-    }
+  async function sendDraft() {
+    if (!thread) return false;
+    if (isGenerating) return false;
 
-    if (!threadForGeneration.sceneText.trim()) {
-      setGenerationState({
-        threadId: thread.id,
-        status: "error",
-        message: "Add scene text before generating a Classic turn.",
-      });
-      return;
-    }
+    const trimmedDraft = draft.trim();
+    if (!trimmedDraft) return false;
 
-    const now = new Date().toISOString();
+    const sentAt = new Date().toISOString();
+    const userEntry = activePersona
+      ? createPersonaClassicEntry({
+          body: trimmedDraft,
+          id: createLocalId("classic-entry"),
+          now: sentAt,
+          persona: activePersona,
+          thread,
+        })
+      : createNarrationClassicEntry({
+          body: trimmedDraft,
+          id: createLocalId("classic-entry"),
+          now: sentAt,
+          thread,
+        });
+    const threadWithUserEntry = appendClassicEntries(thread, [userEntry], sentAt);
+
+    nav.updateClassicThread(threadWithUserEntry);
+    setDraftState({ body: "", threadId: activeThreadId });
     setGenerationState({
       threadId: thread.id,
       status: "generating",
@@ -126,10 +141,10 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         fallbackProviderConnectionId: threadConnection.id,
         lorebooks: nav.lorebooks,
         mode: generationMode,
-        now,
+        now: sentAt,
         personas: nav.personas,
         providerConnections: nav.providerConnections,
-        thread: threadForGeneration,
+        thread: threadWithUserEntry,
       });
 
       if (result.generatedEntryCount > 0) {
@@ -148,7 +163,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
               status: "error",
               message:
                 result.warnings[0] ??
-                `${generationRuntime.label} did not return a Classic turn.`,
+                `${generationRuntime.label} did not return a Classic reply.`,
             },
       );
     } catch (error) {
@@ -159,25 +174,42 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
           error instanceof Error ? error.message : "Classic generation failed.",
       });
     }
+
+    return true;
   }
 
-  function handleGenerate(event: FormEvent<HTMLFormElement>) {
+  function handleSend() {
+    void sendDraft();
+  }
+
+  function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.nativeEvent.isComposing ||
+      nav.appSettings.sendOnEnterSurface !== CLASSIC
+    ) {
+      return;
+    }
+
     event.preventDefault();
-    void generateTurn();
+    void sendDraft();
   }
 
   if (!thread) {
     return (
       <section className="classic-thread classic-thread-empty">
         <header className="classic-header">
-          <div>
-            <h2>No Classic scene selected</h2>
-            <p className="classic-meta">Create a scene to start writing.</p>
+          <div className="classic-header-icons">
+            <ClassicChatSettingsButton />
           </div>
         </header>
         <div className="classic-empty">
           <button type="button" onClick={() => nav.createClassicThread()}>
-            + Start a Classic scene
+            + Start a Classic chat
           </button>
         </div>
       </section>
@@ -185,57 +217,18 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
   }
 
   return (
-    <section className="classic-thread" aria-labelledby="classic-thread-title">
+    <section className="classic-thread" aria-label="Classic thread">
       <header className="classic-header">
-        <div>
-          <h2 id="classic-thread-title">{thread.title}</h2>
-          <p className="classic-meta">
-            Scene with {threadCharacters.map((character) => character.displayName).join(" + ") || "no companions"}
-          </p>
-        </div>
-        <div className="classic-header-tools">
-          <span title={activePersona?.personality || ""}>
-            {activePersona?.displayName ?? "Anonymous"}
-          </span>
-          <span title={threadConnection.summary}>{threadConnection.label}</span>
+        <div className="classic-header-icons">
+          <ClassicChatSettingsButton />
         </div>
       </header>
 
-      <form className="classic-scene" onSubmit={handleGenerate}>
-        <label htmlFor="classic-scene-text">Scene</label>
-        <textarea
-          id="classic-scene-text"
-          value={sceneText}
-          onBlur={saveSceneDraft}
-          onChange={(event) =>
-            setSceneDraft({
-              threadId: thread.id,
-              body: event.target.value,
-            })
-          }
-          placeholder="Set the scene, the location, and what is happening now..."
-        />
-        <div className="classic-actions">
-          <button type="submit" disabled={!canGenerate}>
-            {isGenerating ? "Generating" : "Generate turn"}
-          </button>
-          <button
-            type="button"
-            onClick={() => nav.clearClassicThreadEntries(thread.id)}
-            disabled={thread.entries.length === 0}
-          >
-            Clear turns
-          </button>
-        </div>
-        <p className="classic-hint">
-          {generationNotice ||
-            (isGenerating
-              ? `${generationRuntime.label} is continuing the scene.`
-              : "Classic uses the same provider boundary as Messenger.")}
-        </p>
-      </form>
-
-      <div className="classic-entries" aria-label="Classic scene turns">
+      <div
+        className="classic-entries"
+        aria-label="Classic chat messages"
+        ref={entryListRef}
+      >
         {thread.entries.map((entry) => (
           <article className={`classic-entry ${entry.role}`} key={entry.id}>
             <div className="classic-entry-head">
@@ -246,9 +239,36 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
           </article>
         ))}
         {thread.entries.length === 0 && (
-          <p className="classic-empty-note">No turns yet.</p>
+          <p className="classic-empty-note">No messages yet.</p>
         )}
       </div>
+
+      <ChatComposer
+        ariaLabel="Classic composer"
+        draftAriaLabel="Draft Classic message"
+        disabled={!canSend}
+        hint={
+          generationNotice ||
+          (isGenerating
+            ? `${generationRuntime.label} is replying through the provider-neutral path.`
+            : nav.appSettings.sendOnEnterSurface === CLASSIC
+              ? "Enter sends. Shift+Enter adds a new line."
+              : "Enter adds a new line. Use Send to release the message.")
+        }
+        isSubmitting={isGenerating}
+        onChange={(value) =>
+          setDraftState({
+            body: value,
+            threadId: activeThreadId,
+          })
+        }
+        onKeyDown={handleDraftKeyDown}
+        onSubmit={handleSend}
+        placeholder="Write a Classic message..."
+        submitBusyLabel="Generating reply"
+        submitLabel="Send message"
+        value={draft}
+      />
     </section>
   );
 }

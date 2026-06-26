@@ -69,6 +69,23 @@ function classicEntriesToMessengerMessages(
       ];
     }
 
+    if (entry.role === "narration") {
+      return [
+        {
+          id: `messenger-${entry.id}`,
+          threadId: thread.id,
+          author: {
+            kind: "unknown",
+            label: entry.label,
+          },
+          body: entry.body,
+          origin: "manual",
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        },
+      ];
+    }
+
     return [];
   });
 }
@@ -91,16 +108,6 @@ function classicThreadToMessengerThread(thread: ClassicThread): MessengerThread 
   };
 }
 
-function createClassicScenePrompt(thread: ClassicThread) {
-  const sceneText = thread.sceneText.trim() || "Continue this Classic scene.";
-  const lastEntry = thread.entries.at(-1);
-  const lastEntryText = lastEntry
-    ? `\nLast turn by ${lastEntry.label}: ${lastEntry.body}`
-    : "";
-
-  return `Classic scene:\n${sceneText}${lastEntryText}\nGenerate the next in-character turn.`;
-}
-
 function createClassicUserMessage({
   createId,
   now,
@@ -110,6 +117,38 @@ function createClassicUserMessage({
   now: string;
   thread: ClassicThread;
 }): MessengerMessage {
+  const lastEntry = thread.entries.at(-1);
+  if (lastEntry?.role === "persona" && lastEntry.personaId) {
+    return {
+      id: `messenger-${lastEntry.id}`,
+      threadId: thread.id,
+      author: {
+        kind: "persona",
+        personaId: lastEntry.personaId,
+        label: lastEntry.label,
+      },
+      body: lastEntry.body,
+      origin: "manual",
+      createdAt: lastEntry.createdAt,
+      updatedAt: lastEntry.updatedAt,
+    };
+  }
+
+  if (lastEntry?.role === "narration") {
+    return {
+      id: `messenger-${lastEntry.id}`,
+      threadId: thread.id,
+      author: {
+        kind: "unknown",
+        label: lastEntry.label,
+      },
+      body: lastEntry.body,
+      origin: "manual",
+      createdAt: lastEntry.createdAt,
+      updatedAt: lastEntry.updatedAt,
+    };
+  }
+
   return {
     id: createId("classic-generation-prompt"),
     threadId: thread.id,
@@ -117,7 +156,7 @@ function createClassicUserMessage({
       kind: "system",
       label: "Classic",
     },
-    body: createClassicScenePrompt(thread),
+    body: "Continue this Classic chat with the next in-character turn.",
     origin: "manual",
     createdAt: now,
     updatedAt: now,

@@ -5,21 +5,26 @@
   background: rgba(11, 22, 27, 0.55);
   display: flex;
   flex-direction: column;
-  transition: opacity 0.2s;
+  transition:
+    background-color 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app.shoal-closed .shoal {
-  opacity: 0;
-  pointer-events: none;
+  border-right: 0;
+  background: transparent;
+  overflow: visible;
+  z-index: 50;
 }
 
 .shoal-topbar {
   display: flex;
   flex: none;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   min-height: 32px;
-  padding: 0 10px 0 14px;
+  padding: 0 10px 0 2px;
   border-bottom: 1px solid var(--reed-soft);
   background: rgba(9, 19, 23, 0.34);
   color: var(--mist-dim);
@@ -28,28 +33,80 @@
   text-transform: uppercase;
 }
 
-.shoal-topbar button {
+.shoal-topbar > span {
+  overflow: hidden;
+  max-width: 120px;
+  white-space: nowrap;
+  transition:
+    max-width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shoal-toggle {
   display: grid;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 28px;
   place-items: center;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
+  padding: 0;
+  border: 1px solid var(--reed-soft);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: rgba(19, 36, 43, 0.68);
   color: var(--mist);
   cursor: pointer;
   font-family: var(--ui);
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1;
-  transition: 0.16s;
+  transition:
+    background-color 0.16s,
+    border-color 0.16s,
+    color 0.16s,
+    transform 0.16s;
 }
 
-.shoal-topbar button:hover,
-.shoal-topbar button:focus-visible {
-  border-color: var(--reed-soft);
+.shoal-toggle:hover,
+.shoal-toggle:focus-visible {
+  border-color: var(--reed);
+  border-left: 0;
   background: var(--shallow);
   color: var(--foam);
   outline: none;
+  transform: translateX(1px);
+}
+
+.app.shoal-closed .shoal-topbar {
+  width: max-content;
+  min-height: 32px;
+  padding: 0;
+  gap: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.app.shoal-closed .shoal-topbar > span {
+  max-width: 0;
+  opacity: 0;
+}
+
+.shoal-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app.shoal-closed .shoal-body {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-18px);
 }
 
 .shoal-surface-title {

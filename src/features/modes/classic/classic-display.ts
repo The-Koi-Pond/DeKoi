@@ -41,5 +41,5 @@ export function getClassicThreadInitials(title: string) {
 export function getClassicThreadPreview(thread: ClassicThread) {
   const lastEntry = thread.entries.at(-1);
   if (lastEntry) return `${lastEntry.label}: ${lastEntry.body}`;
-  return thread.sceneText || "No scene text yet";
+  return thread.sceneText || "No messages yet";
 }
