@@ -15,6 +15,7 @@ import {
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/provider-connection-actions";
+import { checkProviderConnection } from "../../../shared/api/provider-connection-check";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -225,6 +226,8 @@ function ConnectionEditor({
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [modelFetchBusy, setModelFetchBusy] = useState(false);
   const [modelFetchStatus, setModelFetchStatus] = useState("");
+  const [connectionCheckBusy, setConnectionCheckBusy] = useState(false);
+  const [connectionCheckStatus, setConnectionCheckStatus] = useState("");
   const selectedProvider = getProviderConnectionProviderOption(draft.provider);
   const modelOptions = [
     ...new Set([...fetchedModels, ...selectedProvider.models]),
@@ -254,6 +257,7 @@ function ConnectionEditor({
     });
     setFetchedModels([]);
     setModelFetchStatus("");
+    setConnectionCheckStatus("");
   }
 
   async function handleFetchModels() {
@@ -297,6 +301,34 @@ function ConnectionEditor({
     }
   }
 
+  async function handleCheckConnection() {
+    const input = draftToInput(draft);
+    if (!input.baseUrl) {
+      setConnectionCheckStatus("Base URL required.");
+      return;
+    }
+    if (!input.model) {
+      setConnectionCheckStatus("Model required.");
+      return;
+    }
+    if (selectedProvider.apiKeyRequired && !input.apiKey) {
+      setConnectionCheckStatus("API key required.");
+      return;
+    }
+
+    setConnectionCheckBusy(true);
+    setConnectionCheckStatus("Checking API key...");
+    try {
+      const result = await checkProviderConnection(input);
+      setConnectionCheckStatus(result.message || "API key is valid.");
+    } catch (error) {
+      setConnectionCheckStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setConnectionCheckBusy(false);
+    }
+  }
   return (
     <>
       <ConnectionsBanner
@@ -382,21 +414,38 @@ function ConnectionEditor({
           </div>
           <div className="catalog-editor-field">
             <label htmlFor="conn-api-key">API Key</label>
-            <input
-              id="conn-api-key"
-              className="pondinput"
-              type="password"
-              autoComplete="off"
-              value={draft.apiKey}
-              onChange={(event) =>
-                setDraft({ ...draft, apiKey: event.target.value })
-              }
-              placeholder={
-                selectedProvider.apiKeyRequired
-                  ? "Required for this provider"
-                  : "Optional for this provider"
-              }
-            />
+            <div className="catalog-model-control">
+              <input
+                id="conn-api-key"
+                className="pondinput"
+                type="password"
+                autoComplete="off"
+                value={draft.apiKey}
+                onChange={(event) => {
+                  setDraft({ ...draft, apiKey: event.target.value });
+                  setConnectionCheckStatus("");
+                }}
+                placeholder={
+                  selectedProvider.apiKeyRequired
+                    ? "Required for this provider"
+                    : "Optional for this provider"
+                }
+              />
+              <button
+                type="button"
+                className="catalog-model-fetch"
+                disabled={connectionCheckBusy || !draft.baseUrl.trim() || !draft.model.trim()}
+                onClick={handleCheckConnection}
+                aria-label="Check API key with selected model"
+              >
+                {connectionCheckBusy ? "..." : "Check"}
+              </button>
+            </div>
+            {connectionCheckStatus && (
+              <div className="catalog-model-status" role="status">
+                {connectionCheckStatus}
+              </div>
+            )}
           </div>
           <div className="catalog-editor-field">
             <label htmlFor="conn-base-url">Base URL</label>
@@ -409,6 +458,7 @@ function ConnectionEditor({
                 setDraft({ ...draft, baseUrl: event.target.value });
                 setFetchedModels([]);
                 setModelFetchStatus("");
+                setConnectionCheckStatus("");
               }}
               placeholder={
                 selectedProvider.defaultBaseUrl ||

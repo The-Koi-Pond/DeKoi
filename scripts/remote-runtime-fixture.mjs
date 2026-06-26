@@ -6,6 +6,7 @@ const DEFAULT_PORT = 7341;
 const RUNTIME_MARKER = "de-koi-server";
 const SUPPORTED_COMMANDS = new Set([
   "messenger_generate",
+  "provider_connection_check",
   "storage_create",
   "storage_delete",
   "storage_list",
@@ -142,6 +143,24 @@ function selectCompanion(request) {
   return validCompanions[companionMessageCount % validCompanions.length];
 }
 
+function checkProviderConnection(args) {
+  if (!isRecord(args) || !isRecord(args.connection)) {
+    throw new Error("provider_connection_check requires args.connection.");
+  }
+
+  const connection = args.connection;
+  const provider = readString(connection.provider).trim();
+  const baseUrl = readString(connection.baseUrl).trim();
+  const model = readString(connection.model).trim();
+  if (!provider || !baseUrl || !model) {
+    throw new Error("Provider connection needs provider, base URL, and model.");
+  }
+
+  return {
+    success: true,
+    message: "Fixture provider connection check passed.",
+  };
+}
 function generateMessengerReply(args) {
   if (!isRecord(args) || !isRecord(args.request)) {
     throw new Error("messenger_generate requires args.request.");
@@ -194,6 +213,8 @@ function invokeCommand(storage, command, args) {
   switch (command) {
     case "messenger_generate":
       return generateMessengerReply(args);
+    case "provider_connection_check":
+      return checkProviderConnection(args);
     case "storage_create":
       return createRecord(storage, args);
     case "storage_delete":

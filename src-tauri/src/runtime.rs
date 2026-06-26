@@ -337,6 +337,105 @@ fn provider_payload_error(payload: &serde_json::Value) -> Option<String> {
     })
 }
 
+struct ProviderConnectionCheckRequest {
+    url: String,
+    body: serde_json::Value,
+}
+
+fn provider_connection_check_request(
+    provider: &str,
+    base_url: &str,
+    model: &str,
+) -> Result<ProviderConnectionCheckRequest, String> {
+    if provider.trim().is_empty() || base_url.trim().is_empty() || model.trim().is_empty() {
+        return Err("Provider connection needs provider, base URL, and model.".to_string());
+    }
+
+    if is_openai_compatible(provider) {
+        return Ok(ProviderConnectionCheckRequest {
+            url: append_openai_chat_completions_endpoint(base_url),
+            body: serde_json::json!({
+                "model": model,
+                "messages": [{ "role": "user", "content": "Reply with OK." }],
+                "temperature": 0,
+                "max_tokens": 1
+            }),
+        });
+    }
+
+    if provider == "anthropic" {
+        return Ok(ProviderConnectionCheckRequest {
+            url: append_endpoint(base_url, "/messages"),
+            body: serde_json::json!({
+                "model": model,
+                "messages": [{ "role": "user", "content": "Reply with OK." }],
+                "temperature": 0,
+                "max_tokens": 1
+            }),
+        });
+    }
+
+    if provider == "google" {
+        let normalized_model = model.trim_start_matches("models/");
+        return Ok(ProviderConnectionCheckRequest {
+            url: format!(
+                "{}/models/{}:generateContent",
+                base_url.trim_end_matches('/'),
+                normalized_model
+            ),
+            body: serde_json::json!({
+                "contents": [{
+                    "role": "user",
+                    "parts": [{ "text": "Reply with OK." }]
+                }],
+                "generationConfig": {
+                    "temperature": 0,
+                    "maxOutputTokens": 1
+                }
+            }),
+        });
+    }
+
+    Err(format!(
+        "{provider} is not supported by the provider connection checker yet."
+    ))
+}
+
+async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "provider_connection_check")?;
+    let connection = args
+        .get("connection")
+        .ok_or_else(|| "provider_connection_check requires args.connection.".to_string())?;
+    let connection = as_object(connection, "args.connection")?;
+    let provider = connection
+        .get("provider")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let base_url = connection
+        .get("baseUrl")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let model = connection
+        .get("model")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let api_key = connection
+        .get("apiKey")
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
+    let request = provider_connection_check_request(provider, base_url, model)?;
+    let client = reqwest::Client::new();
+    let headers = provider_headers(provider, api_key)?;
+    post_provider_json(&client, request.url, headers, request.body).await?;
+
+    Ok(serde_json::json!({
+        "success": true,
+        "message": "API key is valid and the selected model can generate."
+    }))
+}
 async fn post_provider_json(
     client: &reqwest::Client,
     url: String,
@@ -611,6 +710,7 @@ pub(crate) async fn dekoi_runtime_invoke(
     let args = args.unwrap_or(serde_json::Value::Null);
     match command.as_str() {
         "messenger_generate" => messenger_generate(&args).await,
+        "provider_connection_check" => provider_connection_check(&args).await,
         "storage_create" => storage_create(&app, &args),
         "storage_delete" => storage_delete(&app, &args),
         "storage_list" => storage_list(&app, &args),
@@ -618,5 +718,38 @@ pub(crate) async fn dekoi_runtime_invoke(
         _ => Err(format!(
             "Desktop runtime command is not supported: {command}"
         )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_connection_check_uses_openai_generation_endpoint() {
+        let request =
+            provider_connection_check_request("openai", "https://api.openai.com/v1", "gpt-4o-mini")
+                .expect("OpenAI check request should build");
+
+        assert_eq!(request.url, "https://api.openai.com/v1/chat/completions");
+        assert_eq!(request.body["model"], "gpt-4o-mini");
+        assert_eq!(request.body["max_tokens"], 1);
+        assert!(request.body.get("messages").is_some());
+    }
+
+    #[test]
+    fn provider_connection_check_uses_google_generation_endpoint() {
+        let request = provider_connection_check_request(
+            "google",
+            "https://generativelanguage.googleapis.com/v1beta",
+            "models/gemini-2.5-flash",
+        )
+        .expect("Google check request should build");
+
+        assert_eq!(
+            request.url,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        );
+        assert_eq!(request.body["generationConfig"]["maxOutputTokens"], 1);
     }
 }

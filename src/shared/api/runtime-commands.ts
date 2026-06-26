@@ -1,5 +1,6 @@
 export const RUNTIME_COMMANDS = {
   messengerGenerate: "messenger_generate",
+  providerConnectionCheck: "provider_connection_check",
   storageCreate: "storage_create",
   storageDelete: "storage_delete",
   storageList: "storage_list",
@@ -11,6 +12,7 @@ export type RemoteRuntimeCommand =
 
 export const REMOTE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.messengerGenerate,
+  RUNTIME_COMMANDS.providerConnectionCheck,
   RUNTIME_COMMANDS.storageCreate,
   RUNTIME_COMMANDS.storageDelete,
   RUNTIME_COMMANDS.storageList,
