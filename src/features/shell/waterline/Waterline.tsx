@@ -1,89 +1,66 @@
 import {
   useCallback,
-  useMemo,
+  useEffect,
   useState,
-  type FocusEvent,
-  type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import type {
-  NavCareActions,
-  NavThreadState,
-  NavViewActions,
-} from "../../navigation";
-import {
-  getMessengerThreadInitials,
-  getMessengerThreadPreview,
-  sortMessengerThreadsByUpdatedAt,
-} from "../../modes";
+import type { NavCareActions, NavViewActions } from "../../navigation";
 import {
   closeDesktopWindow,
+  getDesktopWindowState,
   minimizeDesktopWindow,
+  restoreDesktopWindow,
   startDesktopWindowDrag,
   toggleDesktopWindowMaximize,
 } from "../../../shared/api/window-controls";
 import "./Waterline.css";
 
 type WindowControlAction = "close" | "maximize" | "minimize";
+type WindowControlState = Awaited<ReturnType<typeof getDesktopWindowState>>;
+
+const defaultWindowState: WindowControlState = {
+  minimized: false,
+  maximized: false,
+};
 
 interface WaterlineProps {
   nav: WaterlineNav;
 }
 
 export type WaterlineNav = Pick<NavCareActions, "setCareOpen"> &
-  Pick<NavThreadState, "messengerThreads"> &
-  Pick<NavViewActions, "openMessengerThread">;
+  Pick<NavViewActions, "setView">;
 
 export function Waterline({ nav }: WaterlineProps) {
-  const [query, setQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const normalizedQuery = query.trim().toLowerCase();
-  const threadResults = useMemo(() => {
-    if (!normalizedQuery) return [];
-
-    return sortMessengerThreadsByUpdatedAt(nav.messengerThreads)
-      .filter((thread) => {
-        const preview = getMessengerThreadPreview(thread);
-        return (
-          thread.title.toLowerCase().includes(normalizedQuery) ||
-          preview.toLowerCase().includes(normalizedQuery)
-        );
-      })
-      .slice(0, 5);
-  }, [nav.messengerThreads, normalizedQuery]);
-  const searchOpen = searchFocused && normalizedQuery.length > 0;
-
-  function clearSearch() {
-    setQuery("");
-  }
-
-  function openThread(threadId: string) {
-    nav.openMessengerThread(threadId);
-    clearSearch();
-    setSearchFocused(false);
-  }
-
-  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      clearSearch();
-      return;
-    }
-
-    if (event.key === "Enter" && threadResults[0]) {
-      event.preventDefault();
-      openThread(threadResults[0].id);
-    }
-  }
-
-  function handleSearchBlur(event: FocusEvent<HTMLDivElement>) {
-    if (event.currentTarget.contains(event.relatedTarget)) return;
-    setSearchFocused(false);
-  }
+  const [windowState, setWindowState] = useState(defaultWindowState);
 
   const isNoDragTarget = useCallback((target: EventTarget | null) => {
     return target instanceof Element && !!target.closest("[data-window-no-drag]");
   }, []);
+
+  const refreshWindowState = useCallback(() => {
+    void getDesktopWindowState()
+      .then(setWindowState)
+      .catch(() => setWindowState(defaultWindowState));
+  }, []);
+
+  const refreshWindowStateSoon = useCallback(() => {
+    window.setTimeout(refreshWindowState, 40);
+    window.setTimeout(refreshWindowState, 180);
+  }, [refreshWindowState]);
+
+  useEffect(() => {
+    refreshWindowState();
+
+    window.addEventListener("focus", refreshWindowState);
+    window.addEventListener("resize", refreshWindowState);
+    document.addEventListener("visibilitychange", refreshWindowState);
+
+    return () => {
+      window.removeEventListener("focus", refreshWindowState);
+      window.removeEventListener("resize", refreshWindowState);
+      document.removeEventListener("visibilitychange", refreshWindowState);
+    };
+  }, [refreshWindowState]);
 
   const startWindowDrag = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
@@ -99,20 +76,31 @@ export function Waterline({ nav }: WaterlineProps) {
   const toggleMaximizeFromTitlebar = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
       if (isNoDragTarget(event.target)) return;
-      void toggleDesktopWindowMaximize().catch(() => {});
+      void toggleDesktopWindowMaximize()
+        .then(refreshWindowStateSoon)
+        .catch(() => {});
     },
-    [isNoDragTarget],
+    [isNoDragTarget, refreshWindowStateSoon],
   );
 
   function runWindowControl(action: WindowControlAction) {
     const task =
       action === "minimize"
-        ? minimizeDesktopWindow()
+        ? windowState.minimized
+          ? restoreDesktopWindow()
+          : minimizeDesktopWindow()
         : action === "maximize"
           ? toggleDesktopWindowMaximize()
           : closeDesktopWindow();
-    void task.catch(() => {});
+    void task
+      .then(() => {
+        if (action !== "close") refreshWindowStateSoon();
+      })
+      .catch(() => {});
   }
+
+  const minimizeTitle = windowState.minimized ? "Restore" : "Minimize";
+  const maximizeTitle = windowState.maximized ? "Restore" : "Maximize";
 
   return (
     <header
@@ -120,71 +108,16 @@ export function Waterline({ nav }: WaterlineProps) {
       onMouseDown={startWindowDrag}
       onDoubleClick={toggleMaximizeFromTitlebar}
     >
-      <div className="brand">
-        <img className="mark" src="/logo.png" alt="" />
-      </div>
-      <div className="wordmark">DeKoi</div>
-      <div
-        className={`ripple-search${searchOpen ? " open" : ""}`}
+      <button
+        type="button"
+        className="brand"
+        aria-label="Go to Home"
+        title="Home"
         data-window-no-drag
-        onBlur={handleSearchBlur}
+        onClick={() => nav.setView({ kind: "pond" })}
       >
-        <span className="glyph" aria-hidden="true">
-          ⌕
-        </span>
-        <input
-          aria-controls="waterline-search-results"
-          aria-expanded={searchOpen}
-          aria-label="Search Messenger threads"
-          autoComplete="off"
-          placeholder="Search Messenger threads..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onKeyDown={handleSearchKeyDown}
-        />
-        {query && (
-          <button
-            type="button"
-            className="search-clear"
-            aria-label="Clear search"
-            onClick={clearSearch}
-          >
-            ×
-          </button>
-        )}
-        {searchOpen && (
-          <div
-            className="search-results"
-            id="waterline-search-results"
-            role="listbox"
-            aria-label="Search results"
-          >
-            {threadResults.map((thread) => (
-              <button
-                type="button"
-                className="search-result"
-                key={thread.id}
-                role="option"
-                onClick={() => openThread(thread.id)}
-              >
-                <span className="search-avatar">
-                  {getMessengerThreadInitials(thread.title)}
-                </span>
-                <span className="search-copy">
-                  <span>{thread.title}</span>
-                  <small>{getMessengerThreadPreview(thread)}</small>
-                </span>
-              </button>
-            ))}
-            {threadResults.length === 0 && (
-              <div className="search-empty" role="status">
-                No Messenger threads found.
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        <img className="mark" src="/logo.png" alt="" />
+      </button>
       <div className="pebbles" data-window-no-drag>
         <button
           type="button"
@@ -194,29 +127,42 @@ export function Waterline({ nav }: WaterlineProps) {
           onClick={() => nav.setCareOpen(true)}
         >
           <span aria-hidden="true">⚙</span>
-          <span>Settings</span>
         </button>
         <div className="window-controls" aria-label="Window controls">
           <button
             type="button"
             className="window-control minimize"
-            title="Minimize"
-            aria-label="Minimize window"
+            title={minimizeTitle}
+            aria-label={`${minimizeTitle} window`}
             onClick={() => runWindowControl("minimize")}
           >
             <svg viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M2 6h8" />
+              {windowState.minimized ? (
+                <>
+                  <rect x="2.5" y="4.5" width="7" height="5" rx="1" />
+                  <path d="M4.2 4.5 6 2.7l1.8 1.8" />
+                </>
+              ) : (
+                <path d="M2 8.5h8" />
+              )}
             </svg>
           </button>
           <button
             type="button"
             className="window-control maximize"
-            title="Maximize"
-            aria-label="Maximize window"
+            title={maximizeTitle}
+            aria-label={`${maximizeTitle} window`}
             onClick={() => runWindowControl("maximize")}
           >
             <svg viewBox="0 0 12 12" aria-hidden="true">
-              <rect x="2.5" y="2.5" width="7" height="7" rx="1" />
+              {windowState.maximized ? (
+                <>
+                  <path d="M4.5 2.5h5v5h-2" />
+                  <rect x="2.5" y="4.5" width="5" height="5" rx="0.8" />
+                </>
+              ) : (
+                <rect x="2.5" y="2.5" width="7" height="7" rx="1" />
+              )}
             </svg>
           </button>
           <button

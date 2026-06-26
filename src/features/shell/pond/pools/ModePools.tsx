@@ -38,36 +38,32 @@ const POOLS: {
   mode: SurfaceId;
   icon: React.ReactNode;
   desc: string;
-  meta: string;
 }[] = [
   {
     mode: MESSENGER,
     icon: <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />,
     desc: "Open water. Talk freely with the AI, no scene, no rules.",
-    meta: "saved threads",
   },
   {
     mode: CLASSIC,
     icon: (
       <>
-        <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
-        <path d="M4 5v14" />
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+        <circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
       </>
     ),
     desc: "Swim into a story. Characters, lore, and scenes carry the current.",
-    meta: "saved scenes",
   },
   {
     mode: RESERVED,
     icon: (
-      <>
-        <path d="M6 3v6a6 6 0 0 0 12 0V3" />
-        <path d="M6 21h12" />
-        <path d="M12 15v6" />
-      </>
+      <path d="M20.2 5.8a5.1 5.1 0 0 0-7.2 0L12 6.8l-1-1a5.1 5.1 0 0 0-7.2 7.2l1 1L12 21l7.2-7 1-1a5.1 5.1 0 0 0 0-7.2z" />
     ),
     desc: "Cast into the depths. Turn-based play, narration, and systems.",
-    meta: "5 koi · yesterday",
   },
 ];
 
@@ -102,12 +98,6 @@ export function ModePools({ nav }: ModePoolsProps) {
     if (mode === CLASSIC) {
       openLatestClassicThread();
     }
-  }
-
-  function getPoolMeta(mode: SurfaceId, fallback: string) {
-    if (mode === MESSENGER) return `${nav.messengerThreads.length} threads`;
-    if (mode === CLASSIC) return `${nav.classicThreads.length} scenes`;
-    return fallback;
   }
 
   return (
@@ -154,8 +144,6 @@ export function ModePools({ nav }: ModePoolsProps) {
             </div>
             <h3>{meta.label}</h3>
             <p>{pool.desc}</p>
-            <div className="pool-meta">{getPoolMeta(pool.mode, pool.meta)}</div>
-            <div className="go">{locked ? meta.lockedNote : "Dive in →"}</div>
           </div>
         );
       })}

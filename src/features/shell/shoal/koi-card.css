@@ -80,6 +80,10 @@
   min-width: 0;
 }
 
+.koi-card.actionable .kc-body {
+  padding-right: 54px;
+}
+
 .kc-name {
   font-size: 13px;
   font-weight: 550;
@@ -98,16 +102,6 @@
   margin-top: 1px;
 }
 
-.kc-mode {
-  font-size: 9px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 6px;
-  flex: none;
-  transition: opacity 0.16s;
-}
-
 .kc-actions {
   position: absolute;
   top: 50%;
@@ -122,11 +116,6 @@
 .koi-card:hover .kc-actions,
 .koi-card:focus-within .kc-actions {
   opacity: 1;
-}
-
-.koi-card:hover .kc-mode,
-.koi-card:focus-within .kc-mode {
-  opacity: 0;
 }
 
 .kc-actions button {
@@ -144,21 +133,6 @@
 .kc-actions button:hover {
   border-color: var(--reed);
   color: var(--foam);
-}
-
-.kc-mode.classic {
-  background: rgba(39, 179, 170, 0.14);
-  color: var(--jade-hot);
-}
-
-.kc-mode.messenger {
-  background: rgba(244, 122, 53, 0.14);
-  color: var(--koi-hot);
-}
-
-.kc-mode.reserved {
-  background: rgba(227, 165, 52, 0.14);
-  color: var(--amber-hot);
 }
 
 /* Locked cards represent not-yet-navigable surfaces: dim and non-interactive. */

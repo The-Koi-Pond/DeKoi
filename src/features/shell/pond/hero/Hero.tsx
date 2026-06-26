@@ -1,28 +1,7 @@
 import { PondEye } from "./PondEye";
 import "./hero.css";
 
-import type {
-  NavMessengerThreadActions,
-  NavThreadState,
-  NavViewActions,
-} from "../../../navigation";
-import {
-  sortClassicThreadsByUpdatedAt,
-  sortMessengerThreadsByUpdatedAt,
-} from "../../../modes";
-
-interface HeroProps {
-  nav: HeroNav;
-}
-
-export type HeroNav = Pick<
-  NavMessengerThreadActions,
-  "createMessengerThread"
-> &
-  Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
-  Pick<NavViewActions, "openClassicThread" | "openMessengerThread">;
-
-export function Hero({ nav }: HeroProps) {
+export function Hero() {
   return (
     <div className="hero">
       <PondEye />
@@ -32,43 +11,6 @@ export function Hero({ nav }: HeroProps) {
         The pond is calm. <b>Dive into a pool</b> below, or resume a koi already
         swimming.
       </p>
-      <div className="hero-cta">
-        <button
-          className="cta primary"
-          onClick={() => nav.createMessengerThread()}
-        >
-          + Cast a line
-        </button>
-        <button
-          className="cta ghost"
-          onClick={() => {
-            const latestThread = sortMessengerThreadsByUpdatedAt(
-              nav.messengerThreads,
-            )[0];
-            const latestClassicThread = sortClassicThreadsByUpdatedAt(
-              nav.classicThreads,
-            )[0];
-
-            if (
-              latestClassicThread &&
-              (!latestThread ||
-                latestClassicThread.updatedAt.localeCompare(latestThread.updatedAt) > 0)
-            ) {
-              nav.openClassicThread(latestClassicThread.id);
-              return;
-            }
-
-            if (latestThread) {
-              nav.openMessengerThread(latestThread.id);
-              return;
-            }
-
-            nav.createMessengerThread();
-          }}
-        >
-          ↻ Resume a current
-        </button>
-      </div>
     </div>
   );
 }

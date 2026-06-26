@@ -43,6 +43,7 @@ export type SideRailView =
   | "lorebooks"
   | "people"
   | "media"
+  | "presets"
   | "connections";
 
 export interface NavViewState {

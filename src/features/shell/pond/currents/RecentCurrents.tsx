@@ -1,4 +1,3 @@
-import { SURFACES } from "../../../../engine/surfaces";
 import type { NavThreadState, NavViewActions } from "../../../navigation";
 import {
   getMessengerThreadInitials,
@@ -29,7 +28,6 @@ export function RecentCurrents({ nav }: RecentCurrentsProps) {
       <div className="section-head">
         <span className="eyebrow">Recent currents</span>
         <span className="hint">koi you were swimming with</span>
-        <span className="more">See the whole shoal →</span>
       </div>
       <div className="current">
         {recentThreads.map((thread) => (
@@ -57,13 +55,14 @@ export function RecentCurrents({ nav }: RecentCurrentsProps) {
             <div className="db">
               <div className="dt">
                 <span className="dn">{thread.title}</span>
+              </div>
+              <div className="dm">
                 <span className="dtime">
                   {getMessengerThreadTimeLabel(thread.updatedAt)}
                 </span>
               </div>
               <div className="dmsg">{getMessengerThreadPreview(thread)}</div>
             </div>
-            <span className="dmode messenger">{SURFACES.messenger.label}</span>
           </div>
         ))}
         {recentThreads.length === 0 && (

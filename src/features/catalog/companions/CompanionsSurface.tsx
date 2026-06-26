@@ -2,12 +2,10 @@ import { useState } from "react";
 import type {
   NavCatalogState,
   NavCharacterActions,
-  NavSettingsState,
   NavViewActions,
   NavViewState,
 } from "../../navigation";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
-import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
 interface CompanionsSurfaceProps {
@@ -18,8 +16,7 @@ export type CompanionsSurfaceNav = Pick<
   NavCatalogState,
   "characters"
 > &
-  Pick<NavCharacterActions, "createCharacter" | "deleteCharacter" | "duplicateCharacter" | "updateCharacter"> &
-  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavCharacterActions, "createCharacter" | "updateCharacter"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
@@ -175,31 +172,14 @@ export function CompanionsSurface({ nav }: CompanionsSurfaceProps) {
     ? draftFromCharacter(activeCharacter)
     : EMPTY_DRAFT;
 
-  function openNew() {
-    nav.setView({ kind: "companions", mode: "new" });
-  }
-
-  function openEdit(characterId: string) {
-    nav.setView({ kind: "companions", characterId });
-  }
-
   function handleSave(input: CharacterRecordInput) {
     if (editingId) {
       nav.updateCharacter(editingId, input);
+      nav.setView({ kind: "companions", characterId: editingId });
+      return;
     } else {
-      nav.createCharacter(input);
-    }
-    nav.setView({ kind: "companions" });
-  }
-
-  function handleDuplicate(characterId: string) {
-    nav.duplicateCharacter(characterId);
-  }
-
-  function handleDelete(characterId: string) {
-    nav.deleteCharacter(characterId);
-    if (editingId === characterId) {
-      nav.setView({ kind: "companions" });
+      const character = nav.createCharacter(input);
+      nav.setView({ kind: "companions", characterId: character.id });
     }
   }
 
@@ -222,76 +202,7 @@ export function CompanionsSurface({ nav }: CompanionsSurfaceProps) {
           ← Back to Pond
         </button>
       </div>
-      <div className="pond-inner catalog-inner">
-        <div className="catalog-toolbar">
-          <span className="catalog-count">
-            {nav.characters.length} companions
-          </span>
-          <button type="button" className="catalog-new-btn" onClick={openNew}>
-            + New Companion
-          </button>
-        </div>
-
-        {nav.characters.length === 0 && !showEditor && (
-          <p className="catalog-empty">
-            No companions yet. Create one to stock your shoal.
-          </p>
-        )}
-
-        <div className="catalog-list">
-          {nav.characters.map((character) => (
-            <article
-              className={`catalog-card${
-                editingId === character.id ? " selected" : ""
-              }`}
-              key={character.id}
-            >
-              <button
-                type="button"
-                className="catalog-card-body catalog-card-open"
-                aria-label={`Edit ${character.displayName}`}
-                onClick={() => openEdit(character.id)}
-              >
-                <div className="catalog-avatar">
-                  {character.displayName.charAt(0).toUpperCase()}
-                </div>
-                <div className="catalog-card-copy">
-                  <b>{character.displayName}</b>
-                  {character.shortName && (
-                    <small>aka {character.shortName}</small>
-                  )}
-                  <span className="catalog-card-summary">
-                    {character.summary}
-                  </span>
-                </div>
-              </button>
-              <div className="catalog-card-actions">
-                <button
-                  type="button"
-                  className="catalog-action"
-                  aria-label={`Edit ${character.displayName}`}
-                  onClick={() => openEdit(character.id)}
-                >
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  className="catalog-action"
-                  aria-label={`Duplicate ${character.displayName}`}
-                  onClick={() => handleDuplicate(character.id)}
-                >
-                  ⧉
-                </button>
-                <DeleteButton
-                  ariaLabel={`Delete ${character.displayName}`}
-                  confirmRelease={nav.appSettings.confirmRelease}
-                  onConfirm={() => handleDelete(character.id)}
-                />
-              </div>
-            </article>
-          ))}
-        </div>
-
+      <div className="pond-inner catalog-inner catalog-editor-only">
         {showEditor && (
           <CompanionEditor
             key={editingId ?? "new-companion"}

@@ -42,7 +42,7 @@ export function KoiCard({
 
   return (
     <div
-      className={`koi-card${active ? " on" : ""}${locked ? " locked" : ""}`}
+      className={`koi-card${active ? " on" : ""}${locked ? " locked" : ""}${onRename || onDelete ? " actionable" : ""}`}
       role="button"
       tabIndex={locked ? -1 : 0}
       aria-disabled={locked || undefined}
@@ -66,7 +66,6 @@ export function KoiCard({
         <div className="kc-name">{name}</div>
         <div className="kc-sub">{sub}</div>
       </div>
-      <span className={`kc-mode ${mode}`}>{meta.label}</span>
       {(onRename || onDelete) && (
         <div className="kc-actions" aria-label={`${name} actions`}>
           {onRename && (

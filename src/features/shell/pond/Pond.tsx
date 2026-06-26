@@ -46,13 +46,12 @@ export function Pond({ nav }: PondProps) {
           nav.messengerStorageStatus !== "error"
         ? "through desktop host storage"
         : "only in this temporary session";
-  // The banner copy is contextual: the "pick a koi" hint is for the Pond home;
-  // once inside Messenger it would be misleading, so show a calmer status line.
+  // Thread views keep a contextual save/runtime banner; Pond home stays quiet.
   const banner = inMessenger
     ? `Reading the water — your Messenger thread is saved ${storagePhrase} as you swim.`
     : inClassic
       ? "Classic scene current — write the scene, then generate the next turn through the shared runtime."
-      : "Cast a line to read the water — pick a koi from the Shoal to see its tracker.";
+      : null;
 
   // Catalog surfaces render their own banner — only show the pond banner for
   // pond home / messenger / classic views.
@@ -68,12 +67,14 @@ export function Pond({ nav }: PondProps) {
 
   return (
     <main className="pond">
-      <div className="pond-banner">
-        <span className="ic" aria-hidden="true">
-          ◇
-        </span>{" "}
-        {banner}
-      </div>
+      {banner && (
+        <div className="pond-banner">
+          <span className="ic" aria-hidden="true">
+            ◇
+          </span>{" "}
+          {banner}
+        </div>
+      )}
       <div className="pond-inner">
         {inMessenger ? (
           <MessengerThread nav={nav} />

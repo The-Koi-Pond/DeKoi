@@ -18,17 +18,6 @@
   color: var(--mist-dim);
 }
 
-.section-head .more {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--jade);
-  cursor: pointer;
-}
-
-.section-head .more:hover {
-  color: var(--jade-hot);
-}
-
 .current {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -37,7 +26,7 @@
 
 .drifter {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 13px 14px;
   border-radius: 16px;
@@ -74,6 +63,7 @@
 .drifter .da {
   width: 40px;
   height: 40px;
+  margin-top: 1px;
   border-radius: 13px;
   flex: none;
   display: grid;
@@ -84,14 +74,20 @@
 }
 
 .drifter .db {
+  display: grid;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .drifter .dt {
+  min-width: 0;
+}
+
+.drifter .dm {
   display: flex;
   align-items: center;
-  gap: 8px;
+  min-height: 14px;
 }
 
 .drifter .dtime {
@@ -101,8 +97,14 @@
 }
 
 .drifter .dn {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 550;
+  line-height: 1.25;
 }
 
 .drifter .dmsg {
@@ -111,31 +113,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 2px;
-}
-
-.drifter .dmode {
-  font-size: 9px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 6px;
-  flex: none;
-}
-
-.drifter .dmode.messenger {
-  background: rgba(244, 122, 53, 0.14);
-  color: var(--koi-hot);
-}
-
-.drifter .dmode.classic {
-  background: rgba(39, 179, 170, 0.14);
-  color: var(--jade-hot);
-}
-
-.drifter .dmode.reserved {
-  background: rgba(227, 165, 52, 0.14);
-  color: var(--amber-hot);
 }
 
 .drifter[data-unread] {

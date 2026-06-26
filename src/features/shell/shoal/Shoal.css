@@ -10,16 +10,57 @@
 
 .app.shoal-closed .shoal {
   opacity: 0;
+  pointer-events: none;
+}
+
+.shoal-topbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--reed-soft);
+  background: rgba(9, 19, 23, 0.34);
+  color: var(--mist-dim);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.shoal-topbar button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 17px;
+  line-height: 1;
+  transition: 0.16s;
+}
+
+.shoal-topbar button:hover,
+.shoal-topbar button:focus-visible {
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  color: var(--foam);
+  outline: none;
 }
 
 .shoal-head {
-  padding: 16px 16px 10px;
+  padding: 12px 16px 10px;
 }
 
 .shoal-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -31,12 +72,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.shoal-mark {
-  width: 16px;
-  height: 16px;
-  flex: none;
 }
 
 .shoal-symbol {
@@ -94,8 +129,14 @@
 .catalog-rail-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 0;
   margin-bottom: 10px;
+  padding: 3px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(19, 36, 43, 0.72), rgba(9, 19, 23, 0.78));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .catalog-rail-tabs button {
@@ -104,28 +145,53 @@
   justify-content: center;
   gap: 6px;
   min-width: 0;
-  min-height: 30px;
-  border: 1px solid var(--reed-soft);
-  border-radius: 8px;
-  background: var(--abyss);
-  color: var(--mist);
+  min-height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mist-dim);
   cursor: pointer;
   font-family: var(--ui);
-  font-size: 11.5px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  transition:
+    background-color 0.16s,
+    box-shadow 0.16s,
+    color 0.16s;
 }
 
-.catalog-rail-tabs button span {
-  color: var(--mist-dim);
-  font-size: 10px;
+.catalog-rail-tabs button + button {
+  border-left: 1px solid rgba(117, 143, 146, 0.16);
 }
 
 .catalog-rail-tabs button:hover,
-.catalog-rail-tabs button:focus-visible,
-.catalog-rail-tabs button.on {
-  border-color: rgba(39, 179, 170, 0.38);
-  background: rgba(39, 179, 170, 0.1);
-  color: var(--jade-hot);
+.catalog-rail-tabs button:focus-visible {
+  color: var(--foam);
   outline: none;
+}
+
+.catalog-rail-tabs button.on {
+  border-left-color: transparent;
+  background: linear-gradient(180deg, rgba(244, 122, 53, 0.18), rgba(244, 122, 53, 0.08));
+  box-shadow:
+    0 0 0 1px rgba(244, 122, 53, 0.32),
+    0 6px 14px -10px rgba(244, 122, 53, 0.78);
+  color: var(--koi-hot);
+}
+
+.catalog-rail-tabs button.on + button,
+.catalog-rail-tabs button:has(+ .on) {
+  border-left-color: transparent;
+}
+
+.catalog-rail-tabs button:nth-child(2).on {
+  background: linear-gradient(180deg, rgba(39, 179, 170, 0.18), rgba(39, 179, 170, 0.08));
+  box-shadow:
+    0 0 0 1px rgba(39, 179, 170, 0.32),
+    0 6px 14px -10px rgba(39, 179, 170, 0.78);
+  color: var(--jade-hot);
 }
 
 .pill {
@@ -160,6 +226,39 @@
 .pill.koi:hover {
   background: rgba(244, 122, 53, 0.16);
   color: var(--koi-hot);
+}
+
+.pill.classic {
+  color: var(--jade);
+  border-color: rgba(39, 179, 170, 0.3);
+  background: rgba(39, 179, 170, 0.08);
+}
+
+.pill.classic:hover {
+  background: rgba(39, 179, 170, 0.16);
+  color: var(--jade-hot);
+}
+
+.title-cast {
+  flex: none;
+  min-width: 128px;
+  padding: 0 12px;
+}
+
+.title-folder {
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.title-folder svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
 .shoal-meta {

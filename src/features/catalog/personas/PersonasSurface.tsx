@@ -2,12 +2,10 @@ import { useState } from "react";
 import type {
   NavCatalogState,
   NavPersonaActions,
-  NavSettingsState,
   NavViewActions,
   NavViewState,
 } from "../../navigation";
 import type { PersonaRecordInput } from "../../../engine/persona-actions";
-import { DeleteButton } from "../shared/DeleteButton";
 import "../shared/CatalogSurface.css";
 
 interface PersonasSurfaceProps {
@@ -18,8 +16,7 @@ export type PersonasSurfaceNav = Pick<
   NavCatalogState,
   "personas"
 > &
-  Pick<NavPersonaActions, "createPersona" | "deletePersona" | "duplicatePersona" | "updatePersona"> &
-  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavPersonaActions, "createPersona" | "updatePersona"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
@@ -155,31 +152,14 @@ export function PersonasSurface({ nav }: PersonasSurfaceProps) {
   const showEditor = isCreating || activePersona !== null;
   const initialDraft = activePersona ? draftFromPersona(activePersona) : EMPTY_DRAFT;
 
-  function openNew() {
-    nav.setView({ kind: "personas", mode: "new" });
-  }
-
-  function openEdit(personaId: string) {
-    nav.setView({ kind: "personas", personaId });
-  }
-
   function handleSave(input: PersonaRecordInput) {
     if (editingId) {
       nav.updatePersona(editingId, input);
+      nav.setView({ kind: "personas", personaId: editingId });
+      return;
     } else {
-      nav.createPersona(input);
-    }
-    nav.setView({ kind: "personas" });
-  }
-
-  function handleDuplicate(personaId: string) {
-    nav.duplicatePersona(personaId);
-  }
-
-  function handleDelete(personaId: string) {
-    nav.deletePersona(personaId);
-    if (editingId === personaId) {
-      nav.setView({ kind: "personas" });
+      const persona = nav.createPersona(input);
+      nav.setView({ kind: "personas", personaId: persona.id });
     }
   }
 
@@ -202,71 +182,7 @@ export function PersonasSurface({ nav }: PersonasSurfaceProps) {
           ← Back to Pond
         </button>
       </div>
-      <div className="pond-inner catalog-inner">
-        <div className="catalog-toolbar">
-          <span className="catalog-count">{nav.personas.length} personas</span>
-          <button type="button" className="catalog-new-btn" onClick={openNew}>
-            + New Persona
-          </button>
-        </div>
-
-        {nav.personas.length === 0 && !showEditor && (
-          <p className="catalog-empty">
-            No personas yet. Create one to define how you appear in threads.
-          </p>
-        )}
-
-        <div className="catalog-list">
-          {nav.personas.map((persona) => (
-            <article
-              className={`catalog-card${
-                editingId === persona.id ? " selected" : ""
-              }`}
-              key={persona.id}
-            >
-              <button
-                type="button"
-                className="catalog-card-body catalog-card-open"
-                aria-label={`Edit ${persona.displayName}`}
-                onClick={() => openEdit(persona.id)}
-              >
-                <div className="catalog-avatar">
-                  {persona.displayName.charAt(0).toUpperCase()}
-                </div>
-                <div className="catalog-card-copy">
-                  <b>{persona.displayName}</b>
-                  <span className="catalog-card-summary">
-                    {persona.summary}
-                  </span>
-                </div>
-              </button>
-              <div className="catalog-card-actions">
-                <button
-                  type="button"
-                  className="catalog-action"
-                  aria-label={`Edit ${persona.displayName}`}
-                  onClick={() => openEdit(persona.id)}
-                >
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  className="catalog-action"
-                  aria-label={`Duplicate ${persona.displayName}`}
-                  onClick={() => handleDuplicate(persona.id)}
-                >
-                  ⧉
-                </button>
-                <DeleteButton
-                  ariaLabel={`Delete ${persona.displayName}`}
-                  confirmRelease={nav.appSettings.confirmRelease}
-                  onConfirm={() => handleDelete(persona.id)}
-                />
-              </div>
-            </article>
-          ))}
-        </div>
-
+      <div className="pond-inner catalog-inner catalog-editor-only">
         {showEditor && (
           <PersonaEditor
             key={editingId ?? "new-persona"}

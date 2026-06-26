@@ -8,7 +8,6 @@ import {
   type SurfaceId,
 } from "../../../engine/surfaces";
 import type {
-  NavMessengerThreadActions,
   NavViewActions,
   NavViewState,
   SideRailView,
@@ -16,13 +15,11 @@ import type {
 
 interface BankProps {
   nav: BankNav;
+  onOpenShoal: () => void;
+  shoalClosed: boolean;
 }
 
-export type BankNav = Pick<
-  NavMessengerThreadActions,
-  "createMessengerThread"
-> &
-  Pick<NavViewActions, "setSelectedSurface" | "setSideRailView"> &
+export type BankNav = Pick<NavViewActions, "setSelectedSurface" | "setSideRailView"> &
   Pick<NavViewState, "selectedSurface" | "sideRailView">;
 
 const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
@@ -34,19 +31,19 @@ const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
     mode: CLASSIC,
     icon: (
       <>
-        <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
-        <path d="M4 5v14" />
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+        <circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none" />
       </>
     ),
   },
   {
     mode: RESERVED,
     icon: (
-      <>
-        <path d="M6 3v6a6 6 0 0 0 12 0V3" />
-        <path d="M6 21h12" />
-        <path d="M12 15v6" />
-      </>
+      <path d="M20.2 5.8a5.1 5.1 0 0 0-7.2 0L12 6.8l-1-1a5.1 5.1 0 0 0-7.2 7.2l1 1L12 21l7.2-7 1-1a5.1 5.1 0 0 0 0-7.2z" />
     ),
   },
 ];
@@ -58,21 +55,8 @@ const RAILS: {
   icon: React.ReactNode;
 }[] = [
   {
-    view: "lorebooks",
-    label: "Lorebooks",
-    note: "world notes",
-    icon: (
-      <>
-        <path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3-3z" />
-        <path d="M5 4v13" />
-        <path d="M9 8h5" />
-        <path d="M9 11h5" />
-      </>
-    ),
-  },
-  {
     view: "people",
-    label: "Companions & Personas",
+    label: "Companions / Characters",
     note: "character catalog",
     icon: (
       <>
@@ -80,6 +64,19 @@ const RAILS: {
         <path d="M15.8 12.3a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4z" />
         <path d="M3.8 20a4.7 4.7 0 0 1 8.8-2.3" />
         <path d="M12.8 20a4 4 0 0 1 7.4-2.2" />
+      </>
+    ),
+  },
+  {
+    view: "lorebooks",
+    label: "Lorebooks",
+    note: "world notes",
+    icon: (
+      <>
+        <path d="M4 5.5h6a3 3 0 0 1 3 3v11a3 3 0 0 0-3-2.5H4z" />
+        <path d="M20 5.5h-6a3 3 0 0 0-3 3v11a3 3 0 0 1 3-2.5h6z" />
+        <path d="M8 9h2" />
+        <path d="M16 9h-2" />
       </>
     ),
   },
@@ -95,12 +92,38 @@ const RAILS: {
       </>
     ),
   },
+  {
+    view: "presets",
+    label: "Presets",
+    note: "saved setups",
+    icon: (
+      <>
+        <path d="M5 5h14" />
+        <path d="M5 12h14" />
+        <path d="M5 19h14" />
+        <path d="M8 3v4" />
+        <path d="M16 10v4" />
+        <path d="M11 17v4" />
+      </>
+    ),
+  },
 ];
 
-export function Bank({ nav }: BankProps) {
+export function Bank({ nav, onOpenShoal, shoalClosed }: BankProps) {
   return (
     <nav className="bank" aria-label="Surface dock">
       <div className="bank-label">The Bank</div>
+      {shoalClosed && (
+        <button
+          type="button"
+          className="shoal-reopen"
+          aria-label="Open The Shoal"
+          title="Open The Shoal"
+          onClick={onOpenShoal}
+        >
+          ›
+        </button>
+      )}
 
       {DIVES.map(({ mode, icon }) => {
         const meta = SURFACES[mode];
@@ -149,10 +172,14 @@ export function Bank({ nav }: BankProps) {
             tabIndex={0}
             aria-label={meta.label}
             aria-pressed={isActive}
-            onClick={() => nav.setSelectedSurface(mode)}
+            onClick={() => {
+              onOpenShoal();
+              nav.setSelectedSurface(mode);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
+                onOpenShoal();
                 nav.setSelectedSurface(mode);
               }
             }}
@@ -187,7 +214,10 @@ export function Bank({ nav }: BankProps) {
             title={label}
             aria-label={label}
             aria-pressed={isActive}
-            onClick={() => nav.setSideRailView(view)}
+            onClick={() => {
+              onOpenShoal();
+              nav.setSideRailView(view);
+            }}
           >
             <svg
               viewBox="0 0 24 24"
@@ -216,7 +246,10 @@ export function Bank({ nav }: BankProps) {
         title="Connections"
         aria-label="Connections"
         aria-pressed={nav.sideRailView === "connections"}
-        onClick={() => nav.setSideRailView("connections")}
+        onClick={() => {
+          onOpenShoal();
+          nav.setSideRailView("connections");
+        }}
       >
         <svg
           viewBox="0 0 24 24"
@@ -236,19 +269,7 @@ export function Bank({ nav }: BankProps) {
           <i>provider settings</i>
         </span>
       </button>
-
       <div className="bank-spacer" />
-      <button
-        className="cast-fab"
-        title="Cast a line — new chat"
-        aria-label="Cast a line — new chat"
-        onClick={() => {
-          nav.setSideRailView("shoal");
-          nav.createMessengerThread();
-        }}
-      >
-        +
-      </button>
     </nav>
   );
 }

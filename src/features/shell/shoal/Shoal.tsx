@@ -21,6 +21,7 @@ import type {
 } from "../../navigation";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import { getProviderConnectionStatusLabel } from "../../../engine/provider-connection";
+import { CLASSIC, MESSENGER } from "../../../engine/surfaces";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -34,6 +35,7 @@ type PeopleTab = "companions" | "personas";
 
 interface ShoalProps {
   nav: ShoalNav;
+  onCollapse: () => void;
 }
 
 export type ShoalNav = Pick<
@@ -56,7 +58,7 @@ export type ShoalNav = Pick<
   > &
   Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
   Pick<NavViewActions, "openClassicThread" | "openMessengerThread" | "setView"> &
-  Pick<NavViewState, "sideRailView" | "view">;
+  Pick<NavViewState, "selectedSurface" | "sideRailView" | "view">;
 
 interface CatalogRailCardProps {
   active?: boolean;
@@ -66,6 +68,31 @@ interface CatalogRailCardProps {
   onOpen: () => void;
   sub: string;
   tone: "koi" | "jade" | "amber";
+}
+
+function ShoalTopBar({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
+  return (
+    <div className="shoal-topbar">
+      <span>The Shoal</span>
+      <button
+        type="button"
+        aria-label="Collapse The Shoal"
+        title="Collapse The Shoal"
+        onClick={onCollapse}
+      >
+        ‹
+      </button>
+    </div>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M2.5 5.5h5l1.3 1.7h6.7v6.2a1.1 1.1 0 0 1-1.1 1.1H3.6a1.1 1.1 0 0 1-1.1-1.1z" />
+      <path d="M2.5 5.5V4.6a1.1 1.1 0 0 1 1.1-1.1h3.1l1.2 2" />
+    </svg>
+  );
 }
 
 function CatalogRailCard({
@@ -93,7 +120,7 @@ function CatalogRailCard({
   );
 }
 
-function PeopleCatalogRail({ nav }: ShoalProps) {
+function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PeopleTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
@@ -129,6 +156,8 @@ function PeopleCatalogRail({ nav }: ShoalProps) {
   const shownCount = isCompanionTab
     ? filteredCharacters.length
     : filteredPersonas.length;
+  const actionTone = isCompanionTab ? "koi" : "classic";
+  const searchKind = isCompanionTab ? "companions" : "personas";
 
   function openNew() {
     if (isCompanionTab) {
@@ -141,34 +170,8 @@ function PeopleCatalogRail({ nav }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — characters">
+      <ShoalTopBar onCollapse={onCollapse} />
       <div className="shoal-head">
-        <div className="shoal-title">
-          <h2>
-            <span className="shoal-symbol" aria-hidden="true">
-              ⚇
-            </span>
-            Catalog
-          </h2>
-          <span className="count">
-            {nav.characters.length + nav.personas.length} stocked
-          </span>
-        </div>
-        <div className="shoal-search">
-          <label
-            className="glyph"
-            aria-hidden="true"
-            htmlFor="catalog-people-search-input"
-          >
-            ⌕
-          </label>
-          <input
-            id="catalog-people-search-input"
-            type="search"
-            placeholder="Find companions or personas..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
         <div
           className="catalog-rail-tabs"
           role="tablist"
@@ -181,7 +184,7 @@ function PeopleCatalogRail({ nav }: ShoalProps) {
             aria-selected={isCompanionTab}
             onClick={() => setActiveTab("companions")}
           >
-            Companions <span>{nav.characters.length}</span>
+            Companions
           </button>
           <button
             type="button"
@@ -190,18 +193,44 @@ function PeopleCatalogRail({ nav }: ShoalProps) {
             aria-selected={!isCompanionTab}
             onClick={() => setActiveTab("personas")}
           >
-            Personas <span>{nav.personas.length}</span>
+            Personas
           </button>
         </div>
+        <div className="shoal-search">
+          <label
+            className="glyph"
+            aria-hidden="true"
+            htmlFor="catalog-people-search-input"
+          >
+            ⌕
+          </label>
+          <input
+            id="catalog-people-search-input"
+            type="search"
+            aria-label={`Find ${searchKind}`}
+            placeholder={`Find ${searchKind}...`}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
         <div className="shoal-actions">
-          <button className="pill koi" type="button" onClick={openNew}>
+          <button className={`pill ${actionTone}`} type="button" onClick={openNew}>
             ＋ {isCompanionTab ? "Companion" : "Persona"}
+          </button>
+          <button
+            className={`pill ${actionTone} title-folder`}
+            type="button"
+            title="Add grouping folder"
+            aria-label="Add grouping folder"
+            disabled
+          >
+            <FolderIcon />
+            Folder
           </button>
         </div>
       </div>
       <div className="shoal-meta">
         <span>{isCompanionTab ? "Companions" : "Personas"}</span>
-        <span className="mark-chip">{shownCount} shown</span>
       </div>
       <div className="shoal-list">
         {isCompanionTab ? (
@@ -252,7 +281,7 @@ function PeopleCatalogRail({ nav }: ShoalProps) {
   );
 }
 
-function LorebookCatalogRail({ nav }: ShoalProps) {
+function LorebookCatalogRail({ nav, onCollapse }: ShoalProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
   const activeLorebookId =
@@ -278,6 +307,7 @@ function LorebookCatalogRail({ nav }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — lorebooks">
+      <ShoalTopBar onCollapse={onCollapse} />
       <div className="shoal-head">
         <div className="shoal-title">
           <h2>
@@ -348,7 +378,7 @@ function LorebookCatalogRail({ nav }: ShoalProps) {
   );
 }
 
-function ConnectionsCatalogRail({ nav }: ShoalProps) {
+function ConnectionsCatalogRail({ nav, onCollapse }: ShoalProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
   const activeConnectionId = nav.appSettings.activeMessengerConnectionId;
@@ -374,6 +404,7 @@ function ConnectionsCatalogRail({ nav }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">
+      <ShoalTopBar onCollapse={onCollapse} />
       <div className="shoal-head">
         <div className="shoal-title">
           <h2>
@@ -433,9 +464,10 @@ function ConnectionsCatalogRail({ nav }: ShoalProps) {
   );
 }
 
-function MediaCatalogRail() {
+function MediaCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — media">
+      <ShoalTopBar onCollapse={onCollapse} />
       <div className="shoal-head">
         <div className="shoal-title">
           <h2>
@@ -461,9 +493,40 @@ function MediaCatalogRail() {
   );
 }
 
-function ThreadShoal({ nav }: ShoalProps) {
+function PresetsCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
+  return (
+    <aside className="shoal catalog-rail" aria-label="Catalog — presets">
+      <ShoalTopBar onCollapse={onCollapse} />
+      <div className="shoal-head">
+        <div className="shoal-title">
+          <h2>
+            <span className="shoal-symbol" aria-hidden="true">
+              ≡
+            </span>
+            Presets
+          </h2>
+          <span className="count">0 stocked</span>
+        </div>
+      </div>
+      <div className="shoal-meta">
+        <span>Presets</span>
+        <span className="mark-chip">0 shown</span>
+      </div>
+      <div className="shoal-list">
+        <div className="group-label">Presets</div>
+        <div className="shoal-empty">
+          <p>No presets yet.</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   const [query, setQuery] = useState("");
   const sortMode = nav.appSettings.shoalSortMode;
+  const activeSurface = nav.selectedSurface === CLASSIC ? CLASSIC : MESSENGER;
+  const isClassicSurface = activeSurface === CLASSIC;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const activeClassicThreadId =
     nav.view.kind === "classic" ? nav.view.threadId : null;
@@ -475,7 +538,6 @@ function ThreadShoal({ nav }: ShoalProps) {
     () => sortClassicThreads(nav.classicThreads, sortMode),
     [nav.classicThreads, sortMode],
   );
-  const totalThreads = sortedThreads.length + sortedClassicThreads.length;
   const storageLabel =
     nav.messengerStorageMode === "remote" && nav.messengerStorageStatus !== "error"
       ? "remote runtime"
@@ -548,15 +610,39 @@ function ThreadShoal({ nav }: ShoalProps) {
     nav.setShoalSortMode(SHOAL_SORT_ORDER[nextIndex]);
   }
 
+  const visibleCount = isClassicSurface
+    ? filteredClassicThreads.length
+    : filteredThreads.length;
+  const activeSurfaceLabel = isClassicSurface ? "Classic" : "Messenger";
+  const searchPlaceholder = isClassicSurface
+    ? "Find a scene by name or text..."
+    : "Find a koi by name or marking...";
+  const createActiveThread = isClassicSurface
+    ? nav.createClassicThread
+    : nav.createMessengerThread;
+
   return (
-    <aside className="shoal" aria-label="The Shoal — saved threads">
+    <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
+      <ShoalTopBar onCollapse={onCollapse} />
       <div className="shoal-head">
         <div className="shoal-title">
-          <h2>
-            <img className="shoal-mark" src="/koi-mark.svg" alt="" />
-            The Shoal
-          </h2>
-          <span className="count">{totalThreads} swimming</span>
+          <button
+            className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
+            type="button"
+            onClick={() => createActiveThread()}
+          >
+            {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
+          </button>
+          <button
+            className={`pill ${isClassicSurface ? "classic" : "koi"} title-folder`}
+            type="button"
+            title="Add grouping folder"
+            aria-label="Add grouping folder"
+            disabled
+          >
+            <FolderIcon />
+            Folder
+          </button>
         </div>
         <div className="shoal-search">
           <label
@@ -569,79 +655,64 @@ function ThreadShoal({ nav }: ShoalProps) {
           <input
             id="shoal-search-input"
             type="search"
-            placeholder="Find a koi by name or marking…"
+            placeholder={searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-        </div>
-        <div className="shoal-actions">
-          <button
-            className="pill koi"
-            onClick={() => nav.createMessengerThread()}
-          >
-            ＋ Cast a line
-          </button>
-          <button className="pill" onClick={() => nav.createClassicThread()}>
-            ＋ Scene
-          </button>
-          <button className="pill" disabled title="Not stocked yet">
-            ⬡ Net
-          </button>
-          <button className="pill" disabled title="Not stocked yet">
-            ◇ Catch
-          </button>
         </div>
       </div>
       <div className="shoal-meta">
         <button
           type="button"
           className="sort"
-          aria-label={`Sort Messenger threads: ${SHOAL_SORT_LABELS[sortMode]}`}
+          aria-label={`Sort ${activeSurfaceLabel} threads: ${SHOAL_SORT_LABELS[sortMode]}`}
           title="Change thread sort"
           onClick={cycleSortMode}
         >
           ↕ {SHOAL_SORT_LABELS[sortMode]}
         </button>
         <span className="mark-chip" title={nav.messengerStorageMessage}>
-          ⌗ {filteredThreads.length + filteredClassicThreads.length} shown
+          ⌗ {visibleCount} shown
         </span>
       </div>
       <div className="shoal-list">
-        <div className="group-label">Messenger — {storageLabel}</div>
-        {filteredThreads.map((thread) => (
-          <KoiCard
-            key={thread.id}
-            initials={getMessengerThreadInitials(thread.title)}
-            name={thread.title}
-            sub={getMessengerThreadPreview(thread)}
-            mode="messenger"
-            active={thread.id === activeThreadId}
-            online
-            onOpen={() => nav.openMessengerThread(thread.id)}
-            onRename={() => handleRenameMessenger(thread.id, thread.title)}
-            onDelete={() => handleDeleteMessenger(thread.id, thread.title)}
-          />
-        ))}
-        <div className="group-label">Classic — {storageLabel}</div>
-        {filteredClassicThreads.map((thread) => (
-          <KoiCard
-            key={thread.id}
-            initials={getClassicThreadInitials(thread.title)}
-            name={thread.title}
-            sub={getClassicThreadPreview(thread)}
-            mode="classic"
-            active={thread.id === activeClassicThreadId}
-            online
-            onOpen={() => nav.openClassicThread(thread.id)}
-            onRename={() => handleRenameClassic(thread.id, thread.title)}
-            onDelete={() => handleDeleteClassic(thread.id, thread.title)}
-          />
-        ))}
-        {filteredThreads.length === 0 && filteredClassicThreads.length === 0 && (
+        <div className="group-label">
+          {activeSurfaceLabel} — {storageLabel}
+        </div>
+        {isClassicSurface
+          ? filteredClassicThreads.map((thread) => (
+              <KoiCard
+                key={thread.id}
+                initials={getClassicThreadInitials(thread.title)}
+                name={thread.title}
+                sub={getClassicThreadPreview(thread)}
+                mode="classic"
+                active={thread.id === activeClassicThreadId}
+                online
+                onOpen={() => nav.openClassicThread(thread.id)}
+                onRename={() => handleRenameClassic(thread.id, thread.title)}
+                onDelete={() => handleDeleteClassic(thread.id, thread.title)}
+              />
+            ))
+          : filteredThreads.map((thread) => (
+              <KoiCard
+                key={thread.id}
+                initials={getMessengerThreadInitials(thread.title)}
+                name={thread.title}
+                sub={getMessengerThreadPreview(thread)}
+                mode="messenger"
+                active={thread.id === activeThreadId}
+                online
+                onOpen={() => nav.openMessengerThread(thread.id)}
+                onRename={() => handleRenameMessenger(thread.id, thread.title)}
+                onDelete={() => handleDeleteMessenger(thread.id, thread.title)}
+              />
+            ))}
+        {visibleCount === 0 && (
           <div className="shoal-empty">
             <p>No saved currents match this search.</p>
-            <button type="button" onClick={() => nav.createMessengerThread()}>
-              Cast a line
+            <button type="button" onClick={() => createActiveThread()}>
+              {isClassicSurface ? "Start scene" : "Cast a line"}
             </button>
           </div>
         )}
@@ -650,13 +721,22 @@ function ThreadShoal({ nav }: ShoalProps) {
   );
 }
 
-export function Shoal({ nav }: ShoalProps) {
-  if (nav.sideRailView === "lorebooks") return <LorebookCatalogRail nav={nav} />;
-  if (nav.sideRailView === "people") return <PeopleCatalogRail nav={nav} />;
-  if (nav.sideRailView === "media") return <MediaCatalogRail />;
+export function Shoal({ nav, onCollapse }: ShoalProps) {
+  if (nav.sideRailView === "lorebooks") {
+    return <LorebookCatalogRail nav={nav} onCollapse={onCollapse} />;
+  }
+  if (nav.sideRailView === "people") {
+    return <PeopleCatalogRail nav={nav} onCollapse={onCollapse} />;
+  }
+  if (nav.sideRailView === "media") {
+    return <MediaCatalogRail onCollapse={onCollapse} />;
+  }
+  if (nav.sideRailView === "presets") {
+    return <PresetsCatalogRail onCollapse={onCollapse} />;
+  }
   if (nav.sideRailView === "connections") {
-    return <ConnectionsCatalogRail nav={nav} />;
+    return <ConnectionsCatalogRail nav={nav} onCollapse={onCollapse} />;
   }
 
-  return <ThreadShoal nav={nav} />;
+  return <ThreadShoal nav={nav} onCollapse={onCollapse} />;
 }

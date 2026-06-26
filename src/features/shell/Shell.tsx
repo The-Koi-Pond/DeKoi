@@ -3,7 +3,7 @@ import { Waterline, type WaterlineNav } from "./waterline";
 import { Bank, type BankNav } from "./bank";
 import { Shoal, type ShoalNav } from "./shoal";
 import { Tide, type TideNav } from "./tide";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CareDrawer, type CareDrawerNav } from "./care";
 import { Pond, type PondNav } from "./pond";
 import type { NavSettingsState } from "../navigation";
@@ -37,20 +37,30 @@ function applyPondAppearance(settings: ShellNav["appSettings"]) {
 }
 
 export function Shell({ nav }: ShellProps) {
+  const [shoalClosed, setShoalClosed] = useState(false);
+
   // Apply appearance settings whenever they change
   useEffect(() => {
     applyPondAppearance(nav.appSettings);
   }, [nav.appSettings]);
 
   return (
-    <div className={`app${nav.careOpen ? " care-open" : ""}`}>
+    <div
+      className={`app${nav.careOpen ? " care-open" : ""}${
+        shoalClosed ? " shoal-closed" : ""
+      }`}
+    >
       <KoiSprite />
       <div className="caustics" aria-hidden="true" />
       <div className="caustics b" aria-hidden="true" />
 
       <Waterline nav={nav} />
-      <Bank nav={nav} />
-      <Shoal nav={nav} />
+      <Bank
+        nav={nav}
+        shoalClosed={shoalClosed}
+        onOpenShoal={() => setShoalClosed(false)}
+      />
+      <Shoal nav={nav} onCollapse={() => setShoalClosed(true)} />
       <Pond nav={nav} />
       <Tide nav={nav} />
       <CareDrawer nav={nav} />

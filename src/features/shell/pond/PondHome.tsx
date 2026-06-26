@@ -1,4 +1,4 @@
-import { Hero, type HeroNav } from "./hero/Hero";
+import { Hero } from "./hero/Hero";
 import { ModePools, type ModePoolsNav } from "./pools/ModePools";
 import {
   RecentCurrents,
@@ -11,14 +11,13 @@ interface PondHomeProps {
 }
 
 export type PondHomeNav = DepthsNav &
-  HeroNav &
   ModePoolsNav &
   RecentCurrentsNav;
 
 export function PondHome({ nav }: PondHomeProps) {
   return (
     <>
-      <Hero nav={nav} />
+      <Hero />
       <div className="pond-divider" aria-hidden="true">
         <img src="/lotus-divider.svg" alt="" />
       </div>

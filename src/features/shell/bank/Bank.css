@@ -1,12 +1,45 @@
 .bank {
   grid-area: bank;
+  position: relative;
+  z-index: 49;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 0 12px;
+  padding: 12px 0 10px;
   border-right: 1px solid var(--reed-soft);
   background: linear-gradient(180deg, rgba(13, 25, 31, 0.6), rgba(9, 19, 23, 0.6));
-  gap: 8px;
+  gap: 7px;
+}
+
+.shoal-reopen {
+  position: absolute;
+  right: -18px;
+  top: 16px;
+  z-index: 1;
+  display: grid;
+  width: 18px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--reed-soft);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  background: rgba(19, 36, 43, 0.78);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 15px;
+  box-shadow: 5px 0 14px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(8px);
+  transition:
+    color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shoal-reopen:hover,
+.shoal-reopen:focus-visible {
+  color: var(--foam);
+  outline: none;
+  transform: translateX(2px);
 }
 
 .bank-label {
@@ -22,8 +55,8 @@
 .dive {
   --c: var(--koi);
   --c2: var(--koi-hot);
-  width: 54px;
-  height: 54px;
+  width: 46px;
+  height: 46px;
   border-radius: 50% 50% 50% 50%;
   display: grid;
   place-items: center;
@@ -36,13 +69,13 @@
 }
 
 .dive svg {
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
 }
 
 .dive .tag {
   position: absolute;
-  left: 64px;
+  left: 54px;
   top: 50%;
   transform: translateY(-50%) translateX(-6px);
   background: var(--raise);
@@ -88,19 +121,6 @@
   color: var(--c2);
 }
 
-.dive.on::before {
-  content: '';
-  position: absolute;
-  left: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 26px;
-  border-radius: 4px;
-  background: var(--c);
-  box-shadow: 0 0 12px var(--c);
-}
-
 .dive.messenger { --c: var(--koi); --c2: var(--koi-hot); }
 .dive.classic { --c: var(--jade); --c2: var(--jade-hot); }
 .dive.reserved { --c: var(--amber); --c2: var(--amber-hot); }
@@ -115,13 +135,13 @@
 .rail-tool {
   --c: var(--jade);
   --c2: var(--jade-hot);
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   position: relative;
   border: 1px solid var(--reed-soft);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.025);
   color: var(--mist);
   cursor: pointer;
@@ -129,13 +149,13 @@
 }
 
 .rail-tool svg {
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
 }
 
 .rail-tool .tag {
   position: absolute;
-  left: 56px;
+  left: 48px;
   top: 50%;
   z-index: 40;
   transform: translateY(-50%) translateX(-6px);
@@ -185,50 +205,14 @@
   color: var(--c2);
 }
 
-.rail-tool.on::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  width: 3px;
-  height: 22px;
-  border-radius: 4px;
-  background: var(--c);
-  box-shadow: 0 0 12px var(--c);
-  transform: translateY(-50%);
-}
-
 .rail-tool.connections { --c: var(--koi); --c2: var(--koi-hot); }
 .rail-tool.lorebooks { --c: var(--amber); --c2: var(--amber-hot); }
 .rail-tool.people { --c: var(--jade); --c2: var(--jade-hot); }
 .rail-tool.media { --c: var(--koi); --c2: var(--koi-hot); }
+.rail-tool.presets { --c: var(--jade); --c2: var(--jade-hot); }
 
 .bank-spacer {
   flex: 1;
-}
-
-.cast-fab {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(140deg, var(--koi-hot), var(--koi-deep));
-  border: none;
-  cursor: pointer;
-  color: #0b1216;
-  font-size: 22px;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 8px 22px -8px rgba(244, 122, 53, 0.7);
-  transition: 0.2s;
-}
-
-.cast-fab:hover {
-  transform: scale(1.06) rotate(8deg);
-  box-shadow: 0 10px 30px -8px rgba(244, 122, 53, 0.9);
-}
-
-.cast-fab:active {
-  transform: scale(0.94);
 }
 
 /* Locked dives: not activatable — dim and drop the hover lift, but keep the
