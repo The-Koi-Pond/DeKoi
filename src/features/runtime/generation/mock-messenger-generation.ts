@@ -18,7 +18,7 @@ function getMockReplyText(
       .map((entry) => `${lorebook.title}: ${entry.title}`),
   );
   const companionName = companion.nickname ?? companion.displayName;
-  const personaName = request.activePersona?.displayName ?? "no persona";
+  const personaName = request.activePersona?.displayName ?? "Anonymous";
   const loreSummary =
     enabledLoreEntries.length > 0
       ? `${enabledLoreEntries.length} lore notes, including ${enabledLoreEntries[0]}, are available.`

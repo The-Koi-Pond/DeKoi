@@ -1,7 +1,11 @@
+import type { ReactNode } from "react";
 import { SURFACES, type SurfaceId } from "../../../engine/surfaces";
 import "./koi-card.css";
 
 interface KoiCardProps {
+  avatarLabel?: string;
+  avatarUrl?: string | null;
+  icon?: ReactNode;
   initials: string;
   name: string;
   sub: string;
@@ -11,6 +15,7 @@ interface KoiCardProps {
   onDelete?: () => void;
   onOpen: () => void;
   onRename?: () => void;
+  showStatus?: boolean;
 }
 
 // Avatar gradient per surface. Locked surfaces keep their color but render as
@@ -22,6 +27,9 @@ const AVA_VARIANT: Record<SurfaceId, string> = {
 };
 
 export function KoiCard({
+  avatarLabel,
+  avatarUrl,
+  icon,
   initials,
   name,
   sub,
@@ -31,6 +39,7 @@ export function KoiCard({
   onDelete,
   onOpen,
   onRename,
+  showStatus = true,
 }: KoiCardProps) {
   const meta = SURFACES[mode];
   const locked = meta.locked;
@@ -59,8 +68,18 @@ export function KoiCard({
       }}
     >
       <div className={`ava ${AVA_VARIANT[mode]}`}>
-        {initials}
-        <span className={`dot${online !== false ? " live" : " idle"}`} />
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={avatarLabel ?? ""} />
+        ) : icon ? (
+          <span className="ava-icon" aria-hidden="true">
+            {icon}
+          </span>
+        ) : (
+          initials
+        )}
+        {showStatus && (
+          <span className={`dot${online !== false ? " live" : " idle"}`} />
+        )}
       </div>
       <div className="kc-body">
         <div className="kc-name">{name}</div>

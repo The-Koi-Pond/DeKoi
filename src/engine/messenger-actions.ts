@@ -195,6 +195,31 @@ export function createPersonaMessengerMessage({
   }
 }
 
+export function createAnonymousMessengerMessage({
+  body,
+  id,
+  now,
+  thread,
+}: {
+  body: string
+  id: string
+  now: string
+  thread: MessengerThread
+}): MessengerMessage {
+  return {
+    id,
+    threadId: thread.id,
+    author: {
+      kind: 'unknown',
+      label: 'Anonymous',
+    },
+    body,
+    origin: 'manual',
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 export function createPlaceholderCompanionMessage({
   body,
   companion,

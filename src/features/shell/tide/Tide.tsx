@@ -8,13 +8,17 @@ import {
 } from 'react'
 import './Tide.css'
 import type {
+  NavClassicThreadActions,
   NavCatalogState,
+  NavMessengerThreadActions,
   NavSettingsActions,
   NavSettingsState,
   NavThreadState,
   NavViewActions,
   NavViewState,
 } from '../../navigation'
+import { setClassicThreadPersona } from '../../../engine/classic-actions'
+import { setMessengerThreadPersona } from '../../../engine/messenger-actions'
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -27,23 +31,32 @@ interface TideProps {
 
 export type TideNav = Pick<NavSettingsActions, 'setSurfaceStatus'> &
   Pick<NavCatalogState, 'personas'> &
+  Pick<NavClassicThreadActions, 'updateClassicThread'> &
+  Pick<NavMessengerThreadActions, 'updateMessengerThread'> &
   Pick<NavSettingsState, 'appSettings'> &
   Pick<NavThreadState, 'classicThreads' | 'messengerThreads'> &
   Pick<NavViewActions, 'openMessengerThread'> &
   Pick<NavViewState, 'view'>
 
+const ANONYMOUS_PERSONA_LABEL = 'Anonymous'
+const ANONYMOUS_PERSONA_INITIALS = 'AN'
+
 function getPersonaInitials(name: string) {
-  return name
+  const initials = name
     .split(' ')
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
     .toUpperCase()
+
+  return initials || ANONYMOUS_PERSONA_INITIALS
 }
 
 export function Tide({ nav }: TideProps) {
   const surfaceStatus = nav.appSettings.surfaceStatus
   const trimmedSurfaceStatus = surfaceStatus.trim()
+  const [personaMenuOpen, setPersonaMenuOpen] = useState(false)
+  const personaPickerRef = useRef<HTMLDivElement>(null)
   let selectedPersonaId: string | null = null
 
   if (nav.view.kind === 'messenger') {
@@ -61,11 +74,12 @@ export function Tide({ nav }: TideProps) {
   }
 
   const activePersona = selectedPersonaId
-    ? nav.personas.find((persona) => persona.id === selectedPersonaId) ??
-      nav.personas[0] ??
-      null
-    : nav.personas[0] ?? null
-  const personaName = activePersona?.displayName ?? 'No persona'
+    ? nav.personas.find((persona) => persona.id === selectedPersonaId) ?? null
+    : null
+  const personaName = activePersona?.displayName ?? ANONYMOUS_PERSONA_LABEL
+  const personaInitials = activePersona
+    ? getPersonaInitials(activePersona.displayName)
+    : ANONYMOUS_PERSONA_INITIALS
   const [query, setQuery] = useState('')
   const [searchExpanded, setSearchExpanded] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +103,32 @@ export function Tide({ nav }: TideProps) {
     if (searchExpanded) searchInputRef.current?.focus()
   }, [searchExpanded])
 
+  useEffect(() => {
+    if (!personaMenuOpen) return
+
+    function handleDocumentPointerDown(event: PointerEvent) {
+      const target = event.target
+      if (
+        target instanceof Node &&
+        personaPickerRef.current?.contains(target)
+      ) {
+        return
+      }
+      setPersonaMenuOpen(false)
+    }
+
+    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') setPersonaMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown)
+    document.addEventListener('keydown', handleDocumentKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown)
+      document.removeEventListener('keydown', handleDocumentKeyDown)
+    }
+  }, [personaMenuOpen])
+
   function toggleSearch() {
     if (searchExpanded) {
       setQuery('')
@@ -108,6 +148,34 @@ export function Tide({ nav }: TideProps) {
     nav.openMessengerThread(threadId)
     setQuery('')
     setSearchExpanded(false)
+  }
+
+  function selectPersona(personaId: string | null) {
+    const now = new Date().toISOString()
+
+    if (nav.view.kind === 'messenger') {
+      const threadId = nav.view.threadId
+      const thread =
+        nav.messengerThreads.find((candidate) => candidate.id === threadId) ?? null
+      if (thread) {
+        nav.updateMessengerThread(
+          setMessengerThreadPersona(thread, personaId, now),
+        )
+      }
+    } else if (nav.view.kind === 'classic') {
+      const threadId = nav.view.threadId
+      const thread =
+        nav.classicThreads.find((candidate) => candidate.id === threadId) ?? null
+      if (thread) {
+        nav.updateClassicThread(setClassicThreadPersona(thread, personaId, now))
+      }
+    }
+
+    setPersonaMenuOpen(false)
+  }
+
+  function togglePersonaMenu() {
+    setPersonaMenuOpen((currentOpen) => !currentOpen)
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -134,15 +202,24 @@ export function Tide({ nav }: TideProps) {
 
   return (
     <footer className="tide">
-      <div className="user-presence">
-        <span className="persona-avatar" aria-hidden="true">
+      <div className="user-presence" ref={personaPickerRef}>
+        <button
+          type="button"
+          className="persona-avatar"
+          aria-controls="tide-persona-menu"
+          aria-expanded={personaMenuOpen}
+          aria-haspopup="menu"
+          aria-label="Switch persona"
+          title="Switch persona"
+          onClick={togglePersonaMenu}
+        >
           {activePersona?.avatarUrl ? (
             <img src={activePersona.avatarUrl} alt="" />
           ) : (
-            getPersonaInitials(personaName)
+            personaInitials
           )}
           <span className="presence-dot" />
-        </span>
+        </button>
         <span className="presence-copy">
           <span className="persona-name" title={personaName}>
             {personaName}
@@ -156,6 +233,54 @@ export function Tide({ nav }: TideProps) {
             )}
           </span>
         </span>
+        {personaMenuOpen && (
+          <div
+            className="persona-menu"
+            id="tide-persona-menu"
+            role="menu"
+            aria-label="Choose persona"
+          >
+            <button
+              type="button"
+              className={`persona-option${!activePersona ? ' selected' : ''}`}
+              role="menuitemradio"
+              aria-checked={!activePersona}
+              onClick={() => selectPersona(null)}
+            >
+              <span className="persona-option-avatar" aria-hidden="true">
+                {ANONYMOUS_PERSONA_INITIALS}
+              </span>
+              <span className="persona-option-copy">
+                <span>{ANONYMOUS_PERSONA_LABEL}</span>
+                <small>No persona selected</small>
+              </span>
+            </button>
+            {nav.personas.map((persona) => (
+              <button
+                type="button"
+                className={`persona-option${
+                  activePersona?.id === persona.id ? ' selected' : ''
+                }`}
+                key={persona.id}
+                role="menuitemradio"
+                aria-checked={activePersona?.id === persona.id}
+                onClick={() => selectPersona(persona.id)}
+              >
+                <span className="persona-option-avatar" aria-hidden="true">
+                  {persona.avatarUrl ? (
+                    <img src={persona.avatarUrl} alt="" />
+                  ) : (
+                    getPersonaInitials(persona.displayName)
+                  )}
+                </span>
+                <span className="persona-option-copy">
+                  <span>{persona.displayName}</span>
+                  <small>{persona.nickname || persona.personality || 'Persona'}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="surface-input">
         <input

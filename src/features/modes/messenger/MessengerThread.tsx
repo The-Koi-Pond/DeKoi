@@ -2,30 +2,22 @@ import {
   useEffect,
   useRef,
   useState,
-  type ChangeEvent,
   type KeyboardEvent,
 } from "react";
 import type {
   NavCatalogState,
   NavMessengerThreadActions,
   NavSettingsState,
-  NavStorageState,
   NavThreadState,
-  NavViewActions,
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
-import {
-  getProviderConnectionById,
-  sanitizeProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
 import {
   appendMessengerMessages,
+  createAnonymousMessengerMessage,
   createPersonaMessengerMessage,
-  setMessengerThreadLorebooks,
-  setMessengerThreadParticipants,
-  setMessengerThreadPersona,
   setMessengerThreadProviderConnection,
 } from "../../../engine/messenger-actions";
 import {
@@ -42,9 +34,7 @@ export type MessengerThreadNav = Pick<
 > &
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<NavStorageState, "messengerStorageMessage" | "messengerStorageMode" | "messengerStorageStatus"> &
   Pick<NavThreadState, "messengerThreads"> &
-  Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
 function getInitials(name: string) {
@@ -57,7 +47,8 @@ function getInitials(name: string) {
 }
 
 function getMessageClassName(message: MessengerMessage) {
-  return message.author.kind === "persona"
+  return message.author.kind === "persona" ||
+    (message.author.kind === "unknown" && message.author.label === "Anonymous")
     ? "messenger-message messenger-message-own"
     : "messenger-message";
 }
@@ -86,56 +77,27 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     status: "idle" | "generating" | "warning" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
-  const [settingsState, setSettingsState] = useState<{
-    threadId: string | null;
-    open: boolean;
-  }>({ threadId: null, open: false });
-  const settingsOpen =
-    settingsState.threadId === activeThreadId && settingsState.open;
   const messageListRef = useRef<HTMLDivElement>(null);
-  const threadCompanions = messengerThread
-    ? nav.characters.filter((companion) =>
-        messengerThread.characterIds.includes(companion.id),
-      )
-    : nav.characters;
   const activePersona = messengerThread?.activePersonaId
     ? nav.personas.find(
         (persona) => persona.id === messengerThread.activePersonaId,
       ) ?? null
-    : nav.personas[0] ?? null;
-  const threadLorebooks = messengerThread
-    ? nav.lorebooks.filter((lorebook) =>
-        messengerThread.lorebookIds.includes(lorebook.id),
-      )
-    : nav.lorebooks;
-  const selectedCharacterIds = new Set(messengerThread?.characterIds ?? []);
-  const selectedLorebookIds = new Set(messengerThread?.lorebookIds ?? []);
-  const missingCharacterIds = messengerThread
-    ? messengerThread.characterIds.filter(
-        (id) => !nav.characters.some((companion) => companion.id === id),
+    : null;
+  const threadCompanions = messengerThread
+    ? nav.characters.filter((companion) =>
+        messengerThread.characterIds.includes(companion.id),
       )
     : [];
-  const missingLorebookIds = messengerThread
-    ? messengerThread.lorebookIds.filter(
-        (id) => !nav.lorebooks.some((lorebook) => lorebook.id === id),
-      )
-    : [];
-  const missingPersonaId =
-    messengerThread?.activePersonaId && !activePersona
-      ? messengerThread.activePersonaId
-      : "";
+  const primaryCompanion = threadCompanions[0] ?? null;
+  const companionDisplayName =
+    threadCompanions.map((companion) => companion.displayName).join(" + ") ||
+    messengerThread?.title ||
+    "No companion";
   const configuredConnection = messengerThread?.providerConnectionId
     ? nav.providerConnections.find(
         (connection) => connection.id === messengerThread.providerConnectionId,
       ) ?? null
     : null;
-  const missingConnectionId =
-    messengerThread?.providerConnectionId && !configuredConnection
-      ? messengerThread.providerConnectionId
-      : "";
-  const participantSummary = threadCompanions
-    .map((companion) => companion.displayName)
-    .join(" + ") || "no companions";
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const isGenerating =
     generationState.threadId === activeThreadId &&
@@ -146,41 +108,43 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       ? generationState.message
       : "";
   const canSend = draft.trim().length > 0 && !isGenerating;
-  const storageLabel =
-    nav.messengerStorageStatus === "saving"
-      ? "Saving..."
-      : nav.messengerStorageMode === "remote"
-        ? "Remote runtime"
-        : nav.messengerStorageMode === "desktop"
-          ? "Desktop host"
-        : nav.messengerStorageStatus === "error"
-          ? "Storage unavailable"
-          : "Host storage";
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
       nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
-  const selectedConnectionId =
-    messengerThread?.providerConnectionId && configuredConnection
-      ? messengerThread.providerConnectionId
-      : threadConnection.id;
-  const missingReferenceLabels = [
-    missingCharacterIds.length > 0
-      ? `${missingCharacterIds.length} missing companion${
-          missingCharacterIds.length === 1 ? "" : "s"
-        }`
-      : "",
-    missingLorebookIds.length > 0
-      ? `${missingLorebookIds.length} missing lorebook${
-          missingLorebookIds.length === 1 ? "" : "s"
-        }`
-      : "",
-    missingPersonaId ? "missing persona" : "",
-    missingConnectionId ? "missing connection" : "",
-  ].filter(Boolean);
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
+  const getMessageAuthorAvatar = (message: MessengerMessage) => {
+    const { author } = message;
+
+    if (author.kind === "persona") {
+      const persona =
+        nav.personas.find(
+          (candidate) => candidate.id === author.personaId,
+        ) ?? null;
+      return {
+        avatarUrl: persona?.avatarUrl ?? null,
+        initials: getInitials(persona?.displayName ?? author.label),
+      };
+    }
+
+    if (author.kind === "character") {
+      const character =
+        nav.characters.find(
+          (candidate) => candidate.id === author.characterId,
+        ) ?? null;
+      return {
+        avatarUrl: character?.avatarUrl ?? null,
+        initials: getInitials(character?.displayName ?? author.label),
+      };
+    }
+
+    return {
+      avatarUrl: null,
+      initials: getInitials(author.label),
+    };
+  };
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -188,97 +152,12 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
 
-  function handlePersonaChange(event: ChangeEvent<HTMLSelectElement>) {
-    if (!messengerThread) return;
-    nav.updateMessengerThread(
-      setMessengerThreadPersona(
-        messengerThread,
-        event.target.value || null,
-        new Date().toISOString(),
-      ),
-    );
-  }
-
-  function handleConnectionChange(event: ChangeEvent<HTMLSelectElement>) {
-    if (!messengerThread) return;
-    nav.updateMessengerThread(
-      setMessengerThreadProviderConnection(
-        messengerThread,
-        event.target.value || null,
-        new Date().toISOString(),
-      ),
-    );
-  }
-
-  function toggleCompanion(characterId: string) {
-    if (!messengerThread) return;
-
-    const nextIds = new Set(messengerThread.characterIds);
-    const selectedKnownCount = nav.characters.filter((companion) =>
-      nextIds.has(companion.id),
-    ).length;
-
-    if (nextIds.has(characterId)) {
-      if (selectedKnownCount <= 1) return;
-      nextIds.delete(characterId);
-    } else {
-      nextIds.add(characterId);
-    }
-
-    nav.updateMessengerThread(
-      setMessengerThreadParticipants(
-        messengerThread,
-        nav.characters
-          .map((companion) => companion.id)
-          .filter((id) => nextIds.has(id)),
-        new Date().toISOString(),
-      ),
-    );
-  }
-
-  function toggleLorebook(lorebookId: string) {
-    if (!messengerThread) return;
-
-    const nextIds = new Set(messengerThread.lorebookIds);
-    if (nextIds.has(lorebookId)) {
-      nextIds.delete(lorebookId);
-    } else {
-      nextIds.add(lorebookId);
-    }
-
-    nav.updateMessengerThread(
-      setMessengerThreadLorebooks(
-        messengerThread,
-        nav.lorebooks
-          .map((lorebook) => lorebook.id)
-          .filter((id) => nextIds.has(id)),
-        new Date().toISOString(),
-      ),
-    );
-  }
-
-  function openCompanionsCatalog() {
-    nav.setView({ kind: "companions" });
-  }
-
-  function openLorebooksCatalog() {
-    nav.setView({ kind: "lorebooks" });
-  }
-
   async function sendDraft() {
     if (!messengerThread) return false;
     if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    if (!activePersona) {
-      setGenerationState({
-        threadId: messengerThread.id,
-        status: "error",
-        message: "Add a persona before sending a Messenger message.",
-      });
-      return false;
-    }
 
     const sentAt = new Date().toISOString();
     const hasConfiguredConnection =
@@ -290,13 +169,20 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           threadConnection.id,
           sentAt,
         );
-    const userMessage = createPersonaMessengerMessage({
-      body: trimmedDraft,
-      id: createLocalId("messenger-message"),
-      now: sentAt,
-      persona: activePersona,
-      thread: threadForSend,
-    });
+    const userMessage = activePersona
+      ? createPersonaMessengerMessage({
+          body: trimmedDraft,
+          id: createLocalId("messenger-message"),
+          now: sentAt,
+          persona: activePersona,
+          thread: threadForSend,
+        })
+      : createAnonymousMessengerMessage({
+          body: trimmedDraft,
+          id: createLocalId("messenger-message"),
+          now: sentAt,
+          thread: threadForSend,
+        });
     const threadWithUserMessage = appendMessengerMessages(
       threadForSend,
       [userMessage],
@@ -383,12 +269,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   if (!messengerThread) {
     return (
       <section className="messenger-thread messenger-thread-empty">
-        <header className="messenger-header">
-          <div>
-            <h2>No Messenger thread selected</h2>
-            <p className="thread-meta">Cast a line to start a local thread.</p>
-          </div>
-        </header>
         <div className="empty-thread">
           <button type="button" onClick={() => nav.createMessengerThread()}>
             + Cast a line
@@ -399,200 +279,49 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   }
 
   return (
-    <section className="messenger-thread" aria-labelledby="messenger-thread-title">
-      <header className="messenger-header">
-        <div>
-          <h2 id="messenger-thread-title">{messengerThread.title}</h2>
-          <p className="thread-meta">Group Messenger with {participantSummary}</p>
-        </div>
-        <div className="messenger-header-tools">
-          <button
-            type="button"
-            className={`thread-settings-toggle${settingsOpen ? " on" : ""}`}
-            aria-expanded={settingsOpen}
-            onClick={() =>
-              setSettingsState((current) => ({
-                threadId: activeThreadId,
-                open:
-                  current.threadId === activeThreadId ? !current.open : true,
-              }))
-            }
-          >
-            Settings
-          </button>
-          <span className="storage-chip" title={nav.messengerStorageMessage}>
-            {storageLabel}
-          </span>
-          <span className="storage-chip" title={threadConnection.summary}>
-            {threadConnection.label}
-          </span>
-          <div className="participant-stack" aria-label="Thread participants">
-            {activePersona && (
-              <span title={activePersona.displayName}>
-                {getInitials(activePersona.displayName)}
-              </span>
-            )}
-            {threadCompanions.map((companion) => (
-              <span title={companion.displayName} key={companion.id}>
-                {getInitials(companion.displayName)}
-              </span>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {settingsOpen && (
-        <section
-          className="thread-settings"
-          aria-label="Messenger thread settings"
-        >
-          <div className="thread-settings-grid">
-            <label className="thread-setting-field">
-              <span>Persona</span>
-              <select value={messengerThread.activePersonaId ?? ""} onChange={handlePersonaChange}>
-                <option value="">No persona</option>
-                {missingPersonaId && (
-                  <option value={missingPersonaId} disabled>
-                    Missing persona
-                  </option>
-                )}
-                {nav.personas.map((persona) => (
-                  <option value={persona.id} key={persona.id}>
-                    {persona.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="thread-setting-field">
-              <span>Connection</span>
-              <select
-                value={selectedConnectionId}
-                onChange={handleConnectionChange}
-                disabled={nav.providerConnections.length === 0}
-              >
-                {missingConnectionId && (
-                  <option value={missingConnectionId} disabled>
-                    Missing connection
-                  </option>
-                )}
-                {nav.providerConnections.map((rawConnection) => {
-                  const connection = sanitizeProviderConnectionRecord(rawConnection);
-                  return (
-                    <option value={connection.id} key={connection.id}>
-                      {connection.label}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-          </div>
-
-          <div className="thread-choice-columns">
-            <section className="thread-choice-group" aria-labelledby="thread-companions">
-              <div className="thread-choice-head">
-                <b id="thread-companions">Companions</b>
-                <span>{threadCompanions.length} selected</span>
-              </div>
-              <div className="thread-choice-list">
-                {nav.characters.map((companion) => {
-                  const selected = selectedCharacterIds.has(companion.id);
-                  const selectedKnownCount = nav.characters.filter((character) =>
-                    selectedCharacterIds.has(character.id),
-                  ).length;
-
-                  return (
-                    <label
-                      className={`thread-check${selected ? " on" : ""}`}
-                      key={companion.id}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        disabled={selected && selectedKnownCount <= 1}
-                        onChange={() => toggleCompanion(companion.id)}
-                      />
-                      <span>
-                        <b>{companion.displayName}</b>
-                        <small>{companion.personality || "No personality summary."}</small>
-                      </span>
-                    </label>
-                  );
-                })}
-                {nav.characters.length === 0 && (
-                  <button
-                    type="button"
-                    className="thread-open-catalog"
-                    onClick={openCompanionsCatalog}
-                  >
-                    Open Catalog
-                  </button>
-                )}
-              </div>
-            </section>
-
-            <section className="thread-choice-group" aria-labelledby="thread-lorebooks">
-              <div className="thread-choice-head">
-                <b id="thread-lorebooks">Lorebooks</b>
-                <span>{threadLorebooks.length} selected</span>
-              </div>
-              <div className="thread-choice-list">
-                {nav.lorebooks.map((lorebook) => {
-                  const selected = selectedLorebookIds.has(lorebook.id);
-
-                  return (
-                    <label
-                      className={`thread-check${selected ? " on" : ""}`}
-                      key={lorebook.id}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleLorebook(lorebook.id)}
-                      />
-                      <span>
-                        <b>{lorebook.title}</b>
-                        <small>{lorebook.summary || "No summary."}</small>
-                      </span>
-                    </label>
-                  );
-                })}
-                {nav.lorebooks.length === 0 && (
-                  <button
-                    type="button"
-                    className="thread-open-catalog"
-                    onClick={openLorebooksCatalog}
-                  >
-                    Open Catalog
-                  </button>
-                )}
-              </div>
-            </section>
-          </div>
-
-          {missingReferenceLabels.length > 0 && (
-            <p className="thread-settings-warning">
-              Missing references: {missingReferenceLabels.join(", ")}.
-            </p>
+    <section className="messenger-thread" aria-labelledby="messenger-contact-name">
+      <header className="messenger-contact-header">
+        <span className="messenger-contact-avatar" aria-hidden="true">
+          {primaryCompanion?.avatarUrl ? (
+            <img src={primaryCompanion.avatarUrl} alt="" />
+          ) : (
+            getInitials(companionDisplayName)
           )}
-        </section>
-      )}
+          <span className="messenger-contact-status" />
+        </span>
+        <h2 id="messenger-contact-name" title={companionDisplayName}>
+          {companionDisplayName}
+        </h2>
+      </header>
 
       <div
         className="message-list"
         aria-label="Messenger messages"
         ref={messageListRef}
       >
-        {messengerThread.messages.map((message) => (
-          <article className={getMessageClassName(message)} key={message.id}>
-            <div className="message-author">
-              {message.author.label}
-              {message.origin === "generated" && <span>Generated</span>}
-              {message.origin === "placeholder" && <span>Placeholder</span>}
-            </div>
-            <p>{message.body}</p>
-          </article>
-        ))}
+        {messengerThread.messages.map((message) => {
+          const authorAvatar = getMessageAuthorAvatar(message);
+
+          return (
+            <article className={getMessageClassName(message)} key={message.id}>
+              <span className="message-avatar" aria-hidden="true">
+                {authorAvatar.avatarUrl ? (
+                  <img src={authorAvatar.avatarUrl} alt="" />
+                ) : (
+                  authorAvatar.initials
+                )}
+              </span>
+              <div className="message-content">
+                <div className="message-author">
+                  {message.author.label}
+                  {message.origin === "generated" && <span>Generated</span>}
+                  {message.origin === "placeholder" && <span>Placeholder</span>}
+                </div>
+                <p>{message.body}</p>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <ChatComposer

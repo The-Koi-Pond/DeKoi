@@ -1,7 +1,11 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import { KoiCard } from "./KoiCard";
 import {
-  getClassicThreadInitials,
   getClassicThreadPreview,
   sortClassicThreads,
   getMessengerThreadInitials,
@@ -18,6 +22,8 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
+import type { CharacterRecord } from "../../../engine/character";
+import type { MessengerThread } from "../../../engine/messenger";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 import {
   getProviderConnectionProviderOption,
@@ -34,6 +40,11 @@ const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
 };
 
 type PeopleTab = "companions" | "personas";
+type ThreadReleaseRequest = {
+  id: string;
+  kind: "classic" | "messenger";
+  title: string;
+};
 
 interface ShoalProps {
   nav: ShoalNav;
@@ -50,7 +61,7 @@ export type ShoalNav = Pick<
   > &
   Pick<
     NavMessengerThreadActions,
-    "createMessengerThread" | "deleteMessengerThread" | "renameMessengerThread"
+    "createMessengerThread" | "deleteMessengerThread"
   > &
   Pick<NavSettingsActions, "setShoalSortMode"> &
   Pick<NavSettingsState, "appSettings"> &
@@ -92,6 +103,17 @@ function FolderIcon() {
   );
 }
 
+function ClassicCardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 5.5h5.7c1.2 0 2.3.5 3.1 1.3v11.7c-.8-.8-1.9-1.3-3.1-1.3H5z" />
+      <path d="M13.8 6.8c.8-.8 1.9-1.3 3.1-1.3H19v11.7h-2.1c-1.2 0-2.3.5-3.1 1.3" />
+      <path d="M7.6 9h3.2" />
+      <path d="M16.2 9h1.1" />
+    </svg>
+  );
+}
+
 function CatalogRailCard({
   active,
   initials,
@@ -113,6 +135,67 @@ function CatalogRailCard({
       </span>
     </button>
   );
+}
+
+function getMessengerCardDetails(
+  thread: MessengerThread,
+  characterById: Map<string, CharacterRecord>,
+) {
+  const companions = thread.characterIds.flatMap((characterId) => {
+    const companion = characterById.get(characterId);
+    return companion ? [companion] : [];
+  });
+  const missingCount = thread.characterIds.length - companions.length;
+  const name =
+    companions.map((companion) => companion.displayName).join(" + ") ||
+    (missingCount > 0 ? "Missing companion" : "No companion");
+  const threadTitle = thread.title.trim();
+  const displayName =
+    threadTitle && !/^New Messenger \d+$/i.test(threadTitle) ? threadTitle : name;
+  const preview = getMessengerThreadPreview(thread);
+  const searchText = [
+    displayName,
+    name,
+    threadTitle,
+    preview,
+    ...companions.flatMap((companion) => [
+      companion.nickname ?? "",
+      companion.personality,
+      companion.description,
+      companion.scenario,
+      companion.tags.join(" "),
+    ]),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    avatarUrl: companions[0]?.avatarUrl ?? null,
+    initials: getMessengerThreadInitials(name),
+    name: displayName,
+    preview,
+    searchText,
+  };
+}
+
+function getClassicCardAvatarDetails(
+  characterIds: string[],
+  fallbackName: string,
+  characterById: Map<string, CharacterRecord>,
+) {
+  const companion =
+    characterIds
+      .map((characterId) => characterById.get(characterId) ?? null)
+      .find((candidate): candidate is CharacterRecord => candidate !== null) ??
+    null;
+  const avatarLabel = companion?.displayName ?? fallbackName;
+
+  return {
+    avatarLabel,
+    avatarUrl: companion?.avatarUrl ?? null,
+    hasCharacter: companion !== null,
+    initials: getMessengerThreadInitials(avatarLabel),
+  };
 }
 
 function PeopleCatalogRail({ nav, onCollapse }: ShoalProps) {
@@ -519,16 +602,54 @@ function PresetsCatalogRail({ onCollapse }: Pick<ShoalProps, "onCollapse">) {
 
 function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   const [query, setQuery] = useState("");
+  const [newMessengerOpen, setNewMessengerOpen] = useState(false);
+  const [newMessengerName, setNewMessengerName] = useState("");
+  const [newMessengerNameEdited, setNewMessengerNameEdited] = useState(false);
+  const [newMessengerConnectionId, setNewMessengerConnectionId] = useState("");
+  const [newMessengerPersonaId, setNewMessengerPersonaId] = useState("");
+  const [newMessengerCharacterIds, setNewMessengerCharacterIds] = useState<string[]>([]);
+  const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
+    useState(false);
+  const [releaseRequest, setReleaseRequest] =
+    useState<ThreadReleaseRequest | null>(null);
   const sortMode = nav.appSettings.shoalSortMode;
   const activeSurface = nav.selectedSurface === CLASSIC ? CLASSIC : MESSENGER;
   const isClassicSurface = activeSurface === CLASSIC;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const activeClassicThreadId =
     nav.view.kind === "classic" ? nav.view.threadId : null;
-  const sortedThreads = useMemo(
-    () => sortMessengerThreads(nav.messengerThreads, sortMode),
-    [nav.messengerThreads, sortMode],
+  const characterById = useMemo(
+    () => new Map(nav.characters.map((character) => [character.id, character])),
+    [nav.characters],
   );
+  const sanitizedProviderConnections = useMemo(
+    () =>
+      nav.providerConnections.map((connection) =>
+        sanitizeProviderConnectionRecord(connection),
+      ),
+    [nav.providerConnections],
+  );
+  const defaultMessengerConnectionId =
+    sanitizedProviderConnections.find(
+      (connection) => connection.id === nav.appSettings.activeMessengerConnectionId,
+    )?.id ??
+    sanitizedProviderConnections[0]?.id ??
+    "";
+  const sortedThreads = useMemo(() => {
+    if (sortMode !== "title") {
+      return sortMessengerThreads(nav.messengerThreads, sortMode);
+    }
+
+    return [...nav.messengerThreads].sort((a, b) => {
+      const aDetails = getMessengerCardDetails(a, characterById);
+      const bDetails = getMessengerCardDetails(b, characterById);
+      return (
+        aDetails.name.localeCompare(bDetails.name, undefined, {
+          sensitivity: "base",
+        }) || b.updatedAt.localeCompare(a.updatedAt)
+      );
+    });
+  }, [characterById, nav.messengerThreads, sortMode]);
   const sortedClassicThreads = useMemo(
     () => sortClassicThreads(nav.classicThreads, sortMode),
     [nav.classicThreads, sortMode],
@@ -538,13 +659,10 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
     if (!normalizedQuery) return sortedThreads;
 
     return sortedThreads.filter((thread) => {
-      const preview = getMessengerThreadPreview(thread);
-      return (
-        thread.title.toLowerCase().includes(normalizedQuery) ||
-        preview.toLowerCase().includes(normalizedQuery)
-      );
+      const details = getMessengerCardDetails(thread, characterById);
+      return details.searchText.includes(normalizedQuery);
     });
-  }, [query, sortedThreads]);
+  }, [characterById, query, sortedThreads]);
   const filteredClassicThreads = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return sortedClassicThreads;
@@ -558,10 +676,102 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
     });
   }, [query, sortedClassicThreads]);
 
-  function handleRenameMessenger(threadId: string, currentTitle: string) {
-    const nextTitle = window.prompt("Rename Messenger thread", currentTitle);
-    if (nextTitle === null) return;
-    nav.renameMessengerThread(threadId, nextTitle);
+  useEffect(() => {
+    if (!newMessengerOpen) return;
+
+    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") setNewMessengerOpen(false);
+    }
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleDocumentKeyDown);
+    };
+  }, [newMessengerOpen]);
+
+  useEffect(() => {
+    if (!releaseRequest) return;
+
+    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") setReleaseRequest(null);
+    }
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    return () => document.removeEventListener("keydown", handleDocumentKeyDown);
+  }, [releaseRequest]);
+
+  function getDraftCompanionName(characterIds: string[]) {
+    return (
+      characterIds
+        .map((characterId) => characterById.get(characterId)?.displayName ?? "")
+        .filter(Boolean)
+        .join(" + ") || `New Messenger ${nav.messengerThreads.length + 1}`
+    );
+  }
+
+  function getCompanionSelectionLabel(characterIds: string[]) {
+    const names = characterIds
+      .map((characterId) => characterById.get(characterId)?.displayName ?? "")
+      .filter(Boolean);
+
+    if (names.length === 0) return "Select companions";
+    if (names.length <= 2) return names.join(" + ");
+    return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
+  }
+
+  function openNewMessengerThreadPopover() {
+    const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
+    setNewMessengerCharacterIds(initialCharacterIds);
+    setNewMessengerName(getDraftCompanionName(initialCharacterIds));
+    setNewMessengerNameEdited(false);
+    setNewMessengerConnectionId(defaultMessengerConnectionId);
+    setNewMessengerPersonaId("");
+    setNewMessengerCompanionMenuOpen(false);
+    setNewMessengerOpen(true);
+  }
+
+  function updateNewMessengerCharacterIds(characterIds: string[]) {
+    setNewMessengerCharacterIds(characterIds);
+    if (!newMessengerNameEdited) {
+      setNewMessengerName(getDraftCompanionName(characterIds));
+    }
+  }
+
+  function toggleNewMessengerCharacter(characterId: string) {
+    const nextIds = newMessengerCharacterIds.includes(characterId)
+      ? newMessengerCharacterIds.filter((id) => id !== characterId)
+      : [...newMessengerCharacterIds, characterId];
+    updateNewMessengerCharacterIds(nextIds);
+  }
+
+  function handleCreateMessengerThread(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (newMessengerCharacterIds.length === 0) return;
+
+    const title =
+      newMessengerName.trim() || getDraftCompanionName(newMessengerCharacterIds);
+    nav.createMessengerThread({
+      activePersonaId: newMessengerPersonaId || null,
+      characterIds: newMessengerCharacterIds,
+      providerConnectionId: newMessengerConnectionId || null,
+      title,
+    });
+    setNewMessengerCompanionMenuOpen(false);
+    setNewMessengerOpen(false);
+  }
+
+  function handleCreateActiveThread() {
+    if (isClassicSurface) {
+      nav.createClassicThread();
+      return;
+    }
+
+    if (newMessengerOpen) {
+      setNewMessengerOpen(false);
+      return;
+    }
+
+    openNewMessengerThreadPopover();
   }
 
   function handleRenameClassic(threadId: string, currentTitle: string) {
@@ -571,25 +781,33 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   }
 
   function handleDeleteMessenger(threadId: string, title: string) {
-    if (
-      nav.appSettings.confirmRelease &&
-      !window.confirm(`Release "${title}" from the Shoal?`)
-    ) {
+    if (!nav.appSettings.confirmRelease) {
+      nav.deleteMessengerThread(threadId);
       return;
     }
 
-    nav.deleteMessengerThread(threadId);
+    setReleaseRequest({ id: threadId, kind: "messenger", title });
   }
 
   function handleDeleteClassic(threadId: string, title: string) {
-    if (
-      nav.appSettings.confirmRelease &&
-      !window.confirm(`Release "${title}" from the Shoal?`)
-    ) {
+    if (!nav.appSettings.confirmRelease) {
+      nav.deleteClassicThread(threadId);
       return;
     }
 
-    nav.deleteClassicThread(threadId);
+    setReleaseRequest({ id: threadId, kind: "classic", title });
+  }
+
+  function confirmReleaseThread() {
+    if (!releaseRequest) return;
+
+    if (releaseRequest.kind === "messenger") {
+      nav.deleteMessengerThread(releaseRequest.id);
+    } else {
+      nav.deleteClassicThread(releaseRequest.id);
+    }
+
+    setReleaseRequest(null);
   }
 
   function cycleSortMode() {
@@ -605,10 +823,7 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
   const activeSurfaceLabel = isClassicSurface ? "Classic" : "Messenger";
   const searchPlaceholder = isClassicSurface
     ? "Find a scene by name or text..."
-    : "Find a koi by name or marking...";
-  const createActiveThread = isClassicSurface
-    ? nav.createClassicThread
-    : nav.createMessengerThread;
+    : "Find a character by name or message...";
 
   return (
     <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
@@ -619,7 +834,11 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
           <button
             className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
             type="button"
-            onClick={() => createActiveThread()}
+            aria-controls={
+              isClassicSurface ? undefined : "new-messenger-thread-popover"
+            }
+            aria-expanded={isClassicSurface ? undefined : newMessengerOpen}
+            onClick={handleCreateActiveThread}
           >
             {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
           </button>
@@ -664,43 +883,248 @@ function ThreadShoal({ nav, onCollapse }: ShoalProps) {
       </div>
       <div className="shoal-list">
         {isClassicSurface
-          ? filteredClassicThreads.map((thread) => (
-              <KoiCard
-                key={thread.id}
-                initials={getClassicThreadInitials(thread.title)}
-                name={thread.title}
-                sub={getClassicThreadPreview(thread)}
-                mode="classic"
-                active={thread.id === activeClassicThreadId}
-                online
-                onOpen={() => nav.openClassicThread(thread.id)}
-                onRename={() => handleRenameClassic(thread.id, thread.title)}
-                onDelete={() => handleDeleteClassic(thread.id, thread.title)}
-              />
-            ))
-          : filteredThreads.map((thread) => (
-              <KoiCard
-                key={thread.id}
-                initials={getMessengerThreadInitials(thread.title)}
-                name={thread.title}
-                sub={getMessengerThreadPreview(thread)}
-                mode="messenger"
-                active={thread.id === activeThreadId}
-                online
-                onOpen={() => nav.openMessengerThread(thread.id)}
-                onRename={() => handleRenameMessenger(thread.id, thread.title)}
-                onDelete={() => handleDeleteMessenger(thread.id, thread.title)}
-              />
-            ))}
+          ? filteredClassicThreads.map((thread) => {
+              const avatarDetails = getClassicCardAvatarDetails(
+                thread.characterIds,
+                thread.title,
+                characterById,
+              );
+
+              return (
+                <KoiCard
+                  key={thread.id}
+                  avatarLabel={avatarDetails.avatarLabel}
+                  avatarUrl={avatarDetails.avatarUrl}
+                  icon={
+                    avatarDetails.hasCharacter ? undefined : <ClassicCardIcon />
+                  }
+                  initials={avatarDetails.initials}
+                  name={thread.title}
+                  sub={getClassicThreadPreview(thread)}
+                  mode="classic"
+                  active={thread.id === activeClassicThreadId}
+                  showStatus={false}
+                  onOpen={() => nav.openClassicThread(thread.id)}
+                  onRename={() => handleRenameClassic(thread.id, thread.title)}
+                  onDelete={() => handleDeleteClassic(thread.id, thread.title)}
+                />
+              );
+            })
+          : filteredThreads.map((thread) => {
+              const details = getMessengerCardDetails(thread, characterById);
+
+              return (
+                <KoiCard
+                  key={thread.id}
+                  avatarLabel={details.name}
+                  avatarUrl={details.avatarUrl}
+                  initials={details.initials}
+                  name={details.name}
+                  sub={details.preview}
+                  mode="messenger"
+                  active={thread.id === activeThreadId}
+                  online
+                  onOpen={() => nav.openMessengerThread(thread.id)}
+                  onDelete={() => handleDeleteMessenger(thread.id, details.name)}
+                />
+              );
+            })}
         {visibleCount === 0 && (
           <div className="shoal-empty">
             <p>No saved currents match this search.</p>
-            <button type="button" onClick={() => createActiveThread()}>
+            <button type="button" onClick={handleCreateActiveThread}>
               {isClassicSurface ? "Start scene" : "Cast a line"}
             </button>
           </div>
         )}
       </div>
+      {!isClassicSurface && newMessengerOpen && (
+        <div
+          className="new-thread-backdrop"
+          role="presentation"
+          onClick={() => setNewMessengerOpen(false)}
+        >
+          <form
+            className="new-thread-popover"
+            id="new-messenger-thread-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-messenger-thread-title"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleCreateMessengerThread}
+          >
+            <div className="new-thread-popover-head">
+              <b id="new-messenger-thread-title">New Messenger Thread</b>
+              <button
+                type="button"
+                aria-label="Close new Messenger thread"
+                onClick={() => setNewMessengerOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <label className="new-thread-field">
+              <span>Thread Name</span>
+              <input
+                value={newMessengerName}
+                onChange={(event) => {
+                  setNewMessengerName(event.target.value);
+                  setNewMessengerNameEdited(true);
+                }}
+                placeholder={getDraftCompanionName(newMessengerCharacterIds)}
+              />
+            </label>
+            <label className="new-thread-field">
+              <span>Connection</span>
+              <select
+                value={newMessengerConnectionId}
+                onChange={(event) =>
+                  setNewMessengerConnectionId(event.target.value)
+                }
+                disabled={sanitizedProviderConnections.length === 0}
+              >
+                {sanitizedProviderConnections.map((connection) => (
+                  <option value={connection.id} key={connection.id}>
+                    {connection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="new-thread-field">
+              <span>Persona</span>
+              <select
+                value={newMessengerPersonaId}
+                onChange={(event) =>
+                  setNewMessengerPersonaId(event.target.value)
+                }
+              >
+                <option value="">Anonymous</option>
+                {nav.personas.map((persona) => (
+                  <option value={persona.id} key={persona.id}>
+                    {persona.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div
+              className="new-thread-dropdown-field"
+              onBlur={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setNewMessengerCompanionMenuOpen(false);
+              }}
+            >
+              <span id="new-thread-companions-label">Companions</span>
+              <button
+                type="button"
+                className="new-thread-select-button"
+                aria-controls="new-thread-companion-menu"
+                aria-expanded={newMessengerCompanionMenuOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="new-thread-companions-label"
+                disabled={nav.characters.length === 0}
+                onClick={() =>
+                  setNewMessengerCompanionMenuOpen((open) => !open)
+                }
+              >
+                <span>{getCompanionSelectionLabel(newMessengerCharacterIds)}</span>
+                <small>{newMessengerCharacterIds.length}</small>
+              </button>
+              {newMessengerCompanionMenuOpen && (
+                <div
+                  className="new-thread-select-menu"
+                  id="new-thread-companion-menu"
+                  role="listbox"
+                  aria-labelledby="new-thread-companions-label"
+                  aria-multiselectable="true"
+                >
+                  {nav.characters.map((character) => {
+                    const selected = newMessengerCharacterIds.includes(
+                      character.id,
+                    );
+
+                    return (
+                      <label
+                        className={`new-thread-check${selected ? " on" : ""}`}
+                        key={character.id}
+                        role="option"
+                        aria-selected={selected}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() =>
+                            toggleNewMessengerCharacter(character.id)
+                          }
+                        />
+                        <span>
+                          <b>{character.displayName}</b>
+                          <small>
+                            {character.nickname ||
+                              character.personality ||
+                              "Companion"}
+                          </small>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {nav.characters.length === 0 && (
+                <p className="new-thread-empty">
+                  Add a companion before casting a Messenger thread.
+                </p>
+              )}
+            </div>
+            <div className="new-thread-actions">
+              <button type="button" onClick={() => setNewMessengerOpen(false)}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={newMessengerCharacterIds.length === 0}
+              >
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {releaseRequest && (
+        <div
+          className="release-dialog-backdrop"
+          role="presentation"
+          onClick={() => setReleaseRequest(null)}
+        >
+          <section
+            className="release-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="release-thread-title"
+            aria-describedby="release-thread-copy"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="release-dialog-icon" aria-hidden="true">
+              ×
+            </div>
+            <div className="release-dialog-copy">
+              <h2 id="release-thread-title">
+                Release {releaseRequest.kind === "classic" ? "scene" : "thread"}?
+              </h2>
+              <p id="release-thread-copy">
+                <b>{releaseRequest.title}</b> will be removed from the Shoal.
+              </p>
+            </div>
+            <div className="release-dialog-actions">
+              <button type="button" onClick={() => setReleaseRequest(null)}>
+                Cancel
+              </button>
+              <button type="button" onClick={confirmReleaseThread}>
+                Release
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </aside>
   );
 }

@@ -58,7 +58,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     thread?.activePersonaId
       ? nav.personas.find((persona) => persona.id === thread.activePersonaId) ??
         null
-      : nav.personas[0] ?? null;
+      : null;
   const threadConnection = getProviderConnectionById(
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
@@ -195,7 +195,7 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         </div>
         <div className="classic-header-tools">
           <span title={activePersona?.personality || ""}>
-            {activePersona?.displayName ?? "No persona"}
+            {activePersona?.displayName ?? "Anonymous"}
           </span>
           <span title={threadConnection.summary}>{threadConnection.label}</span>
         </div>

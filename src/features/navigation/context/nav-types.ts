@@ -168,8 +168,16 @@ export interface NavClassicThreadActions {
   deleteClassicThread: (threadId: string) => void;
 }
 
+export interface MessengerThreadCreateInput {
+  activePersonaId?: string | null;
+  characterIds?: string[];
+  lorebookIds?: string[];
+  providerConnectionId?: ProviderConnectionId | null;
+  title?: string;
+}
+
 export interface NavMessengerThreadActions {
-  createMessengerThread: () => MessengerThread;
+  createMessengerThread: (input?: MessengerThreadCreateInput) => MessengerThread;
   updateMessengerThread: (thread: MessengerThread) => void;
   renameMessengerThread: (threadId: string, title: string) => void;
   clearMessengerThreadMessages: (threadId: string) => void;

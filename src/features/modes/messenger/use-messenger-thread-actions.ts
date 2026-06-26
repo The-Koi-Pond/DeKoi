@@ -15,7 +15,7 @@ import type {
 } from "../../../engine/provider-connection";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { PondView } from "../../navigation";
+import type { MessengerThreadCreateInput, PondView } from "../../navigation";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseMessengerThreadActionsInput = {
@@ -36,30 +36,49 @@ export function useMessengerThreadActions({
   characters,
   lorebooks,
   messengerThreads,
-  personas,
   providerConnections,
   setMessengerThreads,
   setView,
   view,
   openMessengerThread,
 }: UseMessengerThreadActionsInput) {
-  const createMessengerThread = useCallback(() => {
+  const createMessengerThread = useCallback((input?: MessengerThreadCreateInput) => {
     const now = currentIsoTimestamp();
-    const activePersona = personas[0] ?? null;
+    const activePersonaId = input?.activePersonaId?.trim() || null;
+    const cleanCharacterIds: string[] = [...new Set<string>(
+      (input?.characterIds?.length
+        ? input.characterIds
+        : characters.map((companion) => companion.id)
+      )
+        .map((id) => id.trim())
+        .filter(Boolean),
+    )];
+    const cleanLorebookIds: string[] = [...new Set<string>(
+      (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
+        .map((id) => id.trim())
+        .filter(Boolean),
+    )];
     const activeConnection =
-      providerConnections.find(
-        (connection) => connection.id === activeMessengerConnectionId,
+      providerConnections.find((connection) =>
+        input?.providerConnectionId
+          ? connection.id === input.providerConnectionId
+          : connection.id === activeMessengerConnectionId,
       ) ??
       providerConnections[0] ??
       null;
+    const fallbackTitle =
+      characters
+        .filter((companion) => cleanCharacterIds.includes(companion.id))
+        .map((companion) => companion.displayName)
+        .join(" + ") || `New Messenger ${messengerThreads.length + 1}`;
     const thread = buildMessengerThread({
-      activePersonaId: activePersona?.id ?? null,
-      characterIds: characters.map((companion) => companion.id),
+      activePersonaId,
+      characterIds: cleanCharacterIds,
       id: createRecordId("messenger-thread"),
-      lorebookIds: lorebooks.map((lorebook) => lorebook.id),
+      lorebookIds: cleanLorebookIds,
       now,
       providerConnectionId: activeConnection?.id ?? null,
-      title: `New Messenger ${messengerThreads.length + 1}`,
+      title: input?.title?.trim() || fallbackTitle,
     });
 
     setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
@@ -71,7 +90,6 @@ export function useMessengerThreadActions({
     lorebooks,
     messengerThreads.length,
     openMessengerThread,
-    personas,
     providerConnections,
     setMessengerThreads,
   ]);

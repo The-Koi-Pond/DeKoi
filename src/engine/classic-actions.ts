@@ -109,18 +109,25 @@ export function removeClassicThreadCharacter(
   };
 }
 
+export function setClassicThreadPersona(
+  thread: ClassicThread,
+  activePersonaId: string | null,
+  updatedAt: string,
+): ClassicThread {
+  return {
+    ...thread,
+    activePersonaId: activePersonaId?.trim() || null,
+    updatedAt,
+  };
+}
+
 export function clearClassicThreadPersona(
   thread: ClassicThread,
   personaId: string,
   updatedAt: string,
 ): ClassicThread {
   if (thread.activePersonaId !== personaId) return thread;
-
-  return {
-    ...thread,
-    activePersonaId: null,
-    updatedAt,
-  };
+  return setClassicThreadPersona(thread, null, updatedAt);
 }
 
 export function removeClassicThreadLorebook(

@@ -9,6 +9,7 @@ export type {
   NavContextType,
   NavLorebookActions,
   NavMessengerThreadActions,
+  MessengerThreadCreateInput,
   NavPersonaActions,
   NavProviderConnectionActions,
   NavRippleActions,
