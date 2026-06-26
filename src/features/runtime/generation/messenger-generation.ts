@@ -17,7 +17,7 @@ import type { MessengerMessage, MessengerThread } from "../../../engine/messenge
 import type { PersonaRecord } from "../../../engine/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
-import { remoteMessengerGenerationAdapter } from "./remote-messenger-generation";
+import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
 export type MessengerGenerationRuntimeMode = "mock" | "remote-runtime";
 
@@ -37,6 +37,11 @@ export interface GenerateMessengerThreadReplyInput {
   fallbackProviderConnectionId?: string | null;
   now: string;
   mode?: MessengerGenerationRuntimeMode;
+  parameters?: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+  };
   createId: (prefix: string) => string;
 }
 
@@ -61,8 +66,8 @@ export function selectMessengerGenerationRuntime(
   if (mode === "remote-runtime") {
     return {
       mode: "remote-runtime",
-      label: "Remote runtime generation",
-      adapter: remoteMessengerGenerationAdapter,
+      label: "Provider generation",
+      adapter: providerMessengerGenerationAdapter,
     };
   }
 
@@ -102,6 +107,7 @@ export async function generateMessengerThreadReply({
   lorebooks,
   mode = "mock",
   now,
+  parameters,
   personas,
   providerConnections,
   thread,
@@ -120,6 +126,7 @@ export async function generateMessengerThreadReply({
     context,
     id: createId("messenger-generation-request"),
     now,
+    parameters,
     userMessage,
   });
   const response = await generateMessengerResponse(request, runtime.mode);

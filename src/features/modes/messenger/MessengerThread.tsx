@@ -18,7 +18,9 @@ import {
   appendMessengerMessages,
   createAnonymousMessengerMessage,
   createPersonaMessengerMessage,
+  deleteMessengerMessage,
   setMessengerThreadProviderConnection,
+  updateMessengerMessageBody,
 } from "../../../engine/messenger-actions";
 import {
   generateMessengerThreadReply,
@@ -77,6 +79,10 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     status: "idle" | "generating" | "warning" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
+  const [editingMessage, setEditingMessage] = useState<{
+    id: string;
+    body: string;
+  } | null>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
   const activePersona = messengerThread?.activePersonaId
     ? nav.personas.find(
@@ -102,6 +108,8 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   const isGenerating =
     generationState.threadId === activeThreadId &&
     generationState.status === "generating";
+  const visibleGenerationStatus =
+    generationState.threadId === activeThreadId ? generationState.status : "idle";
   const generationNotice =
     generationState.threadId === activeThreadId &&
     (generationState.status === "error" || generationState.status === "warning")
@@ -151,6 +159,40 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     if (!messengerThread) return;
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
+
+  function handleEditMessage(message: MessengerMessage) {
+    setEditingMessage({ id: message.id, body: message.body });
+  }
+
+  function handleCancelEditMessage() {
+    setEditingMessage(null);
+  }
+
+  function handleSaveEditedMessage() {
+    if (!messengerThread || !editingMessage) return;
+    const trimmedBody = editingMessage.body.trim();
+    if (!trimmedBody) return;
+
+    nav.updateMessengerThread(
+      updateMessengerMessageBody(
+        messengerThread,
+        editingMessage.id,
+        trimmedBody,
+        new Date().toISOString(),
+      ),
+    );
+    setEditingMessage(null);
+  }
+
+  function handleDeleteMessage(messageId: string) {
+    if (!messengerThread) return;
+    nav.updateMessengerThread(
+      deleteMessengerMessage(messengerThread, messageId, new Date().toISOString()),
+    );
+    if (editingMessage?.id === messageId) {
+      setEditingMessage(null);
+    }
+  }
 
   async function sendDraft() {
     if (!messengerThread) return false;
@@ -206,6 +248,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         lorebooks: nav.lorebooks,
         mode: generationMode,
         now: sentAt,
+        parameters: {
+          temperature: nav.appSettings.defaultTemperature / 100,
+          maxTokens: nav.appSettings.defaultMaxTokens,
+          topP: nav.appSettings.defaultTopP / 100,
+        },
         personas: nav.personas,
         providerConnections: nav.providerConnections,
         thread: threadWithUserMessage,
@@ -301,9 +348,13 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       >
         {messengerThread.messages.map((message) => {
           const authorAvatar = getMessageAuthorAvatar(message);
+          const isEditing = editingMessage?.id === message.id;
 
           return (
-            <article className={getMessageClassName(message)} key={message.id}>
+            <article
+              className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}`}
+              key={message.id}
+            >
               <span className="message-avatar" aria-hidden="true">
                 {authorAvatar.avatarUrl ? (
                   <img src={authorAvatar.avatarUrl} alt="" />
@@ -312,17 +363,76 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                 )}
               </span>
               <div className="message-content">
-                <div className="message-author">
-                  {message.author.label}
-                  {message.origin === "generated" && <span>Generated</span>}
-                  {message.origin === "placeholder" && <span>Placeholder</span>}
+                <div className="message-heading">
+                  <div className="message-author">
+                    {message.author.label}
+                    {message.origin === "generated" && <span>Generated</span>}
+                    {message.origin === "placeholder" && <span>Placeholder</span>}
+                  </div>
                 </div>
-                <p>{message.body}</p>
+                {isEditing ? (
+                  <div className="message-edit-form">
+                    <textarea
+                      aria-label={`Edit message from ${message.author.label}`}
+                      value={editingMessage.body}
+                      onChange={(event) =>
+                        setEditingMessage({
+                          id: message.id,
+                          body: event.target.value,
+                        })
+                      }
+                    />
+                    <div className="message-edit-actions">
+                      <button
+                        type="button"
+                        onClick={handleSaveEditedMessage}
+                        disabled={!editingMessage.body.trim()}
+                      >
+                        Save
+                      </button>
+                      <button type="button" onClick={handleCancelEditMessage}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p>{message.body}</p>
+                    <div className="message-actions" aria-label="Message actions">
+                      <button
+                        type="button"
+                        aria-label={`Edit message from ${message.author.label}`}
+                        title="Edit"
+                        onClick={() => handleEditMessage(message)}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete message from ${message.author.label}`}
+                        title="Delete"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </article>
           );
         })}
       </div>
+
+      {visibleGenerationStatus !== "idle" && (
+        <div
+          className={`thread-generation-notice ${visibleGenerationStatus}`}
+          role={visibleGenerationStatus === "error" ? "alert" : "status"}
+        >
+          {generationNotice ||
+            `${generationRuntime.label} is replying through the provider path.`}
+        </div>
+      )}
 
       <ChatComposer
         ariaLabel="Messenger composer"

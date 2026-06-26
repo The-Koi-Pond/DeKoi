@@ -42,6 +42,51 @@
     opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.shoal-settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  max-width: 160px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--reed-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  text-transform: none;
+  white-space: nowrap;
+  transition:
+    max-width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.16s,
+    background-color 0.16s,
+    color 0.16s;
+}
+
+.shoal-settings-button:hover,
+.shoal-settings-button:focus-visible {
+  border-color: rgba(39, 179, 170, 0.36);
+  background: rgba(39, 179, 170, 0.1);
+  color: var(--jade-hot);
+  outline: none;
+}
+
+.shoal-settings-button.on {
+  border-color: rgba(39, 179, 170, 0.42);
+  background: rgba(39, 179, 170, 0.14);
+  color: var(--jade-hot);
+}
+
 .shoal-toggle {
   display: grid;
   flex: 0 0 auto;
@@ -87,6 +132,15 @@
 .app.shoal-closed .shoal-topbar > span {
   max-width: 0;
   opacity: 0;
+}
+
+.app.shoal-closed .shoal-settings-button {
+  max-width: 0;
+  margin-left: 0;
+  padding: 0;
+  border-color: transparent;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .shoal-body {
@@ -201,6 +255,186 @@
 .shoal-actions {
   display: flex;
   gap: 7px;
+}
+
+.chat-settings-head {
+  display: grid;
+  gap: 10px;
+}
+
+.shoal-back-chip {
+  justify-self: start;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 11px;
+}
+
+.shoal-back-chip:hover,
+.shoal-back-chip:focus-visible {
+  border-color: rgba(39, 179, 170, 0.36);
+  background: rgba(39, 179, 170, 0.1);
+  color: var(--jade-hot);
+  outline: none;
+}
+
+.chat-settings-title {
+  margin-bottom: 0;
+}
+
+.chat-settings-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 8px 12px 14px;
+}
+
+.chat-settings-card {
+  display: grid;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  background: rgba(9, 19, 23, 0.22);
+}
+
+.chat-settings-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-settings-section-head b {
+  color: var(--foam);
+  font-size: 12px;
+}
+
+.chat-settings-section-head small {
+  color: var(--mist-dim);
+  font-size: 10px;
+}
+
+.chat-settings-field {
+  display: grid;
+  gap: 7px;
+}
+
+.chat-settings-field > span {
+  color: var(--mist-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.chat-settings-card .slider-field {
+  margin-bottom: 0;
+}
+
+.chat-settings-card .slider-field .sl-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chat-settings-card .slider-field .sl-top b {
+  color: var(--foam);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.chat-settings-card .slider-field .sl-top span {
+  color: var(--jade-hot);
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-settings-card .pondinput,
+.chat-settings-card .pondsel {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--foam);
+  font-family: var(--ui);
+  font-size: 12px;
+  outline: none;
+  padding: 0 10px;
+}
+
+.chat-settings-card .pondinput:focus,
+.chat-settings-card .pondsel:focus {
+  border-color: rgba(39, 179, 170, 0.48);
+  box-shadow: 0 0 0 2px rgba(39, 179, 170, 0.12);
+}
+
+.chat-settings-card .pondsel {
+  cursor: pointer;
+}
+
+.chat-settings-card .track {
+  position: relative;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--reed-soft);
+  cursor: pointer;
+}
+
+.chat-settings-card .track .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--jade), var(--jade-hot));
+}
+
+.chat-settings-card .track .knob {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--jade);
+  border-radius: 50%;
+  background: var(--belly);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  transition: transform 0.1s;
+}
+
+.chat-settings-card .track:hover .knob {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.chat-settings-card .track:focus-visible {
+  outline: none;
+}
+
+.chat-settings-card .track:focus-visible .knob {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(39, 179, 170, 0.18);
+}
+
+.chat-settings-card .track-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--mist-dim);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 .catalog-rail-tabs {
@@ -895,6 +1129,7 @@
   font-family: var(--display);
   font-size: 14px;
   font-weight: 600;
+  overflow: hidden;
 }
 
 .catalog-rail-card.jade .catalog-rail-ava {
@@ -903,6 +1138,13 @@
 
 .catalog-rail-card.amber .catalog-rail-ava {
   background: linear-gradient(140deg, #f0c659, #d39a26);
+}
+
+.catalog-rail-ava img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .catalog-rail-copy {

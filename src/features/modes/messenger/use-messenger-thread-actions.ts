@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/character";
-import type { LorebookRecord } from "../../../engine/lorebook";
 import type { MessengerThread } from "../../../engine/messenger";
 import {
   clearMessengerMessages,
@@ -21,7 +20,6 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 type UseMessengerThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
   characters: CharacterRecord[];
-  lorebooks: LorebookRecord[];
   messengerThreads: MessengerThread[];
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
@@ -34,7 +32,6 @@ type UseMessengerThreadActionsInput = {
 export function useMessengerThreadActions({
   activeMessengerConnectionId,
   characters,
-  lorebooks,
   messengerThreads,
   providerConnections,
   setMessengerThreads,
@@ -45,16 +42,14 @@ export function useMessengerThreadActions({
   const createMessengerThread = useCallback((input?: MessengerThreadCreateInput) => {
     const now = currentIsoTimestamp();
     const activePersonaId = input?.activePersonaId?.trim() || null;
+    const fallbackCharacterIds = characters[0] ? [characters[0].id] : [];
     const cleanCharacterIds: string[] = [...new Set<string>(
-      (input?.characterIds?.length
-        ? input.characterIds
-        : characters.map((companion) => companion.id)
-      )
+      (input?.characterIds ?? fallbackCharacterIds)
         .map((id) => id.trim())
         .filter(Boolean),
     )];
     const cleanLorebookIds: string[] = [...new Set<string>(
-      (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
+      (input?.lorebookIds ?? [])
         .map((id) => id.trim())
         .filter(Boolean),
     )];
@@ -87,7 +82,6 @@ export function useMessengerThreadActions({
   }, [
     activeMessengerConnectionId,
     characters,
-    lorebooks,
     messengerThreads.length,
     openMessengerThread,
     providerConnections,

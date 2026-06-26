@@ -56,6 +56,44 @@ export function clearMessengerMessages(thread: MessengerThread, updatedAt: strin
   }
 }
 
+export function updateMessengerMessageBody(
+  thread: MessengerThread,
+  messageId: string,
+  body: string,
+  updatedAt: string,
+): MessengerThread {
+  const cleanBody = body.trim()
+  if (!cleanBody) return thread
+
+  return {
+    ...thread,
+    messages: thread.messages.map((message) =>
+      message.id === messageId
+        ? {
+            ...message,
+            body: cleanBody,
+            updatedAt,
+          }
+        : message,
+    ),
+    updatedAt,
+  }
+}
+
+export function deleteMessengerMessage(
+  thread: MessengerThread,
+  messageId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (!thread.messages.some((message) => message.id === messageId)) return thread
+
+  return {
+    ...thread,
+    messages: thread.messages.filter((message) => message.id !== messageId),
+    updatedAt,
+  }
+}
+
 export function renameMessengerThread(thread: MessengerThread, title: string, updatedAt: string): MessengerThread {
   return {
     ...thread,

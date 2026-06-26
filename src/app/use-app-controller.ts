@@ -221,7 +221,6 @@ export function useAppController(): NavContextType {
   } = useMessengerThreadActions({
     activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
     characters,
-    lorebooks,
     messengerThreads,
     personas,
     providerConnections,

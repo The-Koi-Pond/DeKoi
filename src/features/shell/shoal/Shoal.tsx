@@ -5,6 +5,8 @@ import {
   type FormEvent,
 } from "react";
 import { KoiCard } from "./KoiCard";
+import { NumberField } from "../../../shared/ui/primitives/NumberField";
+import { Slider } from "../../../shared/ui/primitives/Slider";
 import {
   getClassicThreadPreview,
   sortClassicThreads,
@@ -52,6 +54,21 @@ interface ShoalProps {
   shoalClosed: boolean;
 }
 
+interface ShoalRailProps extends ShoalProps {
+  chatSettingsOpen: boolean;
+  onCloseChatSettings: () => void;
+  onOpenChatSettings: () => void;
+}
+
+type ShoalTopBarProps = Pick<
+  ShoalRailProps,
+  | "chatSettingsOpen"
+  | "nav"
+  | "onOpenChatSettings"
+  | "onToggleShoal"
+  | "shoalClosed"
+>;
+
 export type ShoalNav = Pick<
   NavCatalogState,
   "characters" | "lorebooks" | "personas" | "providerConnections"
@@ -64,7 +81,10 @@ export type ShoalNav = Pick<
     NavMessengerThreadActions,
     "createMessengerThread" | "deleteMessengerThread"
   > &
-  Pick<NavSettingsActions, "setShoalSortMode"> &
+  Pick<
+    NavSettingsActions,
+    "setActiveMessengerConnectionId" | "setShoalSortMode" | "updateAppSettings"
+  > &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "classicThreads" | "messengerThreads"> &
   Pick<NavViewActions, "openClassicThread" | "openMessengerThread" | "setView"> &
@@ -72,6 +92,7 @@ export type ShoalNav = Pick<
 
 interface CatalogRailCardProps {
   active?: boolean;
+  avatarUrl?: string | null;
   initials: string;
   name: string;
   onOpen: () => void;
@@ -80,9 +101,19 @@ interface CatalogRailCardProps {
 }
 
 function ShoalTopBar({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
   onToggleShoal,
   shoalClosed,
-}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
+}: ShoalTopBarProps) {
+  const chatSettingsLabel =
+    nav.selectedSurface === CLASSIC
+      ? "Classic Settings"
+      : nav.selectedSurface === MESSENGER
+        ? "Messenger Settings"
+        : "Chat Settings";
+
   return (
     <div className="shoal-topbar">
       <button
@@ -96,6 +127,17 @@ function ShoalTopBar({
         {shoalClosed ? "›" : "‹"}
       </button>
       <span>The Shoal</span>
+      <button
+        type="button"
+        className={`shoal-settings-button${chatSettingsOpen ? " on" : ""}`}
+        title={chatSettingsLabel}
+        aria-label={chatSettingsLabel}
+        aria-pressed={chatSettingsOpen}
+        onClick={onOpenChatSettings}
+      >
+        <span aria-hidden="true">⚙</span>
+        <span>{chatSettingsLabel}</span>
+      </button>
     </div>
   );
 }
@@ -122,6 +164,7 @@ function ClassicCardIcon() {
 
 function CatalogRailCard({
   active,
+  avatarUrl,
   initials,
   name,
   onOpen,
@@ -134,7 +177,9 @@ function CatalogRailCard({
       className={`catalog-rail-card ${tone}${active ? " on" : ""}`}
       onClick={onOpen}
     >
-      <span className="catalog-rail-ava">{initials}</span>
+      <span className="catalog-rail-ava">
+        {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
+      </span>
       <span className="catalog-rail-copy">
         <b>{name}</b>
         <small>{sub}</small>
@@ -204,7 +249,13 @@ function getClassicCardAvatarDetails(
   };
 }
 
-function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
+function PeopleCatalogRail({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
+  onToggleShoal,
+  shoalClosed,
+}: ShoalRailProps) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PeopleTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
@@ -267,7 +318,13 @@ function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — characters">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-head">
           <div
@@ -338,6 +395,7 @@ function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
                 <CatalogRailCard
                   key={character.id}
                   active={character.id === activeCharacterId}
+                  avatarUrl={character.avatarUrl}
                   initials={getMessengerThreadInitials(character.displayName)}
                   name={character.displayName}
                   sub={character.personality || character.nickname || "No personality yet."}
@@ -358,6 +416,7 @@ function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
                 <CatalogRailCard
                   key={persona.id}
                   active={persona.id === activePersonaId}
+                  avatarUrl={persona.avatarUrl}
                   initials={getMessengerThreadInitials(persona.displayName)}
                   name={persona.displayName}
                   sub={persona.personality || persona.nickname || "No personality yet."}
@@ -381,7 +440,13 @@ function PeopleCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   );
 }
 
-function LorebookCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
+function LorebookCatalogRail({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
+  onToggleShoal,
+  shoalClosed,
+}: ShoalRailProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
   const activeLorebookId =
@@ -407,7 +472,13 @@ function LorebookCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — lorebooks">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-head">
           <div className="shoal-title">
@@ -484,7 +555,13 @@ function LorebookCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   );
 }
 
-function ConnectionsCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
+function ConnectionsCatalogRail({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
+  onToggleShoal,
+  shoalClosed,
+}: ShoalRailProps) {
   const activeConnectionId =
     nav.view.kind === "connections" ? nav.view.connectionId : null;
 
@@ -494,7 +571,13 @@ function ConnectionsCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps)
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-head">
           <div className="shoal-title">
@@ -558,12 +641,21 @@ function ConnectionsCatalogRail({ nav, onToggleShoal, shoalClosed }: ShoalProps)
 }
 
 function MediaCatalogRail({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
   onToggleShoal,
   shoalClosed,
-}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
+}: ShoalRailProps) {
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — media">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-head">
           <div className="shoal-title">
@@ -589,12 +681,21 @@ function MediaCatalogRail({
 }
 
 function PresetsCatalogRail({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
   onToggleShoal,
   shoalClosed,
-}: Pick<ShoalProps, "onToggleShoal" | "shoalClosed">) {
+}: ShoalRailProps) {
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — presets">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-head">
           <div className="shoal-title">
@@ -622,7 +723,169 @@ function PresetsCatalogRail({
   );
 }
 
-function ThreadShoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
+function ChatSettingsRail({
+  chatSettingsOpen,
+  nav,
+  onCloseChatSettings,
+  onOpenChatSettings,
+  onToggleShoal,
+  shoalClosed,
+}: ShoalRailProps) {
+  const settingsLabel =
+    nav.selectedSurface === CLASSIC
+      ? "Classic Settings"
+      : nav.selectedSurface === MESSENGER
+        ? "Messenger Settings"
+        : "Chat Settings";
+  const sanitizedProviderConnections = useMemo(
+    () =>
+      nav.providerConnections.map((connection) =>
+        sanitizeProviderConnectionRecord(connection),
+      ),
+    [nav.providerConnections],
+  );
+  const activeConnectionId =
+    sanitizedProviderConnections.find(
+      (connection) => connection.id === nav.appSettings.activeMessengerConnectionId,
+    )?.id ??
+    sanitizedProviderConnections[0]?.id ??
+    "";
+
+  return (
+    <aside className="shoal chat-settings-shoal" aria-label={`The Shoal — ${settingsLabel}`}>
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
+      <div className="shoal-body">
+        <div className="shoal-head chat-settings-head">
+          <button
+            type="button"
+            className="shoal-back-chip"
+            onClick={onCloseChatSettings}
+          >
+            ‹ Shoal
+          </button>
+          <div className="shoal-title chat-settings-title">
+            <h2>{settingsLabel}</h2>
+            <span className="count">Defaults</span>
+          </div>
+        </div>
+        <div className="shoal-list chat-settings-list">
+          <section className="chat-settings-card">
+            <div className="chat-settings-section-head">
+              <b>Connection</b>
+              <small>Default provider</small>
+            </div>
+            <label className="chat-settings-field">
+              <span>Provider</span>
+              <select
+                className="pondsel"
+                value={activeConnectionId}
+                disabled={sanitizedProviderConnections.length === 0}
+                onChange={(event) =>
+                  nav.setActiveMessengerConnectionId(event.currentTarget.value)
+                }
+              >
+                {sanitizedProviderConnections.length === 0 ? (
+                  <option value="">No connections</option>
+                ) : (
+                  sanitizedProviderConnections.map((connection) => {
+                    const provider = getProviderConnectionProviderOption(
+                      connection.provider,
+                    );
+                    const model = connection.model || "No model";
+
+                    return (
+                      <option value={connection.id} key={connection.id}>
+                        {connection.label} · {provider.label} · {model}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+            </label>
+          </section>
+
+          <section className="chat-settings-card">
+            <div className="chat-settings-section-head">
+              <b>Generation</b>
+              <small>Default output shape</small>
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Temperature</b>
+                <span>{(nav.appSettings.defaultTemperature / 100).toFixed(2)}</span>
+              </div>
+              <Slider
+                value={nav.appSettings.defaultTemperature}
+                onChange={(value) =>
+                  nav.updateAppSettings({ defaultTemperature: value })
+                }
+                min={0}
+                max={200}
+                step={5}
+                ariaLabel={`${settingsLabel} temperature`}
+              />
+              <div className="track-ends">
+                <span>Precise</span>
+                <span>Creative</span>
+              </div>
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Max tokens</b>
+                <span>{nav.appSettings.defaultMaxTokens}</span>
+              </div>
+              <NumberField
+                value={nav.appSettings.defaultMaxTokens}
+                onChange={(value) =>
+                  nav.updateAppSettings({ defaultMaxTokens: value })
+                }
+                min={64}
+                max={8192}
+                step={64}
+                ariaLabel={`${settingsLabel} max tokens`}
+              />
+            </div>
+
+            <div className="slider-field">
+              <div className="sl-top">
+                <b>Top-p</b>
+                <span>{(nav.appSettings.defaultTopP / 100).toFixed(2)}</span>
+              </div>
+              <Slider
+                value={nav.appSettings.defaultTopP}
+                onChange={(value) => nav.updateAppSettings({ defaultTopP: value })}
+                min={0}
+                max={100}
+                step={1}
+                ariaLabel={`${settingsLabel} top-p`}
+              />
+              <div className="track-ends">
+                <span>Focused</span>
+                <span>Diverse</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function ThreadShoal({
+  chatSettingsOpen,
+  nav,
+  onOpenChatSettings,
+  onToggleShoal,
+  shoalClosed,
+}: ShoalRailProps) {
   const [query, setQuery] = useState("");
   const [newMessengerOpen, setNewMessengerOpen] = useState(false);
   const [newMessengerName, setNewMessengerName] = useState("");
@@ -849,7 +1112,13 @@ function ThreadShoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
 
   return (
     <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
-      <ShoalTopBar onToggleShoal={onToggleShoal} shoalClosed={shoalClosed} />
+      <ShoalTopBar
+        chatSettingsOpen={chatSettingsOpen}
+        nav={nav}
+        onOpenChatSettings={onOpenChatSettings}
+        onToggleShoal={onToggleShoal}
+        shoalClosed={shoalClosed}
+      />
       <div className="shoal-body">
         <div className="shoal-surface-title">{activeSurfaceLabel}</div>
         <div className="shoal-head">
@@ -1154,55 +1423,47 @@ function ThreadShoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
 }
 
 export function Shoal({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
-  if (nav.sideRailView === "lorebooks") {
-    return (
-      <LorebookCatalogRail
-        nav={nav}
-        onToggleShoal={onToggleShoal}
-        shoalClosed={shoalClosed}
-      />
-    );
-  }
-  if (nav.sideRailView === "people") {
-    return (
-      <PeopleCatalogRail
-        nav={nav}
-        onToggleShoal={onToggleShoal}
-        shoalClosed={shoalClosed}
-      />
-    );
-  }
-  if (nav.sideRailView === "media") {
-    return (
-      <MediaCatalogRail
-        onToggleShoal={onToggleShoal}
-        shoalClosed={shoalClosed}
-      />
-    );
-  }
-  if (nav.sideRailView === "presets") {
-    return (
-      <PresetsCatalogRail
-        onToggleShoal={onToggleShoal}
-        shoalClosed={shoalClosed}
-      />
-    );
-  }
-  if (nav.sideRailView === "connections") {
-    return (
-      <ConnectionsCatalogRail
-        nav={nav}
-        onToggleShoal={onToggleShoal}
-        shoalClosed={shoalClosed}
-      />
-    );
+  const [chatSettingsState, setChatSettingsState] = useState({
+    open: false,
+    sideRailView: nav.sideRailView,
+  });
+
+  if (chatSettingsState.sideRailView !== nav.sideRailView) {
+    setChatSettingsState({ open: false, sideRailView: nav.sideRailView });
   }
 
-  return (
-    <ThreadShoal
-      nav={nav}
-      onToggleShoal={onToggleShoal}
-      shoalClosed={shoalClosed}
-    />
-  );
+  const chatSettingsOpen =
+    chatSettingsState.sideRailView === nav.sideRailView && chatSettingsState.open;
+  const railProps = {
+    chatSettingsOpen,
+    nav,
+    onCloseChatSettings: () =>
+      setChatSettingsState({ open: false, sideRailView: nav.sideRailView }),
+    onOpenChatSettings: () =>
+      setChatSettingsState({ open: true, sideRailView: nav.sideRailView }),
+    onToggleShoal,
+    shoalClosed,
+  };
+
+  if (chatSettingsOpen) {
+    return <ChatSettingsRail {...railProps} />;
+  }
+
+  if (nav.sideRailView === "lorebooks") {
+    return <LorebookCatalogRail {...railProps} />;
+  }
+  if (nav.sideRailView === "people") {
+    return <PeopleCatalogRail {...railProps} />;
+  }
+  if (nav.sideRailView === "media") {
+    return <MediaCatalogRail {...railProps} />;
+  }
+  if (nav.sideRailView === "presets") {
+    return <PresetsCatalogRail {...railProps} />;
+  }
+  if (nav.sideRailView === "connections") {
+    return <ConnectionsCatalogRail {...railProps} />;
+  }
+
+  return <ThreadShoal {...railProps} />;
 }

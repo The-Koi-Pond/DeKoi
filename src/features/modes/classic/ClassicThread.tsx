@@ -8,7 +8,10 @@ import {
   appendClassicEntries,
   createNarrationClassicEntry,
   createPersonaClassicEntry,
+  deleteClassicEntry,
+  updateClassicEntryBody,
 } from "../../../engine/classic-actions";
+import type { ClassicEntry } from "../../../engine/classic";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { CLASSIC } from "../../../engine/surfaces";
 import {
@@ -74,6 +77,10 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     status: "idle" | "generating" | "warning" | "error";
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
+  const [editingEntry, setEditingEntry] = useState<{
+    id: string;
+    body: string;
+  } | null>(null);
   const entryListRef = useRef<HTMLDivElement>(null);
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const activePersona = thread?.activePersonaId
@@ -89,6 +96,8 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
   const isGenerating =
     generationState.threadId === activeThreadId &&
     generationState.status === "generating";
+  const visibleGenerationStatus =
+    generationState.threadId === activeThreadId ? generationState.status : "idle";
   const generationNotice =
     generationState.threadId === activeThreadId &&
     (generationState.status === "warning" || generationState.status === "error")
@@ -101,6 +110,40 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     if (!thread) return;
     entryListRef.current.scrollTop = entryListRef.current.scrollHeight;
   }, [thread, thread?.entries.length]);
+
+  function handleEditEntry(entry: ClassicEntry) {
+    setEditingEntry({ id: entry.id, body: entry.body });
+  }
+
+  function handleCancelEditEntry() {
+    setEditingEntry(null);
+  }
+
+  function handleSaveEditedEntry() {
+    if (!thread || !editingEntry) return;
+    const trimmedBody = editingEntry.body.trim();
+    if (!trimmedBody) return;
+
+    nav.updateClassicThread(
+      updateClassicEntryBody(
+        thread,
+        editingEntry.id,
+        trimmedBody,
+        new Date().toISOString(),
+      ),
+    );
+    setEditingEntry(null);
+  }
+
+  function handleDeleteEntry(entryId: string) {
+    if (!thread) return;
+    nav.updateClassicThread(
+      deleteClassicEntry(thread, entryId, new Date().toISOString()),
+    );
+    if (editingEntry?.id === entryId) {
+      setEditingEntry(null);
+    }
+  }
 
   async function sendDraft() {
     if (!thread) return false;
@@ -142,6 +185,11 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         lorebooks: nav.lorebooks,
         mode: generationMode,
         now: sentAt,
+        parameters: {
+          temperature: nav.appSettings.defaultTemperature / 100,
+          maxTokens: nav.appSettings.defaultMaxTokens,
+          topP: nav.appSettings.defaultTopP / 100,
+        },
         personas: nav.personas,
         providerConnections: nav.providerConnections,
         thread: threadWithUserEntry,
@@ -229,19 +277,85 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
         aria-label="Classic chat messages"
         ref={entryListRef}
       >
-        {thread.entries.map((entry) => (
-          <article className={`classic-entry ${entry.role}`} key={entry.id}>
-            <div className="classic-entry-head">
-              <b>{entry.label}</b>
-              {entry.origin === "generated" && <span>Generated</span>}
-            </div>
-            <p>{entry.body}</p>
-          </article>
-        ))}
+        {thread.entries.map((entry) => {
+          const isEditing = editingEntry?.id === entry.id;
+
+          return (
+            <article
+              className={`classic-entry ${entry.role}${isEditing ? " editing" : ""}`}
+              key={entry.id}
+            >
+              <div className="classic-entry-head">
+                <b>{entry.label}</b>
+                <span className="classic-entry-badges">
+                  {entry.origin === "generated" && <span>Generated</span>}
+                </span>
+              </div>
+              {isEditing ? (
+                <div className="classic-entry-edit-form">
+                  <textarea
+                    aria-label={`Edit Classic entry from ${entry.label}`}
+                    value={editingEntry.body}
+                    onChange={(event) =>
+                      setEditingEntry({
+                        id: entry.id,
+                        body: event.target.value,
+                      })
+                    }
+                  />
+                  <div className="classic-entry-edit-actions">
+                    <button
+                      type="button"
+                      onClick={handleSaveEditedEntry}
+                      disabled={!editingEntry.body.trim()}
+                    >
+                      Save
+                    </button>
+                    <button type="button" onClick={handleCancelEditEntry}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p>{entry.body}</p>
+                  <div className="classic-entry-actions" aria-label="Entry actions">
+                    <button
+                      type="button"
+                      aria-label={`Edit Classic entry from ${entry.label}`}
+                      title="Edit"
+                      onClick={() => handleEditEntry(entry)}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete Classic entry from ${entry.label}`}
+                      title="Delete"
+                      onClick={() => handleDeleteEntry(entry.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          );
+        })}
         {thread.entries.length === 0 && (
           <p className="classic-empty-note">No messages yet.</p>
         )}
       </div>
+
+      {visibleGenerationStatus !== "idle" && (
+        <div
+          className={`thread-generation-notice ${visibleGenerationStatus}`}
+          role={visibleGenerationStatus === "error" ? "alert" : "status"}
+        >
+          {generationNotice ||
+            `${generationRuntime.label} is replying through the provider path.`}
+        </div>
+      )}
 
       <ChatComposer
         ariaLabel="Classic composer"

@@ -123,6 +123,14 @@
   padding-top: 1px;
 }
 
+.message-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
 .message-author {
   display: inline-flex;
   gap: 8px;
@@ -145,10 +153,115 @@
   text-transform: uppercase;
 }
 
+.message-actions,
+.message-edit-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.message-actions {
+  align-items: center;
+  max-height: 0;
+  margin-top: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition:
+    max-height 0.14s,
+    margin-top 0.14s,
+    opacity 0.14s,
+    transform 0.14s;
+}
+
+.messenger-message:hover .message-actions,
+.messenger-message:focus-within .message-actions {
+  max-height: 22px;
+  margin-top: 4px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.message-edit-actions button {
+  min-height: 22px;
+  padding: 0 7px;
+  border: 1px solid rgba(117, 143, 146, 0.2);
+  border-radius: 7px;
+  background: rgba(9, 19, 23, 0.28);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 10px;
+}
+
+.message-actions button {
+  display: grid;
+  width: 22px;
+  height: 20px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(117, 143, 146, 0.22);
+  border-radius: 999px;
+  background: rgba(9, 19, 23, 0.24);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.message-actions button:hover,
+.message-actions button:focus-visible,
+.message-edit-actions button:hover:not(:disabled),
+.message-edit-actions button:focus-visible:not(:disabled) {
+  border-color: rgba(39, 179, 170, 0.32);
+  background: rgba(39, 179, 170, 0.1);
+  color: var(--jade-hot);
+  outline: none;
+}
+
+.message-edit-actions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .messenger-message p {
   color: var(--foam);
   line-height: 1.45;
   font-size: 13px;
+}
+
+.message-edit-form {
+  display: grid;
+  gap: 7px;
+}
+
+.message-edit-form textarea {
+  width: 100%;
+  min-height: 82px;
+  resize: vertical;
+  border: 1px solid rgba(39, 179, 170, 0.28);
+  border-radius: 8px;
+  background: rgba(9, 19, 23, 0.42);
+  color: var(--foam);
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.45;
+  outline: none;
+  padding: 9px;
+}
+
+.message-edit-form textarea:focus,
+.message-edit-form textarea:focus-visible {
+  border-color: rgba(39, 179, 170, 0.48);
+  box-shadow: 0 0 0 1px rgba(39, 179, 170, 0.12);
+  outline: none;
+}
+
+.message-edit-actions {
+  justify-content: flex-end;
 }
 
 .messenger-thread-empty {

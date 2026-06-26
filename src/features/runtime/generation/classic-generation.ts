@@ -20,6 +20,11 @@ export interface GenerateClassicThreadTurnInput {
   fallbackProviderConnectionId?: string | null;
   now: string;
   mode?: MessengerGenerationRuntimeMode;
+  parameters?: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+  };
   createId: (prefix: string) => string;
 }
 
@@ -170,6 +175,7 @@ export async function generateClassicThreadTurn({
   lorebooks,
   mode = "mock",
   now,
+  parameters,
   personas,
   providerConnections,
   thread,
@@ -183,6 +189,7 @@ export async function generateClassicThreadTurn({
     lorebooks,
     mode,
     now,
+    parameters,
     personas,
     providerConnections,
     thread: messengerThread,

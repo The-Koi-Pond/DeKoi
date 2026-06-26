@@ -92,6 +92,44 @@ export function clearClassicEntries(
   };
 }
 
+export function updateClassicEntryBody(
+  thread: ClassicThread,
+  entryId: string,
+  body: string,
+  updatedAt: string,
+): ClassicThread {
+  const cleanBody = cleanText(body);
+  if (!cleanBody) return thread;
+
+  return {
+    ...thread,
+    entries: thread.entries.map((entry) =>
+      entry.id === entryId
+        ? {
+            ...entry,
+            body: cleanBody,
+            updatedAt,
+          }
+        : entry,
+    ),
+    updatedAt,
+  };
+}
+
+export function deleteClassicEntry(
+  thread: ClassicThread,
+  entryId: string,
+  updatedAt: string,
+): ClassicThread {
+  if (!thread.entries.some((entry) => entry.id === entryId)) return thread;
+
+  return {
+    ...thread,
+    entries: thread.entries.filter((entry) => entry.id !== entryId),
+    updatedAt,
+  };
+}
+
 export function createPersonaClassicEntry({
   body,
   id,
