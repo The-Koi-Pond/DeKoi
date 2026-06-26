@@ -6,6 +6,7 @@ export type {
   NavCatalogState,
   NavCharacterActions,
   NavClassicThreadActions,
+  ClassicThreadCreateInput,
   NavContextType,
   NavLorebookActions,
   NavMessengerThreadActions,

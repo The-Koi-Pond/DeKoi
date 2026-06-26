@@ -2,7 +2,9 @@ import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/character";
 import type { ClassicThread } from "../../../engine/classic";
 import {
+  appendClassicEntries,
   clearClassicEntries,
+  createCompanionClassicEntry,
   createClassicThread as buildClassicThread,
   deleteClassicThread as deleteClassicThreadRecord,
   renameClassicThread as renameClassicThreadRecord,
@@ -17,7 +19,7 @@ import type { RippleState } from "../../../engine/ripples";
 import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
-import type { PondView } from "../../navigation";
+import type { ClassicThreadCreateInput, PondView } from "../../navigation";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseClassicThreadActionsInput = {
@@ -47,28 +49,72 @@ export function useClassicThreadActions({
   view,
   openClassicThread,
 }: UseClassicThreadActionsInput) {
-  const createClassicThread = useCallback(() => {
+  const createClassicThread = useCallback((input?: ClassicThreadCreateInput) => {
     const now = currentIsoTimestamp();
-    const activePersona = personas[0] ?? null;
+    const activePersonaId =
+      input?.activePersonaId === undefined
+        ? personas[0]?.id ?? null
+        : input.activePersonaId?.trim() || null;
+    const characterIds = [
+      ...new Set(
+        (input?.characterIds ??
+          characters.slice(0, 1).map((companion) => companion.id))
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ];
+    const lorebookIds = [
+      ...new Set(
+        (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ];
+    const requestedConnectionId = input?.providerConnectionId?.trim() ?? "";
     const activeConnection =
       providerConnections.find(
-        (connection) => connection.id === activeMessengerConnectionId,
+        (connection) =>
+          requestedConnectionId
+            ? connection.id === requestedConnectionId
+            : connection.id === activeMessengerConnectionId,
       ) ??
       providerConnections[0] ??
       null;
     const thread = buildClassicThread({
-      activePersonaId: activePersona?.id ?? null,
-      characterIds: characters.slice(0, 1).map((companion) => companion.id),
+      activePersonaId,
+      characterIds,
       id: createRecordId("classic-thread"),
-      lorebookIds: lorebooks.map((lorebook) => lorebook.id),
+      lorebookIds,
       now,
       providerConnectionId: activeConnection?.id ?? null,
-      title: `New Classic ${classicThreads.length + 1}`,
+      title: input?.title?.trim() || `New Classic ${classicThreads.length + 1}`,
     });
+    const openingCompanion =
+      characterIds
+        .map(
+          (characterId) =>
+            characters.find((character) => character.id === characterId) ?? null,
+        )
+        .find((character) => !!character?.firstMessage.trim()) ?? null;
+    const threadWithOpeningEntry = openingCompanion
+      ? appendClassicEntries(
+          thread,
+          [
+            createCompanionClassicEntry({
+              body: openingCompanion.firstMessage,
+              companion: openingCompanion,
+              id: createRecordId("classic-entry"),
+              now,
+              thread,
+            }),
+          ],
+          now,
+        )
+      : thread;
 
-    setClassicThreads((currentThreads) => [thread, ...currentThreads]);
-    openClassicThread(thread.id);
-    return thread;
+    setClassicThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
+    openClassicThread(threadWithOpeningEntry.id);
+    return threadWithOpeningEntry;
   }, [
     activeMessengerConnectionId,
     characters,

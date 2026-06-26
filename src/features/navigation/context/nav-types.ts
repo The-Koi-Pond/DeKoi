@@ -160,20 +160,28 @@ export interface NavProviderConnectionActions {
   deleteProviderConnection: (connectionId: string) => void;
 }
 
-export interface NavClassicThreadActions {
-  createClassicThread: () => ClassicThread;
-  updateClassicThread: (thread: ClassicThread) => void;
-  renameClassicThread: (threadId: string, title: string) => void;
-  clearClassicThreadEntries: (threadId: string) => void;
-  deleteClassicThread: (threadId: string) => void;
-}
-
 export interface MessengerThreadCreateInput {
   activePersonaId?: string | null;
   characterIds?: string[];
   lorebookIds?: string[];
   providerConnectionId?: ProviderConnectionId | null;
   title?: string;
+}
+
+export interface ClassicThreadCreateInput {
+  activePersonaId?: string | null;
+  characterIds?: string[];
+  lorebookIds?: string[];
+  providerConnectionId?: ProviderConnectionId | null;
+  title?: string;
+}
+
+export interface NavClassicThreadActions {
+  createClassicThread: (input?: ClassicThreadCreateInput) => ClassicThread;
+  updateClassicThread: (thread: ClassicThread) => void;
+  renameClassicThread: (threadId: string, title: string) => void;
+  clearClassicThreadEntries: (threadId: string) => void;
+  deleteClassicThread: (threadId: string) => void;
 }
 
 export interface NavMessengerThreadActions {

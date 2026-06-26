@@ -184,6 +184,33 @@ export function createNarrationClassicEntry({
   };
 }
 
+export function createCompanionClassicEntry({
+  body,
+  companion,
+  id,
+  now,
+  thread,
+}: {
+  body: string;
+  companion: CharacterRecord;
+  id: string;
+  now: string;
+  thread: ClassicThread;
+}): ClassicEntry {
+  return {
+    id,
+    threadId: thread.id,
+    role: "character",
+    characterId: companion.id,
+    personaId: null,
+    label: companion.displayName,
+    body: cleanText(body),
+    origin: "manual",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function deleteClassicThread(records: ClassicThread[], id: string) {
   return records.filter((record) => record.id !== id);
 }
@@ -266,15 +293,13 @@ export function createGeneratedClassicEntry({
   thread: ClassicThread;
 }): ClassicEntry {
   return {
-    id,
-    threadId: thread.id,
-    role: "character",
-    characterId: companion.id,
-    personaId: null,
-    label: companion.displayName,
-    body: message.body,
+    ...createCompanionClassicEntry({
+      body: message.body,
+      companion,
+      id,
+      now,
+      thread,
+    }),
     origin: "generated",
-    createdAt: now,
-    updatedAt: now,
   };
 }

@@ -1428,6 +1428,17 @@ function ThreadShoal({
   const [newMessengerCharacterIds, setNewMessengerCharacterIds] = useState<string[]>([]);
   const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
     useState(false);
+  const [newClassicOpen, setNewClassicOpen] = useState(false);
+  const [newClassicName, setNewClassicName] = useState("");
+  const [newClassicNameEdited, setNewClassicNameEdited] = useState(false);
+  const [newClassicConnectionId, setNewClassicConnectionId] = useState("");
+  const [newClassicPersonaId, setNewClassicPersonaId] = useState("");
+  const [newClassicCharacterIds, setNewClassicCharacterIds] = useState<string[]>([]);
+  const [newClassicLorebookIds, setNewClassicLorebookIds] = useState<string[]>([]);
+  const [newClassicCompanionMenuOpen, setNewClassicCompanionMenuOpen] =
+    useState(false);
+  const [newClassicLorebookMenuOpen, setNewClassicLorebookMenuOpen] =
+    useState(false);
   const [releaseRequest, setReleaseRequest] =
     useState<ThreadReleaseRequest | null>(null);
   const sortMode = nav.appSettings.shoalSortMode;
@@ -1495,17 +1506,19 @@ function ThreadShoal({
   }, [query, sortedClassicThreads]);
 
   useEffect(() => {
-    if (!newMessengerOpen) return;
+    if (!newMessengerOpen && !newClassicOpen) return;
 
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") setNewMessengerOpen(false);
+      if (event.key !== "Escape") return;
+      setNewMessengerOpen(false);
+      setNewClassicOpen(false);
     }
 
     document.addEventListener("keydown", handleDocumentKeyDown);
     return () => {
       document.removeEventListener("keydown", handleDocumentKeyDown);
     };
-  }, [newMessengerOpen]);
+  }, [newClassicOpen, newMessengerOpen]);
 
   useEffect(() => {
     if (!releaseRequest) return;
@@ -1537,8 +1550,31 @@ function ThreadShoal({
     return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
   }
 
+  function getDraftClassicName(characterIds: string[]) {
+    return (
+      characterIds
+        .map((characterId) => characterById.get(characterId)?.displayName ?? "")
+        .filter(Boolean)
+        .join(" + ") || `New Classic ${nav.classicThreads.length + 1}`
+    );
+  }
+
+  function getLorebookSelectionLabel(lorebookIds: string[]) {
+    const lorebookById = new Map(
+      nav.lorebooks.map((lorebook) => [lorebook.id, lorebook.title]),
+    );
+    const names = lorebookIds
+      .map((lorebookId) => lorebookById.get(lorebookId) ?? "")
+      .filter(Boolean);
+
+    if (names.length === 0) return "No lorebooks";
+    if (names.length <= 2) return names.join(" + ");
+    return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
+  }
+
   function openNewMessengerThreadPopover() {
     const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
+    setNewClassicOpen(false);
     setNewMessengerCharacterIds(initialCharacterIds);
     setNewMessengerName(getDraftCompanionName(initialCharacterIds));
     setNewMessengerNameEdited(false);
@@ -1546,6 +1582,20 @@ function ThreadShoal({
     setNewMessengerPersonaId("");
     setNewMessengerCompanionMenuOpen(false);
     setNewMessengerOpen(true);
+  }
+
+  function openNewClassicThreadPopover() {
+    const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
+    setNewMessengerOpen(false);
+    setNewClassicCharacterIds(initialCharacterIds);
+    setNewClassicName(getDraftClassicName(initialCharacterIds));
+    setNewClassicNameEdited(false);
+    setNewClassicConnectionId(defaultMessengerConnectionId);
+    setNewClassicPersonaId(nav.personas[0]?.id ?? "");
+    setNewClassicLorebookIds(nav.lorebooks.map((lorebook) => lorebook.id));
+    setNewClassicCompanionMenuOpen(false);
+    setNewClassicLorebookMenuOpen(false);
+    setNewClassicOpen(true);
   }
 
   function updateNewMessengerCharacterIds(characterIds: string[]) {
@@ -1560,6 +1610,28 @@ function ThreadShoal({
       ? newMessengerCharacterIds.filter((id) => id !== characterId)
       : [...newMessengerCharacterIds, characterId];
     updateNewMessengerCharacterIds(nextIds);
+  }
+
+  function updateNewClassicCharacterIds(characterIds: string[]) {
+    setNewClassicCharacterIds(characterIds);
+    if (!newClassicNameEdited) {
+      setNewClassicName(getDraftClassicName(characterIds));
+    }
+  }
+
+  function toggleNewClassicCharacter(characterId: string) {
+    const nextIds = newClassicCharacterIds.includes(characterId)
+      ? newClassicCharacterIds.filter((id) => id !== characterId)
+      : [...newClassicCharacterIds, characterId];
+    updateNewClassicCharacterIds(nextIds);
+  }
+
+  function toggleNewClassicLorebook(lorebookId: string) {
+    setNewClassicLorebookIds((currentIds) =>
+      currentIds.includes(lorebookId)
+        ? currentIds.filter((id) => id !== lorebookId)
+        : [...currentIds, lorebookId],
+    );
   }
 
   function handleCreateMessengerThread(event: FormEvent<HTMLFormElement>) {
@@ -1578,9 +1650,32 @@ function ThreadShoal({
     setNewMessengerOpen(false);
   }
 
+  function handleCreateClassicThread(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (newClassicCharacterIds.length === 0) return;
+
+    const title =
+      newClassicName.trim() || getDraftClassicName(newClassicCharacterIds);
+    nav.createClassicThread({
+      activePersonaId: newClassicPersonaId || null,
+      characterIds: newClassicCharacterIds,
+      lorebookIds: newClassicLorebookIds,
+      providerConnectionId: newClassicConnectionId || null,
+      title,
+    });
+    setNewClassicCompanionMenuOpen(false);
+    setNewClassicLorebookMenuOpen(false);
+    setNewClassicOpen(false);
+  }
+
   function handleCreateActiveThread() {
     if (isClassicSurface) {
-      nav.createClassicThread();
+      if (newClassicOpen) {
+        setNewClassicOpen(false);
+        return;
+      }
+
+      openNewClassicThreadPopover();
       return;
     }
 
@@ -1660,9 +1755,11 @@ function ThreadShoal({
               className={`pill ${isClassicSurface ? "classic" : "koi"} title-cast`}
               type="button"
               aria-controls={
-                isClassicSurface ? undefined : "new-messenger-thread-popover"
+                isClassicSurface
+                  ? "new-classic-thread-popover"
+                  : "new-messenger-thread-popover"
               }
-              aria-expanded={isClassicSurface ? undefined : newMessengerOpen}
+              aria-expanded={isClassicSurface ? newClassicOpen : newMessengerOpen}
               onClick={handleCreateActiveThread}
             >
               {isClassicSurface ? "+ New Scene" : "+ Cast a Line"}
@@ -1908,6 +2005,207 @@ function ThreadShoal({
               <button
                 type="submit"
                 disabled={newMessengerCharacterIds.length === 0}
+              >
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {isClassicSurface && newClassicOpen && (
+        <div
+          className="new-thread-backdrop"
+          role="presentation"
+          onClick={() => setNewClassicOpen(false)}
+        >
+          <form
+            className="new-thread-popover"
+            id="new-classic-thread-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-classic-thread-title"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleCreateClassicThread}
+          >
+            <div className="new-thread-popover-head">
+              <b id="new-classic-thread-title">New Classic Thread</b>
+              <button
+                type="button"
+                aria-label="Close new Classic thread"
+                onClick={() => setNewClassicOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <label className="new-thread-field">
+              <span>Thread Name</span>
+              <input
+                value={newClassicName}
+                onChange={(event) => {
+                  setNewClassicName(event.target.value);
+                  setNewClassicNameEdited(true);
+                }}
+                placeholder={getDraftClassicName(newClassicCharacterIds)}
+              />
+            </label>
+            <label className="new-thread-field">
+              <span>Connection</span>
+              <select
+                value={newClassicConnectionId}
+                onChange={(event) => setNewClassicConnectionId(event.target.value)}
+                disabled={sanitizedProviderConnections.length === 0}
+              >
+                {sanitizedProviderConnections.map((connection) => (
+                  <option value={connection.id} key={connection.id}>
+                    {connection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="new-thread-field">
+              <span>Persona</span>
+              <select
+                value={newClassicPersonaId}
+                onChange={(event) => setNewClassicPersonaId(event.target.value)}
+              >
+                <option value="">No persona</option>
+                {nav.personas.map((persona) => (
+                  <option value={persona.id} key={persona.id}>
+                    {persona.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div
+              className="new-thread-dropdown-field"
+              onBlur={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setNewClassicCompanionMenuOpen(false);
+              }}
+            >
+              <span id="new-classic-companions-label">Companions</span>
+              <button
+                type="button"
+                className="new-thread-select-button"
+                aria-controls="new-classic-companion-menu"
+                aria-expanded={newClassicCompanionMenuOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="new-classic-companions-label"
+                disabled={nav.characters.length === 0}
+                onClick={() => {
+                  setNewClassicLorebookMenuOpen(false);
+                  setNewClassicCompanionMenuOpen((open) => !open);
+                }}
+              >
+                <span>{getCompanionSelectionLabel(newClassicCharacterIds)}</span>
+                <small>{newClassicCharacterIds.length}</small>
+              </button>
+              {newClassicCompanionMenuOpen && (
+                <div
+                  className="new-thread-select-menu"
+                  id="new-classic-companion-menu"
+                  role="listbox"
+                  aria-labelledby="new-classic-companions-label"
+                  aria-multiselectable="true"
+                >
+                  {nav.characters.map((character) => {
+                    const selected = newClassicCharacterIds.includes(character.id);
+
+                    return (
+                      <label
+                        className={`new-thread-check${selected ? " on" : ""}`}
+                        key={character.id}
+                        role="option"
+                        aria-selected={selected}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleNewClassicCharacter(character.id)}
+                        />
+                        <span>
+                          <b>{character.displayName}</b>
+                          <small>
+                            {character.nickname ||
+                              character.personality ||
+                              "Companion"}
+                          </small>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {nav.characters.length === 0 && (
+                <p className="new-thread-empty">
+                  Add a companion before starting a Classic thread.
+                </p>
+              )}
+            </div>
+            <div
+              className="new-thread-dropdown-field"
+              onBlur={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setNewClassicLorebookMenuOpen(false);
+              }}
+            >
+              <span id="new-classic-lorebooks-label">Lorebooks</span>
+              <button
+                type="button"
+                className="new-thread-select-button"
+                aria-controls="new-classic-lorebook-menu"
+                aria-expanded={newClassicLorebookMenuOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="new-classic-lorebooks-label"
+                disabled={nav.lorebooks.length === 0}
+                onClick={() => {
+                  setNewClassicCompanionMenuOpen(false);
+                  setNewClassicLorebookMenuOpen((open) => !open);
+                }}
+              >
+                <span>{getLorebookSelectionLabel(newClassicLorebookIds)}</span>
+                <small>{newClassicLorebookIds.length}</small>
+              </button>
+              {newClassicLorebookMenuOpen && (
+                <div
+                  className="new-thread-select-menu"
+                  id="new-classic-lorebook-menu"
+                  role="listbox"
+                  aria-labelledby="new-classic-lorebooks-label"
+                  aria-multiselectable="true"
+                >
+                  {nav.lorebooks.map((lorebook) => {
+                    const selected = newClassicLorebookIds.includes(lorebook.id);
+
+                    return (
+                      <label
+                        className={`new-thread-check${selected ? " on" : ""}`}
+                        key={lorebook.id}
+                        role="option"
+                        aria-selected={selected}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleNewClassicLorebook(lorebook.id)}
+                        />
+                        <span>
+                          <b>{lorebook.title}</b>
+                          <small>{lorebook.summary || "Lorebook"}</small>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="new-thread-actions">
+              <button type="button" onClick={() => setNewClassicOpen(false)}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={newClassicCharacterIds.length === 0}
               >
                 Create
               </button>

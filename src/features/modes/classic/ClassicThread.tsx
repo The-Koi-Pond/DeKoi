@@ -53,6 +53,19 @@ interface ClassicThreadProps {
   nav: ClassicThreadNav;
 }
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function isOwnClassicEntry(entry: ClassicEntry) {
+  return entry.role === "persona" || entry.role === "narration";
+}
+
 function ClassicChatSettingsButton() {
   return (
     <button
@@ -263,6 +276,33 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
     void sendDraft();
   }
 
+  function getEntryAuthorAvatar(entry: ClassicEntry) {
+    if (entry.role === "character" && entry.characterId) {
+      const character =
+        nav.characters.find((candidate) => candidate.id === entry.characterId) ??
+        null;
+      return {
+        avatarUrl: character?.avatarUrl ?? null,
+        initials: getInitials(character?.displayName ?? entry.label),
+      };
+    }
+
+    if (entry.role === "persona" && entry.personaId) {
+      const persona =
+        nav.personas.find((candidate) => candidate.id === entry.personaId) ??
+        null;
+      return {
+        avatarUrl: persona?.avatarUrl ?? null,
+        initials: getInitials(persona?.displayName ?? entry.label),
+      };
+    }
+
+    return {
+      avatarUrl: null,
+      initials: getInitials(entry.label),
+    };
+  }
+
   if (!thread) {
     return (
       <section className="classic-thread classic-thread-empty">
@@ -295,13 +335,23 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
       >
         {thread.entries.map((entry) => {
           const isEditing = editingEntry?.id === entry.id;
+          const authorAvatar = getEntryAuthorAvatar(entry);
           const timeLabel = getMessageTimeLabel(entry.createdAt);
 
           return (
             <article
-              className={`classic-entry ${entry.role}${isEditing ? " editing" : ""}`}
+              className={`classic-entry ${entry.role}${
+                isOwnClassicEntry(entry) ? " own" : ""
+              }${isEditing ? " editing" : ""}`}
               key={entry.id}
             >
+              <span className="classic-entry-avatar" aria-hidden="true">
+                {authorAvatar.avatarUrl ? (
+                  <img src={authorAvatar.avatarUrl} alt="" />
+                ) : (
+                  authorAvatar.initials
+                )}
+              </span>
               <div className="classic-entry-head">
                 <div className="classic-entry-author">
                   <b>{entry.label}</b>
@@ -316,54 +366,56 @@ export function ClassicThread({ nav }: ClassicThreadProps) {
                   )}
                 </div>
               </div>
-              {isEditing ? (
-                <div className="classic-entry-edit-form">
-                  <textarea
-                    aria-label={`Edit Classic entry from ${entry.label}`}
-                    value={editingEntry.body}
-                    onChange={(event) =>
-                      setEditingEntry({
-                        id: entry.id,
-                        body: event.target.value,
-                      })
-                    }
-                  />
-                  <div className="classic-entry-edit-actions">
-                    <button
-                      type="button"
-                      onClick={handleSaveEditedEntry}
-                      disabled={!editingEntry.body.trim()}
-                    >
-                      Save
-                    </button>
-                    <button type="button" onClick={handleCancelEditEntry}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p>{entry.body}</p>
-                  <div className="classic-entry-actions" aria-label="Entry actions">
-                    <button
-                      type="button"
+              <div className="classic-entry-bubble">
+                {isEditing ? (
+                  <div className="classic-entry-edit-form">
+                    <textarea
                       aria-label={`Edit Classic entry from ${entry.label}`}
-                      title="Edit"
-                      onClick={() => handleEditEntry(entry)}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete Classic entry from ${entry.label}`}
-                      title="Delete"
-                      onClick={() => handleDeleteEntry(entry.id)}
-                    >
-                      ×
-                    </button>
+                      value={editingEntry.body}
+                      onChange={(event) =>
+                        setEditingEntry({
+                          id: entry.id,
+                          body: event.target.value,
+                        })
+                      }
+                    />
+                    <div className="classic-entry-edit-actions">
+                      <button
+                        type="button"
+                        onClick={handleSaveEditedEntry}
+                        disabled={!editingEntry.body.trim()}
+                      >
+                        Save
+                      </button>
+                      <button type="button" onClick={handleCancelEditEntry}>
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <p>{entry.body}</p>
+                    <div className="classic-entry-actions" aria-label="Entry actions">
+                      <button
+                        type="button"
+                        aria-label={`Edit Classic entry from ${entry.label}`}
+                        title="Edit"
+                        onClick={() => handleEditEntry(entry)}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete Classic entry from ${entry.label}`}
+                        title="Delete"
+                        onClick={() => handleDeleteEntry(entry.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </article>
           );
         })}
