@@ -3,10 +3,18 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { KoiCard } from "./KoiCard";
 import { NumberField } from "../../../shared/ui/primitives/NumberField";
 import { Slider } from "../../../shared/ui/primitives/Slider";
+import {
+  setMessengerThreadLorebooks,
+  setMessengerThreadParticipants,
+  setMessengerThreadPersona,
+  setMessengerThreadProviderConnection,
+} from "../../../engine/messenger-actions";
 import {
   getClassicThreadPreview,
   sortClassicThreads,
@@ -42,6 +50,20 @@ const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
 };
 
 type PeopleTab = "companions" | "personas";
+type ChatSettingsDrawerId =
+  | "connection"
+  | "persona"
+  | "companions"
+  | "lorebooks"
+  | "advanced";
+const CHAT_SETTINGS_DRAWER_DEFAULTS: Record<ChatSettingsDrawerId, boolean> = {
+  connection: true,
+  persona: false,
+  companions: false,
+  lorebooks: false,
+  advanced: false,
+};
+
 type ThreadReleaseRequest = {
   id: string;
   kind: "classic" | "messenger";
@@ -79,7 +101,10 @@ export type ShoalNav = Pick<
   > &
   Pick<
     NavMessengerThreadActions,
-    "createMessengerThread" | "deleteMessengerThread"
+    | "createMessengerThread"
+    | "deleteMessengerThread"
+    | "renameMessengerThread"
+    | "updateMessengerThread"
   > &
   Pick<
     NavSettingsActions,
@@ -723,6 +748,49 @@ function PresetsCatalogRail({
   );
 }
 
+function ChatSettingsDrawer({
+  children,
+  drawerId,
+  open,
+  summary,
+  title,
+  onToggle,
+}: {
+  children: ReactNode;
+  drawerId: ChatSettingsDrawerId;
+  open: boolean;
+  summary: string;
+  title: string;
+  onToggle: (drawerId: ChatSettingsDrawerId) => void;
+}) {
+  const bodyId = `messenger-settings-${drawerId}-drawer`;
+
+  return (
+    <section className={`chat-settings-card${open ? " open" : ""}`}>
+      <button
+        type="button"
+        className="chat-settings-section-head"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => onToggle(drawerId)}
+      >
+        <span className="chat-settings-section-copy">
+          <b>{title}</b>
+          <small>{summary}</small>
+        </span>
+        <span className="chat-settings-drawer-icon" aria-hidden="true">
+          ⌄
+        </span>
+      </button>
+      {open && (
+        <div className="chat-settings-section-body" id={bodyId}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ChatSettingsRail({
   chatSettingsOpen,
   nav,
@@ -737,6 +805,134 @@ function ChatSettingsRail({
       : nav.selectedSurface === MESSENGER
         ? "Messenger Settings"
         : "Chat Settings";
+  const activeMessengerThreadId =
+    nav.view.kind === "messenger" ? nav.view.threadId : null;
+  const activeMessengerThread = activeMessengerThreadId
+    ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
+      null
+    : null;
+  const [chatNameEditor, setChatNameEditor] = useState<{
+    editing: boolean;
+    threadId: string | null;
+    value: string;
+  }>({
+    editing: false,
+    threadId: activeMessengerThread?.id ?? null,
+    value: activeMessengerThread?.title ?? "",
+  });
+  const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
+  const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
+  const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
+
+  if (
+    !chatNameEditor.editing &&
+    chatNameEditor.threadId !== (activeMessengerThread?.id ?? null)
+  ) {
+    setChatNameEditor({
+      editing: false,
+      threadId: activeMessengerThread?.id ?? null,
+      value: activeMessengerThread?.title ?? "",
+    });
+  }
+
+  function startChatNameEdit() {
+    if (!activeMessengerThread) return;
+    setChatNameEditor({
+      editing: true,
+      threadId: activeMessengerThread.id,
+      value: activeMessengerThread.title,
+    });
+  }
+
+  function saveChatName() {
+    if (!activeMessengerThread) return;
+    const nextTitle = chatNameEditor.value.trim();
+    if (nextTitle) {
+      nav.renameMessengerThread(activeMessengerThread.id, nextTitle);
+    }
+    setChatNameEditor({
+      editing: false,
+      threadId: activeMessengerThread.id,
+      value: nextTitle || activeMessengerThread.title,
+    });
+  }
+
+  function cancelChatNameEdit() {
+    setChatNameEditor({
+      editing: false,
+      threadId: activeMessengerThread?.id ?? null,
+      value: activeMessengerThread?.title ?? "",
+    });
+  }
+
+  function handleChatNameSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    saveChatName();
+  }
+
+  function handleChatNameKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelChatNameEdit();
+    }
+  }
+
+  function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
+    setOpenDrawers((current) => ({
+      ...current,
+      [drawerId]: !current[drawerId],
+    }));
+  }
+
+  function updateActiveMessengerThread(
+    updater: (thread: MessengerThread, updatedAt: string) => MessengerThread,
+  ) {
+    if (!activeMessengerThread) return;
+    nav.updateMessengerThread(
+      updater(activeMessengerThread, new Date().toISOString()),
+    );
+  }
+
+  function handleMessengerConnectionChange(connectionId: string) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadProviderConnection(
+        thread,
+        connectionId.trim() || null,
+        updatedAt,
+      ),
+    );
+  }
+
+  function handleMessengerPersonaChange(personaId: string) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadPersona(thread, personaId.trim() || null, updatedAt),
+    );
+  }
+
+  function toggleMessengerCompanion(characterId: string) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadParticipants(
+        thread,
+        thread.characterIds.includes(characterId)
+          ? thread.characterIds.filter((id) => id !== characterId)
+          : [...thread.characterIds, characterId],
+        updatedAt,
+      ),
+    );
+  }
+
+  function toggleMessengerLorebook(lorebookId: string) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadLorebooks(
+        thread,
+        thread.lorebookIds.includes(lorebookId)
+          ? thread.lorebookIds.filter((id) => id !== lorebookId)
+          : [...thread.lorebookIds, lorebookId],
+        updatedAt,
+      ),
+    );
+  }
+
   const sanitizedProviderConnections = useMemo(
     () =>
       nav.providerConnections.map((connection) =>
@@ -744,12 +940,28 @@ function ChatSettingsRail({
       ),
     [nav.providerConnections],
   );
-  const activeConnectionId =
+  const defaultConnection =
     sanitizedProviderConnections.find(
       (connection) => connection.id === nav.appSettings.activeMessengerConnectionId,
-    )?.id ??
-    sanitizedProviderConnections[0]?.id ??
-    "";
+    ) ??
+    sanitizedProviderConnections[0] ??
+    null;
+  const defaultConnectionProvider = defaultConnection
+    ? getProviderConnectionProviderOption(defaultConnection.provider)
+    : null;
+  const messengerConnectionValue = activeMessengerThread?.providerConnectionId ?? "";
+  const selectedCompanionCount = activeMessengerThread?.characterIds.length ?? 0;
+  const selectedCompanionNames = activeMessengerThread
+    ? activeMessengerThread.characterIds.flatMap((characterId) => {
+        const character = nav.characters.find(
+          (candidate) => candidate.id === characterId,
+        );
+        return character ? [character.displayName] : [];
+      })
+    : [];
+  const companionSelectionLabel =
+    selectedCompanionNames.join(", ") || "Choose companions";
+  const selectedLorebookCount = activeMessengerThread?.lorebookIds.length ?? 0;
 
   return (
     <aside className="shoal chat-settings-shoal" aria-label={`The Shoal — ${settingsLabel}`}>
@@ -762,60 +974,233 @@ function ChatSettingsRail({
       />
       <div className="shoal-body">
         <div className="shoal-head chat-settings-head">
-          <button
-            type="button"
-            className="shoal-back-chip"
-            onClick={onCloseChatSettings}
-          >
-            ‹ Shoal
-          </button>
           <div className="shoal-title chat-settings-title">
             <h2>{settingsLabel}</h2>
-            <span className="count">Defaults</span>
+            <button
+              type="button"
+              className="chat-settings-close"
+              aria-label="Close chat settings"
+              title="Close chat settings"
+              onClick={onCloseChatSettings}
+            >
+              ×
+            </button>
           </div>
+          {nav.selectedSurface === MESSENGER && (
+            <div className="chat-name-field">
+              <span>Chat Name</span>
+              {chatNameEditor.editing && activeMessengerThread ? (
+                <form onSubmit={handleChatNameSubmit}>
+                  <input
+                    autoFocus
+                    value={chatNameEditor.value}
+                    onBlur={saveChatName}
+                    onChange={(event) =>
+                      setChatNameEditor({
+                        editing: true,
+                        threadId: activeMessengerThread.id,
+                        value: event.currentTarget.value,
+                      })
+                    }
+                    onKeyDown={handleChatNameKeyDown}
+                  />
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!activeMessengerThread}
+                  onClick={startChatNameEdit}
+                >
+                  {activeMessengerThread ? activeChatName : "No active chat"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="shoal-list chat-settings-list">
-          <section className="chat-settings-card">
-            <div className="chat-settings-section-head">
-              <b>Connection</b>
-              <small>Default provider</small>
-            </div>
+          <ChatSettingsDrawer
+            drawerId="connection"
+            open={openDrawers.connection}
+            summary="Provider route"
+            title="Connection"
+            onToggle={toggleChatSettingsDrawer}
+          >
             <label className="chat-settings-field">
               <span>Provider</span>
               <select
                 className="pondsel"
-                value={activeConnectionId}
-                disabled={sanitizedProviderConnections.length === 0}
+                value={messengerConnectionValue}
+                disabled={
+                  !activeMessengerThread ||
+                  sanitizedProviderConnections.length === 0
+                }
                 onChange={(event) =>
-                  nav.setActiveMessengerConnectionId(event.currentTarget.value)
+                  handleMessengerConnectionChange(event.currentTarget.value)
                 }
               >
                 {sanitizedProviderConnections.length === 0 ? (
                   <option value="">No connections</option>
                 ) : (
-                  sanitizedProviderConnections.map((connection) => {
-                    const provider = getProviderConnectionProviderOption(
-                      connection.provider,
-                    );
-                    const model = connection.model || "No model";
+                  <>
+                    <option value="">
+                      App default ·{" "}
+                      {defaultConnection && defaultConnectionProvider
+                        ? `${defaultConnection.label} · ${defaultConnectionProvider.label} · ${
+                            defaultConnection.model || "No model"
+                          }`
+                        : "No connection"}
+                    </option>
+                    {sanitizedProviderConnections.map((connection) => {
+                      const provider = getProviderConnectionProviderOption(
+                        connection.provider,
+                      );
+                      const model = connection.model || "No model";
 
-                    return (
-                      <option value={connection.id} key={connection.id}>
-                        {connection.label} · {provider.label} · {model}
-                      </option>
-                    );
-                  })
+                      return (
+                        <option value={connection.id} key={connection.id}>
+                          {connection.label} · {provider.label} · {model}
+                        </option>
+                      );
+                    })}
+                  </>
                 )}
               </select>
             </label>
-          </section>
+          </ChatSettingsDrawer>
 
-          <section className="chat-settings-card">
-            <div className="chat-settings-section-head">
-              <b>Generation</b>
-              <small>Default output shape</small>
+          <ChatSettingsDrawer
+            drawerId="persona"
+            open={openDrawers.persona}
+            summary="Speaker identity"
+            title="Persona"
+            onToggle={toggleChatSettingsDrawer}
+          >
+            <label className="chat-settings-field">
+              <span>Active persona</span>
+              <select
+                className="pondsel"
+                value={activeMessengerThread?.activePersonaId ?? ""}
+                disabled={!activeMessengerThread}
+                onChange={(event) =>
+                  handleMessengerPersonaChange(event.currentTarget.value)
+                }
+              >
+                <option value="">Anonymous</option>
+                {nav.personas.map((persona) => (
+                  <option value={persona.id} key={persona.id}>
+                    {persona.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </ChatSettingsDrawer>
+
+          <ChatSettingsDrawer
+            drawerId="companions"
+            open={openDrawers.companions}
+            summary={`${selectedCompanionCount} selected`}
+            title="Companions"
+            onToggle={toggleChatSettingsDrawer}
+          >
+            <div
+              className="chat-settings-field chat-settings-dropdown-field"
+              onBlur={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setCompanionSelectorOpen(false);
+              }}
+            >
+              <span>Selected companions</span>
+              <button
+                type="button"
+                className="chat-settings-select-button"
+                aria-controls="messenger-settings-companion-menu"
+                aria-expanded={companionSelectorOpen}
+                aria-haspopup="listbox"
+                disabled={!activeMessengerThread || nav.characters.length === 0}
+                onClick={() => setCompanionSelectorOpen((open) => !open)}
+              >
+                <span>{companionSelectionLabel}</span>
+                <small>{selectedCompanionCount}</small>
+              </button>
+              {companionSelectorOpen &&
+                activeMessengerThread &&
+                nav.characters.length > 0 && (
+                  <div
+                    className="chat-settings-select-menu"
+                    id="messenger-settings-companion-menu"
+                    role="listbox"
+                    aria-multiselectable="true"
+                  >
+                    {nav.characters.map((character) => {
+                      const selected =
+                        activeMessengerThread.characterIds.includes(character.id);
+
+                      return (
+                        <label
+                          className={`chat-settings-check${selected ? " on" : ""}`}
+                          key={character.id}
+                          role="option"
+                          aria-selected={selected}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleMessengerCompanion(character.id)}
+                          />
+                          <span>{character.displayName}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
             </div>
+          </ChatSettingsDrawer>
 
+          <ChatSettingsDrawer
+            drawerId="lorebooks"
+            open={openDrawers.lorebooks}
+            summary={`${selectedLorebookCount} lorebooks`}
+            title="Lorebooks"
+            onToggle={toggleChatSettingsDrawer}
+          >
+            <div className="chat-settings-field">
+              <span>Selected lorebooks</span>
+              {nav.lorebooks.length === 0 ? (
+                <p className="chat-settings-empty-line">No lorebooks yet.</p>
+              ) : (
+                <div className="chat-settings-check-list">
+                  {nav.lorebooks.map((lorebook) => {
+                    const selected =
+                      activeMessengerThread?.lorebookIds.includes(lorebook.id) ??
+                      false;
+
+                    return (
+                      <label
+                        className={`chat-settings-check${selected ? " on" : ""}`}
+                        key={lorebook.id}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={!activeMessengerThread}
+                          onChange={() => toggleMessengerLorebook(lorebook.id)}
+                        />
+                        <span>{lorebook.title}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </ChatSettingsDrawer>
+
+          <ChatSettingsDrawer
+            drawerId="advanced"
+            open={openDrawers.advanced}
+            summary="Temperature and limits"
+            title="Advanced Parameters"
+            onToggle={toggleChatSettingsDrawer}
+          >
             <div className="slider-field">
               <div className="sl-top">
                 <b>Temperature</b>
@@ -872,7 +1257,7 @@ function ChatSettingsRail({
                 <span>Diverse</span>
               </div>
             </div>
-          </section>
+          </ChatSettingsDrawer>
         </div>
       </div>
     </aside>
