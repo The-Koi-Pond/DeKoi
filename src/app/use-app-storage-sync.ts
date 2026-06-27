@@ -78,6 +78,15 @@ function firstSaveErrorMessage(errors: SaveErrorMessages) {
   return null;
 }
 
+function hasPendingSaveForGeneration(
+  pendingSaves: SaveQueueEntries,
+  generation: number,
+) {
+  return APP_STORAGE_COLLECTION_KEYS.some(
+    (collectionKey) => pendingSaves[collectionKey]?.generation === generation,
+  );
+}
+
 type UseAppStorageSyncInput = AppStorageRecords & {
   remoteRuntimeUrl: string;
   storageReady: boolean;
@@ -246,6 +255,7 @@ export function useAppStorageSync({
       saveQueueRunning.current = true;
       const requestId = saveRequestId.current + 1;
       saveRequestId.current = requestId;
+      setMessengerStorageStatus("saving");
 
       saveAppStorageCollections(
         entry.snapshot,
@@ -277,8 +287,18 @@ export function useAppStorageSync({
         }
 
         const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
+        const hasPendingSaves = hasPendingSaveForGeneration(
+          pendingSaves.current,
+          entry.generation,
+        );
         setMessengerStorageMode(storageResult.mode);
-        setMessengerStorageStatus(saveErrorMessage ? "error" : storageResult.status);
+        setMessengerStorageStatus(
+          saveErrorMessage
+            ? "error"
+            : hasPendingSaves
+              ? "saving"
+              : storageResult.status,
+        );
         setMessengerStorageMessage(saveErrorMessage ?? storageResult.message);
       }).finally(() => {
         saveQueueRunning.current = false;
