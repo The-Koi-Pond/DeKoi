@@ -67,11 +67,23 @@ if (
   /catch \(error\)[\s\S]{0,600}status: "needs-key"/.test(
     providerConnectionStorageSource,
   ) ||
-  !/records\.map\(sanitizeProviderConnectionRecord\)/.test(
+  !/PROVIDER_CONNECTION_DURABLE_FIELD_SET/.test(providerConnectionStorageSource) ||
+  !/satisfies Record<keyof ProviderConnectionRecord, true>/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/assertProviderConnectionDurableShape/.test(providerConnectionStorageSource) ||
+  !/Object\.keys\(record\)\.sort\(\)/.test(providerConnectionStorageSource) ||
+  !/missing\.length > 0 \|\| extra\.length > 0/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/sanitizeProviderConnectionRecord\(record\)/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/records\.map\(durableProviderConnectionRecord\)/.test(
     providerConnectionStorageSource,
   )
 ) {
-  fail("Desktop provider connection readiness must use a non-durable verification overlay for transport failures.");
+  fail("Desktop provider connection readiness must keep verification overlays non-durable and assert the exact durable save shape.");
 }
 
 if (!/redactProviderConnectionSecrets\(providerConnections\)/.test(bundleSource)) {

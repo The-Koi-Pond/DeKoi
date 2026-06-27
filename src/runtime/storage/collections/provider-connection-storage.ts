@@ -29,6 +29,28 @@ type ProviderConnectionSecretVerification = {
   };
 };
 
+const PROVIDER_CONNECTION_DURABLE_FIELD_SET = {
+  id: true,
+  schemaVersion: true,
+  kind: true,
+  provider: true,
+  label: true,
+  baseUrl: true,
+  model: true,
+  summary: true,
+  status: true,
+  modelLabel: true,
+  keeperDefault: true,
+  maxContext: true,
+  maxOutput: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Record<keyof ProviderConnectionRecord, true>;
+
+const PROVIDER_CONNECTION_DURABLE_FIELDS = Object.keys(
+  PROVIDER_CONNECTION_DURABLE_FIELD_SET,
+).sort();
+
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
 }
@@ -142,6 +164,38 @@ const storedProviderConnectionRepository = createStorageRepository({
   seedRecords: [],
 });
 
+function assertProviderConnectionDurableShape(
+  record: ProviderConnectionRecord,
+): ProviderConnectionRecord {
+  const keys = Object.keys(record).sort();
+  const missing = PROVIDER_CONNECTION_DURABLE_FIELDS.filter(
+    (field) => !Object.prototype.hasOwnProperty.call(record, field),
+  );
+  const extra = keys.filter(
+    (field) =>
+      !Object.prototype.hasOwnProperty.call(
+        PROVIDER_CONNECTION_DURABLE_FIELD_SET,
+        field,
+      ),
+  );
+
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `Provider connection storage record has invalid durable shape. Missing: ${missing.join(", ") || "none"}. Extra: ${extra.join(", ") || "none"}.`,
+    );
+  }
+
+  return record;
+}
+
+function durableProviderConnectionRecord(
+  record: ProviderConnectionRecord,
+): ProviderConnectionRecord {
+  return assertProviderConnectionDurableShape(
+    sanitizeProviderConnectionRecord(record),
+  );
+}
+
 async function hydrateDesktopProviderConnectionStatuses(
   snapshot: StorageRecordsSnapshot<ProviderConnectionRecord>,
 ): Promise<StorageRecordsSnapshot<ProviderConnectionRecord>> {
@@ -209,7 +263,7 @@ export function saveProviderConnectionRecordsToStorage(
   rawUrl?: string,
 ) {
   return storedProviderConnectionRepository.save(
-    records.map(sanitizeProviderConnectionRecord),
+    records.map(durableProviderConnectionRecord),
     rawUrl,
   );
 }
