@@ -313,6 +313,30 @@ pub(crate) fn storage_delete(
     Ok(serde_json::json!({ "ok": true }))
 }
 
+pub(crate) fn storage_replace(
+    app: &tauri::AppHandle,
+    args: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "storage_replace")?;
+    let entity = runtime_entity(args)?;
+    ensure_collection_entity(entity)?;
+    let records = args
+        .get("records")
+        .and_then(|value| value.as_array())
+        .ok_or_else(|| "storage_replace requires args.records.".to_string())?;
+
+    for record in records {
+        if !record.is_object() {
+            return Err("storage_replace records must be objects.".to_string());
+        }
+    }
+
+    let count = records.len();
+    write_runtime_records(app, entity, records.clone())?;
+
+    Ok(serde_json::json!({ "ok": true, "count": count }))
+}
+
 pub(crate) fn current_unix_ms() -> u128 {
     std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)

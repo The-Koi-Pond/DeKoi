@@ -10,6 +10,7 @@ const SUPPORTED_COMMANDS = new Set([
   "storage_create",
   "storage_delete",
   "storage_list",
+  "storage_replace",
   "storage_update",
 ]);
 
@@ -118,6 +119,27 @@ function deleteRecord(storage, args) {
   return { ok: true };
 }
 
+function replaceRecords(storage, args) {
+  if (!isRecord(args)) throw new Error("storage_replace requires args.");
+
+  const entity = readString(args.entity).trim();
+  const records = args.records;
+  if (!entity) throw new Error("storage_replace requires args.entity.");
+  if (!Array.isArray(records)) throw new Error("storage_replace requires args.records.");
+
+  const store = new Map();
+  for (const record of records) {
+    if (!isRecord(record)) throw new Error("storage_replace records must be objects.");
+
+    const id = readString(record.id).trim();
+    if (!id) throw new Error("storage_replace records require id.");
+    store.set(id, { ...record, id });
+  }
+
+  storage.set(entity, store);
+  return { ok: true, count: records.length };
+}
+
 function countEnabledLoreEntries(request) {
   if (!Array.isArray(request.lorebooks)) return 0;
 
@@ -221,6 +243,8 @@ function invokeCommand(storage, command, args) {
       return deleteRecord(storage, args);
     case "storage_list":
       return listRecords(storage, args);
+    case "storage_replace":
+      return replaceRecords(storage, args);
     case "storage_update":
       return updateRecord(storage, args);
     default:

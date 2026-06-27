@@ -58,6 +58,25 @@ export type AppStorageSnapshot = AppStorageRecords & {
   storageResult: StorageResult;
 };
 
+export const APP_STORAGE_COLLECTION_KEYS = [
+  "appSettings",
+  "characters",
+  "personas",
+  "lorebooks",
+  "providerConnections",
+  "roleplayThreads",
+  "messengerThreads",
+  "rippleStates",
+] as const satisfies readonly (keyof AppStorageRecords)[];
+
+export type AppStorageCollectionKey =
+  (typeof APP_STORAGE_COLLECTION_KEYS)[number];
+
+type NonEmptyAppStorageCollectionKeys = readonly [
+  AppStorageCollectionKey,
+  ...AppStorageCollectionKey[],
+];
+
 export async function loadAppStorageSnapshot(
   rawUrl: string,
 ): Promise<AppStorageSnapshot> {
@@ -103,23 +122,55 @@ export async function loadAppStorageSnapshot(
   };
 }
 
+async function saveAppStorageCollection(
+  snapshot: AppStorageRecords,
+  collectionKey: AppStorageCollectionKey,
+  rawUrl: string,
+): Promise<StorageResult> {
+  switch (collectionKey) {
+    case "appSettings":
+      return saveAppSettingsToStorage(snapshot.appSettings, rawUrl);
+    case "characters":
+      return saveCharacterRecordsToStorage(snapshot.characters, rawUrl);
+    case "personas":
+      return savePersonaRecordsToStorage(snapshot.personas, rawUrl);
+    case "lorebooks":
+      return saveLorebookRecordsToStorage(snapshot.lorebooks, rawUrl);
+    case "providerConnections":
+      return saveProviderConnectionRecordsToStorage(
+        snapshot.providerConnections,
+        rawUrl,
+      );
+    case "roleplayThreads":
+      return saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl);
+    case "messengerThreads":
+      return saveMessengerThreadsToStorage(snapshot.messengerThreads, rawUrl);
+    case "rippleStates":
+      return saveRippleStatesToStorage(snapshot.rippleStates, rawUrl);
+  }
+}
+
+export async function saveAppStorageCollections(
+  snapshot: AppStorageRecords,
+  collectionKeys: NonEmptyAppStorageCollectionKeys,
+  rawUrl: string,
+): Promise<StorageResult> {
+  return mergeStorageResults(
+    await Promise.all(
+      collectionKeys.map((collectionKey) =>
+        saveAppStorageCollection(snapshot, collectionKey, rawUrl),
+      ),
+    ),
+  );
+}
+
 export async function saveAppStorageSnapshot(
   snapshot: AppStorageRecords,
   rawUrl: string,
 ): Promise<StorageResult> {
-  return mergeStorageResults(
-    await Promise.all([
-      saveAppSettingsToStorage(snapshot.appSettings, rawUrl),
-      saveCharacterRecordsToStorage(snapshot.characters, rawUrl),
-      savePersonaRecordsToStorage(snapshot.personas, rawUrl),
-      saveLorebookRecordsToStorage(snapshot.lorebooks, rawUrl),
-      saveProviderConnectionRecordsToStorage(
-        snapshot.providerConnections,
-        rawUrl,
-      ),
-      saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl),
-      saveMessengerThreadsToStorage(snapshot.messengerThreads, rawUrl),
-      saveRippleStatesToStorage(snapshot.rippleStates, rawUrl),
-    ]),
+  return saveAppStorageCollections(
+    snapshot,
+    APP_STORAGE_COLLECTION_KEYS,
+    rawUrl,
   );
 }

@@ -1,6 +1,9 @@
 export {
+  APP_STORAGE_COLLECTION_KEYS,
   loadAppStorageSnapshot,
+  saveAppStorageCollections,
   saveAppStorageSnapshot,
+  type AppStorageCollectionKey,
   type AppStorageRecords,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";

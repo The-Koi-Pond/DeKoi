@@ -109,6 +109,7 @@ The explicit DeKoi allowlist currently contains:
 - `generation_generate`
 - `provider_connection_check`
 - `storage_list`
+- `storage_replace`
 - `storage_create`
 - `storage_update`
 - `storage_delete`
@@ -334,6 +335,34 @@ storage.
 ```
 
 Returns an array of records.
+
+`storage_replace`:
+
+```json
+{
+  "command": "storage_replace",
+  "args": {
+    "entity": "messenger-threads",
+    "records": [
+      {
+        "id": "messenger-thread-example"
+      }
+    ]
+  }
+}
+```
+
+Replaces the full collection for `entity` with `records`. DeKoi uses this as
+the default save path so one collection save maps to one runtime write command.
+
+Returns:
+
+```json
+{
+  "ok": true,
+  "count": 1
+}
+```
 
 Example RippleState list:
 

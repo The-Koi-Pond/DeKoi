@@ -4,6 +4,7 @@ export const RUNTIME_COMMANDS = {
   storageCreate: "storage_create",
   storageDelete: "storage_delete",
   storageList: "storage_list",
+  storageReplace: "storage_replace",
   storageUpdate: "storage_update",
 } as const;
 
@@ -16,6 +17,7 @@ export const REMOTE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.storageCreate,
   RUNTIME_COMMANDS.storageDelete,
   RUNTIME_COMMANDS.storageList,
+  RUNTIME_COMMANDS.storageReplace,
   RUNTIME_COMMANDS.storageUpdate,
 ] as const satisfies readonly RemoteRuntimeCommand[];
 
@@ -23,6 +25,7 @@ export const STORAGE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.storageCreate,
   RUNTIME_COMMANDS.storageDelete,
   RUNTIME_COMMANDS.storageList,
+  RUNTIME_COMMANDS.storageReplace,
   RUNTIME_COMMANDS.storageUpdate,
 ] as const;
 

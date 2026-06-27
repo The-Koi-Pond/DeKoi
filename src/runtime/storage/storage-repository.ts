@@ -37,6 +37,7 @@ export type StorageRecordsSnapshot<T extends StorageRecord> = {
 export interface StorageCollectionRepository<T extends StorageRecord> {
   load: (rawUrl?: string) => Promise<T[]>;
   loadSnapshot: (rawUrl?: string) => Promise<StorageRecordsSnapshot<T>>;
+  replace: (records: T[], rawUrl?: string) => Promise<StorageResult>;
   save: (records: T[], rawUrl?: string) => Promise<StorageResult>;
 }
 

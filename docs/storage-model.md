@@ -17,6 +17,7 @@ Current desktop storage writes JSON arrays under:
 Remote runtimes expose the same entities through explicit storage commands:
 
 - `storage_list`
+- `storage_replace`
 - `storage_create`
 - `storage_update`
 - `storage_delete`

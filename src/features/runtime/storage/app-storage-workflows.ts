@@ -15,8 +15,11 @@ import {
 } from "../../../shared/api/runtime-target";
 
 export {
+  APP_STORAGE_COLLECTION_KEYS,
   loadAppStorageSnapshot,
+  saveAppStorageCollections,
   saveAppStorageSnapshot,
+  type AppStorageCollectionKey,
   type AppStorageRecords,
   type AppStorageSnapshot,
 } from "../../../runtime";

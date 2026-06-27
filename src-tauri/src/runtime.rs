@@ -1,6 +1,6 @@
 use crate::storage::{
     read_string_field, runtime_args_object, storage_create, storage_delete, storage_list,
-    storage_update,
+    storage_replace, storage_update,
 };
 
 const DESKTOP_RUNTIME_MARKER: &str = "de-koi-desktop";
@@ -714,6 +714,7 @@ pub(crate) async fn dekoi_runtime_invoke(
         "storage_create" => storage_create(&app, &args),
         "storage_delete" => storage_delete(&app, &args),
         "storage_list" => storage_list(&app, &args),
+        "storage_replace" => storage_replace(&app, &args),
         "storage_update" => storage_update(&app, &args),
         _ => Err(format!(
             "Desktop runtime command is not supported: {command}"

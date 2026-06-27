@@ -11,7 +11,6 @@ import {
   remoteRuntimeTarget,
 } from "../../shared/api/runtime-target";
 import type { StorageEntity } from "./storage-entities";
-import { planStorageRecordSync } from "./storage-record-sync";
 import type {
   StorageCollectionRepository,
   StorageMode,
@@ -27,6 +26,7 @@ export type HostStorageMode = StorageMode;
 export type HostStorageStatus = StorageStatus;
 
 export type HostStorageResult = StorageResult;
+type HostStorageReplaceResponse = { ok: boolean; count: number };
 export { mergeStorageResults as mergeHostStorageResults } from "./storage-repository";
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
@@ -100,7 +100,29 @@ export async function loadHostRecords<T extends StorageRecord>(
     .filter((record): record is T => record !== null);
 }
 
-export async function saveHostRecords<T extends StorageRecord>(
+function normalizeOutgoingRecords<T extends StorageRecord>(
+  entity: StorageEntity,
+  records: T[],
+  normalizeRecord: StorageRecordNormalizer<T>,
+): T[] {
+  return records.map((record, index) => {
+    const normalizedRecord = normalizeRecord(record);
+    if (normalizedRecord) return normalizedRecord;
+
+    throw new Error(
+      `Cannot save invalid ${entity} record at index ${index}.`,
+    );
+  });
+}
+
+function storageReplaceUnsupportedMessage(error: unknown) {
+  const message = asErrorMessage(error);
+  return message.includes(RUNTIME_COMMANDS.storageReplace)
+    ? `Runtime must support ${RUNTIME_COMMANDS.storageReplace} collection writes. ${message}`
+    : message;
+}
+
+export async function replaceHostRecords<T extends StorageRecord>(
   entity: StorageEntity,
   records: T[],
   normalizeRecord: StorageRecordNormalizer<T>,
@@ -116,57 +138,29 @@ export async function saveHostRecords<T extends StorageRecord>(
   }
 
   try {
-    const currentRecords = await loadHostRecords(entity, normalizeRecord, rawUrl).catch(
-      () => [],
+    const normalizedRecords = normalizeOutgoingRecords(
+      entity,
+      records,
+      normalizeRecord,
     );
-    const operations = planStorageRecordSync({
-      currentRecords,
-      nextRecords: records,
-    });
-    const upsertOperations = operations.filter(
-      (operation) => operation.type !== "delete",
+    const response = await invokeHostStorage<HostStorageReplaceResponse>(
+      RUNTIME_COMMANDS.storageReplace,
+      {
+        entity,
+        records: normalizedRecords as unknown as Record<string, unknown>[],
+      },
+      rawUrl,
     );
-    const deleteOperations = operations.filter(
-      (operation) => operation.type === "delete",
-    );
-
-    await Promise.all(
-      upsertOperations.map((operation) => {
-        if (operation.type === "update") {
-          return invokeHostStorage(
-            RUNTIME_COMMANDS.storageUpdate,
-            {
-              entity,
-              id: operation.record.id,
-              patch: operation.record as unknown as Record<string, unknown>,
-            },
-            rawUrl,
-          );
-        }
-
-        return invokeHostStorage(
-          RUNTIME_COMMANDS.storageCreate,
-          {
-            entity,
-            value: operation.record as unknown as Record<string, unknown>,
-          },
-          rawUrl,
-        );
-      }),
-    );
-
-    await Promise.all(
-      deleteOperations.map((operation) =>
-        invokeHostStorage(
-          RUNTIME_COMMANDS.storageDelete,
-          {
-            entity,
-            id: operation.record.id,
-          },
-          rawUrl,
-        ),
-      ),
-    );
+    if (response.ok !== true || typeof response.count !== "number") {
+      throw new Error(
+        `${RUNTIME_COMMANDS.storageReplace} returned an incompatible response.`,
+      );
+    }
+    if (response.count !== normalizedRecords.length) {
+      throw new Error(
+        `${RUNTIME_COMMANDS.storageReplace} wrote ${response.count} ${entity} records, expected ${normalizedRecords.length}.`,
+      );
+    }
 
     return {
       mode,
@@ -180,9 +174,18 @@ export async function saveHostRecords<T extends StorageRecord>(
     return {
       mode,
       status: "error",
-      message: `Host storage save failed. ${asErrorMessage(error)}`,
+      message: `Host storage save failed. ${storageReplaceUnsupportedMessage(error)}`,
     };
   }
+}
+
+export async function saveHostRecords<T extends StorageRecord>(
+  entity: StorageEntity,
+  records: T[],
+  normalizeRecord: StorageRecordNormalizer<T>,
+  rawUrl = readRemoteRuntimeUrl(),
+): Promise<HostStorageResult> {
+  return replaceHostRecords(entity, records, normalizeRecord, rawUrl);
 }
 
 export async function loadHostRecordsSnapshot<T extends StorageRecord>({
@@ -241,7 +244,9 @@ export function createHostStorageRepository<T extends StorageRecord>({
         rawUrl,
         seedRecords,
       }),
+    replace: (records, rawUrl) =>
+      replaceHostRecords(entity, records, normalizeRecord, rawUrl),
     save: (records, rawUrl) =>
-      saveHostRecords(entity, records, normalizeRecord, rawUrl),
+      replaceHostRecords(entity, records, normalizeRecord, rawUrl),
   };
 }

@@ -1,9 +1,12 @@
 export {
+  APP_STORAGE_COLLECTION_KEYS,
   loadAppStorageSnapshot,
   loadInitialAppStorageRecords,
   readRuntimeTargetUrl,
+  saveAppStorageCollections,
   saveAppStorageSnapshot,
   writeRuntimeTargetUrl,
+  type AppStorageCollectionKey,
   type AppStorageRecords,
   type AppStorageSnapshot,
   type MessengerStorageMode,
