@@ -87,6 +87,14 @@ function hasPendingSaveForGeneration(
   );
 }
 
+function hasUnsavedSignature(
+  unsavedSignatures: PartialAppStorageCollectionSignatures,
+) {
+  return APP_STORAGE_COLLECTION_KEYS.some(
+    (collectionKey) => unsavedSignatures[collectionKey] !== undefined,
+  );
+}
+
 type UseAppStorageSyncInput = AppStorageRecords & {
   remoteRuntimeUrl: string;
   storageReady: boolean;
@@ -135,6 +143,7 @@ export function useAppStorageSync({
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
   const lastSeenSnapshot = useRef<AppStorageRecords | null>(null);
   const unsavedSignatures = useRef<PartialAppStorageCollectionSignatures>({});
+  const activeSaveSignatures = useRef<PartialAppStorageCollectionSignatures>({});
   const pendingSaves = useRef<SaveQueueEntries>({});
   const saveErrors = useRef<SaveErrorMessages>({});
   const saveQueueRunning = useRef(false);
@@ -146,6 +155,7 @@ export function useAppStorageSync({
     savedSignatures.current = null;
     lastSeenSnapshot.current = null;
     unsavedSignatures.current = {};
+    activeSaveSignatures.current = {};
     pendingSaves.current = {};
     saveErrors.current = {};
     setStorageReady(false);
@@ -223,7 +233,11 @@ export function useAppStorageSync({
       if (signature === undefined) continue;
 
       nextSignatures[collectionKey] = signature;
-      if (savedSignatures.current[collectionKey] !== signature) {
+      const activeSaveSignature = activeSaveSignatures.current[collectionKey];
+      if (
+        savedSignatures.current[collectionKey] !== signature ||
+        (activeSaveSignature !== undefined && activeSaveSignature !== signature)
+      ) {
         unsavedSignatures.current[collectionKey] = signature;
         dirtyCollectionKeys.push(collectionKey);
       } else {
@@ -232,6 +246,7 @@ export function useAppStorageSync({
     }
     lastSeenSnapshot.current = snapshot;
     if (dirtyCollectionKeys.length === 0) return;
+    setMessengerStorageStatus("saving");
 
     let idleHandle: IdleHandle | undefined;
 
@@ -253,6 +268,7 @@ export function useAppStorageSync({
       }
 
       saveQueueRunning.current = true;
+      activeSaveSignatures.current[collectionKey] = entry.signature;
       const requestId = saveRequestId.current + 1;
       saveRequestId.current = requestId;
       setMessengerStorageStatus("saving");
@@ -291,16 +307,20 @@ export function useAppStorageSync({
           pendingSaves.current,
           entry.generation,
         );
+        const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
         setMessengerStorageMode(storageResult.mode);
         setMessengerStorageStatus(
           saveErrorMessage
             ? "error"
-            : hasPendingSaves
+            : hasPendingSaves || hasUnsavedSaves
               ? "saving"
               : storageResult.status,
         );
         setMessengerStorageMessage(saveErrorMessage ?? storageResult.message);
       }).finally(() => {
+        if (activeSaveSignatures.current[collectionKey] === entry.signature) {
+          delete activeSaveSignatures.current[collectionKey];
+        }
         saveQueueRunning.current = false;
         drainSaveQueue();
       });
@@ -318,9 +338,6 @@ export function useAppStorageSync({
             generation: storageGeneration.current,
             signature,
           };
-        }
-        if (dirtyCollectionKeys.length > 0) {
-          setMessengerStorageStatus("saving");
         }
         drainSaveQueue();
       });
