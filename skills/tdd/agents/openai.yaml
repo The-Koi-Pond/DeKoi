@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD"
+  short_description: "Use DeKoi red-green-refactor cycles."
+  default_prompt: "Use $tdd for DeKoi TDD, test-first fixes, regression tests, or behavior changes that need a durable proof guard."

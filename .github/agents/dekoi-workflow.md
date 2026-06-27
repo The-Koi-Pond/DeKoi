@@ -123,6 +123,10 @@ matching repo-local skill:
   hardening, polish, and live iteration.
 - `skills/webapp-testing/SKILL.md` for Browser, Playwright, screenshot,
   console/network, WebView2, or native Tauri proof.
+- `skills/prototype/SKILL.md` for throwaway logic, state, API, workflow, or UI
+  experiments before production implementation.
+- `skills/tdd/SKILL.md` for deliberate red-green-refactor work, regression tests,
+  or risky behavior that needs a committed proof guard.
 
 Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
 product-language boundaries.
@@ -152,6 +156,10 @@ Code-smell guard:
 - If the feature touches four or more surfaces or crosses React, engine, shared
   API, Rust, and docs, list expected surfaces before editing and verify each
   afterward.
+
+For architecture improvement work, load
+`skills/improve-codebase-architecture/SKILL.md` after the architecture guard to
+identify high-value refactor candidates before editing.
 
 ## Issue Filing Lane
 
@@ -244,6 +252,8 @@ partial updates, and untyped shared API drift.
 Use this when work creates reusable repo knowledge, architecture decisions, or
 future follow-up that should survive the session.
 
+- Use `skills/grill-with-docs/SKILL.md` when requirements, terminology, owner,
+  proof, or durable documentation placement need to be sharpened before editing.
 - Durable product or architecture decisions belong in the relevant repo docs,
   issue, or PR, not in ad hoc work-update files.
 - Draft GitHub issue or PR text for approval unless the user asked you to post it.

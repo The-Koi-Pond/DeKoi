@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prototype"
+  short_description: "Build throwaway DeKoi prototypes."
+  default_prompt: "Use $prototype to prototype a DeKoi state model, API shape, workflow, or UI variant before production implementation."
