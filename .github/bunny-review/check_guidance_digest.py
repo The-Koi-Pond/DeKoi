@@ -170,7 +170,7 @@ def run_semantic_repair_case(module):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content="FINAL_REVIEW\n" + json.dumps(repaired)
+                            content=json.dumps(repaired)
                         )
                     )
                 ],
@@ -188,6 +188,9 @@ def run_semantic_repair_case(module):
 
     assert len(completions.calls) == 1, "semantic schema gap should trigger one repair call"
     assert completions.calls[0].get("response_format") == {"type": "json_object"}
+    repair_prompt = completions.calls[0]["messages"][-1]["content"]
+    assert "FINAL_REVIEW followed" not in repair_prompt
+    assert "Do not include FINAL_REVIEW" in repair_prompt
     assert parsed["change_summary"] == repaired["change_summary"]
     assert parsed["_schema_repair_gaps"], "repair diagnostics should be retained"
     normalized = module.normalize_review_object(parsed, "HEAD~1", ["src/example.ts"])
@@ -216,7 +219,7 @@ def run_json_repair_format_case(module):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content="FINAL_REVIEW\n" + json.dumps(repaired)
+                            content=json.dumps(repaired)
                         )
                     )
                 ],
@@ -233,6 +236,9 @@ def run_json_repair_format_case(module):
     )
     assert parsed["change_summary"] == repaired["change_summary"]
     assert completions.calls[0].get("response_format") == {"type": "json_object"}
+    repair_prompt = completions.calls[0]["messages"][-1]["content"]
+    assert "FINAL_REVIEW followed" not in repair_prompt
+    assert "Do not include FINAL_REVIEW" in repair_prompt
 
     class RejectingCompletions:
         def __init__(self):
@@ -247,7 +253,7 @@ def run_json_repair_format_case(module):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content="FINAL_REVIEW\n" + json.dumps(repaired)
+                            content=json.dumps(repaired)
                         )
                     )
                 ],
@@ -270,13 +276,33 @@ def run_json_repair_format_case(module):
 def run_model_key_case(module):
     old_llm = os.environ.get("LLM_API_KEY")
     old_openai = os.environ.get("OPENAI_API_KEY")
+    old_base_url = os.environ.get("LLM_BASE_URL")
     try:
         os.environ["LLM_API_KEY"] = "provider-key"
+        os.environ["LLM_BASE_URL"] = "https://provider.example/v1"
         os.environ.pop("OPENAI_API_KEY", None)
         assert module.model_api_key() == "provider-key"
+        provider_configs = module.model_client_configs()
+        assert len(provider_configs) == 1
+        assert provider_configs[0]["api_key"] == "provider-key"
+        assert provider_configs[0]["base_url"] == "https://provider.example/v1"
+        assert provider_configs[0]["fallback_to_openai_direct"] is False
+
         os.environ.pop("LLM_API_KEY", None)
         os.environ["OPENAI_API_KEY"] = "openai-key"
+        os.environ["LLM_BASE_URL"] = "https://stale.example/v1"
         assert module.model_api_key() == "openai-key"
+        openai_configs = module.model_client_configs()
+        assert len(openai_configs) == 2
+        assert openai_configs[0]["base_url"] == "https://stale.example/v1"
+        assert openai_configs[0]["fallback_to_openai_direct"] is True
+        assert openai_configs[1]["base_url"] is None
+        assert openai_configs[1]["fallback_to_openai_direct"] is False
+
+        os.environ.pop("LLM_BASE_URL", None)
+        direct_configs = module.model_client_configs()
+        assert len(direct_configs) == 1
+        assert direct_configs[0]["base_url"] is None
     finally:
         if old_llm is None:
             os.environ.pop("LLM_API_KEY", None)
@@ -286,6 +312,10 @@ def run_model_key_case(module):
             os.environ.pop("OPENAI_API_KEY", None)
         else:
             os.environ["OPENAI_API_KEY"] = old_openai
+        if old_base_url is None:
+            os.environ.pop("LLM_BASE_URL", None)
+        else:
+            os.environ["LLM_BASE_URL"] = old_base_url
 
 
 def run_status_case(module):
@@ -380,6 +410,7 @@ def main():
         "response_format_fallback=true "
         "render_voice=true "
         "model_key_fallback=true "
+        "model_base_url_fallback=true "
         "ci_control_status_ignored=true "
         "incremental_command_mode=true"
     )

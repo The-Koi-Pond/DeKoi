@@ -688,6 +688,13 @@ def model_call(client, messages, stats, *, force_json=False):
     return resp.choices[0].message.content or ""
 
 
+def final_review_json_instruction():
+    return (
+        "Reply only with one JSON object matching the required Bunny Review schema. "
+        "Do not include FINAL_REVIEW, prose, Markdown, or another context request."
+    )
+
+
 def review_contract_gaps(review_obj):
     if not isinstance(review_obj, dict):
         return ["review root must be a JSON object"]
@@ -722,8 +729,8 @@ def semantic_repair_review_object(client, messages, review_obj, gaps, stats):
                 "Preserve any valid findings, nitpicks, open questions, and CI/proof checks. "
                 "Re-evaluate proof gaps from the packet; add a Proof Gap check only when "
                 "the diff has realistic behavior risk without focused proof. "
-                "Ensure change_summary and what_i_checked are non-empty. Reply only with "
-                "FINAL_REVIEW followed by one JSON object matching the required schema."
+                "Ensure change_summary and what_i_checked are non-empty. "
+                + final_review_json_instruction()
             ),
         },
     ]
@@ -752,10 +759,8 @@ def extract_json_or_repair(client, messages, content, stats):
             {
                 "role": "user",
                 "content": (
-                    "The previous response did not contain a JSON object. Reply only "
-                    "with FINAL_REVIEW followed by one JSON object matching the required "
-                    "Bunny Review schema. Do not include prose, Markdown, or another "
-                    "context request."
+                    "The previous response did not contain a JSON object. "
+                    + final_review_json_instruction()
                 ),
             },
         ]
@@ -784,8 +789,8 @@ def review_packet_with_model(client, skill, triage_content, stats):
             "role": "user",
             "content": (
                 "Here is the bounded extra context you requested. "
-                "Do not request more context. Produce only the final JSON review object."
-                f"\n\n# Extra Context\n{extra_context}"
+                "Do not request more context. " + final_review_json_instruction()
+                + f"\n\n# Extra Context\n{extra_context}"
             ),
         },
     ]
@@ -803,7 +808,8 @@ def skeptical_review_pass(client, skill, triage_content, stats):
         "contract drift, and proof that covers only the happy path. Report only concrete "
         "actionable findings that cite added or changed diff lines. If there are no "
         "findings from this specialist lens, return the same JSON schema with empty "
-        "findings and nitpicks arrays and mention the skeptical audit in what_i_checked."
+        "findings and nitpicks arrays and mention the skeptical audit in what_i_checked. "
+        + final_review_json_instruction()
     )
     messages = [
         {"role": "system", "content": skill},
@@ -827,9 +833,9 @@ def judge_review_pass(client, skill, triage_content, broad_review, skeptical_rev
         "actionable changed-line polish; non-blocking does not mean weak. Every final "
         "finding and nitpick must be actionable and cite an added or changed diff line. Combine useful "
         "change_summary, nitpicks, pre_merge_checks, "
-        "open_questions, and what_i_checked entries without repeating yourself. Reply only "
-        "with FINAL_REVIEW followed by the final JSON object."
-        f"\n\n# Broad Review JSON\n{json.dumps(broad_review, indent=2, sort_keys=True)}"
+        "open_questions, and what_i_checked entries without repeating yourself. "
+        + final_review_json_instruction()
+        + f"\n\n# Broad Review JSON\n{json.dumps(broad_review, indent=2, sort_keys=True)}"
         f"\n\n# Skeptical Review JSON\n{json.dumps(skeptical_review, indent=2, sort_keys=True)}"
     )
     messages = [
@@ -2286,6 +2292,43 @@ def model_api_key():
     ).strip()
 
 
+def model_client_configs():
+    provider_key = os.environ.get("LLM_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    base_url = os.environ.get("LLM_BASE_URL", "").strip() or None
+    if provider_key:
+        return [
+            {
+                "api_key": provider_key,
+                "base_url": base_url,
+                "label": "provider-specific Bunny key",
+                "fallback_to_openai_direct": False,
+            }
+        ]
+    if not openai_key:
+        return []
+    configs = [
+        {
+            "api_key": openai_key,
+            "base_url": base_url,
+            "label": "OPENAI_API_KEY with custom LLM_BASE_URL"
+            if base_url
+            else "OPENAI_API_KEY direct",
+            "fallback_to_openai_direct": bool(base_url),
+        }
+    ]
+    if base_url:
+        configs.append(
+            {
+                "api_key": openai_key,
+                "base_url": None,
+                "label": "OPENAI_API_KEY direct fallback",
+                "fallback_to_openai_direct": False,
+            }
+        )
+    return configs
+
+
 def missing_model_api_key_message():
     return (
         "The reviewer could not run because no model API key is available in this "
@@ -2297,8 +2340,8 @@ def missing_model_api_key_message():
 
 def produce_review(args):
     pr_num = os.environ.get("PR_NUM", "")
-    api_key = model_api_key()
-    if not pr_num and not api_key:
+    model_configs = model_client_configs()
+    if not pr_num and not model_configs:
         write_skipped_review(
             "Review Skipped",
             missing_model_api_key_message(),
@@ -2329,7 +2372,7 @@ def produce_review(args):
         print("Bunny telemetry: skipped=no_new_diff_reviewed", flush=True)
         return
 
-    if not api_key:
+    if not model_configs:
         write_skipped_review(
             "Review Skipped",
             missing_model_api_key_message(),
@@ -2354,11 +2397,6 @@ def produce_review(args):
 
     from openai import OpenAI
 
-    client = OpenAI(
-        api_key=api_key,
-        base_url=os.environ.get("LLM_BASE_URL"),
-        max_retries=MODEL_MAX_RETRIES,
-    )
     skill = bunny_prompt_path().read_text("utf-8")
     prior_contract_state = prior_review_contract_state(pr_num)
     prior_contract_context = (
@@ -2390,61 +2428,74 @@ def produce_review(args):
         )
         return triage
 
-    if use_chunked_review:
-        stats = build_stats("")
-        chunk_reviews = []
-        for index, chunk in enumerate(chunks, 1):
-            review_packet = build_review_packet(
-                base,
-                ci_status,
-                effective_mode,
-                focus_files=chunk,
-                include_full_patch=False,
-            )
-            stats["review_packet_chars"] += len(review_packet)
-            focus_note = (
-                f"This is chunk {index} of {len(chunks)}. Review only these focus files: "
-                + ", ".join(chunk)
-                + "."
-            )
-            triage_content = triage_for_packet(review_packet, focus_note)
-            try:
+    last_stats = None
+
+    def run_review_with_client(client):
+        nonlocal last_stats
+        if use_chunked_review:
+            stats = build_stats("")
+            last_stats = stats
+            chunk_reviews = []
+            for index, chunk in enumerate(chunks, 1):
+                review_packet = build_review_packet(
+                    base,
+                    ci_status,
+                    effective_mode,
+                    focus_files=chunk,
+                    include_full_patch=False,
+                )
+                stats["review_packet_chars"] += len(review_packet)
+                focus_note = (
+                    f"This is chunk {index} of {len(chunks)}. Review only these focus files: "
+                    + ", ".join(chunk)
+                    + "."
+                )
+                triage_content = triage_for_packet(review_packet, focus_note)
                 chunk_reviews.append(
                     three_pass_review(client, skill, triage_content, stats)
                 )
-            except Exception as exc:
-                write_skipped_review(
-                    "Review Failed",
-                    model_failure_detail(exc),
-                    status="fail",
-                    metadata={
-                        "head_sha": head_sha,
-                        "head_commit_message": commit_subject(head_sha),
-                        "review_base": base,
-                        "base_ref": base_ref,
-                        "mode": effective_mode,
-                    },
-                )
-                print_telemetry(stats)
-                return
-        review_obj = merge_review_objects(chunk_reviews)
-        review_obj.setdefault("what_i_checked", []).append(
-            f"Examined the PR in {len(chunks)} file chunk(s) so the large diff did not contaminate context retention."
-        )
-    else:
+            review_obj = merge_review_objects(chunk_reviews)
+            review_obj.setdefault("what_i_checked", []).append(
+                f"Examined the PR in {len(chunks)} file chunk(s) so the large diff did not contaminate context retention."
+            )
+            return review_obj, stats
         review_packet = (
             full_review_packet
             if len(full_review_packet) <= MAX_REVIEW_PACKET_CHARS
             else truncate(full_review_packet, MAX_REVIEW_PACKET_CHARS)
         )
         stats = build_stats(review_packet)
+        last_stats = stats
         triage_content = triage_for_packet(review_packet, "Review the full current diff.")
+        return three_pass_review(client, skill, triage_content, stats), stats
+
+    review_obj = None
+    stats = None
+    last_exc = None
+    for index, config in enumerate(model_configs):
+        client = OpenAI(
+            api_key=config["api_key"],
+            base_url=config["base_url"],
+            max_retries=MODEL_MAX_RETRIES,
+        )
         try:
-            review_obj = three_pass_review(client, skill, triage_content, stats)
+            review_obj, stats = run_review_with_client(client)
+            if index:
+                review_obj.setdefault("what_i_checked", []).append(
+                    "Bunny retried with the direct OpenAI endpoint after the custom LLM_BASE_URL path did not return review JSON."
+                )
+            break
         except Exception as exc:
+            last_exc = exc
+            if config.get("fallback_to_openai_direct") and index + 1 < len(model_configs):
+                print(
+                    "Bunny warning: model path using custom LLM_BASE_URL did not produce review JSON; retrying direct OpenAI endpoint.",
+                    flush=True,
+                )
+                continue
             write_skipped_review(
                 "Review Failed",
-                model_failure_detail(exc),
+                model_failure_detail(last_exc),
                 status="fail",
                 metadata={
                     "head_sha": head_sha,
@@ -2454,8 +2505,23 @@ def produce_review(args):
                     "mode": effective_mode,
                 },
             )
-            print_telemetry(stats)
+            print_telemetry(last_stats or build_stats(""))
             return
+    if review_obj is None or stats is None:
+        write_skipped_review(
+            "Review Failed",
+            "Bunny Review could not complete because no model client produced a review object.",
+            status="fail",
+            metadata={
+                "head_sha": head_sha,
+                "head_commit_message": commit_subject(head_sha),
+                "review_base": base,
+                "base_ref": base_ref,
+                "mode": effective_mode,
+            },
+        )
+        print_telemetry(last_stats or build_stats(""))
+        return
     review_obj = normalize_review_object(review_obj, base, files)
     review_obj.setdefault("head_sha", head_sha)
     review_obj.setdefault("head_commit_message", commit_subject(head_sha))
