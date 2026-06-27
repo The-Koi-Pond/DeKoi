@@ -125,6 +125,13 @@ matching repo-local skill:
 Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
 product-language boundaries.
 
+For architecture or mode-sensitive work, load the matching repo-local skill:
+
+- `skills/dekoi-architecture-guard/SKILL.md` for source lanes, imports,
+  runtime wrappers, storage boundaries, Rust commands, and shared-code placement.
+- `skills/dekoi-mode-separation/SKILL.md` for Messenger, Roleplay, shared
+  generation, shared mode UI, prompt routing, ripple state, or mode storage.
+
 Architecture gate:
 
 - Tiny or mechanical: name owner, impact, modes/capabilities, and checks.

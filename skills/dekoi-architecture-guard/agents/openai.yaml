@@ -1,0 +1,4 @@
+interface:
+  display_name: "DeKoi Architecture Guard"
+  short_description: "Protect module ownership and boundaries."
+  default_prompt: "Use $dekoi-architecture-guard before changing DeKoi architecture, imports, shared modules, Rust capabilities, or feature boundaries."

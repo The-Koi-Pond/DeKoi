@@ -1,0 +1,4 @@
+interface:
+  display_name: "DeKoi Mode Separation"
+  short_description: "Keep Messenger and Roleplay isolated."
+  default_prompt: "Use $dekoi-mode-separation when changing Messenger, Roleplay, shared generation, prompts, ripple state, or mode UI."
