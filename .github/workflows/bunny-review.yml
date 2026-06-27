@@ -1,0 +1,269 @@
+name: Bunny Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review.
+        required: true
+      comment_body:
+        description: Slash command or dispatcher note.
+        required: false
+        default: ""
+      review_mode:
+        description: Review mode.
+        required: false
+        type: choice
+        options:
+          - auto
+          - full
+          - incremental
+        default: auto
+      requested_by:
+        description: GitHub login that requested the review.
+        required: false
+        default: ""
+      is_draft:
+        description: Whether the PR was draft when dispatch was requested.
+        required: false
+        default: "false"
+      last_reviewed_sha:
+        description: Last Bunny-reviewed head SHA, when known.
+        required: false
+        default: ""
+      model_request_timeout_seconds:
+        description: Per-model-request timeout in seconds.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+  checks: read
+  statuses: write
+
+concurrency:
+  group: bunny-review-${{ inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_RUNS_ON || '"ubuntu-latest"') }}
+    timeout-minutes: 30
+    env:
+      PR_NUM: ${{ inputs.pr_number }}
+      BUNNY_COMMENT_BODY: ${{ inputs.comment_body || '' }}
+      BUNNY_REVIEW_MODE: ${{ inputs.review_mode || 'auto' }}
+      BUNNY_IS_DRAFT: ${{ inputs.is_draft || 'false' }}
+      BUNNY_LAST_REVIEWED_SHA: ${{ inputs.last_reviewed_sha || '' }}
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref="$(gh pr view "$PR_NUM" --json baseRefName -q .baseRefName)"
+          head_sha="$(gh pr view "$PR_NUM" --json headRefOid -q .headRefOid)"
+          echo "PR_BASE_REF=$base_ref" >> "$GITHUB_ENV"
+          echo "PR_HEAD_SHA=$head_sha" >> "$GITHUB_ENV"
+          echo "BUNNY_REVIEW_BASE=origin/$base_ref" >> "$GITHUB_ENV"
+          echo "BUNNY_TRUSTED_BASE_REF=origin/$base_ref" >> "$GITHUB_ENV"
+          git fetch --force origin "$base_ref:refs/remotes/origin/$base_ref"
+
+      - name: Preserve trusted Bunny tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir=/tmp/bunny-review-tool/.github/bunny-review
+          mkdir -p "$tool_dir"
+          for file in bunny_review.py requirements.txt reviewer-prompt.md rules.json ci-checks.json; do
+            git show "origin/$PR_BASE_REF:.github/bunny-review/$file" > "$tool_dir/$file"
+          done
+
+      - name: Checkout pull request head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force origin "pull/$PR_NUM/head:refs/remotes/bunny-review/pr-$PR_NUM"
+          git checkout --detach "$PR_HEAD_SHA"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Mark Bunny status in progress
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api \
+            --method POST \
+            "repos/${{ github.repository }}/statuses/$PR_HEAD_SHA" \
+            -f state="pending" \
+            -f context="Bunny Review" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="Bunny Review is inspecting this pull request." >/dev/null
+
+      - name: Install Bunny dependencies
+        run: pip install -r /tmp/bunny-review-tool/.github/bunny-review/requirements.txt
+
+      - name: Run review while CI completes
+        timeout-minutes: 25
+        env:
+          LLM_API_KEY: ${{ secrets.DEKOI_BUNNY_LLM_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_BASE_URL: ${{ vars.DEKOI_BUNNY_LLM_BASE_URL || secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.DEKOI_BUNNY_LLM_MODEL || 'gpt-5.5' }}
+          BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS: ${{ inputs.model_request_timeout_seconds || vars.DEKOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || '120' }}
+          BUNNY_REVIEW_PROMPT_PATH: /tmp/bunny-review-tool/.github/bunny-review/reviewer-prompt.md
+          BUNNY_RULES_PATH: /tmp/bunny-review-tool/.github/bunny-review/rules.json
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py produce &
+          review_pid=$!
+
+          check_config=/tmp/bunny-review-tool/.github/bunny-review/ci-checks.json
+          python - "$check_config" > bunny-ci-config.env <<'PY'
+          import json
+          import sys
+          expected = json.load(open(sys.argv[1], encoding="utf-8")).get("expected_checks", [])
+          always = [item for item in expected if item.get("required") == "always"]
+          print(f"EXPECTED_COUNT={len(always)}")
+          PY
+          . bunny-ci-config.env
+
+          for _ in $(seq 1 90); do
+            gh api "repos/${{ github.repository }}/commits/$PR_HEAD_SHA/check-runs" > check-runs.json
+            python - "$check_config" check-runs.json > bunny-ci-loop.env <<'PY'
+          import json
+          import sys
+          expected = [
+              item.get("name")
+              for item in json.load(open(sys.argv[1], encoding="utf-8")).get("expected_checks", [])
+              if item.get("required") == "always"
+          ]
+          check_runs = json.load(open(sys.argv[2], encoding="utf-8")).get("check_runs", [])
+          found = 0
+          pending = 0
+          for name in expected:
+              matches = [check for check in check_runs if check.get("name") == name]
+              found += len(matches)
+              pending += sum(1 for check in matches if check.get("status") != "completed")
+          print(f"FOUND={found}")
+          print(f"PENDING={pending}")
+          PY
+            . bunny-ci-loop.env
+            if [ "${FOUND:-0}" -ge "${EXPECTED_COUNT:-0}" ] && [ "${PENDING:-0}" -eq 0 ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          gh api "repos/${{ github.repository }}/commits/$PR_HEAD_SHA/check-runs" > check-runs.json
+          python - "$check_config" check-runs.json <<'PY'
+          import json
+          import sys
+          expected = [
+              item.get("name")
+              for item in json.load(open(sys.argv[1], encoding="utf-8")).get("expected_checks", [])
+              if item.get("required") == "always"
+          ]
+          check_runs = json.load(open(sys.argv[2], encoding="utf-8")).get("check_runs", [])
+          control = {"expected": expected, "passing": [], "pending": [], "failed": [], "missing": []}
+          for name in expected:
+              matches = [check for check in check_runs if check.get("name") == name]
+              if not matches:
+                  control["missing"].append(name)
+                  continue
+              for check in matches:
+                  status = check.get("status")
+                  conclusion = check.get("conclusion")
+                  if status != "completed":
+                      control["pending"].append(name)
+                  elif conclusion in {"success", "skipped"}:
+                      control["passing"].append(name)
+                  else:
+                      control["failed"].append({"name": name, "conclusion": conclusion})
+          with open("bunny-ci-control.json", "w", encoding="utf-8") as handle:
+              json.dump(control, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          with open("bunny-ci-status.md", "w", encoding="utf-8") as handle:
+              handle.write("### CI Status\n")
+              for name in control["passing"]:
+                  handle.write(f"- pass: {name}\n")
+              for name in control["pending"]:
+                  handle.write(f"- pending: {name}\n")
+              for item in control["failed"]:
+                  handle.write(f"- fail: {item['name']} ended with {item.get('conclusion')}.\n")
+              for name in control["missing"]:
+                  handle.write(f"- missing: {name} did not appear before Bunny posted.\n")
+          PY
+
+          wait "$review_pid"
+
+      - name: Render review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py render
+
+      - name: Post review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py post
+
+      - name: Upload Bunny review diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bunny-review-diagnostics-${{ github.run_id }}
+          path: |
+            review.json
+            review.md
+            inline-comments.json
+            bunny-ci-control.json
+            bunny-ci-status.md
+            check-runs.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Complete Bunny status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py ]; then
+            status_output="$(python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py status-state \
+              --review-json review.json \
+              --ci-control bunny-ci-control.json \
+              --draft "$BUNNY_IS_DRAFT" \
+              --job-status "${{ job.status }}")"
+          else
+            status_output="$(printf '%s\n' \
+              'state=failure' \
+              'description=Bunny Review tooling was unavailable; inspect the workflow run.')"
+          fi
+          echo "$status_output"
+          state="$(printf '%s\n' "$status_output" | sed -n 's/^state=//p' | tail -n 1)"
+          description="$(printf '%s\n' "$status_output" | sed -n 's/^description=//p' | tail -n 1)"
+          gh api \
+            --method POST \
+            "repos/${{ github.repository }}/statuses/$PR_HEAD_SHA" \
+            -f state="$state" \
+            -f context="Bunny Review" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="$description" >/dev/null

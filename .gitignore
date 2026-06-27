@@ -16,6 +16,10 @@ dist-ssr
 /src-tauri/target/
 /src-tauri/gen/schemas/
 
+# Python generated output
+__pycache__/
+*.py[cod]
+
 # Local scratch / dev screenshots
 /screenshot.png
 
@@ -35,3 +39,13 @@ dist-ssr
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Bunny Review local output artifacts
+/bunny-ci-control.json
+/bunny-ci-status.md
+/bunny-ci-config.env
+/bunny-ci-loop.env
+/check-runs.json
+/inline-comments.json
+/review.json
+/review.md

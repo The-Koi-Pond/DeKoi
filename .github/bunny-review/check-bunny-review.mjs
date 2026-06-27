@@ -1,0 +1,95 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const toolDir = join(root, ".github", "bunny-review");
+
+function read(relativePath) {
+  return readFileSync(join(root, relativePath), "utf8");
+}
+
+function assertFile(relativePath) {
+  assert.equal(existsSync(join(root, relativePath)), true, `${relativePath} is missing`);
+}
+
+function pythonCandidates() {
+  return process.platform === "win32"
+    ? [
+        ["python"],
+        ["py", "-3"],
+        ["python3"],
+      ]
+    : [["python3"], ["python"]];
+}
+
+function runPythonCompile() {
+  const script = join(toolDir, "bunny_review.py");
+  const missing = [];
+  const compileSnippet =
+    "import pathlib, sys; source = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'); compile(source, sys.argv[1], 'exec')";
+  for (const candidate of pythonCandidates()) {
+    const [command, ...prefixArgs] = candidate;
+    const result = spawnSync(command, [...prefixArgs, "-c", compileSnippet, script], {
+      encoding: "utf8",
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+      windowsHide: true,
+    });
+    if (result.error?.code === "ENOENT") {
+      missing.push(candidate.join(" "));
+      continue;
+    }
+    process.stdout.write(result.stdout || "");
+    process.stderr.write(result.stderr || "");
+    assert.equal(result.status, 0, `Python compile failed using ${candidate.join(" ")}`);
+    return;
+  }
+  throw new Error(`Unable to compile Bunny Python tooling; missing launchers: ${missing.join(", ")}`);
+}
+
+for (const file of [
+  ".github/workflows/ci-full.yml",
+  ".github/workflows/ci-sanity.yml",
+  ".github/workflows/bunny-review.yml",
+  ".github/workflows/bunny-review-auto.yml",
+  ".github/workflows/bunny-review-command.yml",
+  ".github/bunny-review/bunny_review.py",
+  ".github/bunny-review/check_guidance_digest.py",
+  ".github/bunny-review/ci-checks.json",
+  ".github/bunny-review/requirements.txt",
+  ".github/bunny-review/reviewer-prompt.md",
+  ".github/bunny-review/rules.json",
+  ".github/bunny-review/run_guidance_check.mjs",
+]) {
+  assertFile(file);
+}
+
+const checks = JSON.parse(read(".github/bunny-review/ci-checks.json"));
+assert.ok(Array.isArray(checks.expected_checks), "ci-checks.json expected_checks must be an array");
+const fullWorkflow = read(".github/workflows/ci-full.yml");
+for (const check of checks.expected_checks) {
+  assert.equal(typeof check.name, "string", "expected check name must be a string");
+  assert.match(fullWorkflow, new RegExp(`name:\\s*${check.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+}
+
+const rules = JSON.parse(read(".github/bunny-review/rules.json"));
+assert.ok(Array.isArray(rules.review_focus), "rules.json review_focus must be an array");
+assert.ok(Array.isArray(rules.path_instructions), "rules.json path_instructions must be an array");
+
+const prompt = read(".github/bunny-review/reviewer-prompt.md");
+assert.match(prompt, /clean-room boundary/i);
+assert.match(prompt, /FINAL_REVIEW/);
+
+for (const workflow of [
+  ".github/workflows/bunny-review-auto.yml",
+  ".github/workflows/bunny-review-command.yml",
+]) {
+  const text = read(workflow);
+  assert.doesNotMatch(text, /actions\/checkout/i, `${workflow} must not checkout PR code`);
+  assert.doesNotMatch(text, /pnpm install|pip install|cargo check/i, `${workflow} must not install or execute PR code`);
+}
+
+runPythonCompile();
+console.log("bunny_review_check ok");

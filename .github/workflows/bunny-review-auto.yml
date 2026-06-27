@@ -1,0 +1,108 @@
+name: Bunny Review Auto Dispatch
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  actions: write
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: bunny-review-auto-dispatch-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
+    steps:
+      - name: Dispatch trusted Bunny reviewer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          REQUESTED_BY: ${{ github.event.sender.login }}
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_IS_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_SYNC_AUTOMATION: ${{ vars.DEKOI_PR_SYNC_AUTOMATION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          trusted_actor() {
+            local login="$1"
+            local association="$2"
+            case "$association" in
+              OWNER|MEMBER|COLLABORATOR)
+                echo "Trusted PR author by association: $login ($association)."
+                return 0
+                ;;
+            esac
+
+            local permission
+            set +e
+            permission="$(gh api "repos/${{ github.repository }}/collaborators/$login/permission" --jq .permission 2>/dev/null)"
+            local rc=$?
+            set -e
+            case "$permission" in
+              admin|maintain|write)
+                echo "Trusted PR author by repository permission: $login ($permission)."
+                return 0
+                ;;
+            esac
+
+            echo "Skipping Bunny auto dispatch: $login is not trusted. association=${association:-none} permission=${permission:-unavailable} rc=$rc"
+            return 1
+          }
+
+          echo "Bunny auto dispatch gate: action=$EVENT_ACTION base=$PR_BASE_REF draft=$PR_IS_DRAFT author=$PR_AUTHOR sync=${PR_SYNC_AUTOMATION:-unset}"
+          if [ "$PR_BASE_REF" != "main" ]; then
+            echo "::error::Unsupported Bunny review base ref: $PR_BASE_REF"
+            exit 1
+          fi
+          if [ "$PR_IS_DRAFT" = "true" ]; then
+            echo "Skipping Bunny auto dispatch for draft pull request."
+            exit 0
+          fi
+          if [ "$EVENT_ACTION" = "synchronize" ] && [ "${PR_SYNC_AUTOMATION:-}" = "off" ]; then
+            echo "DEKOI_PR_SYNC_AUTOMATION=off; skipping synchronize dispatch."
+            exit 0
+          fi
+          if ! trusted_actor "$PR_AUTHOR" "$PR_AUTHOR_ASSOCIATION"; then
+            exit 0
+          fi
+
+          last_reviewed_sha="$(gh api "repos/${{ github.repository }}/issues/$PR_NUM/comments?per_page=100" \
+            --paginate \
+            --jq '.[] | select(.body | contains("<!-- bunny-review:walkthrough -->")) | .body' \
+            | sed -n 's/.*<!-- bunny-review:last-reviewed-sha=\([0-9a-f]\{40\}\) -->.*/\1/p' \
+            | tail -n 1)"
+          if [ -n "$last_reviewed_sha" ] && [ "$last_reviewed_sha" = "$PR_HEAD_SHA" ] && [ "$EVENT_ACTION" != "ready_for_review" ]; then
+            echo "Skipping Bunny auto dispatch because this head was already reviewed."
+            exit 0
+          fi
+
+          gh api "repos/${{ github.repository }}/contents/.github/workflows/bunny-review.yml?ref=$PR_BASE_REF" --silent >/dev/null || {
+            echo "::error::Bunny trusted workflow not found on base ref $PR_BASE_REF"
+            exit 1
+          }
+
+          mode=auto
+          if [ "$EVENT_ACTION" = "ready_for_review" ]; then
+            mode=full
+          fi
+
+          gh workflow run bunny-review.yml \
+            --repo "${{ github.repository }}" \
+            --ref "$PR_BASE_REF" \
+            -f pr_number="$PR_NUM" \
+            -f comment_body="auto pull_request_target dispatch" \
+            -f review_mode="$mode" \
+            -f requested_by="$REQUESTED_BY" \
+            -f is_draft="$PR_IS_DRAFT" \
+            -f last_reviewed_sha="$last_reviewed_sha"

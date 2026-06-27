@@ -1,0 +1,6 @@
+{
+  "expected_checks": [
+    { "name": "Frontend and Project Contracts", "required": "always" },
+    { "name": "Rust Desktop Capability Layer", "required": "always" }
+  ]
+}

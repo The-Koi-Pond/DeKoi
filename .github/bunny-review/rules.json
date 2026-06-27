@@ -1,0 +1,63 @@
+{
+  "review_focus": [
+    "correctness",
+    "user-visible regressions",
+    "clean-room boundary risk",
+    "security and privacy",
+    "source-lane boundaries",
+    "desktop and remote-runtime contracts",
+    "failure paths",
+    "missing focused proof",
+    "CI and deployment failures"
+  ],
+  "severity_policy": {
+    "blocking": "The PR should not merge because changed behavior is broken, unsafe, or violates a hard repository boundary.",
+    "high": "A likely production or data-loss regression, security/privacy issue, or serious runtime/storage contract risk.",
+    "medium": "A concrete bug, edge case, maintainability trap, or missing proof tied directly to changed behavior.",
+    "low": "A small but actionable correctness, proof, or maintainability risk tied to changed behavior.",
+    "nitpick": "Optional changed-line polish with no behavior risk, such as readability, naming, tiny duplication, stale comments, dead code, type clarity, or local consistency."
+  },
+  "nitpick_policy": {
+    "max_count": 2,
+    "line_scope": "changed-line only",
+    "risk": "No behavior-risk requirement; use for optional polish only."
+  },
+  "control_warn_types": {
+    "Proof Gap": "Important changed behavior lacks focused proof.",
+    "Review Limitation": "Bunny lacked full packet/context to prove a suspected issue.",
+    "CI Timing": "Expected checks were missing, pending, or not yet observable when posted.",
+    "Non-blocking Coverage": "Useful coverage or context note that should not block merge by itself."
+  },
+  "path_instructions": [
+    {
+      "name": "Engine and source lanes",
+      "prefixes": ["src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/"],
+      "guidance": ["ARCHITECTURE.md", "docs/architecture.md"],
+      "checks": [
+        "Engine code stays React-free and does not import feature internals, runtime adapters, Tauri APIs, or browser APIs.",
+        "Feature code renders UI and calls engine helpers plus runtime/shared API wrappers rather than raw host or remote transports.",
+        "Storage, generation, secrets, files, provider transport, and import/export stay separated by their documented owners."
+      ]
+    },
+    {
+      "name": "Storage, import, and runtime contracts",
+      "prefixes": ["src/runtime/", "src/shared/api/", "src-tauri/src/", "scripts/check-storage-contracts.mjs", "scripts/check-runtime-contracts.mjs", "scripts/check-desktop-contracts.mjs"],
+      "guidance": ["docs/storage-model.md", "docs/remote-runtime-contract.md"],
+      "checks": [
+        "TypeScript command/entity declarations stay aligned with Rust desktop and runtime command registrations.",
+        "Collection names and native DeKoi record shapes remain the contract.",
+        "Legacy compatibility stays one-way import behavior into native DeKoi records."
+      ]
+    },
+    {
+      "name": "Clean-room and docs",
+      "prefixes": ["README.md", "CONTRIBUTING.md", "CLEAN_ROOM.md", "ARCHITECTURE.md", "DOMAIN_MODEL.md", "PRODUCT.md", "SURFACE_LABELS.md", "docs/", ".github/"],
+      "guidance": ["CONTRIBUTING.md", "CLEAN_ROOM.md", ".github/agents/dekoi-workflow.md"],
+      "checks": [
+        "Docs, prompts, config, and templates use DeKoi-owned terms unless an authored workflow document is intentionally being reused.",
+        "No old source code, assets, generated bindings, UI text, schemas, or component layouts are copied into product code.",
+        "Workflow changes remain concrete, testable, and narrow."
+      ]
+    }
+  ]
+}

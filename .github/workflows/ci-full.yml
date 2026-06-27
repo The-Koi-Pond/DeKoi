@@ -1,0 +1,200 @@
+name: CI Full
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "23 9 * * 1,4"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-full-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: Change Classification
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    outputs:
+      frontend: ${{ steps.non_pr.outputs.frontend || steps.sync_off.outputs.frontend || steps.full_mode.outputs.frontend || steps.classify.outputs.frontend }}
+      rust: ${{ steps.non_pr.outputs.rust || steps.sync_off.outputs.rust || steps.full_mode.outputs.rust || steps.classify.outputs.rust }}
+      docs: ${{ steps.non_pr.outputs.docs || steps.sync_off.outputs.docs || steps.full_mode.outputs.docs || steps.classify.outputs.docs }}
+    steps:
+      - id: non_pr
+        name: Route non-PR event
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          {
+            echo "frontend=true"
+            echo "rust=true"
+            echo "docs=true"
+          } >> "$GITHUB_OUTPUT"
+
+      - id: sync_off
+        name: Route disabled PR update
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off'
+        shell: bash
+        run: |
+          echo "DEKOI_PR_SYNC_AUTOMATION=off; skipping full CI lanes for this PR update."
+          {
+            echo "frontend=false"
+            echo "rust=false"
+            echo "docs=false"
+          } >> "$GITHUB_OUTPUT"
+
+      - id: full_mode
+        name: Route full CI mode
+        if: github.event_name == 'pull_request' && (vars.DEKOI_CI_FULL_MODE == 'full' || vars.DEKOI_CI_FULL_MODE == 'all')
+        shell: bash
+        run: |
+          echo "DEKOI_CI_FULL_MODE=${{ vars.DEKOI_CI_FULL_MODE }}; running all full CI lanes."
+          {
+            echo "frontend=true"
+            echo "rust=true"
+            echo "docs=true"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        if: >
+          github.event_name == 'pull_request' &&
+          !(github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off') &&
+          vars.DEKOI_CI_FULL_MODE != 'full' &&
+          vars.DEKOI_CI_FULL_MODE != 'all'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: classify
+        name: Classify changed files
+        if: >
+          github.event_name == 'pull_request' &&
+          !(github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off') &&
+          vars.DEKOI_CI_FULL_MODE != 'full' &&
+          vars.DEKOI_CI_FULL_MODE != 'all'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]]; then
+            BASE="$(git rev-parse "${HEAD}^" 2>/dev/null || true)"
+          fi
+
+          if [ -z "$BASE" ] || ! git diff --name-only "$BASE" "$HEAD" > changed-files.txt; then
+            echo "Unable to determine a precise diff; running all CI lanes."
+            {
+              echo "frontend=true"
+              echo "rust=true"
+              echo "docs=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          sed 's/^/- /' changed-files.txt
+
+          matches() {
+            grep -Eq "$1" changed-files.txt
+          }
+
+          broad=false
+          frontend=false
+          rust=false
+          docs=false
+
+          if matches '^(package.json|pnpm-lock.yaml|tsconfig(\.[^/]+)?\.json|vite\.config\.ts|eslint\.config\.js|\.github/workflows/[^/]+\.yml|\.github/bunny-review/|src-tauri/Cargo\.(toml|lock)|scripts/check-[^/]+\.mjs)$'; then
+            broad=true
+          fi
+
+          if matches '^(src/|public/|scripts/|index\.html$|package.json$|pnpm-lock.yaml$|tsconfig(\.[^/]+)?\.json$|vite\.config\.ts$|eslint\.config\.js$)'; then
+            frontend=true
+          fi
+
+          if matches '^(src-tauri/|src/shared/api/|src/runtime/|package.json$|pnpm-lock.yaml$)'; then
+            rust=true
+          fi
+
+          if matches '^(README\.md$|CONTRIBUTING\.md$|CLEAN_ROOM\.md$|ARCHITECTURE\.md$|DOMAIN_MODEL\.md$|PRODUCT\.md$|SURFACE_LABELS\.md$|docs/|\.github/)'; then
+            docs=true
+          fi
+
+          if [ "$broad" = true ]; then
+            frontend=true
+            rust=true
+            docs=true
+          fi
+
+          {
+            echo "frontend=$frontend"
+            echo "rust=$rust"
+            echo "docs=$docs"
+          } >> "$GITHUB_OUTPUT"
+
+  frontend:
+    name: Frontend and Project Contracts
+    needs: classify
+    if: >
+      (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      (needs.classify.outputs.frontend == 'true' || needs.classify.outputs.docs == 'true')
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:bunny-review
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:desktop-contracts
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:storage-contracts
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:runtime-contracts
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:frontend-boundaries
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm build
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm lint
+
+  rust:
+    name: Rust Desktop Capability Layer
+    needs: classify
+    if: >
+      (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
+      needs.classify.outputs.rust == 'true'
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+      - run: cargo check --manifest-path src-tauri/Cargo.toml

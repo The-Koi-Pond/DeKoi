@@ -1,0 +1,138 @@
+name: Bunny Review Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/bunny-review')
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
+    steps:
+      - name: Dispatch trusted Bunny reviewer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUM: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          COMMENT_AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          trusted_actor() {
+            local login="$1"
+            local association="$2"
+            case "$association" in
+              OWNER|MEMBER|COLLABORATOR)
+                echo "Trusted command requester by association: $login ($association)."
+                return 0
+                ;;
+            esac
+
+            local permission
+            set +e
+            permission="$(gh api "repos/${{ github.repository }}/collaborators/$login/permission" --jq .permission 2>/dev/null)"
+            local rc=$?
+            set -e
+            case "$permission" in
+              admin|maintain|write)
+                echo "Trusted command requester by repository permission: $login ($permission)."
+                return 0
+                ;;
+            esac
+
+            echo "Skipping Bunny command dispatch: $login is not trusted. association=${association:-none} permission=${permission:-unavailable} rc=$rc"
+            return 1
+          }
+
+          if ! trusted_actor "$COMMENT_AUTHOR" "$COMMENT_AUTHOR_ASSOCIATION"; then
+            exit 0
+          fi
+
+          review_mode=auto
+          if [[ "$COMMENT_BODY" =~ ^/bunny-review[[:space:]]+full([[:space:]]|$) ]]; then
+            review_mode=full
+          elif [[ "$COMMENT_BODY" =~ ^/bunny-review[[:space:]]+incremental([[:space:]]|$) ]]; then
+            review_mode=incremental
+          fi
+
+          target_ref="$(gh pr view "$PR_NUM" --repo "${{ github.repository }}" --json baseRefName -q .baseRefName)"
+          is_draft="$(gh pr view "$PR_NUM" --repo "${{ github.repository }}" --json isDraft -q .isDraft)"
+          if [ "$target_ref" != "main" ]; then
+            echo "::error::Unsupported Bunny review base ref: $target_ref"
+            exit 1
+          fi
+          gh api "repos/${{ github.repository }}/contents/.github/workflows/bunny-review.yml?ref=$target_ref" --silent >/dev/null || {
+            echo "::error::Bunny trusted workflow not found on base ref $target_ref"
+            exit 1
+          }
+
+          escaped_command="$(printf '%s' "$COMMENT_BODY" | tr '\r\n' '  ' | sed -e 's/\\/\\\\/g' -e 's/`/\\`/g')"
+          if [ "${#escaped_command}" -gt 180 ]; then
+            escaped_command="${escaped_command:0:177}..."
+          fi
+
+          status_body() {
+            local title="$1"
+            local detail="$2"
+            printf '%s\n' \
+              '<!-- bunny-review:command-status -->' \
+              "## Bunny Review $title" \
+              '' \
+              "Command: \`$escaped_command\`" \
+              "Mode: \`$review_mode\`" \
+              "Requested by: \`$COMMENT_AUTHOR\`" \
+              "Target ref: \`$target_ref\`" \
+              "Status: $detail"
+          }
+
+          upsert_status() {
+            local title="$1"
+            local detail="$2"
+            local body
+            body="$(status_body "$title" "$detail")"
+            local comment_id
+            comment_id="$(gh api "repos/${{ github.repository }}/issues/$PR_NUM/comments?per_page=100" \
+              --paginate \
+              --jq '.[] | select(.body | contains("<!-- bunny-review:command-status -->")) | .id' \
+              | tail -n 1)"
+            if [ -n "$comment_id" ]; then
+              gh api --method PATCH "repos/${{ github.repository }}/issues/comments/$comment_id" -f body="$body" >/dev/null
+            else
+              gh api --method POST "repos/${{ github.repository }}/issues/$PR_NUM/comments" -f body="$body" >/dev/null
+            fi
+          }
+
+          upsert_status "Queued" "Command accepted; dispatching the trusted reviewer workflow." \
+            || echo "::warning::Unable to write Bunny command status before dispatch."
+
+          set +e
+          output="$(gh workflow run bunny-review.yml \
+            --repo "${{ github.repository }}" \
+            --ref "$target_ref" \
+            -f pr_number="$PR_NUM" \
+            -f comment_body="$COMMENT_BODY" \
+            -f review_mode="$review_mode" \
+            -f requested_by="$COMMENT_AUTHOR" \
+            -f is_draft="$is_draft" 2>&1)"
+          rc=$?
+          set -e
+
+          if [ "$rc" -ne 0 ]; then
+            upsert_status "Failed To Dispatch" "GitHub rejected the reviewer dispatch. Inspect the Bunny Review Command run log." \
+              || echo "::warning::Unable to write Bunny command dispatch failure status."
+            echo "$output"
+            exit "$rc"
+          fi
+
+          upsert_status "Dispatched" "Reviewer workflow dispatched; waiting for Bunny Review to post results." \
+            || echo "::warning::Unable to write Bunny command dispatched status."
