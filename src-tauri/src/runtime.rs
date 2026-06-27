@@ -182,6 +182,9 @@ fn provider_connection_api_key(
         .unwrap_or("")
         .trim();
     if connection_id.is_empty() {
+        if provider_connection_requires_api_key(provider) {
+            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
+        }
         return Ok(String::new());
     }
 
@@ -197,6 +200,9 @@ fn provider_connection_api_key(
         .unwrap_or("")
         .trim();
     if status != "ready" {
+        if provider_connection_requires_api_key(provider) {
+            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
+        }
         return Ok(String::new());
     }
 
@@ -209,7 +215,7 @@ fn provider_connection_api_key(
         );
     }
 
-    match provider_secret_read_for_scope(connection_id, provider, base_url, true)? {
+    match provider_secret_read_for_scope(connection_id, provider, base_url, false)? {
         Some(secret) if !secret.trim().is_empty() => Ok(secret),
         _ => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
     }
@@ -465,8 +471,42 @@ fn provider_connection_models_url(provider: &str, base_url: &str) -> Result<Stri
     if provider.trim().is_empty() || base_url.trim().is_empty() {
         return Err("Provider connection needs provider and base URL.".to_string());
     }
+    if !provider_connection_supports_models(provider) {
+        return Err(format!(
+            "{provider} does not support model listing through this runtime."
+        ));
+    }
 
     Ok(append_endpoint(base_url, "/models"))
+}
+
+fn provider_connection_supports_models(provider: &str) -> bool {
+    matches!(
+        provider,
+        "openai"
+            | "anthropic"
+            | "google"
+            | "mistral"
+            | "cohere"
+            | "openrouter"
+            | "nanogpt"
+            | "xai"
+            | "custom"
+    )
+}
+
+fn provider_connection_models_request(
+    provider: &str,
+    base_url: &str,
+    api_key: &str,
+) -> Result<(String, reqwest::header::HeaderMap), String> {
+    if provider_connection_requires_api_key(provider) && api_key.trim().is_empty() {
+        return Err("API key required before fetching models.".to_string());
+    }
+
+    let url = provider_connection_models_url(provider, base_url)?;
+    let headers = provider_headers(provider, api_key)?;
+    Ok((url, headers))
 }
 
 fn read_model_id(value: &serde_json::Value) -> String {
@@ -565,13 +605,8 @@ async fn provider_connection_models(args: &serde_json::Value) -> Result<serde_js
         .unwrap_or("")
         .trim();
     let api_key = provider_connection_api_key(provider, connection)?;
-    if provider_connection_requires_api_key(provider) && api_key.trim().is_empty() {
-        return Err("API key required before fetching models.".to_string());
-    }
-
-    let url = provider_connection_models_url(provider, base_url)?;
+    let (url, headers) = provider_connection_models_request(provider, base_url, &api_key)?;
     let client = reqwest::Client::new();
-    let headers = provider_headers(provider, &api_key)?;
     let response = client
         .get(url)
         .headers(headers)
@@ -918,6 +953,46 @@ mod tests {
             .expect("Optional-key providers should ignore missing stored secrets");
 
         assert_eq!(api_key, "");
+    }
+
+    #[test]
+    fn required_provider_without_key_is_rejected_before_request() {
+        let mut connection = serde_json::Map::new();
+        connection.insert("provider".to_string(), serde_json::json!("openai"));
+
+        let error = provider_connection_api_key("openai", &connection)
+            .expect_err("Required-key providers need an explicit or stored key");
+
+        assert!(error.contains("needs an API key"));
+    }
+
+    #[test]
+    fn required_provider_needs_ready_status_for_stored_secret() {
+        let mut connection = serde_json::Map::new();
+        connection.insert("id".to_string(), serde_json::json!("connection-openai"));
+        connection.insert("status".to_string(), serde_json::json!("needs-key"));
+
+        let error = provider_connection_api_key("openai", &connection)
+            .expect_err("Non-ready required providers must stop before HTTP");
+
+        assert!(error.contains("needs an API key"));
+    }
+
+    #[test]
+    fn provider_connection_models_rejects_unsupported_provider() {
+        let error =
+            provider_connection_models_request("claude_subscription", "https://example.test", "")
+                .expect_err("Subscription providers do not expose runtime model listing");
+
+        assert!(error.contains("does not support model listing"));
+    }
+
+    #[test]
+    fn provider_connection_models_rejects_missing_required_key() {
+        let error = provider_connection_models_request("openai", "https://api.openai.com/v1", "")
+            .expect_err("OpenAI model listing needs a key before HTTP");
+
+        assert_eq!(error, "API key required before fetching models.");
     }
 
     #[test]

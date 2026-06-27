@@ -33,13 +33,26 @@ fn provider_secret_entry(connection_id: &str) -> Result<keyring::Entry, String> 
     .map_err(|error| format!("Could not open provider key store. {error}"))
 }
 
-fn provider_secret_status_for(connection_id: String) -> Result<ProviderSecretStatus, String> {
+fn provider_secret_status_for(
+    connection_id: String,
+    provider: Option<String>,
+    base_url: Option<String>,
+) -> Result<ProviderSecretStatus, String> {
     let entry = provider_secret_entry(&connection_id)?;
     match entry.get_password() {
-        Ok(_) => Ok(ProviderSecretStatus {
-            connection_id,
-            has_secret: true,
-        }),
+        Ok(secret) => {
+            let has_secret = match (provider.as_deref(), base_url.as_deref()) {
+                (Some(provider), Some(base_url)) if !provider.trim().is_empty() => {
+                    provider_secret_value_for_scope(&secret, provider, base_url, false).is_some()
+                }
+                _ => true,
+            };
+
+            Ok(ProviderSecretStatus {
+                connection_id,
+                has_secret,
+            })
+        }
         Err(keyring::Error::NoEntry) => Ok(ProviderSecretStatus {
             connection_id,
             has_secret: false,
@@ -102,8 +115,10 @@ pub(crate) fn provider_secret_store_is_available() -> bool {
 #[tauri::command]
 pub(crate) fn dekoi_provider_secret_status(
     connection_id: String,
+    provider: Option<String>,
+    base_url: Option<String>,
 ) -> Result<ProviderSecretStatus, String> {
-    provider_secret_status_for(connection_id)
+    provider_secret_status_for(connection_id, provider, base_url)
 }
 
 #[tauri::command]
@@ -226,5 +241,38 @@ mod tests {
             ),
             Some("saved-key".to_string()),
         );
+    }
+
+    #[test]
+    fn scoped_status_rejects_unscoped_or_mismatched_secret_values() {
+        let scoped_secret = serde_json::to_string(&ProviderSecretEnvelope {
+            schema_version: 1,
+            provider: "openai".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            secret: "saved-key".to_string(),
+        })
+        .expect("secret envelope should serialize");
+
+        assert!(provider_secret_value_for_scope(
+            &scoped_secret,
+            "openai",
+            "https://api.openai.com/v1/",
+            false,
+        )
+        .is_some());
+        assert!(provider_secret_value_for_scope(
+            &scoped_secret,
+            "anthropic",
+            "https://api.openai.com/v1",
+            false,
+        )
+        .is_none());
+        assert!(provider_secret_value_for_scope(
+            "legacy-key",
+            "openai",
+            "https://api.openai.com/v1",
+            false,
+        )
+        .is_none());
     }
 }

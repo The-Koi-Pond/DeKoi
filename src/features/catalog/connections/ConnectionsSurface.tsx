@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   NavCatalogState,
   NavProviderConnectionActions,
@@ -18,6 +18,7 @@ import type { ProviderConnectionInput } from "../../../engine/provider-connectio
 import { checkProviderConnection } from "../../../shared/api/provider-connection-check";
 import { fetchProviderConnectionModels } from "../../../shared/api/provider-connection-models";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
+import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
 import {
   isDesktopRuntimeUrl,
   readRemoteRuntimeUrl,
@@ -116,6 +117,9 @@ interface ConnectionEditorProps {
   onSave: (input: ProviderConnectionInput) => Promise<void>;
 }
 
+type StoredSecretStatus = "idle" | "checking" | "available" | "missing" | "error";
+type StoredSecretProbeStatus = "available" | "missing" | "error";
+
 function ConnectionIcon() {
   return (
     <svg
@@ -135,12 +139,14 @@ function ConnectionIcon() {
 }
 
 function ConnectionsBanner({
+  actionsLocked = false,
   onBack,
   onDelete,
   onSave,
   saveLabel,
   saveState,
 }: {
+  actionsLocked?: boolean;
   onBack: () => void;
   onDelete?: () => void;
   onSave?: () => void;
@@ -150,9 +156,12 @@ function ConnectionsBanner({
   return (
     <CatalogSurfaceBanner
       icon={<ConnectionIcon />}
+      backDisabled={actionsLocked}
+      deleteDisabled={actionsLocked}
       onBack={onBack}
       onDelete={onDelete}
       onSave={onSave}
+      saveDisabled={actionsLocked}
       saveLabel={saveLabel}
       saveState={saveState}
       title="Connections"
@@ -175,6 +184,10 @@ function ConnectionEditor({
   const [connectionCheckStatus, setConnectionCheckStatus] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
   const [saveBusy, setSaveBusy] = useState(false);
+  const [storedSecretProbe, setStoredSecretProbe] = useState<{
+    scopeKey: string;
+    status: StoredSecretProbeStatus;
+  }>({ scopeKey: "", status: "missing" });
   const selectedProvider = getProviderConnectionProviderOption(draft.provider);
   const modelOptions = [
     ...new Set([...fetchedModels, ...selectedProvider.models]),
@@ -187,7 +200,7 @@ function ConnectionEditor({
   const canUseDesktopRuntime =
     isDesktopRuntimeUrl(remoteRuntimeUrl) ||
     (!remoteRuntimeUrl.trim() && isDesktopHostAvailable());
-  const canUseStoredDesktopSecret =
+  const canCheckStoredDesktopSecret =
     Boolean(editingId) &&
     Boolean(activeConnection) &&
     canUseDesktopRuntime &&
@@ -195,6 +208,68 @@ function ConnectionEditor({
     normalizedDraft.provider === normalizedInitialDraft.provider &&
     normalizedDraft.baseUrl.replace(/\/+$/, "") ===
       normalizedInitialDraft.baseUrl.replace(/\/+$/, "");
+  const storedSecretScopeKey =
+    canCheckStoredDesktopSecret && editingId
+      ? `${editingId}\n${normalizedDraft.provider}\n${normalizedDraft.baseUrl.replace(/\/+$/, "")}`
+      : "";
+  const storedSecretStatus: StoredSecretStatus = !storedSecretScopeKey
+    ? "idle"
+    : storedSecretProbe.scopeKey === storedSecretScopeKey
+      ? storedSecretProbe.status
+      : "checking";
+  const canUseStoredDesktopSecret = storedSecretStatus === "available";
+
+  function missingSecretMessage(action: "checking" | "fetching models") {
+    if (
+      storedSecretStatus === "checking" ||
+      (canCheckStoredDesktopSecret && storedSecretStatus === "idle")
+    ) {
+      return "Checking saved API key access. Try again in a moment.";
+    }
+    if (
+      !editingId ||
+      activeConnection?.status === "needs-key" ||
+      storedSecretStatus === "idle" ||
+      storedSecretStatus === "missing"
+    ) {
+      return `API key required before ${action}.`;
+    }
+    return "Saved API key could not be verified. Re-enter the key.";
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!storedSecretScopeKey || !editingId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getDesktopProviderSecretStatus(editingId, {
+      provider: normalizedDraft.provider,
+      baseUrl: normalizedDraft.baseUrl,
+    })
+      .then((status) => {
+        if (cancelled) return;
+        setStoredSecretProbe({
+          scopeKey: storedSecretScopeKey,
+          status: status.hasSecret ? "available" : "missing",
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStoredSecretProbe({ scopeKey: storedSecretScopeKey, status: "error" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    editingId,
+    normalizedDraft.provider,
+    normalizedDraft.baseUrl,
+    storedSecretScopeKey,
+  ]);
 
   async function handleSave() {
     const input = draftToInput(draft);
@@ -248,11 +323,7 @@ function ConnectionEditor({
       !hasTypedKey &&
       !canUseStoredDesktopSecret
     ) {
-      setModelFetchStatus(
-        activeConnection?.status === "needs-key"
-          ? "API key required before fetching models."
-          : "API key required.",
-      );
+      setModelFetchStatus(missingSecretMessage("fetching models"));
       return;
     }
 
@@ -306,11 +377,7 @@ function ConnectionEditor({
       !hasTypedKey &&
       !canUseStoredDesktopSecret
     ) {
-      setConnectionCheckStatus(
-        activeConnection?.status === "needs-key"
-          ? "API key required before checking this connection."
-          : "API key required.",
-      );
+      setConnectionCheckStatus(missingSecretMessage("checking"));
       return;
     }
 
@@ -338,9 +405,10 @@ function ConnectionEditor({
   return (
     <>
       <ConnectionsBanner
+        actionsLocked={saveBusy}
         onBack={onBack}
         onDelete={onDelete}
-        onSave={saveBusy ? undefined : handleSave}
+        onSave={handleSave}
         saveLabel={editingId ? "Save Changes" : "Create"}
         saveState={hasPendingChanges ? "pending" : "clean"}
       />

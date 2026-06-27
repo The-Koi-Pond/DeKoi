@@ -137,7 +137,7 @@ const storedProviderConnectionRepository = createStorageRepository({
 async function hydrateDesktopProviderConnectionStatuses(
   snapshot: StorageRecordsSnapshot<ProviderConnectionRecord>,
 ): Promise<StorageRecordsSnapshot<ProviderConnectionRecord>> {
-  let verificationFailures = 0;
+  const verificationErrors: string[] = [];
   const records = await Promise.all(
     snapshot.records.map(async (record) => {
       if (
@@ -148,25 +148,33 @@ async function hydrateDesktopProviderConnectionStatuses(
       }
 
       try {
-        const status = await getDesktopProviderSecretStatus(record.id);
+        const status = await getDesktopProviderSecretStatus(record.id, {
+          provider: record.provider,
+          baseUrl: record.baseUrl,
+        });
         return status.hasSecret
           ? record
           : ({ ...record, status: "needs-key" } satisfies ProviderConnectionRecord);
-      } catch {
-        verificationFailures += 1;
-        return { ...record, status: "needs-key" } satisfies ProviderConnectionRecord;
+      } catch (error) {
+        verificationErrors.push(error instanceof Error ? error.message : String(error));
+        return record;
       }
     }),
   );
+  const verificationMessage =
+    verificationErrors.length > 0
+      ? ` Provider key status verification failed for ${verificationErrors.length} connection(s): ${[
+          ...new Set(verificationErrors),
+        ].join("; ")}`
+      : "";
 
   return {
     ...snapshot,
     records,
-    status: verificationFailures > 0 ? "error" : snapshot.status,
-    message:
-      verificationFailures > 0
-        ? `${snapshot.message} Provider key status verification failed for ${verificationFailures} connection(s).`
-        : snapshot.message,
+    status: verificationErrors.length > 0 ? "error" : snapshot.status,
+    message: verificationMessage
+      ? `${snapshot.message}${verificationMessage}`
+      : snapshot.message,
   };
 }
 

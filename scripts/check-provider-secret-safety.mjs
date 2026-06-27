@@ -51,12 +51,16 @@ if (/apiKey\s*:/.test(providerConnectionStorageSource)) {
 if (
   !/preserveReadyStatus/.test(providerConnectionStorageSource) ||
   !/getDesktopProviderSecretStatus/.test(providerConnectionStorageSource) ||
+  !/provider: record\.provider/.test(providerConnectionStorageSource) ||
+  !/baseUrl: record\.baseUrl/.test(providerConnectionStorageSource) ||
   !/storedProviderConnectionRepository\.save/.test(providerConnectionStorageSource) ||
   !/status\.hasSecret[\s\S]*\{ \.\.\.record, status: "needs-key" \}/.test(
     providerConnectionStorageSource,
-  )
+  ) ||
+  !/verificationErrors\.push/.test(providerConnectionStorageSource) ||
+  !/catch \(error\)[\s\S]*return record;/.test(providerConnectionStorageSource)
 ) {
-  fail("Desktop provider connection readiness must be verified against key storage.");
+  fail("Desktop provider connection readiness must be scoped and preserve records on verification transport failure.");
 }
 
 if (!/redactProviderConnectionSecrets\(providerConnections\)/.test(bundleSource)) {
@@ -76,6 +80,10 @@ if (!/Provider connections skipped secret field\(s\)/.test(bundleSource)) {
 }
 
 const desktopRuntimeSource = readFile("src-tauri/src/runtime.rs");
+if (/provider_secret_read_for_scope\([^)]*true\)/.test(desktopRuntimeSource)) {
+  fail("Desktop runtime provider secret reads must not use unscoped fallback.");
+}
+
 if (
   !/get\("status"\)/.test(desktopRuntimeSource) ||
   !/status != "ready"/.test(desktopRuntimeSource) ||
@@ -115,6 +123,8 @@ const providerConnectionSurfaceSource = readFile(
 );
 if (
   !/canUseStoredDesktopSecret/.test(providerConnectionSurfaceSource) ||
+  !/getDesktopProviderSecretStatus\(editingId/.test(providerConnectionSurfaceSource) ||
+  !/storedSecretStatus === "available"/.test(providerConnectionSurfaceSource) ||
   !/activeConnection\?\.status === "ready"/.test(providerConnectionSurfaceSource) ||
   !/normalizedDraft\.provider === normalizedInitialDraft\.provider/.test(
     providerConnectionSurfaceSource,
