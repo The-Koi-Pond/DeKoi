@@ -1,4 +1,6 @@
 import {
+  PROVIDER_CONNECTION_DURABLE_FIELDS,
+  PROVIDER_CONNECTION_DURABLE_FIELD_SET,
   getProviderConnectionProviderOption,
   normalizeProviderConnectionProvider,
   sanitizeProviderConnectionRecord,
@@ -28,28 +30,6 @@ type ProviderConnectionSecretVerification = {
     message: string;
   };
 };
-
-const PROVIDER_CONNECTION_DURABLE_FIELD_SET = {
-  id: true,
-  schemaVersion: true,
-  kind: true,
-  provider: true,
-  label: true,
-  baseUrl: true,
-  model: true,
-  summary: true,
-  status: true,
-  modelLabel: true,
-  keeperDefault: true,
-  maxContext: true,
-  maxOutput: true,
-  createdAt: true,
-  updatedAt: true,
-} as const satisfies Record<keyof ProviderConnectionRecord, true>;
-
-const PROVIDER_CONNECTION_DURABLE_FIELDS = Object.keys(
-  PROVIDER_CONNECTION_DURABLE_FIELD_SET,
-).sort();
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
@@ -164,7 +144,7 @@ const storedProviderConnectionRepository = createStorageRepository({
   seedRecords: [],
 });
 
-function assertProviderConnectionDurableShape(
+function assertProviderConnectionDurableRecord(
   record: ProviderConnectionRecord,
 ): ProviderConnectionRecord {
   const keys = Object.keys(record).sort();
@@ -185,15 +165,49 @@ function assertProviderConnectionDurableShape(
     );
   }
 
+  const normalized = normalizeProviderConnectionRecord(record, {
+    preserveReadyStatus: true,
+  });
+  if (!normalized) {
+    throw new Error(
+      "Provider connection storage record failed durable normalization.",
+    );
+  }
+
+  const changed = PROVIDER_CONNECTION_DURABLE_FIELDS.filter(
+    (field) => !Object.is(record[field], normalized[field]),
+  );
+  if (changed.length > 0) {
+    throw new Error(
+      `Provider connection storage record is not durable-normalized. Changed: ${changed.join(", ")}.`,
+    );
+  }
+
   return record;
 }
 
 function durableProviderConnectionRecord(
   record: ProviderConnectionRecord,
 ): ProviderConnectionRecord {
-  return assertProviderConnectionDurableShape(
+  return assertProviderConnectionDurableRecord(
     sanitizeProviderConnectionRecord(record),
   );
+}
+
+function withProviderConnectionSecretVerification(
+  record: ProviderConnectionRecord,
+  secretVerification: NonNullable<
+    ProviderConnectionSecretVerification["secretVerification"]
+  >,
+): ProviderConnectionRecord & ProviderConnectionSecretVerification {
+  const verifiedRecord = { ...record };
+  Object.defineProperty(verifiedRecord, "secretVerification", {
+    value: secretVerification,
+    enumerable: false,
+    configurable: true,
+  });
+  return verifiedRecord as ProviderConnectionRecord &
+    ProviderConnectionSecretVerification;
 }
 
 async function hydrateDesktopProviderConnectionStatuses(
@@ -220,14 +234,11 @@ async function hydrateDesktopProviderConnectionStatuses(
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         verificationErrors.push(message);
-        return {
-          ...record,
-          secretVerification: {
-            status: "unverified",
-            persistedStatus: record.status,
-            message,
-          },
-        } satisfies ProviderConnectionRecord & ProviderConnectionSecretVerification;
+        return withProviderConnectionSecretVerification(record, {
+          status: "unverified",
+          persistedStatus: record.status,
+          message,
+        });
       }
     }),
   );

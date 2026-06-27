@@ -58,6 +58,28 @@ export interface ProviderConnectionRecord {
   updatedAt: string;
 }
 
+export const PROVIDER_CONNECTION_DURABLE_FIELD_SET = {
+  id: true,
+  schemaVersion: true,
+  kind: true,
+  provider: true,
+  label: true,
+  baseUrl: true,
+  model: true,
+  summary: true,
+  status: true,
+  modelLabel: true,
+  keeperDefault: true,
+  maxContext: true,
+  maxOutput: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Record<keyof ProviderConnectionRecord, true>;
+
+export const PROVIDER_CONNECTION_DURABLE_FIELDS = Object.keys(
+  PROVIDER_CONNECTION_DURABLE_FIELD_SET,
+).sort() as (keyof ProviderConnectionRecord)[];
+
 const defaultTimestamp = "2026-06-23T09:30:00.000Z";
 
 export const PROVIDER_CONNECTION_PROVIDER_OPTIONS: ProviderConnectionProviderOption[] =
