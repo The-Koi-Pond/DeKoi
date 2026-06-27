@@ -226,6 +226,7 @@ export function useAppStorageSync({
 
     const nextSignatures: PartialAppStorageCollectionSignatures = {};
     const dirtyCollectionKeys: AppStorageCollectionKey[] = [];
+    let clearedSaveError = false;
     for (const collectionKey of candidateCollectionKeys) {
       const signature = changedCollectionKeySet.has(collectionKey)
         ? appStorageCollectionSignature(snapshot, collectionKey)
@@ -242,10 +243,35 @@ export function useAppStorageSync({
         dirtyCollectionKeys.push(collectionKey);
       } else {
         delete unsavedSignatures.current[collectionKey];
+        if (saveErrors.current[collectionKey]) {
+          delete saveErrors.current[collectionKey];
+          clearedSaveError = true;
+        }
       }
     }
     lastSeenSnapshot.current = snapshot;
-    if (dirtyCollectionKeys.length === 0) return;
+    if (dirtyCollectionKeys.length === 0) {
+      if (clearedSaveError) {
+        const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
+        const hasPendingSaves = hasPendingSaveForGeneration(
+          pendingSaves.current,
+          storageGeneration.current,
+        );
+        const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
+        setMessengerStorageStatus(
+          saveErrorMessage
+            ? "error"
+            : hasPendingSaves || hasUnsavedSaves
+              ? "saving"
+              : "ready",
+        );
+        setMessengerStorageMessage(
+          saveErrorMessage ??
+            (hasPendingSaves || hasUnsavedSaves ? "Saving changes..." : "All changes saved."),
+        );
+      }
+      return;
+    }
     setMessengerStorageStatus("saving");
 
     let idleHandle: IdleHandle | undefined;

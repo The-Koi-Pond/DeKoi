@@ -327,6 +327,7 @@ pub(crate) fn storage_replace(
         .ok_or_else(|| "storage_replace requires args.records.".to_string())?;
 
     let mut ids = HashSet::new();
+    let mut normalized_records = Vec::with_capacity(records.len());
     for record in records {
         let Some(record) = record.as_object() else {
             return Err("storage_replace records must be objects.".to_string());
@@ -343,10 +344,14 @@ pub(crate) fn storage_replace(
         if !ids.insert(id.to_string()) {
             return Err("storage_replace records require unique ids.".to_string());
         }
+
+        let mut normalized_record = record.clone();
+        normalized_record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+        normalized_records.push(serde_json::Value::Object(normalized_record));
     }
 
-    let count = records.len();
-    write_runtime_records(app, entity, records.clone())?;
+    let count = normalized_records.len();
+    write_runtime_records(app, entity, normalized_records)?;
 
     Ok(serde_json::json!({ "ok": true, "count": count }))
 }
