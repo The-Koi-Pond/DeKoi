@@ -81,6 +81,7 @@ Focused contract checks are also available:
 
 ~~~sh
 pnpm check:storage-contracts
+pnpm check:provider-secret-safety
 pnpm check:runtime-contracts
 ~~~
 

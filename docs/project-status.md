@@ -14,7 +14,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 ## Experimental Or Incomplete
 
-- Provider transport is still behind fixture-style generation and runtime boundaries.
+- Provider transport is still narrow and experimental; required-key providers use
+  desktop provider-key storage through the runtime boundary.
 - Developer docs under docs/developer are migrated material that still needs validation against this implementation.
 - Roleplay is present as a native surface, but the first product loop is still centered on Messenger and shared catalog records.
 - Legacy import is intentionally explicit future work, not automatic browser-storage migration.

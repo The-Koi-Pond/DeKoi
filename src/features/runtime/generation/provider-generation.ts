@@ -5,7 +5,10 @@ import type {
   GenerationRequestBase,
   GenerationResponse,
 } from "../../../engine/generation";
-import type { ProviderConnectionProvider } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionProviderOption,
+  type ProviderConnectionProvider,
+} from "../../../engine/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
@@ -106,6 +109,13 @@ function assertProviderConnection(request: ProviderGenerationRequest) {
 
   if (!connection.baseUrl.trim()) {
     throw new Error("Provider connection needs a base URL before it can generate.");
+  }
+
+  const providerOption = getProviderConnectionProviderOption(connection.provider);
+  if (providerOption.apiKeyRequired && !isDesktopHostAvailable()) {
+    throw new Error(
+      "Provider API keys are stored in the desktop key store and are not available in browser mode.",
+    );
   }
 
   return connection;
@@ -420,7 +430,7 @@ export async function generateWithBrowserProvider(
   request: ProviderGenerationRequest,
 ): Promise<GenerationResponse> {
   const connection = assertProviderConnection(request);
-  const headers = authHeaders(connection.provider, connection.apiKey);
+  const headers = authHeaders(connection.provider, "");
   const { maxTokens, temperature, topP } = request.parameters;
 
   if (!request.targetCharacterId) {
@@ -491,6 +501,12 @@ export async function generateWithConfiguredProvider(
   request: ProviderGenerationRequest,
 ): Promise<GenerationResponse> {
   if (isDesktopHostAvailable()) {
+    const connection = assertProviderConnection(request);
+    const providerOption = getProviderConnectionProviderOption(connection.provider);
+    if (providerOption.apiKeyRequired && connection.status !== "ready") {
+      throw new Error("Provider connection needs an API key before it can generate.");
+    }
+
     const response = await invokeDesktopRuntime<unknown>(
       RUNTIME_COMMANDS.generationGenerate,
       { request },

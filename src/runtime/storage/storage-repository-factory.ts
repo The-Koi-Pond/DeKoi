@@ -9,6 +9,7 @@ import type {
 } from "./storage-repository";
 import type { StorageMode, StorageResult, StorageStatus } from "./storage-repository";
 
+export { getHostStorageMode } from "./host-storage";
 export { HOST_STORAGE_UNAVAILABLE_MESSAGE };
 export type {
   StorageMode,

@@ -1,6 +1,7 @@
 export const RUNTIME_COMMANDS = {
   generationGenerate: "generation_generate",
   providerConnectionCheck: "provider_connection_check",
+  providerConnectionModels: "provider_connection_models",
   storageCreate: "storage_create",
   storageDelete: "storage_delete",
   storageList: "storage_list",
@@ -14,6 +15,7 @@ export type RemoteRuntimeCommand =
 export const REMOTE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.generationGenerate,
   RUNTIME_COMMANDS.providerConnectionCheck,
+  RUNTIME_COMMANDS.providerConnectionModels,
   RUNTIME_COMMANDS.storageCreate,
   RUNTIME_COMMANDS.storageDelete,
   RUNTIME_COMMANDS.storageList,

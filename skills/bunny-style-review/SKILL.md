@@ -190,6 +190,7 @@ pnpm build
 pnpm lint
 pnpm check:desktop-contracts
 pnpm check:storage-contracts
+pnpm check:provider-secret-safety
 pnpm check:runtime-contracts
 pnpm check:frontend-boundaries
 # Only when reviewing `.github/bunny-review` tooling or workflow changes:

@@ -4,6 +4,10 @@ import type { LorebookRecord } from "../../../engine/lorebook";
 import type { MessengerThread } from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionProviderOption,
+  sanitizeProviderConnectionRecord,
+} from "../../../engine/provider-connection";
 import type { RippleState } from "../../../engine/ripples";
 import type { AppSettings } from "../../../engine/app-settings";
 import { normalizeAppSettings } from "../../../engine/app-settings";
@@ -63,6 +67,47 @@ export type DeKoiStorageBundleParseResult =
 
 function cloneRecords<T>(records: T[]): T[] {
   return records.map((record) => ({ ...record }));
+}
+
+const PROVIDER_CONNECTION_SECRET_FIELDS = [
+  "apiKey",
+  "api_key",
+  "providerKey",
+  "providerSecret",
+  "secret",
+] as const;
+
+function redactProviderConnectionSecrets(
+  records: ProviderConnectionRecord[],
+): ProviderConnectionRecord[] {
+  return records.map((record) => {
+    const sanitized = sanitizeProviderConnectionRecord(record);
+    const providerOption = getProviderConnectionProviderOption(sanitized.provider);
+
+    return {
+      id: sanitized.id,
+      schemaVersion: 1,
+      kind: sanitized.kind,
+      provider: sanitized.provider,
+      label: sanitized.label,
+      baseUrl: sanitized.baseUrl,
+      model: sanitized.model,
+      summary: sanitized.summary,
+      status: providerOption.apiKeyRequired ? "needs-key" : sanitized.status,
+      modelLabel: sanitized.modelLabel,
+      keeperDefault: sanitized.keeperDefault,
+      maxContext: sanitized.maxContext,
+      maxOutput: sanitized.maxOutput,
+      createdAt: sanitized.createdAt,
+      updatedAt: sanitized.updatedAt,
+    };
+  });
+}
+
+function hasProviderConnectionSecretField(value: unknown) {
+  if (!isRecord(value)) return false;
+
+  return PROVIDER_CONNECTION_SECRET_FIELDS.some((field) => field in value);
 }
 
 function normalizeList<T extends { id: string }>(
@@ -139,7 +184,7 @@ export function createDeKoiStorageBundle({
       roleplayThreads: cloneRecords(roleplayThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
-      providerConnections: cloneRecords(providerConnections),
+      providerConnections: redactProviderConnectionSecrets(providerConnections),
       messengerThreads: cloneRecords(messengerThreads),
       rippleStates: cloneRecords(rippleStates),
     },
@@ -166,6 +211,10 @@ export function normalizeDeKoiStorageBundle(
   }
 
   const warnings: string[] = [];
+  const rawProviderConnections = value.data.providerConnections;
+  const providerConnectionSecretFieldCount = Array.isArray(rawProviderConnections)
+    ? rawProviderConnections.filter(hasProviderConnectionSecretField).length
+    : 0;
   const data: DeKoiStorageBundleData = {
     appSettings: normalizeAppSettings(value.data.appSettings),
     characters: normalizeList(
@@ -193,7 +242,7 @@ export function normalizeDeKoiStorageBundle(
       warnings,
     ),
     providerConnections: normalizeList(
-      value.data.providerConnections,
+      rawProviderConnections,
       "Provider connections",
       normalizeProviderConnectionRecord,
       warnings,
@@ -206,6 +255,12 @@ export function normalizeDeKoiStorageBundle(
       warnings,
     ),
   };
+
+  if (providerConnectionSecretFieldCount > 0) {
+    warnings.push(
+      `Provider connections skipped secret field(s) from ${providerConnectionSecretFieldCount} imported record(s).`,
+    );
+  }
 
   if (!Array.isArray(value.data.messengerThreads)) {
     warnings.push("Messenger threads was missing or not an array; imported as empty.");

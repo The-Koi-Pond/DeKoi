@@ -107,6 +107,7 @@ The explicit DeKoi allowlist currently contains:
 
 - `generation_generate`
 - `provider_connection_check`
+- `provider_connection_models`
 - `storage_list`
 - `storage_replace`
 - `storage_create`
@@ -123,6 +124,67 @@ after changing the command list:
 ```sh
 pnpm check:runtime-contracts
 ```
+
+## Provider Connection Commands
+
+`provider_connection_check` validates a configured provider endpoint and model:
+
+```json
+{
+  "command": "provider_connection_check",
+  "args": {
+    "connection": {
+      "id": "connection-openai",
+      "provider": "openai",
+      "apiKey": "<typed key for this check>",
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "status": "needs-key"
+    }
+  }
+}
+```
+
+Compatible response:
+
+```json
+{
+  "success": true,
+  "message": "API key is valid and the selected model can generate."
+}
+```
+
+`provider_connection_models` lists model IDs for a configured provider endpoint:
+
+```json
+{
+  "command": "provider_connection_models",
+  "args": {
+    "connection": {
+      "id": "connection-openai",
+      "provider": "openai",
+      "apiKey": "<typed key for this fetch>",
+      "baseUrl": "https://api.openai.com/v1",
+      "status": "needs-key"
+    }
+  }
+}
+```
+
+Compatible response:
+
+```json
+{
+  "models": ["gpt-4o-mini", "gpt-4o"]
+}
+```
+
+Connection check and model-list requests may include a freshly typed `apiKey`
+so the app can validate a draft before saving. Durable provider connection rows
+do not contain saved keys. The desktop runtime may resolve a saved key by
+`connection.id` only when the connection is `ready` and the saved key scope still
+matches the connection provider and base URL. Remote HTTP runtimes should not
+infer saved secrets from DeKoi storage records.
 
 ## `generation_generate`
 
@@ -249,7 +311,6 @@ Request:
         "kind": "remote-runtime",
         "provider": "custom",
         "label": "Local OpenAI-compatible runtime",
-        "apiKey": "",
         "baseUrl": "http://127.0.0.1:1234/v1",
         "model": "local-model",
         "summary": "",
@@ -303,6 +364,12 @@ Response:
 
 `messages[].characterId` must match a selected companion in the request. DeKoi
 drops unknown companion drafts and surfaces a warning.
+
+Provider connection records in generation requests do not include saved API key
+material. Desktop generation resolves saved keys through the desktop provider
+secret store by connection id. Remote runtimes that need saved secrets should
+use a separate secret capability rather than storage records or generation
+payload fields.
 
 ## Storage Commands
 

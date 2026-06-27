@@ -1,3 +1,4 @@
+use crate::secrets::provider_secret_read_for_scope;
 use crate::storage::{
     read_string_field, runtime_args_object, storage_create, storage_delete, storage_list,
     storage_replace, storage_update,
@@ -153,6 +154,65 @@ fn generic_provider_text(payload: &serde_json::Value) -> String {
 
 fn empty_provider_warning(payload: &serde_json::Value) -> String {
     format!("Provider returned no text ({}).", response_shape(payload))
+}
+
+fn provider_connection_requires_api_key(provider: &str) -> bool {
+    matches!(
+        provider,
+        "openai" | "anthropic" | "google" | "mistral" | "cohere" | "openrouter" | "nanogpt" | "xai"
+    )
+}
+
+fn provider_connection_api_key(
+    provider: &str,
+    connection: &serde_json::Map<String, serde_json::Value>,
+) -> Result<String, String> {
+    let explicit_key = connection
+        .get("apiKey")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if !explicit_key.is_empty() {
+        return Ok(explicit_key.to_string());
+    }
+
+    let connection_id = connection
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if connection_id.is_empty() {
+        return Ok(String::new());
+    }
+
+    let base_url = connection
+        .get("baseUrl")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+
+    let status = connection
+        .get("status")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    if status != "ready" {
+        return Ok(String::new());
+    }
+
+    if !provider_connection_requires_api_key(provider) {
+        return Ok(
+            provider_secret_read_for_scope(connection_id, provider, base_url, false)
+                .ok()
+                .flatten()
+                .unwrap_or_default(),
+        );
+    }
+
+    match provider_secret_read_for_scope(connection_id, provider, base_url, true)? {
+        Some(secret) if !secret.trim().is_empty() => Ok(secret),
+        _ => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
+    }
 }
 
 fn openai_text(payload: &serde_json::Value) -> String {
@@ -401,6 +461,60 @@ fn provider_connection_check_request(
     ))
 }
 
+fn provider_connection_models_url(provider: &str, base_url: &str) -> Result<String, String> {
+    if provider.trim().is_empty() || base_url.trim().is_empty() {
+        return Err("Provider connection needs provider and base URL.".to_string());
+    }
+
+    Ok(append_endpoint(base_url, "/models"))
+}
+
+fn read_model_id(value: &serde_json::Value) -> String {
+    if let Some(model) = value.as_str() {
+        return model.trim().to_string();
+    }
+
+    let Some(record) = value.as_object() else {
+        return String::new();
+    };
+
+    ["id", "name", "model", "slug"]
+        .iter()
+        .find_map(|key| {
+            record
+                .get(*key)
+                .and_then(|value| value.as_str())
+                .map(|value| value.trim_start_matches("models/").trim().to_string())
+                .filter(|value| !value.is_empty())
+        })
+        .unwrap_or_default()
+}
+
+fn parse_provider_models(payload: &serde_json::Value) -> Vec<String> {
+    let candidates = if let Some(items) = payload.as_array() {
+        Some(items)
+    } else {
+        payload.as_object().and_then(|record| {
+            ["data", "models", "items"]
+                .iter()
+                .find_map(|key| record.get(*key).and_then(|value| value.as_array()))
+        })
+    };
+
+    let Some(candidates) = candidates else {
+        return Vec::new();
+    };
+
+    let mut models = candidates
+        .iter()
+        .map(read_model_id)
+        .filter(|model| !model.is_empty())
+        .collect::<Vec<String>>();
+    models.sort();
+    models.dedup();
+    models
+}
+
 async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "provider_connection_check")?;
     let connection = args
@@ -422,13 +536,10 @@ async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_jso
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .trim();
-    let api_key = connection
-        .get("apiKey")
-        .and_then(|value| value.as_str())
-        .unwrap_or("");
+    let api_key = provider_connection_api_key(provider, connection)?;
     let request = provider_connection_check_request(provider, base_url, model)?;
     let client = reqwest::Client::new();
-    let headers = provider_headers(provider, api_key)?;
+    let headers = provider_headers(provider, &api_key)?;
     post_provider_json(&client, request.url, headers, request.body).await?;
 
     Ok(serde_json::json!({
@@ -436,6 +547,51 @@ async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_jso
         "message": "API key is valid and the selected model can generate."
     }))
 }
+
+async fn provider_connection_models(args: &serde_json::Value) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "provider_connection_models")?;
+    let connection = args
+        .get("connection")
+        .ok_or_else(|| "provider_connection_models requires args.connection.".to_string())?;
+    let connection = as_object(connection, "args.connection")?;
+    let provider = connection
+        .get("provider")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let base_url = connection
+        .get("baseUrl")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .trim();
+    let api_key = provider_connection_api_key(provider, connection)?;
+    if provider_connection_requires_api_key(provider) && api_key.trim().is_empty() {
+        return Err("API key required before fetching models.".to_string());
+    }
+
+    let url = provider_connection_models_url(provider, base_url)?;
+    let client = reqwest::Client::new();
+    let headers = provider_headers(provider, &api_key)?;
+    let response = client
+        .get(url)
+        .headers(headers)
+        .send()
+        .await
+        .map_err(|error| format!("Model fetch failed. {error}"))?;
+    let status = response.status();
+    let payload = response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap_or(serde_json::Value::Null);
+    if !status.is_success() {
+        return Err(provider_error(&payload, status));
+    }
+
+    Ok(serde_json::json!({
+        "models": parse_provider_models(&payload)
+    }))
+}
+
 async fn post_provider_json(
     client: &reqwest::Client,
     url: String,
@@ -549,10 +705,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .trim();
-    let api_key = provider_connection
-        .get("apiKey")
-        .and_then(|value| value.as_str())
-        .unwrap_or("");
+    let api_key = provider_connection_api_key(provider, provider_connection)?;
     if provider.is_empty() || base_url.is_empty() || model.is_empty() {
         return Err("Provider connection needs provider, base URL, and model.".to_string());
     }
@@ -581,7 +734,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
     }
 
     let client = reqwest::Client::new();
-    let headers = provider_headers(provider, api_key)?;
+    let headers = provider_headers(provider, &api_key)?;
     let (text, empty_warning) = if is_openai_compatible(provider) {
         let payload = post_provider_json(
             &client,
@@ -711,6 +864,7 @@ pub(crate) async fn dekoi_runtime_invoke(
     match command.as_str() {
         "generation_generate" => generation_generate(&args).await,
         "provider_connection_check" => provider_connection_check(&args).await,
+        "provider_connection_models" => provider_connection_models(&args).await,
         "storage_create" => storage_create(&app, &args),
         "storage_delete" => storage_delete(&app, &args),
         "storage_list" => storage_list(&app, &args),
@@ -752,5 +906,30 @@ mod tests {
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         );
         assert_eq!(request.body["generationConfig"]["maxOutputTokens"], 1);
+    }
+
+    #[test]
+    fn optional_provider_does_not_require_stored_secret() {
+        let mut connection = serde_json::Map::new();
+        connection.insert("id".to_string(), serde_json::json!("custom-missing"));
+        connection.insert("status".to_string(), serde_json::json!("ready"));
+
+        let api_key = provider_connection_api_key("custom", &connection)
+            .expect("Optional-key providers should ignore missing stored secrets");
+
+        assert_eq!(api_key, "");
+    }
+
+    #[test]
+    fn provider_connection_models_parses_common_shapes() {
+        let models = parse_provider_models(&serde_json::json!({
+            "data": [
+                { "id": "zeta" },
+                { "name": "models/alpha" },
+                { "model": "zeta" }
+            ]
+        }));
+
+        assert_eq!(models, vec!["alpha".to_string(), "zeta".to_string()]);
     }
 }

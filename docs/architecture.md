@@ -220,6 +220,9 @@ Edit surfaces should make pending edits visible without adding explanatory text.
 
 - `pnpm check:storage-contracts` keeps TypeScript storage entities and the Rust
   desktop allowlist aligned.
+- `pnpm check:provider-secret-safety` keeps provider connection records, bundle
+  export/import, desktop secret lookup, and editor key handling from persisting
+  API keys as ordinary storage data.
 - `pnpm check:runtime-contracts` keeps TypeScript runtime commands, Rust runtime
   dispatch, and the remote fixture aligned.
 - `pnpm check:desktop-contracts` keeps desktop command names aligned.

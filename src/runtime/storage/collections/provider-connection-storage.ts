@@ -7,14 +7,19 @@ import {
   type ProviderConnectionRecord,
   type ProviderConnectionStatus,
 } from "../../../engine/provider-connection";
+import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
 import {
   isRecord,
   readNullableString,
   readString,
   readTimestamp,
 } from "../storage-json";
-import { createStorageRepository } from "../storage-repository-factory";
+import {
+  createStorageRepository,
+  getHostStorageMode,
+} from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
+import type { StorageRecordsSnapshot } from "../storage-repository";
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
@@ -33,13 +38,14 @@ function normalizeConnectionProvider(
 function normalizeConnectionStatus(
   value: unknown,
   provider: ProviderConnectionProvider,
-  apiKey: string,
+  options: { preserveReadyStatus?: boolean } = {},
 ): ProviderConnectionStatus {
-  if (value === "ready" || value === "needs-key") return value;
+  if (options.preserveReadyStatus && value === "ready") return value;
+  if (value === "needs-key") return value;
   if (value === "needs-runtime") return "needs-key";
 
   const providerOption = getProviderConnectionProviderOption(provider);
-  return providerOption.apiKeyRequired && !apiKey.trim() ? "needs-key" : "ready";
+  return providerOption.apiKeyRequired ? "needs-key" : "ready";
 }
 
 function normalizeLegacyLabel(label: string, kind: ProviderConnectionKind) {
@@ -62,6 +68,7 @@ function normalizeLegacyModel(model: string, label: string) {
 
 export function normalizeProviderConnectionRecord(
   value: unknown,
+  options: { preserveReadyStatus?: boolean } = {},
 ): ProviderConnectionRecord | null {
   if (!isRecord(value)) return null;
   if (value.schemaVersion !== 1) return null;
@@ -76,7 +83,6 @@ export function normalizeProviderConnectionRecord(
 
   const provider = normalizeConnectionProvider(value.provider, kind);
   const providerOption = getProviderConnectionProviderOption(provider);
-  const apiKey = readString(value.apiKey).trim();
   const baseUrl = readString(value.baseUrl, readString(value.url)).trim();
   const model = normalizeLegacyModel(
     readString(value.model, readString(value.modelLabel)).trim(),
@@ -90,11 +96,10 @@ export function normalizeProviderConnectionRecord(
     kind,
     provider,
     label,
-    apiKey,
     baseUrl: baseUrl || providerOption.defaultBaseUrl,
     model: model || providerOption.defaultModel,
     summary,
-    status: normalizeConnectionStatus(value.status, provider, apiKey),
+    status: normalizeConnectionStatus(value.status, provider, options),
     modelLabel:
       readNullableString(value.modelLabel) ??
       readNullableString(model || providerOption.defaultModel),
@@ -122,15 +127,64 @@ const providerConnectionRepository = createStorageRepository({
   seedRecords: [],
 });
 
+const storedProviderConnectionRepository = createStorageRepository({
+  entity: STORAGE_ENTITIES.providerConnections,
+  normalizeRecord: (value) =>
+    normalizeProviderConnectionRecord(value, { preserveReadyStatus: true }),
+  seedRecords: [],
+});
+
+async function hydrateDesktopProviderConnectionStatuses(
+  snapshot: StorageRecordsSnapshot<ProviderConnectionRecord>,
+): Promise<StorageRecordsSnapshot<ProviderConnectionRecord>> {
+  let verificationFailures = 0;
+  const records = await Promise.all(
+    snapshot.records.map(async (record) => {
+      if (
+        record.status !== "ready" ||
+        !getProviderConnectionProviderOption(record.provider).apiKeyRequired
+      ) {
+        return record;
+      }
+
+      try {
+        const status = await getDesktopProviderSecretStatus(record.id);
+        return status.hasSecret
+          ? record
+          : ({ ...record, status: "needs-key" } satisfies ProviderConnectionRecord);
+      } catch {
+        verificationFailures += 1;
+        return { ...record, status: "needs-key" } satisfies ProviderConnectionRecord;
+      }
+    }),
+  );
+
+  return {
+    ...snapshot,
+    records,
+    status: verificationFailures > 0 ? "error" : snapshot.status,
+    message:
+      verificationFailures > 0
+        ? `${snapshot.message} Provider key status verification failed for ${verificationFailures} connection(s).`
+        : snapshot.message,
+  };
+}
+
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
-  return providerConnectionRepository.loadSnapshot(rawUrl);
+  if (getHostStorageMode(rawUrl) !== "desktop") {
+    return providerConnectionRepository.loadSnapshot(rawUrl);
+  }
+
+  return storedProviderConnectionRepository
+    .loadSnapshot(rawUrl)
+    .then(hydrateDesktopProviderConnectionStatuses);
 }
 
 export function saveProviderConnectionRecordsToStorage(
   records: ProviderConnectionRecord[],
   rawUrl?: string,
 ) {
-  return providerConnectionRepository.save(
+  return storedProviderConnectionRepository.save(
     records.map(sanitizeProviderConnectionRecord),
     rawUrl,
   );

@@ -59,6 +59,7 @@ Run checks that match the change:
 
 - Desktop command contracts: `pnpm check:desktop-contracts`
 - Storage contracts: `pnpm check:storage-contracts`
+- Provider secret safety: `pnpm check:provider-secret-safety`
 - Runtime command contracts: `pnpm check:runtime-contracts`
 - Frontend boundaries: `pnpm check:frontend-boundaries`
 - Bunny review workflow/docs: `pnpm check:bunny-review`

@@ -46,7 +46,6 @@ export interface ProviderConnectionRecord {
   kind: ProviderConnectionKind;
   provider: ProviderConnectionProvider;
   label: string;
-  apiKey: string;
   baseUrl: string;
   model: string;
   summary: string;
@@ -212,25 +211,23 @@ export function sanitizeProviderConnectionRecord(
     kind === "remote-runtime" ? "openai" : "custom",
   );
   const providerOption = getProviderConnectionProviderOption(provider);
-  const apiKey = normalizeProviderConnectionText(record.apiKey).trim();
   const baseUrl = normalizeProviderConnectionText(record.baseUrl).trim();
   const model = normalizeProviderConnectionText(record.model).trim();
   const status =
     record.status === "ready" || record.status === "needs-key"
       ? record.status
-      : providerOption.apiKeyRequired && !apiKey
+      : providerOption.apiKeyRequired
         ? "needs-key"
         : "ready";
 
   return {
-    ...record,
+    id: record.id,
     schemaVersion: 1,
     kind,
     provider,
     label:
       normalizeProviderConnectionText(record.label).trim() ||
       (kind === "remote-runtime" ? providerOption.label : "Local"),
-    apiKey,
     baseUrl: baseUrl || providerOption.defaultBaseUrl,
     model: model || providerOption.defaultModel,
     summary: normalizeProviderConnectionText(record.summary),

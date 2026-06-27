@@ -10,6 +10,7 @@ export interface ProviderConnectionInput {
   label: string;
   provider: ProviderConnectionProvider;
   apiKey?: string;
+  hasSecret?: boolean;
   baseUrl?: string;
   model?: string;
   summary?: string;
@@ -44,7 +45,7 @@ function connectionKindForInput(
 
 function statusForInput(input: ProviderConnectionInput): ProviderConnectionStatus {
   const provider = getProviderConnectionProviderOption(input.provider);
-  return provider.apiKeyRequired && !input.apiKey?.trim()
+  return provider.apiKeyRequired && !input.apiKey?.trim() && !input.hasSecret
     ? "needs-key"
     : "ready";
 }
@@ -66,7 +67,6 @@ export function createProviderConnectionRecord({
     kind: connectionKindForInput(input),
     provider: provider.value,
     label: cleanText(input.label, "Unnamed connection"),
-    apiKey: cleanText(input.apiKey),
     baseUrl: cleanText(input.baseUrl),
     model,
     summary: cleanText(input.summary),
@@ -92,7 +92,6 @@ export function updateProviderConnectionRecord(
     kind: connectionKindForInput(input),
     provider: provider.value,
     label: cleanText(input.label, record.label),
-    apiKey: cleanText(input.apiKey),
     baseUrl: cleanText(input.baseUrl),
     model,
     summary: cleanText(input.summary),
@@ -110,10 +109,13 @@ export function duplicateProviderConnectionRecord(
   id: string,
   now: string,
 ): ProviderConnectionRecord {
+  const provider = getProviderConnectionProviderOption(record.provider);
+
   return {
     ...record,
     id,
     label: `${record.label} Copy`,
+    status: provider.apiKeyRequired ? "needs-key" : "ready",
     createdAt: now,
     updatedAt: now,
   };

@@ -149,15 +149,15 @@ export interface NavLorebookActions {
 export interface NavProviderConnectionActions {
   createProviderConnection: (
     input: ProviderConnectionInput,
-  ) => ProviderConnectionRecord;
+  ) => Promise<ProviderConnectionRecord>;
   updateProviderConnection: (
     connectionId: string,
     input: ProviderConnectionInput,
-  ) => void;
+  ) => Promise<void>;
   duplicateProviderConnection: (
     connectionId: string,
   ) => ProviderConnectionRecord | null;
-  deleteProviderConnection: (connectionId: string) => void;
+  deleteProviderConnection: (connectionId: string) => Promise<void>;
 }
 
 export interface MessengerThreadCreateInput {
