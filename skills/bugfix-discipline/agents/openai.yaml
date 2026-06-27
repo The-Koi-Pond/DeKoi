@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bugfix Discipline"
+  short_description: "Diagnose feedback loops and root causes."
+  default_prompt: "Use $bugfix-discipline for this DeKoi bug fix, regression, failing check, or behavior repair."

@@ -1,8 +1,9 @@
 # DeKoi Agent Workflow Overlay
 
 This is DeKoi's adapted workflow overlay for coding agents. It carries forward
-the proof, review, PR, and issue discipline from Xel-authored workflow guidance,
-while using this clean-room repository's current source lanes and checks.
+the proof, review, PR, and issue discipline from Xel/Chai-authored workflow
+guidance, while using this clean-room repository's current source lanes and
+checks.
 
 ## Priority
 
@@ -22,8 +23,9 @@ security, or risky-work boundaries.
 - Read the relevant files before editing.
 - Keep changes narrow and proportional to the request.
 - Reproduce bugs before fixing when practical.
-- Name the core claim being proven.
+- Name the core claim being proven, the likely owner, and the impact area.
 - Verify the user-facing claim before saying the work is done.
+- Inspect the likely owner path and direct callers before broad repo searches.
 - Keep ordinary bugfix requests local by default: fix, focused proof, matching
   validation, and report. Commit, push, PR, Bunny Review, and CI work start only
   after an explicit shipping request.
@@ -49,10 +51,33 @@ security, or risky-work boundaries.
   - Why existing proof is insufficient.
   - Why this test is narrow.
 
+## Workflow Triage
+
+Choose the lane before editing: Bugfix, Feature, Issue Filing, Review And PR,
+Risky Work, or Durable Notes.
+
+Scale the workflow to the work:
+
+- Tiny: one narrow local path, low risk, machine-verifiable, no schema, storage,
+  import/export, auth, prompt/provider, desktop host, dependency, PR, CI, or
+  browser-evidence claim. Finish with a compact receipt.
+- Normal: more than one owner/caller, user-visible behavior, new UI surface, or
+  nontrivial uncertainty. Name owner, impact, callers, contracts, and checks.
+- Risky: storage, import/export, user data, destructive behavior, prompt/provider
+  routing, auth/secrets, compatibility, desktop host behavior, or new shared
+  abstraction. Use the Risky Work lane.
+
+If new risk appears during a tiny fix, stop treating it as tiny and upgrade the
+workflow.
+
 ## Bugfix Lane
 
 Use this when the user reports broken behavior, screenshots a bug, or says
 "fix this".
+
+Load `skills/bugfix-discipline/SKILL.md` for nontrivial bug fixes,
+regressions, failing checks, storage/provider/import/generation/runtime issues,
+or fixes that could affect dependent modules.
 
 1. Extract the symptom, expected behavior, actual behavior, relevant mode, and likely subsystem.
 2. Restate the issue in one short paragraph.
@@ -63,6 +88,9 @@ Use this when the user reports broken behavior, screenshots a bug, or says
 7. Verify the original repro or closest available proof path.
 8. Run the matching validation command for the changed lane.
 9. Review the diff as a maintainer before reporting done.
+
+Do not patch before diagnosis except for tiny mechanical mistakes. If the
+diagnosis changes, say so and update the proof claim instead of quietly pivoting.
 
 For ordinary local bugfix requests, stop after focused proof and the matching
 validation command. If the user then asks to ship, push, open a PR, or mark
@@ -96,6 +124,25 @@ matching repo-local skill:
 
 Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
 product-language boundaries.
+
+Architecture gate:
+
+- Tiny or mechanical: name owner, impact, modes/capabilities, and checks.
+- Normal: also name callers and contracts.
+- Risky or cross-layer: also name boundary path, input/output/persistence/error
+  behavior, dependency direction, shared-code justification, and docs/skills
+  impact.
+
+Code-smell guard:
+
+- If touching a known large file, explain why the change belongs there and keep
+  the edit narrow unless a refactor is approved.
+- If the same mode, provider, entity, or capability conditional would spread
+  across files, prefer one registry, shared contract, owner service, or change
+  map before editing consumers.
+- If the feature touches four or more surfaces or crosses React, engine, shared
+  API, Rust, and docs, list expected surfaces before editing and verify each
+  afterward.
 
 ## Issue Filing Lane
 
@@ -136,6 +183,10 @@ Maintainer-equivalent self-review questions:
 - Which user path remains untested?
 - Could a legacy/default path contradict the summary?
 - Is the diff narrow and easy to review?
+- Did the diff preserve source-lane ownership and dependency direction?
+- Did it add bloat, repeated conditionals, shotgun surgery, disposable code, or
+  cross-lane coupling?
+- Are docs, repo skills, or user-facing discovery updates needed?
 
 ## Risky Work Lane
 
@@ -162,6 +213,33 @@ Risky work needs explicit claim-boundary proof:
 
 Untested rows are risks, not implied proof.
 
+Bug-class proof prompts:
+
+- Storage/import/export: prove omitted input, explicit empty input, unknown
+  fields, bad files, and round-trip behavior where relevant.
+- Prompt/provider/runtime: prove advertised, parsed, sent, and handled shapes
+  stay in parity, including legacy/default paths.
+- Stream/shared API contracts: prove every emitted event or command has a typed
+  consumer and that old consumers fail gracefully or remain supported.
+- Cache/file cleanup/media mutation: prove success-before-cleanup ordering and
+  failed or partial operation behavior.
+- Metadata/schedule/memory/state shape: prove unknown fields, sibling identity,
+  ordering, and partial updates survive.
+
+Avoid UI-only guards over unsafe contracts, duplicate provider/mode conditionals
+in consumers, deletion before replacement success, whole-record replacement for
+partial updates, and untyped shared API drift.
+
+## Durable Notes Lane
+
+Use this when work creates reusable repo knowledge, architecture decisions, or
+future follow-up that should survive the session.
+
+- Durable product or architecture decisions belong in the relevant repo docs,
+  issue, or PR, not in ad hoc work-update files.
+- Draft GitHub issue or PR text for approval unless the user asked you to post it.
+- Do not create repo-local status ledgers unless a maintainer explicitly asks.
+
 ## Done Report Shape
 
 Use this shape when the task is non-trivial:
@@ -171,7 +249,7 @@ Done: <result or root cause>.
 Files: <paths + short summaries>.
 Verification: <commands, repros, screenshots, or why unavailable>.
 Manual: <none or explicit manual verification items>.
-Risk: <claim gaps or none>.
+Risk: <claim gaps, adjacent paths not checked, or none>.
 ```
 
 Keep tiny tasks concise; do not turn routine edits into ceremony.
