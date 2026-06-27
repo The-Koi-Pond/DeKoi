@@ -227,7 +227,7 @@ export function useAppStorageSync({
 
     const nextSignatures: PartialAppStorageCollectionSignatures = {};
     const dirtyCollectionKeys: AppStorageCollectionKey[] = [];
-    let clearedSaveError = false;
+    let shouldRefreshStorageStatus = false;
     for (const collectionKey of candidateCollectionKeys) {
       const signature = changedCollectionKeySet.has(collectionKey)
         ? appStorageCollectionSignature(snapshot, collectionKey)
@@ -244,31 +244,38 @@ export function useAppStorageSync({
         dirtyCollectionKeys.push(collectionKey);
       } else {
         delete unsavedSignatures.current[collectionKey];
+        if (pendingSaves.current[collectionKey]) {
+          delete pendingSaves.current[collectionKey];
+          shouldRefreshStorageStatus = true;
+        }
         if (saveErrors.current[collectionKey]) {
           delete saveErrors.current[collectionKey];
-          clearedSaveError = true;
+          shouldRefreshStorageStatus = true;
         }
       }
     }
     lastSeenSnapshot.current = snapshot;
     if (dirtyCollectionKeys.length === 0) {
-      if (clearedSaveError) {
+      if (shouldRefreshStorageStatus) {
         const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
         const hasPendingSaves = hasPendingSaveForGeneration(
           pendingSaves.current,
           storageGeneration.current,
         );
+        const hasActiveSave = saveQueueRunning.current === storageGeneration.current;
         const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
         setMessengerStorageStatus(
           saveErrorMessage
             ? "error"
-            : hasPendingSaves || hasUnsavedSaves
+            : hasActiveSave || hasPendingSaves || hasUnsavedSaves
               ? "saving"
               : "ready",
         );
         setMessengerStorageMessage(
           saveErrorMessage ??
-            (hasPendingSaves || hasUnsavedSaves ? "Saving changes..." : "All changes saved."),
+            (hasActiveSave || hasPendingSaves || hasUnsavedSaves
+              ? "Saving changes..."
+              : "All changes saved."),
         );
       }
       return;
