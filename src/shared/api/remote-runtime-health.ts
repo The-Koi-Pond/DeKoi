@@ -12,7 +12,6 @@ import {
 
 const SUPPORTED_REMOTE_RUNTIME_MARKERS = new Set([
   "de-koi-server",
-  "marinara-server",
   "de-koi-desktop",
 ]);
 

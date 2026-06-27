@@ -131,9 +131,9 @@ Safe examples:
 - `character card`
 - `preset`
 
-The clean-room risk is not the generic term by itself. The risk is copying
-previous project wording, data shape, prompt text, UI layout, or behavior without
-rewriting the DeKoi requirement first.
+The provenance risk is not the generic term by itself. The risk is copying
+previous project wording, data shape, prompt text, UI layout, or behavior
+without rewriting the DeKoi requirement first.
 
 ## Notes From Legacy Stocktake
 

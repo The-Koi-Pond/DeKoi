@@ -2,15 +2,14 @@
 
 This is DeKoi's adapted workflow overlay for coding agents. It carries forward
 the proof, review, PR, and issue discipline from Xel/Chai-authored workflow
-guidance, while using this clean-room repository's current source lanes and
-checks.
+guidance, while using this repository's current source lanes and checks.
 
 ## Priority
 
 Follow instructions in this order:
 
-1. DeKoi repo rules: `CONTRIBUTING.md`, `CLEAN_ROOM.md`, package scripts, and templates.
-2. The user's latest request.
+1. The user's latest request.
+2. DeKoi repo rules: `AGENTS.md`, `CONTRIBUTING.md`, package scripts, and templates.
 3. This workflow overlay.
 4. Assistant defaults.
 

@@ -87,6 +87,7 @@ jobs:
           for file in bunny_review.py requirements.txt reviewer-prompt.md rules.json ci-checks.json; do
             git show "origin/$PR_BASE_REF:.github/bunny-review/$file" > "$tool_dir/$file"
           done
+          cp "$tool_dir/reviewer-prompt.md" "$tool_dir/SKILL.md"
 
       - name: Checkout pull request head
         env:
@@ -125,12 +126,22 @@ jobs:
           LLM_BASE_URL: ${{ vars.DEKOI_BUNNY_LLM_BASE_URL || secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.DEKOI_BUNNY_LLM_MODEL || 'gpt-5.5' }}
           BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS: ${{ inputs.model_request_timeout_seconds || vars.DEKOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || '120' }}
+          CI_STATUS: CI checks are still running; final CI results will be appended before posting.
           BUNNY_REVIEW_PROMPT_PATH: /tmp/bunny-review-tool/.github/bunny-review/reviewer-prompt.md
+          BUNNY_REVIEW_SKILL_PATH: /tmp/bunny-review-tool/.github/bunny-review/SKILL.md
           BUNNY_RULES_PATH: /tmp/bunny-review-tool/.github/bunny-review/rules.json
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+
+          head_sha="$(gh pr view "$PR_NUM" --json headRefOid -q .headRefOid)"
+          if [ "$head_sha" != "$(git rev-parse HEAD)" ]; then
+            git fetch --force origin "pull/$PR_NUM/head:refs/remotes/bunny-review/pr-$PR_NUM"
+            git checkout --detach "$head_sha"
+            PR_HEAD_SHA="$head_sha"
+            echo "PR_HEAD_SHA=$PR_HEAD_SHA" >> "$GITHUB_ENV"
+          fi
 
           python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py produce &
           review_pid=$!
@@ -142,6 +153,15 @@ jobs:
           expected = json.load(open(sys.argv[1], encoding="utf-8")).get("expected_checks", [])
           always = [item for item in expected if item.get("required") == "always"]
           print(f"EXPECTED_COUNT={len(always)}")
+          with open("bunny-ci-config-warnings.md", "w", encoding="utf-8") as handle:
+              for item in expected:
+                  required = item.get("required")
+                  if required != "always":
+                      name = str(item.get("name") or "<unnamed>")
+                      handle.write(
+                          f"- warning: required mode {required} for {name} is recognized "
+                          "but not implemented by Bunny gating; it is reported only.\n"
+                      )
           PY
           . bunny-ci-config.env
 
@@ -210,6 +230,15 @@ jobs:
                   handle.write(f"- fail: {item['name']} ended with {item.get('conclusion')}.\n")
               for name in control["missing"]:
                   handle.write(f"- missing: {name} did not appear before Bunny posted.\n")
+              try:
+                  with open("bunny-ci-config-warnings.md", encoding="utf-8") as warnings:
+                      handle.write(warnings.read())
+              except FileNotFoundError:
+                  pass
+              handle.write(
+                  "- note: Bunny gates only required job conclusions from ci-checks.json; "
+                  "advisory reports are not included in this status.\n"
+              )
           PY
 
           wait "$review_pid"
@@ -235,6 +264,7 @@ jobs:
             inline-comments.json
             bunny-ci-control.json
             bunny-ci-status.md
+            bunny-ci-config-warnings.md
             check-runs.json
           if-no-files-found: ignore
           retention-days: 14
@@ -246,6 +276,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ -z "${PR_HEAD_SHA:-}" ]; then
+            PR_HEAD_SHA="$(gh pr view "$PR_NUM" --json headRefOid -q .headRefOid)"
+          fi
           if [ -f /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py ]; then
             status_output="$(python /tmp/bunny-review-tool/.github/bunny-review/bunny_review.py status-state \
               --review-json review.json \

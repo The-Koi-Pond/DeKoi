@@ -28,6 +28,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Keep this bootstrap deliberately inert: it only authorizes the slash command
+          # and dispatches the trusted reviewer workflow on the PR base ref.
+          # It must not checkout, install, or execute code from the pull request.
           trusted_actor() {
             local login="$1"
             local association="$2"

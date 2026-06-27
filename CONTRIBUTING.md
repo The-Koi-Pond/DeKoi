@@ -1,8 +1,9 @@
 # Contributing To DeKoi
 
-Thanks for helping with DeKoi. This repository is a clean-room, from-scratch project, so contribution hygiene matters as much as code quality.
+Thanks for helping with DeKoi. This repository is a from-scratch project, so
+contribution hygiene matters as much as code quality.
 
-## Clean-Room Rule
+## Project Provenance
 
 Do not copy from the prior fork-derived line:
 
@@ -17,8 +18,6 @@ Do not copy from the prior fork-derived line:
 - Config files beyond generic tool defaults.
 
 Allowed inputs include DeKoi-owned requirements, general engineering knowledge, public framework documentation, original code written for this repository, and compatibility notes expressed as behavior instead of implementation.
-
-See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the full boundary.
 
 ## Before Substantial Changes
 
@@ -46,7 +45,8 @@ Stop and redesign if engine code needs React, feature internals, runtime adapter
 
 ## Checks
 
-Run the full gate before proposing changes:
+Run focused checks while developing and the full gate before shipping or handing
+off a ready PR:
 
 ~~~sh
 pnpm check
@@ -57,8 +57,14 @@ Use focused checks when changing a narrow contract:
 ~~~sh
 pnpm check:storage-contracts
 pnpm check:runtime-contracts
+pnpm check:desktop-contracts
+pnpm check:frontend-boundaries
+pnpm check:bunny-review
 pnpm check:rust
 ~~~
+
+See [AGENTS.md](./AGENTS.md) for the agent-facing workflow map and validation
+lane list.
 
 ## License
 

@@ -119,7 +119,7 @@ jobs:
             rust=true
           fi
 
-          if matches '^(README\.md$|CONTRIBUTING\.md$|CLEAN_ROOM\.md$|ARCHITECTURE\.md$|DOMAIN_MODEL\.md$|PRODUCT\.md$|SURFACE_LABELS\.md$|docs/|\.github/)'; then
+          if matches '^(AGENTS\.md$|README\.md$|CONTRIBUTING\.md$|ARCHITECTURE\.md$|DOMAIN_MODEL\.md$|PRODUCT\.md$|DESIGN\.md$|SURFACE_LABELS\.md$|UI_HANDOFF\.md$|docs/|skills/|\.github/)'; then
             docs=true
           fi
 

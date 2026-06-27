@@ -7,7 +7,7 @@ description: "Build throwaway DeKoi prototypes to answer logic, state-model, API
 
 A prototype answers one question quickly, then gets deleted or absorbed into
 production code. It is not a shortcut around DeKoi architecture, persistence
-safety, clean-room rules, or UI proof.
+safety, source provenance rules, or UI proof.
 
 This is a local DeKoi port of Xel-authored prototype guidance from the previous
 repo. It is safe to reuse here, with current DeKoi docs and skill names.

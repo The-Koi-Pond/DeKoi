@@ -372,8 +372,18 @@ def bunny_skill_dir():
     return bunny_prompt_path().parent
 
 
+def bunny_rules_path():
+    configured = os.environ.get("BUNNY_RULES_PATH", "").strip()
+    if configured:
+        path = pathlib.Path(configured)
+        if not path.is_absolute():
+            path = REPO_ROOT / path
+        return path
+    return bunny_skill_dir() / "rules.json"
+
+
 def load_rules():
-    rules_path = bunny_skill_dir() / "rules.json"
+    rules_path = bunny_rules_path()
     try:
         return json.loads(rules_path.read_text("utf-8"))
     except FileNotFoundError:
@@ -384,8 +394,8 @@ def load_rules():
 
 def guidance_from_rules(files, rules):
     guidance = [
+        "AGENTS.md",
         "CONTRIBUTING.md",
-        "CLEAN_ROOM.md",
         "ARCHITECTURE.md",
         ".github/agents/dekoi-workflow.md",
     ]
@@ -401,12 +411,17 @@ def select_guidance(files):
     if rules and "_load_error" not in rules:
         return guidance_from_rules(files, rules)
     guidance = [
+        "AGENTS.md",
         "CONTRIBUTING.md",
-        "CLEAN_ROOM.md",
         "ARCHITECTURE.md",
         ".github/agents/dekoi-workflow.md",
     ]
     joined = "\n".join(files)
+    if any(
+        marker in joined
+        for marker in ("src/app/", "src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/")
+    ):
+        guidance.extend(["docs/architecture.md", "skills/dekoi-architecture-guard/SKILL.md"])
     if any(
         marker in joined
         for marker in (
@@ -414,15 +429,18 @@ def select_guidance(files):
             "roleplay",
             "prompt",
             "generation",
+            "ripples",
             "runtime",
             "storage",
         )
     ):
         guidance.append("docs/architecture.md")
+    if any(marker in joined for marker in ("messenger", "roleplay", "prompt", "generation", "ripples")):
+        guidance.append("skills/dekoi-mode-separation/SKILL.md")
     if any(marker in joined for marker in ("storage", "import", "provider", "migration")):
-        guidance.append("docs/storage-model.md")
+        guidance.extend(["docs/storage-model.md", "skills/bugfix-discipline/SKILL.md"])
     if any(marker in joined for marker in ("remote-runtime", "runtime")):
-        guidance.append("docs/remote-runtime-contract.md")
+        guidance.extend(["docs/remote-runtime-contract.md", "skills/bugfix-discipline/SKILL.md"])
     return list(dict.fromkeys(guidance))
 
 

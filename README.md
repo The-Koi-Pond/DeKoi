@@ -6,7 +6,7 @@ This repository starts the no-dash DeKoi identity from a blank implementation. I
 
 ## Status
 
-DeKoi is an early clean-room seed. The current app proves the first native product surfaces, storage contracts, and optional desktop host path; it is not feature-complete yet.
+DeKoi is an early seed. The current app proves the first native product surfaces, storage contracts, and optional desktop host path; it is not feature-complete yet.
 
 Current highlights:
 
@@ -14,7 +14,7 @@ Current highlights:
 - Native Messenger, Roleplay, catalog, provider connection, and Ripple record concepts.
 - Collection-backed storage contracts for desktop and compatible remote runtimes.
 - Optional Tauri desktop host for app-data storage, bundle file dialogs, provider-key secrets, and a desktop runtime bridge.
-- Clean-room documentation that keeps DeKoi separate from the old dashed project line.
+- DeKoi-owned docs and naming rules that keep DeKoi separate from the old dashed project line.
 
 See [docs/project-status.md](./docs/project-status.md) for what works now, what is experimental, and what is intentionally out of scope.
 
@@ -79,12 +79,13 @@ Legacy names and old storage shapes should not become DeKoi core concepts.
 - Do not copy old source code, assets, documentation wording, prompts, schemas, generated bindings, component layouts, or UI text.
 - Keep public labels, internal domain nouns, and legacy import aliases separate.
 
-See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process and [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules and [AGENTS.md](./AGENTS.md) for agent workflow guidance.
 
 ## Project Docs
 
 - [Product Notes](./PRODUCT.md): purpose, intended users, first slice, and non-goals.
-- [Clean-Room Boundary](./CLEAN_ROOM.md): what can and cannot be used as input.
+- [Design System](./DESIGN.md): active visual tokens, component guidance, and UI do/don'ts.
+- [Agent Guidance](./AGENTS.md): source lanes, proof expectations, and shipping workflow.
 - [Surface Labels](./SURFACE_LABELS.md): DeKoi-owned naming map.
 - [Domain Model](./DOMAIN_MODEL.md): first native product records.
 - [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
@@ -94,4 +95,4 @@ See [CLEAN_ROOM.md](./CLEAN_ROOM.md) for the boundary process and [CONTRIBUTING.
 
 ## License
 
-DeKoi is licensed under the [Apache License 2.0](./LICENSE). This license applies to this clean-room DeKoi repository; it does not change the license or provenance of the older dashed project line.
+DeKoi is licensed under the [Apache License 2.0](./LICENSE). This license applies to this DeKoi repository; it does not change the license or provenance of the older dashed project line.

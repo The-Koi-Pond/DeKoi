@@ -35,7 +35,7 @@ project rules.
 | Architecture lanes | `ARCHITECTURE.md` | `src/engine`, `src/features`, `src/shared`, `src/runtime`. UI lives in `src/features` and `src/shared`. |
 | Naming rules | `SURFACE_LABELS.md` | Public labels, internal nouns, legacy aliases. **Read before naming anything.** |
 | Domain records | `DOMAIN_MODEL.md` | Messenger/Character/Persona/Lorebook/Ripple record shapes. |
-| Clean-room boundary | `CLEAN_ROOM.md` | No copying from the prior fork-derived repo. The mockup is a user-supplied design, not legacy code, so it is an allowed input — but write the React implementation fresh in DeKoi terms. |
+| Project provenance | `CONTRIBUTING.md`, `AGENTS.md` | No copying from the prior fork-derived repo. The mockup is a user-supplied design, not legacy code, so it is an allowed input, but write the React implementation fresh in DeKoi terms. |
 | Active shell | `src/App.tsx`, `src/features/shell/*`, `src/features/pond/*`, `src/shared/ui/nav-context.ts` | Pond shell, view switch, and app-level state. |
 | Active Messenger logic | `src/features/messenger/MessengerThread.tsx`, `src/engine/messenger-actions.ts`, `src/runtime/messenger-storage.ts`, `src/runtime/messenger-local-storage.ts` | Send/reply/persist behavior. |
 | Legacy standalone prototype | `src/features/home/Home.tsx` | Old first prototype; do not extend for new shell work. |

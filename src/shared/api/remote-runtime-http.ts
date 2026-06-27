@@ -7,7 +7,7 @@ export function remoteHeaders(
   return {
     ...(target.authorization ? { Authorization: target.authorization } : {}),
     ...extra,
-    "X-Marinara-CSRF": "1",
+    "X-DeKoi-CSRF": "1",
   };
 }
 

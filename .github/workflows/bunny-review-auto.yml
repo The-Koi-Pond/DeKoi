@@ -1,5 +1,6 @@
 name: Bunny Review Auto Dispatch
 
+# Set DEKOI_PR_SYNC_AUTOMATION=off to pause automatic synchronize dispatches.
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -34,6 +35,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          # This pull_request_target workflow is intentionally a dispatcher only.
+          # It must not checkout, install, or execute code from the pull request.
           trusted_actor() {
             local login="$1"
             local association="$2"

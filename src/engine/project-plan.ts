@@ -15,8 +15,8 @@ export const projectTracks: DeKoiTrack[] = [
     summary: 'Name, tone, visual direction, and community posture belong to DeKoi.',
   },
   {
-    id: 'clean-room',
-    title: 'Clean-room boundary',
+    id: 'provenance',
+    title: 'Project provenance',
     status: 'ready',
     summary: 'No source, assets, docs, prompts, schemas, or UI text are copied from the prior fork-derived line.',
   },

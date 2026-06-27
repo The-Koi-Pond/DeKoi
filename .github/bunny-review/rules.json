@@ -2,7 +2,7 @@
   "review_focus": [
     "correctness",
     "user-visible regressions",
-    "clean-room boundary risk",
+    "source provenance risk",
     "security and privacy",
     "source-lane boundaries",
     "desktop and remote-runtime contracts",
@@ -31,28 +31,42 @@
   "path_instructions": [
     {
       "name": "Engine and source lanes",
-      "prefixes": ["src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/"],
-      "guidance": ["ARCHITECTURE.md", "docs/architecture.md"],
+      "prefixes": ["src/app/", "src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/"],
+      "guidance": ["ARCHITECTURE.md", "docs/architecture.md", "skills/dekoi-architecture-guard/SKILL.md"],
       "checks": [
+        "App code stays composition and provider wiring, not product rules, storage adapters, or host I/O.",
         "Engine code stays React-free and does not import feature internals, runtime adapters, Tauri APIs, or browser APIs.",
         "Feature code renders UI and calls engine helpers plus runtime/shared API wrappers rather than raw host or remote transports.",
         "Storage, generation, secrets, files, provider transport, and import/export stay separated by their documented owners."
       ]
     },
     {
-      "name": "Storage, import, and runtime contracts",
-      "prefixes": ["src/runtime/", "src/shared/api/", "src-tauri/src/", "scripts/check-storage-contracts.mjs", "scripts/check-runtime-contracts.mjs", "scripts/check-desktop-contracts.mjs"],
-      "guidance": ["docs/storage-model.md", "docs/remote-runtime-contract.md"],
+      "name": "Mode separation",
+      "prefixes": ["src/engine/messenger", "src/engine/roleplay", "src/features/modes/", "src/features/runtime/generation", "src/features/runtime/ripples"],
+      "guidance": ["skills/dekoi-mode-separation/SKILL.md"],
       "checks": [
-        "TypeScript command/entity declarations stay aligned with Rust desktop and runtime command registrations.",
-        "Collection names and native DeKoi record shapes remain the contract.",
-        "Legacy compatibility stays one-way import behavior into native DeKoi records."
+        "Messenger, Roleplay, shared generation, and shared ripple behavior remain in their owning lanes.",
+        "Shared generation or prompt changes do not silently alter an unrelated mode.",
+        "Mode UI uses narrow mode-owned contracts instead of reaching through shared state or sibling mode internals."
       ]
     },
     {
-      "name": "Clean-room and docs",
-      "prefixes": ["README.md", "CONTRIBUTING.md", "CLEAN_ROOM.md", "ARCHITECTURE.md", "DOMAIN_MODEL.md", "PRODUCT.md", "SURFACE_LABELS.md", "docs/", ".github/"],
-      "guidance": ["CONTRIBUTING.md", "CLEAN_ROOM.md", ".github/agents/dekoi-workflow.md"],
+      "name": "Storage, import, and runtime contracts",
+      "prefixes": ["src/app/use-app-storage-sync.ts", "src/features/runtime/storage/", "src/runtime/", "src/shared/api/", "src-tauri/src/", "scripts/check-storage-contracts.mjs", "scripts/check-runtime-contracts.mjs", "scripts/check-desktop-contracts.mjs"],
+      "guidance": ["docs/storage-model.md", "docs/remote-runtime-contract.md", "skills/bugfix-discipline/SKILL.md"],
+      "checks": [
+        "TypeScript command/entity declarations stay aligned with Rust desktop and runtime command registrations.",
+        "Collection names and native DeKoi record shapes remain the contract.",
+        "Legacy compatibility stays one-way import behavior into native DeKoi records.",
+        "Fixes address root causes instead of adding fake success, silent catches, broad fallbacks, or UI-only guards.",
+        "Parent records must not collect IDs, metadata, counts, or relationships from child rows that later skip import or fail to persist.",
+        "Pre-scan logic should use the same eligibility criteria as the write loop, especially for imports, migrations, and rollback-sensitive storage paths."
+      ]
+    },
+    {
+      "name": "Docs and provenance",
+      "prefixes": ["AGENTS.md", "README.md", "CONTRIBUTING.md", "ARCHITECTURE.md", "DOMAIN_MODEL.md", "PRODUCT.md", "DESIGN.md", "SURFACE_LABELS.md", "docs/", "skills/", ".github/"],
+      "guidance": ["AGENTS.md", "CONTRIBUTING.md", ".github/agents/dekoi-workflow.md"],
       "checks": [
         "Docs, prompts, config, and templates use DeKoi-owned terms unless an authored workflow document is intentionally being reused.",
         "No old source code, assets, generated bindings, UI text, schemas, or component layouts are copied into product code.",

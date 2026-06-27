@@ -1,6 +1,6 @@
 # Project Status
 
-DeKoi is an early clean-room seed for a private-first story and character engine. The current repository proves the first native app shape and runtime boundaries; it is not a full replacement for older fork-derived work.
+DeKoi is an early seed for a private-first story and character engine. The current repository proves the first native app shape and runtime boundaries; it is not a full replacement for older fork-derived work.
 
 ## Works Now
 

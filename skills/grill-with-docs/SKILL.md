@@ -18,7 +18,7 @@ repo. It is safe to reuse here, with current DeKoi docs and skill names.
 - `.github/agents/dekoi-workflow.md`.
 - `PRODUCT.md` and `DESIGN.md` when product or UI intent matters.
 - `ARCHITECTURE.md` and `SURFACE_LABELS.md` when source ownership, naming, or
-  clean-room boundaries matter.
+  source provenance boundaries matter.
 - `skills/dekoi-architecture-guard/SKILL.md` for ownership, imports, shared
   APIs, Tauri, Rust, storage, providers, or runtime behavior.
 - `skills/dekoi-mode-separation/SKILL.md` for Messenger, Roleplay, shared
@@ -48,7 +48,7 @@ repo. It is safe to reuse here, with current DeKoi docs and skill names.
   "state" when multiple DeKoi meanings exist
 - missing negative controls for destructive, detection, import, or provider
   logic
-- clean-room risk from old product language, old storage shapes, copied UI text,
+- source provenance risk from old product language, old storage shapes, copied UI text,
   or legacy concepts becoming native DeKoi models
 
 ## Durable Capture

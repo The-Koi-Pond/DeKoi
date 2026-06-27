@@ -37,8 +37,8 @@ def run_git(root, *args):
 
 
 def write_packet_repo(root):
+    (root / "AGENTS.md").write_text("# Agent Guidance\n\nUse changed-line findings.\n", encoding="utf-8")
     (root / "CONTRIBUTING.md").write_text("# Contributing\n\nUse changed-line findings.\n", encoding="utf-8")
-    (root / "CLEAN_ROOM.md").write_text("# Clean Room\n\nKeep ownership clear.\n", encoding="utf-8")
     (root / "ARCHITECTURE.md").write_text("# Architecture\n\nKeep engine code portable.\n", encoding="utf-8")
     agent = root / ".github" / "agents" / "dekoi-workflow.md"
     agent.parent.mkdir(parents=True)
@@ -102,8 +102,8 @@ def run_packet_case(module):
         assert "Raw patch is not repeated here" in overview
         assert "diff --git" not in overview
         assert "changedValue" in per_file
+        assert "guidance: AGENTS.md" in packet
         assert "guidance: CONTRIBUTING.md" in packet
-        assert "guidance: CLEAN_ROOM.md" in packet
         assert "guidance: ARCHITECTURE.md" in packet
         assert "guidance: .github/agents/dekoi-workflow.md" in packet
         assert "guidance: skills/example/SKILL.md" in packet

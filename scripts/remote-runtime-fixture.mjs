@@ -24,7 +24,7 @@ function readString(value, fallback = "") {
 
 function sendJson(response, statusCode, body) {
   response.writeHead(statusCode, {
-    "access-control-allow-headers": "authorization, content-type, x-marinara-csrf",
+    "access-control-allow-headers": "authorization, content-type, x-dekoi-csrf",
     "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-origin": "*",
     "cache-control": "no-store",

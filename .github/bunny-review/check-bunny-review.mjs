@@ -77,10 +77,19 @@ for (const check of checks.expected_checks) {
 const rules = JSON.parse(read(".github/bunny-review/rules.json"));
 assert.ok(Array.isArray(rules.review_focus), "rules.json review_focus must be an array");
 assert.ok(Array.isArray(rules.path_instructions), "rules.json path_instructions must be an array");
+const ruleGuidance = JSON.stringify(rules.path_instructions.flatMap((item) => item.guidance || []));
+assert.match(ruleGuidance, /skills\/dekoi-architecture-guard\/SKILL\.md/);
+assert.match(ruleGuidance, /skills\/dekoi-mode-separation\/SKILL\.md/);
+assert.match(ruleGuidance, /skills\/bugfix-discipline\/SKILL\.md/);
 
 const prompt = read(".github/bunny-review/reviewer-prompt.md");
-assert.match(prompt, /clean-room boundary/i);
+assert.match(prompt, /source provenance/i);
 assert.match(prompt, /FINAL_REVIEW/);
+assert.match(prompt, /Calibration: change_summary/);
+assert.match(prompt, /multi-chunk review/);
+
+const reviewerTool = read(".github/bunny-review/bunny_review.py");
+assert.match(reviewerTool, /BUNNY_RULES_PATH/);
 
 for (const workflow of [
   ".github/workflows/bunny-review-auto.yml",

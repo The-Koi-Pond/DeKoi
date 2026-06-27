@@ -13,7 +13,7 @@ understand the owner, fix the real contract or state transition, verify the
 affected path, and report impact clearly.
 
 This is a local DeKoi bugfix skill adapted from Chai-authored workflow guidance.
-It applies to this clean-room repository's current docs, source lanes, and
+It applies to this repository's current docs, source lanes, and
 checks.
 
 ## Load First

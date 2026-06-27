@@ -45,9 +45,8 @@ Compatible response:
 }
 ```
 
-`runtime` may also be `marinara-server` while DeKoi is still compatible with
-that runtime marker. The Tauri desktop host uses `de-koi-desktop` internally
-when Pond Care selects the desktop runtime.
+The Tauri desktop host uses `de-koi-desktop` internally when Pond Care selects
+the desktop runtime.
 
 ## Desktop Runtime
 
@@ -79,7 +78,7 @@ All runtime commands use:
 ```http
 POST /api/invoke
 Content-Type: application/json
-X-Marinara-CSRF: 1
+X-DeKoi-CSRF: 1
 ```
 
 Request envelope:
