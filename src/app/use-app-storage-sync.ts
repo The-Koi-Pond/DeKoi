@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   cancelIdle,
   requestIdle,
@@ -29,6 +29,11 @@ type SaveQueueEntry = {
 
 type SaveQueueEntries = Partial<Record<AppStorageCollectionKey, SaveQueueEntry>>;
 type SaveErrorMessages = Partial<Record<AppStorageCollectionKey, string>>;
+type SaveStatusResult = {
+  mode: MessengerStorageMode;
+  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  message: string;
+};
 
 function appStorageCollectionSignature(
   snapshot: AppStorageRecords,
@@ -138,7 +143,6 @@ export function useAppStorageSync({
   setMessengerStorageMessage,
   setStorageReady,
 }: UseAppStorageSyncInput) {
-  const saveRequestId = useRef(0);
   const storageGeneration = useRef(0);
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
   const lastSeenSnapshot = useRef<AppStorageRecords | null>(null);
@@ -147,6 +151,37 @@ export function useAppStorageSync({
   const pendingSaves = useRef<SaveQueueEntries>({});
   const saveErrors = useRef<SaveErrorMessages>({});
   const saveQueueRunning = useRef<number | null>(null);
+
+  const refreshSaveStatus = useCallback(
+    (generation: number, storageResult?: SaveStatusResult) => {
+      const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
+      const hasPendingSaves = hasPendingSaveForGeneration(
+        pendingSaves.current,
+        generation,
+      );
+      const hasActiveSave = saveQueueRunning.current === generation;
+      const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
+      if (storageResult) setMessengerStorageMode(storageResult.mode);
+      setMessengerStorageStatus(
+        saveErrorMessage
+          ? "error"
+          : hasActiveSave || hasPendingSaves || hasUnsavedSaves
+            ? "saving"
+            : storageResult?.status ?? "ready",
+      );
+      setMessengerStorageMessage(
+        saveErrorMessage ??
+          (hasActiveSave || hasPendingSaves || hasUnsavedSaves
+            ? "Saving changes..."
+            : storageResult?.message ?? "All changes saved."),
+      );
+    },
+    [
+      setMessengerStorageMessage,
+      setMessengerStorageMode,
+      setMessengerStorageStatus,
+    ],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -257,26 +292,7 @@ export function useAppStorageSync({
     lastSeenSnapshot.current = snapshot;
     if (dirtyCollectionKeys.length === 0) {
       if (shouldRefreshStorageStatus) {
-        const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
-        const hasPendingSaves = hasPendingSaveForGeneration(
-          pendingSaves.current,
-          storageGeneration.current,
-        );
-        const hasActiveSave = saveQueueRunning.current === storageGeneration.current;
-        const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
-        setMessengerStorageStatus(
-          saveErrorMessage
-            ? "error"
-            : hasActiveSave || hasPendingSaves || hasUnsavedSaves
-              ? "saving"
-              : "ready",
-        );
-        setMessengerStorageMessage(
-          saveErrorMessage ??
-            (hasActiveSave || hasPendingSaves || hasUnsavedSaves
-              ? "Saving changes..."
-              : "All changes saved."),
-        );
+        refreshSaveStatus(storageGeneration.current);
       }
       return;
     }
@@ -303,8 +319,6 @@ export function useAppStorageSync({
 
       saveQueueRunning.current = entry.generation;
       activeSaveSignatures.current[collectionKey] = entry.signature;
-      const requestId = saveRequestId.current + 1;
-      saveRequestId.current = requestId;
       setMessengerStorageStatus("saving");
 
       saveAppStorageCollections(
@@ -332,25 +346,7 @@ export function useAppStorageSync({
           saveErrors.current[collectionKey] = storageResult.message;
         }
 
-        if (saveRequestId.current !== requestId && storageResult.status !== "error") {
-          return;
-        }
-
-        const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
-        const hasPendingSaves = hasPendingSaveForGeneration(
-          pendingSaves.current,
-          entry.generation,
-        );
-        const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
-        setMessengerStorageMode(storageResult.mode);
-        setMessengerStorageStatus(
-          saveErrorMessage
-            ? "error"
-            : hasPendingSaves || hasUnsavedSaves
-              ? "saving"
-              : storageResult.status,
-        );
-        setMessengerStorageMessage(saveErrorMessage ?? storageResult.message);
+        refreshSaveStatus(entry.generation, storageResult);
       }).finally(() => {
         if (entry.generation !== storageGeneration.current) return;
         if (activeSaveSignatures.current[collectionKey] === entry.signature) {
@@ -359,6 +355,7 @@ export function useAppStorageSync({
         if (saveQueueRunning.current === entry.generation) {
           saveQueueRunning.current = null;
         }
+        refreshSaveStatus(entry.generation);
         drainSaveQueue();
       });
     };
@@ -394,6 +391,7 @@ export function useAppStorageSync({
     providerConnections,
     remoteRuntimeUrl,
     rippleStates,
+    refreshSaveStatus,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
