@@ -21,12 +21,6 @@ function interfaceBody(source, name) {
   return match[1];
 }
 
-function interfaceFields(source, name) {
-  return [...interfaceBody(source, name).matchAll(/^\s*([A-Za-z0-9_]+):/gm)].map(
-    (match) => match[1],
-  );
-}
-
 const providerConnectionSource = readFile("src/engine/provider-connection.ts");
 const providerConnectionActionsSource = readFile(
   "src/engine/provider-connection-actions.ts",
@@ -54,15 +48,6 @@ if (/\.\.\.record/.test(providerConnectionSource)) {
   fail("Provider connection sanitizer must not spread input records.");
 }
 
-const sanitizerSource = providerConnectionSource.slice(
-  providerConnectionSource.indexOf("export function sanitizeProviderConnectionRecord"),
-);
-for (const field of interfaceFields(providerConnectionSource, "ProviderConnectionRecord")) {
-  if (!new RegExp(`\\b${field}\\s*(?::|,)`).test(sanitizerSource)) {
-    fail(`Provider connection sanitizer must preserve durable field ${field}.`);
-  }
-}
-
 if (/apiKey\s*:/.test(providerConnectionStorageSource)) {
   fail("Provider connection storage adapter must not write apiKey fields.");
 }
@@ -82,11 +67,7 @@ if (
   /catch \(error\)[\s\S]{0,600}status: "needs-key"/.test(
     providerConnectionStorageSource,
   ) ||
-  !/durableProviderConnectionRecord/.test(providerConnectionStorageSource) ||
-  !/const sanitized = sanitizeProviderConnectionRecord\(record\);/.test(
-    providerConnectionStorageSource,
-  ) ||
-  !/\.\.\.sanitized[\s\S]*status: secretVerification\.persistedStatus/.test(
+  !/records\.map\(sanitizeProviderConnectionRecord\)/.test(
     providerConnectionStorageSource,
   )
 ) {

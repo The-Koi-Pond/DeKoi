@@ -194,19 +194,6 @@ async function hydrateDesktopProviderConnectionStatuses(
   };
 }
 
-function durableProviderConnectionRecord(record: ProviderConnectionRecord) {
-  const sanitized = sanitizeProviderConnectionRecord(record);
-  const secretVerification = (
-    record as ProviderConnectionRecord & ProviderConnectionSecretVerification
-  ).secretVerification;
-  if (secretVerification?.status !== "unverified") return sanitized;
-
-  return {
-    ...sanitized,
-    status: secretVerification.persistedStatus,
-  } satisfies ProviderConnectionRecord;
-}
-
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
   if (getHostStorageMode(rawUrl) !== "desktop") {
     return providerConnectionRepository.loadSnapshot(rawUrl);
@@ -222,7 +209,7 @@ export function saveProviderConnectionRecordsToStorage(
   rawUrl?: string,
 ) {
   return storedProviderConnectionRepository.save(
-    records.map(durableProviderConnectionRecord),
+    records.map(sanitizeProviderConnectionRecord),
     rawUrl,
   );
 }
