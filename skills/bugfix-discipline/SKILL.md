@@ -120,6 +120,8 @@ changed:
 - Feature boundary changes: `pnpm check:frontend-boundaries`.
 - Storage contracts, import/export, bundle handling, or persistence changes:
   `pnpm check:storage-contracts`.
+- Provider connection record, bundle secret redaction, desktop provider secret,
+  or editor key handling changes: `pnpm check:provider-secret-safety`.
 - Runtime command names, fixture server, or remote-runtime wrapper changes:
   `pnpm check:runtime-contracts`.
 - Desktop command names, Tauri command registration, or privileged host

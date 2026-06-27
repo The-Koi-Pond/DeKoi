@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   NavCatalogState,
   NavProviderConnectionActions,
@@ -16,6 +16,13 @@ import {
 } from "../../../engine/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/provider-connection-actions";
 import { checkProviderConnection } from "../../../shared/api/provider-connection-check";
+import { fetchProviderConnectionModels } from "../../../shared/api/provider-connection-models";
+import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
+import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
+import {
+  isDesktopRuntimeUrl,
+  readRemoteRuntimeUrl,
+} from "../../../shared/api/runtime-target";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -56,7 +63,7 @@ function draftFromConnection(record: ProviderConnectionRecord): DraftState {
   return {
     label: record.label,
     provider: record.provider,
-    apiKey: record.apiKey,
+    apiKey: "",
     baseUrl: record.baseUrl,
     model: record.model,
     keeperDefault: record.keeperDefault,
@@ -101,76 +108,17 @@ function draftsMatch(left: DraftState, right: DraftState) {
   );
 }
 
-function buildModelsUrl(baseUrl: string) {
-  const trimmed = baseUrl.trim();
-  if (!trimmed) return "";
-
-  const normalized = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
-  return normalized.endsWith("/models") ? normalized : `${normalized}/models`;
-}
-
-function getModelFetchHeaders(
-  provider: ProviderConnectionProvider,
-  apiKey: string,
-) {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-  const trimmedKey = apiKey.trim();
-  if (!trimmedKey) return headers;
-
-  if (provider === "anthropic") {
-    headers["x-api-key"] = trimmedKey;
-    headers["anthropic-version"] = "2023-06-01";
-    return headers;
-  }
-
-  if (provider === "google") {
-    headers["x-goog-api-key"] = trimmedKey;
-    return headers;
-  }
-
-  headers.Authorization = `Bearer ${trimmedKey}`;
-  return headers;
-}
-
-function readModelId(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
-
-  const record = value as Record<string, unknown>;
-  const id = record.id ?? record.name ?? record.model ?? record.slug;
-  return typeof id === "string" ? id.replace(/^models\//, "").trim() : "";
-}
-
-function parseModelList(payload: unknown) {
-  const candidates = Array.isArray(payload)
-    ? payload
-    : payload && typeof payload === "object"
-      ? ((payload as Record<string, unknown>).data ??
-        (payload as Record<string, unknown>).models ??
-        (payload as Record<string, unknown>).items)
-      : null;
-
-  if (!Array.isArray(candidates)) return [];
-
-  return [
-    ...new Set(
-      candidates
-        .map(readModelId)
-        .filter((model) => model.length > 0)
-        .sort((a, b) => a.localeCompare(b)),
-    ),
-  ];
-}
-
 interface ConnectionEditorProps {
   editingId: string | null;
+  activeConnection: ProviderConnectionRecord | null;
   initialDraft: DraftState;
   onBack: () => void;
-  onDelete?: () => void;
-  onSave: (input: ProviderConnectionInput) => void;
+  onDelete?: () => Promise<void>;
+  onSave: (input: ProviderConnectionInput) => Promise<void>;
 }
+
+type StoredSecretStatus = "idle" | "checking" | "available" | "missing" | "error";
+type StoredSecretProbeStatus = "available" | "missing" | "error";
 
 function ConnectionIcon() {
   return (
@@ -191,12 +139,14 @@ function ConnectionIcon() {
 }
 
 function ConnectionsBanner({
+  actionsLocked = false,
   onBack,
   onDelete,
   onSave,
   saveLabel,
   saveState,
 }: {
+  actionsLocked?: boolean;
   onBack: () => void;
   onDelete?: () => void;
   onSave?: () => void;
@@ -206,9 +156,12 @@ function ConnectionsBanner({
   return (
     <CatalogSurfaceBanner
       icon={<ConnectionIcon />}
+      backDisabled={actionsLocked}
+      deleteDisabled={actionsLocked}
       onBack={onBack}
       onDelete={onDelete}
       onSave={onSave}
+      saveDisabled={actionsLocked}
       saveLabel={saveLabel}
       saveState={saveState}
       title="Connections"
@@ -217,6 +170,7 @@ function ConnectionsBanner({
 }
 function ConnectionEditor({
   editingId,
+  activeConnection,
   initialDraft,
   onBack,
   onDelete,
@@ -228,16 +182,114 @@ function ConnectionEditor({
   const [modelFetchStatus, setModelFetchStatus] = useState("");
   const [connectionCheckBusy, setConnectionCheckBusy] = useState(false);
   const [connectionCheckStatus, setConnectionCheckStatus] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [storedSecretProbe, setStoredSecretProbe] = useState<{
+    scopeKey: string;
+    status: StoredSecretProbeStatus;
+  }>({ scopeKey: "", status: "missing" });
   const selectedProvider = getProviderConnectionProviderOption(draft.provider);
   const modelOptions = [
     ...new Set([...fetchedModels, ...selectedProvider.models]),
   ];
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
+  const normalizedDraft = normalizeDraft(draft);
+  const normalizedInitialDraft = normalizeDraft(initialDraft);
+  const hasTypedKey = Boolean(normalizedDraft.apiKey);
+  const remoteRuntimeUrl = readRemoteRuntimeUrl();
+  const canUseDesktopRuntime =
+    isDesktopRuntimeUrl(remoteRuntimeUrl) ||
+    (!remoteRuntimeUrl.trim() && isDesktopHostAvailable());
+  const canCheckStoredDesktopSecret =
+    Boolean(editingId) &&
+    Boolean(activeConnection) &&
+    canUseDesktopRuntime &&
+    activeConnection?.status === "ready" &&
+    normalizedDraft.provider === normalizedInitialDraft.provider &&
+    normalizedDraft.baseUrl.replace(/\/+$/, "") ===
+      normalizedInitialDraft.baseUrl.replace(/\/+$/, "");
+  const storedSecretScopeKey =
+    canCheckStoredDesktopSecret && editingId
+      ? `${editingId}\n${normalizedDraft.provider}\n${normalizedDraft.baseUrl.replace(/\/+$/, "")}`
+      : "";
+  const storedSecretStatus: StoredSecretStatus = !storedSecretScopeKey
+    ? "idle"
+    : storedSecretProbe.scopeKey === storedSecretScopeKey
+      ? storedSecretProbe.status
+      : "checking";
+  const canUseStoredDesktopSecret = storedSecretStatus === "available";
 
-  function handleSave() {
+  function missingSecretMessage(action: "checking" | "fetching models") {
+    if (
+      storedSecretStatus === "checking" ||
+      (canCheckStoredDesktopSecret && storedSecretStatus === "idle")
+    ) {
+      return "Checking saved API key access. Try again in a moment.";
+    }
+    if (
+      !editingId ||
+      activeConnection?.status === "needs-key" ||
+      storedSecretStatus === "idle" ||
+      storedSecretStatus === "missing"
+    ) {
+      return `API key required before ${action}.`;
+    }
+    return "Saved API key could not be verified. Re-enter the key.";
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!storedSecretScopeKey || !editingId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getDesktopProviderSecretStatus(editingId, {
+      provider: normalizedDraft.provider,
+      baseUrl: normalizedDraft.baseUrl,
+    })
+      .then((status) => {
+        if (cancelled) return;
+        setStoredSecretProbe({
+          scopeKey: storedSecretScopeKey,
+          status: status.hasSecret ? "available" : "missing",
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStoredSecretProbe({ scopeKey: storedSecretScopeKey, status: "error" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    editingId,
+    normalizedDraft.provider,
+    normalizedDraft.baseUrl,
+    storedSecretScopeKey,
+  ]);
+
+  async function handleSave() {
     const input = draftToInput(draft);
     if (!input.label) return;
-    onSave(input);
+    setSaveBusy(true);
+    setSaveStatus("");
+
+    try {
+      await onSave(input);
+      setDraft((currentDraft) => ({ ...currentDraft, apiKey: "" }));
+      setSaveStatus(
+        input.apiKey
+          ? "Saved. API key is stored on this device and excluded from exports."
+          : "Saved.",
+      );
+    } catch (error) {
+      setSaveStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaveBusy(false);
+    }
   }
 
   function handleProviderChange(provider: ProviderConnectionProvider) {
@@ -261,9 +313,17 @@ function ConnectionEditor({
   }
 
   async function handleFetchModels() {
-    const modelsUrl = buildModelsUrl(draft.baseUrl);
-    if (!modelsUrl) {
+    const input = draftToInput(draft);
+    if (!input.baseUrl) {
       setModelFetchStatus("Base URL required.");
+      return;
+    }
+    if (
+      selectedProvider.apiKeyRequired &&
+      !hasTypedKey &&
+      !canUseStoredDesktopSecret
+    ) {
+      setModelFetchStatus(missingSecretMessage("fetching models"));
       return;
     }
 
@@ -271,15 +331,16 @@ function ConnectionEditor({
     setModelFetchStatus("Fetching models...");
 
     try {
-      const response = await fetch(modelsUrl, {
-        headers: getModelFetchHeaders(draft.provider, draft.apiKey),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Model fetch failed (${response.status}).`);
-      }
-
-      const models = parseModelList(await response.json());
+      const result = await fetchProviderConnectionModels(
+        canUseStoredDesktopSecret && !hasTypedKey
+          ? {
+              ...input,
+              id: editingId ?? undefined,
+              status: activeConnection?.status,
+            }
+          : input,
+      );
+      const models = result.models;
       setFetchedModels(models);
       setModelFetchStatus(
         models.length > 0 ? `${models.length} models found.` : "No models found.",
@@ -311,15 +372,27 @@ function ConnectionEditor({
       setConnectionCheckStatus("Model required.");
       return;
     }
-    if (selectedProvider.apiKeyRequired && !input.apiKey) {
-      setConnectionCheckStatus("API key required.");
+    if (
+      selectedProvider.apiKeyRequired &&
+      !hasTypedKey &&
+      !canUseStoredDesktopSecret
+    ) {
+      setConnectionCheckStatus(missingSecretMessage("checking"));
       return;
     }
 
     setConnectionCheckBusy(true);
     setConnectionCheckStatus("Checking API key...");
     try {
-      const result = await checkProviderConnection(input);
+      const result = await checkProviderConnection(
+        canUseStoredDesktopSecret && !hasTypedKey
+          ? {
+              ...input,
+              id: editingId ?? undefined,
+              status: activeConnection?.status,
+            }
+          : input,
+      );
       setConnectionCheckStatus(result.message || "API key is valid.");
     } catch (error) {
       setConnectionCheckStatus(
@@ -332,6 +405,7 @@ function ConnectionEditor({
   return (
     <>
       <ConnectionsBanner
+        actionsLocked={saveBusy}
         onBack={onBack}
         onDelete={onDelete}
         onSave={handleSave}
@@ -427,7 +501,7 @@ function ConnectionEditor({
                 }}
                 placeholder={
                   selectedProvider.apiKeyRequired
-                    ? "Required for this provider"
+                    ? "Enter a new key to store on this device"
                     : "Optional for this provider"
                 }
               />
@@ -444,6 +518,11 @@ function ConnectionEditor({
             {connectionCheckStatus && (
               <div className="catalog-model-status" role="status">
                 {connectionCheckStatus}
+              </div>
+            )}
+            {saveStatus && (
+              <div className="catalog-model-status" role="status">
+                {saveStatus}
               </div>
             )}
           </div>
@@ -503,14 +582,14 @@ export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
     ? draftFromConnection(activeConnection)
     : EMPTY_DRAFT;
 
-  function handleSave(input: ProviderConnectionInput) {
+  async function handleSave(input: ProviderConnectionInput) {
     if (editingId) {
-      nav.updateProviderConnection(editingId, input);
+      await nav.updateProviderConnection(editingId, input);
       nav.setView({ kind: "connections", connectionId: editingId });
       return;
     }
 
-    const connection = nav.createProviderConnection(input);
+    const connection = await nav.createProviderConnection(input);
     nav.setView({ kind: "connections", connectionId: connection.id });
   }
 
@@ -518,9 +597,9 @@ export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
     nav.setView({ kind: "pond" });
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!editingId) return;
-    nav.deleteProviderConnection(editingId);
+    await nav.deleteProviderConnection(editingId);
     nav.setView({ kind: "connections" });
   }
 
@@ -530,6 +609,7 @@ export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
         <ConnectionEditor
           key={editingId ?? "new-connection"}
           editingId={editingId}
+          activeConnection={activeConnection}
           initialDraft={initialDraft}
           onBack={handleBack}
           onDelete={editingId ? handleDelete : undefined}

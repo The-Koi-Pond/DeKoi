@@ -73,6 +73,7 @@ Bad tests:
 - Lint: `pnpm lint`.
 - Source boundaries: `pnpm check:frontend-boundaries`.
 - Storage contracts: `pnpm check:storage-contracts`.
+- Provider secret safety: `pnpm check:provider-secret-safety`.
 - Runtime command contracts: `pnpm check:runtime-contracts`.
 - Desktop command contracts: `pnpm check:desktop-contracts`.
 - Rust/Tauri compile check: `pnpm check:rust`.

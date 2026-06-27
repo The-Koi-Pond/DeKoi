@@ -1,4 +1,5 @@
 import { invokeDesktopRuntime } from "./desktop-runtime";
+import { isDesktopHostAvailable } from "./desktop-host-common";
 import {
   readRemoteRuntimeError,
   remoteFetchInit,
@@ -34,6 +35,10 @@ export async function invokeRemote<T>(
   }
 
   if (isDesktopRuntimeUrl(rawUrl)) {
+    return await invokeDesktopRuntime<T>(command, args);
+  }
+
+  if (!rawUrl.trim() && isDesktopHostAvailable()) {
     return await invokeDesktopRuntime<T>(command, args);
   }
 

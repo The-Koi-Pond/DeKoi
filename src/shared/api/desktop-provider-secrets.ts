@@ -15,24 +15,26 @@ function requireTauriForSecrets() {
 
 export async function getDesktopProviderSecretStatus(
   connectionId: string,
+  scope?: { provider?: string; baseUrl?: string },
 ): Promise<DeKoiDesktopProviderSecretStatus> {
   requireTauriForSecrets();
 
   return await invoke<DeKoiDesktopProviderSecretStatus>(
     DESKTOP_COMMANDS.providerSecretStatus,
-    { connectionId },
+    { connectionId, provider: scope?.provider, baseUrl: scope?.baseUrl },
   );
 }
 
 export async function writeDesktopProviderSecret(
   connectionId: string,
   secret: string,
+  scope?: { provider?: string; baseUrl?: string },
 ): Promise<DeKoiDesktopProviderSecretStatus> {
   requireTauriForSecrets();
 
   return await invoke<DeKoiDesktopProviderSecretStatus>(
     DESKTOP_COMMANDS.providerSecretWrite,
-    { connectionId, secret },
+    { connectionId, secret, provider: scope?.provider, baseUrl: scope?.baseUrl },
   );
 }
 

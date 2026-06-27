@@ -7,6 +7,7 @@ const RUNTIME_MARKER = "de-koi-server";
 const SUPPORTED_COMMANDS = new Set([
   "generation_generate",
   "provider_connection_check",
+  "provider_connection_models",
   "storage_create",
   "storage_delete",
   "storage_list",
@@ -184,6 +185,24 @@ function checkProviderConnection(args) {
     message: "Fixture provider connection check passed.",
   };
 }
+
+function listProviderConnectionModels(args) {
+  if (!isRecord(args) || !isRecord(args.connection)) {
+    throw new Error("provider_connection_models requires args.connection.");
+  }
+
+  const connection = args.connection;
+  const provider = readString(connection.provider).trim();
+  const baseUrl = readString(connection.baseUrl).trim();
+  if (!provider || !baseUrl) {
+    throw new Error("Provider connection needs provider and base URL.");
+  }
+
+  return {
+    models: ["fixture-model-alpha", "fixture-model-beta"],
+  };
+}
+
 function generateReply(args) {
   if (!isRecord(args) || !isRecord(args.request)) {
     throw new Error("generation_generate requires args.request.");
@@ -238,6 +257,8 @@ function invokeCommand(storage, command, args) {
       return generateReply(args);
     case "provider_connection_check":
       return checkProviderConnection(args);
+    case "provider_connection_models":
+      return listProviderConnectionModels(args);
     case "storage_create":
       return createRecord(storage, args);
     case "storage_delete":

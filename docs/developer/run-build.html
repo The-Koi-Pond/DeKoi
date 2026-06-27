@@ -25,15 +25,15 @@
 
       <main class="content">
         <p class="eyebrow">Local development</p>
-        <h1>Run the current DeKoi seed before adding native host layers.</h1>
+        <h1>Run the current DeKoi seed with browser or desktop paths.</h1>
         <p class="lead">
-          DeKoi currently runs as a Vite, React, and TypeScript app. Tauri, native storage, hostable runtime,
-          provider transport, and import/export commands are future work.
+          DeKoi runs as a Vite, React, and TypeScript app with an optional Tauri desktop host for native storage,
+          bundle dialogs, provider-key secrets, and the desktop runtime bridge.
         </p>
 
         <div class="callout">
-          <strong>Migration note:</strong> older developer docs referenced Tauri commands. Those commands are not part
-          of this fresh seed yet. Use the commands on this page for the current repo.
+          <strong>Runtime note:</strong> browser development is useful for UI work, but durable storage and saved
+          provider keys require the Tauri desktop host or a compatible remote runtime.
         </div>
 
         <h2>Prerequisites</h2>
@@ -53,6 +53,10 @@
               <td>pnpm</td>
               <td>Installs dependencies and runs repo scripts.</td>
             </tr>
+            <tr>
+              <td>Rust and Cargo</td>
+              <td>Builds the optional Tauri desktop host.</td>
+            </tr>
           </tbody>
         </table>
 
@@ -64,6 +68,9 @@
         <pre><code>pnpm dev</code></pre>
         <p>Open the URL printed by Vite. By default this is usually <code>http://localhost:5173/</code>.</p>
 
+        <p>Run the desktop host when you need app-data storage, provider-key secrets, or native bundle dialogs:</p>
+        <pre><code>pnpm tauri:dev</code></pre>
+
         <h2>Run The Developer Docs</h2>
         <p>Serve this static documentation set:</p>
         <pre><code>pnpm docs:dev</code></pre>
@@ -72,6 +79,10 @@
         <h2>Build Check</h2>
         <p>Run the production frontend build:</p>
         <pre><code>pnpm build</code></pre>
+
+        <h2>Full Check</h2>
+        <p>Run the local gate before shipping or handing off broad changes:</p>
+        <pre><code>pnpm check</code></pre>
 
         <h2>Lint Check</h2>
         <p>Run ESLint over source files:</p>

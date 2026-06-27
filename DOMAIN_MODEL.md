@@ -129,6 +129,8 @@ Purpose:
 - Keep API/local-runtime details away from character and thread records.
 - Let the app support different providers later.
 - Make provider support replaceable behind one DeKoi-owned boundary.
+- Keep provider API keys out of durable provider connection records and DeKoi
+  storage bundles.
 
 Likely relationships:
 
@@ -137,9 +139,8 @@ Likely relationships:
 
 Not decided yet:
 
-- First provider.
-- Secret storage.
-- Tauri vs browser-only runtime boundary.
+- Final provider roster and provider-specific capability depth.
+- Browser-only support for required-key providers.
 
 ## Messenger Records
 

@@ -46,7 +46,6 @@ export interface ProviderConnectionRecord {
   kind: ProviderConnectionKind;
   provider: ProviderConnectionProvider;
   label: string;
-  apiKey: string;
   baseUrl: string;
   model: string;
   summary: string;
@@ -58,6 +57,28 @@ export interface ProviderConnectionRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export const PROVIDER_CONNECTION_DURABLE_FIELD_SET = {
+  id: true,
+  schemaVersion: true,
+  kind: true,
+  provider: true,
+  label: true,
+  baseUrl: true,
+  model: true,
+  summary: true,
+  status: true,
+  modelLabel: true,
+  keeperDefault: true,
+  maxContext: true,
+  maxOutput: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Record<keyof ProviderConnectionRecord, true>;
+
+export const PROVIDER_CONNECTION_DURABLE_FIELDS = Object.keys(
+  PROVIDER_CONNECTION_DURABLE_FIELD_SET,
+).sort() as (keyof ProviderConnectionRecord)[];
 
 const defaultTimestamp = "2026-06-23T09:30:00.000Z";
 
@@ -212,25 +233,23 @@ export function sanitizeProviderConnectionRecord(
     kind === "remote-runtime" ? "openai" : "custom",
   );
   const providerOption = getProviderConnectionProviderOption(provider);
-  const apiKey = normalizeProviderConnectionText(record.apiKey).trim();
   const baseUrl = normalizeProviderConnectionText(record.baseUrl).trim();
   const model = normalizeProviderConnectionText(record.model).trim();
   const status =
     record.status === "ready" || record.status === "needs-key"
       ? record.status
-      : providerOption.apiKeyRequired && !apiKey
+      : providerOption.apiKeyRequired
         ? "needs-key"
         : "ready";
 
   return {
-    ...record,
+    id: record.id,
     schemaVersion: 1,
     kind,
     provider,
     label:
       normalizeProviderConnectionText(record.label).trim() ||
       (kind === "remote-runtime" ? providerOption.label : "Local"),
-    apiKey,
     baseUrl: baseUrl || providerOption.defaultBaseUrl,
     model: model || providerOption.defaultModel,
     summary: normalizeProviderConnectionText(record.summary),

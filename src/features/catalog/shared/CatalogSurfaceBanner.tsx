@@ -3,12 +3,15 @@ import { useId, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } f
 interface CatalogSurfaceBannerProps {
   avatarAlt?: string;
   avatarUrl?: string;
+  backDisabled?: boolean;
   deleteLabel?: string;
+  deleteDisabled?: boolean;
   icon: ReactNode;
   onBack: () => void;
   onAvatarChange?: (avatarUrl: string) => void;
   onDelete?: () => void;
   onSave?: () => void;
+  saveDisabled?: boolean;
   saveLabel?: string;
   saveState?: "clean" | "pending";
   subtitle?: string;
@@ -28,12 +31,15 @@ function PaintingIcon() {
 export function CatalogSurfaceBanner({
   avatarAlt,
   avatarUrl,
+  backDisabled = false,
   deleteLabel = "Delete",
+  deleteDisabled = false,
   icon,
   onBack,
   onAvatarChange,
   onDelete,
   onSave,
+  saveDisabled = false,
   saveLabel = "Save Changes",
   saveState = "clean",
   subtitle,
@@ -69,6 +75,7 @@ export function CatalogSurfaceBanner({
       <button
         type="button"
         className="back-btn icon-only"
+        disabled={backDisabled}
         onClick={onBack}
         aria-label="Back to Pond"
         title="Back to Pond"
@@ -129,6 +136,7 @@ export function CatalogSurfaceBanner({
           <button
             type="button"
             className={`catalog-save-btn catalog-save-btn-${saveState}`}
+            disabled={saveDisabled}
             onClick={onSave}
           >
             {saveLabel}
@@ -137,6 +145,7 @@ export function CatalogSurfaceBanner({
             <button
               type="button"
               className="catalog-cancel-btn danger"
+              disabled={deleteDisabled}
               onClick={onDelete}
             >
               {deleteLabel}

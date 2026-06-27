@@ -4,6 +4,7 @@ import { replaceRoleplayThreadProviderConnection } from "../../../engine/rolepla
 import type { MessengerThread } from "../../../engine/messenger";
 import { replaceMessengerThreadProviderConnection } from "../../../engine/messenger-actions";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
+import { getProviderConnectionProviderOption } from "../../../engine/provider-connection";
 import {
   createProviderConnectionRecord,
   deleteProviderConnectionRecord,
@@ -13,6 +14,11 @@ import {
 } from "../../../engine/provider-connection-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
+import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
+import {
+  deleteDesktopProviderSecret,
+  writeDesktopProviderSecret,
+} from "../../../shared/api/desktop-provider-secrets";
 import type { AppSettings } from "../../../engine/app-settings";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
@@ -24,6 +30,34 @@ type UseProviderConnectionActionsInput = {
   setMessengerThreads: StateSetter<MessengerThread[]>;
 };
 
+function providerSecretInput(input: ProviderConnectionInput) {
+  return input.apiKey?.trim() ?? "";
+}
+
+function normalizedConnectionEndpoint(input: ProviderConnectionInput) {
+  return input.baseUrl?.trim().replace(/\/+$/, "") ?? "";
+}
+
+async function writeProviderSecretIfNeeded(
+  connectionId: string,
+  input: ProviderConnectionInput,
+) {
+  const secret = providerSecretInput(input);
+  if (!secret) return false;
+
+  if (!isDesktopHostAvailable()) {
+    throw new Error(
+      "Provider keys can only be saved by the desktop app in this version.",
+    );
+  }
+
+  await writeDesktopProviderSecret(connectionId, secret, {
+    provider: input.provider,
+    baseUrl: input.baseUrl,
+  });
+  return true;
+}
+
 export function useProviderConnectionActions({
   providerConnections,
   setProviderConnections,
@@ -32,11 +66,13 @@ export function useProviderConnectionActions({
   setMessengerThreads,
 }: UseProviderConnectionActionsInput) {
   const createProviderConnection = useCallback(
-    (input: ProviderConnectionInput) => {
+    async (input: ProviderConnectionInput) => {
       const now = currentIsoTimestamp();
+      const id = createRecordId("connection");
+      const hasSecret = await writeProviderSecretIfNeeded(id, input);
       const connection = createProviderConnectionRecord({
-        id: createRecordId("connection"),
-        input,
+        id,
+        input: { ...input, hasSecret },
         now,
       });
       setProviderConnections((currentConnections) => [
@@ -49,17 +85,49 @@ export function useProviderConnectionActions({
   );
 
   const updateProviderConnection = useCallback(
-    (connectionId: string, input: ProviderConnectionInput) => {
+    async (connectionId: string, input: ProviderConnectionInput) => {
       const now = currentIsoTimestamp();
+      const existingConnection = providerConnections.find(
+        (connection) => connection.id === connectionId,
+      );
+      const existingProvider = getProviderConnectionProviderOption(
+        existingConnection?.provider,
+      );
+      const keepsExistingSecretScope =
+        existingConnection?.provider === input.provider &&
+        existingConnection.baseUrl.trim().replace(/\/+$/, "") ===
+          normalizedConnectionEndpoint(input);
+      const hasNewSecret = await writeProviderSecretIfNeeded(
+        connectionId,
+        input,
+      );
+      const hasSecret =
+        hasNewSecret ||
+        (keepsExistingSecretScope &&
+          existingProvider.apiKeyRequired &&
+          existingConnection?.status === "ready");
+      if (
+        existingConnection &&
+        existingConnection.status === "ready" &&
+        !hasNewSecret &&
+        !keepsExistingSecretScope &&
+        isDesktopHostAvailable()
+      ) {
+        await deleteDesktopProviderSecret(connectionId);
+      }
       setProviderConnections((currentConnections) =>
         currentConnections.map((connection) =>
           connection.id === connectionId
-            ? updateProviderConnectionRecord(connection, input, now)
+            ? updateProviderConnectionRecord(
+                connection,
+                { ...input, hasSecret },
+                now,
+              )
             : connection,
         ),
       );
     },
-    [setProviderConnections],
+    [providerConnections, setProviderConnections],
   );
 
   const duplicateProviderConnection = useCallback(
@@ -85,7 +153,11 @@ export function useProviderConnectionActions({
   );
 
   const deleteProviderConnection = useCallback(
-    (connectionId: string) => {
+    async (connectionId: string) => {
+      if (isDesktopHostAvailable()) {
+        await deleteDesktopProviderSecret(connectionId);
+      }
+
       const nextConnections = deleteProviderConnectionRecord(
         providerConnections,
         connectionId,

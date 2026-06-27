@@ -20,6 +20,8 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   and checked against the Rust desktop runtime and fixture server.
 - Desktop Tauri command names are registered in `src/shared/api/desktop-commands.ts`
   and checked against the Rust command registration.
+- Provider secret safety is checked across provider connection records, bundle
+  import/export, desktop secret lookup, and editor key handling.
 - Legacy import is a one-way adapter into DeKoi-native records. Legacy names and
   old storage shapes do not become the core model.
 
@@ -92,6 +94,8 @@ The short version:
 - Relationships are stored as IDs and documented with cleanup expectations.
 - Import/export validates schema versions and never treats provider secrets as
   ordinary records.
+- Provider connection records store metadata only; desktop provider secrets are
+  scoped to the connection provider and base URL.
 - Collection adapters depend on `storage-repository-factory.ts`, keeping the
   current host-storage adapter behind one future database swap point.
 - App storage sync tracks dirty collections and serializes collection-level

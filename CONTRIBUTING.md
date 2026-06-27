@@ -56,6 +56,7 @@ Use focused checks when changing a narrow contract:
 
 ~~~sh
 pnpm check:storage-contracts
+pnpm check:provider-secret-safety
 pnpm check:runtime-contracts
 pnpm check:desktop-contracts
 pnpm check:frontend-boundaries

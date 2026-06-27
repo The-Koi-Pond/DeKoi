@@ -109,6 +109,15 @@ that each documented runtime adapter uses the expected repository entity alias.
   is wrapped in a DeKoi-owned field with a documented purpose.
 - Provider secrets are not ordinary collection data and must not be exported in
   DeKoi bundles.
+- `provider-connections` rows store provider metadata only. Typed API keys are
+  accepted at the editor/action boundary and saved through the desktop provider
+  secret capability when available.
+- Desktop loads verify `ready` required-key provider connections against the
+  desktop secret store. If the saved key is missing or cannot be checked, the
+  row loads as `needs-key`.
+- Saved desktop provider secrets are scoped to the connection provider and base
+  URL. Changing either field requires a newly typed key instead of silently
+  reusing the previous secret.
 
 ## Relationship Rules
 
@@ -140,6 +149,10 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
 - Skip invalid records with clear warnings when possible.
 - Keep legacy import separate from native bundle import.
 - Keep provider secret values outside exported JSON.
+- Redact legacy or hand-edited provider secret fields during bundle import and
+  warn that those fields were skipped.
+- Import required-key provider connections as `needs-key` unless a desktop
+  secret is re-entered through the provider connection editor.
 
 Legacy import remains one-way:
 
