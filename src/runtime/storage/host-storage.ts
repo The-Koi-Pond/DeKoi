@@ -122,6 +122,21 @@ function storageReplaceUnsupportedMessage(error: unknown) {
     : message;
 }
 
+function isHostStorageReplaceResponse(
+  response: unknown,
+): response is HostStorageReplaceResponse {
+  if (!response || typeof response !== "object") return false;
+
+  const candidate = response as Partial<HostStorageReplaceResponse>;
+  const count = candidate.count;
+  return (
+    candidate.ok === true &&
+    Number.isSafeInteger(count) &&
+    count !== undefined &&
+    count >= 0
+  );
+}
+
 export async function replaceHostRecords<T extends StorageRecord>(
   entity: StorageEntity,
   records: T[],
@@ -151,11 +166,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
       },
       rawUrl,
     );
-    if (
-      response.ok !== true ||
-      !Number.isSafeInteger(response.count) ||
-      response.count < 0
-    ) {
+    if (!isHostStorageReplaceResponse(response)) {
       throw new Error(
         `${RUNTIME_COMMANDS.storageReplace} returned an incompatible response.`,
       );
