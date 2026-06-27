@@ -354,6 +354,8 @@ Returns an array of records.
 
 Replaces the full collection for `entity` with `records`. DeKoi uses this as
 the default save path so one collection save maps to one runtime write command.
+Each record must be an object with a non-empty unique `id`; runtimes should
+reject invalid or duplicate IDs instead of partially replacing a collection.
 
 Returns:
 
@@ -363,6 +365,9 @@ Returns:
   "count": 1
 }
 ```
+
+DeKoi treats any response without `ok: true` and a numeric `count` as
+incompatible. The `count` must match the number of records sent.
 
 Example RippleState list:
 

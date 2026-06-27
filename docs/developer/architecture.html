@@ -277,6 +277,7 @@
           <li>Durable record names and shapes stay DeKoi-native.</li>
           <li>Runtime/shared API modules normalize JSON, call desktop/remote storage, and hide future SQLite or database implementation details.</li>
           <li>Runtime collection adapters depend on the storage repository factory, not the host-storage adapter directly.</li>
+          <li>App storage sync tracks dirty collections and serializes collection-level replacements so the same collection does not have overlapping writes.</li>
           <li>Engine modules define records and mutations without knowing how records are stored.</li>
           <li>App/runtime orchestration loads, syncs, imports, exports, and exposes typed actions to the UI.</li>
           <li>Feature UI consumes typed actions or narrowly scoped props; it should not learn DB tables, host commands, or storage file layout.</li>

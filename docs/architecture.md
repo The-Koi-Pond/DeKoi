@@ -176,6 +176,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
   hide future SQLite or database implementation details.
 - Runtime collection adapters depend on the storage repository factory, not the
   host-storage adapter directly.
+- App storage sync tracks dirty collections and serializes collection-level
+  replacements so the same collection does not have overlapping writes.
 - Engine modules define records and mutations without knowing how records are
   stored.
 - App/runtime orchestration loads, syncs, imports, exports, and exposes typed

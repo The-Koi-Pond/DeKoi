@@ -63,16 +63,23 @@ owning runtime adapter for each collection.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
-entrypoint in `src/runtime/index.ts`. Collection adapters create repositories
-through `src/runtime/storage/storage-repository-factory.ts`; the current
-host-backed implementation lives behind that factory in
-`src/runtime/storage/host-storage.ts`. Future SQLite or database-backed storage
-should implement the same repository shape behind the factory rather than
-leaking database details into feature code, collection adapters, or engine
-records.
+entrypoint in `src/runtime/index.ts`. The repository contract exposes full
+collection replacement through `replace`, and host-backed `save` currently uses
+the same replacement path. Collection adapters create repositories through
+`src/runtime/storage/storage-repository-factory.ts`; the current host-backed
+implementation lives behind that factory in `src/runtime/storage/host-storage.ts`.
+Future SQLite or database-backed storage should implement the same repository
+shape behind the factory rather than leaking database details into feature code,
+collection adapters, or engine records.
 The shared repository module also owns storage result aggregation, so snapshot
 and import/export orchestration can combine adapter outcomes without depending
 on a concrete host implementation.
+
+App-wide save orchestration in `src/app/use-app-storage-sync.ts` tracks dirty
+collections instead of fanning every save out to every collection. It debounces
+rapid state changes, schedules writes during idle time, sends one
+`storage_replace` per dirty collection, and serializes collection writes so a
+collection cannot have overlapping saves.
 
 The desktop host keeps a Rust allowlist for local file access:
 

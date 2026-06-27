@@ -31,8 +31,9 @@
           the current Vite app, test real workflows, then fix bugs from the correct owner.
         </p>
         <div class="callout">
-          <strong>Migration note:</strong> this page has been adapted for the fresh DeKoi seed. Tauri, hostable runtime,
-          imports, and provider workflows are future validation targets, not current setup requirements.
+          <strong>Migration note:</strong> this page has been adapted for the fresh DeKoi seed. Some migrated developer
+          docs still need validation against current source, but Tauri desktop storage and the remote runtime fixture
+          are available development paths.
         </div>
 
         <h2>First Agent Response</h2>
@@ -97,13 +98,13 @@ flowchart TB
             </tr>
             <tr>
               <td><code>src/shared/api</code></td>
-              <td>Future typed bridge to host capabilities. Not implemented in the current seed.</td>
+              <td>Typed bridge to desktop Tauri commands and remote runtime HTTP.</td>
             </tr>
             <tr>
               <td><code>src-tauri</code></td>
               <td>
-                Reserved future host layer for Rust storage, assets, provider transport, integrations, native commands,
-                HTTP server/dispatch, and <code>dekoi-server</code>.
+                Optional desktop host for collection storage, secrets, native dialogs, provider transport, and runtime
+                command dispatch.
               </td>
             </tr>
           </tbody>
@@ -145,7 +146,8 @@ flowchart TB
           <div class="panel">
             <h3>Remote runtime</h3>
             <p>
-              Reserved for later. Do not test remote runtime behavior until DeKoi has a native host boundary.
+              Run <code>pnpm runtime:fixture</code>, configure its URL in Pond Care &gt; Deep Water, and test
+              generation plus collection storage through the invoke contract.
             </p>
           </div>
         </div>
