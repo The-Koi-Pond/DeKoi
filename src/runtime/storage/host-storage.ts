@@ -151,7 +151,11 @@ export async function replaceHostRecords<T extends StorageRecord>(
       },
       rawUrl,
     );
-    if (response.ok !== true || typeof response.count !== "number") {
+    if (
+      response.ok !== true ||
+      !Number.isSafeInteger(response.count) ||
+      response.count < 0
+    ) {
       throw new Error(
         `${RUNTIME_COMMANDS.storageReplace} returned an incompatible response.`,
       );
