@@ -86,6 +86,17 @@ empty/error states, and the cheapest proof that exercises the claim. Use browser
 proof when visual layout, interaction, routing, responsive behavior,
 screenshots, or browser-only behavior is the claim.
 
+For frontend design or polish work, load `PRODUCT.md`, `DESIGN.md`, and the
+matching repo-local skill:
+
+- `skills/frontend-design/SKILL.md` for first-pass visual direction and build
+  shape.
+- `skills/impeccable/SKILL.md` for critique, accessibility, responsive
+  hardening, polish, and live iteration.
+
+Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
+product-language boundaries.
+
 ## Issue Filing Lane
 
 Use this when the user asks to file, open, submit, or draft a GitHub issue.
