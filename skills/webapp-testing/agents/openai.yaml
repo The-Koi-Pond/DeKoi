@@ -1,0 +1,4 @@
+interface:
+  display_name: "Webapp Testing"
+  short_description: "Verify DeKoi UI in browser and Tauri."
+  default_prompt: "Use $webapp-testing to run DeKoi UI, browser, screenshot, console, or Tauri QA proof."

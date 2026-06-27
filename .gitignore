@@ -40,6 +40,10 @@ __pycache__/
 # Playwright MCP scratch output
 .playwright-mcp/
 
+# Playwright test output
+/test-results/
+/playwright-report/
+
 # Bunny Review local output artifacts
 /bunny-ci-control.json
 /bunny-ci-status.md

@@ -18,10 +18,12 @@
     "check": "pnpm check:desktop-contracts && pnpm check:storage-contracts && pnpm check:runtime-contracts && pnpm check:frontend-boundaries && pnpm check:bunny-review && pnpm build && pnpm lint && pnpm check:rust",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:ui": "pnpm build && playwright test",
+    "test:ui:run": "playwright test",
     "preview": "vite preview",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri": "node scripts/run-tauri.mjs",
+    "tauri:dev": "node scripts/run-tauri.mjs dev",
+    "tauri:build": "node scripts/run-tauri.mjs build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@tauri-apps/cli": "^2.11.3",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",

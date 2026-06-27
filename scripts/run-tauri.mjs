@@ -1,0 +1,121 @@
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { delimiter, join } from "node:path";
+
+const homeDir = process.env.USERPROFILE || process.env.HOME || "";
+const cargoHome = process.env.CARGO_HOME || (homeDir ? join(homeDir, ".cargo") : "");
+const cargoBin = cargoHome ? join(cargoHome, "bin") : "";
+const localTauriCli = join(process.cwd(), "node_modules", "@tauri-apps", "cli", "tauri.js");
+
+const env = { ...process.env };
+const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") || "PATH";
+const tauriArgs = process.argv.slice(2);
+const isTauriDev = tauriArgs[0] === "dev";
+const autoDevtoolsEnv = "DEKOI_TAURI_AUTO_DEVTOOLS";
+const legacyAutoDevtoolsEnv = "DE_KOI_TAURI_AUTO_DEVTOOLS";
+const webview2DebugArg = "--remote-debugging-port=9222";
+const devtoolsFeature = "devtools";
+
+function splitCargoFeatures(value) {
+  return value.split(/[,\s]+/).filter(Boolean);
+}
+
+function hasCargoFeature(args, feature) {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--") return false;
+
+    if (arg === "--features" || arg === "-f") {
+      for (
+        let featureIndex = index + 1;
+        featureIndex < args.length;
+        featureIndex += 1
+      ) {
+        const value = args[featureIndex];
+        if (!value || value.startsWith("-")) break;
+        if (splitCargoFeatures(value).includes(feature)) return true;
+      }
+      continue;
+    }
+
+    if (
+      arg.startsWith("--features=") &&
+      splitCargoFeatures(arg.slice("--features=".length)).includes(feature)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function insertBeforeRunnerArgs(args, values) {
+  const separatorIndex = args.indexOf("--");
+  if (separatorIndex === -1) {
+    args.push(...values);
+    return;
+  }
+  args.splice(separatorIndex, 0, ...values);
+}
+
+if (cargoBin && existsSync(cargoBin)) {
+  env[pathKey] = [cargoBin, env[pathKey]].filter(Boolean).join(delimiter);
+}
+
+if (isTauriDev) {
+  const autoDevtoolsRequested =
+    env[autoDevtoolsEnv] === "1" || env[legacyAutoDevtoolsEnv] === "1";
+
+  if (autoDevtoolsRequested) {
+    env[autoDevtoolsEnv] = "1";
+  }
+
+  if (autoDevtoolsRequested && !hasCargoFeature(tauriArgs, devtoolsFeature)) {
+    insertBeforeRunnerArgs(tauriArgs, ["--features", devtoolsFeature]);
+  }
+
+  if (
+    autoDevtoolsRequested &&
+    process.platform === "win32" &&
+    !env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS?.includes("--remote-debugging-port=")
+  ) {
+    env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = [
+      env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS,
+      webview2DebugArg,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    console.info("[tauri dev] WebView2 debugging enabled at http://127.0.0.1:9222");
+  }
+
+  if (process.platform === "linux") {
+    console.info("[tauri dev] WebKitGTK inspection is available through the native Web Inspector.");
+  }
+
+  if (process.platform === "darwin") {
+    console.info("[tauri dev] WebKit inspection is available through Safari Web Inspector.");
+  }
+}
+
+if (!existsSync(localTauriCli)) {
+  console.error("Missing local @tauri-apps/cli. Run `pnpm install` first.");
+  process.exit(1);
+}
+
+const child = spawn(process.execPath, [localTauriCli, ...tauriArgs], {
+  env,
+  shell: false,
+  stdio: "inherit",
+});
+
+child.on("error", (error) => {
+  console.error(error.message);
+  process.exit(1);
+});
+
+child.on("exit", (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+  process.exit(code ?? 1);
+});

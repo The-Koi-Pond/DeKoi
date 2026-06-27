@@ -121,6 +121,8 @@ matching repo-local skill:
   shape.
 - `skills/impeccable/SKILL.md` for critique, accessibility, responsive
   hardening, polish, and live iteration.
+- `skills/webapp-testing/SKILL.md` for Browser, Playwright, screenshot,
+  console/network, WebView2, or native Tauri proof.
 
 Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
 product-language boundaries.
