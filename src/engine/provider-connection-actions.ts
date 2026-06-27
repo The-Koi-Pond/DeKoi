@@ -88,7 +88,8 @@ export function updateProviderConnectionRecord(
   const provider = getProviderConnectionProviderOption(input.provider);
   const model = cleanText(input.model);
   return {
-    ...record,
+    id: record.id,
+    schemaVersion: 1,
     kind: connectionKindForInput(input),
     provider: provider.value,
     label: cleanText(input.label, record.label),
@@ -100,6 +101,7 @@ export function updateProviderConnectionRecord(
     keeperDefault: input.keeperDefault ?? record.keeperDefault,
     maxContext: cleanNullableNumber(input.maxContext),
     maxOutput: cleanNullableNumber(input.maxOutput),
+    createdAt: record.createdAt,
     updatedAt,
   };
 }
@@ -112,10 +114,19 @@ export function duplicateProviderConnectionRecord(
   const provider = getProviderConnectionProviderOption(record.provider);
 
   return {
-    ...record,
     id,
+    schemaVersion: 1,
+    kind: record.kind,
+    provider: record.provider,
     label: `${record.label} Copy`,
+    baseUrl: record.baseUrl,
+    model: record.model,
+    summary: record.summary,
     status: provider.apiKeyRequired ? "needs-key" : "ready",
+    modelLabel: record.modelLabel,
+    keeperDefault: record.keeperDefault,
+    maxContext: record.maxContext,
+    maxOutput: record.maxOutput,
     createdAt: now,
     updatedAt: now,
   };

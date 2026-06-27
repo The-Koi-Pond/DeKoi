@@ -21,6 +21,14 @@ import {
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordsSnapshot } from "../storage-repository";
 
+type ProviderConnectionSecretVerification = {
+  secretVerification?: {
+    status: "unverified";
+    persistedStatus: ProviderConnectionStatus;
+    message: string;
+  };
+};
+
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
   return value === "remote-runtime" ? "remote-runtime" : "mock";
 }
@@ -156,8 +164,17 @@ async function hydrateDesktopProviderConnectionStatuses(
           ? record
           : ({ ...record, status: "needs-key" } satisfies ProviderConnectionRecord);
       } catch (error) {
-        verificationErrors.push(error instanceof Error ? error.message : String(error));
-        return record;
+        const message = error instanceof Error ? error.message : String(error);
+        verificationErrors.push(message);
+        return {
+          ...record,
+          status: "needs-key",
+          secretVerification: {
+            status: "unverified",
+            persistedStatus: record.status,
+            message,
+          },
+        } satisfies ProviderConnectionRecord & ProviderConnectionSecretVerification;
       }
     }),
   );
@@ -178,6 +195,19 @@ async function hydrateDesktopProviderConnectionStatuses(
   };
 }
 
+function durableProviderConnectionRecord(record: ProviderConnectionRecord) {
+  const sanitized = sanitizeProviderConnectionRecord(record);
+  const secretVerification = (
+    record as ProviderConnectionRecord & ProviderConnectionSecretVerification
+  ).secretVerification;
+  if (secretVerification?.status !== "unverified") return sanitized;
+
+  return {
+    ...sanitized,
+    status: secretVerification.persistedStatus,
+  } satisfies ProviderConnectionRecord;
+}
+
 export function loadProviderConnectionRecordsFromStorage(rawUrl?: string) {
   if (getHostStorageMode(rawUrl) !== "desktop") {
     return providerConnectionRepository.loadSnapshot(rawUrl);
@@ -193,7 +223,7 @@ export function saveProviderConnectionRecordsToStorage(
   rawUrl?: string,
 ) {
   return storedProviderConnectionRepository.save(
-    records.map(sanitizeProviderConnectionRecord),
+    records.map(durableProviderConnectionRecord),
     rawUrl,
   );
 }

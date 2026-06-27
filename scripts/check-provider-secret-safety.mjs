@@ -58,9 +58,11 @@ if (
     providerConnectionStorageSource,
   ) ||
   !/verificationErrors\.push/.test(providerConnectionStorageSource) ||
-  !/catch \(error\)[\s\S]*return record;/.test(providerConnectionStorageSource)
+  !/secretVerification/.test(providerConnectionStorageSource) ||
+  !/persistedStatus: record\.status/.test(providerConnectionStorageSource) ||
+  !/durableProviderConnectionRecord/.test(providerConnectionStorageSource)
 ) {
-  fail("Desktop provider connection readiness must be scoped and preserve records on verification transport failure.");
+  fail("Desktop provider connection readiness must use a non-durable verification overlay for transport failures.");
 }
 
 if (!/redactProviderConnectionSecrets\(providerConnections\)/.test(bundleSource)) {
