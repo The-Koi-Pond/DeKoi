@@ -1,5 +1,6 @@
 use chrono::{SecondsFormat, Utc};
 use std::{
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
@@ -325,9 +326,22 @@ pub(crate) fn storage_replace(
         .and_then(|value| value.as_array())
         .ok_or_else(|| "storage_replace requires args.records.".to_string())?;
 
+    let mut ids = HashSet::new();
     for record in records {
-        if !record.is_object() {
+        let Some(record) = record.as_object() else {
             return Err("storage_replace records must be objects.".to_string());
+        };
+
+        let id = record
+            .get("id")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .trim();
+        if id.is_empty() {
+            return Err("storage_replace records require id.".to_string());
+        }
+        if !ids.insert(id.to_string()) {
+            return Err("storage_replace records require unique ids.".to_string());
         }
     }
 

@@ -133,6 +133,7 @@ function replaceRecords(storage, args) {
 
     const id = readString(record.id).trim();
     if (!id) throw new Error("storage_replace records require id.");
+    if (store.has(id)) throw new Error("storage_replace records require unique ids.");
     store.set(id, { ...record, id });
   }
 
