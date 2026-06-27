@@ -8,22 +8,28 @@ import {
 import { getNextMessengerCompanion } from "./messenger-actions";
 import type { PersonaRecord } from "./persona";
 import type { ProviderConnectionRecord } from "./provider-connection";
+import {
+  characterGenerationContext,
+  cleanGenerationText,
+  createGenerationParameters,
+  loreGenerationContext,
+  namedGenerationBlock,
+  personaGenerationContext,
+  replaceGenerationPromptMacros,
+  resolveGenerationRecords,
+} from "./generation";
+import type {
+  GenerationAdapter,
+  GeneratedMessageDraft,
+  GenerationParameters,
+  GenerationPromptMessage,
+  GenerationProviderKind,
+  GenerationResponse,
+} from "./generation";
 
-export type MessengerGenerationProviderKind =
-  | "mock"
-  | "remote-runtime"
-  | "external-provider";
-
-export interface MessengerGenerationPromptMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-export interface MessengerGenerationParameters {
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-}
+export type MessengerGenerationProviderKind = GenerationProviderKind;
+export type MessengerGenerationPromptMessage = GenerationPromptMessage;
+export type MessengerGenerationParameters = GenerationParameters;
 
 export interface MessengerGenerationRequest {
   schemaVersion: 1;
@@ -42,26 +48,10 @@ export interface MessengerGenerationRequest {
   parameters: MessengerGenerationParameters;
 }
 
-export interface MessengerGeneratedMessageDraft {
-  characterId: string;
-  body: string;
-}
+export type MessengerGeneratedMessageDraft = GeneratedMessageDraft;
+export type MessengerGenerationResponse = GenerationResponse;
 
-export interface MessengerGenerationResponse {
-  schemaVersion: 1;
-  requestId: string;
-  providerKind: MessengerGenerationProviderKind;
-  createdAt: string;
-  messages: MessengerGeneratedMessageDraft[];
-  warnings: string[];
-}
-
-export interface MessengerGenerationAdapter {
-  providerKind: MessengerGenerationProviderKind;
-  generate: (
-    request: MessengerGenerationRequest,
-  ) => Promise<MessengerGenerationResponse>;
-}
+export type MessengerGenerationAdapter = GenerationAdapter<MessengerGenerationRequest>;
 
 export interface MessengerGenerationContext {
   activePersona: PersonaRecord | null;
@@ -82,14 +72,6 @@ export interface MessengerGenerationContextInput {
   fallbackProviderConnectionId?: string | null;
 }
 
-function uniqueIds(ids: string[]) {
-  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-}
-
-function missingRecordWarning(kind: string, id: string) {
-  return `Messenger thread references a missing ${kind}: ${id}.`;
-}
-
 export function createMessengerGenerationContext({
   characters,
   fallbackProviderConnectionId = null,
@@ -98,114 +80,35 @@ export function createMessengerGenerationContext({
   providerConnections = [],
   thread,
 }: MessengerGenerationContextInput): MessengerGenerationContext {
-  const characterById = new Map(
-    characters.map((character) => [character.id, character]),
-  );
-  const personaById = new Map(personas.map((persona) => [persona.id, persona]));
-  const lorebookById = new Map(
-    lorebooks.map((lorebook) => [lorebook.id, lorebook]),
-  );
-  const connectionIds = new Set(
-    providerConnections.map((connection) => connection.id),
-  );
-  const warnings: string[] = [];
-
-  const companions = uniqueIds(thread.characterIds).flatMap((characterId) => {
-    const companion = characterById.get(characterId);
-    if (companion) return [companion];
-    warnings.push(missingRecordWarning("companion", characterId));
-    return [];
+  const records = resolveGenerationRecords({
+    activePersonaId: thread.activePersonaId,
+    characterIds: thread.characterIds,
+    characters,
+    fallbackProviderConnectionId,
+    lorebookIds: thread.lorebookIds,
+    lorebooks,
+    personas,
+    providerConnectionId: thread.providerConnectionId,
+    providerConnections,
+    warningPrefix: "Messenger thread",
   });
-
-  const activePersona = thread.activePersonaId
-    ? personaById.get(thread.activePersonaId) ?? null
-    : null;
-  if (thread.activePersonaId && !activePersona) {
-    warnings.push(missingRecordWarning("persona", thread.activePersonaId));
-  }
-
-  const selectedLorebooks = uniqueIds(thread.lorebookIds).flatMap((lorebookId) => {
-    const lorebook = lorebookById.get(lorebookId);
-    if (lorebook) return [lorebook];
-    warnings.push(missingRecordWarning("lorebook", lorebookId));
-    return [];
-  });
-
-  let providerConnectionId = thread.providerConnectionId;
-  let providerConnection: ProviderConnectionRecord | null = providerConnectionId
-    ? (providerConnections.find((connection) => connection.id === providerConnectionId) ?? null)
-    : null;
-  if (providerConnectionId && !connectionIds.has(providerConnectionId)) {
-    warnings.push(missingRecordWarning("provider connection", providerConnectionId));
-    providerConnectionId = null;
-    providerConnection = null;
-  }
-
-  if (!providerConnectionId && fallbackProviderConnectionId) {
-    providerConnection =
-      providerConnections.find((connection) => connection.id === fallbackProviderConnectionId) ??
-      null;
-    providerConnectionId = providerConnection?.id ?? null;
-  }
 
   return {
-    activePersona,
-    companions,
-    lorebooks: selectedLorebooks,
-    providerConnectionId,
-    providerConnection,
+    activePersona: records.activePersona,
+    companions: records.companions,
+    lorebooks: records.lorebooks,
+    providerConnectionId: records.providerConnectionId,
+    providerConnection: records.providerConnection,
     requestThread: {
       ...thread,
-      activePersonaId: activePersona?.id ?? null,
-      characterIds: companions.map((companion) => companion.id),
-      lorebookIds: selectedLorebooks.map((lorebook) => lorebook.id),
-      mode: companions.length > 1 ? "group" : "direct",
-      providerConnectionId,
+      activePersonaId: records.activePersona?.id ?? null,
+      characterIds: records.companions.map((companion) => companion.id),
+      lorebookIds: records.lorebooks.map((lorebook) => lorebook.id),
+      mode: records.companions.length > 1 ? "group" : "direct",
+      providerConnectionId: records.providerConnectionId,
     },
-    warnings,
+    warnings: records.warnings,
   };
-}
-
-function cleanText(value: string | null | undefined) {
-  return value?.trim() ?? "";
-}
-
-function namedBlock(title: string, lines: string[]) {
-  const body = lines.filter((line) => line.trim()).join("\n");
-  return body ? [`${title}\n${body}`] : [];
-}
-
-function characterContext(character: CharacterRecord) {
-  return [
-    `Name: ${character.displayName}`,
-    character.nickname ? `Nickname: ${character.nickname}` : "",
-    character.description ? `Description: ${character.description}` : "",
-    character.personality ? `Personality: ${character.personality}` : "",
-    character.scenario ? `Scenario: ${character.scenario}` : "",
-    character.systemPrompt ? `System prompt: ${character.systemPrompt}` : "",
-    character.exampleMessages ? `Example messages: ${character.exampleMessages}` : "",
-    character.characterNote ? `Character note: ${character.characterNote}` : "",
-  ].filter(Boolean);
-}
-
-function personaContext(persona: PersonaRecord) {
-  return [
-    `Name: ${persona.displayName}`,
-    persona.nickname ? `Nickname: ${persona.nickname}` : "",
-    persona.description ? `Description: ${persona.description}` : "",
-    persona.personality ? `Personality: ${persona.personality}` : "",
-    persona.scenario ? `Scenario: ${persona.scenario}` : "",
-    persona.systemPrompt ? `System prompt: ${persona.systemPrompt}` : "",
-    persona.characterNote ? `Persona note: ${persona.characterNote}` : "",
-  ].filter(Boolean);
-}
-
-function loreContext(lorebooks: LorebookRecord[]) {
-  return lorebooks.flatMap((lorebook) =>
-    lorebook.entries
-      .filter((entry) => entry.enabled && entry.body.trim())
-      .map((entry) => `${lorebook.title} / ${entry.title}: ${entry.body.trim()}`),
-  );
 }
 
 function messageRole(message: MessengerMessage): MessengerGenerationPromptMessage["role"] {
@@ -213,7 +116,7 @@ function messageRole(message: MessengerMessage): MessengerGenerationPromptMessag
 }
 
 function messageContent(message: MessengerMessage) {
-  const label = cleanText(message.author.label) || "Unknown";
+  const label = cleanGenerationText(message.author.label) || "Unknown";
   return `${label}: ${message.body.trim()}`;
 }
 
@@ -232,25 +135,27 @@ function buildSystemPrompt({
 }) {
   const targetName = targetCompanion?.displayName ?? "the selected companion";
   const userName = activePersona?.displayName ?? "the user";
-  const selectedPrompt = resolveMessengerSystemPrompt(thread)
-    .replaceAll("{{charName}}", targetName)
-    .replaceAll("{{userName}}", userName);
+  const selectedPrompt = replaceGenerationPromptMacros(
+    resolveMessengerSystemPrompt(thread),
+    targetName,
+    userName,
+  );
 
   return [
     selectedPrompt,
-    ...namedBlock(
+    ...namedGenerationBlock(
       "Active persona",
-      activePersona ? personaContext(activePersona) : ["Anonymous user"],
+      activePersona ? personaGenerationContext(activePersona) : ["Anonymous user"],
     ),
     ...companions.flatMap((companion) =>
-      namedBlock(
+      namedGenerationBlock(
         companion.id === targetCompanion?.id
           ? "Replying companion"
           : "Other companion",
-        characterContext(companion),
+        characterGenerationContext(companion),
       ),
     ),
-    ...namedBlock("Selected lore", loreContext(lorebooks)),
+    ...namedGenerationBlock("Selected lore", loreGenerationContext(lorebooks)),
     ...(targetCompanion?.postHistoryInstructions
       ? [`Post-history instructions\n${targetCompanion.postHistoryInstructions}`]
       : []),
@@ -333,10 +238,6 @@ export function createMessengerGenerationRequest({
       thread: context.requestThread,
       targetCompanion,
     }),
-    parameters: {
-      temperature: parameters?.temperature ?? 0.8,
-      maxTokens: parameters?.maxTokens ?? context.providerConnection?.maxOutput ?? 1024,
-      topP: parameters?.topP ?? 0.95,
-    },
+    parameters: createGenerationParameters(parameters, context.providerConnection),
   };
 }

@@ -16,8 +16,8 @@ import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
-  getMessengerGenerationModeForConnection,
-  selectMessengerGenerationRuntime,
+  getGenerationModeForConnection,
+  selectGenerationRuntime,
 } from "../../runtime";
 import type {
   NavCatalogState,
@@ -108,8 +108,8 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
-  const generationMode = getMessengerGenerationModeForConnection(threadConnection);
-  const generationRuntime = selectMessengerGenerationRuntime(generationMode);
+  const generationMode = getGenerationModeForConnection(threadConnection);
+  const generationRuntime = selectGenerationRuntime(generationMode);
   const isGenerating =
     generationState.threadId === activeThreadId &&
     generationState.status === "generating";

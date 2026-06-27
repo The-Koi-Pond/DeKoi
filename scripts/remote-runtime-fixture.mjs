@@ -5,7 +5,7 @@ const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 7341;
 const RUNTIME_MARKER = "de-koi-server";
 const SUPPORTED_COMMANDS = new Set([
-  "messenger_generate",
+  "generation_generate",
   "provider_connection_check",
   "storage_create",
   "storage_delete",
@@ -161,14 +161,14 @@ function checkProviderConnection(args) {
     message: "Fixture provider connection check passed.",
   };
 }
-function generateMessengerReply(args) {
+function generateReply(args) {
   if (!isRecord(args) || !isRecord(args.request)) {
-    throw new Error("messenger_generate requires args.request.");
+    throw new Error("generation_generate requires args.request.");
   }
 
   const request = args.request;
   const requestId = readString(request.id).trim();
-  if (!requestId) throw new Error("messenger_generate request requires id.");
+  if (!requestId) throw new Error("generation_generate request requires id.");
 
   const companion = selectCompanion(request);
   const createdAt = readString(request.createdAt) || new Date().toISOString();
@@ -211,8 +211,8 @@ function invokeCommand(storage, command, args) {
   }
 
   switch (command) {
-    case "messenger_generate":
-      return generateMessengerReply(args);
+    case "generation_generate":
+      return generateReply(args);
     case "provider_connection_check":
       return checkProviderConnection(args);
     case "storage_create":

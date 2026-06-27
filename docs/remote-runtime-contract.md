@@ -70,8 +70,7 @@ data directory at:
 <app-data>/collections/<entity>.json
 ```
 
-It also provides fixture-style Messenger generation. It is a host contract
-bridge, not a real provider transport yet.
+It also provides provider-backed generation through the same command envelope.
 
 ## Invoke Envelope
 
@@ -87,7 +86,7 @@ Request envelope:
 
 ```json
 {
-  "command": "messenger_generate",
+  "command": "generation_generate",
   "args": {}
 }
 ```
@@ -101,20 +100,21 @@ Error response:
 ```
 
 The browser adapter treats any non-2xx response as a runtime error and shows the
-message in Messenger.
+message in the active chat surface.
 
 ## Commands
 
 The explicit DeKoi allowlist currently contains:
 
-- `messenger_generate`
+- `generation_generate`
+- `provider_connection_check`
 - `storage_list`
 - `storage_create`
 - `storage_update`
 - `storage_delete`
 
 Generation and storage commands must remain separately named. Do not overload
-`messenger_generate` to persist messages or overload storage commands to run
+`generation_generate` to persist messages or overload storage commands to run
 generation.
 
 The TypeScript command registry is `src/shared/api/runtime-commands.ts`. Run this
@@ -124,17 +124,22 @@ after changing the command list:
 pnpm check:runtime-contracts
 ```
 
-## `messenger_generate`
+## `generation_generate`
+
+The request may carry Messenger or Roleplay native fields for local context.
+Runtimes should use the shared generation fields for provider calls:
+`providerConnection`, `targetCharacterId`, `targetCharacterName`,
+`promptMessages`, and `parameters`.
 
 Request:
 
 ```json
 {
-  "command": "messenger_generate",
+  "command": "generation_generate",
   "args": {
     "request": {
       "schemaVersion": 1,
-      "id": "messenger-generation-request-example",
+      "id": "generation-request-example",
       "createdAt": "2026-06-24T07:20:00.000Z",
       "thread": {
         "id": "messenger-thread-example",
@@ -237,7 +242,42 @@ Request:
           "updatedAt": "2026-06-24T07:00:00.000Z"
         }
       ],
-      "providerConnectionId": "connection-remote-runtime"
+      "providerConnectionId": "connection-remote-runtime",
+      "providerConnection": {
+        "id": "connection-remote-runtime",
+        "schemaVersion": 1,
+        "kind": "remote-runtime",
+        "provider": "custom",
+        "label": "Local OpenAI-compatible runtime",
+        "apiKey": "",
+        "baseUrl": "http://127.0.0.1:1234/v1",
+        "model": "local-model",
+        "summary": "",
+        "status": "ready",
+        "modelLabel": null,
+        "keeperDefault": false,
+        "maxContext": null,
+        "maxOutput": 1024,
+        "createdAt": "2026-06-24T07:00:00.000Z",
+        "updatedAt": "2026-06-24T07:00:00.000Z"
+      },
+      "targetCharacterId": "character-koi",
+      "targetCharacterName": "Koi",
+      "promptMessages": [
+        {
+          "role": "system",
+          "content": "You are Koi, replying naturally to Xel."
+        },
+        {
+          "role": "user",
+          "content": "Xel: Can you hear me?"
+        }
+      ],
+      "parameters": {
+        "temperature": 0.8,
+        "maxTokens": 1024,
+        "topP": 0.95
+      }
     }
   }
 }
@@ -248,7 +288,7 @@ Response:
 ```json
 {
   "schemaVersion": 1,
-  "requestId": "messenger-generation-request-example",
+  "requestId": "generation-request-example",
   "providerKind": "remote-runtime",
   "createdAt": "2026-06-24T07:20:00.000Z",
   "messages": [

@@ -1,6 +1,5 @@
 import type { CharacterRecord } from "./character";
 import type { RoleplayEntry, RoleplayThread } from "./roleplay";
-import type { MessengerMessage } from "./messenger";
 import type { PersonaRecord } from "./persona";
 
 function cleanText(value: string | undefined, fallback = "") {
@@ -280,21 +279,21 @@ export function replaceRoleplayThreadProviderConnection(
 }
 
 export function createGeneratedRoleplayEntry({
+  body,
   companion,
   id,
-  message,
   now,
   thread,
 }: {
+  body: string;
   companion: CharacterRecord;
   id: string;
-  message: MessengerMessage;
   now: string;
   thread: RoleplayThread;
 }): RoleplayEntry {
   return {
     ...createCompanionRoleplayEntry({
-      body: message.body,
+      body,
       companion,
       id,
       now,

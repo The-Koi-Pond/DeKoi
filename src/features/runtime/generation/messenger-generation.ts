@@ -16,10 +16,16 @@ import type { LorebookRecord } from "../../../engine/lorebook";
 import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
+import {
+  getGenerationModeForConnection,
+  isGenerationRuntimeMode,
+  selectGenerationRuntime,
+  type GenerationRuntimeMode,
+} from "./generation-runtime";
 import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
-export type MessengerGenerationRuntimeMode = "mock" | "remote-runtime";
+export type MessengerGenerationRuntimeMode = GenerationRuntimeMode;
 
 export interface MessengerGenerationRuntimeSnapshot {
   mode: MessengerGenerationRuntimeMode;
@@ -57,31 +63,25 @@ export interface GenerateMessengerThreadReplyResult {
 export function isMessengerGenerationRuntimeMode(
   value: unknown,
 ): value is MessengerGenerationRuntimeMode {
-  return value === "mock" || value === "remote-runtime";
+  return isGenerationRuntimeMode(value);
 }
 
 export function selectMessengerGenerationRuntime(
   mode: MessengerGenerationRuntimeMode = "mock",
 ): MessengerGenerationRuntimeSnapshot {
-  if (mode === "remote-runtime") {
+  const runtime = selectGenerationRuntime(mode);
+
+  if (runtime.mode === "remote-runtime") {
     return {
       mode: "remote-runtime",
-      label: "Provider generation",
+      label: runtime.label,
       adapter: providerMessengerGenerationAdapter,
-    };
-  }
-
-  if (mode !== "mock") {
-    return {
-      mode: "mock",
-      label: "Mock generation",
-      adapter: mockMessengerGenerationAdapter,
     };
   }
 
   return {
     mode: "mock",
-    label: "Mock generation",
+    label: runtime.label,
     adapter: mockMessengerGenerationAdapter,
   };
 }
@@ -89,7 +89,7 @@ export function selectMessengerGenerationRuntime(
 export function getMessengerGenerationModeForConnection(
   connection: ProviderConnectionRecord | null | undefined,
 ): MessengerGenerationRuntimeMode {
-  return connection?.kind === "remote-runtime" ? "remote-runtime" : "mock";
+  return getGenerationModeForConnection(connection);
 }
 
 export async function generateMessengerResponse(

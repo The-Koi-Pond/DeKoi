@@ -1,19 +1,20 @@
 import type { CharacterRecord } from "../../../engine/character";
+import type { LorebookRecord } from "../../../engine/lorebook";
+import type { PersonaRecord } from "../../../engine/persona";
+import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import {
   appendRoleplayEntries,
   createGeneratedRoleplayEntry,
 } from "../../../engine/roleplay-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
-import type { LorebookRecord } from "../../../engine/lorebook";
 import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerMessage,
-  type MessengerThread,
-} from "../../../engine/messenger";
-import type { PersonaRecord } from "../../../engine/persona";
-import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
-import type { MessengerGenerationRuntimeMode } from "./messenger-generation";
-import { generateMessengerThreadReply } from "./messenger-generation";
+  createRoleplayGenerationContext,
+  createRoleplayGenerationRequest,
+  type RoleplayGenerationRequest,
+  type RoleplayGenerationResponse,
+} from "../../../engine/roleplay-generation";
+import type { GenerationRuntimeMode } from "./generation-runtime";
+import { generateWithConfiguredProvider } from "./provider-generation";
 
 export interface GenerateRoleplayThreadTurnInput {
   thread: RoleplayThread;
@@ -23,7 +24,7 @@ export interface GenerateRoleplayThreadTurnInput {
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
-  mode?: MessengerGenerationRuntimeMode;
+  mode?: GenerationRuntimeMode;
   parameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -38,140 +39,71 @@ export interface GenerateRoleplayThreadTurnResult {
   generatedEntryCount: number;
 }
 
-function roleplayEntriesToMessengerMessages(
-  thread: RoleplayThread,
-): MessengerMessage[] {
-  return thread.entries.flatMap((entry): MessengerMessage[] => {
-    if (entry.role === "character" && entry.characterId) {
-      return [
-        {
-          id: `messenger-${entry.id}`,
-          threadId: thread.id,
-          author: {
-            kind: "character",
-            characterId: entry.characterId,
-            label: entry.label,
-          },
-          body: entry.body,
-          origin: entry.origin === "generated" ? "generated" : "manual",
-          createdAt: entry.createdAt,
-          updatedAt: entry.updatedAt,
-        },
-      ];
-    }
-
-    if (entry.role === "persona" && entry.personaId) {
-      return [
-        {
-          id: `messenger-${entry.id}`,
-          threadId: thread.id,
-          author: {
-            kind: "persona",
-            personaId: entry.personaId,
-            label: entry.label,
-          },
-          body: entry.body,
-          origin: "manual",
-          createdAt: entry.createdAt,
-          updatedAt: entry.updatedAt,
-        },
-      ];
-    }
-
-    if (entry.role === "narration") {
-      return [
-        {
-          id: `messenger-${entry.id}`,
-          threadId: thread.id,
-          author: {
-            kind: "unknown",
-            label: entry.label,
-          },
-          body: entry.body,
-          origin: "manual",
-          createdAt: entry.createdAt,
-          updatedAt: entry.updatedAt,
-        },
-      ];
-    }
-
-    return [];
-  });
+function providerErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : String(error ?? "Unknown provider error.");
 }
 
-function roleplayThreadToMessengerThread(thread: RoleplayThread): MessengerThread {
+function createMockRoleplayResponse(
+  request: RoleplayGenerationRequest,
+): RoleplayGenerationResponse {
+  const targetCharacterId = request.targetCharacterId;
+  const targetName = request.targetCharacterName ?? "Companion";
+
+  if (!targetCharacterId) {
+    return {
+      schemaVersion: 1,
+      requestId: request.id,
+      providerKind: "mock",
+      createdAt: request.createdAt,
+      messages: [],
+      warnings: ["No companion is available for this Roleplay thread."],
+    };
+  }
+
+  const personaName = request.activePersona?.displayName ?? "Anonymous";
+  const selectedLoreCount = request.lorebooks.reduce(
+    (count, lorebook) =>
+      count +
+      lorebook.entries.filter((entry) => entry.enabled && entry.body.trim()).length,
+    0,
+  );
+  const sceneLabel = request.thread.sceneText.trim()
+    ? "the active scene text"
+    : request.thread.title;
+
   return {
-    id: thread.id,
     schemaVersion: 1,
-    kind: "messenger",
-    mode: thread.characterIds.length > 1 ? "group" : "direct",
-    title: thread.title,
-    characterIds: thread.characterIds,
-    activePersonaId: thread.activePersonaId,
-    lorebookIds: thread.lorebookIds,
-    presetId: null,
-    providerConnectionId: thread.providerConnectionId,
-    systemPromptMode: "default",
-    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
-    messages: roleplayEntriesToMessengerMessages(thread),
-    createdAt: thread.createdAt,
-    updatedAt: thread.updatedAt,
+    requestId: request.id,
+    providerKind: "mock",
+    createdAt: request.createdAt,
+    messages: [
+      {
+        characterId: targetCharacterId,
+        body: `Mock Roleplay reply from ${targetName}: I am responding to ${personaName} using ${sceneLabel} and ${selectedLoreCount} selected lore notes.`,
+      },
+    ],
+    warnings: [],
   };
 }
 
-function createRoleplayUserMessage({
-  createId,
-  now,
-  thread,
-}: {
-  createId: (prefix: string) => string;
-  now: string;
-  thread: RoleplayThread;
-}): MessengerMessage {
-  const lastEntry = thread.entries.at(-1);
-  if (lastEntry?.role === "persona" && lastEntry.personaId) {
-    return {
-      id: `messenger-${lastEntry.id}`,
-      threadId: thread.id,
-      author: {
-        kind: "persona",
-        personaId: lastEntry.personaId,
-        label: lastEntry.label,
-      },
-      body: lastEntry.body,
-      origin: "manual",
-      createdAt: lastEntry.createdAt,
-      updatedAt: lastEntry.updatedAt,
-    };
+async function generateRoleplayResponse(
+  request: RoleplayGenerationRequest,
+  mode: GenerationRuntimeMode = "mock",
+): Promise<RoleplayGenerationResponse> {
+  if (mode !== "remote-runtime") {
+    return createMockRoleplayResponse(request);
   }
 
-  if (lastEntry?.role === "narration") {
-    return {
-      id: `messenger-${lastEntry.id}`,
-      threadId: thread.id,
-      author: {
-        kind: "unknown",
-        label: lastEntry.label,
-      },
-      body: lastEntry.body,
-      origin: "manual",
-      createdAt: lastEntry.createdAt,
-      updatedAt: lastEntry.updatedAt,
-    };
+  try {
+    return await generateWithConfiguredProvider(request);
+  } catch (error) {
+    throw new Error(
+      `Provider Roleplay generation failed. ${providerErrorMessage(error)}`,
+      { cause: error },
+    );
   }
-
-  return {
-    id: createId("roleplay-generation-prompt"),
-    threadId: thread.id,
-    author: {
-      kind: "system",
-      label: "Roleplay",
-    },
-    body: "Continue this Roleplay chat with the next in-character turn.",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
 }
 
 export async function generateRoleplayThreadTurn({
@@ -186,36 +118,39 @@ export async function generateRoleplayThreadTurn({
   providerConnections,
   thread,
 }: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
-  const messengerThread = roleplayThreadToMessengerThread(thread);
-  const userMessage = createRoleplayUserMessage({ createId, now, thread });
-  const result = await generateMessengerThreadReply({
+  const context = createRoleplayGenerationContext({
     characters,
-    createId,
     fallbackProviderConnectionId,
     lorebooks,
-    mode,
-    now,
-    parameters,
     personas,
     providerConnections,
-    thread: messengerThread,
-    userMessage,
+    thread,
   });
-  const entries = result.generatedMessages.flatMap((message) => {
-    const author = message.author;
-    if (author.kind !== "character") return [];
-
-    const companion = characters.find(
-      (character) => character.id === author.characterId,
+  const request = createRoleplayGenerationRequest({
+    context,
+    id: createId("roleplay-generation-request"),
+    now,
+    parameters,
+  });
+  const response = await generateRoleplayResponse(request, mode);
+  const droppedDraftWarnings: string[] = [];
+  const entries = response.messages.flatMap((messageDraft) => {
+    const companion = context.companions.find(
+      (candidate) => candidate.id === messageDraft.characterId,
     );
-    if (!companion) return [];
+    if (!companion) {
+      droppedDraftWarnings.push(
+        `Generation response referenced an unavailable companion: ${messageDraft.characterId}.`,
+      );
+      return [];
+    }
 
     return [
       createGeneratedRoleplayEntry({
+        body: messageDraft.body,
         companion,
         id: createId("roleplay-entry"),
-        message,
-        now: message.createdAt,
+        now: response.createdAt,
         thread,
       }),
     ];
@@ -224,9 +159,9 @@ export async function generateRoleplayThreadTurn({
   return {
     thread:
       entries.length > 0
-        ? appendRoleplayEntries(thread, entries, result.thread.updatedAt)
+        ? appendRoleplayEntries(thread, entries, response.createdAt)
         : thread,
-    warnings: result.warnings,
+    warnings: [...context.warnings, ...response.warnings, ...droppedDraftWarnings],
     generatedEntryCount: entries.length,
   };
 }

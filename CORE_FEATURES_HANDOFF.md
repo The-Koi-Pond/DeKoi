@@ -162,7 +162,7 @@ Current files:
 
 Implementation:
 
-- Continue hardening `/api/invoke` command docs for `messenger_generate`.
+- Continue hardening `/api/invoke` command docs for `generation_generate`.
 - Keep the tiny local fixture server available for development.
 - Keep exact JSON request and response examples in `docs/`.
 - Keep the command allowlist explicit.

@@ -38,6 +38,13 @@ export {
   type DeKoiStorageBundlePreview,
 } from "./storage";
 export {
+  getGenerationModeForConnection,
+  isGenerationRuntimeMode,
+  selectGenerationRuntime,
+  type GenerationRuntimeMode,
+  type GenerationRuntimeSnapshot,
+} from "./generation";
+export {
   generateRoleplayThreadTurn,
   type GenerateRoleplayThreadTurnInput,
   type GenerateRoleplayThreadTurnResult,

@@ -520,19 +520,19 @@ fn is_openai_compatible(provider: &str) -> bool {
     )
 }
 
-async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Value, String> {
-    let args = runtime_args_object(args, "messenger_generate")?;
+async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Value, String> {
+    let args = runtime_args_object(args, "generation_generate")?;
     let request = args
         .get("request")
-        .ok_or_else(|| "messenger_generate requires args.request.".to_string())?;
+        .ok_or_else(|| "generation_generate requires args.request.".to_string())?;
     let request_id = read_string_field(request, "id").trim();
     if request_id.is_empty() {
-        return Err("messenger_generate request requires id.".to_string());
+        return Err("generation_generate request requires id.".to_string());
     }
 
     let provider_connection = request
         .get("providerConnection")
-        .ok_or_else(|| "messenger_generate requires request.providerConnection.".to_string())?;
+        .ok_or_else(|| "generation_generate requires request.providerConnection.".to_string())?;
     let provider_connection = as_object(provider_connection, "request.providerConnection")?;
     let provider = provider_connection
         .get("provider")
@@ -560,7 +560,7 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
     let prompt_messages = request
         .get("promptMessages")
         .and_then(|value| value.as_array())
-        .ok_or_else(|| "messenger_generate requires request.promptMessages.".to_string())?;
+        .ok_or_else(|| "generation_generate requires request.promptMessages.".to_string())?;
     let parameters = request
         .get("parameters")
         .unwrap_or(&serde_json::Value::Null);
@@ -661,7 +661,7 @@ async fn messenger_generate(args: &serde_json::Value) -> Result<serde_json::Valu
         )
     } else {
         return Err(format!(
-            "{provider} is not supported by the bare-minimum Messenger provider adapter yet."
+            "{provider} is not supported by the bare-minimum provider adapter yet."
         ));
     };
 
@@ -709,7 +709,7 @@ pub(crate) async fn dekoi_runtime_invoke(
 ) -> Result<serde_json::Value, String> {
     let args = args.unwrap_or(serde_json::Value::Null);
     match command.as_str() {
-        "messenger_generate" => messenger_generate(&args).await,
+        "generation_generate" => generation_generate(&args).await,
         "provider_connection_check" => provider_connection_check(&args).await,
         "storage_create" => storage_create(&app, &args),
         "storage_delete" => storage_delete(&app, &args),
