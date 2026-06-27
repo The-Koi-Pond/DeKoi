@@ -2009,8 +2009,15 @@ def write_skipped_review(title, body, *, status="unknown", metadata=None):
     )
 
 
+def redact_error_message(message):
+    message = re.sub(r"sk-[A-Za-z0-9_*.-]{8,}", "[redacted-api-key]", message)
+    message = re.sub(r"Bearer\s+[A-Za-z0-9._~+/-]+", "Bearer [redacted-token]", message)
+    return message
+
+
 def model_failure_detail(exc):
     message = " ".join(str(exc).split())
+    message = redact_error_message(message)
     if len(message) > 500:
         message = message[:497] + "..."
     return (

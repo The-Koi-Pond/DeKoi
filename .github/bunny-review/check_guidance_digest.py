@@ -318,6 +318,17 @@ def run_model_key_case(module):
             os.environ["LLM_BASE_URL"] = old_base_url
 
 
+def run_failure_redaction_case(module):
+    detail = module.model_failure_detail(
+        RuntimeError(
+            "Incorrect API key provided: sk-secretprefix***************************************secret."
+        )
+    )
+    assert "sk-secretprefix" not in detail
+    assert "secret." not in detail
+    assert "[redacted-api-key]" in detail
+
+
 def run_status_case(module):
     with tempfile.TemporaryDirectory(prefix="bunny-status-proof-") as tmp:
         root = pathlib.Path(tmp)
@@ -395,6 +406,7 @@ def main():
     repair_calls = run_semantic_repair_case(module)
     run_json_repair_format_case(module)
     run_model_key_case(module)
+    run_failure_redaction_case(module)
     run_status_case(module)
     run_command_mode_case(module)
     print(
@@ -411,6 +423,7 @@ def main():
         "render_voice=true "
         "model_key_fallback=true "
         "model_base_url_fallback=true "
+        "model_failure_redaction=true "
         "ci_control_status_ignored=true "
         "incremental_command_mode=true"
     )
