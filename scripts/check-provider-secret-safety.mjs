@@ -162,7 +162,11 @@ if (
   !/PROVIDER_CONNECTION_DURABLE_FIELD_SET/.test(
     providerConnectionStorageSource,
   ) ||
+  !/assertProviderConnectionDurableShape/.test(providerConnectionStorageSource) ||
   !/assertProviderConnectionDurableRecord/.test(providerConnectionStorageSource) ||
+  !/normalizeDurableProviderConnectionRecord/.test(
+    providerConnectionStorageSource,
+  ) ||
   !/Object\.keys\(record\)\.sort\(\)/.test(providerConnectionStorageSource) ||
   !/missing\.length > 0 \|\| extra\.length > 0/.test(
     providerConnectionStorageSource,
@@ -170,7 +174,16 @@ if (
   !/normalizeProviderConnectionRecord\(record, \{\s*preserveReadyStatus: true,/m.test(
     providerConnectionStorageSource,
   ) ||
-  !/Object\.is\(record\[field\], normalized\[field\]\)/.test(
+  !/const normalizedRecord = normalizeDurableProviderConnectionRecord\(record\)/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/const normalizedSanitizedRecord = normalizeDurableProviderConnectionRecord\(\s*sanitizeProviderConnectionRecord\(record\),\s*\)/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/Object\.is\(record\[field\], expectedRecord\[field\]\)/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/assertProviderConnectionDurableRecord\(\s*normalizedSanitizedRecord,\s*normalizedRecord,\s*\)/.test(
     providerConnectionStorageSource,
   ) ||
   !/sanitizeProviderConnectionRecord\(record\)/.test(

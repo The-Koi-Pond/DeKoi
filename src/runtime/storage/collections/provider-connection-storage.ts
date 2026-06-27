@@ -144,7 +144,7 @@ const storedProviderConnectionRepository = createStorageRepository({
   seedRecords: [],
 });
 
-function assertProviderConnectionDurableRecord(
+function assertProviderConnectionDurableShape(
   record: ProviderConnectionRecord,
 ): ProviderConnectionRecord {
   const keys = Object.keys(record).sort();
@@ -165,6 +165,12 @@ function assertProviderConnectionDurableRecord(
     );
   }
 
+  return record;
+}
+
+function normalizeDurableProviderConnectionRecord(
+  record: ProviderConnectionRecord,
+): ProviderConnectionRecord {
   const normalized = normalizeProviderConnectionRecord(record, {
     preserveReadyStatus: true,
   });
@@ -174,8 +180,15 @@ function assertProviderConnectionDurableRecord(
     );
   }
 
+  return assertProviderConnectionDurableShape(normalized);
+}
+
+function assertProviderConnectionDurableRecord(
+  record: ProviderConnectionRecord,
+  expectedRecord: ProviderConnectionRecord,
+): ProviderConnectionRecord {
   const changed = PROVIDER_CONNECTION_DURABLE_FIELDS.filter(
-    (field) => !Object.is(record[field], normalized[field]),
+    (field) => !Object.is(record[field], expectedRecord[field]),
   );
   if (changed.length > 0) {
     throw new Error(
@@ -189,8 +202,14 @@ function assertProviderConnectionDurableRecord(
 function durableProviderConnectionRecord(
   record: ProviderConnectionRecord,
 ): ProviderConnectionRecord {
-  return assertProviderConnectionDurableRecord(
+  const normalizedRecord = normalizeDurableProviderConnectionRecord(record);
+  const normalizedSanitizedRecord = normalizeDurableProviderConnectionRecord(
     sanitizeProviderConnectionRecord(record),
+  );
+
+  return assertProviderConnectionDurableRecord(
+    normalizedSanitizedRecord,
+    normalizedRecord,
   );
 }
 
