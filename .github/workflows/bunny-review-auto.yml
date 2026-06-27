@@ -1,6 +1,6 @@
 name: Bunny Review Auto Dispatch
 
-# Set DEKOI_PR_SYNC_AUTOMATION=off to pause automatic synchronize dispatches.
+# Set DEKOI_PR_SYNC_AUTOMATION=off or DE_KOI_PR_SYNC_AUTOMATION=off to pause automatic synchronize dispatches.
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   dispatch:
-    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || vars.DE_KOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - name: Dispatch trusted Bunny reviewer
         env:
@@ -30,7 +30,7 @@ jobs:
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
-          PR_SYNC_AUTOMATION: ${{ vars.DEKOI_PR_SYNC_AUTOMATION }}
+          PR_SYNC_AUTOMATION: ${{ vars.DEKOI_PR_SYNC_AUTOMATION || vars.DE_KOI_PR_SYNC_AUTOMATION }}
         shell: bash
         run: |
           set -euo pipefail
@@ -73,7 +73,7 @@ jobs:
             exit 0
           fi
           if [ "$EVENT_ACTION" = "synchronize" ] && [ "${PR_SYNC_AUTOMATION:-}" = "off" ]; then
-            echo "DEKOI_PR_SYNC_AUTOMATION=off; skipping synchronize dispatch."
+            echo "PR sync automation is off; skipping synchronize dispatch."
             exit 0
           fi
           if ! trusted_actor "$PR_AUTHOR" "$PR_AUTHOR_ASSOCIATION"; then

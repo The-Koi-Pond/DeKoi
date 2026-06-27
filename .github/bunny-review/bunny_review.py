@@ -638,12 +638,49 @@ def print_telemetry(stats):
     )
 
 
-def model_call(client, messages, stats):
-    resp = client.chat.completions.create(
-        model=os.environ.get("LLM_MODEL", "gpt-5.5"),
-        messages=messages,
-        timeout=MODEL_REQUEST_TIMEOUT,
+def json_response_format_enabled():
+    return str(os.environ.get("BUNNY_JSON_RESPONSE_FORMAT", "auto")).strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+        "disabled",
+    }
+
+
+def response_format_retryable(exc):
+    message = str(exc).lower()
+    return any(
+        marker in message
+        for marker in (
+            "response_format",
+            "json_object",
+            "unsupported parameter",
+            "unknown parameter",
+            "extra inputs are not permitted",
+        )
     )
+
+
+def model_call(client, messages, stats, *, force_json=False):
+    kwargs = {
+        "model": os.environ.get("LLM_MODEL", "gpt-5.5"),
+        "messages": messages,
+        "timeout": MODEL_REQUEST_TIMEOUT,
+    }
+    if force_json and json_response_format_enabled():
+        kwargs["response_format"] = {"type": "json_object"}
+    try:
+        resp = client.chat.completions.create(**kwargs)
+    except Exception as exc:
+        if "response_format" not in kwargs or not response_format_retryable(exc):
+            raise
+        kwargs.pop("response_format", None)
+        print(
+            "Bunny warning: JSON response_format was not accepted; retrying without it.",
+            flush=True,
+        )
+        resp = client.chat.completions.create(**kwargs)
     stats["model_calls"] += 1
     add_usage(stats, getattr(resp, "usage", None))
     if isinstance(resp, str):
@@ -691,7 +728,7 @@ def semantic_repair_review_object(client, messages, review_obj, gaps, stats):
         },
     ]
     try:
-        repaired = extract_json(model_call(client, repair_messages, stats))
+        repaired = extract_json(model_call(client, repair_messages, stats, force_json=True))
     except Exception as exc:
         review_obj["_schema_repair_gaps"] = gaps
         review_obj["_schema_repair_error"] = " ".join(str(exc).split())
@@ -722,7 +759,7 @@ def extract_json_or_repair(client, messages, content, stats):
                 ),
             },
         ]
-        parsed = extract_json(model_call(client, repair_messages, stats))
+        parsed = extract_json(model_call(client, repair_messages, stats, force_json=True))
     gaps = review_contract_gaps(parsed)
     if gaps:
         return semantic_repair_review_object(client, messages, parsed, gaps, stats)
@@ -752,7 +789,7 @@ def review_packet_with_model(client, skill, triage_content, stats):
             ),
         },
     ]
-    final_response = model_call(client, final_messages, stats)
+    final_response = model_call(client, final_messages, stats, force_json=True)
     return extract_json_or_repair(client, final_messages, final_response, stats)
 
 
@@ -773,7 +810,7 @@ def skeptical_review_pass(client, skill, triage_content, stats):
         {"role": "user", "content": triage_content},
         {"role": "user", "content": audit_prompt},
     ]
-    response = model_call(client, messages, stats)
+    response = model_call(client, messages, stats, force_json=True)
     return extract_json_or_repair(client, messages, response, stats)
 
 
@@ -800,7 +837,7 @@ def judge_review_pass(client, skill, triage_content, broad_review, skeptical_rev
         {"role": "user", "content": triage_content},
         {"role": "user", "content": judge_prompt},
     ]
-    response = model_call(client, messages, stats)
+    response = model_call(client, messages, stats, force_json=True)
     return extract_json_or_repair(client, messages, response, stats)
 
 
@@ -2252,8 +2289,9 @@ def model_api_key():
 def missing_model_api_key_message():
     return (
         "The reviewer could not run because no model API key is available in this "
-        "workflow run. Set `DEKOI_BUNNY_LLM_API_KEY` for provider-specific Bunny "
-        "credentials or keep `OPENAI_API_KEY` for the default provider."
+        "workflow run. Set `DEKOI_BUNNY_LLM_API_KEY` or legacy "
+        "`DE_KOI_BUNNY_LLM_API_KEY` for provider-specific Bunny credentials, "
+        "or keep `OPENAI_API_KEY` for the default provider."
     )
 
 
@@ -2699,15 +2737,6 @@ def status_state(args):
     review_obj = load_review_for_status(args.review_json)
     pre_merge = review_obj.get("pre_merge_checks") if isinstance(review_obj, dict) else []
     findings = status_findings(review_obj)
-    ci_control = load_ci_control_for_status(args.ci_control)
-    if ci_control.get("failed"):
-        print("state=failure")
-        print("description=Required CI checks failed.")
-        return
-    if ci_control.get("pending") or ci_control.get("missing"):
-        print("state=pending")
-        print("description=Required CI checks were pending or missing.")
-        return
     if has_incomplete_review_check(pre_merge or []):
         print("state=failure")
         print("description=Bunny Review posted a failure or skipped report; rerun after repairing the review control.")

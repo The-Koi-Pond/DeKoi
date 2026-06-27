@@ -12,8 +12,8 @@ jobs:
     name: Sanity Gate
     if: >
       github.event_name != 'pull_request' ||
-      (vars.DEKOI_CI_FULL_MODE != 'full' && vars.DEKOI_CI_FULL_MODE != 'all')
-    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+      ((vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'full' && (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'all')
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || vars.DE_KOI_CI_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v7
         with:

@@ -50,7 +50,7 @@ concurrency:
 
 jobs:
   review:
-    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_RUNS_ON || vars.DE_KOI_BUNNY_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     env:
       PR_NUM: ${{ inputs.pr_number }}
@@ -121,11 +121,11 @@ jobs:
       - name: Run review while CI completes
         timeout-minutes: 25
         env:
-          LLM_API_KEY: ${{ secrets.DEKOI_BUNNY_LLM_API_KEY }}
+          LLM_API_KEY: ${{ secrets.DEKOI_BUNNY_LLM_API_KEY || secrets.DE_KOI_BUNNY_LLM_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          LLM_BASE_URL: ${{ vars.DEKOI_BUNNY_LLM_BASE_URL || secrets.LLM_BASE_URL }}
-          LLM_MODEL: ${{ vars.DEKOI_BUNNY_LLM_MODEL || 'gpt-5.5' }}
-          BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS: ${{ inputs.model_request_timeout_seconds || vars.DEKOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || '120' }}
+          LLM_BASE_URL: ${{ vars.DEKOI_BUNNY_LLM_BASE_URL || vars.DE_KOI_BUNNY_LLM_BASE_URL || secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.DEKOI_BUNNY_LLM_MODEL || vars.DE_KOI_BUNNY_LLM_MODEL || 'gpt-5.5' }}
+          BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS: ${{ inputs.model_request_timeout_seconds || vars.DEKOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || vars.DE_KOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || '120' }}
           CI_STATUS: CI checks are still running; final CI results will be appended before posting.
           BUNNY_REVIEW_PROMPT_PATH: /tmp/bunny-review-tool/.github/bunny-review/reviewer-prompt.md
           BUNNY_REVIEW_SKILL_PATH: /tmp/bunny-review-tool/.github/bunny-review/SKILL.md

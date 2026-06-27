@@ -15,7 +15,7 @@ jobs:
     if: >
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/bunny-review')
-    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_BUNNY_DISPATCH_RUNS_ON || vars.DE_KOI_BUNNY_DISPATCH_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - name: Dispatch trusted Bunny reviewer
         env:

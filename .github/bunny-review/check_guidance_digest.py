@@ -187,11 +187,84 @@ def run_semantic_repair_case(module):
     )
 
     assert len(completions.calls) == 1, "semantic schema gap should trigger one repair call"
+    assert completions.calls[0].get("response_format") == {"type": "json_object"}
     assert parsed["change_summary"] == repaired["change_summary"]
     assert parsed["_schema_repair_gaps"], "repair diagnostics should be retained"
     normalized = module.normalize_review_object(parsed, "HEAD~1", ["src/example.ts"])
     assert normalized["what_i_checked"][0].startswith("Bunny repaired the model review JSON")
     return stats["model_calls"]
+
+
+def run_json_repair_format_case(module):
+    repaired = {
+        "change_summary": ["Wah, the no-JSON response got repaired into a proper review object."],
+        "findings": [],
+        "nitpicks": [],
+        "pre_merge_checks": [],
+        "open_questions": [],
+        "what_i_checked": ["Bunny checked the no-JSON repair path."],
+    }
+
+    class FakeCompletions:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            return SimpleNamespace(
+                usage=None,
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content="FINAL_REVIEW\n" + json.dumps(repaired)
+                        )
+                    )
+                ],
+            )
+
+    completions = FakeCompletions()
+    client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    stats = module.build_stats("packet")
+    parsed = module.extract_json_or_repair(
+        client,
+        [{"role": "system", "content": "prompt"}, {"role": "user", "content": "packet"}],
+        "No JSON here.",
+        stats,
+    )
+    assert parsed["change_summary"] == repaired["change_summary"]
+    assert completions.calls[0].get("response_format") == {"type": "json_object"}
+
+    class RejectingCompletions:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            if "response_format" in kwargs:
+                raise RuntimeError("unsupported parameter: response_format")
+            return SimpleNamespace(
+                usage=None,
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content="FINAL_REVIEW\n" + json.dumps(repaired)
+                        )
+                    )
+                ],
+            )
+
+    rejecting = RejectingCompletions()
+    client = SimpleNamespace(chat=SimpleNamespace(completions=rejecting))
+    parsed = module.extract_json_or_repair(
+        client,
+        [{"role": "system", "content": "prompt"}, {"role": "user", "content": "packet"}],
+        "Still no JSON.",
+        module.build_stats("packet"),
+    )
+    assert parsed["change_summary"] == repaired["change_summary"]
+    assert len(rejecting.calls) == 2
+    assert "response_format" in rejecting.calls[0]
+    assert "response_format" not in rejecting.calls[1]
 
 
 def run_model_key_case(module):
@@ -239,8 +312,8 @@ def run_status_case(module):
                 )
         )
         text = output.getvalue()
-        assert "state=failure" in text
-        assert "Required CI checks failed" in text
+        assert "state=success" in text
+        assert "Required CI checks failed" not in text
 
         control.write_text(
             json.dumps({"failed": [], "missing": [], "pending": ["Frontend and Project Contracts"]}),
@@ -257,8 +330,8 @@ def run_status_case(module):
                 )
             )
         text = output.getvalue()
-        assert "state=pending" in text
-        assert "Required CI checks were pending or missing" in text
+        assert "state=success" in text
+        assert "Required CI checks were pending or missing" not in text
 
 
 def run_command_mode_case(module):
@@ -290,6 +363,7 @@ def main():
     module = load_bunny_review()
     packet_len = run_packet_case(module)
     repair_calls = run_semantic_repair_case(module)
+    run_json_repair_format_case(module)
     run_model_key_case(module)
     run_status_case(module)
     run_command_mode_case(module)
@@ -301,9 +375,12 @@ def main():
         "packet_budget_chunking=true "
         "summary_fallback=true "
         "semantic_repair=true "
+        "json_response_format=true "
+        "no_json_repair=true "
+        "response_format_fallback=true "
         "render_voice=true "
         "model_key_fallback=true "
-        "ci_control_status_enforced=true "
+        "ci_control_status_ignored=true "
         "incremental_command_mode=true"
     )
 

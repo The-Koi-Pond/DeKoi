@@ -100,5 +100,35 @@ for (const workflow of [
   assert.doesNotMatch(text, /pnpm install|pip install|cargo check/i, `${workflow} must not install or execute PR code`);
 }
 
+const reviewWorkflow = read(".github/workflows/bunny-review.yml");
+assert.match(reviewWorkflow, /DEKOI_BUNNY_RUNS_ON/);
+assert.match(reviewWorkflow, /DE_KOI_BUNNY_RUNS_ON/);
+assert.match(reviewWorkflow, /DEKOI_BUNNY_LLM_API_KEY/);
+assert.match(reviewWorkflow, /DE_KOI_BUNNY_LLM_API_KEY/);
+assert.match(reviewWorkflow, /DEKOI_BUNNY_LLM_MODEL/);
+assert.match(reviewWorkflow, /DE_KOI_BUNNY_LLM_MODEL/);
+
+const autoWorkflow = read(".github/workflows/bunny-review-auto.yml");
+assert.match(autoWorkflow, /DEKOI_PR_SYNC_AUTOMATION/);
+assert.match(autoWorkflow, /DE_KOI_PR_SYNC_AUTOMATION/);
+assert.match(autoWorkflow, /DEKOI_BUNNY_DISPATCH_RUNS_ON/);
+assert.match(autoWorkflow, /DE_KOI_BUNNY_DISPATCH_RUNS_ON/);
+
+const commandWorkflow = read(".github/workflows/bunny-review-command.yml");
+assert.match(commandWorkflow, /DEKOI_BUNNY_DISPATCH_RUNS_ON/);
+assert.match(commandWorkflow, /DE_KOI_BUNNY_DISPATCH_RUNS_ON/);
+
+const fullCiWorkflow = read(".github/workflows/ci-full.yml");
+assert.match(fullCiWorkflow, /DEKOI_CI_FULL_MODE/);
+assert.match(fullCiWorkflow, /DE_KOI_CI_FULL_MODE/);
+assert.match(fullCiWorkflow, /DEKOI_CI_RUNS_ON/);
+assert.match(fullCiWorkflow, /DE_KOI_CI_RUNS_ON/);
+
+const sanityWorkflow = read(".github/workflows/ci-sanity.yml");
+assert.match(sanityWorkflow, /DEKOI_CI_FULL_MODE/);
+assert.match(sanityWorkflow, /DE_KOI_CI_FULL_MODE/);
+assert.match(sanityWorkflow, /DEKOI_CI_RUNS_ON/);
+assert.match(sanityWorkflow, /DE_KOI_CI_RUNS_ON/);
+
 runPythonCompile();
 console.log("bunny_review_check ok");

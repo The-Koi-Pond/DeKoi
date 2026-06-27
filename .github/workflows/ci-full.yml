@@ -16,7 +16,7 @@ concurrency:
 jobs:
   classify:
     name: Change Classification
-    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || vars.DE_KOI_CI_RUNS_ON || '"ubuntu-latest"') }}
     outputs:
       frontend: ${{ steps.non_pr.outputs.frontend || steps.sync_off.outputs.frontend || steps.full_mode.outputs.frontend || steps.classify.outputs.frontend }}
       rust: ${{ steps.non_pr.outputs.rust || steps.sync_off.outputs.rust || steps.full_mode.outputs.rust || steps.classify.outputs.rust }}
@@ -35,10 +35,10 @@ jobs:
 
       - id: sync_off
         name: Route disabled PR update
-        if: github.event_name == 'pull_request' && github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off'
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize' && (vars.DEKOI_PR_SYNC_AUTOMATION || vars.DE_KOI_PR_SYNC_AUTOMATION) == 'off'
         shell: bash
         run: |
-          echo "DEKOI_PR_SYNC_AUTOMATION=off; skipping full CI lanes for this PR update."
+          echo "PR sync automation is off; skipping full CI lanes for this PR update."
           {
             echo "frontend=false"
             echo "rust=false"
@@ -47,10 +47,10 @@ jobs:
 
       - id: full_mode
         name: Route full CI mode
-        if: github.event_name == 'pull_request' && (vars.DEKOI_CI_FULL_MODE == 'full' || vars.DEKOI_CI_FULL_MODE == 'all')
+        if: github.event_name == 'pull_request' && ((vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) == 'full' || (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) == 'all')
         shell: bash
         run: |
-          echo "DEKOI_CI_FULL_MODE=${{ vars.DEKOI_CI_FULL_MODE }}; running all full CI lanes."
+          echo "CI full mode is enabled; running all full CI lanes."
           {
             echo "frontend=true"
             echo "rust=true"
@@ -60,9 +60,9 @@ jobs:
       - uses: actions/checkout@v7
         if: >
           github.event_name == 'pull_request' &&
-          !(github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off') &&
-          vars.DEKOI_CI_FULL_MODE != 'full' &&
-          vars.DEKOI_CI_FULL_MODE != 'all'
+          !(github.event.action == 'synchronize' && (vars.DEKOI_PR_SYNC_AUTOMATION || vars.DE_KOI_PR_SYNC_AUTOMATION) == 'off') &&
+          (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'full' &&
+          (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'all'
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -71,9 +71,9 @@ jobs:
         name: Classify changed files
         if: >
           github.event_name == 'pull_request' &&
-          !(github.event.action == 'synchronize' && vars.DEKOI_PR_SYNC_AUTOMATION == 'off') &&
-          vars.DEKOI_CI_FULL_MODE != 'full' &&
-          vars.DEKOI_CI_FULL_MODE != 'all'
+          !(github.event.action == 'synchronize' && (vars.DEKOI_PR_SYNC_AUTOMATION || vars.DE_KOI_PR_SYNC_AUTOMATION) == 'off') &&
+          (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'full' &&
+          (vars.DEKOI_CI_FULL_MODE || vars.DE_KOI_CI_FULL_MODE) != 'all'
         shell: bash
         run: |
           set -euo pipefail
@@ -141,7 +141,7 @@ jobs:
     if: >
       (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
       (needs.classify.outputs.frontend == 'true' || needs.classify.outputs.docs == 'true')
-    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || vars.DE_KOI_CI_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -175,7 +175,7 @@ jobs:
     if: >
       (github.event_name != 'pull_request' || github.event.pull_request.draft == false) &&
       needs.classify.outputs.rust == 'true'
-    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || vars.DE_KOI_CI_RUNS_ON || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v7
         with:
