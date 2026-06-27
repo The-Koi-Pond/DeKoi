@@ -123,6 +123,11 @@ Use this for code reviews, PR preparation, PR iteration, and ready-for-review ga
 - Never push directly to protected branches without explicit maintainer direction.
 - Do not auto-check PR validation boxes. Treat them as human verification tasks.
 - After pushing, inspect CI and review feedback when asked to ship or ready a PR.
+- `skills/bunny-style-review/SKILL.md` is a local workspace review lens. It is
+  separate from the GitHub Actions Bunny Review automation under
+  `.github/bunny-review`. A bare `bunny` request means the local review lens
+  unless the user explicitly mentions GitHub Actions, CI, workflow dispatch, or
+  the `.github/bunny-review` automation.
 
 Maintainer-equivalent self-review questions:
 
