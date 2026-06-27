@@ -15,7 +15,7 @@ jobs:
       (vars.DEKOI_CI_FULL_MODE != 'full' && vars.DEKOI_CI_FULL_MODE != 'all')
     runs-on: ${{ fromJSON(vars.DEKOI_CI_RUNS_ON || '"ubuntu-latest"') }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
