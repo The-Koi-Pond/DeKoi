@@ -168,7 +168,6 @@ async function hydrateDesktopProviderConnectionStatuses(
         verificationErrors.push(message);
         return {
           ...record,
-          status: "needs-key",
           secretVerification: {
             status: "unverified",
             persistedStatus: record.status,

@@ -21,6 +21,12 @@ function interfaceBody(source, name) {
   return match[1];
 }
 
+function interfaceFields(source, name) {
+  return [...interfaceBody(source, name).matchAll(/^\s*([A-Za-z0-9_]+):/gm)].map(
+    (match) => match[1],
+  );
+}
+
 const providerConnectionSource = readFile("src/engine/provider-connection.ts");
 const providerConnectionActionsSource = readFile(
   "src/engine/provider-connection-actions.ts",
@@ -32,7 +38,11 @@ const bundleSource = readFile(
   "src/runtime/storage/bundles/dekoi-storage-bundle.ts",
 );
 
-if (/\bapiKey\s*:/.test(interfaceBody(providerConnectionSource, "ProviderConnectionRecord"))) {
+const providerConnectionRecordBody = interfaceBody(
+  providerConnectionSource,
+  "ProviderConnectionRecord",
+);
+if (/\bapiKey\s*:/.test(providerConnectionRecordBody)) {
   fail("ProviderConnectionRecord must not include durable apiKey.");
 }
 
@@ -42,6 +52,15 @@ if (!/\bapiKey\?\s*:/.test(interfaceBody(providerConnectionActionsSource, "Provi
 
 if (/\.\.\.record/.test(providerConnectionSource)) {
   fail("Provider connection sanitizer must not spread input records.");
+}
+
+const sanitizerSource = providerConnectionSource.slice(
+  providerConnectionSource.indexOf("export function sanitizeProviderConnectionRecord"),
+);
+for (const field of interfaceFields(providerConnectionSource, "ProviderConnectionRecord")) {
+  if (!new RegExp(`\\b${field}\\s*(?::|,)`).test(sanitizerSource)) {
+    fail(`Provider connection sanitizer must preserve durable field ${field}.`);
+  }
 }
 
 if (/apiKey\s*:/.test(providerConnectionStorageSource)) {
@@ -60,7 +79,16 @@ if (
   !/verificationErrors\.push/.test(providerConnectionStorageSource) ||
   !/secretVerification/.test(providerConnectionStorageSource) ||
   !/persistedStatus: record\.status/.test(providerConnectionStorageSource) ||
-  !/durableProviderConnectionRecord/.test(providerConnectionStorageSource)
+  /catch \(error\)[\s\S]{0,600}status: "needs-key"/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/durableProviderConnectionRecord/.test(providerConnectionStorageSource) ||
+  !/const sanitized = sanitizeProviderConnectionRecord\(record\);/.test(
+    providerConnectionStorageSource,
+  ) ||
+  !/\.\.\.sanitized[\s\S]*status: secretVerification\.persistedStatus/.test(
+    providerConnectionStorageSource,
+  )
 ) {
   fail("Desktop provider connection readiness must use a non-durable verification overlay for transport failures.");
 }
