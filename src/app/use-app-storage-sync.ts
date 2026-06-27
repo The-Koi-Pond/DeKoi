@@ -146,7 +146,7 @@ export function useAppStorageSync({
   const activeSaveSignatures = useRef<PartialAppStorageCollectionSignatures>({});
   const pendingSaves = useRef<SaveQueueEntries>({});
   const saveErrors = useRef<SaveErrorMessages>({});
-  const saveQueueRunning = useRef(false);
+  const saveQueueRunning = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +158,7 @@ export function useAppStorageSync({
     activeSaveSignatures.current = {};
     pendingSaves.current = {};
     saveErrors.current = {};
+    saveQueueRunning.current = null;
     setStorageReady(false);
 
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
@@ -277,7 +278,7 @@ export function useAppStorageSync({
     let idleHandle: IdleHandle | undefined;
 
     const drainSaveQueue = () => {
-      if (saveQueueRunning.current) return;
+      if (saveQueueRunning.current === storageGeneration.current) return;
 
       const collectionKey = APP_STORAGE_COLLECTION_KEYS.find(
         (key) => pendingSaves.current[key],
@@ -293,7 +294,7 @@ export function useAppStorageSync({
         return;
       }
 
-      saveQueueRunning.current = true;
+      saveQueueRunning.current = entry.generation;
       activeSaveSignatures.current[collectionKey] = entry.signature;
       const requestId = saveRequestId.current + 1;
       saveRequestId.current = requestId;
@@ -344,10 +345,13 @@ export function useAppStorageSync({
         );
         setMessengerStorageMessage(saveErrorMessage ?? storageResult.message);
       }).finally(() => {
+        if (entry.generation !== storageGeneration.current) return;
         if (activeSaveSignatures.current[collectionKey] === entry.signature) {
           delete activeSaveSignatures.current[collectionKey];
         }
-        saveQueueRunning.current = false;
+        if (saveQueueRunning.current === entry.generation) {
+          saveQueueRunning.current = null;
+        }
         drainSaveQueue();
       });
     };
