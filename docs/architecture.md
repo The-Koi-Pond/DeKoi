@@ -178,6 +178,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
   host-storage adapter directly.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
+- Bundle and legacy imports use an explicit backup-and-commit path that cancels
+  delayed autosave before replacing collections.
 - Desktop collection files report recoverable corruption/recovery-artifact
   states and block autosave overwrite until a future explicit repair path.
 - Engine modules define records and mutations without knowing how records are

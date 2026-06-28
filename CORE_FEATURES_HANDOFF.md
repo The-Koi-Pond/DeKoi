@@ -178,24 +178,30 @@ Acceptance:
 
 Goal: users can move data between devices without a hidden browser-only trap.
 
-Status: initial DeKoi-native JSON export/import is implemented in Pond Care >
-Stocking. Import validates schema version, previews counts, and requires
-explicit replacement confirmation.
+Status: DeKoi-native JSON export/import is implemented in Pond Care > Stocking.
+Import validates schema version, previews counts, requires explicit replacement
+confirmation, creates a pre-import backup, and commits replacement through the
+storage collection path instead of autosave. Partial failures report the failed
+collection and leave restore to the pre-import backup.
 
 Implementation:
 
 - Continue hardening the DeKoi export bundle containing native records:
   characters, personas, lorebooks, provider connections without secrets,
-  Messenger threads, and app settings.
+  Roleplay threads, Messenger threads, Ripple states, and app settings.
 - Keep export/import JSON actions in Pond Care > Stocking.
 - Keep legacy import separate from native import.
 - Validate schema versions on import.
+- Keep imports on the explicit commit path so delayed autosave cannot race the
+  replacement.
 
 Acceptance:
 
 - Export downloads a readable DeKoi JSON bundle.
 - Import previews counts before applying.
 - Import never overwrites without explicit confirmation.
+- Import creates a pre-import backup and reports partial failures without
+  claiming automatic rollback.
 
 ## 6. Roleplay First Slice
 
@@ -228,7 +234,8 @@ Goal: import old data only into stable DeKoi-native records.
 
 Status: initial legacy thread import is implemented in Pond Care > Stocking.
 It dry-runs supported previous thread JSON/localStorage shapes, previews counts,
-and appends converted records as native Messenger threads.
+creates a pre-import backup, and appends converted records as native Messenger
+threads through the explicit storage commit path.
 
 Implementation:
 
@@ -236,11 +243,15 @@ Implementation:
   shape.
 - Keep legacy names out of public UI except import-source labels.
 - Keep dry-run import summaries before writing data.
+- Keep converted-thread import on the same backup and commit path as native
+  bundle import.
 
 Acceptance:
 
 - Import can show what will be created before it writes.
 - Imported records are normal DeKoi records after import.
+- Import failure leaves the pre-import backup as the restore path rather than
+  claiming automatic rollback.
 - No copied legacy prompts, UI copy, assets, or schema names become native.
 
 ## 8. Tauri/Rust Host Work
