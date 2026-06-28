@@ -1,4 +1,10 @@
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/roleplay";
+import {
+  attachRoleplayEntriesToThreads,
+  toRoleplayThreadRecord,
+  type RoleplayEntry,
+  type RoleplayThread,
+  type RoleplayThreadRecord,
+} from "../../../engine/roleplay";
 import {
   isRecord,
   readNullableString,
@@ -8,6 +14,10 @@ import {
 } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
+
+type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
+  entries?: RoleplayEntry[];
+};
 
 function normalizeRoleplayEntryRole(value: unknown): RoleplayEntry["role"] {
   if (
@@ -35,16 +45,21 @@ function normalizeRoleplayEntryOrigin(value: unknown): RoleplayEntry["origin"] {
   return "manual";
 }
 
-function normalizeRoleplayEntry(value: unknown, threadId: string): RoleplayEntry | null {
+export function normalizeRoleplayEntryRecord(
+  value: unknown,
+  fallbackThreadId = "",
+): RoleplayEntry | null {
   if (!isRecord(value)) return null;
 
   const id = readString(value.id).trim();
+  const threadId = readString(value.threadId, fallbackThreadId).trim();
   const body = readString(value.body).trim();
-  if (!id || !body) return null;
+  if (!id || !threadId || !body) return null;
 
   const now = new Date().toISOString();
   return {
     id,
+    schemaVersion: 1,
     threadId,
     role: normalizeRoleplayEntryRole(value.role),
     characterId: readNullableString(value.characterId),
@@ -68,7 +83,7 @@ export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
   const now = new Date().toISOString();
   const entries = Array.isArray(value.entries)
     ? value.entries
-        .map((entry) => normalizeRoleplayEntry(entry, id))
+        .map((entry) => normalizeRoleplayEntryRecord(entry, id))
         .filter((entry): entry is RoleplayEntry => entry !== null)
     : [];
 
@@ -93,19 +108,38 @@ export function loadRoleplayThreads() {
   return [];
 }
 
+function normalizeRoleplayThreadStorageRecord(
+  value: unknown,
+): RoleplayThreadStorageRecord | null {
+  const thread = normalizeRoleplayThread(value);
+  if (!thread) return null;
+
+  const record = toRoleplayThreadRecord(thread);
+  return thread.entries.length > 0
+    ? { ...record, entries: thread.entries }
+    : record;
+}
+
 const roleplayThreadRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.roleplayThreads,
-  normalizeRecord: normalizeRoleplayThread,
+  normalizeRecord: normalizeRoleplayThreadStorageRecord,
   seedRecords: [],
 });
 
-export function loadRoleplayThreadsFromStorage(rawUrl?: string) {
-  return roleplayThreadRepository.loadSnapshot(rawUrl);
+export async function loadRoleplayThreadsFromStorage(rawUrl?: string) {
+  const snapshot = await roleplayThreadRepository.loadSnapshot(rawUrl);
+  return {
+    ...snapshot,
+    records: attachRoleplayEntriesToThreads(snapshot.records, []),
+  };
 }
 
 export function saveRoleplayThreadsToStorage(
   records: RoleplayThread[],
   rawUrl?: string,
 ) {
-  return roleplayThreadRepository.save(records, rawUrl);
+  return roleplayThreadRepository.save(
+    records.map(toRoleplayThreadRecord),
+    rawUrl,
+  );
 }

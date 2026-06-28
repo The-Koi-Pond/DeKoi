@@ -159,7 +159,7 @@ export async function generateRoleplayThreadTurn({
   return {
     thread:
       entries.length > 0
-        ? appendRoleplayEntries(thread, entries, response.createdAt)
+        ? appendRoleplayEntries(thread, entries)
         : thread,
     warnings: [...context.warnings, ...response.warnings, ...droppedDraftWarnings],
     generatedEntryCount: entries.length,

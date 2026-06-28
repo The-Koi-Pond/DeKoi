@@ -10,6 +10,11 @@ export {
   type AppStorageReplaceResult,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";
+export {
+  appStorageCollectionCount,
+  appStorageCollectionSignature,
+  appStorageCollectionSource,
+} from "./storage/app-storage-collection-projection";
 export { loadAppSettings } from "./storage/collections/app-settings";
 export { loadCharacterRecords } from "./storage/collections/character-storage";
 export { loadRoleplayThreads } from "./storage/collections/roleplay-storage";

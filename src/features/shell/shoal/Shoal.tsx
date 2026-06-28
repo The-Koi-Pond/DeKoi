@@ -16,6 +16,7 @@ import {
   setMessengerThreadProviderConnection,
   setMessengerThreadSystemPrompt,
 } from "../../../engine/messenger-actions";
+import { getMessengerThreadActivityAt } from "../../../engine/messenger";
 import {
   getRoleplayThreadPreview,
   sortRoleplayThreads,
@@ -1475,7 +1476,10 @@ function ThreadShoal({
       return (
         aDetails.name.localeCompare(bDetails.name, undefined, {
           sensitivity: "base",
-        }) || b.updatedAt.localeCompare(a.updatedAt)
+        }) ||
+        getMessengerThreadActivityAt(b).localeCompare(
+          getMessengerThreadActivityAt(a),
+        )
       );
     });
   }, [characterById, nav.messengerThreads, sortMode]);

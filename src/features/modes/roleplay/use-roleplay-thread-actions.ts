@@ -108,7 +108,6 @@ export function useRoleplayThreadActions({
               thread,
             }),
           ],
-          now,
         )
       : thread;
 
@@ -158,10 +157,9 @@ export function useRoleplayThreadActions({
 
   const clearRoleplayThreadEntries = useCallback(
     (threadId: string) => {
-      const now = currentIsoTimestamp();
       setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.id === threadId ? clearRoleplayEntries(thread, now) : thread,
+          thread.id === threadId ? clearRoleplayEntries(thread) : thread,
         ),
       );
     },

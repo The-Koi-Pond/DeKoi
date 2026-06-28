@@ -1,8 +1,11 @@
 import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
+  attachMessengerMessagesToThreads,
   normalizeMessengerSystemPromptMode,
   type MessengerMessage,
   type MessengerThread,
+  type MessengerThreadRecord,
+  toMessengerThreadRecord,
 } from "../../../engine/messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
@@ -22,6 +25,10 @@ export type MessengerStorageSnapshot = {
   message: string;
 };
 
+type MessengerThreadStorageRecord = MessengerThreadRecord & {
+  messages?: MessengerMessage[];
+};
+
 function migrateLegacyId(id: string) {
   return id
     .replace(/^bubble-thread/, "messenger-thread")
@@ -32,12 +39,20 @@ function migrateLegacyTitle(title: string) {
   return title.replace(/^New Bubble\b/, "New Messenger");
 }
 
-function normalizeMessengerMessage(value: unknown, threadId: string): MessengerMessage | null {
+export function normalizeMessengerMessageRecord(
+  value: unknown,
+  fallbackThreadId = "",
+): MessengerMessage | null {
   if (!value || typeof value !== "object") return null;
 
   const candidate = value as Partial<MessengerMessage>;
+  const threadId =
+    typeof candidate.threadId === "string" && candidate.threadId.trim()
+      ? candidate.threadId.trim()
+      : fallbackThreadId;
   if (
     typeof candidate.id !== "string" ||
+    !threadId ||
     !candidate.author ||
     typeof candidate.body !== "string" ||
     typeof candidate.origin !== "string" ||
@@ -50,6 +65,7 @@ function normalizeMessengerMessage(value: unknown, threadId: string): MessengerM
   return {
     ...candidate,
     id: migrateLegacyId(candidate.id),
+    schemaVersion: 1,
     threadId,
   } as MessengerMessage;
 }
@@ -63,12 +79,14 @@ export function normalizeMessengerThread(value: unknown): MessengerThread | null
     (candidate.kind === "messenger" || candidate.kind === "bubbles") &&
     typeof candidate.id === "string" &&
     typeof candidate.title === "string" &&
-    Array.isArray(candidate.messages)
+    (Array.isArray(candidate.messages) || candidate.messages === undefined)
   ) {
     const id = migrateLegacyId(candidate.id);
-    const messages = candidate.messages
-      .map((message) => normalizeMessengerMessage(message, id))
-      .filter((message): message is MessengerMessage => message !== null);
+    const messages = Array.isArray(candidate.messages)
+      ? candidate.messages
+          .map((message) => normalizeMessengerMessageRecord(message, id))
+          .filter((message): message is MessengerMessage => message !== null)
+      : [];
 
     return {
       ...candidate,
@@ -104,9 +122,21 @@ export function loadInitialMessengerThreads(): MessengerThread[] {
   return [];
 }
 
+function normalizeMessengerThreadStorageRecord(
+  value: unknown,
+): MessengerThreadStorageRecord | null {
+  const thread = normalizeMessengerThread(value);
+  if (!thread) return null;
+
+  const record = toMessengerThreadRecord(thread);
+  return thread.messages.length > 0
+    ? { ...record, messages: thread.messages }
+    : record;
+}
+
 const messengerThreadRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.messengerThreads,
-  normalizeRecord: normalizeMessengerThread,
+  normalizeRecord: normalizeMessengerThreadStorageRecord,
   seedRecords: [],
 });
 
@@ -116,7 +146,7 @@ export async function loadMessengerThreadsFromStorage(
   const snapshot = await messengerThreadRepository.loadSnapshot(rawUrl);
 
   return {
-    threads: snapshot.records,
+    threads: attachMessengerMessagesToThreads(snapshot.records, []),
     mode: snapshot.mode,
     status: snapshot.status,
     message:
@@ -128,7 +158,10 @@ export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<Omit<MessengerStorageSnapshot, "threads">> {
-  const result = await messengerThreadRepository.save(threads, rawUrl);
+  const result = await messengerThreadRepository.save(
+    threads.map(toMessengerThreadRecord),
+    rawUrl,
+  );
 
   return {
     mode: result.mode,

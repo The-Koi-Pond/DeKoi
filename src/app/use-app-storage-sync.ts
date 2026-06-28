@@ -5,6 +5,9 @@ import {
   type IdleHandle,
 } from "../shared/browser/idle-callback";
 import {
+  appStorageCollectionCount,
+  appStorageCollectionSignature,
+  appStorageCollectionSource,
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
@@ -43,13 +46,6 @@ type SaveStatusResult = {
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
 
-function appStorageCollectionSignature(
-  snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
-) {
-  return JSON.stringify(snapshot[collectionKey]) ?? "null";
-}
-
 function createAppStorageSignatures(
   snapshot: AppStorageRecords,
 ): AppStorageCollectionSignatures {
@@ -61,30 +57,6 @@ function createAppStorageSignatures(
     );
   }
   return signatures;
-}
-
-function appStorageCollectionCount(
-  snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
-) {
-  switch (collectionKey) {
-    case "appSettings":
-      return 1;
-    case "characters":
-      return snapshot.characters.length;
-    case "personas":
-      return snapshot.personas.length;
-    case "lorebooks":
-      return snapshot.lorebooks.length;
-    case "providerConnections":
-      return snapshot.providerConnections.length;
-    case "roleplayThreads":
-      return snapshot.roleplayThreads.length;
-    case "messengerThreads":
-      return snapshot.messengerThreads.length;
-    case "rippleStates":
-      return snapshot.rippleStates.length;
-  }
 }
 
 function createAppStorageCounts(
@@ -121,7 +93,9 @@ function changedAppStorageCollectionKeys(
   if (!previousSnapshot) return [...APP_STORAGE_COLLECTION_KEYS];
 
   return APP_STORAGE_COLLECTION_KEYS.filter(
-    (collectionKey) => snapshot[collectionKey] !== previousSnapshot[collectionKey],
+    (collectionKey) =>
+      appStorageCollectionSource(snapshot, collectionKey) !==
+      appStorageCollectionSource(previousSnapshot, collectionKey),
   );
 }
 

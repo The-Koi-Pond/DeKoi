@@ -1,5 +1,8 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  appStorageCollectionCount,
+  appStorageCollectionSignature,
+  appStorageCollectionSource,
   loadAppStorageSnapshot,
   loadInitialAppStorageRecords,
   readRuntimeTargetUrl,

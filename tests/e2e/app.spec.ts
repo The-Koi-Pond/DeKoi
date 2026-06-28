@@ -1,7 +1,30 @@
 import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
+import { DEFAULT_APP_SETTINGS } from "../../src/engine/app-settings";
+import {
+  appendMessengerMessages,
+  createAnonymousMessengerMessage,
+  createMessengerThread,
+} from "../../src/engine/messenger-actions";
+import {
+  extractMessengerMessages,
+  toMessengerThreadRecord,
+} from "../../src/engine/messenger";
+import {
+  appendRoleplayEntries,
+  createNarrationRoleplayEntry,
+  createRoleplayThread,
+} from "../../src/engine/roleplay-actions";
+import {
+  extractRoleplayEntries,
+  toRoleplayThreadRecord,
+} from "../../src/engine/roleplay";
 import type { AppStorageReplaceResult } from "../../src/features/runtime";
+import {
+  createDeKoiStorageBundle,
+  normalizeDeKoiStorageBundle,
+} from "../../src/runtime";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -11,7 +34,9 @@ const STORAGE_ENTITIES = [
   "lorebooks",
   "provider-connections",
   "roleplay-threads",
+  "roleplay-entries",
   "messenger-threads",
+  "messenger-messages",
   "ripple-states",
 ] as const;
 const STORAGE_ENTITY_SET = new Set<string>(STORAGE_ENTITIES);
@@ -112,10 +137,12 @@ function createBundleFixture() {
       appSettings: { accent: "amber" },
       characters: [],
       roleplayThreads: [],
+      roleplayEntries: [],
       personas: [],
       lorebooks: [],
       providerConnections: [],
       messengerThreads: [],
+      messengerMessages: [],
       rippleStates: [],
     },
   };
@@ -191,7 +218,9 @@ test("storage import reload decision falls back to completed collections", () =>
     lorebooks: 0,
     providerConnections: 0,
     roleplayThreads: 0,
+    roleplayEntries: 0,
     messengerThreads: 0,
+    messengerMessages: 0,
     rippleStates: 0,
   } satisfies AppStorageReplaceResult["counts"];
   const mixedFailure = {
@@ -228,6 +257,130 @@ test("storage import reload decision falls back to completed collections", () =>
       collections: [mixedFailure.collections[1]],
     }),
   ).toBe(false);
+});
+
+test("transcript edits change transcript projection without changing thread records", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messageAt = "2026-06-28T00:01:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-test",
+    now: createdAt,
+    title: "Messenger Test",
+  });
+  const messengerMessage = createAnonymousMessengerMessage({
+    body: "Hello",
+    id: "messenger-message-test",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const messengerWithMessage = appendMessengerMessages(messengerThread, [
+    messengerMessage,
+  ]);
+  expect(toMessengerThreadRecord(messengerWithMessage)).toEqual(
+    toMessengerThreadRecord(messengerThread),
+  );
+  expect(extractMessengerMessages([messengerWithMessage])).toEqual([
+    messengerMessage,
+  ]);
+
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-test",
+    now: createdAt,
+    title: "Roleplay Test",
+  });
+  const roleplayEntry = createNarrationRoleplayEntry({
+    body: "Scene beat",
+    id: "roleplay-entry-test",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [
+    roleplayEntry,
+  ]);
+  expect(toRoleplayThreadRecord(roleplayWithEntry)).toEqual(
+    toRoleplayThreadRecord(roleplayThread),
+  );
+  expect(extractRoleplayEntries([roleplayWithEntry])).toEqual([roleplayEntry]);
+});
+
+test("storage bundles export split transcripts and migrate embedded transcripts", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messageAt = "2026-06-28T00:01:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-bundle",
+    now: createdAt,
+    title: "Messenger Bundle",
+  });
+  const messengerMessage = createAnonymousMessengerMessage({
+    body: "Bundle message",
+    id: "messenger-message-bundle",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-bundle",
+    now: createdAt,
+    title: "Roleplay Bundle",
+  });
+  const roleplayEntry = createNarrationRoleplayEntry({
+    body: "Bundle entry",
+    id: "roleplay-entry-bundle",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const messengerWithMessage = appendMessengerMessages(messengerThread, [
+    messengerMessage,
+  ]);
+  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [
+    roleplayEntry,
+  ]);
+
+  const bundle = createDeKoiStorageBundle({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    roleplayThreads: [roleplayWithEntry],
+    personas: [],
+    lorebooks: [],
+    providerConnections: [],
+    messengerThreads: [messengerWithMessage],
+    rippleStates: [],
+  });
+  expect("messages" in bundle.data.messengerThreads[0]).toBe(false);
+  expect("entries" in bundle.data.roleplayThreads[0]).toBe(false);
+  expect(bundle.data.messengerMessages).toEqual([messengerMessage]);
+  expect(bundle.data.roleplayEntries).toEqual([roleplayEntry]);
+
+  const legacyEmbeddedBundle = {
+    ...bundle,
+    data: {
+      ...bundle.data,
+      messengerThreads: [messengerWithMessage],
+      roleplayThreads: [roleplayWithEntry],
+      messengerMessages: undefined,
+      roleplayEntries: undefined,
+    },
+  };
+  const migrated = normalizeDeKoiStorageBundle(legacyEmbeddedBundle);
+  expect(migrated.ok).toBe(true);
+  if (!migrated.ok) return;
+  expect(migrated.preview.bundle.data.messengerMessages).toEqual([
+    messengerMessage,
+  ]);
+  expect(migrated.preview.bundle.data.roleplayEntries).toEqual([roleplayEntry]);
+  expect("messages" in migrated.preview.bundle.data.messengerThreads[0]).toBe(
+    false,
+  );
+  expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
+    false,
+  );
 });
 
 test("bundle import failure reloads partial storage and requires fresh confirmation", async ({

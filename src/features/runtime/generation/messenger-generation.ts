@@ -156,7 +156,7 @@ export async function generateMessengerThreadReply({
   return {
     thread:
       generatedMessages.length > 0
-        ? appendMessengerMessages(thread, generatedMessages, response.createdAt)
+        ? appendMessengerMessages(thread, generatedMessages)
         : thread,
     response,
     generatedMessages,

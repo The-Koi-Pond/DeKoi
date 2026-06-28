@@ -12,8 +12,10 @@ const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
 const APP_SETTINGS_ENTITY: &str = "app-settings";
 const CHARACTERS_ENTITY: &str = "characters";
 const ROLEPLAY_THREADS_ENTITY: &str = "roleplay-threads";
+const ROLEPLAY_ENTRIES_ENTITY: &str = "roleplay-entries";
 const LOREBOOKS_ENTITY: &str = "lorebooks";
 const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
+const MESSENGER_MESSAGES_ENTITY: &str = "messenger-messages";
 const PERSONAS_ENTITY: &str = "personas";
 const PROVIDER_CONNECTIONS_ENTITY: &str = "provider-connections";
 const RIPPLE_STATES_ENTITY: &str = "ripple-states";
@@ -22,8 +24,10 @@ const COLLECTION_ENTITIES: &[&str] = &[
     APP_SETTINGS_ENTITY,
     CHARACTERS_ENTITY,
     ROLEPLAY_THREADS_ENTITY,
+    ROLEPLAY_ENTRIES_ENTITY,
     LOREBOOKS_ENTITY,
     MESSENGER_THREADS_ENTITY,
+    MESSENGER_MESSAGES_ENTITY,
     PERSONAS_ENTITY,
     PROVIDER_CONNECTIONS_ENTITY,
     RIPPLE_STATES_ENTITY,

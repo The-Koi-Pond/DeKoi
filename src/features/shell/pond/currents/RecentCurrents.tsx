@@ -1,4 +1,5 @@
 import type { NavThreadState, NavViewActions } from "../../../navigation";
+import { getMessengerThreadActivityAt } from "../../../../engine/messenger";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -58,7 +59,9 @@ export function RecentCurrents({ nav }: RecentCurrentsProps) {
               </div>
               <div className="dm">
                 <span className="dtime">
-                  {getMessengerThreadTimeLabel(thread.updatedAt)}
+                  {getMessengerThreadTimeLabel(
+                    getMessengerThreadActivityAt(thread),
+                  )}
                 </span>
               </div>
               <div className="dmsg">{getMessengerThreadPreview(thread)}</div>

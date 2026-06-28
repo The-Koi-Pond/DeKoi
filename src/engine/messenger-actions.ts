@@ -46,20 +46,17 @@ export function createMessengerThread({
 export function appendMessengerMessages(
   thread: MessengerThread,
   messages: MessengerMessage[],
-  updatedAt: string,
 ): MessengerThread {
   return {
     ...thread,
     messages: [...thread.messages, ...messages],
-    updatedAt,
   }
 }
 
-export function clearMessengerMessages(thread: MessengerThread, updatedAt: string): MessengerThread {
+export function clearMessengerMessages(thread: MessengerThread): MessengerThread {
   return {
     ...thread,
     messages: [],
-    updatedAt,
   }
 }
 
@@ -83,21 +80,18 @@ export function updateMessengerMessageBody(
           }
         : message,
     ),
-    updatedAt,
   }
 }
 
 export function deleteMessengerMessage(
   thread: MessengerThread,
   messageId: string,
-  updatedAt: string,
 ): MessengerThread {
   if (!thread.messages.some((message) => message.id === messageId)) return thread
 
   return {
     ...thread,
     messages: thread.messages.filter((message) => message.id !== messageId),
-    updatedAt,
   }
 }
 
@@ -241,6 +235,7 @@ export function createPersonaMessengerMessage({
 }): MessengerMessage {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     author: {
       kind: 'persona',
@@ -267,6 +262,7 @@ export function createAnonymousMessengerMessage({
 }): MessengerMessage {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     author: {
       kind: 'unknown',
@@ -294,6 +290,7 @@ export function createGeneratedCompanionMessage({
 }): MessengerMessage {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     author: {
       kind: 'character',

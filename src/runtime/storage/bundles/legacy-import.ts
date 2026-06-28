@@ -111,6 +111,7 @@ function normalizeLegacyMessage(
 
   return {
     id,
+    schemaVersion: 1,
     threadId,
     author: normalizeAuthor(value.author),
     body,

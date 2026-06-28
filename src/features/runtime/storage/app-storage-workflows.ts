@@ -16,6 +16,9 @@ import {
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  appStorageCollectionCount,
+  appStorageCollectionSignature,
+  appStorageCollectionSource,
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,

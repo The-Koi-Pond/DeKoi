@@ -386,8 +386,10 @@ Supported storage entities:
 - `app-settings`
 - `characters`
 - `roleplay-threads`
+- `roleplay-entries`
 - `lorebooks`
 - `messenger-threads`
+- `messenger-messages`
 - `personas`
 - `provider-connections`
 - `ripple-states`

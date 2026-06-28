@@ -65,6 +65,7 @@ export type MessengerMessageAuthor =
 
 export interface MessengerMessage {
   id: string
+  schemaVersion: 1
   threadId: string
   author: MessengerMessageAuthor
   body: string
@@ -89,4 +90,90 @@ export interface MessengerThread {
   messages: MessengerMessage[]
   createdAt: string
   updatedAt: string
+}
+
+export type MessengerThreadRecord = Omit<MessengerThread, 'messages'>
+
+export function toMessengerThreadRecord(
+  thread: MessengerThread,
+): MessengerThreadRecord {
+  const { messages, ...record } = thread
+  void messages
+  return record
+}
+
+export function extractMessengerMessages(
+  threads: readonly MessengerThread[],
+): MessengerMessage[] {
+  return threads.flatMap((thread) =>
+    thread.messages.map((message) => ({
+      ...message,
+      schemaVersion: 1,
+      threadId: thread.id,
+    })),
+  )
+}
+
+function compareMessengerMessages(
+  left: MessengerMessage,
+  right: MessengerMessage,
+) {
+  return (
+    left.createdAt.localeCompare(right.createdAt) ||
+    left.updatedAt.localeCompare(right.updatedAt) ||
+    left.id.localeCompare(right.id)
+  )
+}
+
+function mergeMessengerMessages(
+  embeddedMessages: readonly MessengerMessage[],
+  storedMessages: readonly MessengerMessage[],
+) {
+  const messagesById = new Map<string, MessengerMessage>()
+
+  for (const message of embeddedMessages) {
+    messagesById.set(message.id, message)
+  }
+
+  for (const message of storedMessages) {
+    messagesById.set(message.id, message)
+  }
+
+  return [...messagesById.values()].sort(compareMessengerMessages)
+}
+
+export function attachMessengerMessagesToThreads(
+  threads: readonly (MessengerThread | MessengerThreadRecord)[],
+  messages: readonly MessengerMessage[],
+): MessengerThread[] {
+  const messagesByThreadId = new Map<string, MessengerMessage[]>()
+  for (const message of messages) {
+    const threadMessages = messagesByThreadId.get(message.threadId) ?? []
+    threadMessages.push(message)
+    messagesByThreadId.set(message.threadId, threadMessages)
+  }
+
+  return threads.map((thread) => {
+    const embeddedMessages =
+      'messages' in thread && Array.isArray(thread.messages)
+        ? thread.messages
+        : []
+    const storedMessages = messagesByThreadId.get(thread.id) ?? []
+
+    return {
+      ...toMessengerThreadRecord({
+        ...thread,
+        messages: embeddedMessages,
+      }),
+      messages: mergeMessengerMessages(embeddedMessages, storedMessages),
+    }
+  })
+}
+
+export function getMessengerThreadActivityAt(thread: MessengerThread) {
+  return thread.messages.reduce(
+    (latest, message) =>
+      message.updatedAt.localeCompare(latest) > 0 ? message.updatedAt : latest,
+    thread.updatedAt,
+  )
 }
