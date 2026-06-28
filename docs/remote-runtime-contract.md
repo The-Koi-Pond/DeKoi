@@ -77,6 +77,13 @@ collection writes use a synced temp file and preserve the previous readable file
 as `<entity>.json.bak`; storage bundle writes use the temp/sync path without
 creating a backup.
 
+Desktop stale checking uses the separate `dekoi_storage_collection_metadata`
+Tauri command to compare collection file existence, byte length, updated-at
+milliseconds, and content hash against the last loaded or app-written snapshot.
+Remote HTTP runtimes do not need to implement this metadata path; DeKoi reports
+stale-check metadata as unavailable for remote targets and still supports
+explicit reload through the normal storage commands.
+
 It also provides provider-backed generation through the same command envelope.
 
 ## Invoke Envelope
@@ -447,12 +454,21 @@ Returns:
 ```json
 {
   "ok": true,
-  "count": 1
+  "count": 1,
+  "metadata": {
+    "entity": "messenger-threads",
+    "exists": true,
+    "byteLength": 37,
+    "updatedAtMs": 1782620000000,
+    "contentHash": "fnv1a64:0123456789abcdef"
+  }
 }
 ```
 
 DeKoi treats any response without `ok: true` and a numeric `count` as
-incompatible. The `count` must match the number of records sent.
+incompatible. The `count` must match the number of records sent. `metadata` is
+optional; when present, DeKoi uses it as the new stale-check baseline for that
+collection.
 
 Example RippleState list:
 

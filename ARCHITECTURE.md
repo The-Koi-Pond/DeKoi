@@ -115,6 +115,8 @@ The short version:
   generation consumes thread objects.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
+- Desktop collection metadata is used only for explicit stale checks and manual
+  reloads; external file edits are not hot-loaded or merged into memory.
 - Bundle and legacy imports use an explicit backup-and-commit path that cancels
   delayed autosave before replacing collections.
 - Desktop collection files report recoverable corruption/recovery-artifact
@@ -143,7 +145,8 @@ The short version:
   shell care owns settings/import/export action hooks. `src/features/runtime`
   owns runtime-facing workflows grouped under `generation`, `ripples`, and
   `storage`, including generation, ripple state operations, initial app-storage
-  record loading, and runtime target URL changes.
+  record loading, explicit storage stale checks and reloads, and runtime target
+  URL changes.
   Non-navigation feature modules receive navigation state/actions through narrow
   feature-owned props built from exported navigation state/action groups rather
   than reading navigation context directly, importing `NavContextType`, or

@@ -92,12 +92,14 @@ Desktop collection files expose explicit per-collection metadata:
 - content hash
 
 The app stores the metadata from the last loaded or app-written snapshot as a
-staleness baseline. Care/Data can check the current desktop metadata and report
-when collection files changed outside DeKoi, but the app does not hot-load or
-merge those files. Reload is an explicit user action that reloads records from
-the active runtime target. Reload is blocked while local collection saves are
-pending, active, or failed-unsaved, so external data cannot replace in-memory
-changes while DeKoi still has local storage work.
+staleness baseline. Pond Care > Deep Water can check the current desktop
+metadata and report when collection files changed outside DeKoi, but the app
+does not hot-load or merge those files. Remote runtime targets do not need to
+provide comparable metadata; stale checks report metadata as unavailable there.
+Reload is an explicit user action that reloads records from the active runtime
+target. Reload is blocked while local collection saves are pending, active, or
+failed-unsaved, so external data cannot replace in-memory changes while DeKoi
+still has local storage work.
 
 Messenger and Roleplay transcripts are stored separately from thread metadata.
 The UI still receives assembled `MessengerThread` and `RoleplayThread` objects,
