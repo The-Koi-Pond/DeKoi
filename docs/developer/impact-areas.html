@@ -25,10 +25,10 @@
 
       <main class="content">
         <p class="eyebrow">Impact review</p>
-        <h1>Use impact maps before fixes, features, and refactors.</h1>
+        <h1>Use current DeKoi impact maps before fixes, features, and refactors.</h1>
         <p class="lead">
-          Good changes identify what they touch before editing. If a change crosses layers, account for every dependent
-          caller and run the checks that prove the boundary still works.
+          These maps cover the implementation that exists today. If a requested area is not listed, treat it as new
+          architecture and update the docs and boundary checks with the code.
         </p>
 
         <h2>Impact Brief</h2>
@@ -37,375 +37,196 @@ Behavior changed:
 Expected impact area:
 Dependent callers:
 Affected modes:
-Rust/TS boundary touched:
+Storage/runtime boundary touched:
 Checks planned:</code></pre>
 
-        <h2>Messenger And Generation</h2>
+        <h2>Messenger Generation</h2>
         <pre class="mermaid">
 flowchart LR
-  MessengerUI[features/modes/Messenger<br/>+ modes/shared/Messenger-ui]
-  GenerationHook[features/runtime/generation<br/>use-generate]
-  MessengerMode[engine/modes/Messenger]
-  Generation[engine/generation]
-  GenCore[engine/generation-core]
-  Helpers[engine/helpers-runtime]
-  Capabilities[engine/capabilities<br/>storage, llm, integrations]
-  LLMApi[shared/api/llm-api]
-  StorageApi[shared/api/storage-api]
-  IntegrationApi[shared/api/integration-gateway]
-  RustLLM[src-tauri crates/llm]
-  RustStorage[src-tauri crates/storage]
+  UI[features/modes/messenger]
+  Actions[engine/messenger-actions]
+  Engine[engine/messenger-generation]
+  Runtime[features/runtime/generation]
+  Provider[features/runtime/generation/provider-generation]
+  Api[shared/api desktop-runtime]
+  Rust[src-tauri/src/runtime.rs]
 
-  MessengerUI --> GenerationHook
-  GenerationHook --> MessengerMode
-  GenerationHook --> Generation
-  GenerationHook --> LLMApi
-  GenerationHook --> StorageApi
-  GenerationHook --> IntegrationApi
-  MessengerMode --> Generation
-  Generation --> Capabilities
-  Generation --> GenCore
-  Generation --> Helpers
-  Capabilities -. implemented by feature adapter .-> LLMApi
-  Capabilities -. implemented by feature adapter .-> StorageApi
-  Capabilities -. implemented by feature adapter .-> IntegrationApi
-  LLMApi --> RustLLM
-  StorageApi --> RustStorage
+  UI --> Actions
+  UI --> Runtime
+  Runtime --> Engine
+  Runtime --> Provider
+  Provider --> Api
+  Api --> Rust
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                Message send, regeneration, autonomous sends, summaries, command side effects, prompt preview, replay,
-                streaming, LLM message shaping.
-              </td>
+              <td>Send flow, generated replies, message edit/delete, selected companions/persona/lorebooks/connection, prompt assembly, provider errors.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                Messenger UI, generation events, storage writes, helper pre/post hooks, provider payloads, persisted message
-                metadata.
-              </td>
+              <td><code>MessengerThread.tsx</code>, Messenger engine actions, Messenger generation builder, provider generation adapter, storage dirty collection behavior.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                <code>pnpm typecheck</code>; add <code>pnpm build</code> when imports or bundling changed; add Rust
-                check when LLM/storage commands changed.
-              </td>
+              <td><code>pnpm build</code>; add <code>pnpm check:frontend-boundaries</code> for imports; add runtime/provider checks when command contracts or secret behavior changes.</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Roleplay</h2>
+        <h2>Roleplay Generation</h2>
         <pre class="mermaid">
 flowchart LR
-  RoleplayUI[features/modes/Roleplay]
-  Visuals[features/runtime/visuals]
-  RoleplayMode[engine/modes/Roleplay]
-  Generation[engine/generation]
-  Capabilities[engine/capabilities<br/>storage and llm ports]
-  Assets[shared/api/assets-api]
-  Storage[shared/api/storage-api]
-  LLM[shared/api/llm-api]
-  RustAssets[src-tauri crates/assets]
-  RustStorage[src-tauri crates/storage]
+  UI[features/modes/roleplay]
+  Actions[engine/roleplay-actions]
+  Engine[engine/roleplay-generation]
+  Runtime[features/runtime/generation]
+  Provider[features/runtime/generation/provider-generation]
 
-  RoleplayUI --> RoleplayMode
-  RoleplayUI --> Visuals
-  RoleplayUI --> Storage
-  RoleplayUI --> LLM
-  RoleplayMode --> Capabilities
-  RoleplayMode --> Generation
-  Capabilities -. implemented by Roleplay feature adapter .-> Storage
-  Capabilities -. implemented by Roleplay feature adapter .-> LLM
-  RoleplayUI --> Assets
-  Assets --> RustAssets
-  Storage --> RustStorage
+  UI --> Actions
+  UI --> Runtime
+  Runtime --> Engine
+  Runtime --> Provider
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                Scenes, scene memory, scene analysis, Roleplay encounters, sprites, Roleplay choices, Roleplay
-                prompt continuity.
-              </td>
+              <td>Roleplay entry send flow, generated character turns, scene text, selected companions/persona/lorebooks/connection, Roleplay prompt assembly.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                Roleplay screen, visual primitives, origin Messenger updates, persisted scene metadata, asset reads/writes.
-              </td>
+              <td><code>RoleplayThread.tsx</code>, Roleplay engine actions, Roleplay generation builder, shared provider generation adapter, split entry storage.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                Typecheck Roleplay paths; verify sibling future adventure scene logic only if shared visuals or lower-layer scene
-                utilities changed.
-              </td>
+              <td><code>pnpm build</code>; use browser/UI proof for visible Roleplay layout or interaction changes.</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Future adventure</h2>
+        <h2>Catalog And Provider Connections</h2>
         <pre class="mermaid">
 flowchart LR
-  GameUI[features/modes/game]
-  GameApi[features/modes/game/api]
-  GameAssetsUI[features/modes/media-assets]
-  GameMode[engine/modes/game]
-  Generation[engine/generation]
-  Capabilities[engine/capabilities<br/>storage, llm, assets, integrations]
-  StorageApi[shared/api/storage-api]
-  AssetsApi[shared/api/assets-api]
-  IntegrationApi[shared/api/integration-gateway]
-  RustStorage[src-tauri crates/storage]
-  RustAssets[src-tauri crates/assets]
-  RustIntegrations[src-tauri crates/integrations]
+  Catalog[features/catalog]
+  Engine[engine record actions]
+  SharedApi[shared/api provider and secret wrappers]
+  Secrets[src-tauri/src/secrets.rs]
+  Runtime[src-tauri/src/runtime.rs]
 
-  GameUI --> GameApi
-  GameApi --> GameMode
-  GameApi --> StorageApi
-  GameApi --> AssetsApi
-  GameApi --> IntegrationApi
-  GameAssetsUI --> AssetsApi
-  GameMode --> Capabilities
-  GameMode --> Generation
-  StorageApi --> RustStorage
-  AssetsApi --> RustAssets
-  IntegrationApi --> RustIntegrations
+  Catalog --> Engine
+  Catalog --> SharedApi
+  SharedApi --> Secrets
+  SharedApi --> Runtime
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                Future adventure turns, retries, setup, GM prompts, party prompts, combat, dice, maps, weather, journal, sessions,
-                checkpoints, assets, music.
-              </td>
+              <td>Companion, Persona, Lorebook, or Connection CRUD; provider checks; model fetching; saved API key behavior; deletion cleanup.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                Future adventure hooks, future adventure surface store, generation guide source, Ripples persistence, game asset browser,
-                integration side effects.
-              </td>
+              <td>Catalog action hook, engine record action, affected thread cleanup, provider secret redaction/import/export behavior.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                <code>pnpm typecheck</code> and usually <code>pnpm build</code>; add Rust check when
-                storage/assets/integrations changed.
-              </td>
+              <td><code>pnpm check:provider-secret-safety</code> for provider secrets; <code>pnpm build</code> for UI/editor changes.</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Pond Guide</h2>
+        <h2>Storage, Bundles, And Legacy Import</h2>
         <pre class="mermaid">
 flowchart LR
-  Shell[src/app shell]
-  Pond GuideUI[features/shell/pond-guide]
-  Pond GuideEngine[engine/pond-guide]
-  Pond GuideApi[shared/api/pond-guide-api]
-  Pond GuideCommand[src-tauri pond_guide_prompt]
-  Pond GuideRust[src-tauri commands/storage/pond_guide.rs]
-  LLM[src-tauri crates/llm]
-  Storage[src-tauri crates/storage]
+  App[src/app/use-app-storage-sync]
+  FeatureRuntime[features/runtime/storage]
+  Runtime[src/runtime/storage]
+  SharedApi[shared/api storage and bundle wrappers]
+  RustStorage[src-tauri/src/storage.rs]
+  FileDialog[src-tauri/src/file_dialog.rs]
 
-  Shell --> Pond GuideUI
-  Pond GuideUI --> Pond GuideEngine
-  Pond GuideUI --> Pond GuideApi
-  Pond GuideApi --> Pond GuideCommand
-  Pond GuideCommand --> Pond GuideRust
-  Pond GuideRust --> LLM
-  Pond GuideRust --> Storage
+  App --> FeatureRuntime
+  FeatureRuntime --> Runtime
+  Runtime --> SharedApi
+  SharedApi --> RustStorage
+  SharedApi --> FileDialog
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                Pond Guide shell entry, standalone Messenger surface, connection/persona context, attachments, read-only
-                creative library tool, native tool calling, or provider errors.
-              </td>
+              <td>Collection entities, autosave, split transcripts, app snapshot load/save, bundle export/import, legacy import, desktop storage safety.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                App shell routing, <code>features/shell/pond-guide</code>, <code>engine/pond-guide</code>,
-                <code>shared/api/pond-guide-api</code>, Rust Pond Guide command, LLM connection support, storage snapshot scope.
-              </td>
+              <td>Entity registry, collection adapter, app-storage projection/signatures, import commit path, desktop Rust allowlist, storage docs.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                <code>pnpm typecheck</code>; add
-                <code>cargo check --manifest-path src-tauri/Cargo.toml --workspace</code> when the command, helper runtime
-                bridge, storage snapshot, or provider transport changed.
-              </td>
+              <td><code>pnpm check:storage-contracts</code>; add <code>pnpm check:desktop-contracts</code> and <code>pnpm check:rust</code> when Tauri storage commands change.</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Storage, Imports, And Assets</h2>
+        <h2>Runtime Commands</h2>
         <pre class="mermaid">
 flowchart LR
-  FeatureUI[Feature UI]
-  SharedApi[shared/api<br/>storage, import, export, assets]
-  Commands[src-tauri/src/commands/storage]
-  StorageCrate[crates/storage]
-  AssetsCrate[crates/assets]
-  SecurityCrate[crates/security]
-  Files[Local app data and managed files]
+  Shared[shared/api/runtime-commands.ts]
+  Remote[shared/api/remote-runtime-invoke.ts]
+  Fixture[scripts/remote-runtime-fixture.mjs]
+  Desktop[src-tauri/src/runtime.rs]
 
-  FeatureUI --> SharedApi
-  SharedApi --> Commands
-  Commands --> StorageCrate
-  Commands --> AssetsCrate
-  Commands --> SecurityCrate
-  StorageCrate --> Files
-  AssetsCrate --> Files
-  SecurityCrate --> Files
+  Shared --> Remote
+  Shared --> Fixture
+  Shared --> Desktop
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                Entity CRUD, profile import/export, avatar/background/gallery files, media assets, bulk imports, local
-                file URLs.
-              </td>
+              <td>Runtime command names, invoke payloads, remote fixture behavior, desktop runtime dispatch, health checks, provider runtime commands.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                DTO shapes, filename/path validation, atomic writes, frontend adapter response shapes, progress
-                channels.
-              </td>
+              <td>Command registry, remote fixture, Rust runtime match arm, remote runtime contract docs, typed shared API wrappers.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                <code>cargo check --manifest-path src-tauri/Cargo.toml --workspace</code>; run TypeScript checks if
-                adapter contracts changed.
-              </td>
+              <td><code>pnpm check:runtime-contracts</code>; add <code>pnpm check:desktop-contracts</code> for Tauri command registry changes.</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>Provider And Integration Transport</h2>
+        <h2>Shell, Navigation, And Layout</h2>
         <pre class="mermaid">
 flowchart LR
-  SettingsUI[features/shell/connections and shell/settings]
-  FeatureAdapter[feature/runtime adapter]
-  Engine[engine/generation or mode service]
-  Ports[engine/capabilities]
-  Api[shared/api llm and integrations]
-  Commands[Tauri commands]
-  LLM[crates/llm]
-  Integrations[crates/integrations]
-  Security[crates/security]
-  External[External provider APIs]
+  App[src/app]
+  Nav[features/navigation]
+  Shell[features/shell]
+  Modes[features/modes]
+  Catalog[features/catalog]
 
-  SettingsUI --> Api
-  FeatureAdapter --> Engine
-  Engine --> Ports
-  Ports -. implemented by feature adapter .-> Api
-  Api --> Commands
-  Commands --> LLM
-  Commands --> Integrations
-  LLM --> Security
-  Integrations --> Security
-  Security --> External
+  App --> Nav
+  App --> Shell
+  Shell --> Modes
+  Shell --> Catalog
+  Shell --> Nav
         </pre>
         <table>
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>
-                LLM providers, connection tests, streaming, image generation transport, Spotify, TTS, and translation.
-              </td>
+              <td>Pond shell, Bank, Shoal, Waterline, Tide, Care drawer, view state, side rail state, new top-level surfaces.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td>
-                Secrets handling, request shaping, provider parameter compatibility, redaction, events/channels, UI
-                error reporting, and whether engine services receive capability ports instead of importing shared API
-                adapters.
-              </td>
+              <td>Navigation type contracts, app controller, shell props, public feature entrypoints, responsive behavior, focus/keyboard behavior.</td>
             </tr>
             <tr>
               <th>Verify</th>
-              <td>
-                Rust check plus TypeScript typecheck when DTOs or adapters changed. Live-account QA may still be
-                required.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h2>Hostable Rust Runtime</h2>
-        <pre class="mermaid">
-flowchart LR
-  Feature[Feature or shared UI]
-  SharedApi[src/shared/api]
-  RuntimeTransport[Runtime transport<br/>embedded Tauri or remote HTTP]
-  NativePlugin[Tauri plugins<br/>dialog, opener, window, asset URLs]
-  RemoteAllowlist[remote-runtime.ts<br/>command allowlist]
-  RustApi[Rust API facade<br/>Tauri commands, /api/invoke, or dedicated HTTP routes]
-  HttpDispatch[http_dispatch.rs<br/>explicit handlers]
-  RustServices[Rust capability crates]
-  Server[dekoi-server<br/>hostable Rust binary or Docker service]
-
-  Feature --> SharedApi
-  SharedApi --> RuntimeTransport
-  RuntimeTransport --> RemoteAllowlist
-  RuntimeTransport --> RustApi
-  NativePlugin --> RuntimeTransport
-  RemoteAllowlist --> RustApi
-  RustApi --> HttpDispatch
-  Server --> RustApi
-  HttpDispatch --> RustServices
-  RustApi --> RustServices
-        </pre>
-        <table>
-          <tbody>
-            <tr>
-              <th>Touching</th>
-              <td>
-                <code>invokeTauri</code>, <code>remote-runtime.ts</code>, <code>llm-api</code> streaming,
-                <code>http_server.rs</code>, <code>http_dispatch.rs</code>, <code>local-file-api</code>, Tauri plugins,
-                file dialogs, managed asset URLs, imports/uploads, native window/titlebar behavior, opener behavior,
-                Spotify OAuth, TTS, or Docker/server build files.
-              </td>
-            </tr>
-            <tr>
-              <th>Review</th>
-              <td>
-                Does the feature require desktop-only native access, or can it safely run through the hostable runtime
-                data directory and JSON/SSE HTTP contract? Is the command allowlisted in
-                <code>remote-runtime.ts</code> and handled explicitly in <code>http_dispatch.rs</code> or a dedicated
-                route? Does the feature avoid raw server filesystem paths and silent no-op fallbacks?
-              </td>
-            </tr>
-            <tr>
-              <th>Verify</th>
-              <td>
-                <code>pnpm typecheck</code>, <code>pnpm build</code>,
-                <code>cargo check --manifest-path src-tauri/Cargo.toml --workspace</code>, and an HTTP smoke check when
-                practical: run <code>dekoi-server</code>, hit <code>/health</code>, then exercise the supported
-                shared API path from Settings &gt; Advanced &gt; Remote Runtime URL.
-              </td>
-            </tr>
-            <tr>
-              <th>Decision</th>
-              <td>
-                If remote behavior cannot be equivalent, keep the feature desktop-only and document that limit instead
-                of adding silent fallbacks.
-              </td>
+              <td><code>pnpm check:frontend-boundaries</code>, <code>pnpm build</code>, and browser proof for visible layout or interaction changes.</td>
             </tr>
           </tbody>
         </table>
@@ -413,31 +234,28 @@ flowchart LR
         <h2>Shared Change Risk</h2>
         <div class="grid">
           <div class="panel">
-            <h3><code>engine/contracts</code></h3>
-            <p>Review schemas, DTO consumers, shared API adapters, and any persisted records.</p>
+            <h3><code>src/engine/generation.ts</code></h3>
+            <p>Review both Messenger and Roleplay request builders plus provider response normalization.</p>
           </div>
           <div class="panel">
-            <h3><code>engine/generation-core</code></h3>
-            <p>Review Messenger, Roleplay, future adventure systems, helpers, prompt preview, and replay behavior.</p>
+            <h3><code>src/runtime/storage</code></h3>
+            <p>Review storage-model docs, bundle import/export, dirty-collection signatures, and desktop storage checks.</p>
           </div>
           <div class="panel">
             <h3><code>src/shared/api</code></h3>
-            <p>Review all features calling the adapter and the matching Tauri command DTO.</p>
+            <p>Review command allowlists, focused wrappers, feature callers, and matching Rust command registration.</p>
           </div>
           <div class="panel">
-            <h3>Hostable runtime</h3>
-            <p>
-              Review remote allowlists, HTTP dispatch, asset URL resolution, uploads, streaming, and native-plugin
-              limits.
-            </p>
+            <h3><code>src/features/modes/shared</code></h3>
+            <p>Review both mode surfaces and responsive chat composer behavior.</p>
           </div>
           <div class="panel">
-            <h3><code>engine/pond-guide</code></h3>
-            <p>Review Pond Guide UI, Pond Guide API wrapper, Rust command request shape, and provider/tool support.</p>
+            <h3><code>src/features/navigation</code></h3>
+            <p>Review app controller wiring and every shell/mode/catalog prop contract using the changed state or action group.</p>
           </div>
           <div class="panel">
-            <h3><code>src/shared/components</code></h3>
-            <p>Review every feature surface using the component, including mobile layout.</p>
+            <h3><code>src-tauri/src/runtime.rs</code></h3>
+            <p>Review provider secret lookup, provider request shape, runtime command dispatch, and contract checks.</p>
           </div>
         </div>
 

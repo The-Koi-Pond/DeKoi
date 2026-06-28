@@ -9,7 +9,7 @@ decides how to generate, store, or transport them.
 Start the local fixture:
 
 ```sh
-npm run runtime:fixture
+pnpm runtime:fixture
 ```
 
 Default URL:
@@ -24,7 +24,7 @@ storage in memory, so records disappear when the fixture process stops.
 Optional host and port:
 
 ```sh
-npm run runtime:fixture -- --host 127.0.0.1 --port 7342
+pnpm runtime:fixture -- --host 127.0.0.1 --port 7342
 ```
 
 ## Health

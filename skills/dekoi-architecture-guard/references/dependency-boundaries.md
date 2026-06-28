@@ -7,7 +7,10 @@ valid.
 
 Allowed:
 
-- Features may import `src/engine`, `src/runtime`, and `src/shared`.
+- Features may import `src/engine` and `src/shared`.
+- `src/features/runtime` may import the lower `src/runtime` bridge. Shell,
+  modes, catalog, and navigation code route runtime-facing work through
+  `src/features/runtime` workflows instead of importing `src/runtime` directly.
 - Feature layer direction follows the current boundary check: shell can compose
   modes/runtime/catalog; modes can use runtime/catalog; runtime can use catalog.
 - Same-layer feature packages import each other only through public owner APIs.
@@ -32,6 +35,7 @@ Forbidden:
 - `src/shared/api/**` importing `src/runtime/**`.
 - `src/features/navigation/**` importing `src/shared/api/**`.
 - `src/features/runtime/**` importing React.
+- Shell, mode, catalog, or navigation code importing `src/runtime/**` directly.
 - `src/features/catalog/**` importing higher feature layers.
 - Concrete mode packages importing each other directly:
   `src/features/modes/messenger` and `src/features/modes/roleplay` compose only

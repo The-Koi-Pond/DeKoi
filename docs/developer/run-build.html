@@ -100,8 +100,8 @@
         <h2>Current Manual QA</h2>
         <div class="grid">
           <div class="panel">
-            <h3>Messenger preview</h3>
-            <p>Confirm the Pond rail, active Messenger thread, Companions, Lorebooks, and Ripple Dock all render.</p>
+            <h3>Messenger and Roleplay</h3>
+            <p>Create a catalog record, start a thread, send a message or entry, generate a reply, edit/delete it, reload, and continue.</p>
           </div>
           <div class="panel">
             <h3>Responsive layout</h3>
@@ -111,13 +111,15 @@
             <h3>Static model proof</h3>
             <p>Confirm empty storage starts without built-in companions, connections, lorebooks, personas, or threads.</p>
           </div>
+          <div class="panel">
+            <h3>Data and backup</h3>
+            <p>Export a DeKoi bundle, preview an import, cancel safely, then confirm only with disposable data.</p>
+          </div>
         </div>
 
-        <h2>Future Native Host Work</h2>
-        <p>
-          When Tauri is added, document its commands here only after the scripts exist in <code>package.json</code> and
-          the native host has been verified locally.
-        </p>
+        <h2>Remote Runtime Fixture</h2>
+        <p>Start the in-memory fixture when you need a compatible HTTP runtime for storage/runtime contract checks:</p>
+        <pre><code>pnpm runtime:fixture</code></pre>
 
         <p class="footer">
           These docs are static. Open <code>docs/developer/index.html</code> directly, or run

@@ -27,12 +27,21 @@ Use the prior architecture skeleton in DeKoi-owned terms:
 
 ## Source Lanes
 
+- `src/app`: React bootstrap, providers, app-level state, storage sync, and
+  top-level view/action controller assembly. App composition imports feature
+  entrypoints and shared helpers; it does not import engine or runtime bridge
+  modules directly.
 - `src/engine`: React-free domain records, pure actions, prompt/generation
   request assembly, and future capability ports. Engine code may not import
   React, Tauri, feature internals, or concrete runtime adapters.
 - `src/features`: React surfaces and workflows. Feature code renders UI,
-  gathers user intent, calls engine helpers for product behavior, and calls
-  runtime adapters for persistence or host work.
+  gathers user intent, calls engine helpers for product behavior, and uses
+  feature-runtime workflows or focused shared API wrappers for persistence or
+  host work.
+- `src/features/runtime`: React-free feature workflows for generation, Ripples,
+  storage startup, runtime target changes, bundle previews, and import/export
+  orchestration. This is the only feature layer that adapts the lower
+  `src/runtime` bridge.
 - `src/runtime`: frontend storage boundary for this seed. Its public entrypoint
   exports DeKoi storage contracts, collection adapters, app snapshot
   orchestration, bundle import/export normalization, and legacy import. Host and
@@ -40,21 +49,21 @@ Use the prior architecture skeleton in DeKoi-owned terms:
 - `src/shared`: reusable UI primitives, styling tokens, browser-only helpers,
   and other code that is genuinely generic across feature owners.
 - `src-tauri`: privileged desktop and hostable capabilities: local files,
-  app-data collection storage, provider secrets, native dialogs, and future
-  provider transport.
+  app-data collection storage, provider secrets, native dialogs, desktop runtime
+  dispatch, and provider transport.
 
 ## Dependency Direction
 
 Allowed direction:
 
 ```text
-features -> engine
-features -> runtime
-features -> shared
-runtime  -> engine types/contracts
-runtime  -> shared API wrappers
-shared   -> no feature owners
-engine   -> no React, features, runtime, Tauri, or browser APIs
+app                 -> features, shared
+features            -> engine, shared
+shell/modes/catalog -> features/runtime for runtime-facing workflows
+features/runtime    -> engine, runtime, shared, shared API wrappers
+runtime             -> engine types/contracts, shared API wrappers
+shared              -> no feature owners
+engine              -> no React, features, runtime, Tauri, or browser APIs
 src-tauri -> no TypeScript product imports
 ```
 
@@ -62,7 +71,10 @@ Stop and redesign if a change needs:
 
 - Engine code importing React, `src/features`, `src/runtime`, or Tauri APIs.
 - UI components performing durable storage normalization.
-- Feature code calling raw Tauri `invoke` or raw remote `fetch` directly.
+- Shell, mode, or catalog code importing `src/runtime` directly instead of a
+  feature-runtime workflow.
+- Feature code calling raw Tauri `invoke`, raw remote `fetch`, or low-level
+  desktop/runtime transport directly.
 - A storage command that also performs generation.
 - A generation command that also persists records.
 - A compatibility branch that makes old record names native DeKoi concepts.
@@ -109,7 +121,7 @@ The short version:
   states and block autosave overwrite until a future explicit repair path.
 - Native DeKoi records come before legacy compatibility.
 
-## Current Seed
+## Current Shape
 
 - `src/engine/messenger.ts` and `src/engine/messenger-actions.ts` define native
   Messenger records and mutations.
@@ -118,8 +130,9 @@ The short version:
 - `src/engine/character.ts`, `src/engine/persona.ts`,
   `src/engine/lorebook.ts`, `src/engine/provider-connection.ts`, and
   `src/engine/ripples.ts` define the first catalog/context records.
-- `src/engine/messenger-generation.ts` builds provider-neutral Messenger
-  generation requests.
+- `src/engine/generation.ts`, `src/engine/messenger-generation.ts`, and
+  `src/engine/roleplay-generation.ts` build shared, Messenger, and Roleplay
+  provider-neutral generation requests.
 - `src/features/*` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
   controller for the app provider, including top-level app state, storage sync,
@@ -141,7 +154,7 @@ The short version:
   remote transport.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
-  status, and the desktop runtime bridge.
+  status, desktop runtime dispatch, and provider transport.
 
 ## Future Architecture Work
 

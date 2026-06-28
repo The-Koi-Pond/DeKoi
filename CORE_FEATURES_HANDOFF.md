@@ -1,314 +1,432 @@
 # Core Features Handoff
 
-Last updated: 2026-06-24
+Last updated: 2026-06-28
 
-This handoff describes the next implementation work for DeKoi's core app. It is
-written for a future coding agent or developer picking up from the current
-`main` branch.
+This is the current development handoff for DeKoi core features. It replaces the
+older "build these eight features in order" plan. DeKoi has moved past the first
+Messenger-only seed: Messenger is still the first polish target, but Roleplay,
+desktop storage, split transcript collections, provider secrets, bundle import,
+legacy import, and provider-backed generation all now exist in early form.
+
+Use this document with:
+
+- `AGENTS.md` for source lanes and proof requirements.
+- `ARCHITECTURE.md` for dependency direction.
+- `docs/storage-model.md` for durable record and collection rules.
+- `docs/remote-runtime-contract.md` for runtime command contracts.
 
 ## Current State
 
-DeKoi currently has a working React/Vite shell with the Pond layout, Messenger
-threads, local storage, remote-runtime storage hooks, provider-neutral Messenger
-generation contracts, a mock generation adapter, a remote-runtime generation
-adapter, editable catalog records for companions, personas, lorebook entries,
-and provider connections, plus a provider connection selector.
+DeKoi is an early local-first React/Tauri app with:
 
-Recent architecture direction:
+- Pond shell, Bank, Shoal, Waterline, Tide, Pond Care, catalog rails, and current
+  Messenger/Roleplay thread surfaces.
+- Native engine records for app settings, companions, personas, lorebooks,
+  provider connections, Messenger threads/messages, Roleplay threads/entries,
+  and Ripples.
+- Collection-backed storage through desktop or compatible remote runtime
+  commands.
+- Split transcript storage: Messenger message rows and Roleplay entry rows are
+  separate collections from thread metadata.
+- Dirty-collection autosave, legacy embedded transcript migration on load, and
+  explicit import commits.
+- DeKoi-native JSON bundle export/import, desktop file dialogs, pre-import
+  backup, import preview, and partial-failure reporting.
+- One-way legacy thread import into native Messenger threads.
+- Desktop provider-key secrets scoped to connection/provider/base URL.
+- Provider connection check and model-fetch commands.
+- Provider-neutral generation request assembly for Messenger and Roleplay.
+- Mock generation, browser provider adapters, remote runtime invocation, and
+  desktop runtime provider transport for a narrow set of provider families.
+- Ripple engine records/actions/storage and bundle support, but no dedicated
+  routed Ripple editor surface yet.
 
-- Messenger is the first real product loop.
-- Roleplay stays reserved until Messenger records, storage, and generation are
-  stable.
-- Provider/runtime work should stay behind explicit runtime adapters.
-- Legacy import remains blocked until native DeKoi records are stable.
-- Rust/Tauri should come later for native storage, secrets, filesystem access,
-  and hostable runtime support.
+Important current bias:
 
-## Priority Order
+- Messenger remains the first product loop to polish.
+- Roleplay is no longer only reserved; it has a working first chat-like slice,
+  but it is less complete than Messenger and still lacks full scene/settings UX.
+- Rust/Tauri is no longer "later"; the optional desktop host already owns app
+  data storage, bundle file dialogs, provider secrets, and desktop runtime
+  dispatch.
+- Browser development mode is useful for UI work, but durable app records need
+  the desktop runtime or a compatible remote runtime.
+- Generation routing is still uneven: inside the desktop app, provider-backed
+  generation uses the desktop runtime path; browser mode has a direct provider
+  fallback and remote-runtime command paths for storage/check/model commands.
+- Legacy import is compatibility only. Old names, prompts, UI copy, schemas, and
+  product concepts must not become native DeKoi concepts.
 
-Build in this order unless the user explicitly redirects:
+## Current Source Map
 
-1. Harden native catalog records and CRUD.
-2. Harden Messenger thread configuration using those records.
-3. Harden generation request assembly from real selected records.
-4. Harden remote runtime command contract and test fixture.
-5. Harden storage/export/import for DeKoi-native records.
-6. Harden Roleplay first slice.
-7. Harden legacy import adapters.
-8. Tauri/Rust host features.
+Use current paths, not older seed paths:
 
-## 1. Native Catalog Records
+- App composition and storage sync:
+  - `src/app/AppRoot.tsx`
+  - `src/app/use-app-controller.ts`
+  - `src/app/use-app-state.ts`
+  - `src/app/use-app-storage-sync.ts`
+- Engine records and pure behavior:
+  - `src/engine/app-settings.ts`
+  - `src/engine/character.ts`
+  - `src/engine/persona.ts`
+  - `src/engine/lorebook.ts`
+  - `src/engine/provider-connection.ts`
+  - `src/engine/messenger.ts`
+  - `src/engine/messenger-actions.ts`
+  - `src/engine/messenger-generation.ts`
+  - `src/engine/roleplay.ts`
+  - `src/engine/roleplay-actions.ts`
+  - `src/engine/roleplay-generation.ts`
+  - `src/engine/ripples.ts`
+  - `src/engine/ripple-actions.ts`
+- Feature UI:
+  - `src/features/shell/*`
+  - `src/features/modes/messenger/MessengerThread.tsx`
+  - `src/features/modes/roleplay/RoleplayThread.tsx`
+  - `src/features/catalog/*`
+  - `src/features/navigation/*`
+- Feature runtime workflows:
+  - `src/features/runtime/generation/*`
+  - `src/features/runtime/storage/*`
+  - `src/features/runtime/ripples/*`
+- Storage runtime:
+  - `src/runtime/storage/storage-entities.ts`
+  - `src/runtime/storage/app-storage-snapshot.ts`
+  - `src/runtime/storage/app-storage-collection-projection.ts`
+  - `src/runtime/storage/collections/*`
+  - `src/runtime/storage/bundles/*`
+  - `src/runtime/storage/storage-repository*.ts`
+  - `src/runtime/storage/host-storage.ts`
+- Host and runtime APIs:
+  - `src/shared/api/runtime-commands.ts`
+  - `src/shared/api/desktop-commands.ts`
+  - `src/shared/api/remote-runtime*.ts`
+  - `src/shared/api/desktop-runtime.ts`
+  - `src/shared/api/desktop-provider-secrets.ts`
+  - `src/shared/api/desktop-bundle-file.ts`
+- Tauri host:
+  - `src-tauri/src/lib.rs`
+  - `src-tauri/src/storage.rs`
+  - `src-tauri/src/runtime.rs`
+  - `src-tauri/src/secrets.rs`
+  - `src-tauri/src/file_dialog.rs`
+  - `src-tauri/src/host.rs`
 
-Goal: replace hard-coded sample records with editable DeKoi-native records.
+## Near-Term Priority
 
-Status: initial local catalog storage and CRUD are implemented for companions,
-personas, lorebook entries, and provider connections. Deleting a catalog record
-now clears matching Messenger thread references where needed.
+Build in this order unless Xel redirects:
 
-Current files:
+1. Harden split transcript storage and migration recovery.
+2. Harden provider connection UX and provider-backed generation errors.
+3. Polish Messenger thread settings, send/edit/delete, and missing-reference UX.
+4. Bring Roleplay closer to Messenger parity while keeping mode records separate.
+5. Harden catalog record validation, deletion cleanup, and empty states.
+6. Keep native bundle import/export and legacy import reliable after storage
+   changes.
+7. Keep desktop/remote runtime contracts documented and checked.
+8. Update stale docs when implementation paths or product status change.
 
-- `src/engine/character.ts`
-- `src/engine/persona.ts`
-- `src/engine/lorebook.ts`
-- `src/engine/provider-connection.ts`
-- `src/engine/sample-messenger.ts`
-- `src/engine/character-actions.ts`
-- `src/engine/persona-actions.ts`
-- `src/engine/lorebook-actions.ts`
-- `src/engine/provider-connection-actions.ts`
-- `src/runtime/catalog-storage.ts`
-- `src/runtime/character-storage.ts`
-- `src/runtime/persona-storage.ts`
-- `src/runtime/lorebook-storage.ts`
-- `src/runtime/provider-connection-storage.ts`
+## 1. Storage And Persistence
 
-Implementation:
+Status: active and recently changed. Storage is collection-backed, with split
+Messenger/Roleplay transcript collections.
 
-- Continue hardening validation and UI affordances for record editing.
-- Keep schema version `1` records with IDs and timestamps.
-- Normalize loaded records the same way Messenger storage currently normalizes
-  threads.
-- Seed from `sample-messenger.ts` only when storage is missing.
-- Keep create, update, delete, and duplicate helpers in `src/engine/*-actions.ts`
-  files where useful.
+Current collections:
 
-Acceptance:
+- `app-settings`
+- `characters`
+- `personas`
+- `lorebooks`
+- `provider-connections`
+- `roleplay-threads`
+- `roleplay-entries`
+- `messenger-threads`
+- `messenger-messages`
+- `ripple-states`
 
-- The app can create/edit/delete a companion, persona, lorebook entry, and
-  provider connection without touching sample constants.
-- Reload preserves changes.
-- Empty or corrupt localStorage falls back safely to seeded records.
+Key behavior:
 
-## 2. Messenger Thread Configuration
+- Thread metadata and transcript rows are saved separately.
+- UI and generation still consume assembled `MessengerThread` and
+  `RoleplayThread` objects.
+- Legacy embedded `messages` and `entries` are normalized and migrated into
+  split collections on load or import commit.
+- App storage sync tracks dirty collections, debounces, schedules idle writes,
+  and serializes one `storage_replace` per dirty collection.
+- Imports cancel pending autosave work, wait for active saves, and commit through
+  explicit collection replacement.
+- Desktop malformed collection files are recoverable storage errors and block
+  normal autosave overwrite.
 
-Goal: a Messenger thread should choose its actual participants and context.
+Next work:
 
-Status: initial per-thread settings are implemented in the Messenger surface for
-persona, companions, lorebooks, and provider connection. Existing threads can
-change their connection without changing global defaults.
-
-Current files:
-
-- `src/features/messenger/MessengerThread.tsx`
-- `src/features/shell/waterline/Waterline.tsx`
-- `src/features/shell/shoal/Shoal.tsx`
-- `src/App.tsx`
-
-Implementation:
-
-- Continue hardening the thread settings surface for active persona,
-  companions, lorebooks, preset placeholder, and provider connection.
-- Keep `setMessengerThreadParticipants`, `setMessengerThreadPersona`,
-  `setMessengerThreadLorebooks`, and `setMessengerThreadProviderConnection`
-  helpers in `src/engine/messenger-actions.ts`.
-- New thread creation should use the currently active app defaults, but existing
-  threads should retain their saved settings.
-- Show missing/deleted referenced records gracefully.
-
-Acceptance:
-
-- A new thread can be created with one or more selected companions.
-- Existing threads can change connection without changing global defaults.
-- Messenger header reflects actual active participants and connection.
-
-## 3. Real Generation Context Assembly
-
-Goal: generated replies should use selected thread records, not hard-coded sample
-records.
-
-Status: initial generation context assembly is implemented in the engine. The
-runtime now resolves selected companions, persona, lorebooks, and provider
-connection from stored catalogs before creating the provider-neutral request.
-
-Current files:
-
-- `src/engine/messenger-generation.ts`
-- `src/runtime/messenger-generation.ts`
-- `src/runtime/mock-messenger-generation.ts`
-- `src/runtime/remote-messenger-generation.ts`
-
-Implementation:
-
-- Continue hardening resolution of thread character IDs, active persona ID,
-  lorebook IDs, and provider connection ID from stored catalogs.
-- Keep React components out of prompt/context assembly.
-- Keep the deterministic context builder in `src/engine/messenger-generation.ts`
-  focused on native records and missing-reference warnings.
-- Keep mock generation deterministic and useful for testing.
-- Remote generation must continue to send the provider-neutral
-  `MessengerGenerationRequest`.
-
-Acceptance:
-
-- Mock replies change based on selected companion/lorebook data.
-- Remote generation request includes only DeKoi-native records.
-- Missing references become warnings, not crashes.
-
-## 4. Remote Runtime Contract Fixture
-
-Goal: make the remote generation path testable before a full Rust runtime exists.
-
-Status: initial contract docs and a local in-memory fixture server are
-implemented. Use `npm run runtime:fixture` and see
-`docs/remote-runtime-contract.md`.
-
-Current files:
-
-- `src/runtime/remote-runtime.ts`
-- `src/runtime/remote-messenger-generation.ts`
-- `src/runtime/messenger-storage.ts`
-- `docs/remote-runtime-contract.md`
-- `scripts/remote-runtime-fixture.mjs`
-
-Implementation:
-
-- Continue hardening `/api/invoke` command docs for `generation_generate`.
-- Keep the tiny local fixture server available for development.
-- Keep exact JSON request and response examples in `docs/`.
-- Keep the command allowlist explicit.
+- Add an explicit repair/restore path for malformed desktop collection files.
+- Keep migration signatures correct when user edits happen during legacy
+  transcript migration.
+- Keep transcript activity ordering based on message/entry activity helpers, not
+  thread `updatedAt` alone.
+- Avoid adding database details until a repository implementation can sit behind
+  `storage-repository-factory.ts`.
 
 Acceptance:
 
-- Remote mode can be tested against a local fixture.
-- Bad remote responses produce clear UI errors.
-- Storage commands and generation commands remain separately named and
-  allowlisted.
+- New Messenger messages dirty only `messenger-messages`.
+- New Roleplay entries dirty only `roleplay-entries`.
+- Legacy embedded transcripts load, render, and migrate into split collections.
+- Corrupt desktop collection files are reported clearly and not overwritten by
+  autosave.
 
-## 5. DeKoi-Native Storage Bundle
+## 2. Messenger
 
-Goal: users can move data between devices without a hidden browser-only trap.
+Status: working first product loop, still the primary polish target.
 
-Status: DeKoi-native JSON export/import is implemented in Pond Care > Stocking.
-Import validates schema version, previews counts, requires explicit replacement
-confirmation, creates a pre-import backup, and commits replacement through the
-storage collection path instead of autosave. Partial failures report the failed
-collection and leave restore to the pre-import backup.
+Implemented:
 
-Implementation:
+- Create Messenger threads from The Shoal with selected companions, persona,
+  and connection.
+- Save/reopen threads.
+- Send persona or anonymous messages.
+- Generate companion replies through mock or provider runtime.
+- Edit and delete messages.
+- Configure thread participants, persona, lorebooks, connection, and custom
+  Messenger prompt through the Shoal chat settings rail.
+- Show missing/deleted references gracefully in several paths.
 
-- Continue hardening the DeKoi export bundle containing native records:
-  characters, personas, lorebooks, provider connections without secrets,
-  Roleplay threads, Messenger threads, Ripple states, and app settings.
-- Keep export/import JSON actions in Pond Care > Stocking.
-- Keep legacy import separate from native import.
-- Validate schema versions on import.
-- Keep imports on the explicit commit path so delayed autosave cannot race the
-  replacement.
+Next work:
 
-Acceptance:
-
-- Export downloads a readable DeKoi JSON bundle.
-- Import previews counts before applying.
-- Import never overwrites without explicit confirmation.
-- Import creates a pre-import backup and reports partial failures without
-  claiming automatic rollback.
-
-## 6. Roleplay First Slice
-
-Goal: start Roleplay only after Messenger core records are stable.
-
-Status: initial Roleplay scene records, local storage, Shoal reopening, and a
-minimal scene surface are implemented. Roleplay can generate a character turn by
-adapting the scene into the existing provider-neutral Messenger generation
-boundary.
-
-Implementation:
-
-- Continue hardening `RoleplayThread` and `RoleplayEntry` records in `src/engine`.
-- Reuse characters, personas, lorebooks, provider connections, and generation
-  runtime where practical.
-- Keep building out the minimal Roleplay surface with scene text and speaker
-  turns.
-- Avoid importing Messenger UI internals directly.
+- Finish polish on thread settings states, including disabled/empty cases and
+  clearer missing-reference summaries.
+- Review custom system prompt UX and make sure it is Messenger-specific.
+- Improve generated-reply warnings so provider failures are understandable to a
+  nontechnical user.
+- Keep Messenger UI out of Roleplay internals and keep prompt assembly in
+  `src/engine/messenger-generation.ts`.
 
 Acceptance:
 
-- Roleplay can create a scene, save it, reopen it, and generate one turn through
-  the same provider boundary.
-- Roleplay has separate record types where presentation/continuity differs from
-  Messenger.
+- A user can create a Messenger thread, send a message, get a reply, edit/delete
+  messages, reload, and continue.
+- Selected companion/persona/lorebook/connection records influence the
+  generation request.
+- Missing records produce warnings or visible empty states, not crashes.
 
-## 7. Legacy Import Adapters
+## 3. Roleplay
 
-Goal: import old data only into stable DeKoi-native records.
+Status: first native slice exists. It is no longer purely reserved, but it is
+still less complete than Messenger.
 
-Status: initial legacy thread import is implemented in Pond Care > Stocking.
-It dry-runs supported previous thread JSON/localStorage shapes, previews counts,
-creates a pre-import backup, and appends converted records as native Messenger
-threads through the explicit storage commit path.
+Implemented:
 
-Implementation:
+- Native `RoleplayThread` and `RoleplayEntry` records.
+- Roleplay thread creation from The Shoal with companions, persona, lorebooks,
+  and connection.
+- Save/reopen Roleplay threads.
+- Send persona or narration entries.
+- Generate a character turn through the shared provider-neutral generation
+  boundary.
+- Edit and delete entries.
+- Split `roleplay-entries` collection with assembly before UI/generation.
 
-- Continue hardening one-way adapters: legacy source shape to DeKoi native
-  shape.
-- Keep legacy names out of public UI except import-source labels.
-- Keep dry-run import summaries before writing data.
-- Keep converted-thread import on the same backup and commit path as native
-  bundle import.
+Next work:
+
+- Build actual Roleplay settings UX instead of the disabled header settings
+  button in the thread surface.
+- Decide which scene fields are first-class UI, not just stored fields.
+- Improve scene framing, speaker presentation, and continuation controls.
+- Keep Roleplay records separate from Messenger where presentation/continuity
+  differs.
 
 Acceptance:
 
-- Import can show what will be created before it writes.
-- Imported records are normal DeKoi records after import.
-- Import failure leaves the pre-import backup as the restore path rather than
-  claiming automatic rollback.
-- No copied legacy prompts, UI copy, assets, or schema names become native.
+- A user can create a Roleplay thread, write an entry, generate a character
+  turn, edit/delete entries, reload, and continue.
+- Roleplay generation uses selected companions/persona/lorebooks/connection.
+- Roleplay does not import Messenger UI internals.
 
-## 8. Tauri/Rust Host Work
+## 4. Catalog Records
 
-Goal: add native capabilities only when the TypeScript records and contracts are
-stable enough to justify the host layer.
+Status: editable native records exist for companions, personas, lorebooks, and
+provider connections.
 
-Status: initial optional Tauri desktop scaffold is implemented. It keeps the
-web app intact, adds a Rust host crate, exposes host-status and durable bundle
-storage commands, and wires Pond Care > Deep Water to check host capabilities
-and save/load a DeKoi-native bundle through the desktop app data directory.
-Provider-key secret commands are also available through the desktop host and
-Pond Care > Catalog can save, check, and clear a key for a connection without
-putting the secret value in bundles or browser storage. Desktop bundle file
-import/export is also available through native host file dialogs in Pond Care >
-Stocking. Initial desktop runtime support is wired through `desktop://runtime`;
-it provides host-backed Messenger storage and fixture-style generation through
-the existing runtime command names.
+Implemented:
 
-Rust/Tauri should eventually own:
+- Catalog rails and editor surfaces for companions, personas, lorebooks, and
+  connections.
+- Record creation, update, delete, and duplication helpers where useful.
+- Delete cleanup for references from Messenger/Roleplay threads and characters.
+- Provider connection secret handling through action hooks and desktop secret
+  wrappers.
+- Provider connection check and model fetch.
 
-- durable file-backed storage,
-- secret storage for provider keys,
-- local filesystem import/export,
-- hostable remote runtime,
-- native provider transport if browser-only transport is insufficient.
+Next work:
 
-Do not start Rust/Tauri for ordinary UI state or domain modeling. Build the
-TypeScript engine contracts first, then wrap them with host capabilities.
+- Harden validation and field-level error states.
+- Keep provider secret values out of records, bundles, local browser state, and
+  logs.
+- Improve empty catalog states and first-run affordances.
+- Decide when prompt presets/Currents become real records; do not smuggle them
+  into provider connections or threads prematurely.
+
+Acceptance:
+
+- A user can create/edit/delete core catalog records without touching sample
+  constants.
+- Deleting a referenced record cleans relationships or shows a clear missing
+  state.
+- Exported provider connections never include API key material.
+
+## 5. Generation And Providers
+
+Status: provider-neutral generation is real but narrow.
+
+Implemented:
+
+- `src/engine/generation.ts` shared request helpers.
+- Messenger request assembly in `src/engine/messenger-generation.ts`.
+- Roleplay request assembly in `src/engine/roleplay-generation.ts`.
+- Mock generation adapters for development.
+- Provider generation workflow under `src/features/runtime/generation`.
+- Browser provider fallback for optional/no-key cases.
+- Desktop runtime provider calls with stored API key lookup for required-key
+  providers.
+- Provider connection check and model listing commands.
+
+Supported provider work is intentionally bare-minimum. Current adapters cover
+OpenAI-compatible providers plus Anthropic and Google-style endpoints. Treat
+each provider as experimental until checked with a real endpoint.
+
+Next work:
+
+- Improve provider-specific response parsing and empty/refusal warnings.
+- Make provider errors concise and actionable in Messenger and Roleplay.
+- Keep generation commands separate from storage commands.
+- Keep provider secrets behind desktop secret capabilities.
+- Add durable tests only for risky contracts or known regressions.
+
+Acceptance:
+
+- Generation request payloads contain DeKoi-native records and provider-neutral
+  `promptMessages`.
+- Unknown generated companion IDs are dropped with a warning.
+- Required-key providers fail clearly when no desktop secret is available.
+
+## 6. Bundle Import, Export, And Legacy Import
+
+Status: native bundle import/export and one-way legacy thread import are
+implemented.
+
+Implemented:
+
+- Native bundle export includes all current collections, including split
+  transcript collections.
+- Native bundle import validates kind/schema, normalizes collections, previews
+  counts, skips invalid records when possible, requires confirmation, creates a
+  pre-import backup, and commits through explicit collection replacement.
+- Desktop bundle export/import can use native file dialogs.
+- Provider secret fields are redacted on export and skipped with warnings on
+  import.
+- Legacy thread import previews supported previous thread/localStorage shapes,
+  then appends converted native Messenger records through the same backup and
+  commit path.
+- Orphan Ripple states are skipped during bundle import.
+
+Next work:
+
+- Keep bundle schema docs aligned with storage collection changes.
+- Improve partial import recovery UX.
+- Add repair/import flows only with explicit user confirmation.
+- Keep legacy import labels isolated to import-source descriptions.
+
+Acceptance:
+
+- Exported JSON is readable and excludes provider secrets.
+- Import previews counts before replacing data.
+- Import never overwrites without confirmation and pre-import backup attempt.
+- Partial failures name the failed collection and do not claim automatic
+  rollback.
+
+## 7. Desktop And Remote Runtime
+
+Status: both exist as runtime targets.
+
+Implemented:
+
+- Remote HTTP fixture: `pnpm runtime:fixture`.
+- HTTP runtime contract:
+  - `GET /health?probe=1`
+  - `POST /api/invoke`
+- Desktop runtime target: `desktop://runtime`.
+- Shared runtime command allowlist:
+  - `generation_generate`
+  - `provider_connection_check`
+  - `provider_connection_models`
+  - `storage_list`
+  - `storage_replace`
+  - `storage_create`
+  - `storage_update`
+  - `storage_delete`
+- Desktop Tauri commands for host status, storage bundles, bundle file dialogs,
+  provider secrets, runtime health, and runtime invoke.
+
+Next work:
+
+- Keep `src/shared/api/runtime-commands.ts`, fixture commands, Rust runtime
+  dispatch, and docs in sync.
+- Keep `src/shared/api/desktop-commands.ts`, Rust command registration, and
+  capability docs in sync.
+- Avoid adding raw Tauri `invoke` or raw runtime `fetch` calls inside feature UI.
+
+Acceptance:
+
+- `pnpm check:runtime-contracts` passes after runtime command changes.
+- `pnpm check:desktop-contracts` passes after desktop command changes.
+- Remote fixture and desktop runtime expose the same command names where
+  applicable.
 
 ## Verification Commands
 
-Run these before committing normal feature slices:
+Use the smallest check that proves the changed lane:
 
 ```sh
-npm run build
-npm run lint
-git diff --check
+pnpm check:storage-contracts
+pnpm check:provider-secret-safety
+pnpm check:runtime-contracts
+pnpm check:desktop-contracts
+pnpm check:frontend-boundaries
+pnpm build
+pnpm lint
+pnpm check:rust
 ```
 
-If the dev server is running, also smoke the local route:
+Run the full local gate before shipping or ready-for-review handoff:
 
 ```sh
-node --input-type=module -e "const r=await fetch('http://127.0.0.1:5174/'); const t=await r.text(); console.log({status:r.status, hasRoot:t.includes('<div id=\"root\"></div>')})"
+pnpm check
 ```
 
-Use browser/UI verification when the browser connector is working again. If it
-is not, say so in the handoff or final response instead of claiming visual proof.
+For the remote fixture:
+
+```sh
+pnpm runtime:fixture
+```
+
+For a quick Vite root smoke check while the dev server is running:
+
+```sh
+node --input-type=module -e "const r=await fetch('http://127.0.0.1:5173/'); const t=await r.text(); console.log({status:r.status, hasRoot:t.includes('<div id=\"root\"></div>')})"
+```
+
+Adjust the port if Vite selected another one.
 
 ## Commit Guidance
 
-Keep commits small and named around product slices, for example:
+Keep commits small and named around product slices or contracts, for example:
 
-- `Add companion catalog storage`
-- `Wire messenger thread participants`
-- `Assemble messenger generation context`
-- `Add native export bundle`
+- `storage: split messenger transcript rows`
+- `runtime: harden provider connection checks`
+- `messenger: polish thread settings`
+- `roleplay: wire scene generation warnings`
 
-Avoid bundling unrelated UI polish, storage changes, and runtime changes into
-one commit.
+Do not bundle unrelated UI polish, storage changes, runtime changes, and docs
+rewrites into one commit unless the user explicitly asks for a broad sync.

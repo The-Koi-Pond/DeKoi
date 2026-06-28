@@ -58,13 +58,13 @@
             </tr>
             <tr>
               <td><code>src/features/runtime</code></td>
-              <td>Shared frontend runtime systems</td>
-              <td>Generation flow, ripples, visuals, trackers, and mode-neutral live state used by shell and modes.</td>
+              <td>React-free frontend runtime workflows</td>
+              <td>Generation flow, ripples, storage startup, runtime target changes, bundle previews, and import/export orchestration used by app, shell, and modes.</td>
             </tr>
             <tr>
               <td><code>src/features/modes</code></td>
               <td>User mode surfaces</td>
-              <td>Messenger, Roleplay, future adventure/gameplay modes, shared mode UI, and the mode router.</td>
+              <td>Messenger, Roleplay, shared mode UI, and future approved mode surfaces.</td>
             </tr>
             <tr>
               <td><code>src/features/shell</code></td>
@@ -89,7 +89,7 @@
             <tr>
               <td><code>src-tauri</code></td>
               <td>Native host</td>
-              <td>Local storage, secrets, provider transport, command dispatch, and remote runtime host behavior.</td>
+              <td>Local storage, secrets, provider transport, command dispatch, and remote runtime/provider transport behavior.</td>
             </tr>
           </tbody>
         </table>
@@ -121,7 +121,7 @@
             </tr>
             <tr>
               <td>None currently</td>
-              <td>New feature folders must enter <code>catalog</code>, <code>modes</code>, <code>navigation</code>, or <code>shell</code>.</td>
+              <td>New top-level feature folders should not be added without updating the architecture docs and <code>scripts/check-frontend-boundaries.mjs</code>.</td>
               <td>Do not add new flat feature roots.</td>
             </tr>
             <tr>

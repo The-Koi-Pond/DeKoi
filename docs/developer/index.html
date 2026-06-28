@@ -27,14 +27,14 @@
         <p class="eyebrow">Start here</p>
         <h1>How this repo is put together and how to work in it without widening impact.</h1>
         <p class="lead">
-          DeKoi is currently a fresh React, TypeScript, and Vite seed. These migrated developer docs preserve the
-          intended layered architecture while the new implementation catches up: React owns the user interface,
-          TypeScript engine modules own product behavior, and future host layers should own privileged capabilities.
+          DeKoi is a React, TypeScript, Vite, and optional Tauri app. React features own the user interface,
+          TypeScript engine modules own product behavior, the runtime bridge owns storage and import/export contracts,
+          and the desktop host owns privileged capabilities.
         </p>
         <div class="callout">
-          <strong>Migration note:</strong> these docs were ported from user-owned developer documentation and rewritten
-          with DeKoi terms. Treat deeper architecture pages as a validation queue until the new codebase implements the
-          referenced layers.
+          <strong>Current status:</strong> these developer docs now describe the current DeKoi source lanes. They are
+          not exhaustive product specs; check the source tree before planning work outside Messenger, Roleplay, catalog,
+          storage, runtime, shell, or desktop host paths.
         </div>
 
         <section class="grid" aria-label="Main docs">
@@ -95,28 +95,29 @@
             </tr>
             <tr>
               <td>Client state and data loading</td>
-              <td>React state first. Dedicated data loading and app stores are not selected yet.</td>
+              <td>React state plus app-level storage sync.</td>
               <td>
-                The first slice should prove Messenger locally before adding provider, storage, or runtime complexity.
+                <code>src/app</code> owns top-level state, storage sync, and view action assembly.
               </td>
             </tr>
             <tr>
               <td>Product engine</td>
               <td>
-                React-free TypeScript model modules, then storage schemas after the names settle.
+                React-free TypeScript records, pure actions, and generation request builders.
               </td>
               <td>
-                <code>src/engine</code> currently defines Messenger, Companions, Personas, Lorebooks, and Ripples.
+                <code>src/engine</code> currently defines app settings, Messenger, Roleplay, catalog records,
+                generation, surfaces, and Ripples.
               </td>
             </tr>
             <tr>
               <td>Desktop, local, and hostable capabilities</td>
               <td>
-                Future Tauri/native capabilities.
+                Optional Tauri desktop host plus compatible remote runtime commands.
               </td>
               <td>
-                Native storage, secrets, filesystem access, provider transport, and imports should stay behind explicit
-                runtime boundaries when they are added.
+                Desktop storage, native bundle dialogs, provider secrets, provider transport, and runtime dispatch stay
+                behind explicit command wrappers.
               </td>
             </tr>
           </tbody>
@@ -128,30 +129,28 @@
             <h3>Shell and feature split</h3>
             <p>
               The app shell lives under <code>src/app</code>. Product surfaces live under <code>src/features</code>,
-              including Messenger, Roleplay, future adventure systems, media assets, libraries, settings, integrations, onboarding, and Pond Guide.
+              including shell, navigation, catalog, Messenger, Roleplay, and feature-runtime workflows.
             </p>
           </div>
           <div class="panel">
             <h3>Engine split</h3>
             <p>
-              Engine code is separated into contracts, capabilities, pure helpers, repositories, generation building
-              blocks, helper runtime, generation lifecycle, standalone guide entry, and mode-owned services.
+              Engine code is intentionally flat for now: records, pure actions, generation helpers, and mode-specific
+              request builders live in focused files.
             </p>
           </div>
           <div class="panel">
-            <h3>Pond Guide path</h3>
+            <h3>Storage split</h3>
             <p>
-              Pond Guide is not hidden inside Messenger. The shell opens
-              <code>features/shell/pond-guide</code>, which calls <code>engine/pond-guide</code>, <code>shared/api/pond-guide-api</code>,
-              and the Rust <code>pond_guide_prompt</code> command.
+              Storage contracts, collection adapters, split transcripts, bundle import/export, and legacy import live
+              under <code>src/runtime/storage</code>.
             </p>
           </div>
           <div class="panel">
             <h3>Native capability split</h3>
             <p>
-              <code>src-tauri</code> is split into thin command facades plus focused crates for core helpers, security,
-              storage, assets, LLM transport, and integrations. The same focused Rust modules back the embedded Tauri
-              commands and hostable HTTP dispatch.
+              <code>src-tauri/src</code> has focused modules for storage, provider secrets, file dialogs, host status,
+              and desktop runtime dispatch.
             </p>
           </div>
         </div>
@@ -159,19 +158,21 @@
         <h2>Core Shape</h2>
         <pre class="mermaid">
 flowchart LR
-  UI[React app and features]
-  API[shared/api runtime adapters]
-  Engine[TypeScript engine use cases]
-  Ports[engine capability ports]
-  Commands[Rust Tauri commands<br/>or HTTP dispatch]
-  Crates[Rust capability crates]
+  App[src/app]
+  Features[src/features]
+  FeatureRuntime[src/features/runtime]
+  Engine[src/engine]
+  Runtime[src/runtime/storage]
+  SharedApi[src/shared/api]
+  Tauri[src-tauri/src]
 
-  UI --> API
-  UI --> Engine
-  Engine --> Ports
-  API --> Commands
-  Commands --> Crates
-  Ports -. implemented by .-> API
+  App --> Features
+  Features --> Engine
+  Features --> FeatureRuntime
+  FeatureRuntime --> Runtime
+  FeatureRuntime --> SharedApi
+  Runtime --> SharedApi
+  SharedApi --> Tauri
         </pre>
 
         <h2>Rules That Keep Changes Small</h2>
@@ -186,8 +187,8 @@ flowchart LR
           <div class="panel">
             <h3>Mode separation</h3>
             <p>
-              Messenger is the first active surface. Roleplay is reserved next. Future adventure systems should stay separate
-              until DeKoi has native records and storage.
+              Messenger is the first polish target. Roleplay has a working first slice. Reserved, media, presets, and
+              Ripples editor surfaces are not complete product loops yet.
             </p>
           </div>
           <div class="panel">

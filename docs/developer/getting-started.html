@@ -31,9 +31,9 @@
           the current Vite app, test real workflows, then fix bugs from the correct owner.
         </p>
         <div class="callout">
-          <strong>Migration note:</strong> this page has been adapted for the fresh DeKoi seed. Some migrated developer
-          docs still need validation against current source, but Tauri desktop storage and the remote runtime fixture
-          are available development paths.
+          <strong>Current status:</strong> Messenger, Roleplay, catalog records, collection storage, native bundles,
+          provider secrets, and the remote runtime fixture all exist in early form. Media, presets, Reserved, and a
+          routed Ripple editor are still placeholders or incomplete.
         </div>
 
         <h2>First Agent Response</h2>
@@ -43,7 +43,7 @@
           <li>Give the user <code>http://127.0.0.1:4174/</code>.</li>
           <li>Teach the repo shape in a short layered tour.</li>
           <li>Show how to run the current Vite app.</li>
-          <li>Guide a manual testing pass through the current Messenger preview.</li>
+          <li>Guide a manual testing pass through Messenger, Roleplay, catalog, and storage paths.</li>
           <li>When a bug is found, switch into root-cause bug fixing.</li>
         </ol>
 
@@ -58,16 +58,18 @@ flowchart TB
   User[Developer testing the app]
   UI[src/features<br/>React feature UI]
   Engine[src/engine<br/>product behavior]
-  Ports[engine/capabilities<br/>ports]
-  API[src/shared/api<br/>runtime adapters]
+  FeatureRuntime[src/features/runtime<br/>runtime workflows]
+  Runtime[src/runtime/storage<br/>storage bridge]
+  API[src/shared/api<br/>typed runtime wrappers]
   Rust[src-tauri<br/>embedded and hostable capabilities]
   Data[Local data, files, providers]
 
   User --> UI
   UI --> Engine
+  UI --> FeatureRuntime
+  FeatureRuntime --> Runtime
+  FeatureRuntime --> API
   UI --> API
-  Engine --> Ports
-  Ports -. implemented at feature edge .-> API
   API --> Rust
   Rust --> Data
         </pre>
@@ -82,19 +84,19 @@ flowchart TB
           <tbody>
             <tr>
               <td><code>src/app</code></td>
-              <td>App shell, providers, startup effects.</td>
+              <td>App providers, top-level state, storage sync, and view action assembly.</td>
             </tr>
             <tr>
               <td><code>src/features</code></td>
-              <td>React screens, components, hooks, user workflows.</td>
+              <td>Shell, catalog, Messenger, Roleplay, navigation, and feature-runtime workflows.</td>
             </tr>
             <tr>
               <td><code>src/engine</code></td>
-              <td>React-free product rules and mode orchestration.</td>
+              <td>React-free records, pure actions, and generation request assembly.</td>
             </tr>
             <tr>
-              <td><code>src/engine/capabilities</code></td>
-              <td>Ports accepted by engine services. Implement them at the feature/app edge.</td>
+              <td><code>src/runtime</code></td>
+              <td>Storage contracts, collection adapters, app snapshots, bundles, and legacy import.</td>
             </tr>
             <tr>
               <td><code>src/shared/api</code></td>
@@ -115,26 +117,21 @@ flowchart TB
           <div class="panel">
             <h3>Messenger</h3>
             <p>
-              Create/select a connection, Companion, and Persona. Send a message, regenerate, retry, swipe/branch, test
-              attachments and summaries.
+              Create a Companion, Persona, and Connection. Start a Messenger thread, send a message, generate a reply,
+              edit/delete a message, reload, and continue.
             </p>
           </div>
           <div class="panel">
             <h3>Roleplay</h3>
-            <p>Create, fork, and conclude a scene. Test choices, scene memory, sprites, and encounters.</p>
+            <p>Create a Roleplay thread, send an entry, generate a character turn, edit/delete an entry, reload, and continue.</p>
           </div>
           <div class="panel">
-            <h3>Future adventure</h3>
-            <p>
-              Future adventure systems are parked until Messenger, Roleplay, native records, and storage are stable.
-            </p>
+            <h3>Catalog</h3>
+            <p>Create, edit, duplicate, and delete Companions, Personas, Lorebooks, and Connections. Watch referenced threads for cleanup or missing states.</p>
           </div>
           <div class="panel">
-            <h3>Pond Guide</h3>
-            <p>
-              Open Pond Guide from the shell, select a connection/persona, send text and file attachments, and ask a
-              library question that should use the read-only creative library tool.
-            </p>
+            <h3>Placeholders</h3>
+            <p>Confirm Reserved is locked, Media and Presets rails are placeholder-only, and Ripples have no routed editor yet.</p>
           </div>
           <div class="panel">
             <h3>Settings and imports</h3>
@@ -147,7 +144,7 @@ flowchart TB
             <h3>Remote runtime</h3>
             <p>
               Run <code>pnpm runtime:fixture</code>, configure its URL in Pond Care &gt; Deep Water, and test
-              generation plus collection storage through the invoke contract.
+              collection storage and runtime command health through the invoke contract.
             </p>
           </div>
         </div>
@@ -180,8 +177,8 @@ flowchart LR
         </div>
 
         <p class="footer">
-          The matching repo skill is
-          <code>skills/dekoi-getting-started/SKILL.md</code>.
+          Use <code>AGENTS.md</code>, <code>CORE_FEATURES_HANDOFF.md</code>, and these developer docs together when
+          orienting in the repo.
         </p>
       </main>
     </div>

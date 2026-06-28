@@ -19,12 +19,13 @@ src/features/catalog/
   thread libraries, presets, galleries, and importable product collections.
 
 src/features/runtime/
-  Shared frontend runtime systems used by shell and modes: generation flow,
-  ripples, visuals, trackers, and mode-neutral live state.
+  React-free frontend runtime workflows used by app, shell, and modes:
+  generation flow, ripples, storage startup, runtime target changes, bundle
+  previews, and import/export orchestration.
 
 src/features/modes/
   Concrete user mode surfaces and their shared mode UI: Messenger, Roleplay,
-  future adventure/gameplay modes, and the mode router/composition point.
+  shared mode UI, and future approved mode surfaces.
 
 src/features/shell/
   App-level tools and panels: Pond shell, care/settings, data backup,
@@ -43,7 +44,7 @@ src/engine/
 
 src-tauri/
   Native capabilities, local storage, secrets, command dispatch, and remote
-  runtime host behavior.
+  runtime/provider transport behavior.
 ```
 
 ## Current Bridge Map
@@ -54,7 +55,7 @@ src-tauri/
 | Product engine | `src/engine` | React-free records, actions, selectors, and product rules. | React, browser/UI helpers, runtime adapters, feature UI, or host clients. |
 | Runtime adapter bridge | `src/runtime` | Public runtime entrypoint plus the `src/runtime/storage` package for storage contracts, collection adapters, app snapshot orchestration, bundle import/export normalization, and legacy import. | React features, UI orchestration, generation orchestration, or raw desktop/remote transport. |
 | Navigation bridge | `src/features/navigation` | Navigation context and nav state/action contracts until mode router boundaries exist. | State/storage/view hooks, runtime/ripple actions, concrete feature screens, shell UI, or app provider/controller assembly. |
-| Feature UI bridge | None currently. New feature folders must enter `catalog`, `modes`, `navigation`, or `shell`. | User workflows, screens, local presentation state, and component composition. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
+| Feature UI bridge | None currently. New top-level feature folders should not be added without updating this doc and `scripts/check-frontend-boundaries.mjs`. | User workflows, screens, local presentation state, and component composition inside existing owners. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
 | Desktop host | `src-tauri` | Native capabilities, local filesystem storage, secrets, and runtime command dispatch. | React UI concerns or TypeScript product rules. |
 

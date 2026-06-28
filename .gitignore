@@ -21,6 +21,7 @@ __pycache__/
 *.py[cod]
 
 # Local scratch / dev screenshots
+/scratch/
 /screenshot.png
 
 # Windows reserved device name sometimes created by POSIX-like shells.
