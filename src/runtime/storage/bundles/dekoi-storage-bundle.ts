@@ -1,6 +1,5 @@
 import type { CharacterRecord } from "../../../engine/character";
 import {
-  attachRoleplayEntriesToThreads,
   extractRoleplayEntries,
   toRoleplayThreadRecord,
   type RoleplayEntry,
@@ -9,7 +8,6 @@ import {
 } from "../../../engine/roleplay";
 import type { LorebookRecord } from "../../../engine/lorebook";
 import {
-  attachMessengerMessagesToThreads,
   extractMessengerMessages,
   toMessengerThreadRecord,
   type MessengerMessage,
@@ -324,10 +322,6 @@ export function normalizeDeKoiStorageBundle(
     extractRoleplayEntries(normalizedRoleplayThreads),
     validRoleplaySplitEntries,
   );
-  const roleplayThreadsWithEntries = attachRoleplayEntriesToThreads(
-    finalRoleplayThreadRecords,
-    validRoleplayEntries,
-  );
   const normalizedMessengerThreads = normalizeMessengerThreads(
     value.data.messengerThreads,
   );
@@ -353,10 +347,6 @@ export function normalizeDeKoiStorageBundle(
     extractMessengerMessages(normalizedMessengerThreads),
     validMessengerSplitMessages,
   );
-  const messengerThreadsWithMessages = attachMessengerMessagesToThreads(
-    finalMessengerThreadRecords,
-    validMessengerMessages,
-  );
   const data: DeKoiStorageBundleData = {
     appSettings: normalizeAppSettings(value.data.appSettings),
     characters: normalizeList(
@@ -366,7 +356,7 @@ export function normalizeDeKoiStorageBundle(
       warnings,
     ),
     roleplayThreads: finalRoleplayThreadRecords,
-    roleplayEntries: extractRoleplayEntries(roleplayThreadsWithEntries),
+    roleplayEntries: validRoleplayEntries,
     personas: normalizeList(
       value.data.personas,
       "Personas",
@@ -386,7 +376,7 @@ export function normalizeDeKoiStorageBundle(
       warnings,
     ),
     messengerThreads: finalMessengerThreadRecords,
-    messengerMessages: extractMessengerMessages(messengerThreadsWithMessages),
+    messengerMessages: validMessengerMessages,
     rippleStates: normalizeList(
       value.data.rippleStates,
       "Ripple states",

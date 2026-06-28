@@ -1,6 +1,10 @@
 import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
+import {
+  reconcileMigrationAppStorageSignatures,
+  type AppStorageCollectionSignatures,
+} from "../../src/app/use-app-storage-sync";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/app-settings";
 import {
   appendMessengerMessages,
@@ -373,6 +377,48 @@ test("storage import reload decision falls back to completed collections", () =>
       collections: [mixedFailure.collections[1]],
     }),
   ).toBe(false);
+});
+
+test("migration signature reconciliation keeps changed migrated collections dirty", () => {
+  const savedSignatures = {
+    appSettings: "app-settings-saved",
+    characters: "characters-saved",
+    personas: "personas-saved",
+    lorebooks: "lorebooks-saved",
+    providerConnections: "provider-connections-saved",
+    roleplayThreads: "legacy-migration-marker",
+    roleplayEntries: "legacy-migration-marker",
+    messengerThreads: "messenger-threads-saved",
+    messengerMessages: "messenger-messages-saved",
+    rippleStates: "ripple-states-saved",
+  } satisfies AppStorageCollectionSignatures;
+  const committedSignatures = {
+    ...savedSignatures,
+    roleplayThreads: "roleplay-threads-committed",
+    roleplayEntries: "roleplay-entries-committed",
+  } satisfies AppStorageCollectionSignatures;
+  const currentSignatures = {
+    ...committedSignatures,
+    roleplayEntries: "roleplay-entries-live-edit",
+  } satisfies AppStorageCollectionSignatures;
+
+  const reconciled = reconcileMigrationAppStorageSignatures({
+    savedSignatures,
+    unsavedSignatures: {
+      appSettings: "app-settings-live-edit",
+      roleplayThreads: "legacy-migration-marker",
+      roleplayEntries: "legacy-migration-marker",
+    },
+    committedSignatures,
+    currentSignatures,
+    collectionKeys: ["roleplayThreads", "roleplayEntries"],
+  });
+
+  expect(reconciled.savedSignatures).toEqual(committedSignatures);
+  expect(reconciled.unsavedSignatures).toEqual({
+    appSettings: "app-settings-live-edit",
+    roleplayEntries: "roleplay-entries-live-edit",
+  });
 });
 
 test("transcript edits change transcript projection without changing thread records", () => {
