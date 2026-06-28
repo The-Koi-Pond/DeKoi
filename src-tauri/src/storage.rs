@@ -151,13 +151,6 @@ enum BackupState {
 }
 
 impl BackupState {
-    fn can_remove_target_for_retry(&self) -> bool {
-        matches!(
-            self,
-            BackupState::NotRequested | BackupState::Created { .. }
-        )
-    }
-
     fn created(&self) -> bool {
         matches!(self, BackupState::Created { .. })
     }
@@ -186,6 +179,67 @@ fn preserve_existing_backup(
     Ok(BackupState::Created { path: backup_path })
 }
 
+fn transient_replacement_json_path(path: &Path) -> PathBuf {
+    path.with_extension(format!(
+        "json.replacing-{}-{}",
+        std::process::id(),
+        current_unix_ms()
+    ))
+}
+
+fn install_with_transient_replacement_backup(
+    temporary_path: &Path,
+    path: &Path,
+    first_error: io::Error,
+) -> io::Result<()> {
+    if !path.exists() {
+        return Err(first_error);
+    }
+
+    let transient_backup_path = transient_replacement_json_path(path);
+    fs::copy(path, &transient_backup_path).map_err(|backup_error| {
+        io::Error::new(
+            backup_error.kind(),
+            format!("could not preserve target before replacement retry: {backup_error}"),
+        )
+    })?;
+    sync_file_best_effort(&transient_backup_path);
+    sync_parent_directory_best_effort(&transient_backup_path);
+
+    if let Err(remove_error) = fs::remove_file(path) {
+        let _ = fs::remove_file(&transient_backup_path);
+        return if remove_error.kind() == io::ErrorKind::NotFound {
+            Err(first_error)
+        } else {
+            Err(remove_error)
+        };
+    }
+
+    match fs::rename(temporary_path, path) {
+        Ok(()) => {
+            let _ = fs::remove_file(&transient_backup_path);
+            Ok(())
+        }
+        Err(retry_error) => {
+            let restore_message = match fs::copy(&transient_backup_path, path) {
+                Ok(_) => {
+                    sync_file_best_effort(path);
+                    sync_parent_directory_best_effort(path);
+                    "restored transient replacement copy".to_string()
+                }
+                Err(restore_error) => {
+                    format!("transient replacement restore failed: {restore_error}")
+                }
+            };
+            let _ = fs::remove_file(&transient_backup_path);
+            Err(io::Error::new(
+                retry_error.kind(),
+                format!("{retry_error}; {restore_message}"),
+            ))
+        }
+    }
+}
+
 fn install_temporary_json_file(
     temporary_path: &Path,
     path: &Path,
@@ -193,23 +247,25 @@ fn install_temporary_json_file(
 ) -> io::Result<()> {
     match fs::rename(temporary_path, path) {
         Ok(()) => Ok(()),
-        Err(first_error) => {
-            if !backup_state.can_remove_target_for_retry() {
-                return Err(io::Error::new(
-                    first_error.kind(),
-                    format!("no recorded backup existed before replacement: {first_error}"),
-                ));
+        Err(first_error) => match backup_state {
+            BackupState::NotRequested => {
+                install_with_transient_replacement_backup(temporary_path, path, first_error)
             }
-
-            if let Err(remove_error) = fs::remove_file(path) {
-                return if remove_error.kind() == io::ErrorKind::NotFound {
-                    Err(first_error)
-                } else {
-                    Err(remove_error)
-                };
+            BackupState::NoSourceFile => Err(io::Error::new(
+                first_error.kind(),
+                format!("no recorded backup existed before replacement: {first_error}"),
+            )),
+            BackupState::Created { .. } => {
+                if let Err(remove_error) = fs::remove_file(path) {
+                    return if remove_error.kind() == io::ErrorKind::NotFound {
+                        Err(first_error)
+                    } else {
+                        Err(remove_error)
+                    };
+                }
+                fs::rename(temporary_path, path)
             }
-            fs::rename(temporary_path, path)
-        }
+        },
     }
 }
 
@@ -992,6 +1048,37 @@ mod tests {
 
         assert_eq!(read_json(&path), new_value);
         assert!(!backup_json_path(&path).exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn transient_bundle_replacement_restores_target_when_retry_fails() {
+        let directory = temp_test_dir("bundle-transient-replacement");
+        let path = directory.join("dekoi-bundle.json");
+        let missing_temporary_path = temporary_json_path(&path);
+        let old_contents = r#"{"items":[{"id":"old"}]}"#;
+        fs::write(&path, old_contents).expect("old bundle fixture should be written");
+
+        let error = install_with_transient_replacement_backup(
+            &missing_temporary_path,
+            &path,
+            io::Error::new(io::ErrorKind::Other, "simulated initial rename failure"),
+        )
+        .expect_err("missing temp retry should fail after transient restore");
+
+        assert!(error
+            .to_string()
+            .contains("restored transient replacement copy"));
+        assert_eq!(
+            fs::read_to_string(&path).expect("old bundle should be restored"),
+            old_contents
+        );
+        let leftovers: Vec<_> = fs::read_dir(&directory)
+            .expect("test directory should be readable")
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().contains(".replacing-"))
+            .collect();
+        assert!(leftovers.is_empty());
         let _ = fs::remove_dir_all(directory);
     }
 }
