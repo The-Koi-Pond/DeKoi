@@ -17,6 +17,7 @@ import {
   type MessengerStorageStatus,
 } from "../features/runtime";
 import type { StateSetter } from "../shared/react/state-setter";
+import { appStorageReplaceResultNeedsReload } from "./app-storage-import-recovery";
 
 type AppStorageCollectionSignatures = Record<AppStorageCollectionKey, string>;
 type PartialAppStorageCollectionSignatures = Partial<
@@ -111,13 +112,6 @@ function createImportErrorResult(
     rollbackAvailable: false,
     rollbackMessage: IMPORT_ROLLBACK_MESSAGE,
   };
-}
-
-function appStorageReplaceResultNeedsReload(result: AppStorageReplaceResult) {
-  return (
-    result.requiresReload ||
-    result.collections.some((collection) => collection.status === "ready")
-  );
 }
 
 function changedAppStorageCollectionKeys(
