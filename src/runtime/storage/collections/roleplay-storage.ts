@@ -13,10 +13,19 @@ import {
   readTimestamp,
 } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
+import type { StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
+};
+
+export type RoleplayStorageSnapshot = {
+  records: RoleplayThread[];
+  hasLegacyEmbeddedEntries: boolean;
+  mode: StorageResult["mode"];
+  status: StorageResult["status"];
+  message: string;
 };
 
 function normalizeRoleplayEntryRole(value: unknown): RoleplayEntry["role"] {
@@ -126,11 +135,17 @@ const roleplayThreadRepository = createStorageRepository({
   seedRecords: [],
 });
 
-export async function loadRoleplayThreadsFromStorage(rawUrl?: string) {
+export async function loadRoleplayThreadsFromStorage(
+  rawUrl?: string,
+): Promise<RoleplayStorageSnapshot> {
   const snapshot = await roleplayThreadRepository.loadSnapshot(rawUrl);
+  const hasLegacyEmbeddedEntries = snapshot.records.some(
+    (thread) => Array.isArray(thread.entries) && thread.entries.length > 0,
+  );
   return {
     ...snapshot,
     records: attachRoleplayEntriesToThreads(snapshot.records, []),
+    hasLegacyEmbeddedEntries,
   };
 }
 

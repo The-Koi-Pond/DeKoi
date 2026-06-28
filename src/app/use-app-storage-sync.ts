@@ -45,12 +45,36 @@ type SaveStatusResult = {
 
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
+const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
 
 function createAppStorageSignatures(
   snapshot: AppStorageRecords,
 ): AppStorageCollectionSignatures {
   const signatures = {} as AppStorageCollectionSignatures;
   for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    signatures[collectionKey] = appStorageCollectionSignature(
+      snapshot,
+      collectionKey,
+    );
+  }
+  return signatures;
+}
+
+function createLoadedAppStorageSignatures(
+  snapshot: AppStorageSnapshot,
+): AppStorageCollectionSignatures {
+  const signatures = createAppStorageSignatures(snapshot);
+  for (const collectionKey of snapshot.migrationCollectionKeys) {
+    signatures[collectionKey] = LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE;
+  }
+  return signatures;
+}
+
+function createMigrationAppStorageSignatures(
+  snapshot: AppStorageSnapshot,
+): PartialAppStorageCollectionSignatures {
+  const signatures: PartialAppStorageCollectionSignatures = {};
+  for (const collectionKey of snapshot.migrationCollectionKeys) {
     signatures[collectionKey] = appStorageCollectionSignature(
       snapshot,
       collectionKey,
@@ -245,7 +269,8 @@ export function useAppStorageSync({
 
   const applyLoadedAppStorageSnapshot = useCallback(
     (snapshot: AppStorageSnapshot) => {
-      savedSignatures.current = createAppStorageSignatures(snapshot);
+      savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
+      unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
       setStorageReady(snapshot.storageResult.status === "ready");

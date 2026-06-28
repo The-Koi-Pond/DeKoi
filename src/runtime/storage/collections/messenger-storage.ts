@@ -20,6 +20,7 @@ export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
 
 export type MessengerStorageSnapshot = {
   threads: MessengerThread[];
+  hasLegacyEmbeddedMessages: boolean;
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
@@ -144,9 +145,13 @@ export async function loadMessengerThreadsFromStorage(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<MessengerStorageSnapshot> {
   const snapshot = await messengerThreadRepository.loadSnapshot(rawUrl);
+  const hasLegacyEmbeddedMessages = snapshot.records.some(
+    (thread) => Array.isArray(thread.messages) && thread.messages.length > 0,
+  );
 
   return {
     threads: attachMessengerMessagesToThreads(snapshot.records, []),
+    hasLegacyEmbeddedMessages,
     mode: snapshot.mode,
     status: snapshot.status,
     message:
@@ -157,7 +162,9 @@ export async function loadMessengerThreadsFromStorage(
 export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<Omit<MessengerStorageSnapshot, "threads">> {
+): Promise<
+  Omit<MessengerStorageSnapshot, "threads" | "hasLegacyEmbeddedMessages">
+> {
   const result = await messengerThreadRepository.save(
     threads.map(toMessengerThreadRecord),
     rawUrl,
