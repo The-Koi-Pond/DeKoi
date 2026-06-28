@@ -83,6 +83,21 @@ function createMigrationAppStorageSignatures(
   return signatures;
 }
 
+function markAppStorageCollectionsSaved(
+  savedSignatures: AppStorageCollectionSignatures | null,
+  collectionKeys: readonly AppStorageCollectionKey[],
+  collectionSignatures: PartialAppStorageCollectionSignatures,
+) {
+  if (!savedSignatures) return null;
+
+  const nextSignatures = { ...savedSignatures };
+  for (const collectionKey of collectionKeys) {
+    const signature = collectionSignatures[collectionKey];
+    if (signature !== undefined) nextSignatures[collectionKey] = signature;
+  }
+  return nextSignatures;
+}
+
 function createAppStorageCounts(
   snapshot: AppStorageRecords,
 ): Record<AppStorageCollectionKey, number> {
@@ -512,13 +527,24 @@ export function useAppStorageSync({
       ).then((storageResult) => {
         if (cancelled || storageGeneration.current !== generation) return;
 
+        const migrationSignatures =
+          createMigrationAppStorageSignatures(snapshot);
         if (storageResult.status === "ready") {
-          savedSignatures.current = createAppStorageSignatures(snapshot);
-          unsavedSignatures.current = {};
-          saveErrors.current = {};
+          savedSignatures.current = markAppStorageCollectionsSaved(
+            savedSignatures.current,
+            snapshot.migrationCollectionKeys,
+            migrationSignatures,
+          );
+          for (const collectionKey of snapshot.migrationCollectionKeys) {
+            if (
+              unsavedSignatures.current[collectionKey] ===
+              migrationSignatures[collectionKey]
+            ) {
+              delete unsavedSignatures.current[collectionKey];
+            }
+            delete saveErrors.current[collectionKey];
+          }
         } else {
-          const migrationSignatures =
-            createMigrationAppStorageSignatures(snapshot);
           unsavedSignatures.current = {
             ...unsavedSignatures.current,
             ...migrationSignatures,

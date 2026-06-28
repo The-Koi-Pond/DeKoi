@@ -184,7 +184,7 @@ function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
   );
   if (validRecords.length !== records.length) {
     warnings.push(
-      `${label} skipped ${records.length - validRecords.length} record(s) without a final imported thread.`,
+      `${label} skipped ${records.length - validRecords.length} record(s) without an imported thread.`,
     );
   }
   return validRecords;
@@ -297,14 +297,12 @@ export function normalizeDeKoiStorageBundle(
   const roleplayThreadIdSet = new Set(
     normalizedRoleplayThreads.map((thread) => thread.id),
   );
-  const validRoleplayEntries = normalizedRoleplayEntries.filter((entry) =>
-    roleplayThreadIdSet.has(entry.threadId),
+  const validRoleplayEntries = filterTranscriptRowsForImportedThreads(
+    normalizedRoleplayEntries,
+    roleplayThreadIdSet,
+    "Roleplay entries",
+    warnings,
   );
-  if (validRoleplayEntries.length !== normalizedRoleplayEntries.length) {
-    warnings.push(
-      `Roleplay entries skipped ${normalizedRoleplayEntries.length - validRoleplayEntries.length} record(s) without an imported thread.`,
-    );
-  }
   const roleplayThreadsWithEntries = attachRoleplayEntriesToThreads(
     normalizedRoleplayThreads,
     validRoleplayEntries,
@@ -321,14 +319,12 @@ export function normalizeDeKoiStorageBundle(
   const messengerThreadIdSet = new Set(
     normalizedMessengerThreads.map((thread) => thread.id),
   );
-  const validMessengerMessages = normalizedMessengerMessages.filter((message) =>
-    messengerThreadIdSet.has(message.threadId),
+  const validMessengerMessages = filterTranscriptRowsForImportedThreads(
+    normalizedMessengerMessages,
+    messengerThreadIdSet,
+    "Messenger messages",
+    warnings,
   );
-  if (validMessengerMessages.length !== normalizedMessengerMessages.length) {
-    warnings.push(
-      `Messenger messages skipped ${normalizedMessengerMessages.length - validMessengerMessages.length} record(s) without an imported thread.`,
-    );
-  }
   const messengerThreadsWithMessages = attachMessengerMessagesToThreads(
     normalizedMessengerThreads,
     validMessengerMessages,
@@ -388,18 +384,6 @@ export function normalizeDeKoiStorageBundle(
   const roleplayThreadIds = new Set(data.roleplayThreads.map((thread) => thread.id));
   const messengerThreadIds = new Set(
     data.messengerThreads.map((thread) => thread.id),
-  );
-  data.roleplayEntries = filterTranscriptRowsForImportedThreads(
-    data.roleplayEntries,
-    roleplayThreadIds,
-    "Roleplay entries",
-    warnings,
-  );
-  data.messengerMessages = filterTranscriptRowsForImportedThreads(
-    data.messengerMessages,
-    messengerThreadIds,
-    "Messenger messages",
-    warnings,
   );
   const validRippleStates = data.rippleStates.filter((state) =>
     state.ownerKind === "roleplay-thread"
