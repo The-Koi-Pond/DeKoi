@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
 import {
-  createStorageReloadLocalChangeToken,
+  createStorageReloadBlockToken,
   decideAppStorageReload,
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
@@ -521,58 +521,59 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
     ...savedSignatures,
     characters: "saved-later",
   };
-  const firstDirtyToken = createStorageReloadLocalChangeToken({
+  const firstDirtyBlockToken = createStorageReloadBlockToken({
     savedSignatures,
     currentSignatures: dirtySignatures,
   });
-  const laterDirtyToken = createStorageReloadLocalChangeToken({
+  const laterDirtyBlockToken = createStorageReloadBlockToken({
     savedSignatures,
     currentSignatures: laterDirtySignatures,
   });
-  const laterSavedToken = createStorageReloadLocalChangeToken({
+  const laterSavedBlockToken = createStorageReloadBlockToken({
     savedSignatures: laterSavedSignatures,
     currentSignatures: dirtySignatures,
   });
 
+  expect(firstDirtyBlockToken?.changedCollectionKeys).toEqual(["appSettings"]);
   expect(
     decideAppStorageReload({
       activeStorageWork: true,
-      localChangeToken: null,
-      confirmedLocalChangeToken: null,
+      currentBlockToken: null,
+      confirmedBlockToken: null,
     }),
   ).toBe("block-active-work");
 
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: firstDirtyToken,
-      confirmedLocalChangeToken: null,
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: null,
     }),
   ).toBe("confirm-local-discard");
 
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: firstDirtyToken,
-      confirmedLocalChangeToken: firstDirtyToken,
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
     }),
   ).toBe("proceed");
 
-  expect(firstDirtyToken).not.toBe(laterDirtyToken);
+  expect(firstDirtyBlockToken).not.toEqual(laterDirtyBlockToken);
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: laterDirtyToken,
-      confirmedLocalChangeToken: firstDirtyToken,
+      currentBlockToken: laterDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
     }),
   ).toBe("confirm-local-discard");
 
-  expect(firstDirtyToken).not.toBe(laterSavedToken);
+  expect(firstDirtyBlockToken).not.toEqual(laterSavedBlockToken);
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: laterSavedToken,
-      confirmedLocalChangeToken: firstDirtyToken,
+      currentBlockToken: laterSavedBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
     }),
   ).toBe("confirm-local-discard");
 });

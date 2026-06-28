@@ -74,29 +74,38 @@ export type AppStorageReloadDecision =
   | "confirm-local-discard"
   | "block-active-work";
 
+export type AppStorageReloadBlockToken = {
+  changedCollectionKeys: readonly AppStorageCollectionKey[];
+  savedSnapshotToken: string;
+  currentSnapshotToken: string;
+};
+
 export function decideAppStorageReload({
   activeStorageWork,
-  localChangeToken,
-  confirmedLocalChangeToken,
+  currentBlockToken,
+  confirmedBlockToken,
 }: {
   activeStorageWork: boolean;
-  localChangeToken: string | null;
-  confirmedLocalChangeToken: string | null;
+  currentBlockToken: AppStorageReloadBlockToken | null;
+  confirmedBlockToken: AppStorageReloadBlockToken | null;
 }): AppStorageReloadDecision {
   if (activeStorageWork) return "block-active-work";
-  if (localChangeToken && localChangeToken !== confirmedLocalChangeToken) {
+  if (
+    currentBlockToken &&
+    !appStorageReloadBlockTokensMatch(currentBlockToken, confirmedBlockToken)
+  ) {
     return "confirm-local-discard";
   }
   return "proceed";
 }
 
-export function createStorageReloadLocalChangeToken({
+export function createStorageReloadBlockToken({
   savedSignatures,
   currentSignatures,
 }: {
   savedSignatures: AppStorageCollectionSignatures | null;
   currentSignatures: AppStorageCollectionSignatures;
-}) {
+}): AppStorageReloadBlockToken | null {
   if (!savedSignatures) return null;
 
   const changedCollectionKeys = APP_STORAGE_COLLECTION_KEYS.filter(
@@ -111,12 +120,35 @@ export function createStorageReloadLocalChangeToken({
   const currentSnapshotToken = APP_STORAGE_COLLECTION_KEYS.map(
     (collectionKey) => `${collectionKey}:${currentSignatures[collectionKey]}`,
   ).join("\n");
-  const dirtyCollectionToken = changedCollectionKeys.join(",");
+  return {
+    changedCollectionKeys,
+    savedSnapshotToken,
+    currentSnapshotToken,
+  };
+}
+
+function appStorageReloadBlockTokensMatch(
+  currentBlockToken: AppStorageReloadBlockToken,
+  confirmedBlockToken: AppStorageReloadBlockToken | null,
+) {
   return (
-    `dirty:${dirtyCollectionToken}\n` +
-    `saved:\n${savedSnapshotToken}\n` +
-    `current:\n${currentSnapshotToken}`
+    createAppStorageReloadBlockTokenKey(currentBlockToken) ===
+    createAppStorageReloadBlockTokenKey(confirmedBlockToken)
   );
+}
+
+function createAppStorageReloadBlockTokenKey(
+  blockToken: AppStorageReloadBlockToken | null,
+) {
+  if (!blockToken) return null;
+
+  return [
+    `dirty:${blockToken.changedCollectionKeys.join(",")}`,
+    "saved:",
+    blockToken.savedSnapshotToken,
+    "current:",
+    blockToken.currentSnapshotToken,
+  ].join("\n");
 }
 
 function createAppStorageSignatures(
@@ -357,7 +389,9 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
-  const confirmedReloadLocalChangeToken = useRef<string | null>(null);
+  const confirmedReloadBlockToken = useRef<AppStorageReloadBlockToken | null>(
+    null,
+  );
   const currentAppStorageRecords = useRef<AppStorageRecords>({
     appSettings,
     characters,
@@ -764,14 +798,14 @@ export function useAppStorageSync({
       const currentSignatures = createAppStorageSignatures(
         currentAppStorageRecords.current,
       );
-      const localChangeToken = createStorageReloadLocalChangeToken({
+      const currentBlockToken = createStorageReloadBlockToken({
         savedSignatures: savedSignatures.current,
         currentSignatures,
       });
       const reloadDecision = decideAppStorageReload({
         activeStorageWork: hasActiveStorageWork(),
-        localChangeToken,
-        confirmedLocalChangeToken: confirmedReloadLocalChangeToken.current,
+        currentBlockToken,
+        confirmedBlockToken: confirmedReloadBlockToken.current,
       });
 
       if (reloadDecision === "block-active-work") {
@@ -785,7 +819,7 @@ export function useAppStorageSync({
       }
 
       if (reloadDecision === "confirm-local-discard") {
-        confirmedReloadLocalChangeToken.current = localChangeToken;
+        confirmedReloadBlockToken.current = currentBlockToken;
         return {
           mode: currentStorageMode.current,
           status: "error",
@@ -795,7 +829,7 @@ export function useAppStorageSync({
         };
       }
 
-      confirmedReloadLocalChangeToken.current = null;
+      confirmedReloadBlockToken.current = null;
       const reloadStartSignatures = currentSignatures;
       cancelQueuedSaveDispatch();
       storageGeneration.current += 1;
