@@ -389,7 +389,9 @@ export async function saveAppStorageCollections(
   );
   const storageMetadata: AppStorageMetadata = {};
   for (const { collectionKey, result } of collectionResults) {
-    if (result.metadata) storageMetadata[collectionKey] = result.metadata;
+    if (result.status === "ready" && result.metadata) {
+      storageMetadata[collectionKey] = result.metadata;
+    }
   }
 
   return {
@@ -460,7 +462,7 @@ export async function replaceAppStorageSnapshot(
       metadata: result.metadata ?? null,
     };
     collections.push(collectionResult);
-    if (result.metadata) {
+    if (result.status === "ready" && result.metadata) {
       storageMetadata[collectionKey] = result.metadata;
     }
 

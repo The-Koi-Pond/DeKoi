@@ -1,6 +1,9 @@
 import { isDesktopHostAvailable } from "../../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../../shared/api/desktop-runtime";
-import { readDesktopStorageCollectionMetadata } from "../../shared/api/desktop-storage-metadata";
+import {
+  readDesktopStorageCollectionMetadata,
+  type DesktopStorageCollectionMetadataResult,
+} from "../../shared/api/desktop-storage-metadata";
 import { invokeRemote } from "../../shared/api/remote-runtime";
 import {
   RUNTIME_COMMANDS,
@@ -28,9 +31,14 @@ export type HostStorageMode = StorageMode;
 export type HostStorageStatus = StorageStatus;
 
 export type HostStorageResult = StorageResult;
+export type HostStorageMetadataError = {
+  entity: StorageEntity;
+  message: string;
+};
 export type HostStorageMetadataResult = StorageResult & {
   metadataAvailable: boolean;
   collectionMetadata: StorageCollectionMetadata[];
+  metadataErrors: HostStorageMetadataError[];
 };
 type HostStorageReplaceResponse = {
   ok: boolean;
@@ -182,6 +190,18 @@ function normalizeStorageCollectionMetadata(
   };
 }
 
+function normalizeStorageCollectionMetadataError(
+  result: DesktopStorageCollectionMetadataResult,
+): HostStorageMetadataError | null {
+  if (!result.error) return null;
+  if (!HOST_STORAGE_ENTITIES.includes(result.entity as StorageEntity)) return null;
+
+  return {
+    entity: result.entity as StorageEntity,
+    message: result.error,
+  };
+}
+
 export async function loadHostStorageMetadata(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<HostStorageMetadataResult> {
@@ -193,6 +213,7 @@ export async function loadHostStorageMetadata(
       message: HOST_STORAGE_UNAVAILABLE_MESSAGE,
       metadataAvailable: false,
       collectionMetadata: [],
+      metadataErrors: [],
     };
   }
 
@@ -203,23 +224,31 @@ export async function loadHostStorageMetadata(
       message: "Storage metadata is not available for remote runtime targets.",
       metadataAvailable: false,
       collectionMetadata: [],
+      metadataErrors: [],
     };
   }
 
   try {
-    const collectionMetadata = (
-      await readDesktopStorageCollectionMetadata()
-    ).flatMap((metadata) => {
-      const normalized = normalizeStorageCollectionMetadata(metadata);
+    const metadataResults = await readDesktopStorageCollectionMetadata();
+    const collectionMetadata = metadataResults.flatMap((result) => {
+      const normalized = normalizeStorageCollectionMetadata(result.metadata);
+      return normalized ? [normalized] : [];
+    });
+    const metadataErrors = metadataResults.flatMap((result) => {
+      const normalized = normalizeStorageCollectionMetadataError(result);
       return normalized ? [normalized] : [];
     });
 
     return {
       mode,
       status: "ready",
-      message: "Desktop storage metadata is available.",
-      metadataAvailable: true,
+      message:
+        metadataErrors.length > 0
+          ? `Desktop storage metadata is partially available. ${metadataErrors.length} collection(s) could not be inspected.`
+          : "Desktop storage metadata is available.",
+      metadataAvailable: collectionMetadata.length > 0,
       collectionMetadata,
+      metadataErrors,
     };
   } catch (error) {
     return {
@@ -228,6 +257,7 @@ export async function loadHostStorageMetadata(
       message: `Desktop storage metadata unavailable. ${asErrorMessage(error)}`,
       metadataAvailable: false,
       collectionMetadata: [],
+      metadataErrors: [],
     };
   }
 }
@@ -272,6 +302,18 @@ export async function replaceHostRecords<T extends StorageRecord>(
       );
     }
     const metadata = normalizeStorageCollectionMetadata(response.metadata);
+    if (response.metadata !== undefined && response.metadata !== null) {
+      if (!metadata) {
+        throw new Error(
+          `${RUNTIME_COMMANDS.storageReplace} returned incompatible metadata for ${entity}.`,
+        );
+      }
+      if (metadata.entity !== entity) {
+        throw new Error(
+          `${RUNTIME_COMMANDS.storageReplace} returned metadata for ${metadata.entity}, expected ${entity}.`,
+        );
+      }
+    }
 
     return {
       mode,
@@ -280,7 +322,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
         mode === "remote"
           ? "Saved through remote runtime."
           : "Saved through desktop host storage.",
-      metadata: metadata?.entity === entity ? metadata : null,
+      metadata,
     };
   } catch (error) {
     return {

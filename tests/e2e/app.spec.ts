@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
 import {
+  decideAppStorageReload,
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
 } from "../../src/app/use-app-storage-sync";
@@ -26,8 +27,12 @@ import {
   extractRoleplayEntries,
   toRoleplayThreadRecord,
 } from "../../src/engine/roleplay";
-import type { AppStorageReplaceResult } from "../../src/features/runtime";
-import type { AppStorageMetadata } from "../../src/features/runtime";
+import {
+  saveAppStorageCollections,
+  type AppStorageMetadata,
+  type AppStorageRecords,
+  type AppStorageReplaceResult,
+} from "../../src/features/runtime";
 import {
   changedAppStorageMetadataKeys,
   createDeKoiStorageBundle,
@@ -357,6 +362,19 @@ function createLegacyImportFixture() {
   };
 }
 
+function createEmptyAppStorageRecords(): AppStorageRecords {
+  return {
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    personas: [],
+    lorebooks: [],
+    providerConnections: [],
+    roleplayThreads: [],
+    messengerThreads: [],
+    rippleStates: [],
+  };
+}
+
 function expectReloadAfterPartialReplace(
   calls: RuntimeCall[],
   callsBeforeImport: number,
@@ -473,6 +491,70 @@ test("storage metadata comparison reports changed collection files", () => {
   expect(changedAppStorageMetadataKeys(loadedMetadata, currentMetadata)).toEqual([
     "characters",
   ]);
+});
+
+test("storage reload decision blocks active work and confirms dirty-only reload", () => {
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: true,
+      localChangeToken: null,
+      confirmedLocalChangeToken: null,
+    }),
+  ).toBe("block-active-work");
+
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      localChangeToken: "appSettings:dirty",
+      confirmedLocalChangeToken: null,
+    }),
+  ).toBe("confirm-local-discard");
+
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      localChangeToken: "appSettings:dirty",
+      confirmedLocalChangeToken: "appSettings:dirty",
+    }),
+  ).toBe("proceed");
+});
+
+test("storage save rejects mismatched collection metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        ok: true,
+        count: 1,
+        metadata: {
+          entity: "personas",
+          exists: true,
+          byteLength: 2,
+          updatedAtMs: 1,
+          contentHash: "fnv1a64:wrong",
+        },
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      },
+    );
+
+  try {
+    const result = await saveAppStorageCollections(
+      createEmptyAppStorageRecords(),
+      ["appSettings"],
+      TEST_RUNTIME_URL,
+    );
+
+    expect(result.status).toBe("error");
+    expect(result.message).toContain(
+      "storage_replace returned metadata for personas, expected app-settings.",
+    );
+    expect(result.storageMetadata).toEqual({});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("migration signature reconciliation keeps changed migrated collections dirty", () => {
@@ -847,6 +929,12 @@ test("manual storage reload applies current runtime records", async ({ page }) =
 
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
+  await page.getByRole("button", { name: "Check files" }).click();
+  await expect(
+    page.locator(".bundle-status").filter({
+      hasText: "Storage metadata is not available for remote runtime targets.",
+    }),
+  ).toBeVisible();
 
   runtime.records.set("app-settings", [
     { id: "app-settings", accent: "amber" },

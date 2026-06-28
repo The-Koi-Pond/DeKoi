@@ -60,6 +60,14 @@ pub(crate) struct StorageCollectionMetadata {
     pub(crate) content_hash: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StorageCollectionMetadataResult {
+    pub(crate) entity: String,
+    pub(crate) metadata: Option<StorageCollectionMetadata>,
+    pub(crate) error: Option<String>,
+}
+
 fn app_data_file_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
@@ -141,6 +149,44 @@ fn storage_collection_metadata(
 ) -> Result<StorageCollectionMetadata, String> {
     let path = runtime_entity_path(app, entity)?;
     collection_metadata_from_path(entity, path)
+}
+
+#[cfg(test)]
+fn collection_metadata_result_from_path(
+    entity: &str,
+    path: PathBuf,
+) -> StorageCollectionMetadataResult {
+    match collection_metadata_from_path(entity, path) {
+        Ok(metadata) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: Some(metadata),
+            error: None,
+        },
+        Err(error) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: None,
+            error: Some(error),
+        },
+    }
+}
+
+fn storage_collection_metadata_result(
+    app: &tauri::AppHandle,
+    entity: &str,
+) -> Result<StorageCollectionMetadataResult, String> {
+    ensure_collection_entity(entity)?;
+    Ok(match storage_collection_metadata(app, entity) {
+        Ok(metadata) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: Some(metadata),
+            error: None,
+        },
+        Err(error) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: None,
+            error: Some(error),
+        },
+    })
 }
 
 pub(crate) fn bundle_info(path: PathBuf) -> Result<StorageBundleInfo, String> {
@@ -517,6 +563,15 @@ fn write_runtime_records_to_path(
     write_collection_json_file(path, &serde_json::Value::Array(records), "collection file")
 }
 
+fn replace_runtime_records_at_path(
+    path: &Path,
+    entity: &str,
+    records: Vec<serde_json::Value>,
+) -> Result<StorageCollectionMetadata, String> {
+    write_runtime_records_to_path(path, entity, records)?;
+    collection_metadata_from_path(entity, path.to_path_buf())
+}
+
 pub(crate) fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
     value
         .get(key)
@@ -699,8 +754,7 @@ pub(crate) fn storage_replace(
 
     let count = normalized_records.len();
     let path = runtime_entity_path(app, entity)?;
-    write_runtime_records_to_path(&path, entity, normalized_records)?;
-    let metadata = collection_metadata_from_path(entity, path)?;
+    let metadata = replace_runtime_records_at_path(&path, entity, normalized_records)?;
 
     Ok(serde_json::json!({ "ok": true, "count": count, "metadata": metadata }))
 }
@@ -758,19 +812,19 @@ pub(crate) fn dekoi_storage_write_bundle(
 pub(crate) fn dekoi_storage_collection_metadata(
     app: tauri::AppHandle,
     entity: Option<String>,
-) -> Result<Vec<StorageCollectionMetadata>, String> {
+) -> Result<Vec<StorageCollectionMetadataResult>, String> {
     let requested_entity = entity
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty());
 
     if let Some(entity) = requested_entity {
-        return Ok(vec![storage_collection_metadata(&app, entity)?]);
+        return Ok(vec![storage_collection_metadata_result(&app, entity)?]);
     }
 
     COLLECTION_ENTITIES
         .iter()
-        .map(|entity| storage_collection_metadata(&app, entity))
+        .map(|entity| storage_collection_metadata_result(&app, entity))
         .collect()
 }
 
@@ -817,6 +871,55 @@ mod tests {
         let second_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path)
             .expect("second collection metadata should be readable");
         assert_ne!(first_metadata.content_hash, second_metadata.content_hash);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn collection_metadata_result_preserves_entity_errors() {
+        let directory = temp_test_dir("collection-metadata-result-error");
+        let good_path = directory.join("characters.json");
+        fs::write(&good_path, r#"[{"id":"first"}]"#).expect("good fixture should be written");
+
+        let good_result = collection_metadata_result_from_path(CHARACTERS_ENTITY, good_path);
+        assert_eq!(good_result.entity, CHARACTERS_ENTITY);
+        assert!(good_result.metadata.is_some());
+        assert_eq!(good_result.error, None);
+
+        let invalid_path = PathBuf::from(format!(
+            "{}\0personas.json",
+            directory.to_string_lossy()
+        ));
+        let error_result = collection_metadata_result_from_path(
+            PERSONAS_ENTITY,
+            invalid_path,
+        );
+        assert_eq!(error_result.entity, PERSONAS_ENTITY);
+        assert!(error_result.metadata.is_none());
+        assert!(
+            error_result
+                .error
+                .expect("entity error should be reported")
+                .contains("Could not inspect DeKoi storage collection")
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn replace_runtime_records_returns_persisted_metadata() {
+        let directory = temp_test_dir("replace-metadata");
+        let path = directory.join("characters.json");
+        let records = vec![serde_json::json!({ "id": "first" })];
+
+        let metadata = replace_runtime_records_at_path(&path, CHARACTERS_ENTITY, records)
+            .expect("replace should succeed");
+        let persisted_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path.clone())
+            .expect("persisted metadata should be readable");
+
+        assert_eq!(read_json(&path), serde_json::json!([{ "id": "first" }]));
+        assert_eq!(metadata.entity, CHARACTERS_ENTITY);
+        assert!(metadata.exists);
+        assert_eq!(metadata.byte_length, persisted_metadata.byte_length);
+        assert_eq!(metadata.content_hash, persisted_metadata.content_hash);
         let _ = fs::remove_dir_all(directory);
     }
 

@@ -10,6 +10,12 @@ export interface DesktopStorageCollectionMetadata {
   contentHash: string | null;
 }
 
+export interface DesktopStorageCollectionMetadataResult {
+  entity: string;
+  metadata: DesktopStorageCollectionMetadata | null;
+  error: string | null;
+}
+
 function requireTauriForDesktopStorageMetadata() {
   requireTauriForDesktopHost(
     "Desktop storage metadata is only available inside the Tauri app.",
@@ -18,10 +24,10 @@ function requireTauriForDesktopStorageMetadata() {
 
 export async function readDesktopStorageCollectionMetadata(
   entity?: string,
-): Promise<DesktopStorageCollectionMetadata[]> {
+): Promise<DesktopStorageCollectionMetadataResult[]> {
   requireTauriForDesktopStorageMetadata();
 
-  return await invoke<DesktopStorageCollectionMetadata[]>(
+  return await invoke<DesktopStorageCollectionMetadataResult[]>(
     DESKTOP_COMMANDS.storageCollectionMetadata,
     { entity: entity ?? null },
   );

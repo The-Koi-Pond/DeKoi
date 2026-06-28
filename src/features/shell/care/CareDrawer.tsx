@@ -1339,7 +1339,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
               {nav.storageHasUnsavedChanges && (
                 <p className="bundle-note">
-                  Storage changes are still saving.
+                  Storage has local changes or pending saves.
                 </p>
               )}
               {storageReloadStatus && (
