@@ -1,11 +1,10 @@
 import { useCallback } from "react";
-import type { MessengerThread } from "../../../engine/messenger";
 import type { SurfaceId } from "../../../engine/surfaces";
 import { MESSENGER } from "../../../engine/surfaces";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
   type AppStorageRecords,
-  type MessengerStorageStatus,
+  type AppStorageReplaceResult,
 } from "../../runtime";
 import {
   createDeKoiStorageBundle,
@@ -17,20 +16,11 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppImportExportActionsInput = AppStorageRecords & {
   providerConnections: AppStorageRecords["providerConnections"];
-  setAppSettings: StateSetter<AppStorageRecords["appSettings"]>;
-  setCharacters: StateSetter<AppStorageRecords["characters"]>;
-  setPersonas: StateSetter<AppStorageRecords["personas"]>;
-  setLorebooks: StateSetter<AppStorageRecords["lorebooks"]>;
-  setProviderConnections: StateSetter<
-    AppStorageRecords["providerConnections"]
-  >;
-  setRoleplayThreads: StateSetter<AppStorageRecords["roleplayThreads"]>;
-  setMessengerThreads: StateSetter<AppStorageRecords["messengerThreads"]>;
-  setRippleStates: StateSetter<AppStorageRecords["rippleStates"]>;
-  setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
-  setMessengerStorageMessage: StateSetter<string>;
   setSelectedSurface: StateSetter<SurfaceId>;
   setView: (view: PondView) => void;
+  commitAppStorageImport: (
+    records: AppStorageRecords,
+  ) => Promise<AppStorageReplaceResult>;
 };
 
 export function useAppImportExportActions({
@@ -42,18 +32,9 @@ export function useAppImportExportActions({
   roleplayThreads,
   messengerThreads,
   rippleStates,
-  setAppSettings,
-  setCharacters,
-  setPersonas,
-  setLorebooks,
-  setProviderConnections,
-  setRoleplayThreads,
-  setMessengerThreads,
-  setRippleStates,
-  setMessengerStorageStatus,
-  setMessengerStorageMessage,
   setSelectedSurface,
   setView,
+  commitAppStorageImport,
 }: UseAppImportExportActionsInput) {
   const createStorageBundle = useCallback(
     () =>
@@ -80,7 +61,7 @@ export function useAppImportExportActions({
   );
 
   const importStorageBundle = useCallback(
-    (bundle: DeKoiStorageBundle) => {
+    async (bundle: DeKoiStorageBundle) => {
       const importedConnections = bundle.data.providerConnections;
       const importedSettings = { ...bundle.data.appSettings };
       const hasActiveConnection = importedConnections.some(
@@ -95,37 +76,36 @@ export function useAppImportExportActions({
         importedSettings.activeMessengerConnectionId = "";
       }
 
-      setCharacters(bundle.data.characters);
-      setPersonas(bundle.data.personas);
-      setLorebooks(bundle.data.lorebooks);
-      setProviderConnections(importedConnections);
-      setRoleplayThreads(bundle.data.roleplayThreads);
-      setMessengerThreads(bundle.data.messengerThreads);
-      setRippleStates(bundle.data.rippleStates);
-      setAppSettings(importedSettings);
-      setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Imported DeKoi bundle. Saving...");
+      const importedRecords: AppStorageRecords = {
+        appSettings: importedSettings,
+        characters: bundle.data.characters,
+        personas: bundle.data.personas,
+        lorebooks: bundle.data.lorebooks,
+        providerConnections: importedConnections,
+        roleplayThreads: bundle.data.roleplayThreads,
+        messengerThreads: bundle.data.messengerThreads,
+        rippleStates: bundle.data.rippleStates,
+      };
+
+      const storageResult = await commitAppStorageImport(importedRecords);
+
+      if (storageResult.status !== "ready") {
+        return storageResult;
+      }
+
       setSelectedSurface(MESSENGER);
       setView({ kind: "pond" });
+      return storageResult;
     },
     [
-      setAppSettings,
-      setCharacters,
-      setRoleplayThreads,
-      setLorebooks,
-      setMessengerStorageMessage,
-      setMessengerStorageStatus,
-      setMessengerThreads,
-      setPersonas,
-      setProviderConnections,
-      setRippleStates,
+      commitAppStorageImport,
       setSelectedSurface,
       setView,
     ],
   );
 
   const importLegacyData = useCallback(
-    (data: DeKoiLegacyImportData) => {
+    async (data: DeKoiLegacyImportData) => {
       const importedThreads = data.messengerThreads.map((thread) => {
         const id = createRecordId("messenger-thread");
         return {
@@ -139,24 +119,38 @@ export function useAppImportExportActions({
       });
       const firstImportedThreadId = importedThreads[0]?.id ?? null;
 
-      setMessengerThreads((currentThreads: MessengerThread[]) => [
-        ...importedThreads,
-        ...currentThreads,
-      ]);
+      const importedRecords: AppStorageRecords = {
+        appSettings,
+        characters,
+        personas,
+        lorebooks,
+        providerConnections,
+        roleplayThreads,
+        messengerThreads: [...importedThreads, ...messengerThreads],
+        rippleStates,
+      };
 
-      setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Imported legacy threads. Saving...");
+      const storageResult = await commitAppStorageImport(importedRecords);
+      if (storageResult.status !== "ready") return storageResult;
+
       setSelectedSurface(MESSENGER);
       setView(
         firstImportedThreadId
           ? { kind: "messenger", threadId: firstImportedThreadId }
           : { kind: "pond" },
       );
+      return storageResult;
     },
     [
-      setMessengerStorageMessage,
-      setMessengerStorageStatus,
-      setMessengerThreads,
+      appSettings,
+      characters,
+      commitAppStorageImport,
+      lorebooks,
+      messengerThreads,
+      personas,
+      providerConnections,
+      rippleStates,
+      roleplayThreads,
       setSelectedSurface,
       setView,
     ],

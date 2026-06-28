@@ -110,6 +110,28 @@ The backup is a recovery aid, not a user-facing repair workflow. Future repair
 commands should restore, quarantine, or replace collection files only after
 explicit user confirmation.
 
+## Import Commit Safety
+
+DeKoi bundle import is a two-step flow: preview first, then explicit commit after
+confirmation. Accepted DeKoi-native bundles are persisted through
+`replaceAppStorageSnapshot`, which replaces known collections in a fixed order
+instead of relying on React state changes and the autosave effect.
+
+Before committing an import, the Care UI creates a pre-import DeKoi bundle
+backup. In the desktop app, this uses the awaitable desktop save dialog and the
+import is not started if the save is cancelled or fails. In a browser-only
+session, DeKoi can only request a JSON download, so the UI describes that backup
+as browser-saved instead of verified.
+
+If a collection replace fails, the import result reports the failed collection,
+records how many collections were replaced before the failure, marks partial
+commits as requiring a reload, reloads persisted storage so React state reflects
+the partial durable state, and states that automatic rollback is not implemented
+yet. Legacy converted-thread imports add native Messenger records to the current
+snapshot and use the same explicit commit path instead of relying on autosave.
+Because that path commits a complete current snapshot, pending changes in other
+collections are persisted along with the converted Messenger threads.
+
 The desktop host keeps a Rust allowlist for local file access:
 
 - `src-tauri/src/storage.rs`

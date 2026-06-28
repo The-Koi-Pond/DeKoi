@@ -71,7 +71,7 @@ export function useAppController(): NavContextType {
     setSelectedSurface,
   });
 
-  useAppStorageSync({
+  const { commitAppStorageImport } = useAppStorageSync({
     appSettings,
     characters,
     personas,
@@ -122,18 +122,9 @@ export function useAppController(): NavContextType {
       roleplayThreads,
       messengerThreads,
       rippleStates,
-      setAppSettings,
-      setCharacters,
-      setPersonas,
-      setLorebooks,
-      setProviderConnections,
-      setRoleplayThreads,
-      setMessengerThreads,
-      setRippleStates,
-      setMessengerStorageStatus,
-      setMessengerStorageMessage,
       setSelectedSurface,
       setView: setNavView,
+      commitAppStorageImport,
     });
 
   const { setCareOpen: setNavCareOpen, setCareTab: setNavCareTab } =

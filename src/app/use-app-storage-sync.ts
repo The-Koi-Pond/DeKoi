@@ -6,14 +6,18 @@ import {
 } from "../shared/browser/idle-callback";
 import {
   loadAppStorageSnapshot,
+  replaceAppStorageSnapshot,
   saveAppStorageCollections,
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
+  type AppStorageReplaceResult,
   type AppStorageRecords,
+  type AppStorageSnapshot,
   type MessengerStorageMode,
   type MessengerStorageStatus,
 } from "../features/runtime";
 import type { StateSetter } from "../shared/react/state-setter";
+import { appStorageReplaceResultNeedsReload } from "./app-storage-import-recovery";
 
 type AppStorageCollectionSignatures = Record<AppStorageCollectionKey, string>;
 type PartialAppStorageCollectionSignatures = Partial<
@@ -29,11 +33,15 @@ type SaveQueueEntry = {
 
 type SaveQueueEntries = Partial<Record<AppStorageCollectionKey, SaveQueueEntry>>;
 type SaveErrorMessages = Partial<Record<AppStorageCollectionKey, string>>;
+type ActiveSavePromise = Promise<void>;
 type SaveStatusResult = {
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
 };
+
+const IMPORT_ROLLBACK_MESSAGE =
+  "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
 
 function appStorageCollectionSignature(
   snapshot: AppStorageRecords,
@@ -53,6 +61,57 @@ function createAppStorageSignatures(
     );
   }
   return signatures;
+}
+
+function appStorageCollectionCount(
+  snapshot: AppStorageRecords,
+  collectionKey: AppStorageCollectionKey,
+) {
+  switch (collectionKey) {
+    case "appSettings":
+      return 1;
+    case "characters":
+      return snapshot.characters.length;
+    case "personas":
+      return snapshot.personas.length;
+    case "lorebooks":
+      return snapshot.lorebooks.length;
+    case "providerConnections":
+      return snapshot.providerConnections.length;
+    case "roleplayThreads":
+      return snapshot.roleplayThreads.length;
+    case "messengerThreads":
+      return snapshot.messengerThreads.length;
+    case "rippleStates":
+      return snapshot.rippleStates.length;
+  }
+}
+
+function createAppStorageCounts(
+  snapshot: AppStorageRecords,
+): Record<AppStorageCollectionKey, number> {
+  const counts = {} as Record<AppStorageCollectionKey, number>;
+  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    counts[collectionKey] = appStorageCollectionCount(snapshot, collectionKey);
+  }
+  return counts;
+}
+
+function createImportErrorResult(
+  records: AppStorageRecords,
+  message: string,
+): AppStorageReplaceResult {
+  return {
+    mode: "unavailable",
+    status: "error",
+    message,
+    counts: createAppStorageCounts(records),
+    collections: [],
+    failedCollectionKey: null,
+    requiresReload: false,
+    rollbackAvailable: false,
+    rollbackMessage: IMPORT_ROLLBACK_MESSAGE,
+  };
 }
 
 function changedAppStorageCollectionKeys(
@@ -151,6 +210,10 @@ export function useAppStorageSync({
   const pendingSaves = useRef<SaveQueueEntries>({});
   const saveErrors = useRef<SaveErrorMessages>({});
   const saveQueueRunning = useRef<number | null>(null);
+  const activeSavePromise = useRef<ActiveSavePromise | null>(null);
+  const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
+  const importCommitRunning = useRef(false);
 
   const refreshSaveStatus = useCallback(
     (generation: number, storageResult?: SaveStatusResult) => {
@@ -183,6 +246,217 @@ export function useAppStorageSync({
     ],
   );
 
+  const applyAppStorageRecords = useCallback(
+    (records: AppStorageRecords) => {
+      setAppSettings(records.appSettings);
+      setCharacters(records.characters);
+      setPersonas(records.personas);
+      setLorebooks(records.lorebooks);
+      setProviderConnections(records.providerConnections);
+      setRoleplayThreads(records.roleplayThreads);
+      setMessengerThreads(records.messengerThreads);
+      setRippleStates(records.rippleStates);
+    },
+    [
+      setAppSettings,
+      setCharacters,
+      setLorebooks,
+      setMessengerThreads,
+      setPersonas,
+      setProviderConnections,
+      setRippleStates,
+      setRoleplayThreads,
+    ],
+  );
+
+  const applyLoadedAppStorageSnapshot = useCallback(
+    (snapshot: AppStorageSnapshot) => {
+      savedSignatures.current = createAppStorageSignatures(snapshot);
+      lastSeenSnapshot.current = snapshot;
+      applyAppStorageRecords(snapshot);
+      setStorageReady(snapshot.storageResult.status === "ready");
+    },
+    [applyAppStorageRecords, setStorageReady],
+  );
+
+  const cancelQueuedSaveDispatch = useCallback(() => {
+    if (queuedSaveTimer.current !== null) {
+      clearTimeout(queuedSaveTimer.current);
+      queuedSaveTimer.current = null;
+    }
+
+    if (queuedSaveIdleHandle.current !== null) {
+      cancelIdle(queuedSaveIdleHandle.current);
+      queuedSaveIdleHandle.current = null;
+    }
+  }, []);
+
+  const waitForActiveSaveToSettle = useCallback(async () => {
+    while (activeSavePromise.current) {
+      await activeSavePromise.current.catch(() => undefined);
+    }
+  }, []);
+
+  const reloadPersistedStorageAfterImportFailure = useCallback(
+    async (
+      storageResult: AppStorageReplaceResult,
+      generation: number,
+      options?: { force?: boolean },
+    ) => {
+      if (!options?.force && !appStorageReplaceResultNeedsReload(storageResult)) {
+        return storageResult;
+      }
+
+      try {
+        const snapshot = await loadAppStorageSnapshot(remoteRuntimeUrl);
+        if (storageGeneration.current !== generation) return storageResult;
+
+        applyLoadedAppStorageSnapshot(snapshot);
+        unsavedSignatures.current = {};
+        activeSaveSignatures.current = {};
+        pendingSaves.current = {};
+        saveErrors.current = {};
+        saveQueueRunning.current = null;
+        const reloadMessage =
+          snapshot.storageResult.status === "ready"
+            ? "Persisted storage was reloaded so the app matches the partial import."
+            : `Persisted storage reload also reported: ${snapshot.storageResult.message}`;
+        return {
+          ...storageResult,
+          message: `${storageResult.message} ${reloadMessage}`,
+        };
+      } catch (error) {
+        return {
+          ...storageResult,
+          message: `${storageResult.message} Failed to reload persisted storage after the import failure: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        };
+      }
+    },
+    [applyLoadedAppStorageSnapshot, remoteRuntimeUrl],
+  );
+
+  const commitAppStorageImport = useCallback(
+    async (records: AppStorageRecords): Promise<AppStorageReplaceResult> => {
+      if (importCommitRunning.current) {
+        const result = createImportErrorResult(
+          records,
+          "Another import is already in progress. Wait for it to finish before importing again.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
+
+      importCommitRunning.current = true;
+
+      try {
+        setMessengerStorageStatus("saving");
+        setMessengerStorageMessage("Importing DeKoi bundle...");
+
+        cancelQueuedSaveDispatch();
+        storageGeneration.current += 1;
+        const generation = storageGeneration.current;
+        pendingSaves.current = {};
+        unsavedSignatures.current = {};
+        saveErrors.current = {};
+
+        await waitForActiveSaveToSettle();
+
+        if (storageGeneration.current !== generation) {
+          const result = createImportErrorResult(
+            records,
+            "Import was interrupted because the storage target changed. Retry on the current storage target.",
+          );
+          setMessengerStorageMode(result.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(result.message);
+          return result;
+        }
+
+        activeSaveSignatures.current = {};
+        saveQueueRunning.current = null;
+
+        let storageResult: AppStorageReplaceResult;
+        try {
+          storageResult = await replaceAppStorageSnapshot(
+            records,
+            remoteRuntimeUrl,
+          );
+        } catch (error) {
+          const failureResult = await reloadPersistedStorageAfterImportFailure(
+            createImportErrorResult(
+              records,
+              `Import failed unexpectedly. ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+            generation,
+            { force: true },
+          );
+          setMessengerStorageMode(failureResult.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(failureResult.message);
+          return failureResult;
+        }
+
+        if (storageGeneration.current !== generation) {
+          const result: AppStorageReplaceResult = {
+            ...storageResult,
+            status: "error",
+            message:
+              "Import finished after the storage target changed. Retry on the current storage target before using imported records.",
+          };
+          setMessengerStorageMode(result.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(result.message);
+          return result;
+        }
+
+        if (storageResult.status === "ready") {
+          savedSignatures.current = createAppStorageSignatures(records);
+          lastSeenSnapshot.current = records;
+          unsavedSignatures.current = {};
+          activeSaveSignatures.current = {};
+          pendingSaves.current = {};
+          saveErrors.current = {};
+          saveQueueRunning.current = null;
+          applyAppStorageRecords(records);
+          setStorageReady(true);
+          setMessengerStorageMode(storageResult.mode);
+          setMessengerStorageStatus("ready");
+          setMessengerStorageMessage(storageResult.message);
+          return storageResult;
+        }
+
+        const failureResult = await reloadPersistedStorageAfterImportFailure(
+          storageResult,
+          generation,
+        );
+
+        setMessengerStorageMode(failureResult.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(failureResult.message);
+        return failureResult;
+      } finally {
+        importCommitRunning.current = false;
+      }
+    },
+    [
+      applyAppStorageRecords,
+      cancelQueuedSaveDispatch,
+      reloadPersistedStorageAfterImportFailure,
+      remoteRuntimeUrl,
+      setMessengerStorageMessage,
+      setMessengerStorageMode,
+      setMessengerStorageStatus,
+      setStorageReady,
+      waitForActiveSaveToSettle,
+    ],
+  );
+
   useEffect(() => {
     let cancelled = false;
     storageGeneration.current += 1;
@@ -194,42 +468,28 @@ export function useAppStorageSync({
     pendingSaves.current = {};
     saveErrors.current = {};
     saveQueueRunning.current = null;
+    activeSavePromise.current = null;
+    cancelQueuedSaveDispatch();
     setStorageReady(false);
 
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled || storageGeneration.current !== generation) return;
-      savedSignatures.current = createAppStorageSignatures(snapshot);
-      lastSeenSnapshot.current = snapshot;
-      setAppSettings(snapshot.appSettings);
-      setCharacters(snapshot.characters);
-      setPersonas(snapshot.personas);
-      setLorebooks(snapshot.lorebooks);
-      setProviderConnections(snapshot.providerConnections);
-      setRoleplayThreads(snapshot.roleplayThreads);
-      setMessengerThreads(snapshot.messengerThreads);
-      setRippleStates(snapshot.rippleStates);
+      applyLoadedAppStorageSnapshot(snapshot);
       setMessengerStorageMode(snapshot.storageResult.mode);
       setMessengerStorageStatus(snapshot.storageResult.status);
       setMessengerStorageMessage(snapshot.storageResult.message);
-      setStorageReady(snapshot.storageResult.status === "ready");
     });
 
     return () => {
       cancelled = true;
     };
   }, [
+    cancelQueuedSaveDispatch,
+    applyLoadedAppStorageSnapshot,
     remoteRuntimeUrl,
-    setAppSettings,
-    setCharacters,
-    setRoleplayThreads,
-    setLorebooks,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
-    setMessengerThreads,
-    setPersonas,
-    setProviderConnections,
-    setRippleStates,
     setStorageReady,
   ]);
 
@@ -237,7 +497,9 @@ export function useAppStorageSync({
   // updateAppSettings calls) into a single host write. We debounce briefly, then
   // defer the write to an idle frame so the main thread stays responsive.
   useEffect(() => {
-    if (!storageReady || !savedSignatures.current) return;
+    if (!storageReady || !savedSignatures.current || importCommitRunning.current) {
+      return;
+    }
 
     const snapshot: AppStorageRecords = {
       appSettings,
@@ -321,7 +583,7 @@ export function useAppStorageSync({
       activeSaveSignatures.current[collectionKey] = entry.signature;
       setMessengerStorageStatus("saving");
 
-      saveAppStorageCollections(
+      const savePromise = saveAppStorageCollections(
         entry.snapshot,
         [collectionKey],
         entry.rawUrl,
@@ -347,21 +609,35 @@ export function useAppStorageSync({
         }
 
         refreshSaveStatus(entry.generation, storageResult);
-      }).finally(() => {
+      }, (error: unknown) => {
         if (entry.generation !== storageGeneration.current) return;
+
+        if (!unsavedSignatures.current[collectionKey]) {
+          unsavedSignatures.current[collectionKey] = entry.signature;
+        }
+        saveErrors.current[collectionKey] =
+          error instanceof Error ? error.message : "Storage save failed.";
+        refreshSaveStatus(entry.generation);
+      }).finally(() => {
         if (activeSaveSignatures.current[collectionKey] === entry.signature) {
           delete activeSaveSignatures.current[collectionKey];
         }
         if (saveQueueRunning.current === entry.generation) {
           saveQueueRunning.current = null;
         }
+        if (activeSavePromise.current === savePromise) {
+          activeSavePromise.current = null;
+        }
+        if (entry.generation !== storageGeneration.current) return;
         refreshSaveStatus(entry.generation);
         drainSaveQueue();
       });
+      activeSavePromise.current = savePromise;
     };
 
     const timer = setTimeout(() => {
       idleHandle = requestIdle(() => {
+        queuedSaveIdleHandle.current = null;
         for (const collectionKey of dirtyCollectionKeys) {
           const signature = nextSignatures[collectionKey];
           if (signature === undefined) continue;
@@ -375,11 +651,20 @@ export function useAppStorageSync({
         }
         drainSaveQueue();
       });
+      queuedSaveTimer.current = null;
+      queuedSaveIdleHandle.current = idleHandle;
     }, 150);
+    queuedSaveTimer.current = timer;
 
     return () => {
       if (timer !== undefined) clearTimeout(timer);
       if (idleHandle !== undefined) cancelIdle(idleHandle);
+      if (queuedSaveTimer.current === timer) {
+        queuedSaveTimer.current = null;
+      }
+      if (queuedSaveIdleHandle.current === idleHandle) {
+        queuedSaveIdleHandle.current = null;
+      }
     };
   }, [
     appSettings,
@@ -397,4 +682,6 @@ export function useAppStorageSync({
     setMessengerStorageStatus,
     storageReady,
   ]);
+
+  return { commitAppStorageImport };
 }

@@ -42,6 +42,7 @@ import {
   mergeStorageResults,
   type StorageResult,
 } from "./storage-repository";
+import { getHostStorageMode } from "./storage-repository-factory";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;
@@ -72,10 +73,89 @@ export const APP_STORAGE_COLLECTION_KEYS = [
 export type AppStorageCollectionKey =
   (typeof APP_STORAGE_COLLECTION_KEYS)[number];
 
+export type AppStorageCollectionReplaceResult = {
+  collectionKey: AppStorageCollectionKey;
+  count: number;
+  mode: StorageResult["mode"];
+  status: StorageResult["status"];
+  message: string;
+};
+
+export type AppStorageReplaceResult = StorageResult & {
+  counts: Record<AppStorageCollectionKey, number>;
+  collections: AppStorageCollectionReplaceResult[];
+  failedCollectionKey: AppStorageCollectionKey | null;
+  requiresReload: boolean;
+  rollbackAvailable: false;
+  rollbackMessage: string;
+};
+
 type NonEmptyAppStorageCollectionKeys = readonly [
   AppStorageCollectionKey,
   ...AppStorageCollectionKey[],
 ];
+
+export const APP_STORAGE_COLLECTION_LABELS = {
+  appSettings: "App settings",
+  characters: "Characters",
+  personas: "Personas",
+  lorebooks: "Lorebooks",
+  providerConnections: "Provider connections",
+  roleplayThreads: "Roleplay threads",
+  messengerThreads: "Messenger threads",
+  rippleStates: "Ripple states",
+} as const satisfies Record<AppStorageCollectionKey, string>;
+
+function appStorageCollectionCount(
+  snapshot: AppStorageRecords,
+  collectionKey: AppStorageCollectionKey,
+) {
+  switch (collectionKey) {
+    case "appSettings":
+      return 1;
+    case "characters":
+      return snapshot.characters.length;
+    case "personas":
+      return snapshot.personas.length;
+    case "lorebooks":
+      return snapshot.lorebooks.length;
+    case "providerConnections":
+      return snapshot.providerConnections.length;
+    case "roleplayThreads":
+      return snapshot.roleplayThreads.length;
+    case "messengerThreads":
+      return snapshot.messengerThreads.length;
+    case "rippleStates":
+      return snapshot.rippleStates.length;
+  }
+}
+
+function appStorageSnapshotCounts(snapshot: AppStorageRecords) {
+  return APP_STORAGE_COLLECTION_KEYS.reduce(
+    (counts, collectionKey) => ({
+      ...counts,
+      [collectionKey]: appStorageCollectionCount(snapshot, collectionKey),
+    }),
+    {} as Record<AppStorageCollectionKey, number>,
+  );
+}
+
+function appStorageRecordTotal(counts: Record<AppStorageCollectionKey, number>) {
+  return APP_STORAGE_COLLECTION_KEYS.reduce(
+    (total, collectionKey) => total + counts[collectionKey],
+    0,
+  );
+}
+
+function asAppStorageErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
+}
+
+function appStorageRequiresReload(
+  collections: readonly AppStorageCollectionReplaceResult[],
+) {
+  return collections.some((collection) => collection.status === "ready");
+}
 
 export async function loadAppStorageSnapshot(
   rawUrl: string,
@@ -173,4 +253,79 @@ export async function saveAppStorageSnapshot(
     APP_STORAGE_COLLECTION_KEYS,
     rawUrl,
   );
+}
+
+export async function replaceAppStorageSnapshot(
+  records: AppStorageRecords,
+  rawUrl: string,
+): Promise<AppStorageReplaceResult> {
+  const counts = appStorageSnapshotCounts(records);
+  const collections: AppStorageCollectionReplaceResult[] = [];
+  const rollbackMessage =
+    "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
+
+  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    let result: StorageResult;
+    try {
+      result = await saveAppStorageCollection(records, collectionKey, rawUrl);
+    } catch (error) {
+      const message = asAppStorageErrorMessage(error);
+      const collectionResult: AppStorageCollectionReplaceResult = {
+        collectionKey,
+        count: counts[collectionKey],
+        mode: getHostStorageMode(rawUrl),
+        status: "error",
+        message,
+      };
+      collections.push(collectionResult);
+
+      return {
+        mode: collectionResult.mode,
+        status: "error",
+        message: `Import failed while replacing ${APP_STORAGE_COLLECTION_LABELS[collectionKey]}. ${message} ${rollbackMessage}`,
+        counts,
+        collections,
+        failedCollectionKey: collectionKey,
+        requiresReload: appStorageRequiresReload(collections),
+        rollbackAvailable: false,
+        rollbackMessage,
+      };
+    }
+
+    const collectionResult: AppStorageCollectionReplaceResult = {
+      collectionKey,
+      count: counts[collectionKey],
+      mode: result.mode,
+      status: result.status,
+      message: result.message,
+    };
+    collections.push(collectionResult);
+
+    if (result.status === "error") {
+      return {
+        mode: result.mode,
+        status: "error",
+        message: `Import failed while replacing ${APP_STORAGE_COLLECTION_LABELS[collectionKey]}. ${result.message} ${rollbackMessage}`,
+        counts,
+        collections,
+        failedCollectionKey: collectionKey,
+        requiresReload: appStorageRequiresReload(collections),
+        rollbackAvailable: false,
+        rollbackMessage,
+      };
+    }
+  }
+
+  const mergedResult = mergeStorageResults(collections);
+  return {
+    mode: mergedResult.mode,
+    status: "ready",
+    message: `Imported ${APP_STORAGE_COLLECTION_KEYS.length} collection(s) with ${appStorageRecordTotal(counts)} top-level record(s).`,
+    counts,
+    collections,
+    failedCollectionKey: null,
+    requiresReload: false,
+    rollbackAvailable: false,
+    rollbackMessage,
+  };
 }

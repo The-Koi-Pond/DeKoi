@@ -95,6 +95,10 @@ pnpm check:runtime-contracts
 
 - Start with Messenger and catalog surfaces before expecting full provider behavior.
 - Use Pond Care > Deep Water to confirm the selected runtime path.
-- Use Pond Care > Stocking for DeKoi-native bundle import and export.
+- Use Pond Care > Stocking for DeKoi-native bundle import and export. Imports
+  preview first, require confirmation, create a pre-import backup, and then
+  replace collections through the storage commit path.
 - Use Pond Care > Catalog for provider-key checks and secret storage.
 - Treat legacy compatibility as explicit import work, not automatic migration.
+  The current legacy thread import adds converted native Messenger records after
+  the same backup and commit flow.

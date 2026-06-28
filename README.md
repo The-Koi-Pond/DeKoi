@@ -61,7 +61,7 @@ artifacts are treated as recoverable storage errors and block autosave overwrite
 collection writes preserve a sibling `.json.bak` as a recovery aid. See
 [Storage Model](./docs/storage-model.md) for the full policy.
 
-Pond Care > Deep Water can check host readiness, save and load DeKoi-native bundles through the desktop app-data directory, and select desktop://runtime for host-backed fixture generation. Pond Care > Stocking can export and import bundle files through desktop dialogs. Pond Care > Catalog can save, check, and clear provider keys without exporting secret values.
+Pond Care > Deep Water can check host readiness, save and load DeKoi-native bundles through the desktop app-data directory, and select desktop://runtime for host-backed fixture generation. Pond Care > Stocking can export and import bundle files through desktop dialogs; imports preview first, create a pre-import backup, then replace collections through the storage commit path. Pond Care > Catalog can save, check, and clear provider keys without exporting secret values.
 
 ## DeKoi And De-Koi
 

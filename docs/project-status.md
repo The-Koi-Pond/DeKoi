@@ -7,7 +7,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - React and TypeScript app shell built with Vite.
 - Native product records for Messenger, Roleplay, companions, personas, lorebooks, provider connections, and Ripples.
 - Collection-backed storage entity registry and Rust allowlist checks.
-- DeKoi-native bundle import and export paths through the desktop host.
+- DeKoi-native bundle import and export paths through the desktop host, with
+  preview, explicit confirmation, pre-import backup, and commit-path collection
+  replacement.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage and Messenger generation.
 - Desktop runtime bridge for host-backed fixture generation and durable app-data storage.
@@ -18,7 +20,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   desktop provider-key storage through the runtime boundary.
 - Developer docs under docs/developer are migrated material that still needs validation against this implementation.
 - Roleplay is present as a native surface, but the first product loop is still centered on Messenger and shared catalog records.
-- Legacy import is intentionally explicit future work, not automatic browser-storage migration.
+- Legacy thread import is an explicit one-way adapter into native Messenger
+  records; automatic browser-storage migration remains out of scope.
 - Storage is collection-backed first; a database may replace the implementation later only behind the same record contracts.
 
 ## Intentionally Out Of Scope For Now

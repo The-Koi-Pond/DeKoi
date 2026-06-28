@@ -278,6 +278,7 @@
           <li>Runtime/shared API modules normalize JSON, call desktop/remote storage, and hide future SQLite or database implementation details.</li>
           <li>Runtime collection adapters depend on the storage repository factory, not the host-storage adapter directly.</li>
           <li>App storage sync tracks dirty collections and serializes collection-level replacements so the same collection does not have overlapping writes.</li>
+          <li>Bundle and legacy imports use an explicit backup-and-commit path that cancels delayed autosave before replacing collections.</li>
           <li>Desktop collection files report recoverable corruption/recovery-artifact states and block autosave overwrite until a future explicit repair path.</li>
           <li>Engine modules define records and mutations without knowing how records are stored.</li>
           <li>App/runtime orchestration loads, syncs, imports, exports, and exposes typed actions to the UI.</li>
