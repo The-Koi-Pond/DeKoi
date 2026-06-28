@@ -196,9 +196,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
   function handleDeleteMessage(messageId: string) {
     if (!messengerThread) return;
-    nav.updateMessengerThread(
-      deleteMessengerMessage(messengerThread, messageId, new Date().toISOString()),
-    );
+    nav.updateMessengerThread(deleteMessengerMessage(messengerThread, messageId));
     if (editingMessage?.id === messageId) {
       setEditingMessage(null);
     }
@@ -243,11 +241,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           now: sentAt,
           thread: threadForSend,
         });
-    const threadWithUserMessage = appendMessengerMessages(
-      threadForSend,
-      [userMessage],
-      sentAt,
-    );
+    const threadWithUserMessage = appendMessengerMessages(threadForSend, [userMessage]);
 
     nav.updateMessengerThread(threadWithUserMessage);
     setDraftState({ body: "", threadId: activeThreadId });

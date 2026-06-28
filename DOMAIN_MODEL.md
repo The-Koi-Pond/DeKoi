@@ -152,7 +152,7 @@ Purpose:
 
 - Group Messenger messages into one saved thread.
 - Track participants, active persona, optional preset, optional lorebooks, and
-  message history.
+  assembled message history.
 - Reopen cleanly without needing provider access.
 
 Likely relationships:
@@ -168,13 +168,14 @@ Important behavior:
   participant counts.
 - A MessengerThread should not require Roleplay scene state.
 - A MessengerThread should be understandable even before generation support exists.
+- Durable storage keeps MessengerMessages in a separate collection keyed by
+  thread ID, while UI and generation receive assembled MessengerThread objects.
 
 Not decided yet:
 
 - Whether the public action should be `New thread`, `New Messenger`, or both.
 - Whether group Messenger threads use one shared character response or separate character
   turns.
-- Exact saved-file shape.
 
 ### MessengerMessage
 
@@ -221,14 +222,17 @@ Likely relationships:
 
 - Has one or more character participants.
 - May have one active persona.
-- Contains scene turns or script entries.
+- Contains RoleplayEntries.
 - May reference scene media later.
+
+Important behavior:
+
+- Durable storage keeps RoleplayEntries in a separate collection keyed by thread
+  ID, while UI and generation receive assembled RoleplayThread objects.
 
 Not decided yet:
 
-- Exact Roleplay turn model.
-- Whether Roleplay uses MessengerMessage-compatible messages or a separate scene-entry
-  record.
+- Deeper Roleplay turn semantics beyond the first RoleplayEntry shape.
 - Sprite/background ownership.
 
 ## Reserved Records

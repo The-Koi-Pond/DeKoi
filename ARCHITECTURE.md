@@ -98,6 +98,9 @@ The short version:
   scoped to the connection provider and base URL.
 - Collection adapters depend on `storage-repository-factory.ts`, keeping the
   current host-storage adapter behind one future database swap point.
+- Messenger and Roleplay transcripts are separate storage collections from
+  thread metadata; runtime orchestration assembles them before feature UI or
+  generation consumes thread objects.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
 - Bundle and legacy imports use an explicit backup-and-commit path that cancels

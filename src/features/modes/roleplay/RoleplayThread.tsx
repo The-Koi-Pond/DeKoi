@@ -154,9 +154,7 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
 
   function handleDeleteEntry(entryId: string) {
     if (!thread) return;
-    nav.updateRoleplayThread(
-      deleteRoleplayEntry(thread, entryId, new Date().toISOString()),
-    );
+    nav.updateRoleplayThread(deleteRoleplayEntry(thread, entryId));
     if (editingEntry?.id === entryId) {
       setEditingEntry(null);
     }
@@ -192,7 +190,7 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
           now: sentAt,
           thread,
         });
-    const threadWithUserEntry = appendRoleplayEntries(thread, [userEntry], sentAt);
+    const threadWithUserEntry = appendRoleplayEntries(thread, [userEntry]);
 
     nav.updateRoleplayThread(threadWithUserEntry);
     setDraftState({ body: "", threadId: activeThreadId });

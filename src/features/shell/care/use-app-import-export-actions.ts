@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import type { SurfaceId } from "../../../engine/surfaces";
 import { MESSENGER } from "../../../engine/surfaces";
+import { attachMessengerMessagesToThreads } from "../../../engine/messenger";
+import { attachRoleplayEntriesToThreads } from "../../../engine/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
   type AppStorageRecords,
@@ -63,6 +65,14 @@ export function useAppImportExportActions({
   const importStorageBundle = useCallback(
     async (bundle: DeKoiStorageBundle) => {
       const importedConnections = bundle.data.providerConnections;
+      const importedRoleplayThreads = attachRoleplayEntriesToThreads(
+        bundle.data.roleplayThreads,
+        bundle.data.roleplayEntries,
+      );
+      const importedMessengerThreads = attachMessengerMessagesToThreads(
+        bundle.data.messengerThreads,
+        bundle.data.messengerMessages,
+      );
       const importedSettings = { ...bundle.data.appSettings };
       const hasActiveConnection = importedConnections.some(
         (connection) =>
@@ -82,8 +92,8 @@ export function useAppImportExportActions({
         personas: bundle.data.personas,
         lorebooks: bundle.data.lorebooks,
         providerConnections: importedConnections,
-        roleplayThreads: bundle.data.roleplayThreads,
-        messengerThreads: bundle.data.messengerThreads,
+        roleplayThreads: importedRoleplayThreads,
+        messengerThreads: importedMessengerThreads,
         rippleStates: bundle.data.rippleStates,
       };
 

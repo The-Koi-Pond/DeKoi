@@ -71,23 +71,17 @@ export function updateRoleplaySceneText(
 export function appendRoleplayEntries(
   thread: RoleplayThread,
   entries: RoleplayEntry[],
-  updatedAt: string,
 ): RoleplayThread {
   return {
     ...thread,
     entries: [...thread.entries, ...entries],
-    updatedAt,
   };
 }
 
-export function clearRoleplayEntries(
-  thread: RoleplayThread,
-  updatedAt: string,
-): RoleplayThread {
+export function clearRoleplayEntries(thread: RoleplayThread): RoleplayThread {
   return {
     ...thread,
     entries: [],
-    updatedAt,
   };
 }
 
@@ -111,21 +105,18 @@ export function updateRoleplayEntryBody(
           }
         : entry,
     ),
-    updatedAt,
   };
 }
 
 export function deleteRoleplayEntry(
   thread: RoleplayThread,
   entryId: string,
-  updatedAt: string,
 ): RoleplayThread {
   if (!thread.entries.some((entry) => entry.id === entryId)) return thread;
 
   return {
     ...thread,
     entries: thread.entries.filter((entry) => entry.id !== entryId),
-    updatedAt,
   };
 }
 
@@ -144,6 +135,7 @@ export function createPersonaRoleplayEntry({
 }): RoleplayEntry {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     role: "persona",
     characterId: null,
@@ -171,6 +163,7 @@ export function createNarrationRoleplayEntry({
 }): RoleplayEntry {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     role: "narration",
     characterId: null,
@@ -198,6 +191,7 @@ export function createCompanionRoleplayEntry({
 }): RoleplayEntry {
   return {
     id,
+    schemaVersion: 1,
     threadId: thread.id,
     role: "character",
     characterId: companion.id,

@@ -33,9 +33,11 @@ adapters.
 | --- | --- | --- | --- |
 | `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/storage/collections/app-settings.ts` |
 | `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/storage/collections/character-storage.ts` |
-| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThread` | `src/runtime/storage/collections/roleplay-storage.ts` |
+| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThreadRecord` | `src/runtime/storage/collections/roleplay-storage.ts` |
+| `roleplay-entries` | `src/engine/roleplay.ts` | `RoleplayEntry` | `src/runtime/storage/collections/roleplay-entry-storage.ts` |
 | `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/storage/collections/lorebook-storage.ts` |
-| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/storage/collections/messenger-storage.ts` |
+| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThreadRecord` | `src/runtime/storage/collections/messenger-storage.ts` |
+| `messenger-messages` | `src/engine/messenger.ts` | `MessengerMessage` | `src/runtime/storage/collections/messenger-message-storage.ts` |
 | `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/storage/collections/persona-storage.ts` |
 | `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts` |
 | `ripple-states` | `src/engine/ripples.ts` | `RippleState` | `src/runtime/storage/collections/ripple-state-storage.ts` |
@@ -80,6 +82,18 @@ collections instead of fanning every save out to every collection. It debounces
 rapid state changes, schedules writes during idle time, sends one
 `storage_replace` per dirty collection, and serializes collection writes so a
 collection cannot have overlapping saves.
+
+Messenger and Roleplay transcripts are stored separately from thread metadata.
+The UI still receives assembled `MessengerThread` and `RoleplayThread` objects,
+but storage projection strips `messages` from `messenger-threads` and `entries`
+from `roleplay-threads`. Message-only or entry-only edits dirty
+`messenger-messages` or `roleplay-entries`, so new transcript items do not
+rewrite whole thread records. Runtime adapters still normalize legacy embedded
+messages/entries and migrate them into the split collections on the next save or
+explicit import commit.
+After this split, thread `updatedAt` means thread metadata changed; activity
+ordering should use `getMessengerThreadActivityAt` or
+`getRoleplayThreadActivityAt`.
 
 ## Desktop JSON Safety
 
@@ -183,10 +197,12 @@ Current relationships:
 | `messenger-threads` | `activePersonaId` | `personas.id` | Deleted personas clear the active persona. |
 | `messenger-threads` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from thread context. |
 | `messenger-threads` | `providerConnectionId` | `provider-connections.id` | Deleted connections clear the selected connection. |
+| `messenger-messages` | `threadId` | `messenger-threads.id` | Deleting a Messenger thread removes its messages from the projected message collection. |
 | `roleplay-threads` | `characterIds[]` | `characters.id` | Deleted characters are removed from scene participants. |
 | `roleplay-threads` | `activePersonaId` | `personas.id` | Deleted personas clear the active persona. |
 | `roleplay-threads` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from scene context. |
 | `roleplay-threads` | `providerConnectionId` | `provider-connections.id` | Deleted connections clear the selected connection. |
+| `roleplay-entries` | `threadId` | `roleplay-threads.id` | Deleting a Roleplay thread removes its entries from the projected entry collection. |
 | `characters` | `lorebookIds[]` | `lorebooks.id` | Deleted lorebooks are removed from character context. |
 | `ripple-states` | `ownerId` | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import. |
 
@@ -200,6 +216,9 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
 - Skip invalid records with clear warnings when possible.
 - Keep legacy import separate from native bundle import.
 - Keep provider secret values outside exported JSON.
+- Include `roleplay-entries` and `messenger-messages` as separate bundle arrays;
+  imported legacy bundles with embedded transcript data are normalized into the
+  split collections.
 - Redact legacy or hand-edited provider secret fields during bundle import and
   warn that those fields were skipped.
 - Import required-key provider connections as `needs-key` unless a desktop

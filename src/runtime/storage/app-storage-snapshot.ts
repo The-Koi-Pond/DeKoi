@@ -1,7 +1,13 @@
 import type { CharacterRecord } from "../../engine/character";
-import type { RoleplayThread } from "../../engine/roleplay";
+import {
+  attachRoleplayEntriesToThreads,
+  type RoleplayThread,
+} from "../../engine/roleplay";
 import type { LorebookRecord } from "../../engine/lorebook";
-import type { MessengerThread } from "../../engine/messenger";
+import {
+  attachMessengerMessagesToThreads,
+  type MessengerThread,
+} from "../../engine/messenger";
 import type { PersonaRecord } from "../../engine/persona";
 import type { ProviderConnectionRecord } from "../../engine/provider-connection";
 import type { RippleState } from "../../engine/ripples";
@@ -19,6 +25,10 @@ import {
   saveRoleplayThreadsToStorage,
 } from "./collections/roleplay-storage";
 import {
+  loadRoleplayEntriesFromStorage,
+  saveRoleplayEntriesToStorage,
+} from "./collections/roleplay-entry-storage";
+import {
   loadLorebookRecordsFromStorage,
   saveLorebookRecordsToStorage,
 } from "./collections/lorebook-storage";
@@ -26,6 +36,10 @@ import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
 } from "./collections/messenger-storage";
+import {
+  loadMessengerMessagesFromStorage,
+  saveMessengerMessagesToStorage,
+} from "./collections/messenger-message-storage";
 import {
   loadPersonaRecordsFromStorage,
   savePersonaRecordsToStorage,
@@ -42,6 +56,7 @@ import {
   mergeStorageResults,
   type StorageResult,
 } from "./storage-repository";
+import { appStorageCollectionCount } from "./app-storage-collection-projection";
 import { getHostStorageMode } from "./storage-repository-factory";
 
 export type AppStorageRecords = {
@@ -57,7 +72,26 @@ export type AppStorageRecords = {
 
 export type AppStorageSnapshot = AppStorageRecords & {
   storageResult: StorageResult;
+  migrationCollectionKeys: AppStorageMigrationCollectionKey[];
 };
+
+export type AppStorageCollectionKey =
+  | "appSettings"
+  | "characters"
+  | "personas"
+  | "lorebooks"
+  | "providerConnections"
+  | "roleplayThreads"
+  | "roleplayEntries"
+  | "messengerThreads"
+  | "messengerMessages"
+  | "rippleStates";
+
+export type AppStorageMigrationCollectionKey =
+  | "roleplayThreads"
+  | "roleplayEntries"
+  | "messengerThreads"
+  | "messengerMessages";
 
 export const APP_STORAGE_COLLECTION_KEYS = [
   "appSettings",
@@ -66,12 +100,11 @@ export const APP_STORAGE_COLLECTION_KEYS = [
   "lorebooks",
   "providerConnections",
   "roleplayThreads",
+  "roleplayEntries",
   "messengerThreads",
+  "messengerMessages",
   "rippleStates",
-] as const satisfies readonly (keyof AppStorageRecords)[];
-
-export type AppStorageCollectionKey =
-  (typeof APP_STORAGE_COLLECTION_KEYS)[number];
+] as const satisfies readonly AppStorageCollectionKey[];
 
 export type AppStorageCollectionReplaceResult = {
   collectionKey: AppStorageCollectionKey;
@@ -102,33 +135,11 @@ export const APP_STORAGE_COLLECTION_LABELS = {
   lorebooks: "Lorebooks",
   providerConnections: "Provider connections",
   roleplayThreads: "Roleplay threads",
+  roleplayEntries: "Roleplay entries",
   messengerThreads: "Messenger threads",
+  messengerMessages: "Messenger messages",
   rippleStates: "Ripple states",
 } as const satisfies Record<AppStorageCollectionKey, string>;
-
-function appStorageCollectionCount(
-  snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
-) {
-  switch (collectionKey) {
-    case "appSettings":
-      return 1;
-    case "characters":
-      return snapshot.characters.length;
-    case "personas":
-      return snapshot.personas.length;
-    case "lorebooks":
-      return snapshot.lorebooks.length;
-    case "providerConnections":
-      return snapshot.providerConnections.length;
-    case "roleplayThreads":
-      return snapshot.roleplayThreads.length;
-    case "messengerThreads":
-      return snapshot.messengerThreads.length;
-    case "rippleStates":
-      return snapshot.rippleStates.length;
-  }
-}
 
 function appStorageSnapshotCounts(snapshot: AppStorageRecords) {
   return APP_STORAGE_COLLECTION_KEYS.reduce(
@@ -167,7 +178,9 @@ export async function loadAppStorageSnapshot(
     lorebookSnapshot,
     providerConnectionSnapshot,
     roleplaySnapshot,
+    roleplayEntrySnapshot,
     messengerSnapshot,
+    messengerMessageSnapshot,
     rippleSnapshot,
   ] = await Promise.all([
     loadAppSettingsFromStorage(rawUrl),
@@ -176,9 +189,27 @@ export async function loadAppStorageSnapshot(
     loadLorebookRecordsFromStorage(rawUrl),
     loadProviderConnectionRecordsFromStorage(rawUrl),
     loadRoleplayThreadsFromStorage(rawUrl),
+    loadRoleplayEntriesFromStorage(rawUrl),
     loadMessengerThreadsFromStorage(rawUrl),
+    loadMessengerMessagesFromStorage(rawUrl),
     loadRippleStatesFromStorage(rawUrl),
   ]);
+  const roleplayThreads = attachRoleplayEntriesToThreads(
+    roleplaySnapshot.records,
+    roleplayEntrySnapshot.records,
+  );
+  const messengerThreads = attachMessengerMessagesToThreads(
+    messengerSnapshot.threads,
+    messengerMessageSnapshot.records,
+  );
+  const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [
+    ...(roleplaySnapshot.hasLegacyEmbeddedEntries
+      ? (["roleplayThreads", "roleplayEntries"] as const)
+      : []),
+    ...(messengerSnapshot.hasLegacyEmbeddedMessages
+      ? (["messengerThreads", "messengerMessages"] as const)
+      : []),
+  ];
 
   return {
     appSettings: appSettingsSnapshot.settings,
@@ -186,9 +217,10 @@ export async function loadAppStorageSnapshot(
     personas: personaSnapshot.records,
     lorebooks: lorebookSnapshot.records,
     providerConnections: providerConnectionSnapshot.records,
-    roleplayThreads: roleplaySnapshot.records,
-    messengerThreads: messengerSnapshot.threads,
+    roleplayThreads,
+    messengerThreads,
     rippleStates: rippleSnapshot.states,
+    migrationCollectionKeys,
     storageResult: mergeStorageResults([
       appSettingsSnapshot,
       characterSnapshot,
@@ -196,7 +228,9 @@ export async function loadAppStorageSnapshot(
       lorebookSnapshot,
       providerConnectionSnapshot,
       roleplaySnapshot,
+      roleplayEntrySnapshot,
       messengerSnapshot,
+      messengerMessageSnapshot,
       rippleSnapshot,
     ]),
   };
@@ -223,8 +257,12 @@ async function saveAppStorageCollection(
       );
     case "roleplayThreads":
       return saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl);
+    case "roleplayEntries":
+      return saveRoleplayEntriesToStorage(snapshot.roleplayThreads, rawUrl);
     case "messengerThreads":
       return saveMessengerThreadsToStorage(snapshot.messengerThreads, rawUrl);
+    case "messengerMessages":
+      return saveMessengerMessagesToStorage(snapshot.messengerThreads, rawUrl);
     case "rippleStates":
       return saveRippleStatesToStorage(snapshot.rippleStates, rawUrl);
   }

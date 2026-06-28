@@ -1,7 +1,19 @@
 import type { CharacterRecord } from "../../../engine/character";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import {
+  extractRoleplayEntries,
+  toRoleplayThreadRecord,
+  type RoleplayEntry,
+  type RoleplayThread,
+  type RoleplayThreadRecord,
+} from "../../../engine/roleplay";
 import type { LorebookRecord } from "../../../engine/lorebook";
-import type { MessengerThread } from "../../../engine/messenger";
+import {
+  extractMessengerMessages,
+  toMessengerThreadRecord,
+  type MessengerMessage,
+  type MessengerThread,
+  type MessengerThreadRecord,
+} from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import {
@@ -14,8 +26,10 @@ import { normalizeAppSettings } from "../../../engine/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
+import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
 import { normalizeMessengerThreads } from "../collections/messenger-storage";
+import { normalizeMessengerMessageRecord } from "../collections/messenger-storage";
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
@@ -24,6 +38,19 @@ export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
 
 export interface DeKoiStorageBundleData {
+  characters: CharacterRecord[];
+  roleplayThreads: RoleplayThreadRecord[];
+  roleplayEntries: RoleplayEntry[];
+  personas: PersonaRecord[];
+  lorebooks: LorebookRecord[];
+  providerConnections: ProviderConnectionRecord[];
+  messengerThreads: MessengerThreadRecord[];
+  messengerMessages: MessengerMessage[];
+  rippleStates: RippleState[];
+  appSettings: AppSettings;
+}
+
+export interface DeKoiStorageBundleSourceData {
   characters: CharacterRecord[];
   roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
@@ -134,16 +161,69 @@ function normalizeList<T extends { id: string }>(
   return normalized;
 }
 
+function normalizeOptionalList<T extends { id: string }>(
+  value: unknown,
+  label: string,
+  normalizeRecord: (value: unknown) => T | null,
+  warnings: string[],
+) {
+  if (value === undefined) return [];
+  return normalizeList(value, label, normalizeRecord, warnings);
+}
+
+function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
+  records: T[],
+  importedThreadIds: ReadonlySet<string>,
+  label: string,
+  warnings: string[],
+) {
+  const validRecords = records.filter((record) =>
+    importedThreadIds.has(record.threadId),
+  );
+  if (validRecords.length !== records.length) {
+    warnings.push(
+      `${label} skipped ${records.length - validRecords.length} record(s) without an imported thread.`,
+    );
+  }
+  return validRecords;
+}
+
+function mergeBundleTranscriptRows<T extends { id: string }>(
+  embeddedRows: readonly T[],
+  storedRows: readonly T[],
+) {
+  if (storedRows.length === 0) return [...embeddedRows];
+
+  const storedRowIds = new Set(storedRows.map((row) => row.id));
+  const embeddedOnlyRows = embeddedRows.filter(
+    (row) => !storedRowIds.has(row.id),
+  );
+
+  return [...embeddedOnlyRows, ...storedRows];
+}
+
 export function getDeKoiStorageBundleCounts(
-  data: DeKoiStorageBundleData,
+  data: DeKoiStorageBundleData | DeKoiStorageBundleSourceData,
 ): DeKoiStorageBundleCounts {
+  const roleplayEntryCount =
+    "roleplayEntries" in data
+      ? data.roleplayEntries.length
+      : data.roleplayThreads.reduce(
+          (count, thread) => count + thread.entries.length,
+          0,
+        );
+  const messengerMessageCount =
+    "messengerMessages" in data
+      ? data.messengerMessages.length
+      : data.messengerThreads.reduce(
+          (count, thread) => count + thread.messages.length,
+          0,
+        );
+
   return {
     characters: data.characters.length,
     roleplayThreads: data.roleplayThreads.length,
-    roleplayEntries: data.roleplayThreads.reduce(
-      (count, thread) => count + thread.entries.length,
-      0,
-    ),
+    roleplayEntries: roleplayEntryCount,
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
     lorebookEntries: data.lorebooks.reduce(
@@ -152,10 +232,7 @@ export function getDeKoiStorageBundleCounts(
     ),
     providerConnections: data.providerConnections.length,
     messengerThreads: data.messengerThreads.length,
-    messengerMessages: data.messengerThreads.reduce(
-      (count, thread) => count + thread.messages.length,
-      0,
-    ),
+    messengerMessages: messengerMessageCount,
     rippleStates: data.rippleStates.length,
     ripples: data.rippleStates.reduce(
       (count, state) => count + state.ripples.length,
@@ -173,7 +250,7 @@ export function createDeKoiStorageBundle({
   personas,
   providerConnections,
   rippleStates,
-}: DeKoiStorageBundleData): DeKoiStorageBundle {
+}: DeKoiStorageBundleSourceData): DeKoiStorageBundle {
   return {
     kind: DEKOI_STORAGE_BUNDLE_KIND,
     schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
@@ -181,11 +258,13 @@ export function createDeKoiStorageBundle({
     data: {
       appSettings: normalizeAppSettings(appSettings),
       characters: cloneRecords(characters),
-      roleplayThreads: cloneRecords(roleplayThreads),
+      roleplayThreads: roleplayThreads.map(toRoleplayThreadRecord),
+      roleplayEntries: extractRoleplayEntries(roleplayThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
       providerConnections: redactProviderConnectionSecrets(providerConnections),
-      messengerThreads: cloneRecords(messengerThreads),
+      messengerThreads: messengerThreads.map(toMessengerThreadRecord),
+      messengerMessages: extractMessengerMessages(messengerThreads),
       rippleStates: cloneRecords(rippleStates),
     },
   };
@@ -215,6 +294,59 @@ export function normalizeDeKoiStorageBundle(
   const providerConnectionSecretFieldCount = Array.isArray(rawProviderConnections)
     ? rawProviderConnections.filter(hasProviderConnectionSecretField).length
     : 0;
+  const normalizedRoleplayThreads = normalizeList(
+    value.data.roleplayThreads,
+    "Roleplay threads",
+    normalizeRoleplayThread,
+    warnings,
+  );
+  const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(
+    toRoleplayThreadRecord,
+  );
+  const normalizedRoleplayEntries = normalizeOptionalList(
+    value.data.roleplayEntries,
+    "Roleplay entries",
+    normalizeRoleplayEntryRecord,
+    warnings,
+  );
+  const roleplayThreadIdSet = new Set(
+    finalRoleplayThreadRecords.map((thread) => thread.id),
+  );
+  const validRoleplaySplitEntries = filterTranscriptRowsForImportedThreads(
+    normalizedRoleplayEntries,
+    roleplayThreadIdSet,
+    "Roleplay entries",
+    warnings,
+  );
+  const validRoleplayEntries = mergeBundleTranscriptRows(
+    extractRoleplayEntries(normalizedRoleplayThreads),
+    validRoleplaySplitEntries,
+  );
+  const normalizedMessengerThreads = normalizeMessengerThreads(
+    value.data.messengerThreads,
+  );
+  const finalMessengerThreadRecords = normalizedMessengerThreads.map(
+    toMessengerThreadRecord,
+  );
+  const normalizedMessengerMessages = normalizeOptionalList(
+    value.data.messengerMessages,
+    "Messenger messages",
+    normalizeMessengerMessageRecord,
+    warnings,
+  );
+  const messengerThreadIdSet = new Set(
+    finalMessengerThreadRecords.map((thread) => thread.id),
+  );
+  const validMessengerSplitMessages = filterTranscriptRowsForImportedThreads(
+    normalizedMessengerMessages,
+    messengerThreadIdSet,
+    "Messenger messages",
+    warnings,
+  );
+  const validMessengerMessages = mergeBundleTranscriptRows(
+    extractMessengerMessages(normalizedMessengerThreads),
+    validMessengerSplitMessages,
+  );
   const data: DeKoiStorageBundleData = {
     appSettings: normalizeAppSettings(value.data.appSettings),
     characters: normalizeList(
@@ -223,12 +355,8 @@ export function normalizeDeKoiStorageBundle(
       normalizeCharacterRecord,
       warnings,
     ),
-    roleplayThreads: normalizeList(
-      value.data.roleplayThreads,
-      "Roleplay threads",
-      normalizeRoleplayThread,
-      warnings,
-    ),
+    roleplayThreads: finalRoleplayThreadRecords,
+    roleplayEntries: validRoleplayEntries,
     personas: normalizeList(
       value.data.personas,
       "Personas",
@@ -247,7 +375,8 @@ export function normalizeDeKoiStorageBundle(
       normalizeProviderConnectionRecord,
       warnings,
     ),
-    messengerThreads: normalizeMessengerThreads(value.data.messengerThreads),
+    messengerThreads: finalMessengerThreadRecords,
+    messengerMessages: validMessengerMessages,
     rippleStates: normalizeList(
       value.data.rippleStates,
       "Ripple states",

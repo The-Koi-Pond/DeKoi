@@ -176,6 +176,9 @@ Storage owns persistence mechanics. Engine owns product meaning.
   hide future SQLite or database implementation details.
 - Runtime collection adapters depend on the storage repository factory, not the
   host-storage adapter directly.
+- Messenger and Roleplay transcript items are stored separately from thread
+  metadata, then assembled by runtime orchestration before feature UI or
+  generation consumes thread objects.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
 - Bundle and legacy imports use an explicit backup-and-commit path that cancels

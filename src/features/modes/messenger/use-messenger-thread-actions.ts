@@ -120,12 +120,9 @@ export function useMessengerThreadActions({
 
   const clearMessengerThreadMessages = useCallback(
     (threadId: string) => {
-      const now = currentIsoTimestamp();
       setMessengerThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.id === threadId
-            ? clearMessengerMessages(thread, now)
-            : thread,
+          thread.id === threadId ? clearMessengerMessages(thread) : thread,
         ),
       );
     },

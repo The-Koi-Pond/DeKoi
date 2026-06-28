@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import {
   cancelIdle,
   requestIdle,
   type IdleHandle,
 } from "../shared/browser/idle-callback";
 import {
+  appStorageCollectionCount,
+  appStorageCollectionSignature,
+  appStorageCollectionSource,
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
@@ -19,8 +22,11 @@ import {
 import type { StateSetter } from "../shared/react/state-setter";
 import { appStorageReplaceResultNeedsReload } from "./app-storage-import-recovery";
 
-type AppStorageCollectionSignatures = Record<AppStorageCollectionKey, string>;
-type PartialAppStorageCollectionSignatures = Partial<
+export type AppStorageCollectionSignatures = Record<
+  AppStorageCollectionKey,
+  string
+>;
+export type PartialAppStorageCollectionSignatures = Partial<
   Record<AppStorageCollectionKey, string>
 >;
 
@@ -42,13 +48,7 @@ type SaveStatusResult = {
 
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
-
-function appStorageCollectionSignature(
-  snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
-) {
-  return JSON.stringify(snapshot[collectionKey]) ?? "null";
-}
+const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
 
 function createAppStorageSignatures(
   snapshot: AppStorageRecords,
@@ -63,28 +63,64 @@ function createAppStorageSignatures(
   return signatures;
 }
 
-function appStorageCollectionCount(
-  snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
-) {
-  switch (collectionKey) {
-    case "appSettings":
-      return 1;
-    case "characters":
-      return snapshot.characters.length;
-    case "personas":
-      return snapshot.personas.length;
-    case "lorebooks":
-      return snapshot.lorebooks.length;
-    case "providerConnections":
-      return snapshot.providerConnections.length;
-    case "roleplayThreads":
-      return snapshot.roleplayThreads.length;
-    case "messengerThreads":
-      return snapshot.messengerThreads.length;
-    case "rippleStates":
-      return snapshot.rippleStates.length;
+function createLoadedAppStorageSignatures(
+  snapshot: AppStorageSnapshot,
+): AppStorageCollectionSignatures {
+  const signatures = createAppStorageSignatures(snapshot);
+  for (const collectionKey of snapshot.migrationCollectionKeys) {
+    signatures[collectionKey] = LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE;
   }
+  return signatures;
+}
+
+function createMigrationAppStorageSignatures(
+  snapshot: AppStorageSnapshot,
+): PartialAppStorageCollectionSignatures {
+  const signatures: PartialAppStorageCollectionSignatures = {};
+  for (const collectionKey of snapshot.migrationCollectionKeys) {
+    signatures[collectionKey] = appStorageCollectionSignature(
+      snapshot,
+      collectionKey,
+    );
+  }
+  return signatures;
+}
+
+export function reconcileMigrationAppStorageSignatures({
+  savedSignatures,
+  unsavedSignatures,
+  committedSignatures,
+  currentSignatures,
+  collectionKeys,
+}: {
+  savedSignatures: AppStorageCollectionSignatures | null;
+  unsavedSignatures: PartialAppStorageCollectionSignatures;
+  committedSignatures: AppStorageCollectionSignatures;
+  currentSignatures: AppStorageCollectionSignatures;
+  collectionKeys: readonly AppStorageCollectionKey[];
+}) {
+  const nextSavedSignatures = savedSignatures
+    ? { ...savedSignatures }
+    : null;
+  const nextUnsavedSignatures = { ...unsavedSignatures };
+
+  for (const collectionKey of collectionKeys) {
+    const committedSignature = committedSignatures[collectionKey];
+    const currentSignature = currentSignatures[collectionKey];
+    if (currentSignature === committedSignature) {
+      if (nextSavedSignatures) {
+        nextSavedSignatures[collectionKey] = committedSignature;
+      }
+      delete nextUnsavedSignatures[collectionKey];
+    } else {
+      nextUnsavedSignatures[collectionKey] = currentSignature;
+    }
+  }
+
+  return {
+    savedSignatures: nextSavedSignatures,
+    unsavedSignatures: nextUnsavedSignatures,
+  };
 }
 
 function createAppStorageCounts(
@@ -121,7 +157,9 @@ function changedAppStorageCollectionKeys(
   if (!previousSnapshot) return [...APP_STORAGE_COLLECTION_KEYS];
 
   return APP_STORAGE_COLLECTION_KEYS.filter(
-    (collectionKey) => snapshot[collectionKey] !== previousSnapshot[collectionKey],
+    (collectionKey) =>
+      appStorageCollectionSource(snapshot, collectionKey) !==
+      appStorageCollectionSource(previousSnapshot, collectionKey),
   );
 }
 
@@ -132,6 +170,15 @@ function orderedAppStorageCollectionKeys(
   return APP_STORAGE_COLLECTION_KEYS.filter((collectionKey) =>
     collectionKeySet.has(collectionKey),
   );
+}
+
+function asNonEmptyAppStorageCollectionKeys(
+  collectionKeys: readonly AppStorageCollectionKey[],
+) {
+  const [firstCollectionKey, ...remainingCollectionKeys] = collectionKeys;
+  return firstCollectionKey
+    ? ([firstCollectionKey, ...remainingCollectionKeys] as const)
+    : null;
 }
 
 function firstSaveErrorMessage(errors: SaveErrorMessages) {
@@ -214,6 +261,16 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const currentAppStorageRecords = useRef<AppStorageRecords>({
+    appSettings,
+    characters,
+    personas,
+    lorebooks,
+    providerConnections,
+    roleplayThreads,
+    messengerThreads,
+    rippleStates,
+  });
 
   const refreshSaveStatus = useCallback(
     (generation: number, storageResult?: SaveStatusResult) => {
@@ -248,6 +305,7 @@ export function useAppStorageSync({
 
   const applyAppStorageRecords = useCallback(
     (records: AppStorageRecords) => {
+      currentAppStorageRecords.current = records;
       setAppSettings(records.appSettings);
       setCharacters(records.characters);
       setPersonas(records.personas);
@@ -269,12 +327,40 @@ export function useAppStorageSync({
     ],
   );
 
+  useLayoutEffect(() => {
+    currentAppStorageRecords.current = {
+      appSettings,
+      characters,
+      personas,
+      lorebooks,
+      providerConnections,
+      roleplayThreads,
+      messengerThreads,
+      rippleStates,
+    };
+  }, [
+    appSettings,
+    characters,
+    lorebooks,
+    messengerThreads,
+    personas,
+    providerConnections,
+    rippleStates,
+    roleplayThreads,
+  ]);
+
   const applyLoadedAppStorageSnapshot = useCallback(
-    (snapshot: AppStorageSnapshot) => {
-      savedSignatures.current = createAppStorageSignatures(snapshot);
+    (
+      snapshot: AppStorageSnapshot,
+      options?: { storageReady?: boolean },
+    ) => {
+      savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
+      unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
-      setStorageReady(snapshot.storageResult.status === "ready");
+      setStorageReady(
+        options?.storageReady ?? (snapshot.storageResult.status === "ready"),
+      );
     },
     [applyAppStorageRecords, setStorageReady],
   );
@@ -474,19 +560,108 @@ export function useAppStorageSync({
 
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled || storageGeneration.current !== generation) return;
-      applyLoadedAppStorageSnapshot(snapshot);
+      const migrationCollectionKeys = asNonEmptyAppStorageCollectionKeys(
+        snapshot.migrationCollectionKeys,
+      );
+      const shouldMigrateLegacyTranscripts =
+        snapshot.storageResult.status === "ready" &&
+        migrationCollectionKeys !== null;
+      if (shouldMigrateLegacyTranscripts) {
+        applyLoadedAppStorageSnapshot(snapshot, { storageReady: false });
+      } else {
+        applyLoadedAppStorageSnapshot(snapshot);
+      }
       setMessengerStorageMode(snapshot.storageResult.mode);
       setMessengerStorageStatus(snapshot.storageResult.status);
       setMessengerStorageMessage(snapshot.storageResult.message);
+
+      if (!shouldMigrateLegacyTranscripts) return;
+
+      setMessengerStorageStatus("saving");
+      setMessengerStorageMessage("Migrating legacy transcripts into split storage.");
+      const migrationSavePromise = saveAppStorageCollections(
+        snapshot,
+        migrationCollectionKeys,
+        remoteRuntimeUrl,
+      ).then((storageResult) => {
+        if (cancelled || storageGeneration.current !== generation) return;
+
+        const committedSignatures = createAppStorageSignatures(snapshot);
+        const currentRecords = currentAppStorageRecords.current;
+        const currentSignatures = createAppStorageSignatures(currentRecords);
+        if (storageResult.status === "ready") {
+          const reconciledSignatures = reconcileMigrationAppStorageSignatures({
+            savedSignatures: savedSignatures.current,
+            unsavedSignatures: unsavedSignatures.current,
+            committedSignatures,
+            currentSignatures,
+            collectionKeys: migrationCollectionKeys,
+          });
+          savedSignatures.current =
+            reconciledSignatures.savedSignatures ?? committedSignatures;
+          unsavedSignatures.current = reconciledSignatures.unsavedSignatures;
+          for (const collectionKey of migrationCollectionKeys) {
+            delete saveErrors.current[collectionKey];
+          }
+          lastSeenSnapshot.current = snapshot;
+          setStorageReady(true);
+        } else {
+          const currentMigrationSignatures: PartialAppStorageCollectionSignatures =
+            {};
+          for (const collectionKey of migrationCollectionKeys) {
+            currentMigrationSignatures[collectionKey] =
+              currentSignatures[collectionKey];
+          }
+          unsavedSignatures.current = {
+            ...unsavedSignatures.current,
+            ...currentMigrationSignatures,
+          };
+          for (const collectionKey of migrationCollectionKeys) {
+            saveErrors.current[collectionKey] = storageResult.message;
+          }
+          setStorageReady(true);
+        }
+
+        refreshSaveStatus(generation, storageResult);
+      }, (error: unknown) => {
+        if (cancelled || storageGeneration.current !== generation) return;
+
+        const message =
+          error instanceof Error ? error.message : "Storage save failed.";
+        const currentRecords = currentAppStorageRecords.current;
+        const currentSignatures = createAppStorageSignatures(currentRecords);
+        const currentMigrationSignatures: PartialAppStorageCollectionSignatures =
+          {};
+        for (const collectionKey of migrationCollectionKeys) {
+          currentMigrationSignatures[collectionKey] =
+            currentSignatures[collectionKey];
+        }
+        unsavedSignatures.current = {
+          ...unsavedSignatures.current,
+          ...currentMigrationSignatures,
+        };
+        for (const collectionKey of migrationCollectionKeys) {
+          saveErrors.current[collectionKey] = message;
+        }
+        setStorageReady(true);
+        refreshSaveStatus(generation);
+      }).finally(() => {
+        if (activeSavePromise.current === migrationSavePromise) {
+          activeSavePromise.current = null;
+        }
+      });
+      activeSavePromise.current = migrationSavePromise;
     });
 
     return () => {
       cancelled = true;
     };
   }, [
+    applyAppStorageRecords,
     cancelQueuedSaveDispatch,
     applyLoadedAppStorageSnapshot,
     remoteRuntimeUrl,
+    refreshSaveStatus,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,

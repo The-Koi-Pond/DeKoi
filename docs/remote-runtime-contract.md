@@ -386,8 +386,10 @@ Supported storage entities:
 - `app-settings`
 - `characters`
 - `roleplay-threads`
+- `roleplay-entries`
 - `lorebooks`
 - `messenger-threads`
+- `messenger-messages`
 - `personas`
 - `provider-connections`
 - `ripple-states`
@@ -395,6 +397,13 @@ Supported storage entities:
 The browser app does not persist these entities in browser storage. If the app
 is not running in Tauri, configure a Remote Runtime URL before expecting durable
 storage.
+
+Messenger and Roleplay transcript storage is split. `messenger-threads` records
+omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
+live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
+`threadId`. DeKoi assembles thread records with their transcript items before
+rendering or generating. Legacy embedded `messages` or `entries` may still be
+accepted on load or bundle import, but normal writes use the split collections.
 
 `storage_list`:
 

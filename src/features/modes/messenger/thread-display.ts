@@ -1,8 +1,13 @@
-import type { MessengerThread } from "../../../engine/messenger";
+import {
+  getMessengerThreadActivityAt,
+  type MessengerThread,
+} from "../../../engine/messenger";
 import type { ShoalSortMode } from "../../../engine/app-settings";
 
 export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
-  return [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return [...threads].sort((a, b) =>
+    getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
+  );
 }
 
 export function sortMessengerThreads(
@@ -12,18 +17,26 @@ export function sortMessengerThreads(
   const sortedThreads = [...threads];
 
   if (sortMode === "oldest") {
-    return sortedThreads.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+    return sortedThreads.sort((a, b) =>
+      getMessengerThreadActivityAt(a).localeCompare(
+        getMessengerThreadActivityAt(b),
+      ),
+    );
   }
 
   if (sortMode === "title") {
     return sortedThreads.sort(
       (a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-        b.updatedAt.localeCompare(a.updatedAt),
+        getMessengerThreadActivityAt(b).localeCompare(
+          getMessengerThreadActivityAt(a),
+        ),
     );
   }
 
-  return sortedThreads.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return sortedThreads.sort((a, b) =>
+    getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
+  );
 }
 
 export function getMessengerThreadInitials(title: string) {
