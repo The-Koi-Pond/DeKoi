@@ -446,6 +446,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       const result = await nav.importStorageBundle(bundlePreview.bundle);
       const resultMessage = formatImportCommitResult(result);
       if (result.status !== "ready") {
+        setBundleReplaceConfirmed(false);
         setStorageImportFailureSource("bundle");
         setCareOpen(true);
         setCareTab(4);
@@ -461,6 +462,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setBundlePreview(null);
       setBundleReplaceConfirmed(false);
     } catch (error) {
+      setBundleReplaceConfirmed(false);
       setStorageImportFailureSource("bundle");
       setCareOpen(true);
       setCareTab(4);
@@ -556,6 +558,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
       const result = await nav.importLegacyData(legacyPreview.data);
       if (result.status !== "ready") {
+        setLegacyImportConfirmed(false);
         setStorageImportFailureSource("legacy");
         setCareOpen(true);
         setCareTab(4);
@@ -571,6 +574,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setLegacyPreview(null);
       setLegacyImportConfirmed(false);
     } catch (error) {
+      setLegacyImportConfirmed(false);
       setStorageImportFailureSource("legacy");
       setCareOpen(true);
       setCareTab(4);

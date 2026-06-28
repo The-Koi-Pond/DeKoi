@@ -113,6 +113,13 @@ function createImportErrorResult(
   };
 }
 
+function appStorageReplaceResultNeedsReload(result: AppStorageReplaceResult) {
+  return (
+    result.requiresReload ||
+    result.collections.some((collection) => collection.status === "ready")
+  );
+}
+
 function changedAppStorageCollectionKeys(
   snapshot: AppStorageRecords,
   previousSnapshot: AppStorageRecords | null,
@@ -302,7 +309,7 @@ export function useAppStorageSync({
       generation: number,
       options?: { force?: boolean },
     ) => {
-      if (!options?.force && !storageResult.requiresReload) {
+      if (!options?.force && !appStorageReplaceResultNeedsReload(storageResult)) {
         return storageResult;
       }
 
