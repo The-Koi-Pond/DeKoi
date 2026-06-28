@@ -173,6 +173,23 @@ function normalizeOptionalList<T extends { id: string }>(
   return normalizeList(value, label, normalizeRecord, warnings);
 }
 
+function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
+  records: T[],
+  importedThreadIds: ReadonlySet<string>,
+  label: string,
+  warnings: string[],
+) {
+  const validRecords = records.filter((record) =>
+    importedThreadIds.has(record.threadId),
+  );
+  if (validRecords.length !== records.length) {
+    warnings.push(
+      `${label} skipped ${records.length - validRecords.length} record(s) without a final imported thread.`,
+    );
+  }
+  return validRecords;
+}
+
 export function getDeKoiStorageBundleCounts(
   data: DeKoiStorageBundleData | DeKoiStorageBundleSourceData,
 ): DeKoiStorageBundleCounts {
@@ -371,6 +388,18 @@ export function normalizeDeKoiStorageBundle(
   const roleplayThreadIds = new Set(data.roleplayThreads.map((thread) => thread.id));
   const messengerThreadIds = new Set(
     data.messengerThreads.map((thread) => thread.id),
+  );
+  data.roleplayEntries = filterTranscriptRowsForImportedThreads(
+    data.roleplayEntries,
+    roleplayThreadIds,
+    "Roleplay entries",
+    warnings,
+  );
+  data.messengerMessages = filterTranscriptRowsForImportedThreads(
+    data.messengerMessages,
+    messengerThreadIds,
+    "Messenger messages",
+    warnings,
   );
   const validRippleStates = data.rippleStates.filter((state) =>
     state.ownerKind === "roleplay-thread"

@@ -48,6 +48,7 @@ type RuntimeCall = {
   command: string;
   entity: StorageEntity | null;
 };
+type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -63,6 +64,49 @@ function jsonFilePayload(name: string, value: unknown) {
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(value)),
   };
+}
+
+async function installRemoteRuntime(
+  page: Page,
+  initialRecords: RuntimeRecords = {},
+) {
+  const calls: RuntimeCall[] = [];
+  const records = new Map<StorageEntity, unknown[]>();
+  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
+    if (isStorageEntity(entity)) {
+      records.set(entity, entityRecords);
+    }
+  }
+
+  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
+    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
+    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
+    const command =
+      isRecord(parsed) && typeof parsed.command === "string"
+        ? parsed.command
+        : "";
+    const entity = isStorageEntity(args.entity) ? args.entity : null;
+    calls.push({ command, entity });
+
+    if (command === "storage_list" && entity) {
+      await route.fulfill({ json: records.get(entity) ?? [] });
+      return;
+    }
+
+    if (command === "storage_replace" && entity) {
+      const nextRecords = Array.isArray(args.records) ? args.records : [];
+      records.set(entity, nextRecords);
+      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
+      return;
+    }
+
+    await route.fulfill({
+      status: 400,
+      json: { message: `Unexpected runtime command: ${command}` },
+    });
+  });
+
+  return { calls, records };
 }
 
 async function installFailingRemoteRuntime(
@@ -126,7 +170,7 @@ async function connectRemoteRuntime(page: Page) {
     .getByRole("button", { name: "Apply" })
     .click();
   await expect(
-    page.getByText("Remote runtime storage is active."),
+    page.getByText(/Remote runtime storage is active\.|Saved through remote runtime\./),
   ).toBeVisible();
 }
 
@@ -368,6 +412,75 @@ test("split transcript reassembly preserves persisted array order", () => {
   ]);
 });
 
+test("legacy embedded transcripts migrate into split collections on load", async ({
+  page,
+}) => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messageAt = "2026-06-28T00:01:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-legacy",
+    now: createdAt,
+    title: "Legacy Messenger",
+  });
+  const messengerMessage = createAnonymousMessengerMessage({
+    body: "Legacy message",
+    id: "messenger-message-legacy",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-legacy",
+    now: createdAt,
+    title: "Legacy Roleplay",
+  });
+  const roleplayEntry = createNarrationRoleplayEntry({
+    body: "Legacy entry",
+    id: "roleplay-entry-legacy",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [
+    messengerMessage,
+  ]);
+  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [
+    roleplayEntry,
+  ]);
+  const runtime = await installRemoteRuntime(page, {
+    "messenger-threads": [messengerWithEmbeddedMessage],
+    "roleplay-threads": [roleplayWithEmbeddedEntry],
+  });
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  await expect
+    .poll(
+      () =>
+        runtime.calls
+          .filter((call) => call.command === "storage_replace")
+          .map((call) => call.entity),
+      { timeout: 8000 },
+    )
+    .toEqual([
+      "roleplay-threads",
+      "roleplay-entries",
+      "messenger-threads",
+      "messenger-messages",
+    ]);
+  expect(runtime.records.get("messenger-threads")).toEqual([
+    toMessengerThreadRecord(messengerWithEmbeddedMessage),
+  ]);
+  expect(runtime.records.get("messenger-messages")).toEqual([messengerMessage]);
+  expect(runtime.records.get("roleplay-threads")).toEqual([
+    toRoleplayThreadRecord(roleplayWithEmbeddedEntry),
+  ]);
+  expect(runtime.records.get("roleplay-entries")).toEqual([roleplayEntry]);
+});
+
 test("storage bundles export split transcripts and migrate embedded transcripts", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const messageAt = "2026-06-28T00:01:00.000Z";
@@ -441,6 +554,54 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   );
   expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
     false,
+  );
+});
+
+test("storage bundles warn and skip split transcripts without imported threads", () => {
+  const orphanedBundle = {
+    ...createBundleFixture(),
+    data: {
+      ...createBundleFixture().data,
+      messengerMessages: [
+        {
+          id: "messenger-message-orphan",
+          schemaVersion: 1,
+          threadId: "missing-messenger-thread",
+          author: { kind: "unknown", label: "Unknown" },
+          body: "Orphaned message",
+          origin: "imported",
+          createdAt: "2026-06-28T00:00:00.000Z",
+          updatedAt: "2026-06-28T00:00:00.000Z",
+        },
+      ],
+      roleplayEntries: [
+        {
+          id: "roleplay-entry-orphan",
+          schemaVersion: 1,
+          threadId: "missing-roleplay-thread",
+          role: "narration",
+          characterId: null,
+          personaId: null,
+          label: "Narration",
+          body: "Orphaned entry",
+          origin: "imported",
+          createdAt: "2026-06-28T00:00:00.000Z",
+          updatedAt: "2026-06-28T00:00:00.000Z",
+        },
+      ],
+    },
+  };
+
+  const migrated = normalizeDeKoiStorageBundle(orphanedBundle);
+  expect(migrated.ok).toBe(true);
+  if (!migrated.ok) return;
+  expect(migrated.preview.bundle.data.messengerMessages).toEqual([]);
+  expect(migrated.preview.bundle.data.roleplayEntries).toEqual([]);
+  expect(migrated.preview.warnings).toEqual(
+    expect.arrayContaining([
+      "Messenger messages skipped 1 record(s) without an imported thread.",
+      "Roleplay entries skipped 1 record(s) without an imported thread.",
+    ]),
   );
 });
 

@@ -132,6 +132,15 @@ function orderedAppStorageCollectionKeys(
   );
 }
 
+function asNonEmptyAppStorageCollectionKeys(
+  collectionKeys: readonly AppStorageCollectionKey[],
+) {
+  const [firstCollectionKey, ...remainingCollectionKeys] = collectionKeys;
+  return firstCollectionKey
+    ? ([firstCollectionKey, ...remainingCollectionKeys] as const)
+    : null;
+}
+
 function firstSaveErrorMessage(errors: SaveErrorMessages) {
   for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
     const message = errors[collectionKey];
@@ -268,12 +277,18 @@ export function useAppStorageSync({
   );
 
   const applyLoadedAppStorageSnapshot = useCallback(
-    (snapshot: AppStorageSnapshot) => {
+    (
+      snapshot: AppStorageSnapshot,
+      options?: { deferStorageReady?: boolean },
+    ) => {
       savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
       unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
-      setStorageReady(snapshot.storageResult.status === "ready");
+      setStorageReady(
+        !options?.deferStorageReady &&
+          snapshot.storageResult.status === "ready",
+      );
     },
     [applyAppStorageRecords, setStorageReady],
   );
@@ -473,10 +488,70 @@ export function useAppStorageSync({
 
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled || storageGeneration.current !== generation) return;
-      applyLoadedAppStorageSnapshot(snapshot);
+      const migrationCollectionKeys = asNonEmptyAppStorageCollectionKeys(
+        snapshot.migrationCollectionKeys,
+      );
+      const shouldMigrateLegacyTranscripts =
+        snapshot.storageResult.status === "ready" &&
+        migrationCollectionKeys !== null;
+      applyLoadedAppStorageSnapshot(snapshot, {
+        deferStorageReady: shouldMigrateLegacyTranscripts,
+      });
       setMessengerStorageMode(snapshot.storageResult.mode);
       setMessengerStorageStatus(snapshot.storageResult.status);
       setMessengerStorageMessage(snapshot.storageResult.message);
+
+      if (!shouldMigrateLegacyTranscripts) return;
+
+      setMessengerStorageStatus("saving");
+      setMessengerStorageMessage("Migrating legacy transcripts into split storage.");
+      const migrationSavePromise = saveAppStorageCollections(
+        snapshot,
+        migrationCollectionKeys,
+        remoteRuntimeUrl,
+      ).then((storageResult) => {
+        if (cancelled || storageGeneration.current !== generation) return;
+
+        if (storageResult.status === "ready") {
+          savedSignatures.current = createAppStorageSignatures(snapshot);
+          unsavedSignatures.current = {};
+          saveErrors.current = {};
+        } else {
+          const migrationSignatures =
+            createMigrationAppStorageSignatures(snapshot);
+          unsavedSignatures.current = {
+            ...unsavedSignatures.current,
+            ...migrationSignatures,
+          };
+          for (const collectionKey of snapshot.migrationCollectionKeys) {
+            saveErrors.current[collectionKey] = storageResult.message;
+          }
+        }
+
+        setStorageReady(snapshot.storageResult.status === "ready");
+        refreshSaveStatus(generation, storageResult);
+      }, (error: unknown) => {
+        if (cancelled || storageGeneration.current !== generation) return;
+
+        const message =
+          error instanceof Error ? error.message : "Storage save failed.";
+        const migrationSignatures =
+          createMigrationAppStorageSignatures(snapshot);
+        unsavedSignatures.current = {
+          ...unsavedSignatures.current,
+          ...migrationSignatures,
+        };
+        for (const collectionKey of snapshot.migrationCollectionKeys) {
+          saveErrors.current[collectionKey] = message;
+        }
+        setStorageReady(snapshot.storageResult.status === "ready");
+        refreshSaveStatus(generation);
+      }).finally(() => {
+        if (activeSavePromise.current === migrationSavePromise) {
+          activeSavePromise.current = null;
+        }
+      });
+      activeSavePromise.current = migrationSavePromise;
     });
 
     return () => {
@@ -486,6 +561,7 @@ export function useAppStorageSync({
     cancelQueuedSaveDispatch,
     applyLoadedAppStorageSnapshot,
     remoteRuntimeUrl,
+    refreshSaveStatus,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,

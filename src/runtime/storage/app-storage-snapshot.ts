@@ -72,7 +72,7 @@ export type AppStorageRecords = {
 
 export type AppStorageSnapshot = AppStorageRecords & {
   storageResult: StorageResult;
-  migrationCollectionKeys: AppStorageCollectionKey[];
+  migrationCollectionKeys: AppStorageMigrationCollectionKey[];
 };
 
 export type AppStorageCollectionKey =
@@ -86,6 +86,12 @@ export type AppStorageCollectionKey =
   | "messengerThreads"
   | "messengerMessages"
   | "rippleStates";
+
+export type AppStorageMigrationCollectionKey =
+  | "roleplayThreads"
+  | "roleplayEntries"
+  | "messengerThreads"
+  | "messengerMessages";
 
 export const APP_STORAGE_COLLECTION_KEYS = [
   "appSettings",
@@ -196,7 +202,7 @@ export async function loadAppStorageSnapshot(
     messengerSnapshot.threads,
     messengerMessageSnapshot.records,
   );
-  const migrationCollectionKeys: AppStorageCollectionKey[] = [
+  const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [
     ...(roleplaySnapshot.hasLegacyEmbeddedEntries
       ? (["roleplayThreads", "roleplayEntries"] as const)
       : []),
