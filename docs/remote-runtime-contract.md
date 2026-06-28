@@ -69,6 +69,14 @@ data directory at:
 <app-data>/collections/<entity>.json
 ```
 
+Desktop collection files are JSON arrays. Missing files load as empty
+collections only when no `.json.bak` or `.json.tmp` recovery sibling is present.
+Malformed files and missing files with recovery artifacts return recoverable
+storage errors instead of being overwritten by normal autosave. Desktop
+collection writes use a synced temp file and preserve the previous readable file
+as `<entity>.json.bak`; storage bundle writes use the temp/sync path without
+creating a backup.
+
 It also provides provider-backed generation through the same command envelope.
 
 ## Invoke Envelope
@@ -422,6 +430,8 @@ Replaces the full collection for `entity` with `records`. DeKoi uses this as
 the default save path so one collection save maps to one runtime write command.
 Each record must be an object with a non-empty unique `id`; runtimes should
 reject invalid or duplicate IDs instead of partially replacing a collection.
+Durable runtimes should also reject replacement when the existing collection is
+unreadable or known-corrupt rather than silently overwriting possible user data.
 
 Returns:
 

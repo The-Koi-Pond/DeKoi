@@ -70,6 +70,11 @@
 
         <p>Run the desktop host when you need app-data storage, provider-key secrets, or native bundle dialogs:</p>
         <pre><code>pnpm tauri:dev</code></pre>
+        <p>
+          Desktop collection files are JSON arrays under <code>&lt;app-data&gt;/collections</code>. Malformed files
+          and leftover recovery artifacts block normal autosave overwrite, and collection writes preserve a sibling
+          <code>.json.bak</code> recovery file.
+        </p>
 
         <h2>Run The Developer Docs</h2>
         <p>Serve this static documentation set:</p>

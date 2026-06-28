@@ -45,6 +45,12 @@ Desktop collection records are stored under:
 <app-data>/collections/<entity>.json
 ~~~
 
+Desktop collection files must be JSON arrays. If a collection file is empty,
+invalid, non-array JSON, or missing while `.json.bak` or `.json.tmp` recovery
+artifacts exist, desktop storage reports a recoverable error and blocks normal
+autosave overwrite. Collection writes keep a `.json.bak` sibling as a recovery
+aid; repair is future explicit work.
+
 ## Use A Remote Runtime
 
 A compatible runtime can provide storage and generation through the HTTP contract in [remote-runtime-contract.md](./remote-runtime-contract.md).

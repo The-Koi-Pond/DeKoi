@@ -81,6 +81,35 @@ rapid state changes, schedules writes during idle time, sends one
 `storage_replace` per dirty collection, and serializes collection writes so a
 collection cannot have overlapping saves.
 
+## Desktop JSON Safety
+
+Desktop collection files are JSON arrays. Missing files load as empty
+collections only when no sibling recovery artifacts are present. Empty files,
+invalid JSON, non-array JSON, and missing files with `.json.bak` or `.json.tmp`
+siblings are recoverable storage errors, not empty collections.
+
+When a desktop collection file is malformed, the desktop runtime reports the
+entity name, path category, whether `.json.bak` or `.json.tmp` siblings exist,
+and that writes are blocked. Normal autosave must not overwrite that collection
+until a future explicit repair/import path repairs or replaces the corrupt file.
+
+Desktop collection JSON writes use a sibling temp file and a `.json.bak`
+sibling:
+
+- serialize to `<entity>.json.tmp`
+- write and sync the temp file
+- preserve the readable current file as `<entity>.json.bak`
+- install the temp file
+- restore the backup when install fails and a backup is available
+- best-effort sync the final file and parent directory
+
+DeKoi storage bundle files use the same temp-file write and sync path, but they
+do not create `.json.bak` siblings.
+
+The backup is a recovery aid, not a user-facing repair workflow. Future repair
+commands should restore, quarantine, or replace collection files only after
+explicit user confirmation.
+
 The desktop host keeps a Rust allowlist for local file access:
 
 - `src-tauri/src/storage.rs`
