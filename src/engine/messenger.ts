@@ -114,32 +114,18 @@ export function extractMessengerMessages(
   )
 }
 
-function compareMessengerMessages(
-  left: MessengerMessage,
-  right: MessengerMessage,
-) {
-  return (
-    left.createdAt.localeCompare(right.createdAt) ||
-    left.updatedAt.localeCompare(right.updatedAt) ||
-    left.id.localeCompare(right.id)
-  )
-}
-
 function mergeMessengerMessages(
   embeddedMessages: readonly MessengerMessage[],
   storedMessages: readonly MessengerMessage[],
 ) {
-  const messagesById = new Map<string, MessengerMessage>()
+  if (storedMessages.length === 0) return [...embeddedMessages]
 
-  for (const message of embeddedMessages) {
-    messagesById.set(message.id, message)
-  }
+  const storedMessageIds = new Set(storedMessages.map((message) => message.id))
+  const embeddedOnlyMessages = embeddedMessages.filter(
+    (message) => !storedMessageIds.has(message.id),
+  )
 
-  for (const message of storedMessages) {
-    messagesById.set(message.id, message)
-  }
-
-  return [...messagesById.values()].sort(compareMessengerMessages)
+  return [...embeddedOnlyMessages, ...storedMessages]
 }
 
 export function attachMessengerMessagesToThreads(

@@ -57,29 +57,18 @@ export function extractRoleplayEntries(
   );
 }
 
-function compareRoleplayEntries(left: RoleplayEntry, right: RoleplayEntry) {
-  return (
-    left.createdAt.localeCompare(right.createdAt) ||
-    left.updatedAt.localeCompare(right.updatedAt) ||
-    left.id.localeCompare(right.id)
-  );
-}
-
 function mergeRoleplayEntries(
   embeddedEntries: readonly RoleplayEntry[],
   storedEntries: readonly RoleplayEntry[],
 ) {
-  const entriesById = new Map<string, RoleplayEntry>();
+  if (storedEntries.length === 0) return [...embeddedEntries];
 
-  for (const entry of embeddedEntries) {
-    entriesById.set(entry.id, entry);
-  }
+  const storedEntryIds = new Set(storedEntries.map((entry) => entry.id));
+  const embeddedOnlyEntries = embeddedEntries.filter(
+    (entry) => !storedEntryIds.has(entry.id),
+  );
 
-  for (const entry of storedEntries) {
-    entriesById.set(entry.id, entry);
-  }
-
-  return [...entriesById.values()].sort(compareRoleplayEntries);
+  return [...embeddedOnlyEntries, ...storedEntries];
 }
 
 export function attachRoleplayEntriesToThreads(

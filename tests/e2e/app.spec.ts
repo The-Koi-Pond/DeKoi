@@ -8,6 +8,7 @@ import {
   createMessengerThread,
 } from "../../src/engine/messenger-actions";
 import {
+  attachMessengerMessagesToThreads,
   extractMessengerMessages,
   toMessengerThreadRecord,
 } from "../../src/engine/messenger";
@@ -17,6 +18,7 @@ import {
   createRoleplayThread,
 } from "../../src/engine/roleplay-actions";
 import {
+  attachRoleplayEntriesToThreads,
   extractRoleplayEntries,
   toRoleplayThreadRecord,
 } from "../../src/engine/roleplay";
@@ -305,6 +307,65 @@ test("transcript edits change transcript projection without changing thread reco
     toRoleplayThreadRecord(roleplayThread),
   );
   expect(extractRoleplayEntries([roleplayWithEntry])).toEqual([roleplayEntry]);
+});
+
+test("split transcript reassembly preserves persisted array order", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-order",
+    now: createdAt,
+    title: "Messenger Order",
+  });
+  const messengerSecond = createAnonymousMessengerMessage({
+    body: "Second in saved order",
+    id: "messenger-message-b",
+    now: createdAt,
+    thread: messengerThread,
+  });
+  const messengerFirst = createAnonymousMessengerMessage({
+    body: "First in saved order",
+    id: "messenger-message-a",
+    now: createdAt,
+    thread: messengerThread,
+  });
+  const reassembledMessenger = attachMessengerMessagesToThreads(
+    [toMessengerThreadRecord(messengerThread)],
+    [messengerSecond, messengerFirst],
+  );
+  expect(reassembledMessenger[0].messages).toEqual([
+    messengerSecond,
+    messengerFirst,
+  ]);
+
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-order",
+    now: createdAt,
+    title: "Roleplay Order",
+  });
+  const roleplaySecond = createNarrationRoleplayEntry({
+    body: "Second in saved order",
+    id: "roleplay-entry-b",
+    now: createdAt,
+    thread: roleplayThread,
+  });
+  const roleplayFirst = createNarrationRoleplayEntry({
+    body: "First in saved order",
+    id: "roleplay-entry-a",
+    now: createdAt,
+    thread: roleplayThread,
+  });
+  const reassembledRoleplay = attachRoleplayEntriesToThreads(
+    [toRoleplayThreadRecord(roleplayThread)],
+    [roleplaySecond, roleplayFirst],
+  );
+  expect(reassembledRoleplay[0].entries).toEqual([
+    roleplaySecond,
+    roleplayFirst,
+  ]);
 });
 
 test("storage bundles export split transcripts and migrate embedded transcripts", () => {
