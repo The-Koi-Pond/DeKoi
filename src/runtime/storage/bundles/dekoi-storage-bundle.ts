@@ -288,6 +288,9 @@ export function normalizeDeKoiStorageBundle(
     normalizeRoleplayThread,
     warnings,
   );
+  const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(
+    toRoleplayThreadRecord,
+  );
   const normalizedRoleplayEntries = normalizeOptionalList(
     value.data.roleplayEntries,
     "Roleplay entries",
@@ -295,7 +298,7 @@ export function normalizeDeKoiStorageBundle(
     warnings,
   );
   const roleplayThreadIdSet = new Set(
-    normalizedRoleplayThreads.map((thread) => thread.id),
+    finalRoleplayThreadRecords.map((thread) => thread.id),
   );
   const validRoleplayEntries = filterTranscriptRowsForImportedThreads(
     normalizedRoleplayEntries,
@@ -310,6 +313,9 @@ export function normalizeDeKoiStorageBundle(
   const normalizedMessengerThreads = normalizeMessengerThreads(
     value.data.messengerThreads,
   );
+  const finalMessengerThreadRecords = normalizedMessengerThreads.map(
+    toMessengerThreadRecord,
+  );
   const normalizedMessengerMessages = normalizeOptionalList(
     value.data.messengerMessages,
     "Messenger messages",
@@ -317,7 +323,7 @@ export function normalizeDeKoiStorageBundle(
     warnings,
   );
   const messengerThreadIdSet = new Set(
-    normalizedMessengerThreads.map((thread) => thread.id),
+    finalMessengerThreadRecords.map((thread) => thread.id),
   );
   const validMessengerMessages = filterTranscriptRowsForImportedThreads(
     normalizedMessengerMessages,
@@ -337,7 +343,7 @@ export function normalizeDeKoiStorageBundle(
       normalizeCharacterRecord,
       warnings,
     ),
-    roleplayThreads: roleplayThreadsWithEntries.map(toRoleplayThreadRecord),
+    roleplayThreads: finalRoleplayThreadRecords,
     roleplayEntries: extractRoleplayEntries(roleplayThreadsWithEntries),
     personas: normalizeList(
       value.data.personas,
@@ -357,7 +363,7 @@ export function normalizeDeKoiStorageBundle(
       normalizeProviderConnectionRecord,
       warnings,
     ),
-    messengerThreads: messengerThreadsWithMessages.map(toMessengerThreadRecord),
+    messengerThreads: finalMessengerThreadRecords,
     messengerMessages: extractMessengerMessages(messengerThreadsWithMessages),
     rippleStates: normalizeList(
       value.data.rippleStates,

@@ -236,6 +236,7 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const latestAppStorageRecords = useRef<AppStorageRecords | null>(null);
 
   const refreshSaveStatus = useCallback(
     (generation: number, storageResult?: SaveStatusResult) => {
@@ -267,6 +268,28 @@ export function useAppStorageSync({
       setMessengerStorageStatus,
     ],
   );
+
+  useEffect(() => {
+    latestAppStorageRecords.current = {
+      appSettings,
+      characters,
+      personas,
+      lorebooks,
+      providerConnections,
+      roleplayThreads,
+      messengerThreads,
+      rippleStates,
+    };
+  }, [
+    appSettings,
+    characters,
+    lorebooks,
+    messengerThreads,
+    personas,
+    providerConnections,
+    rippleStates,
+    roleplayThreads,
+  ]);
 
   const applyAppStorageRecords = useCallback(
     (records: AppStorageRecords) => {
@@ -530,6 +553,9 @@ export function useAppStorageSync({
         const migrationSignatures =
           createMigrationAppStorageSignatures(snapshot);
         if (storageResult.status === "ready") {
+          const currentSignatures = createAppStorageSignatures(
+            latestAppStorageRecords.current ?? snapshot,
+          );
           savedSignatures.current = markAppStorageCollectionsSaved(
             savedSignatures.current,
             snapshot.migrationCollectionKeys,
@@ -537,10 +563,18 @@ export function useAppStorageSync({
           );
           for (const collectionKey of snapshot.migrationCollectionKeys) {
             if (
+              currentSignatures[collectionKey] ===
+                migrationSignatures[collectionKey] &&
               unsavedSignatures.current[collectionKey] ===
-              migrationSignatures[collectionKey]
+                migrationSignatures[collectionKey]
             ) {
               delete unsavedSignatures.current[collectionKey];
+            } else if (
+              currentSignatures[collectionKey] !==
+              migrationSignatures[collectionKey]
+            ) {
+              unsavedSignatures.current[collectionKey] =
+                currentSignatures[collectionKey];
             }
             delete saveErrors.current[collectionKey];
           }
@@ -554,7 +588,7 @@ export function useAppStorageSync({
           }
         }
 
-        setStorageReady(snapshot.storageResult.status === "ready");
+        setStorageReady(storageResult.status === "ready");
         refreshSaveStatus(generation, storageResult);
       }, (error: unknown) => {
         if (cancelled || storageGeneration.current !== generation) return;
@@ -570,7 +604,7 @@ export function useAppStorageSync({
         for (const collectionKey of snapshot.migrationCollectionKeys) {
           saveErrors.current[collectionKey] = message;
         }
-        setStorageReady(snapshot.storageResult.status === "ready");
+        setStorageReady(false);
         refreshSaveStatus(generation);
       }).finally(() => {
         if (activeSavePromise.current === migrationSavePromise) {
