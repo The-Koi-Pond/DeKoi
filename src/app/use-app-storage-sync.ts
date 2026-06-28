@@ -99,12 +99,24 @@ export function createStorageReloadLocalChangeToken({
 }) {
   if (!savedSignatures) return null;
 
-  const entries = APP_STORAGE_COLLECTION_KEYS.flatMap((collectionKey) =>
-    savedSignatures[collectionKey] === currentSignatures[collectionKey]
-      ? []
-      : [`${collectionKey}:${currentSignatures[collectionKey]}`],
+  const changedCollectionKeys = APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) =>
+      savedSignatures[collectionKey] !== currentSignatures[collectionKey],
   );
-  return entries.length > 0 ? entries.join("\n") : null;
+  if (changedCollectionKeys.length === 0) return null;
+
+  const savedSnapshotToken = APP_STORAGE_COLLECTION_KEYS.map(
+    (collectionKey) => `${collectionKey}:${savedSignatures[collectionKey]}`,
+  ).join("\n");
+  const currentSnapshotToken = APP_STORAGE_COLLECTION_KEYS.map(
+    (collectionKey) => `${collectionKey}:${currentSignatures[collectionKey]}`,
+  ).join("\n");
+  const dirtyCollectionToken = changedCollectionKeys.join(",");
+  return (
+    `dirty:${dirtyCollectionToken}\n` +
+    `saved:\n${savedSnapshotToken}\n` +
+    `current:\n${currentSnapshotToken}`
+  );
 }
 
 function createAppStorageSignatures(

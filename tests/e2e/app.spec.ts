@@ -517,6 +517,10 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
     ...savedSignatures,
     appSettings: "dirty-later",
   };
+  const laterSavedSignatures = {
+    ...savedSignatures,
+    characters: "saved-later",
+  };
   const firstDirtyToken = createStorageReloadLocalChangeToken({
     savedSignatures,
     currentSignatures: dirtySignatures,
@@ -524,6 +528,10 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
   const laterDirtyToken = createStorageReloadLocalChangeToken({
     savedSignatures,
     currentSignatures: laterDirtySignatures,
+  });
+  const laterSavedToken = createStorageReloadLocalChangeToken({
+    savedSignatures: laterSavedSignatures,
+    currentSignatures: dirtySignatures,
   });
 
   expect(
@@ -555,6 +563,15 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
     decideAppStorageReload({
       activeStorageWork: false,
       localChangeToken: laterDirtyToken,
+      confirmedLocalChangeToken: firstDirtyToken,
+    }),
+  ).toBe("confirm-local-discard");
+
+  expect(firstDirtyToken).not.toBe(laterSavedToken);
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      localChangeToken: laterSavedToken,
       confirmedLocalChangeToken: firstDirtyToken,
     }),
   ).toBe("confirm-local-discard");
