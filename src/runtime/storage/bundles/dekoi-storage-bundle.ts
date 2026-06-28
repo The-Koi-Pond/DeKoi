@@ -190,6 +190,20 @@ function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
   return validRecords;
 }
 
+function mergeBundleTranscriptRows<T extends { id: string }>(
+  embeddedRows: readonly T[],
+  storedRows: readonly T[],
+) {
+  if (storedRows.length === 0) return [...embeddedRows];
+
+  const storedRowIds = new Set(storedRows.map((row) => row.id));
+  const embeddedOnlyRows = embeddedRows.filter(
+    (row) => !storedRowIds.has(row.id),
+  );
+
+  return [...embeddedOnlyRows, ...storedRows];
+}
+
 export function getDeKoiStorageBundleCounts(
   data: DeKoiStorageBundleData | DeKoiStorageBundleSourceData,
 ): DeKoiStorageBundleCounts {
@@ -297,17 +311,21 @@ export function normalizeDeKoiStorageBundle(
     normalizeRoleplayEntryRecord,
     warnings,
   );
+  const mergedRoleplayEntries = mergeBundleTranscriptRows(
+    extractRoleplayEntries(normalizedRoleplayThreads),
+    normalizedRoleplayEntries,
+  );
   const roleplayThreadIdSet = new Set(
     finalRoleplayThreadRecords.map((thread) => thread.id),
   );
   const validRoleplayEntries = filterTranscriptRowsForImportedThreads(
-    normalizedRoleplayEntries,
+    mergedRoleplayEntries,
     roleplayThreadIdSet,
     "Roleplay entries",
     warnings,
   );
   const roleplayThreadsWithEntries = attachRoleplayEntriesToThreads(
-    normalizedRoleplayThreads,
+    finalRoleplayThreadRecords,
     validRoleplayEntries,
   );
   const normalizedMessengerThreads = normalizeMessengerThreads(
@@ -322,17 +340,21 @@ export function normalizeDeKoiStorageBundle(
     normalizeMessengerMessageRecord,
     warnings,
   );
+  const mergedMessengerMessages = mergeBundleTranscriptRows(
+    extractMessengerMessages(normalizedMessengerThreads),
+    normalizedMessengerMessages,
+  );
   const messengerThreadIdSet = new Set(
     finalMessengerThreadRecords.map((thread) => thread.id),
   );
   const validMessengerMessages = filterTranscriptRowsForImportedThreads(
-    normalizedMessengerMessages,
+    mergedMessengerMessages,
     messengerThreadIdSet,
     "Messenger messages",
     warnings,
   );
   const messengerThreadsWithMessages = attachMessengerMessagesToThreads(
-    normalizedMessengerThreads,
+    finalMessengerThreadRecords,
     validMessengerMessages,
   );
   const data: DeKoiStorageBundleData = {

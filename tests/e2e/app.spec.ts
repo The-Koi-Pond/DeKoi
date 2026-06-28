@@ -112,9 +112,15 @@ async function installRemoteRuntime(
 async function installFailingRemoteRuntime(
   page: Page,
   failReplaceEntity: StorageEntity,
+  initialRecords: RuntimeRecords = {},
 ) {
   const calls: RuntimeCall[] = [];
   const records = new Map<StorageEntity, unknown[]>();
+  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
+    if (isStorageEntity(entity)) {
+      records.set(entity, entityRecords);
+    }
+  }
   let failedOnce = false;
 
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
@@ -154,7 +160,7 @@ async function installFailingRemoteRuntime(
     });
   });
 
-  return { calls };
+  return { calls, records };
 }
 
 async function openDataAndBackupSettings(page: Page) {
@@ -481,6 +487,79 @@ test("legacy embedded transcripts migrate into split collections on load", async
   expect(runtime.records.get("roleplay-entries")).toEqual([roleplayEntry]);
 });
 
+test("failed legacy transcript migration remains dirty until retry succeeds", async ({
+  page,
+}) => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messageAt = "2026-06-28T00:01:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-retry",
+    now: createdAt,
+    title: "Retry Messenger",
+  });
+  const messengerMessage = createAnonymousMessengerMessage({
+    body: "Retry message",
+    id: "messenger-message-retry",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-retry",
+    now: createdAt,
+    title: "Retry Roleplay",
+  });
+  const roleplayEntry = createNarrationRoleplayEntry({
+    body: "Retry entry",
+    id: "roleplay-entry-retry",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [
+    messengerMessage,
+  ]);
+  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [
+    roleplayEntry,
+  ]);
+  const runtime = await installFailingRemoteRuntime(page, "roleplay-entries", {
+    "messenger-threads": [messengerWithEmbeddedMessage],
+    "roleplay-threads": [roleplayWithEmbeddedEntry],
+  });
+
+  await openDataAndBackupSettings(page);
+  await page.getByLabel("Remote Runtime URL").fill(TEST_RUNTIME_URL);
+  await page
+    .locator("form.runtime-panel")
+    .getByRole("button", { name: "Apply" })
+    .click();
+
+  await expect
+    .poll(
+      () =>
+        runtime.calls.filter(
+          (call) =>
+            call.command === "storage_replace" &&
+            call.entity === "roleplay-entries",
+        ).length,
+      { timeout: 8000 },
+    )
+    .toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() => runtime.records.get("roleplay-entries"), { timeout: 8000 })
+    .toEqual([roleplayEntry]);
+
+  expect(runtime.records.get("messenger-threads")).toEqual([
+    toMessengerThreadRecord(messengerWithEmbeddedMessage),
+  ]);
+  expect(runtime.records.get("messenger-messages")).toEqual([messengerMessage]);
+  expect(runtime.records.get("roleplay-threads")).toEqual([
+    toRoleplayThreadRecord(roleplayWithEmbeddedEntry),
+  ]);
+});
+
 test("storage bundles export split transcripts and migrate embedded transcripts", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const messageAt = "2026-06-28T00:01:00.000Z";
@@ -555,6 +634,100 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
     false,
   );
+});
+
+test("storage bundles merge split transcript rows against final thread records", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const messageAt = "2026-06-28T00:01:00.000Z";
+  const splitAt = "2026-06-28T00:02:00.000Z";
+  const messengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "messenger-thread-mixed",
+    now: createdAt,
+    title: "Mixed Messenger",
+  });
+  const embeddedMessengerMessage = createAnonymousMessengerMessage({
+    body: "Embedded duplicate",
+    id: "messenger-message-duplicate",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const embeddedOnlyMessengerMessage = createAnonymousMessengerMessage({
+    body: "Embedded fallback",
+    id: "messenger-message-embedded",
+    now: messageAt,
+    thread: messengerThread,
+  });
+  const splitMessengerMessage = {
+    ...embeddedMessengerMessage,
+    body: "Split duplicate",
+    updatedAt: splitAt,
+  };
+  const messengerWithEmbeddedMessages = appendMessengerMessages(
+    messengerThread,
+    [embeddedMessengerMessage, embeddedOnlyMessengerMessage],
+  );
+
+  const roleplayThread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "roleplay-thread-mixed",
+    now: createdAt,
+    title: "Mixed Roleplay",
+  });
+  const embeddedRoleplayEntry = createNarrationRoleplayEntry({
+    body: "Embedded duplicate",
+    id: "roleplay-entry-duplicate",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const embeddedOnlyRoleplayEntry = createNarrationRoleplayEntry({
+    body: "Embedded fallback",
+    id: "roleplay-entry-embedded",
+    now: messageAt,
+    thread: roleplayThread,
+  });
+  const splitRoleplayEntry = {
+    ...embeddedRoleplayEntry,
+    body: "Split duplicate",
+    updatedAt: splitAt,
+  };
+  const roleplayWithEmbeddedEntries = appendRoleplayEntries(roleplayThread, [
+    embeddedRoleplayEntry,
+    embeddedOnlyRoleplayEntry,
+  ]);
+
+  const mixedBundle = {
+    ...createBundleFixture(),
+    data: {
+      ...createBundleFixture().data,
+      messengerThreads: [messengerWithEmbeddedMessages],
+      messengerMessages: [splitMessengerMessage],
+      roleplayThreads: [roleplayWithEmbeddedEntries],
+      roleplayEntries: [splitRoleplayEntry],
+    },
+  };
+
+  const migrated = normalizeDeKoiStorageBundle(mixedBundle);
+  expect(migrated.ok).toBe(true);
+  if (!migrated.ok) return;
+  expect(migrated.preview.bundle.data.messengerThreads).toEqual([
+    toMessengerThreadRecord(messengerWithEmbeddedMessages),
+  ]);
+  expect(migrated.preview.bundle.data.messengerMessages).toEqual([
+    embeddedOnlyMessengerMessage,
+    splitMessengerMessage,
+  ]);
+  expect(migrated.preview.bundle.data.roleplayThreads).toEqual([
+    toRoleplayThreadRecord(roleplayWithEmbeddedEntries),
+  ]);
+  expect(migrated.preview.bundle.data.roleplayEntries).toEqual([
+    embeddedOnlyRoleplayEntry,
+    splitRoleplayEntry,
+  ]);
+  expect(migrated.preview.counts.messengerMessages).toBe(2);
+  expect(migrated.preview.counts.roleplayEntries).toBe(2);
 });
 
 test("storage bundles warn and skip split transcripts without imported threads", () => {
