@@ -6,6 +6,7 @@ import type {
   NavRippleState,
   NavSettingsActions,
   NavSettingsState,
+  NavStorageActions,
   NavStorageBundleActions,
   NavStorageState,
   NavThreadState,
@@ -66,11 +67,13 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     NavStorageBundleActions,
     "createStorageBundle" | "importLegacyData" | "importStorageBundle"
   > &
+  Pick<NavStorageActions, "checkAppStorageStale" | "reloadAppStorage"> &
   Pick<
     NavStorageState,
     | "messengerStorageMessage"
     | "messengerStorageMode"
     | "messengerStorageStatus"
+    | "storageHasUnsavedChanges"
     | "remoteRuntimeUrl"
   > &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads">;
@@ -122,6 +125,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopHostBusy, setDesktopHostBusy] = useState(false);
   const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
+  const [storageReloadBusy, setStorageReloadBusy] = useState(false);
+  const [storageReloadStatus, setStorageReloadStatus] = useState("");
   const [bundlePreview, setBundlePreview] =
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
@@ -255,6 +260,43 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       );
     } finally {
       setDesktopStorageBusy(false);
+    }
+  }
+
+  async function handleStorageStaleCheck() {
+    setStorageReloadBusy(true);
+    setStorageReloadStatus("Checking stored collections...");
+
+    try {
+      const result = await nav.checkAppStorageStale();
+      const changedCount = result.changedCollectionKeys.length;
+      setStorageReloadStatus(
+        result.stale && changedCount > 0
+          ? `${result.message} ${changedCount} collection(s) changed.`
+          : result.message,
+      );
+    } catch (error) {
+      setStorageReloadStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setStorageReloadBusy(false);
+    }
+  }
+
+  async function handleStorageReload() {
+    setStorageReloadBusy(true);
+    setStorageReloadStatus("Reloading stored collections...");
+
+    try {
+      const result = await nav.reloadAppStorage();
+      setStorageReloadStatus(result.message);
+    } catch (error) {
+      setStorageReloadStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setStorageReloadBusy(false);
     }
   }
 
@@ -1268,6 +1310,42 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </button>
               </div>
             </form>
+
+            <section className="bundle-section" aria-labelledby="storage-reload">
+              <div className="catalog-section-head">
+                <div>
+                  <h3 id="storage-reload">Stored collections</h3>
+                  <span>reload on demand</span>
+                </div>
+              </div>
+
+              <div className="runtime-actions">
+                <button
+                  type="button"
+                  disabled={storageReloadBusy}
+                  onClick={handleStorageStaleCheck}
+                >
+                  {storageReloadBusy ? "Checking files" : "Check files"}
+                </button>
+                <button
+                  type="button"
+                  className="care-btn primary"
+                  disabled={storageReloadBusy}
+                  onClick={handleStorageReload}
+                >
+                  {storageReloadBusy ? "Reloading records" : "Reload records"}
+                </button>
+              </div>
+
+              {nav.storageHasUnsavedChanges && (
+                <p className="bundle-note">
+                  Storage has local changes or pending saves.
+                </p>
+              )}
+              {storageReloadStatus && (
+                <p className="bundle-status">{storageReloadStatus}</p>
+              )}
+            </section>
 
             <hr className="care-divider" />
             {renderStockingTools()}

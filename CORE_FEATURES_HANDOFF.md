@@ -154,6 +154,8 @@ Key behavior:
   split collections on load or import commit.
 - App storage sync tracks dirty collections, debounces, schedules idle writes,
   and serializes one `storage_replace` per dirty collection.
+- Desktop collection metadata supports explicit stale checks and manual reload;
+  external file edits are not hot-loaded or merged.
 - Imports cancel pending autosave work, wait for active saves, and commit through
   explicit collection replacement.
 - Desktop malformed collection files are recoverable storage errors and block
@@ -375,6 +377,8 @@ Next work:
   dispatch, and docs in sync.
 - Keep `src/shared/api/desktop-commands.ts`, Rust command registration, and
   capability docs in sync.
+- Keep desktop-only storage metadata documented as optional for compatible
+  remote runtimes.
 - Avoid adding raw Tauri `invoke` or raw runtime `fetch` calls inside feature UI.
 
 Acceptance:

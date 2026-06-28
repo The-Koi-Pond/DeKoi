@@ -54,10 +54,18 @@ import {
 } from "./collections/ripple-state-storage";
 import {
   mergeStorageResults,
+  type StorageCollectionMetadata,
   type StorageResult,
 } from "./storage-repository";
 import { appStorageCollectionCount } from "./app-storage-collection-projection";
-import { getHostStorageMode } from "./storage-repository-factory";
+import {
+  getHostStorageMode,
+  loadHostStorageMetadata,
+} from "./storage-repository-factory";
+import {
+  STORAGE_ENTITIES,
+  type StorageEntity,
+} from "./storage-entities";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;
@@ -68,11 +76,6 @@ export type AppStorageRecords = {
   roleplayThreads: RoleplayThread[];
   messengerThreads: MessengerThread[];
   rippleStates: RippleState[];
-};
-
-export type AppStorageSnapshot = AppStorageRecords & {
-  storageResult: StorageResult;
-  migrationCollectionKeys: AppStorageMigrationCollectionKey[];
 };
 
 export type AppStorageCollectionKey =
@@ -86,6 +89,27 @@ export type AppStorageCollectionKey =
   | "messengerThreads"
   | "messengerMessages"
   | "rippleStates";
+
+export type AppStorageMetadata = Partial<
+  Record<AppStorageCollectionKey, StorageCollectionMetadata>
+>;
+
+type AppStorageStatusResult = Omit<StorageResult, "metadata">;
+
+export type AppStorageMetadataResult = AppStorageStatusResult & {
+  metadataAvailable: boolean;
+  storageMetadata: AppStorageMetadata;
+};
+
+export type AppStorageSaveResult = AppStorageStatusResult & {
+  storageMetadata: AppStorageMetadata;
+};
+
+export type AppStorageSnapshot = AppStorageRecords & {
+  storageResult: StorageResult;
+  migrationCollectionKeys: AppStorageMigrationCollectionKey[];
+  storageMetadata: AppStorageMetadata;
+};
 
 export type AppStorageMigrationCollectionKey =
   | "roleplayThreads"
@@ -106,21 +130,36 @@ export const APP_STORAGE_COLLECTION_KEYS = [
   "rippleStates",
 ] as const satisfies readonly AppStorageCollectionKey[];
 
+export const APP_STORAGE_COLLECTION_ENTITIES = {
+  appSettings: STORAGE_ENTITIES.appSettings,
+  characters: STORAGE_ENTITIES.characters,
+  personas: STORAGE_ENTITIES.personas,
+  lorebooks: STORAGE_ENTITIES.lorebooks,
+  providerConnections: STORAGE_ENTITIES.providerConnections,
+  roleplayThreads: STORAGE_ENTITIES.roleplayThreads,
+  roleplayEntries: STORAGE_ENTITIES.roleplayEntries,
+  messengerThreads: STORAGE_ENTITIES.messengerThreads,
+  messengerMessages: STORAGE_ENTITIES.messengerMessages,
+  rippleStates: STORAGE_ENTITIES.rippleStates,
+} as const satisfies Record<AppStorageCollectionKey, StorageEntity>;
+
 export type AppStorageCollectionReplaceResult = {
   collectionKey: AppStorageCollectionKey;
   count: number;
   mode: StorageResult["mode"];
   status: StorageResult["status"];
   message: string;
+  metadata: StorageCollectionMetadata | null;
 };
 
-export type AppStorageReplaceResult = StorageResult & {
+export type AppStorageReplaceResult = AppStorageStatusResult & {
   counts: Record<AppStorageCollectionKey, number>;
   collections: AppStorageCollectionReplaceResult[];
   failedCollectionKey: AppStorageCollectionKey | null;
   requiresReload: boolean;
   rollbackAvailable: false;
   rollbackMessage: string;
+  storageMetadata: AppStorageMetadata;
 };
 
 type NonEmptyAppStorageCollectionKeys = readonly [
@@ -158,14 +197,80 @@ function appStorageRecordTotal(counts: Record<AppStorageCollectionKey, number>) 
   );
 }
 
+function appStorageMetadataByCollectionKey(
+  collectionMetadata: readonly StorageCollectionMetadata[],
+): AppStorageMetadata {
+  const metadataByEntity = new Map(
+    collectionMetadata.map((metadata) => [metadata.entity, metadata] as const),
+  );
+  const storageMetadata: AppStorageMetadata = {};
+  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    const metadata = metadataByEntity.get(
+      APP_STORAGE_COLLECTION_ENTITIES[collectionKey],
+    );
+    if (metadata) storageMetadata[collectionKey] = metadata;
+  }
+  return storageMetadata;
+}
+
+export function appStorageMetadataSignature(
+  metadata: StorageCollectionMetadata | null | undefined,
+) {
+  if (!metadata) return "";
+
+  return JSON.stringify({
+    entity: metadata.entity,
+    exists: metadata.exists,
+    byteLength: metadata.byteLength,
+    updatedAtMs: metadata.updatedAtMs,
+    contentHash: metadata.contentHash,
+  });
+}
+
+export function changedAppStorageMetadataKeys(
+  previousMetadata: AppStorageMetadata,
+  currentMetadata: AppStorageMetadata,
+) {
+  return APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) =>
+      appStorageMetadataSignature(previousMetadata[collectionKey]) !==
+      appStorageMetadataSignature(currentMetadata[collectionKey]),
+  );
+}
+
 function asAppStorageErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
+}
+
+function storageResultWithoutCollectionMetadata(
+  result: StorageResult,
+): AppStorageStatusResult {
+  return {
+    mode: result.mode,
+    status: result.status,
+    message: result.message,
+  };
 }
 
 function appStorageRequiresReload(
   collections: readonly AppStorageCollectionReplaceResult[],
 ) {
   return collections.some((collection) => collection.status === "ready");
+}
+
+export async function loadAppStorageMetadata(
+  rawUrl: string,
+): Promise<AppStorageMetadataResult> {
+  const metadataResult = await loadHostStorageMetadata(rawUrl);
+  return {
+    mode: metadataResult.mode,
+    status: metadataResult.status,
+    message: metadataResult.message,
+    metadataAvailable: metadataResult.metadataAvailable,
+    storageMetadata: appStorageMetadataByCollectionKey(
+      metadataResult.collectionMetadata,
+    ),
+  };
 }
 
 export async function loadAppStorageSnapshot(
@@ -182,6 +287,7 @@ export async function loadAppStorageSnapshot(
     messengerSnapshot,
     messengerMessageSnapshot,
     rippleSnapshot,
+    metadataResult,
   ] = await Promise.all([
     loadAppSettingsFromStorage(rawUrl),
     loadCharacterRecordsFromStorage(rawUrl),
@@ -193,6 +299,7 @@ export async function loadAppStorageSnapshot(
     loadMessengerThreadsFromStorage(rawUrl),
     loadMessengerMessagesFromStorage(rawUrl),
     loadRippleStatesFromStorage(rawUrl),
+    loadAppStorageMetadata(rawUrl),
   ]);
   const roleplayThreads = attachRoleplayEntriesToThreads(
     roleplaySnapshot.records,
@@ -221,6 +328,7 @@ export async function loadAppStorageSnapshot(
     messengerThreads,
     rippleStates: rippleSnapshot.states,
     migrationCollectionKeys,
+    storageMetadata: metadataResult.storageMetadata,
     storageResult: mergeStorageResults([
       appSettingsSnapshot,
       characterSnapshot,
@@ -272,20 +380,32 @@ export async function saveAppStorageCollections(
   snapshot: AppStorageRecords,
   collectionKeys: NonEmptyAppStorageCollectionKeys,
   rawUrl: string,
-): Promise<StorageResult> {
-  return mergeStorageResults(
-    await Promise.all(
-      collectionKeys.map((collectionKey) =>
-        saveAppStorageCollection(snapshot, collectionKey, rawUrl),
-      ),
-    ),
+): Promise<AppStorageSaveResult> {
+  const collectionResults = await Promise.all(
+    collectionKeys.map(async (collectionKey) => ({
+      collectionKey,
+      result: await saveAppStorageCollection(snapshot, collectionKey, rawUrl),
+    })),
   );
+  const storageMetadata: AppStorageMetadata = {};
+  for (const { collectionKey, result } of collectionResults) {
+    if (result.status === "ready" && result.metadata) {
+      storageMetadata[collectionKey] = result.metadata;
+    }
+  }
+
+  return {
+    ...storageResultWithoutCollectionMetadata(
+      mergeStorageResults(collectionResults.map(({ result }) => result)),
+    ),
+    storageMetadata,
+  };
 }
 
 export async function saveAppStorageSnapshot(
   snapshot: AppStorageRecords,
   rawUrl: string,
-): Promise<StorageResult> {
+): Promise<AppStorageSaveResult> {
   return saveAppStorageCollections(
     snapshot,
     APP_STORAGE_COLLECTION_KEYS,
@@ -299,6 +419,7 @@ export async function replaceAppStorageSnapshot(
 ): Promise<AppStorageReplaceResult> {
   const counts = appStorageSnapshotCounts(records);
   const collections: AppStorageCollectionReplaceResult[] = [];
+  const storageMetadata: AppStorageMetadata = {};
   const rollbackMessage =
     "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
 
@@ -314,6 +435,7 @@ export async function replaceAppStorageSnapshot(
         mode: getHostStorageMode(rawUrl),
         status: "error",
         message,
+        metadata: null,
       };
       collections.push(collectionResult);
 
@@ -327,6 +449,7 @@ export async function replaceAppStorageSnapshot(
         requiresReload: appStorageRequiresReload(collections),
         rollbackAvailable: false,
         rollbackMessage,
+        storageMetadata,
       };
     }
 
@@ -336,8 +459,12 @@ export async function replaceAppStorageSnapshot(
       mode: result.mode,
       status: result.status,
       message: result.message,
+      metadata: result.metadata ?? null,
     };
     collections.push(collectionResult);
+    if (result.status === "ready" && result.metadata) {
+      storageMetadata[collectionKey] = result.metadata;
+    }
 
     if (result.status === "error") {
       return {
@@ -350,6 +477,7 @@ export async function replaceAppStorageSnapshot(
         requiresReload: appStorageRequiresReload(collections),
         rollbackAvailable: false,
         rollbackMessage,
+        storageMetadata,
       };
     }
   }
@@ -365,5 +493,6 @@ export async function replaceAppStorageSnapshot(
     requiresReload: false,
     rollbackAvailable: false,
     rollbackMessage,
+    storageMetadata,
   };
 }

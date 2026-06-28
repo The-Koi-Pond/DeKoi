@@ -182,6 +182,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
   generation consumes thread objects.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
+- Desktop collection metadata is used for explicit stale checks and manual
+  reloads only; external file edits are not hot-loaded or merged into memory.
 - Bundle and legacy imports use an explicit backup-and-commit path that cancels
   delayed autosave before replacing collections.
 - Desktop collection files report recoverable corruption/recovery-artifact

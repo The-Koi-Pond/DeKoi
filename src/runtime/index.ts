@@ -1,13 +1,19 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  changedAppStorageMetadataKeys,
+  appStorageMetadataSignature,
   loadAppStorageSnapshot,
+  loadAppStorageMetadata,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
   saveAppStorageSnapshot,
   type AppStorageCollectionKey,
   type AppStorageCollectionReplaceResult,
+  type AppStorageMetadata,
+  type AppStorageMetadataResult,
   type AppStorageRecords,
   type AppStorageReplaceResult,
+  type AppStorageSaveResult,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";
 export {
@@ -56,6 +62,7 @@ export type { StorageEntity } from "./storage/storage-entities";
 export { mergeStorageResults } from "./storage/storage-repository";
 export type {
   StorageCollectionRepository,
+  StorageCollectionMetadata,
   StorageMode,
   StorageRecord,
   StorageRecordNormalizer,

@@ -22,6 +22,7 @@ import type { RippleInput } from "../../../engine/ripple-actions";
 import type { SurfaceId } from "../../../engine/surfaces";
 import type { AppSettings, ShoalSortMode } from "../../../engine/app-settings";
 import type {
+  AppStorageCollectionKey,
   AppStorageReplaceResult,
   DeKoiLegacyImportData,
   DeKoiStorageBundle,
@@ -74,6 +75,7 @@ export interface NavStorageState {
   messengerStorageMode: MessengerStorageMode;
   messengerStorageStatus: MessengerStorageStatus;
   messengerStorageMessage: string;
+  storageHasUnsavedChanges: boolean;
   remoteRuntimeUrl: string;
 }
 
@@ -222,6 +224,29 @@ export interface NavStorageBundleActions {
   importLegacyData: (data: DeKoiLegacyImportData) => Promise<AppStorageReplaceResult>;
 }
 
+export type NavStorageStaleCheckResult = {
+  mode: MessengerStorageMode;
+  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  message: string;
+  checked: boolean;
+  metadataAvailable: boolean;
+  stale: boolean;
+  changedCollectionKeys: AppStorageCollectionKey[];
+};
+
+export type NavStorageReloadResult = {
+  mode: MessengerStorageMode;
+  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  message: string;
+  blocked: boolean;
+  reloaded: boolean;
+};
+
+export interface NavStorageActions {
+  checkAppStorageStale: () => Promise<NavStorageStaleCheckResult>;
+  reloadAppStorage: () => Promise<NavStorageReloadResult>;
+}
+
 export interface NavCareActions {
   setCareOpen: (open: boolean) => void;
   setCareTab: (tab: number) => void;
@@ -238,6 +263,7 @@ export interface NavActions
     NavMessengerThreadActions,
     NavRippleActions,
     NavStorageBundleActions,
+    NavStorageActions,
     NavCareActions {}
 
 export interface NavContextType extends NavState, NavActions {}

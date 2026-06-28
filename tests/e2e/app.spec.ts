@@ -2,6 +2,9 @@ import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
 import {
+  createStorageReloadBlockToken,
+  decideAppStorageReload,
+  getValidStorageReloadBlockConfirmation,
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
 } from "../../src/app/use-app-storage-sync";
@@ -26,8 +29,16 @@ import {
   extractRoleplayEntries,
   toRoleplayThreadRecord,
 } from "../../src/engine/roleplay";
-import type { AppStorageReplaceResult } from "../../src/features/runtime";
 import {
+  APP_STORAGE_COLLECTION_KEYS,
+  saveAppStorageCollections,
+  type AppStorageMetadata,
+  type AppStorageRecords,
+  type AppStorageReplaceResult,
+} from "../../src/features/runtime";
+import { createHostStorageMetadataResult } from "../../src/runtime/storage/host-storage";
+import {
+  changedAppStorageMetadataKeys,
   createDeKoiStorageBundle,
   normalizeDeKoiStorageBundle,
 } from "../../src/runtime";
@@ -231,6 +242,72 @@ async function installDeferredReplaceRemoteRuntime(
   };
 }
 
+async function installDeferredListRemoteRuntime(
+  page: Page,
+  deferListEntity: StorageEntity,
+  initialRecords: RuntimeRecords = {},
+) {
+  const calls: RuntimeCall[] = [];
+  const records = new Map<StorageEntity, unknown[]>();
+  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
+    if (isStorageEntity(entity)) {
+      records.set(entity, entityRecords);
+    }
+  }
+
+  let deferredListCount = 0;
+  let releaseDeferredList: (() => void) | null = null;
+  let deferredListStarted: (() => void) | null = null;
+  const waitForDeferredList = new Promise<void>((resolve) => {
+    deferredListStarted = resolve;
+  });
+
+  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
+    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
+    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
+    const command =
+      isRecord(parsed) && typeof parsed.command === "string"
+        ? parsed.command
+        : "";
+    const entity = isStorageEntity(args.entity) ? args.entity : null;
+    calls.push({ command, entity });
+
+    if (command === "storage_list" && entity) {
+      if (entity === deferListEntity) {
+        deferredListCount += 1;
+        if (deferredListCount === 2) {
+          deferredListStarted?.();
+          await new Promise<void>((resolve) => {
+            releaseDeferredList = resolve;
+          });
+        }
+      }
+
+      await route.fulfill({ json: records.get(entity) ?? [] });
+      return;
+    }
+
+    if (command === "storage_replace" && entity) {
+      const nextRecords = Array.isArray(args.records) ? args.records : [];
+      records.set(entity, nextRecords);
+      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
+      return;
+    }
+
+    await route.fulfill({
+      status: 400,
+      json: { message: `Unexpected runtime command: ${command}` },
+    });
+  });
+
+  return {
+    calls,
+    records,
+    waitForDeferredList,
+    releaseDeferredList: () => releaseDeferredList?.(),
+  };
+}
+
 async function openDataAndBackupSettings(page: Page) {
   await page.goto("/");
   await page.locator(".settings-button").click();
@@ -287,6 +364,30 @@ function createLegacyImportFixture() {
       },
     ],
   };
+}
+
+function createEmptyAppStorageRecords(): AppStorageRecords {
+  return {
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    personas: [],
+    lorebooks: [],
+    providerConnections: [],
+    roleplayThreads: [],
+    messengerThreads: [],
+    rippleStates: [],
+  };
+}
+
+function createTestStorageSignatures(
+  signature: string,
+): AppStorageCollectionSignatures {
+  return Object.fromEntries(
+    APP_STORAGE_COLLECTION_KEYS.map((collectionKey) => [
+      collectionKey,
+      signature,
+    ]),
+  ) as AppStorageCollectionSignatures;
 }
 
 function expectReloadAfterPartialReplace(
@@ -355,6 +456,7 @@ test("storage import reload decision falls back to completed collections", () =>
         mode: "remote",
         status: "ready",
         message: "Saved.",
+        metadata: null,
       },
       {
         collectionKey: "characters",
@@ -362,12 +464,14 @@ test("storage import reload decision falls back to completed collections", () =>
         mode: "remote",
         status: "error",
         message: "Failed.",
+        metadata: null,
       },
     ],
     failedCollectionKey: "characters",
     requiresReload: false,
     rollbackAvailable: false,
     rollbackMessage: "Restore from backup.",
+    storageMetadata: {},
   } satisfies AppStorageReplaceResult;
 
   expect(appStorageReplaceResultNeedsReload(mixedFailure)).toBe(true);
@@ -377,6 +481,192 @@ test("storage import reload decision falls back to completed collections", () =>
       collections: [mixedFailure.collections[1]],
     }),
   ).toBe(false);
+});
+
+test("storage metadata comparison reports changed collection files", () => {
+  const loadedMetadata = {
+    characters: {
+      entity: "characters",
+      exists: true,
+      byteLength: 18,
+      updatedAtMs: 1,
+      contentHash: "fnv1a64:loaded",
+    },
+  } satisfies AppStorageMetadata;
+  const currentMetadata = {
+    characters: {
+      entity: "characters",
+      exists: true,
+      byteLength: 22,
+      updatedAtMs: 2,
+      contentHash: "fnv1a64:current",
+    },
+  } satisfies AppStorageMetadata;
+
+  expect(changedAppStorageMetadataKeys(loadedMetadata, currentMetadata)).toEqual([
+    "characters",
+  ]);
+});
+
+test("storage reload decision blocks active work and confirms dirty-only reload", () => {
+  const savedSignatures = createTestStorageSignatures("saved");
+  const dirtySignatures = {
+    ...savedSignatures,
+    appSettings: "dirty-first",
+  };
+  const laterDirtySignatures = {
+    ...savedSignatures,
+    appSettings: "dirty-later",
+  };
+  const laterSavedSignatures = {
+    ...savedSignatures,
+    characters: "saved-later",
+  };
+  const firstDirtyBlockToken = createStorageReloadBlockToken({
+    savedSignatures,
+    currentSignatures: dirtySignatures,
+  });
+  const laterDirtyBlockToken = createStorageReloadBlockToken({
+    savedSignatures,
+    currentSignatures: laterDirtySignatures,
+  });
+  const laterSavedBlockToken = createStorageReloadBlockToken({
+    savedSignatures: laterSavedSignatures,
+    currentSignatures: dirtySignatures,
+  });
+
+  expect(firstDirtyBlockToken?.changedCollectionKeys).toEqual(["appSettings"]);
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: true,
+      currentBlockToken: null,
+      confirmedBlockToken: null,
+    }),
+  ).toBe("block-active-work");
+
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: null,
+    }),
+  ).toBe("confirm-local-discard");
+
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBe("proceed");
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBe(firstDirtyBlockToken);
+
+  expect(firstDirtyBlockToken).not.toEqual(laterDirtyBlockToken);
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: laterDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      currentBlockToken: laterDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBe("confirm-local-discard");
+
+  expect(firstDirtyBlockToken).not.toEqual(laterSavedBlockToken);
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: laterSavedBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      currentBlockToken: laterSavedBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBe("confirm-local-discard");
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: null,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
+});
+
+test("partial desktop metadata is not a ready stale-check baseline", () => {
+  const result = createHostStorageMetadataResult({
+    mode: "desktop",
+    collectionMetadata: [
+      {
+        entity: "characters",
+        exists: true,
+        byteLength: 16,
+        updatedAtMs: 1,
+        contentHash: "fnv1a64:ready",
+      },
+    ],
+    metadataErrors: [
+      {
+        entity: "personas",
+        message: "Could not inspect personas.",
+      },
+    ],
+  });
+
+  expect(result.status).toBe("error");
+  expect(result.metadataAvailable).toBe(false);
+  expect(result.collectionMetadata).toHaveLength(1);
+  expect(result.metadataErrors).toHaveLength(1);
+  expect(result.message).toContain("personas");
+  expect(result.message).toContain("Could not inspect personas.");
+});
+
+test("storage save rejects mismatched collection metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        ok: true,
+        count: 1,
+        metadata: {
+          entity: "personas",
+          exists: true,
+          byteLength: 2,
+          updatedAtMs: 1,
+          contentHash: "fnv1a64:wrong",
+        },
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      },
+    );
+
+  try {
+    const result = await saveAppStorageCollections(
+      createEmptyAppStorageRecords(),
+      ["appSettings"],
+      TEST_RUNTIME_URL,
+    );
+
+    expect(result.status).toBe("error");
+    expect(result.message).toContain(
+      "storage_replace returned metadata for personas, expected app-settings.",
+    );
+    expect(result.storageMetadata).toEqual({});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("migration signature reconciliation keeps changed migrated collections dirty", () => {
@@ -742,6 +1032,99 @@ test("legacy transcript migration success preserves edits made while saving", as
     toRoleplayThreadRecord(roleplayWithEmbeddedEntry),
   ]);
   expect(runtime.records.get("roleplay-entries")).toEqual([roleplayEntry]);
+});
+
+test("manual storage reload applies current runtime records", async ({ page }) => {
+  const runtime = await installRemoteRuntime(page, {
+    "app-settings": [{ id: "app-settings", accent: "koi" }],
+  });
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await page.getByRole("button", { name: "Check files" }).click();
+  await expect(
+    page.locator(".bundle-status").filter({
+      hasText: "Storage metadata is not available for remote runtime targets.",
+    }),
+  ).toBeVisible();
+
+  runtime.records.set("app-settings", [
+    { id: "app-settings", accent: "amber" },
+  ]);
+  await page.getByRole("button", { name: "Reload records" }).click();
+  await expect(
+    page.locator(".bundle-status").filter({
+      hasText: "Reloaded storage from the current runtime target.",
+    }),
+  ).toBeVisible();
+
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
+});
+
+test("manual storage reload is blocked while local changes are saving", async ({
+  page,
+}) => {
+  const runtime = await installDeferredReplaceRemoteRuntime(
+    page,
+    "app-settings",
+    {
+      "app-settings": [{ id: "app-settings", accent: "koi" }],
+    },
+  );
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await page.getByRole("radio", { name: "Amber" }).click();
+  await runtime.waitForDeferredReplace;
+
+  runtime.records.set("app-settings", [
+    { id: "app-settings", accent: "jade" },
+  ]);
+  await page.getByRole("tab", { name: /Data & Backup/ }).click();
+  await page.getByRole("button", { name: "Reload records" }).click();
+
+  await expect(
+    page.getByText(/Reload blocked because DeKoi still has unsaved storage changes\./),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
+
+  runtime.releaseDeferredReplace();
+  await expect
+    .poll(() => runtime.records.get("app-settings")?.[0], { timeout: 8000 })
+    .toEqual(expect.objectContaining({ accent: "amber" }));
+});
+
+test("manual storage reload preserves edits made while reload is loading", async ({
+  page,
+}) => {
+  const runtime = await installDeferredListRemoteRuntime(
+    page,
+    "app-settings",
+    {
+      "app-settings": [{ id: "app-settings", accent: "koi" }],
+    },
+  );
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  runtime.records.set("app-settings", [
+    { id: "app-settings", accent: "jade" },
+  ]);
+  await page.getByRole("button", { name: "Reload records" }).click();
+  await runtime.waitForDeferredList;
+
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await page.getByRole("radio", { name: "Amber" }).click();
+  runtime.releaseDeferredList();
+
+  await expect
+    .poll(() => runtime.records.get("app-settings")?.[0], { timeout: 8000 })
+    .toEqual(expect.objectContaining({ accent: "amber" }));
+  await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
 });
 
 test("storage bundles export split transcripts and migrate embedded transcripts", () => {

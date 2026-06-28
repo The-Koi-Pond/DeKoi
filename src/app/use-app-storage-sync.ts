@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   cancelIdle,
   requestIdle,
@@ -8,11 +8,14 @@ import {
   appStorageCollectionCount,
   appStorageCollectionSignature,
   appStorageCollectionSource,
+  changedAppStorageMetadataKeys,
+  loadAppStorageMetadata,
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
+  type AppStorageMetadata,
   type AppStorageReplaceResult,
   type AppStorageRecords,
   type AppStorageSnapshot,
@@ -46,9 +49,121 @@ type SaveStatusResult = {
   message: string;
 };
 
+export type AppStorageStaleCheckResult = SaveStatusResult & {
+  checked: boolean;
+  metadataAvailable: boolean;
+  stale: boolean;
+  changedCollectionKeys: AppStorageCollectionKey[];
+};
+
+export type AppStorageReloadResult = SaveStatusResult & {
+  blocked: boolean;
+  reloaded: boolean;
+};
+
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
 const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
+const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
+  "Reload blocked because DeKoi still has unsaved storage changes. Wait for saving to finish before reloading.";
+const STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE =
+  "Reload will discard local changes that have not been saved yet. Select Reload records again to confirm.";
+
+export type AppStorageReloadDecision =
+  | "proceed"
+  | "confirm-local-discard"
+  | "block-active-work";
+
+export type AppStorageReloadBlockToken = {
+  changedCollectionKeys: readonly AppStorageCollectionKey[];
+  savedSnapshotToken: string;
+  currentSnapshotToken: string;
+};
+
+export function decideAppStorageReload({
+  activeStorageWork,
+  currentBlockToken,
+  confirmedBlockToken,
+}: {
+  activeStorageWork: boolean;
+  currentBlockToken: AppStorageReloadBlockToken | null;
+  confirmedBlockToken: AppStorageReloadBlockToken | null;
+}): AppStorageReloadDecision {
+  if (activeStorageWork) return "block-active-work";
+  if (
+    currentBlockToken &&
+    !appStorageReloadBlockTokensMatch(currentBlockToken, confirmedBlockToken)
+  ) {
+    return "confirm-local-discard";
+  }
+  return "proceed";
+}
+
+export function getValidStorageReloadBlockConfirmation({
+  currentBlockToken,
+  confirmedBlockToken,
+}: {
+  currentBlockToken: AppStorageReloadBlockToken | null;
+  confirmedBlockToken: AppStorageReloadBlockToken | null;
+}) {
+  if (!currentBlockToken || !confirmedBlockToken) return null;
+  if (!appStorageReloadBlockTokensMatch(currentBlockToken, confirmedBlockToken)) {
+    return null;
+  }
+  return confirmedBlockToken;
+}
+
+export function createStorageReloadBlockToken({
+  savedSignatures,
+  currentSignatures,
+}: {
+  savedSignatures: AppStorageCollectionSignatures | null;
+  currentSignatures: AppStorageCollectionSignatures;
+}): AppStorageReloadBlockToken | null {
+  if (!savedSignatures) return null;
+
+  const changedCollectionKeys = APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) =>
+      savedSignatures[collectionKey] !== currentSignatures[collectionKey],
+  );
+  if (changedCollectionKeys.length === 0) return null;
+
+  const savedSnapshotToken = APP_STORAGE_COLLECTION_KEYS.map(
+    (collectionKey) => `${collectionKey}:${savedSignatures[collectionKey]}`,
+  ).join("\n");
+  const currentSnapshotToken = APP_STORAGE_COLLECTION_KEYS.map(
+    (collectionKey) => `${collectionKey}:${currentSignatures[collectionKey]}`,
+  ).join("\n");
+  return {
+    changedCollectionKeys,
+    savedSnapshotToken,
+    currentSnapshotToken,
+  };
+}
+
+function appStorageReloadBlockTokensMatch(
+  currentBlockToken: AppStorageReloadBlockToken,
+  confirmedBlockToken: AppStorageReloadBlockToken | null,
+) {
+  return (
+    createAppStorageReloadBlockTokenKey(currentBlockToken) ===
+    createAppStorageReloadBlockTokenKey(confirmedBlockToken)
+  );
+}
+
+function createAppStorageReloadBlockTokenKey(
+  blockToken: AppStorageReloadBlockToken | null,
+) {
+  if (!blockToken) return null;
+
+  return [
+    `dirty:${blockToken.changedCollectionKeys.join(",")}`,
+    "saved:",
+    blockToken.savedSnapshotToken,
+    "current:",
+    blockToken.currentSnapshotToken,
+  ].join("\n");
+}
 
 function createAppStorageSignatures(
   snapshot: AppStorageRecords,
@@ -147,6 +262,7 @@ function createImportErrorResult(
     requiresReload: false,
     rollbackAvailable: false,
     rollbackMessage: IMPORT_ROLLBACK_MESSAGE,
+    storageMetadata: {},
   };
 }
 
@@ -198,11 +314,33 @@ function hasPendingSaveForGeneration(
   );
 }
 
+function hasPendingSave(pendingSaves: SaveQueueEntries) {
+  return APP_STORAGE_COLLECTION_KEYS.some(
+    (collectionKey) => pendingSaves[collectionKey] !== undefined,
+  );
+}
+
 function hasUnsavedSignature(
   unsavedSignatures: PartialAppStorageCollectionSignatures,
 ) {
   return APP_STORAGE_COLLECTION_KEYS.some(
     (collectionKey) => unsavedSignatures[collectionKey] !== undefined,
+  );
+}
+
+function hasAppStorageMetadata(metadata: AppStorageMetadata) {
+  return APP_STORAGE_COLLECTION_KEYS.some(
+    (collectionKey) => metadata[collectionKey] !== undefined,
+  );
+}
+
+function changedAppStorageSignatureKeys(
+  previousSignatures: AppStorageCollectionSignatures,
+  currentSignatures: AppStorageCollectionSignatures,
+) {
+  return APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) =>
+      previousSignatures[collectionKey] !== currentSignatures[collectionKey],
   );
 }
 
@@ -249,8 +387,12 @@ export function useAppStorageSync({
   setMessengerStorageMessage,
   setStorageReady,
 }: UseAppStorageSyncInput) {
+  const [storageHasUnsavedChanges, setStorageHasUnsavedChanges] =
+    useState(false);
   const storageGeneration = useRef(0);
+  const currentStorageMode = useRef<MessengerStorageMode>("unavailable");
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
+  const loadedStorageMetadata = useRef<AppStorageMetadata>({});
   const lastSeenSnapshot = useRef<AppStorageRecords | null>(null);
   const unsavedSignatures = useRef<PartialAppStorageCollectionSignatures>({});
   const activeSaveSignatures = useRef<PartialAppStorageCollectionSignatures>({});
@@ -261,6 +403,9 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const confirmedReloadBlockToken = useRef<AppStorageReloadBlockToken | null>(
+    null,
+  );
   const currentAppStorageRecords = useRef<AppStorageRecords>({
     appSettings,
     characters,
@@ -272,6 +417,18 @@ export function useAppStorageSync({
     rippleStates,
   });
 
+  const mergeLoadedStorageMetadata = useCallback(
+    (storageMetadata: AppStorageMetadata) => {
+      if (!hasAppStorageMetadata(storageMetadata)) return;
+
+      loadedStorageMetadata.current = {
+        ...loadedStorageMetadata.current,
+        ...storageMetadata,
+      };
+    },
+    [],
+  );
+
   const refreshSaveStatus = useCallback(
     (generation: number, storageResult?: SaveStatusResult) => {
       const saveErrorMessage = firstSaveErrorMessage(saveErrors.current);
@@ -281,17 +438,23 @@ export function useAppStorageSync({
       );
       const hasActiveSave = saveQueueRunning.current === generation;
       const hasUnsavedSaves = hasUnsavedSignature(unsavedSignatures.current);
-      if (storageResult) setMessengerStorageMode(storageResult.mode);
+      const hasLocalStorageWork =
+        hasActiveSave || hasPendingSaves || hasUnsavedSaves;
+      setStorageHasUnsavedChanges(hasLocalStorageWork);
+      if (storageResult) {
+        currentStorageMode.current = storageResult.mode;
+        setMessengerStorageMode(storageResult.mode);
+      }
       setMessengerStorageStatus(
         saveErrorMessage
           ? "error"
-          : hasActiveSave || hasPendingSaves || hasUnsavedSaves
+          : hasLocalStorageWork
             ? "saving"
             : storageResult?.status ?? "ready",
       );
       setMessengerStorageMessage(
         saveErrorMessage ??
-          (hasActiveSave || hasPendingSaves || hasUnsavedSaves
+          (hasLocalStorageWork
             ? "Saving changes..."
             : storageResult?.message ?? "All changes saved."),
       );
@@ -356,10 +519,14 @@ export function useAppStorageSync({
     ) => {
       savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
       unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
+      loadedStorageMetadata.current = snapshot.storageMetadata;
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
       setStorageReady(
         options?.storageReady ?? (snapshot.storageResult.status === "ready"),
+      );
+      setStorageHasUnsavedChanges(
+        hasUnsavedSignature(unsavedSignatures.current),
       );
     },
     [applyAppStorageRecords, setStorageReady],
@@ -383,6 +550,15 @@ export function useAppStorageSync({
     }
   }, []);
 
+  const hasActiveStorageWork = useCallback(
+    () =>
+      importCommitRunning.current ||
+      activeSavePromise.current !== null ||
+      saveQueueRunning.current !== null ||
+      hasPendingSave(pendingSaves.current),
+    [],
+  );
+
   const reloadPersistedStorageAfterImportFailure = useCallback(
     async (
       storageResult: AppStorageReplaceResult,
@@ -403,6 +579,8 @@ export function useAppStorageSync({
         pendingSaves.current = {};
         saveErrors.current = {};
         saveQueueRunning.current = null;
+        setStorageHasUnsavedChanges(false);
+        currentStorageMode.current = snapshot.storageResult.mode;
         const reloadMessage =
           snapshot.storageResult.status === "ready"
             ? "Persisted storage was reloaded so the app matches the partial import."
@@ -503,6 +681,7 @@ export function useAppStorageSync({
 
         if (storageResult.status === "ready") {
           savedSignatures.current = createAppStorageSignatures(records);
+          loadedStorageMetadata.current = storageResult.storageMetadata;
           lastSeenSnapshot.current = records;
           unsavedSignatures.current = {};
           activeSaveSignatures.current = {};
@@ -511,6 +690,8 @@ export function useAppStorageSync({
           saveQueueRunning.current = null;
           applyAppStorageRecords(records);
           setStorageReady(true);
+          setStorageHasUnsavedChanges(false);
+          currentStorageMode.current = storageResult.mode;
           setMessengerStorageMode(storageResult.mode);
           setMessengerStorageStatus("ready");
           setMessengerStorageMessage(storageResult.message);
@@ -543,11 +724,242 @@ export function useAppStorageSync({
     ],
   );
 
+  const checkAppStorageStale =
+    useCallback(async (): Promise<AppStorageStaleCheckResult> => {
+      if (hasActiveStorageWork()) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: STORAGE_RELOAD_ACTIVE_WORK_MESSAGE,
+          checked: false,
+          metadataAvailable: false,
+          stale: false,
+          changedCollectionKeys: [],
+        };
+      }
+
+      const metadataResult = await loadAppStorageMetadata(remoteRuntimeUrl);
+      if (metadataResult.status === "error") {
+        return {
+          mode: metadataResult.mode,
+          status: "error",
+          message: metadataResult.message,
+          checked: true,
+          metadataAvailable: false,
+          stale: false,
+          changedCollectionKeys: [],
+        };
+      }
+
+      if (
+        !metadataResult.metadataAvailable ||
+        !hasAppStorageMetadata(metadataResult.storageMetadata)
+      ) {
+        return {
+          mode: metadataResult.mode,
+          status: "ready",
+          message: metadataResult.message,
+          checked: true,
+          metadataAvailable: false,
+          stale: false,
+          changedCollectionKeys: [],
+        };
+      }
+
+      if (!hasAppStorageMetadata(loadedStorageMetadata.current)) {
+        return {
+          mode: metadataResult.mode,
+          status: "ready",
+          message:
+            "Storage metadata baseline is not available. Reload records to use the current files.",
+          checked: true,
+          metadataAvailable: true,
+          stale: false,
+          changedCollectionKeys: [],
+        };
+      }
+
+      const changedCollectionKeys = changedAppStorageMetadataKeys(
+        loadedStorageMetadata.current,
+        metadataResult.storageMetadata,
+      );
+      if (changedCollectionKeys.length > 0) {
+        return {
+          mode: metadataResult.mode,
+          status: "ready",
+          message:
+            "Storage files changed outside DeKoi. Reload to use the current files.",
+          checked: true,
+          metadataAvailable: true,
+          stale: true,
+          changedCollectionKeys,
+        };
+      }
+
+      return {
+        mode: metadataResult.mode,
+        status: "ready",
+        message: "Stored collection files match the loaded snapshot.",
+        checked: true,
+        metadataAvailable: true,
+        stale: false,
+        changedCollectionKeys: [],
+      };
+    }, [hasActiveStorageWork, remoteRuntimeUrl]);
+
+  const reloadAppStorage =
+    useCallback(async (): Promise<AppStorageReloadResult> => {
+      const currentSignatures = createAppStorageSignatures(
+        currentAppStorageRecords.current,
+      );
+      const currentBlockToken = createStorageReloadBlockToken({
+        savedSignatures: savedSignatures.current,
+        currentSignatures,
+      });
+      const confirmedBlockToken = getValidStorageReloadBlockConfirmation({
+        currentBlockToken,
+        confirmedBlockToken: confirmedReloadBlockToken.current,
+      });
+      confirmedReloadBlockToken.current = confirmedBlockToken;
+      const reloadDecision = decideAppStorageReload({
+        activeStorageWork: hasActiveStorageWork(),
+        currentBlockToken,
+        confirmedBlockToken,
+      });
+
+      if (reloadDecision === "block-active-work") {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: STORAGE_RELOAD_ACTIVE_WORK_MESSAGE,
+          blocked: true,
+          reloaded: false,
+        };
+      }
+
+      if (reloadDecision === "confirm-local-discard") {
+        confirmedReloadBlockToken.current = currentBlockToken;
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE,
+          blocked: true,
+          reloaded: false,
+        };
+      }
+
+      confirmedReloadBlockToken.current = null;
+      const reloadStartSignatures = currentSignatures;
+      cancelQueuedSaveDispatch();
+      storageGeneration.current += 1;
+      const generation = storageGeneration.current;
+      setStorageReady(false);
+      setMessengerStorageStatus("loading");
+      setMessengerStorageMessage("Reloading storage...");
+
+      try {
+        const snapshot = await loadAppStorageSnapshot(remoteRuntimeUrl);
+        if (storageGeneration.current !== generation) {
+          return {
+            mode: snapshot.storageResult.mode,
+            status: "error",
+            message:
+              "Reload was interrupted because the storage target changed. Retry on the current storage target.",
+            blocked: false,
+            reloaded: false,
+          };
+        }
+
+        currentStorageMode.current = snapshot.storageResult.mode;
+        setMessengerStorageMode(snapshot.storageResult.mode);
+
+        if (snapshot.storageResult.status !== "ready") {
+          const hasLoadedSnapshot = savedSignatures.current !== null;
+          setStorageReady(hasLoadedSnapshot);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(snapshot.storageResult.message);
+          return {
+            mode: snapshot.storageResult.mode,
+            status: "error",
+            message: snapshot.storageResult.message,
+            blocked: false,
+            reloaded: false,
+          };
+        }
+
+        const currentSignatures = createAppStorageSignatures(
+          currentAppStorageRecords.current,
+        );
+        const changedDuringReloadKeys = changedAppStorageSignatureKeys(
+          reloadStartSignatures,
+          currentSignatures,
+        );
+        if (changedDuringReloadKeys.length > 0) {
+          for (const collectionKey of changedDuringReloadKeys) {
+            unsavedSignatures.current[collectionKey] =
+              currentSignatures[collectionKey];
+          }
+          setStorageReady(true);
+          refreshSaveStatus(generation, {
+            mode: snapshot.storageResult.mode,
+            status: "ready",
+            message:
+              "Reload cancelled because local changes were made while storage was reloading.",
+          });
+          return {
+            mode: snapshot.storageResult.mode,
+            status: "error",
+            message:
+              "Reload cancelled because local changes were made while storage was reloading. Wait for saving to finish before reloading again.",
+            blocked: true,
+            reloaded: false,
+          };
+        }
+
+        applyLoadedAppStorageSnapshot(snapshot);
+        const message = "Reloaded storage from the current runtime target.";
+        setMessengerStorageStatus("ready");
+        setMessengerStorageMessage(message);
+        return {
+          mode: snapshot.storageResult.mode,
+          status: "ready",
+          message,
+          blocked: false,
+          reloaded: true,
+        };
+      } catch (error) {
+        const message = `Storage reload failed. ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+        setStorageReady(savedSignatures.current !== null);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(message);
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message,
+          blocked: false,
+          reloaded: false,
+        };
+      }
+    }, [
+      applyLoadedAppStorageSnapshot,
+      cancelQueuedSaveDispatch,
+      hasActiveStorageWork,
+      refreshSaveStatus,
+      remoteRuntimeUrl,
+      setMessengerStorageMessage,
+      setMessengerStorageMode,
+      setMessengerStorageStatus,
+      setStorageReady,
+    ]);
+
   useEffect(() => {
     let cancelled = false;
     storageGeneration.current += 1;
     const generation = storageGeneration.current;
     savedSignatures.current = null;
+    loadedStorageMetadata.current = {};
     lastSeenSnapshot.current = null;
     unsavedSignatures.current = {};
     activeSaveSignatures.current = {};
@@ -572,6 +984,7 @@ export function useAppStorageSync({
         applyLoadedAppStorageSnapshot(snapshot);
       }
       setMessengerStorageMode(snapshot.storageResult.mode);
+      currentStorageMode.current = snapshot.storageResult.mode;
       setMessengerStorageStatus(snapshot.storageResult.status);
       setMessengerStorageMessage(snapshot.storageResult.message);
 
@@ -590,6 +1003,7 @@ export function useAppStorageSync({
         const currentRecords = currentAppStorageRecords.current;
         const currentSignatures = createAppStorageSignatures(currentRecords);
         if (storageResult.status === "ready") {
+          mergeLoadedStorageMetadata(storageResult.storageMetadata);
           const reconciledSignatures = reconcileMigrationAppStorageSignatures({
             savedSignatures: savedSignatures.current,
             unsavedSignatures: unsavedSignatures.current,
@@ -660,6 +1074,7 @@ export function useAppStorageSync({
     applyAppStorageRecords,
     cancelQueuedSaveDispatch,
     applyLoadedAppStorageSnapshot,
+    mergeLoadedStorageMetadata,
     remoteRuntimeUrl,
     refreshSaveStatus,
     setMessengerStorageMessage,
@@ -766,6 +1181,7 @@ export function useAppStorageSync({
         if (entry.generation !== storageGeneration.current) return;
 
         if (storageResult.status === "ready") {
+          mergeLoadedStorageMetadata(storageResult.storageMetadata);
           savedSignatures.current = savedSignatures.current
             ? {
                 ...savedSignatures.current,
@@ -852,11 +1268,17 @@ export function useAppStorageSync({
     remoteRuntimeUrl,
     rippleStates,
     refreshSaveStatus,
+    mergeLoadedStorageMetadata,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
     storageReady,
   ]);
 
-  return { commitAppStorageImport };
+  return {
+    checkAppStorageStale,
+    commitAppStorageImport,
+    reloadAppStorage,
+    storageHasUnsavedChanges,
+  };
 }

@@ -50,6 +50,24 @@ pub(crate) struct StorageBundleSnapshot {
     pub(crate) updated_at_ms: Option<u64>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StorageCollectionMetadata {
+    pub(crate) entity: String,
+    pub(crate) exists: bool,
+    pub(crate) byte_length: Option<u64>,
+    pub(crate) updated_at_ms: Option<u64>,
+    pub(crate) content_hash: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StorageCollectionMetadataResult {
+    pub(crate) entity: String,
+    pub(crate) metadata: Option<StorageCollectionMetadata>,
+    pub(crate) error: Option<String>,
+}
+
 fn app_data_file_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
@@ -85,6 +103,90 @@ fn modified_at_ms(metadata: &fs::Metadata) -> Option<u64> {
         .ok()
         .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
         .map(|duration| duration.as_millis() as u64)
+}
+
+fn fnv1a64_hex(bytes: &[u8]) -> String {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("fnv1a64:{hash:016x}")
+}
+
+fn collection_content_hash(path: &Path) -> Option<String> {
+    fs::read(path).ok().map(|bytes| fnv1a64_hex(&bytes))
+}
+
+fn collection_metadata_from_path(
+    entity: &str,
+    path: PathBuf,
+) -> Result<StorageCollectionMetadata, String> {
+    match fs::metadata(&path) {
+        Ok(metadata) => Ok(StorageCollectionMetadata {
+            entity: entity.to_string(),
+            exists: true,
+            byte_length: Some(metadata.len()),
+            updated_at_ms: modified_at_ms(&metadata),
+            content_hash: collection_content_hash(&path),
+        }),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(StorageCollectionMetadata {
+            entity: entity.to_string(),
+            exists: false,
+            byte_length: None,
+            updated_at_ms: None,
+            content_hash: None,
+        }),
+        Err(error) => Err(format!(
+            "Could not inspect DeKoi storage collection '{entity}'. {error}"
+        )),
+    }
+}
+
+fn storage_collection_metadata(
+    app: &tauri::AppHandle,
+    entity: &str,
+) -> Result<StorageCollectionMetadata, String> {
+    let path = runtime_entity_path(app, entity)?;
+    collection_metadata_from_path(entity, path)
+}
+
+#[cfg(test)]
+fn collection_metadata_result_from_path(
+    entity: &str,
+    path: PathBuf,
+) -> StorageCollectionMetadataResult {
+    match collection_metadata_from_path(entity, path) {
+        Ok(metadata) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: Some(metadata),
+            error: None,
+        },
+        Err(error) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: None,
+            error: Some(error),
+        },
+    }
+}
+
+fn storage_collection_metadata_result(
+    app: &tauri::AppHandle,
+    entity: &str,
+) -> Result<StorageCollectionMetadataResult, String> {
+    ensure_collection_entity(entity)?;
+    Ok(match storage_collection_metadata(app, entity) {
+        Ok(metadata) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: Some(metadata),
+            error: None,
+        },
+        Err(error) => StorageCollectionMetadataResult {
+            entity: entity.to_string(),
+            metadata: None,
+            error: Some(error),
+        },
+    })
 }
 
 pub(crate) fn bundle_info(path: PathBuf) -> Result<StorageBundleInfo, String> {
@@ -461,6 +563,15 @@ fn write_runtime_records_to_path(
     write_collection_json_file(path, &serde_json::Value::Array(records), "collection file")
 }
 
+fn replace_runtime_records_at_path(
+    path: &Path,
+    entity: &str,
+    records: Vec<serde_json::Value>,
+) -> Result<StorageCollectionMetadata, String> {
+    write_runtime_records_to_path(path, entity, records)?;
+    collection_metadata_from_path(entity, path.to_path_buf())
+}
+
 pub(crate) fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
     value
         .get(key)
@@ -642,9 +753,10 @@ pub(crate) fn storage_replace(
     }
 
     let count = normalized_records.len();
-    write_runtime_records(app, entity, normalized_records)?;
+    let path = runtime_entity_path(app, entity)?;
+    let metadata = replace_runtime_records_at_path(&path, entity, normalized_records)?;
 
-    Ok(serde_json::json!({ "ok": true, "count": count }))
+    Ok(serde_json::json!({ "ok": true, "count": count, "metadata": metadata }))
 }
 
 pub(crate) fn current_unix_ms() -> u128 {
@@ -696,6 +808,26 @@ pub(crate) fn dekoi_storage_write_bundle(
     write_bundle_file(&path, &bundle)
 }
 
+#[tauri::command]
+pub(crate) fn dekoi_storage_collection_metadata(
+    app: tauri::AppHandle,
+    entity: Option<String>,
+) -> Result<Vec<StorageCollectionMetadataResult>, String> {
+    let requested_entity = entity
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    if let Some(entity) = requested_entity {
+        return Ok(vec![storage_collection_metadata_result(&app, entity)?]);
+    }
+
+    COLLECTION_ENTITIES
+        .iter()
+        .map(|entity| storage_collection_metadata_result(&app, entity))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -713,6 +845,82 @@ mod tests {
     fn read_json(path: &Path) -> serde_json::Value {
         serde_json::from_str(&fs::read_to_string(path).expect("test JSON file should be readable"))
             .expect("test JSON file should parse")
+    }
+
+    #[test]
+    fn collection_metadata_reports_missing_and_changed_files() {
+        let directory = temp_test_dir("collection-metadata");
+        let path = directory.join("characters.json");
+
+        let missing_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path.clone())
+            .expect("missing collection metadata should be readable");
+        assert_eq!(missing_metadata.entity, CHARACTERS_ENTITY);
+        assert!(!missing_metadata.exists);
+        assert_eq!(missing_metadata.byte_length, None);
+        assert_eq!(missing_metadata.content_hash, None);
+
+        fs::write(&path, r#"[{"id":"first"}]"#).expect("first fixture should be written");
+        let first_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path.clone())
+            .expect("first collection metadata should be readable");
+        assert!(first_metadata.exists);
+        assert_eq!(first_metadata.byte_length, Some(16));
+        assert!(first_metadata.updated_at_ms.is_some());
+        assert!(first_metadata.content_hash.is_some());
+
+        fs::write(&path, r#"[{"id":"other"}]"#).expect("second fixture should be written");
+        let second_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path)
+            .expect("second collection metadata should be readable");
+        assert_ne!(first_metadata.content_hash, second_metadata.content_hash);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn collection_metadata_result_preserves_entity_errors() {
+        let directory = temp_test_dir("collection-metadata-result-error");
+        let good_path = directory.join("characters.json");
+        fs::write(&good_path, r#"[{"id":"first"}]"#).expect("good fixture should be written");
+
+        let good_result = collection_metadata_result_from_path(CHARACTERS_ENTITY, good_path);
+        assert_eq!(good_result.entity, CHARACTERS_ENTITY);
+        assert!(good_result.metadata.is_some());
+        assert_eq!(good_result.error, None);
+
+        let invalid_path = PathBuf::from(format!(
+            "{}\0personas.json",
+            directory.to_string_lossy()
+        ));
+        let error_result = collection_metadata_result_from_path(
+            PERSONAS_ENTITY,
+            invalid_path,
+        );
+        assert_eq!(error_result.entity, PERSONAS_ENTITY);
+        assert!(error_result.metadata.is_none());
+        assert!(
+            error_result
+                .error
+                .expect("entity error should be reported")
+                .contains("Could not inspect DeKoi storage collection")
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn replace_runtime_records_returns_persisted_metadata() {
+        let directory = temp_test_dir("replace-metadata");
+        let path = directory.join("characters.json");
+        let records = vec![serde_json::json!({ "id": "first" })];
+
+        let metadata = replace_runtime_records_at_path(&path, CHARACTERS_ENTITY, records)
+            .expect("replace should succeed");
+        let persisted_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path.clone())
+            .expect("persisted metadata should be readable");
+
+        assert_eq!(read_json(&path), serde_json::json!([{ "id": "first" }]));
+        assert_eq!(metadata.entity, CHARACTERS_ENTITY);
+        assert!(metadata.exists);
+        assert_eq!(metadata.byte_length, persisted_metadata.byte_length);
+        assert_eq!(metadata.content_hash, persisted_metadata.content_hash);
+        let _ = fs::remove_dir_all(directory);
     }
 
     #[test]

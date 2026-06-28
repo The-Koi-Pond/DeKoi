@@ -28,7 +28,8 @@ pub fn run() {
             runtime::dekoi_runtime_health,
             runtime::dekoi_runtime_invoke,
             storage::dekoi_storage_read_bundle,
-            storage::dekoi_storage_write_bundle
+            storage::dekoi_storage_write_bundle,
+            storage::dekoi_storage_collection_metadata
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

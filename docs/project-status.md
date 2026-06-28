@@ -16,6 +16,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   model listing, and generation commands.
 - Desktop runtime bridge for durable app-data storage and narrow provider-backed
   generation.
+- Desktop collection metadata checks and explicit storage reload from Pond Care,
+  with reload blocked while local saves are pending.
 - One-way legacy thread import into native Messenger records.
 
 ## Experimental Or Incomplete
