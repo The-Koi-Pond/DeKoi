@@ -42,6 +42,7 @@ import {
   mergeStorageResults,
   type StorageResult,
 } from "./storage-repository";
+import { getHostStorageMode } from "./storage-repository-factory";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;
@@ -84,6 +85,7 @@ export type AppStorageReplaceResult = StorageResult & {
   counts: Record<AppStorageCollectionKey, number>;
   collections: AppStorageCollectionReplaceResult[];
   failedCollectionKey: AppStorageCollectionKey | null;
+  requiresReload: boolean;
   rollbackAvailable: false;
   rollbackMessage: string;
 };
@@ -149,13 +151,10 @@ function asAppStorageErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
 }
 
-function appStorageFailureMode(
+function appStorageRequiresReload(
   collections: readonly AppStorageCollectionReplaceResult[],
-): StorageResult["mode"] {
-  return (
-    collections.find((collection) => collection.mode !== "unavailable")?.mode ??
-    "unavailable"
-  );
+) {
+  return collections.some((collection) => collection.status === "ready");
 }
 
 export async function loadAppStorageSnapshot(
@@ -274,7 +273,7 @@ export async function replaceAppStorageSnapshot(
       const collectionResult: AppStorageCollectionReplaceResult = {
         collectionKey,
         count: counts[collectionKey],
-        mode: appStorageFailureMode(collections),
+        mode: getHostStorageMode(rawUrl),
         status: "error",
         message,
       };
@@ -287,6 +286,7 @@ export async function replaceAppStorageSnapshot(
         counts,
         collections,
         failedCollectionKey: collectionKey,
+        requiresReload: appStorageRequiresReload(collections),
         rollbackAvailable: false,
         rollbackMessage,
       };
@@ -309,6 +309,7 @@ export async function replaceAppStorageSnapshot(
         counts,
         collections,
         failedCollectionKey: collectionKey,
+        requiresReload: appStorageRequiresReload(collections),
         rollbackAvailable: false,
         rollbackMessage,
       };
@@ -323,6 +324,7 @@ export async function replaceAppStorageSnapshot(
     counts,
     collections,
     failedCollectionKey: null,
+    requiresReload: false,
     rollbackAvailable: false,
     rollbackMessage,
   };

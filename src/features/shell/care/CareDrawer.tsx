@@ -587,6 +587,14 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   }
 
   function acknowledgeStorageImportFailure() {
+    if (storageImportFailureSource === "bundle") {
+      setBundleStatus("");
+      setBundleReplaceConfirmed(false);
+    } else if (storageImportFailureSource === "legacy") {
+      setLegacyStatus("");
+      setLegacyImportConfirmed(false);
+    }
+
     setStorageImportFailureSource(null);
   }
 

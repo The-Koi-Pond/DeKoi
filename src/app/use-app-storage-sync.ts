@@ -107,6 +107,7 @@ function createImportErrorResult(
     counts: createAppStorageCounts(records),
     collections: [],
     failedCollectionKey: null,
+    requiresReload: false,
     rollbackAvailable: false,
     rollbackMessage: IMPORT_ROLLBACK_MESSAGE,
   };
@@ -301,10 +302,7 @@ export function useAppStorageSync({
       generation: number,
       options?: { force?: boolean },
     ) => {
-      const replacedCollectionCount = storageResult.collections.filter(
-        (collection) => collection.status === "ready",
-      ).length;
-      if (!options?.force && replacedCollectionCount === 0) {
+      if (!options?.force && !storageResult.requiresReload) {
         return storageResult;
       }
 
