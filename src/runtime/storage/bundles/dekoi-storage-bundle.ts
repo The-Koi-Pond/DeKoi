@@ -311,18 +311,18 @@ export function normalizeDeKoiStorageBundle(
     normalizeRoleplayEntryRecord,
     warnings,
   );
-  const mergedRoleplayEntries = mergeBundleTranscriptRows(
-    extractRoleplayEntries(normalizedRoleplayThreads),
-    normalizedRoleplayEntries,
-  );
   const roleplayThreadIdSet = new Set(
     finalRoleplayThreadRecords.map((thread) => thread.id),
   );
-  const validRoleplayEntries = filterTranscriptRowsForImportedThreads(
-    mergedRoleplayEntries,
+  const validRoleplaySplitEntries = filterTranscriptRowsForImportedThreads(
+    normalizedRoleplayEntries,
     roleplayThreadIdSet,
     "Roleplay entries",
     warnings,
+  );
+  const validRoleplayEntries = mergeBundleTranscriptRows(
+    extractRoleplayEntries(normalizedRoleplayThreads),
+    validRoleplaySplitEntries,
   );
   const roleplayThreadsWithEntries = attachRoleplayEntriesToThreads(
     finalRoleplayThreadRecords,
@@ -340,18 +340,18 @@ export function normalizeDeKoiStorageBundle(
     normalizeMessengerMessageRecord,
     warnings,
   );
-  const mergedMessengerMessages = mergeBundleTranscriptRows(
-    extractMessengerMessages(normalizedMessengerThreads),
-    normalizedMessengerMessages,
-  );
   const messengerThreadIdSet = new Set(
     finalMessengerThreadRecords.map((thread) => thread.id),
   );
-  const validMessengerMessages = filterTranscriptRowsForImportedThreads(
-    mergedMessengerMessages,
+  const validMessengerSplitMessages = filterTranscriptRowsForImportedThreads(
+    normalizedMessengerMessages,
     messengerThreadIdSet,
     "Messenger messages",
     warnings,
+  );
+  const validMessengerMessages = mergeBundleTranscriptRows(
+    extractMessengerMessages(normalizedMessengerThreads),
+    validMessengerSplitMessages,
   );
   const messengerThreadsWithMessages = attachMessengerMessagesToThreads(
     finalMessengerThreadRecords,

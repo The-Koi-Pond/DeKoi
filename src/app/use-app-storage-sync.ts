@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import {
   cancelIdle,
   requestIdle,
@@ -221,6 +221,16 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const currentAppStorageRecords = useRef<AppStorageRecords>({
+    appSettings,
+    characters,
+    personas,
+    lorebooks,
+    providerConnections,
+    roleplayThreads,
+    messengerThreads,
+    rippleStates,
+  });
 
   const refreshSaveStatus = useCallback(
     (generation: number, storageResult?: SaveStatusResult) => {
@@ -255,6 +265,7 @@ export function useAppStorageSync({
 
   const applyAppStorageRecords = useCallback(
     (records: AppStorageRecords) => {
+      currentAppStorageRecords.current = records;
       setAppSettings(records.appSettings);
       setCharacters(records.characters);
       setPersonas(records.personas);
@@ -276,13 +287,40 @@ export function useAppStorageSync({
     ],
   );
 
+  useLayoutEffect(() => {
+    currentAppStorageRecords.current = {
+      appSettings,
+      characters,
+      personas,
+      lorebooks,
+      providerConnections,
+      roleplayThreads,
+      messengerThreads,
+      rippleStates,
+    };
+  }, [
+    appSettings,
+    characters,
+    lorebooks,
+    messengerThreads,
+    personas,
+    providerConnections,
+    rippleStates,
+    roleplayThreads,
+  ]);
+
   const applyLoadedAppStorageSnapshot = useCallback(
-    (snapshot: AppStorageSnapshot) => {
+    (
+      snapshot: AppStorageSnapshot,
+      options?: { storageReady?: boolean },
+    ) => {
       savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
       unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
-      setStorageReady(snapshot.storageResult.status === "ready");
+      setStorageReady(
+        options?.storageReady ?? (snapshot.storageResult.status === "ready"),
+      );
     },
     [applyAppStorageRecords, setStorageReady],
   );
@@ -488,7 +526,9 @@ export function useAppStorageSync({
       const shouldMigrateLegacyTranscripts =
         snapshot.storageResult.status === "ready" &&
         migrationCollectionKeys !== null;
-      if (!shouldMigrateLegacyTranscripts) {
+      if (shouldMigrateLegacyTranscripts) {
+        applyLoadedAppStorageSnapshot(snapshot, { storageReady: false });
+      } else {
         applyLoadedAppStorageSnapshot(snapshot);
       }
       setMessengerStorageMode(snapshot.storageResult.mode);
@@ -506,20 +546,39 @@ export function useAppStorageSync({
       ).then((storageResult) => {
         if (cancelled || storageGeneration.current !== generation) return;
 
+        const migrationSignatures =
+          createMigrationAppStorageSignatures(snapshot);
+        const currentRecords = currentAppStorageRecords.current;
+        const currentSignatures = createAppStorageSignatures(currentRecords);
         if (storageResult.status === "ready") {
           savedSignatures.current = createAppStorageSignatures(snapshot);
-          unsavedSignatures.current = {};
+          const nextUnsavedSignatures = { ...unsavedSignatures.current };
+          for (const collectionKey of snapshot.migrationCollectionKeys) {
+            if (
+              currentSignatures[collectionKey] ===
+              migrationSignatures[collectionKey]
+            ) {
+              delete nextUnsavedSignatures[collectionKey];
+            } else {
+              nextUnsavedSignatures[collectionKey] =
+                currentSignatures[collectionKey];
+            }
+            delete saveErrors.current[collectionKey];
+          }
+          unsavedSignatures.current = nextUnsavedSignatures;
           saveErrors.current = {};
           lastSeenSnapshot.current = snapshot;
-          applyAppStorageRecords(snapshot);
           setStorageReady(true);
         } else {
-          const migrationSignatures =
-            createMigrationAppStorageSignatures(snapshot);
-          applyLoadedAppStorageSnapshot(snapshot);
+          const currentMigrationSignatures: PartialAppStorageCollectionSignatures =
+            {};
+          for (const collectionKey of snapshot.migrationCollectionKeys) {
+            currentMigrationSignatures[collectionKey] =
+              currentSignatures[collectionKey];
+          }
           unsavedSignatures.current = {
             ...unsavedSignatures.current,
-            ...migrationSignatures,
+            ...currentMigrationSignatures,
           };
           for (const collectionKey of snapshot.migrationCollectionKeys) {
             saveErrors.current[collectionKey] = storageResult.message;
@@ -533,12 +592,17 @@ export function useAppStorageSync({
 
         const message =
           error instanceof Error ? error.message : "Storage save failed.";
-        const migrationSignatures =
-          createMigrationAppStorageSignatures(snapshot);
-        applyLoadedAppStorageSnapshot(snapshot);
+        const currentRecords = currentAppStorageRecords.current;
+        const currentSignatures = createAppStorageSignatures(currentRecords);
+        const currentMigrationSignatures: PartialAppStorageCollectionSignatures =
+          {};
+        for (const collectionKey of snapshot.migrationCollectionKeys) {
+          currentMigrationSignatures[collectionKey] =
+            currentSignatures[collectionKey];
+        }
         unsavedSignatures.current = {
           ...unsavedSignatures.current,
-          ...migrationSignatures,
+          ...currentMigrationSignatures,
         };
         for (const collectionKey of snapshot.migrationCollectionKeys) {
           saveErrors.current[collectionKey] = message;
