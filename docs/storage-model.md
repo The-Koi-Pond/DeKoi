@@ -120,13 +120,15 @@ ordering should use `getMessengerThreadActivityAt` or
 
 Desktop collection files are JSON arrays. Missing files load as empty
 collections only when no sibling recovery artifacts are present. Empty files,
-invalid JSON, non-array JSON, and missing files with `.json.bak` or `.json.tmp`
-siblings are recoverable storage errors, not empty collections.
+invalid JSON, non-array JSON, and missing files with `.json.bak`, `.json.tmp`,
+or `.json.pre-repair` siblings are recoverable storage errors, not empty
+collections.
 
 When a desktop collection file is malformed, the desktop runtime reports the
-entity name, path category, whether `.json.bak` or `.json.tmp` siblings exist,
-and that writes are blocked. Normal autosave must not overwrite that collection
-until a future explicit repair/import path repairs or replaces the corrupt file.
+entity name, path category, whether `.json.bak`, `.json.tmp`, or
+`.json.pre-repair` siblings exist, and that writes are blocked. Normal autosave
+must not overwrite that collection until an explicit repair/import path repairs
+or replaces the corrupt file.
 
 Desktop collection JSON writes use a sibling temp file and a `.json.bak`
 sibling:
@@ -141,9 +143,23 @@ sibling:
 DeKoi storage bundle files use the same temp-file write and sync path, but they
 do not create `.json.bak` siblings.
 
-The backup is a recovery aid, not a user-facing repair workflow. Future repair
-commands should restore, quarantine, or replace collection files only after
-explicit user confirmation.
+The backup is a recovery aid, not a user-facing repair workflow. The Rust
+desktop storage capability has internal repair helpers for malformed collection
+files, but no Tauri command or frontend UI is registered yet. Those helpers
+require `confirm: true`, accept only supported collection entities, and support
+two strategies:
+
+- `restore-backup`: validate the sibling `.json.bak` contains a JSON array,
+  preserve the current malformed file as `<entity>.json.pre-repair` when that
+  sidecar does not already exist, then install the backup records through the
+  same temp-file atomic write path.
+- `replace-empty`: replace the malformed file with an empty JSON array through
+  the same temp-file atomic write path. If no `.json.bak` exists, preserve the
+  malformed current file as the backup; if one already exists, leave it intact
+  and use a transient rollback file only during installation.
+
+Repair results return the repaired collection metadata. Existing `.json.bak`
+backups and existing `.json.pre-repair` sidecars are preserved.
 
 ## Import Commit Safety
 

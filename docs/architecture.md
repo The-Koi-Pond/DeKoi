@@ -187,7 +187,8 @@ Storage owns persistence mechanics. Engine owns product meaning.
 - Bundle and legacy imports use an explicit backup-and-commit path that cancels
   delayed autosave before replacing collections.
 - Desktop collection files report recoverable corruption/recovery-artifact
-  states and block autosave overwrite until a future explicit repair path.
+  states and block autosave overwrite; Rust-only helpers can perform explicit
+  confirmed repair, but no Tauri command or UI path is registered yet.
 - Engine modules define records and mutations without knowing how records are
   stored.
 - App/runtime orchestration loads, syncs, imports, exports, and exposes typed

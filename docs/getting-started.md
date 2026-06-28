@@ -46,10 +46,12 @@ Desktop collection records are stored under:
 ~~~
 
 Desktop collection files must be JSON arrays. If a collection file is empty,
-invalid, non-array JSON, or missing while `.json.bak` or `.json.tmp` recovery
-artifacts exist, desktop storage reports a recoverable error and blocks normal
-autosave overwrite. Collection writes keep a `.json.bak` sibling as a recovery
-aid; repair is future explicit work.
+invalid, non-array JSON, or missing while `.json.bak`, `.json.tmp`, or
+`.json.pre-repair` recovery artifacts exist, desktop storage reports a
+recoverable error and blocks normal autosave overwrite. Collection writes keep a
+`.json.bak` sibling as a recovery aid. Rust-only repair helpers exist for
+explicitly confirmed backup restore or empty replacement, but they are not
+exposed in the app UI yet.
 
 ## Use A Remote Runtime
 

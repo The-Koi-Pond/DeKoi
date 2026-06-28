@@ -50,7 +50,7 @@ pub(crate) struct StorageBundleSnapshot {
     pub(crate) updated_at_ms: Option<u64>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct StorageCollectionMetadata {
     pub(crate) entity: String,
@@ -66,6 +66,45 @@ pub(crate) struct StorageCollectionMetadataResult {
     pub(crate) entity: String,
     pub(crate) metadata: Option<StorageCollectionMetadata>,
     pub(crate) error: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StorageCollectionRepairResult {
+    pub(crate) ok: bool,
+    pub(crate) entity: String,
+    pub(crate) strategy: String,
+    pub(crate) metadata: StorageCollectionMetadata,
+    pub(crate) message: String,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CollectionRepairStrategy {
+    RestoreBackup,
+    ReplaceEmpty,
+}
+
+#[allow(dead_code)]
+impl CollectionRepairStrategy {
+    fn parse(strategy: &str) -> Result<Self, String> {
+        match strategy.trim() {
+            "restore-backup" => Ok(Self::RestoreBackup),
+            "replace-empty" => Ok(Self::ReplaceEmpty),
+            "" => Err("Storage collection repair requires strategy.".to_string()),
+            value => Err(format!(
+                "Storage collection repair strategy is not supported: {value}"
+            )),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::RestoreBackup => "restore-backup",
+            Self::ReplaceEmpty => "replace-empty",
+        }
+    }
 }
 
 fn app_data_file_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
@@ -216,8 +255,16 @@ fn backup_json_path(path: &Path) -> PathBuf {
     path.with_extension("json.bak")
 }
 
+fn pre_repair_json_path(path: &Path) -> PathBuf {
+    path.with_extension("json.pre-repair")
+}
+
 fn backup_exists(path: &Path) -> bool {
     backup_json_path(path).exists()
+}
+
+fn pre_repair_exists(path: &Path) -> bool {
+    pre_repair_json_path(path).exists()
 }
 
 fn temporary_json_exists(path: &Path) -> bool {
@@ -225,7 +272,7 @@ fn temporary_json_exists(path: &Path) -> bool {
 }
 
 fn recovery_artifacts_exist(path: &Path) -> bool {
-    backup_exists(path) || temporary_json_exists(path)
+    backup_exists(path) || temporary_json_exists(path) || pre_repair_exists(path)
 }
 
 fn yes_no(value: bool) -> &'static str {
@@ -254,11 +301,35 @@ enum BackupState {
     NotRequested,
     NoSourceFile,
     Created { path: PathBuf },
+    RollbackCreated { path: PathBuf },
 }
 
 impl BackupState {
     fn created(&self) -> bool {
         matches!(self, BackupState::Created { .. })
+    }
+
+    fn recorded_path(&self) -> Option<&Path> {
+        match self {
+            BackupState::Created { path } | BackupState::RollbackCreated { path } => {
+                Some(path.as_path())
+            }
+            BackupState::NotRequested | BackupState::NoSourceFile => None,
+        }
+    }
+
+    fn cleanup_transient_rollback(&self) -> Result<(), String> {
+        if let BackupState::RollbackCreated { path } = self {
+            match fs::remove_file(path) {
+                Ok(()) => Ok(()),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+                Err(error) => Err(format!(
+                    "Could not remove DeKoi JSON rollback file. {error}"
+                )),
+            }
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -285,6 +356,33 @@ fn preserve_existing_backup(
     Ok(BackupState::Created { path: backup_path })
 }
 
+fn repair_rollback_json_path(path: &Path) -> PathBuf {
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("collection.json");
+    let stamp = Utc::now().timestamp_millis();
+    let rollback_name = format!("{file_name}.rollback-{}-{stamp}.tmp", std::process::id());
+    path.with_file_name(rollback_name)
+}
+
+fn preserve_current_for_repair_rollback(path: &Path) -> Result<BackupState, String> {
+    if !path.exists() {
+        return Ok(BackupState::NoSourceFile);
+    }
+
+    let rollback_path = repair_rollback_json_path(path);
+    fs::copy(path, &rollback_path).map_err(|error| {
+        format!("Could not preserve DeKoi collection for repair rollback. {error}")
+    })?;
+    sync_file_best_effort(&rollback_path);
+    sync_parent_directory_best_effort(&rollback_path);
+
+    Ok(BackupState::RollbackCreated {
+        path: rollback_path,
+    })
+}
+
 fn install_temporary_json_file(
     temporary_path: &Path,
     path: &Path,
@@ -298,7 +396,7 @@ fn install_temporary_json_file(
                 first_error.kind(),
                 format!("no recorded backup existed before replacement: {first_error}"),
             )),
-            BackupState::Created { .. } => {
+            BackupState::Created { .. } | BackupState::RollbackCreated { .. } => {
                 if let Err(remove_error) = fs::remove_file(path) {
                     return if remove_error.kind() == io::ErrorKind::NotFound {
                         Err(first_error)
@@ -320,8 +418,8 @@ fn restore_backup_from_path(backup_path: &Path, path: &Path) -> Result<(), Strin
     Ok(())
 }
 
-fn restore_created_backup(path: &Path, backup_state: &BackupState) -> String {
-    let BackupState::Created { path: backup_path } = backup_state else {
+fn restore_recorded_backup(path: &Path, backup_state: &BackupState) -> String {
+    let Some(backup_path) = backup_state.recorded_path() else {
         return " No recorded backup was available to restore.".to_string();
     };
 
@@ -383,6 +481,15 @@ fn write_collection_json_file(
     )
 }
 
+fn ensure_json_parent_directory(path: &Path) -> Result<(), String> {
+    if let Some(directory) = path.parent() {
+        fs::create_dir_all(directory)
+            .map_err(|error| format!("Could not create DeKoi runtime directory. {error}"))?;
+    }
+
+    Ok(())
+}
+
 fn write_json_file_with_installer<F>(
     path: &Path,
     value: &serde_json::Value,
@@ -393,13 +500,22 @@ fn write_json_file_with_installer<F>(
 where
     F: FnOnce(&Path, &Path, &BackupState) -> io::Result<()>,
 {
-    if let Some(directory) = path.parent() {
-        fs::create_dir_all(directory)
-            .map_err(|error| format!("Could not create DeKoi runtime directory. {error}"))?;
-    }
-
+    ensure_json_parent_directory(path)?;
     let backup_state = preserve_existing_backup(path, path_category, preserve_backup)?;
 
+    write_json_file_with_backup_state(path, value, path_category, backup_state, installer)
+}
+
+fn write_json_file_with_backup_state<F>(
+    path: &Path,
+    value: &serde_json::Value,
+    path_category: &str,
+    backup_state: BackupState,
+    installer: F,
+) -> Result<(), String>
+where
+    F: FnOnce(&Path, &Path, &BackupState) -> io::Result<()>,
+{
     let contents = serde_json::to_string_pretty(value)
         .map_err(|error| format!("Could not serialize DeKoi runtime data. {error}"))?;
     let temporary_path = temporary_json_path(path);
@@ -423,9 +539,14 @@ where
             .err()
             .map(|cleanup_error| format!(" Temp cleanup failed: {cleanup_error}."))
             .unwrap_or_default();
-        let restore_message = restore_created_backup(path, &backup_state);
+        let restore_message = restore_recorded_backup(path, &backup_state);
+        let rollback_cleanup_message = backup_state
+            .cleanup_transient_rollback()
+            .err()
+            .map(|cleanup_error| format!(" {cleanup_error}"))
+            .unwrap_or_default();
         return Err(format!(
-            "Could not save DeKoi JSON data (path category: {path_category}; backup created: {}). {error}.{cleanup_message}{restore_message}",
+            "Could not save DeKoi JSON data (path category: {path_category}; backup created: {}). {error}.{cleanup_message}{restore_message}{rollback_cleanup_message}",
             yes_no(backup_state.created()),
         ));
     }
@@ -433,15 +554,17 @@ where
     sync_file_best_effort(path);
     sync_parent_directory_best_effort(path);
     cleanup_result?;
+    backup_state.cleanup_transient_rollback()?;
 
     Ok(())
 }
 
 fn collection_file_error(entity: &str, path: &Path, reason: String) -> String {
     format!(
-        "Desktop runtime storage collection '{entity}' could not be loaded (path category: collection file; backup exists: {}; temp exists: {}; writes blocked: yes). {reason}",
+        "Desktop runtime storage collection '{entity}' could not be loaded (path category: collection file; backup exists: {}; temp exists: {}; pre-repair exists: {}; writes blocked: yes). {reason}",
         yes_no(backup_exists(path)),
         yes_no(temporary_json_exists(path)),
+        yes_no(pre_repair_exists(path)),
     )
 }
 
@@ -537,6 +660,26 @@ fn ensure_collection_file_can_be_overwritten(path: &Path, entity: &str) -> Resul
     ensure_collection_file_is_usable(path, entity).map(|_| ())
 }
 
+#[allow(dead_code)]
+fn ensure_collection_file_needs_repair(path: &Path, entity: &str) -> Result<(), String> {
+    match classify_collection_file(path) {
+        CollectionFileState::InvalidJson(_)
+        | CollectionFileState::NonArray
+        | CollectionFileState::EmptyClean
+        | CollectionFileState::EmptyWithRecovery
+        | CollectionFileState::MissingWithRecovery => Ok(()),
+        CollectionFileState::MissingClean => Err(format!(
+            "Storage collection repair is not allowed for '{entity}' because the collection file is missing without recovery artifacts."
+        )),
+        CollectionFileState::Records(_) => Err(format!(
+            "Storage collection repair is not allowed for '{entity}' because the collection file is already valid."
+        )),
+        CollectionFileState::ReadFailure(error) => Err(format!(
+            "Storage collection repair is not allowed for '{entity}' because the collection file could not be read. {error}"
+        )),
+    }
+}
+
 fn read_runtime_records(
     app: &tauri::AppHandle,
     entity: &str,
@@ -570,6 +713,151 @@ fn replace_runtime_records_at_path(
 ) -> Result<StorageCollectionMetadata, String> {
     write_runtime_records_to_path(path, entity, records)?;
     collection_metadata_from_path(entity, path.to_path_buf())
+}
+
+#[allow(dead_code)]
+fn read_collection_backup_for_restore(
+    backup_path: &Path,
+    entity: &str,
+) -> Result<Vec<serde_json::Value>, String> {
+    if !backup_path.exists() {
+        return Err(format!(
+            "No DeKoi JSON backup exists for storage collection '{entity}'."
+        ));
+    }
+
+    let contents = fs::read_to_string(backup_path).map_err(|error| {
+        format!("Could not read DeKoi JSON backup for storage collection '{entity}'. {error}")
+    })?;
+    if contents.trim().is_empty() {
+        return Err(format!(
+            "DeKoi JSON backup for storage collection '{entity}' is empty."
+        ));
+    }
+
+    match serde_json::from_str::<serde_json::Value>(&contents) {
+        Ok(serde_json::Value::Array(records)) => Ok(records),
+        Ok(_) => Err(format!(
+            "DeKoi JSON backup for storage collection '{entity}' must contain a JSON array."
+        )),
+        Err(error) => Err(format!(
+            "DeKoi JSON backup for storage collection '{entity}' is not valid JSON. {error}"
+        )),
+    }
+}
+
+#[allow(dead_code)]
+fn preserve_pre_repair_collection(path: &Path) -> Result<BackupState, String> {
+    let pre_repair_path = pre_repair_json_path(path);
+    if pre_repair_path.exists() {
+        return preserve_current_for_repair_rollback(path);
+    }
+
+    if !path.exists() {
+        return Ok(BackupState::NoSourceFile);
+    }
+
+    fs::copy(path, &pre_repair_path).map_err(|error| {
+        format!("Could not preserve DeKoi collection before repair restore. {error}")
+    })?;
+    sync_file_best_effort(&pre_repair_path);
+    sync_parent_directory_best_effort(&pre_repair_path);
+
+    Ok(BackupState::Created {
+        path: pre_repair_path,
+    })
+}
+
+#[allow(dead_code)]
+fn collection_repair_backup_state(path: &Path) -> Result<BackupState, String> {
+    let backup_path = backup_json_path(path);
+    if backup_path.exists() {
+        return preserve_current_for_repair_rollback(path);
+    }
+
+    preserve_existing_backup(path, "collection repair replacement", true)
+}
+
+#[allow(dead_code)]
+fn write_empty_collection_for_repair(path: &Path) -> Result<(), String> {
+    ensure_json_parent_directory(path)?;
+    let backup_state = collection_repair_backup_state(path)?;
+    write_json_file_with_backup_state(
+        path,
+        &serde_json::Value::Array(Vec::new()),
+        "collection repair replacement",
+        backup_state,
+        install_temporary_json_file,
+    )
+}
+
+#[allow(dead_code)]
+fn write_backup_collection_for_repair(
+    path: &Path,
+    records: Vec<serde_json::Value>,
+) -> Result<(), String> {
+    ensure_json_parent_directory(path)?;
+    let backup_state = preserve_pre_repair_collection(path)?;
+    write_json_file_with_backup_state(
+        path,
+        &serde_json::Value::Array(records),
+        "collection repair restore",
+        backup_state,
+        install_temporary_json_file,
+    )
+}
+
+#[allow(dead_code)]
+fn repair_collection_at_path(
+    path: &Path,
+    entity: &str,
+    strategy: CollectionRepairStrategy,
+    confirm: bool,
+) -> Result<StorageCollectionRepairResult, String> {
+    ensure_collection_entity(entity)?;
+    if !confirm {
+        return Err("Storage collection repair requires confirm: true.".to_string());
+    }
+    ensure_collection_file_needs_repair(path, entity)?;
+
+    let message = match strategy {
+        CollectionRepairStrategy::RestoreBackup => {
+            let backup_path = backup_json_path(path);
+            let records = read_collection_backup_for_restore(&backup_path, entity)?;
+            write_backup_collection_for_repair(path, records)?;
+            format!("Restored {entity} from the desktop backup.")
+        }
+        CollectionRepairStrategy::ReplaceEmpty => {
+            write_empty_collection_for_repair(path)?;
+            format!("Replaced {entity} with an empty valid collection.")
+        }
+    };
+    let metadata = collection_metadata_from_path(entity, path.to_path_buf())?;
+
+    Ok(StorageCollectionRepairResult {
+        ok: true,
+        entity: entity.to_string(),
+        strategy: strategy.as_str().to_string(),
+        metadata,
+        message,
+    })
+}
+
+#[allow(dead_code)]
+pub(crate) fn repair_runtime_collection(
+    app: &tauri::AppHandle,
+    entity: &str,
+    strategy: &str,
+    confirm: bool,
+) -> Result<StorageCollectionRepairResult, String> {
+    ensure_collection_entity(entity)?;
+    let strategy = CollectionRepairStrategy::parse(strategy)?;
+    if !confirm {
+        return Err("Storage collection repair requires confirm: true.".to_string());
+    }
+
+    let path = runtime_entity_path(app, entity)?;
+    repair_collection_at_path(&path, entity, strategy, true)
 }
 
 pub(crate) fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
@@ -847,6 +1135,14 @@ mod tests {
             .expect("test JSON file should parse")
     }
 
+    fn rollback_file_count(directory: &Path) -> usize {
+        fs::read_dir(directory)
+            .expect("test directory should be readable")
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().contains(".rollback-"))
+            .count()
+    }
+
     #[test]
     fn collection_metadata_reports_missing_and_changed_files() {
         let directory = temp_test_dir("collection-metadata");
@@ -885,22 +1181,14 @@ mod tests {
         assert!(good_result.metadata.is_some());
         assert_eq!(good_result.error, None);
 
-        let invalid_path = PathBuf::from(format!(
-            "{}\0personas.json",
-            directory.to_string_lossy()
-        ));
-        let error_result = collection_metadata_result_from_path(
-            PERSONAS_ENTITY,
-            invalid_path,
-        );
+        let invalid_path = PathBuf::from(format!("{}\0personas.json", directory.to_string_lossy()));
+        let error_result = collection_metadata_result_from_path(PERSONAS_ENTITY, invalid_path);
         assert_eq!(error_result.entity, PERSONAS_ENTITY);
         assert!(error_result.metadata.is_none());
-        assert!(
-            error_result
-                .error
-                .expect("entity error should be reported")
-                .contains("Could not inspect DeKoi storage collection")
-        );
+        assert!(error_result
+            .error
+            .expect("entity error should be reported")
+            .contains("Could not inspect DeKoi storage collection"));
         let _ = fs::remove_dir_all(directory);
     }
 
@@ -955,6 +1243,21 @@ mod tests {
         assert!(error.contains("Collection file is missing but recovery artifacts exist."));
         assert!(error.contains("backup exists: yes"));
         assert!(error.contains("temp exists: yes"));
+        assert!(error.contains("writes blocked: yes"));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn missing_collection_file_with_pre_repair_artifact_blocks_writes() {
+        let directory = temp_test_dir("missing-collection-pre-repair");
+        let path = directory.join("characters.json");
+        fs::write(pre_repair_json_path(&path), "{").expect("pre-repair fixture should be written");
+
+        let error = write_runtime_records_to_path(&path, CHARACTERS_ENTITY, Vec::new())
+            .expect_err("missing collection with pre-repair artifact should block writes");
+
+        assert!(error.contains("Collection file is missing but recovery artifacts exist."));
+        assert!(error.contains("pre-repair exists: yes"));
         assert!(error.contains("writes blocked: yes"));
         let _ = fs::remove_dir_all(directory);
     }
@@ -1073,6 +1376,324 @@ mod tests {
             fs::read_to_string(backup_json_path(&path)).expect("backup fixture should be readable"),
             "{"
         );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_restores_malformed_collection_from_backup() {
+        let directory = temp_test_dir("collection-restore-backup");
+        let path = directory.join("characters.json");
+        let backup_value = serde_json::json!([{ "id": "backup" }]);
+        let backup_contents =
+            serde_json::to_string(&backup_value).expect("backup JSON should serialize");
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(backup_json_path(&path), &backup_contents)
+            .expect("backup fixture should be written");
+
+        let result = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::RestoreBackup,
+            true,
+        )
+        .expect("restore repair should succeed");
+        let persisted_metadata = collection_metadata_from_path(CHARACTERS_ENTITY, path.clone())
+            .expect("persisted metadata should be readable");
+
+        assert!(result.ok);
+        assert_eq!(result.entity, CHARACTERS_ENTITY);
+        assert_eq!(result.strategy, "restore-backup");
+        assert!(result.message.contains("Restored characters"));
+        assert_eq!(read_json(&path), backup_value);
+        assert_eq!(read_json(&backup_json_path(&path)), backup_value);
+        assert_eq!(
+            fs::read_to_string(pre_repair_json_path(&path))
+                .expect("pre-repair fixture should be readable"),
+            "{"
+        );
+        assert_ne!(
+            fs::read_to_string(&path).expect("restored collection should be readable"),
+            backup_contents
+        );
+        assert_eq!(result.metadata.entity, CHARACTERS_ENTITY);
+        assert_eq!(result.metadata.byte_length, persisted_metadata.byte_length);
+        assert_eq!(
+            result.metadata.content_hash,
+            persisted_metadata.content_hash
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_restore_keeps_existing_pre_repair_file() {
+        let directory = temp_test_dir("collection-restore-existing-pre-repair");
+        let path = directory.join("characters.json");
+        let backup_value = serde_json::json!([{ "id": "backup" }]);
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(pre_repair_json_path(&path), "previous pre-repair")
+            .expect("pre-repair fixture should be written");
+        fs::write(
+            backup_json_path(&path),
+            serde_json::to_string(&backup_value).expect("backup JSON should serialize"),
+        )
+        .expect("backup fixture should be written");
+
+        let result = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::RestoreBackup,
+            true,
+        )
+        .expect("restore repair should succeed");
+
+        assert!(result.ok);
+        assert_eq!(read_json(&path), backup_value);
+        assert_eq!(
+            fs::read_to_string(pre_repair_json_path(&path))
+                .expect("pre-repair fixture should be readable"),
+            "previous pre-repair"
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_restore_rolls_back_current_file_after_install_failure() {
+        let directory = temp_test_dir("collection-restore-install-failure");
+        let path = directory.join("characters.json");
+        let backup_value = serde_json::json!([{ "id": "backup" }]);
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(pre_repair_json_path(&path), "previous pre-repair")
+            .expect("pre-repair fixture should be written");
+        fs::write(
+            backup_json_path(&path),
+            serde_json::to_string(&backup_value).expect("backup JSON should serialize"),
+        )
+        .expect("backup fixture should be written");
+        let backup_state =
+            preserve_pre_repair_collection(&path).expect("rollback state should be created");
+
+        let error = write_json_file_with_backup_state(
+            &path,
+            &backup_value,
+            "collection repair restore",
+            backup_state,
+            |_temporary_path, target_path, _backup_state| {
+                fs::remove_file(target_path)?;
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "simulated install failure",
+                ))
+            },
+        )
+        .expect_err("simulated repair install failure should be reported");
+
+        assert!(error.contains("Restored recorded backup."));
+        assert_eq!(
+            fs::read_to_string(&path).expect("current fixture should be readable"),
+            "{"
+        );
+        assert_eq!(read_json(&backup_json_path(&path)), backup_value);
+        assert_eq!(
+            fs::read_to_string(pre_repair_json_path(&path))
+                .expect("pre-repair fixture should be readable"),
+            "previous pre-repair"
+        );
+        assert_eq!(rollback_file_count(&directory), 0);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_replaces_malformed_collection_with_empty_array() {
+        let directory = temp_test_dir("collection-replace-empty");
+        let path = directory.join("characters.json");
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+
+        let result = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::ReplaceEmpty,
+            true,
+        )
+        .expect("replace-empty repair should succeed");
+
+        assert!(result.ok);
+        assert_eq!(result.strategy, "replace-empty");
+        assert!(result.message.contains("empty valid collection"));
+        assert_eq!(read_json(&path), serde_json::json!([]));
+        assert_eq!(
+            fs::read_to_string(backup_json_path(&path)).expect("backup fixture should be readable"),
+            "{"
+        );
+        assert!(result.metadata.exists);
+        assert_eq!(
+            read_collection_records_from_path(&path, CHARACTERS_ENTITY)
+                .expect("repaired collection should load"),
+            Vec::<serde_json::Value>::new()
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_replace_empty_rolls_back_current_file_after_install_failure() {
+        let directory = temp_test_dir("collection-replace-empty-install-failure");
+        let path = directory.join("characters.json");
+        let backup_value = serde_json::json!([{ "id": "backup" }]);
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(
+            backup_json_path(&path),
+            serde_json::to_string(&backup_value).expect("backup JSON should serialize"),
+        )
+        .expect("backup fixture should be written");
+        let backup_state =
+            collection_repair_backup_state(&path).expect("rollback state should be created");
+
+        let error = write_json_file_with_backup_state(
+            &path,
+            &serde_json::Value::Array(Vec::new()),
+            "collection repair replacement",
+            backup_state,
+            |_temporary_path, target_path, _backup_state| {
+                fs::remove_file(target_path)?;
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "simulated install failure",
+                ))
+            },
+        )
+        .expect_err("simulated repair install failure should be reported");
+
+        assert!(error.contains("Restored recorded backup."));
+        assert_eq!(
+            fs::read_to_string(&path).expect("current fixture should be readable"),
+            "{"
+        );
+        assert_eq!(read_json(&backup_json_path(&path)), backup_value);
+        assert_eq!(rollback_file_count(&directory), 0);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_requires_confirmation() {
+        let directory = temp_test_dir("collection-repair-confirm");
+        let path = directory.join("characters.json");
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(backup_json_path(&path), "[]").expect("backup fixture should be written");
+
+        let error = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::RestoreBackup,
+            false,
+        )
+        .expect_err("repair should require confirmation");
+
+        assert!(error.contains("confirm: true"));
+        assert_eq!(
+            fs::read_to_string(&path).expect("invalid fixture should remain readable"),
+            "{"
+        );
+        assert_eq!(read_json(&backup_json_path(&path)), serde_json::json!([]));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_restore_requires_backup() {
+        let directory = temp_test_dir("collection-restore-missing-backup");
+        let path = directory.join("characters.json");
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+
+        let error = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::RestoreBackup,
+            true,
+        )
+        .expect_err("restore repair should require a backup file");
+
+        assert!(error.contains("No DeKoi JSON backup exists"));
+        assert_eq!(
+            fs::read_to_string(&path).expect("invalid fixture should remain readable"),
+            "{"
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_replace_empty_keeps_existing_backup() {
+        let directory = temp_test_dir("collection-replace-empty-existing-backup");
+        let path = directory.join("characters.json");
+        let backup_value = serde_json::json!([{ "id": "backup" }]);
+        fs::write(&path, "{").expect("invalid collection fixture should be written");
+        fs::write(
+            backup_json_path(&path),
+            serde_json::to_string(&backup_value).expect("backup JSON should serialize"),
+        )
+        .expect("backup fixture should be written");
+
+        let result = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::ReplaceEmpty,
+            true,
+        )
+        .expect("replace-empty repair should succeed");
+
+        assert!(result.ok);
+        assert_eq!(read_json(&path), serde_json::json!([]));
+        assert_eq!(read_json(&backup_json_path(&path)), backup_value);
+        assert_eq!(result.metadata.entity, CHARACTERS_ENTITY);
+        assert!(result.metadata.exists);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_rejects_valid_collection() {
+        let directory = temp_test_dir("collection-repair-valid");
+        let path = directory.join("characters.json");
+        let value = serde_json::json!([{ "id": "healthy" }]);
+        fs::write(
+            &path,
+            serde_json::to_string(&value).expect("collection JSON should serialize"),
+        )
+        .expect("collection fixture should be written");
+        fs::write(backup_json_path(&path), "[]").expect("backup fixture should be written");
+
+        let replace_error = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::ReplaceEmpty,
+            true,
+        )
+        .expect_err("replace-empty should reject valid collections");
+        let restore_error = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::RestoreBackup,
+            true,
+        )
+        .expect_err("restore-backup should reject valid collections");
+
+        assert!(replace_error.contains("already valid"));
+        assert!(restore_error.contains("already valid"));
+        assert_eq!(read_json(&path), value);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn repair_collection_rejects_clean_missing_collection() {
+        let directory = temp_test_dir("collection-repair-missing-clean");
+        let path = directory.join("characters.json");
+
+        let error = repair_collection_at_path(
+            &path,
+            CHARACTERS_ENTITY,
+            CollectionRepairStrategy::ReplaceEmpty,
+            true,
+        )
+        .expect_err("repair should reject clean missing collections");
+
+        assert!(error.contains("missing without recovery artifacts"));
+        assert!(!path.exists());
         let _ = fs::remove_dir_all(directory);
     }
 

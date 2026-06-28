@@ -70,12 +70,19 @@ data directory at:
 ```
 
 Desktop collection files are JSON arrays. Missing files load as empty
-collections only when no `.json.bak` or `.json.tmp` recovery sibling is present.
-Malformed files and missing files with recovery artifacts return recoverable
-storage errors instead of being overwritten by normal autosave. Desktop
-collection writes use a synced temp file and preserve the previous readable file
-as `<entity>.json.bak`; storage bundle writes use the temp/sync path without
-creating a backup.
+collections only when no `.json.bak`, `.json.tmp`, or `.json.pre-repair`
+recovery sibling is present. Malformed files and missing files with recovery
+artifacts return recoverable storage errors instead of being overwritten by
+normal autosave. Desktop collection writes use a synced temp file and preserve
+the previous readable file as `<entity>.json.bak`; storage bundle writes use the
+temp/sync path without creating a backup.
+
+The desktop storage module also contains Rust-only helpers for explicit
+malformed-collection repair. They are not part of the remote runtime HTTP
+contract and are not registered as Tauri commands yet. The helpers require
+confirmation, support `restore-backup` and `replace-empty`, preserve existing
+`.json.bak` backups, and use `.json.pre-repair` sidecars before restoring from a
+backup.
 
 Desktop stale checking uses the separate `dekoi_storage_collection_metadata`
 Tauri command to compare collection file existence, byte length, updated-at
