@@ -4,6 +4,7 @@ import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-im
 import {
   createStorageReloadBlockToken,
   decideAppStorageReload,
+  getValidStorageReloadBlockConfirmation,
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
 } from "../../src/app/use-app-storage-sync";
@@ -558,8 +559,20 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
       confirmedBlockToken: firstDirtyBlockToken,
     }),
   ).toBe("proceed");
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: firstDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBe(firstDirtyBlockToken);
 
   expect(firstDirtyBlockToken).not.toEqual(laterDirtyBlockToken);
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: laterDirtyBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
@@ -570,12 +583,24 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
 
   expect(firstDirtyBlockToken).not.toEqual(laterSavedBlockToken);
   expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: laterSavedBlockToken,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
+  expect(
     decideAppStorageReload({
       activeStorageWork: false,
       currentBlockToken: laterSavedBlockToken,
       confirmedBlockToken: firstDirtyBlockToken,
     }),
   ).toBe("confirm-local-discard");
+  expect(
+    getValidStorageReloadBlockConfirmation({
+      currentBlockToken: null,
+      confirmedBlockToken: firstDirtyBlockToken,
+    }),
+  ).toBeNull();
 });
 
 test("partial desktop metadata is not a ready stale-check baseline", () => {

@@ -99,6 +99,20 @@ export function decideAppStorageReload({
   return "proceed";
 }
 
+export function getValidStorageReloadBlockConfirmation({
+  currentBlockToken,
+  confirmedBlockToken,
+}: {
+  currentBlockToken: AppStorageReloadBlockToken | null;
+  confirmedBlockToken: AppStorageReloadBlockToken | null;
+}) {
+  if (!currentBlockToken || !confirmedBlockToken) return null;
+  if (!appStorageReloadBlockTokensMatch(currentBlockToken, confirmedBlockToken)) {
+    return null;
+  }
+  return confirmedBlockToken;
+}
+
 export function createStorageReloadBlockToken({
   savedSignatures,
   currentSignatures,
@@ -802,10 +816,15 @@ export function useAppStorageSync({
         savedSignatures: savedSignatures.current,
         currentSignatures,
       });
+      const confirmedBlockToken = getValidStorageReloadBlockConfirmation({
+        currentBlockToken,
+        confirmedBlockToken: confirmedReloadBlockToken.current,
+      });
+      confirmedReloadBlockToken.current = confirmedBlockToken;
       const reloadDecision = decideAppStorageReload({
         activeStorageWork: hasActiveStorageWork(),
         currentBlockToken,
-        confirmedBlockToken: confirmedReloadBlockToken.current,
+        confirmedBlockToken,
       });
 
       if (reloadDecision === "block-active-work") {
