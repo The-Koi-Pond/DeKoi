@@ -107,11 +107,10 @@ export function reconcileMigrationAppStorageSignatures({
   for (const collectionKey of collectionKeys) {
     const committedSignature = committedSignatures[collectionKey];
     const currentSignature = currentSignatures[collectionKey];
-    if (nextSavedSignatures) {
-      nextSavedSignatures[collectionKey] = committedSignature;
-    }
-
     if (currentSignature === committedSignature) {
+      if (nextSavedSignatures) {
+        nextSavedSignatures[collectionKey] = committedSignature;
+      }
       delete nextUnsavedSignatures[collectionKey];
     } else {
       nextUnsavedSignatures[collectionKey] = currentSignature;

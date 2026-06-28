@@ -414,7 +414,10 @@ test("migration signature reconciliation keeps changed migrated collections dirt
     collectionKeys: ["roleplayThreads", "roleplayEntries"],
   });
 
-  expect(reconciled.savedSignatures).toEqual(committedSignatures);
+  expect(reconciled.savedSignatures).toEqual({
+    ...committedSignatures,
+    roleplayEntries: "legacy-migration-marker",
+  });
   expect(reconciled.unsavedSignatures).toEqual({
     appSettings: "app-settings-live-edit",
     roleplayEntries: "roleplay-entries-live-edit",
