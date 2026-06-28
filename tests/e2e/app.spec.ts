@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
 import {
+  createStorageReloadLocalChangeToken,
   decideAppStorageReload,
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
@@ -28,11 +29,13 @@ import {
   toRoleplayThreadRecord,
 } from "../../src/engine/roleplay";
 import {
+  APP_STORAGE_COLLECTION_KEYS,
   saveAppStorageCollections,
   type AppStorageMetadata,
   type AppStorageRecords,
   type AppStorageReplaceResult,
 } from "../../src/features/runtime";
+import { createHostStorageMetadataResult } from "../../src/runtime/storage/host-storage";
 import {
   changedAppStorageMetadataKeys,
   createDeKoiStorageBundle,
@@ -375,6 +378,17 @@ function createEmptyAppStorageRecords(): AppStorageRecords {
   };
 }
 
+function createTestStorageSignatures(
+  signature: string,
+): AppStorageCollectionSignatures {
+  return Object.fromEntries(
+    APP_STORAGE_COLLECTION_KEYS.map((collectionKey) => [
+      collectionKey,
+      signature,
+    ]),
+  ) as AppStorageCollectionSignatures;
+}
+
 function expectReloadAfterPartialReplace(
   calls: RuntimeCall[],
   callsBeforeImport: number,
@@ -494,6 +508,24 @@ test("storage metadata comparison reports changed collection files", () => {
 });
 
 test("storage reload decision blocks active work and confirms dirty-only reload", () => {
+  const savedSignatures = createTestStorageSignatures("saved");
+  const dirtySignatures = {
+    ...savedSignatures,
+    appSettings: "dirty-first",
+  };
+  const laterDirtySignatures = {
+    ...savedSignatures,
+    appSettings: "dirty-later",
+  };
+  const firstDirtyToken = createStorageReloadLocalChangeToken({
+    savedSignatures,
+    currentSignatures: dirtySignatures,
+  });
+  const laterDirtyToken = createStorageReloadLocalChangeToken({
+    savedSignatures,
+    currentSignatures: laterDirtySignatures,
+  });
+
   expect(
     decideAppStorageReload({
       activeStorageWork: true,
@@ -505,7 +537,7 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: "appSettings:dirty",
+      localChangeToken: firstDirtyToken,
       confirmedLocalChangeToken: null,
     }),
   ).toBe("confirm-local-discard");
@@ -513,10 +545,47 @@ test("storage reload decision blocks active work and confirms dirty-only reload"
   expect(
     decideAppStorageReload({
       activeStorageWork: false,
-      localChangeToken: "appSettings:dirty",
-      confirmedLocalChangeToken: "appSettings:dirty",
+      localChangeToken: firstDirtyToken,
+      confirmedLocalChangeToken: firstDirtyToken,
     }),
   ).toBe("proceed");
+
+  expect(firstDirtyToken).not.toBe(laterDirtyToken);
+  expect(
+    decideAppStorageReload({
+      activeStorageWork: false,
+      localChangeToken: laterDirtyToken,
+      confirmedLocalChangeToken: firstDirtyToken,
+    }),
+  ).toBe("confirm-local-discard");
+});
+
+test("partial desktop metadata is not a ready stale-check baseline", () => {
+  const result = createHostStorageMetadataResult({
+    mode: "desktop",
+    collectionMetadata: [
+      {
+        entity: "characters",
+        exists: true,
+        byteLength: 16,
+        updatedAtMs: 1,
+        contentHash: "fnv1a64:ready",
+      },
+    ],
+    metadataErrors: [
+      {
+        entity: "personas",
+        message: "Could not inspect personas.",
+      },
+    ],
+  });
+
+  expect(result.status).toBe("error");
+  expect(result.metadataAvailable).toBe(false);
+  expect(result.collectionMetadata).toHaveLength(1);
+  expect(result.metadataErrors).toHaveLength(1);
+  expect(result.message).toContain("personas");
+  expect(result.message).toContain("Could not inspect personas.");
 });
 
 test("storage save rejects mismatched collection metadata", async () => {

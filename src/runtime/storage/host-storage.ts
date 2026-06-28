@@ -202,6 +202,42 @@ function normalizeStorageCollectionMetadataError(
   };
 }
 
+function formatStorageMetadataErrors(errors: readonly HostStorageMetadataError[]) {
+  return errors
+    .map((error) => `${error.entity}: ${error.message}`)
+    .join("; ");
+}
+
+export function createHostStorageMetadataResult({
+  mode,
+  collectionMetadata,
+  metadataErrors,
+}: {
+  mode: HostStorageMode;
+  collectionMetadata: StorageCollectionMetadata[];
+  metadataErrors: HostStorageMetadataError[];
+}): HostStorageMetadataResult {
+  if (metadataErrors.length > 0) {
+    return {
+      mode,
+      status: "error",
+      message: `Desktop storage metadata is partially unavailable. Failed collection(s): ${formatStorageMetadataErrors(metadataErrors)}`,
+      metadataAvailable: false,
+      collectionMetadata,
+      metadataErrors,
+    };
+  }
+
+  return {
+    mode,
+    status: "ready",
+    message: "Desktop storage metadata is available.",
+    metadataAvailable: collectionMetadata.length > 0,
+    collectionMetadata,
+    metadataErrors,
+  };
+}
+
 export async function loadHostStorageMetadata(
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<HostStorageMetadataResult> {
@@ -239,17 +275,11 @@ export async function loadHostStorageMetadata(
       return normalized ? [normalized] : [];
     });
 
-    return {
+    return createHostStorageMetadataResult({
       mode,
-      status: "ready",
-      message:
-        metadataErrors.length > 0
-          ? `Desktop storage metadata is partially available. ${metadataErrors.length} collection(s) could not be inspected.`
-          : "Desktop storage metadata is available.",
-      metadataAvailable: collectionMetadata.length > 0,
       collectionMetadata,
       metadataErrors,
-    };
+    });
   } catch (error) {
     return {
       mode,

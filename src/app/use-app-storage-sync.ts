@@ -90,6 +90,23 @@ export function decideAppStorageReload({
   return "proceed";
 }
 
+export function createStorageReloadLocalChangeToken({
+  savedSignatures,
+  currentSignatures,
+}: {
+  savedSignatures: AppStorageCollectionSignatures | null;
+  currentSignatures: AppStorageCollectionSignatures;
+}) {
+  if (!savedSignatures) return null;
+
+  const entries = APP_STORAGE_COLLECTION_KEYS.flatMap((collectionKey) =>
+    savedSignatures[collectionKey] === currentSignatures[collectionKey]
+      ? []
+      : [`${collectionKey}:${currentSignatures[collectionKey]}`],
+  );
+  return entries.length > 0 ? entries.join("\n") : null;
+}
+
 function createAppStorageSignatures(
   snapshot: AppStorageRecords,
 ): AppStorageCollectionSignatures {
@@ -251,16 +268,6 @@ function hasUnsavedSignature(
   return APP_STORAGE_COLLECTION_KEYS.some(
     (collectionKey) => unsavedSignatures[collectionKey] !== undefined,
   );
-}
-
-function createStorageReloadLocalChangeToken(
-  unsavedSignatures: PartialAppStorageCollectionSignatures,
-) {
-  const entries = APP_STORAGE_COLLECTION_KEYS.flatMap((collectionKey) => {
-    const signature = unsavedSignatures[collectionKey];
-    return signature === undefined ? [] : [`${collectionKey}:${signature}`];
-  });
-  return entries.length > 0 ? entries.join("\n") : null;
 }
 
 function hasAppStorageMetadata(metadata: AppStorageMetadata) {
@@ -742,9 +749,13 @@ export function useAppStorageSync({
 
   const reloadAppStorage =
     useCallback(async (): Promise<AppStorageReloadResult> => {
-      const localChangeToken = createStorageReloadLocalChangeToken(
-        unsavedSignatures.current,
+      const currentSignatures = createAppStorageSignatures(
+        currentAppStorageRecords.current,
       );
+      const localChangeToken = createStorageReloadLocalChangeToken({
+        savedSignatures: savedSignatures.current,
+        currentSignatures,
+      });
       const reloadDecision = decideAppStorageReload({
         activeStorageWork: hasActiveStorageWork(),
         localChangeToken,
@@ -773,9 +784,7 @@ export function useAppStorageSync({
       }
 
       confirmedReloadLocalChangeToken.current = null;
-      const reloadStartSignatures = createAppStorageSignatures(
-        currentAppStorageRecords.current,
-      );
+      const reloadStartSignatures = currentSignatures;
       cancelQueuedSaveDispatch();
       storageGeneration.current += 1;
       const generation = storageGeneration.current;
