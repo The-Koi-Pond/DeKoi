@@ -100,6 +100,8 @@ The short version:
   current host-storage adapter behind one future database swap point.
 - App storage sync tracks dirty collections and serializes collection-level
   replacements so the same collection does not have overlapping writes.
+- Desktop collection files report recoverable corruption/recovery-artifact
+  states and block autosave overwrite until a future explicit repair path.
 - Native DeKoi records come before legacy compatibility.
 
 ## Current Seed
