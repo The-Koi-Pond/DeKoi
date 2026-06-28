@@ -33,10 +33,10 @@ adapters.
 | --- | --- | --- | --- |
 | `app-settings` | `src/engine/app-settings.ts` | `AppSettings` | `src/runtime/storage/collections/app-settings.ts` |
 | `characters` | `src/engine/character.ts` | `CharacterRecord` | `src/runtime/storage/collections/character-storage.ts` |
-| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThread` | `src/runtime/storage/collections/roleplay-storage.ts` |
+| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThreadRecord` | `src/runtime/storage/collections/roleplay-storage.ts` |
 | `roleplay-entries` | `src/engine/roleplay.ts` | `RoleplayEntry` | `src/runtime/storage/collections/roleplay-entry-storage.ts` |
 | `lorebooks` | `src/engine/lorebook.ts` | `LorebookRecord` | `src/runtime/storage/collections/lorebook-storage.ts` |
-| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThread` | `src/runtime/storage/collections/messenger-storage.ts` |
+| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThreadRecord` | `src/runtime/storage/collections/messenger-storage.ts` |
 | `messenger-messages` | `src/engine/messenger.ts` | `MessengerMessage` | `src/runtime/storage/collections/messenger-message-storage.ts` |
 | `personas` | `src/engine/persona.ts` | `PersonaRecord` | `src/runtime/storage/collections/persona-storage.ts` |
 | `provider-connections` | `src/engine/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts` |
