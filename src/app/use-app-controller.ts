@@ -71,7 +71,12 @@ export function useAppController(): NavContextType {
     setSelectedSurface,
   });
 
-  const { commitAppStorageImport } = useAppStorageSync({
+  const {
+    checkAppStorageStale,
+    commitAppStorageImport,
+    reloadAppStorage,
+    storageHasUnsavedChanges,
+  } = useAppStorageSync({
     appSettings,
     characters,
     personas,
@@ -240,6 +245,7 @@ export function useAppController(): NavContextType {
     messengerStorageMode,
     messengerStorageStatus,
     messengerStorageMessage,
+    storageHasUnsavedChanges,
     rippleStates,
     remoteRuntimeUrl,
     appSettings,
@@ -284,8 +290,10 @@ export function useAppController(): NavContextType {
     updateRipple,
     deleteRipple,
     createStorageBundle,
+    checkAppStorageStale,
     importStorageBundle,
     importLegacyData,
+    reloadAppStorage,
     setRemoteRuntimeUrl,
     updateAppSettings,
     setSendOnEnterSurface,

@@ -3,10 +3,19 @@ import type { StorageEntity } from "./storage-entities";
 export type StorageMode = "desktop" | "remote" | "unavailable";
 export type StorageStatus = "ready" | "error";
 
+export type StorageCollectionMetadata = {
+  entity: StorageEntity;
+  exists: boolean;
+  byteLength: number | null;
+  updatedAtMs: number | null;
+  contentHash: string | null;
+};
+
 export type StorageResult = {
   mode: StorageMode;
   status: StorageStatus;
   message: string;
+  metadata?: StorageCollectionMetadata | null;
 };
 
 export function mergeStorageResults<T extends StorageResult>(
