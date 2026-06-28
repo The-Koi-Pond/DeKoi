@@ -22,6 +22,7 @@ import type { RippleInput } from "../../../engine/ripple-actions";
 import type { SurfaceId } from "../../../engine/surfaces";
 import type { AppSettings, ShoalSortMode } from "../../../engine/app-settings";
 import type {
+  AppStorageReplaceResult,
   DeKoiLegacyImportData,
   DeKoiStorageBundle,
 } from "../../runtime";
@@ -217,8 +218,8 @@ export interface NavRippleActions {
 
 export interface NavStorageBundleActions {
   createStorageBundle: () => DeKoiStorageBundle;
-  importStorageBundle: (bundle: DeKoiStorageBundle) => void;
-  importLegacyData: (data: DeKoiLegacyImportData) => void;
+  importStorageBundle: (bundle: DeKoiStorageBundle) => Promise<AppStorageReplaceResult>;
+  importLegacyData: (data: DeKoiLegacyImportData) => Promise<AppStorageReplaceResult>;
 }
 
 export interface NavCareActions {

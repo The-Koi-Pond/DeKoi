@@ -1,10 +1,13 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
   loadAppStorageSnapshot,
+  replaceAppStorageSnapshot,
   saveAppStorageCollections,
   saveAppStorageSnapshot,
   type AppStorageCollectionKey,
+  type AppStorageCollectionReplaceResult,
   type AppStorageRecords,
+  type AppStorageReplaceResult,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";
 export { loadAppSettings } from "./storage/collections/app-settings";
