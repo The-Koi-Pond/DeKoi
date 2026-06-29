@@ -240,7 +240,7 @@ fn openai_text(payload: &serde_json::Value) -> String {
                     .unwrap_or_else(|| {
                         first_text(choice.get("text").unwrap_or(&serde_json::Value::Null))
                     });
-                (!text.trim().is_empty()).then(|| text)
+                (!text.trim().is_empty()).then_some(text)
             })
         })
         .unwrap_or_default()
@@ -319,7 +319,7 @@ fn google_text(payload: &serde_json::Value) -> String {
         .and_then(|candidates| {
             candidates.iter().find_map(|candidate| {
                 let text = first_text(candidate.get("content").unwrap_or(&serde_json::Value::Null));
-                (!text.trim().is_empty()).then(|| text)
+                (!text.trim().is_empty()).then_some(text)
             })
         })
         .unwrap_or_default()
