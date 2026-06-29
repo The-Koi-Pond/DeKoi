@@ -31,6 +31,7 @@ import {
 } from "../../src/engine/roleplay";
 import {
   APP_STORAGE_COLLECTION_KEYS,
+  getGenerationConnectionReadiness,
   saveAppStorageCollections,
   type AppStorageMetadata,
   type AppStorageRecords,
@@ -1266,6 +1267,68 @@ test("provider connection storage skips removed non-remote lane records", () => 
       status: "ready",
     }),
   );
+});
+
+test("provider generation readiness blocks desktop-key providers in browser mode", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const openAiConnection = normalizeProviderConnectionRecord(
+    {
+      id: "connection-openai",
+      schemaVersion: 1,
+      kind: "remote-runtime",
+      provider: "openai",
+      label: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      summary: "",
+      status: "ready",
+      modelLabel: "gpt-4o-mini",
+      keeperDefault: false,
+      maxContext: null,
+      maxOutput: null,
+      createdAt,
+      updatedAt: createdAt,
+    },
+    { preserveReadyStatus: true },
+  );
+  const customConnection = normalizeProviderConnectionRecord(
+    {
+      id: "connection-custom",
+      schemaVersion: 1,
+      kind: "remote-runtime",
+      provider: "custom",
+      label: "Local custom",
+      baseUrl: "http://localhost:11434/v1",
+      model: "local-model",
+      summary: "",
+      status: "ready",
+      modelLabel: "local-model",
+      keeperDefault: false,
+      maxContext: null,
+      maxOutput: null,
+      createdAt,
+      updatedAt: createdAt,
+    },
+    { preserveReadyStatus: true },
+  );
+
+  expect(openAiConnection).not.toBeNull();
+  expect(customConnection).not.toBeNull();
+  if (!openAiConnection || !customConnection) {
+    throw new Error("Expected test provider connections to normalize.");
+  }
+
+  const blocked = getGenerationConnectionReadiness(openAiConnection);
+  expect(blocked).toEqual({
+    ready: false,
+    message: expect.stringContaining("desktop app"),
+  });
+
+  const ready = getGenerationConnectionReadiness(customConnection);
+  expect(ready.ready).toBe(true);
+  if (ready.ready) {
+    expect(ready.connection.id).toBe("connection-custom");
+  }
 });
 
 test("storage bundles merge split transcript rows against final thread records", () => {

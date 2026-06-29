@@ -13,11 +13,7 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
-import {
-  getProviderConnectionById,
-  getProviderConnectionGenerationBlocker,
-  isProviderConnectionReady,
-} from "../../../engine/provider-connection";
+import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
 import {
   appendMessengerMessages,
@@ -30,6 +26,7 @@ import {
 import {
   generateMessengerThreadReply,
   formatGenerationFailureNotice,
+  getGenerationConnectionReadiness,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
@@ -293,26 +290,25 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       null;
     if (!commitThread) return false;
 
-    const commitConnection = getProviderConnectionById(
+    const selectedConnection = getProviderConnectionById(
       commitThread.providerConnectionId ??
         nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
-    const generationBlocker =
-      getProviderConnectionGenerationBlocker(commitConnection);
-    if (generationBlocker || !isProviderConnectionReady(commitConnection)) {
+    const connectionReadiness =
+      getGenerationConnectionReadiness(selectedConnection);
+    if (!connectionReadiness.ready) {
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message:
-          generationBlocker ?? "Create or select a connection before generating.",
+        message: connectionReadiness.message,
       });
       return false;
     }
 
-    const sendRuntime = selectMessengerGenerationRuntime(
-      getMessengerGenerationModeForConnection(commitConnection),
-    );
+    const commitConnection = connectionReadiness.connection;
+    const sendMode = getMessengerGenerationModeForConnection(commitConnection);
+    const sendRuntime = selectMessengerGenerationRuntime(sendMode);
     const sendPersona = commitThread.activePersonaId
       ? nav.personas.find(
           (persona) => persona.id === commitThread.activePersonaId,
@@ -359,7 +355,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        mode: getMessengerGenerationModeForConnection(commitConnection),
+        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,

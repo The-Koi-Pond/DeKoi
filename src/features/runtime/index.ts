@@ -64,9 +64,11 @@ export {
 } from "./storage";
 export {
   formatGenerationFailureNotice,
+  getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   isGenerationRuntimeMode,
   selectGenerationRuntime,
+  type GenerationConnectionReadiness,
   type GenerationRuntimeMode,
   type GenerationRuntimeSnapshot,
 } from "./generation";

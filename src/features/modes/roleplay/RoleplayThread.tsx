@@ -14,13 +14,12 @@ import {
 import type { RoleplayEntry } from "../../../engine/roleplay";
 import {
   getProviderConnectionById,
-  getProviderConnectionGenerationBlocker,
-  isProviderConnectionReady,
 } from "../../../engine/provider-connection";
 import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
   formatGenerationFailureNotice,
+  getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   selectGenerationRuntime,
 } from "../../runtime";
@@ -173,26 +172,25 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       null;
     if (!commitThread) return false;
 
-    const commitConnection = getProviderConnectionById(
+    const selectedConnection = getProviderConnectionById(
       commitThread.providerConnectionId ??
         nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
-    const generationBlocker =
-      getProviderConnectionGenerationBlocker(commitConnection);
-    if (generationBlocker || !isProviderConnectionReady(commitConnection)) {
+    const connectionReadiness =
+      getGenerationConnectionReadiness(selectedConnection);
+    if (!connectionReadiness.ready) {
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message:
-          generationBlocker ?? "Create or select a connection before generating.",
+        message: connectionReadiness.message,
       });
       return false;
     }
 
-    const sendRuntime = selectGenerationRuntime(
-      getGenerationModeForConnection(commitConnection),
-    );
+    const commitConnection = connectionReadiness.connection;
+    const sendMode = getGenerationModeForConnection(commitConnection);
+    const sendRuntime = selectGenerationRuntime(sendMode);
     const sendPersona = commitThread.activePersonaId
       ? nav.personas.find(
           (persona) => persona.id === commitThread.activePersonaId,
@@ -228,7 +226,7 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        mode: getGenerationModeForConnection(commitConnection),
+        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,

@@ -2,9 +2,11 @@ export {
   formatGenerationFailureNotice,
 } from "./generation-errors";
 export {
+  getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   isGenerationRuntimeMode,
   selectGenerationRuntime,
+  type GenerationConnectionReadiness,
   type GenerationRuntimeMode,
   type GenerationRuntimeSnapshot,
 } from "./generation-runtime";
