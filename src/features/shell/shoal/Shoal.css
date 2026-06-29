@@ -567,6 +567,45 @@
   line-height: 1.4;
 }
 
+.chat-settings-notice {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(227, 165, 52, 0.26);
+  border-radius: 9px;
+  background: rgba(227, 165, 52, 0.08);
+  color: var(--mist);
+}
+
+.chat-settings-notice p {
+  margin: 0;
+  color: var(--mist);
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.chat-settings-notice button {
+  justify-self: start;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(227, 165, 52, 0.34);
+  border-radius: 8px;
+  background: rgba(227, 165, 52, 0.1);
+  color: var(--amber-hot);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-settings-notice button:hover,
+.chat-settings-notice button:focus-visible {
+  border-color: rgba(227, 165, 52, 0.52);
+  background: rgba(227, 165, 52, 0.16);
+  color: var(--foam);
+  outline: none;
+}
+
 .chat-settings-card .slider-field .sl-top {
   display: flex;
   align-items: baseline;

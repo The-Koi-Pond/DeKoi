@@ -239,6 +239,10 @@ that each documented runtime adapter uses the expected repository entity alias.
 Relationships are stored as IDs. Cleanup is implemented by the owner action or
 storage adapter, not by UI components.
 
+Messenger settings may surface stale relationship IDs from hand-edited,
+partially imported, or older data and call the Messenger owner actions to clear
+only the missing thread references.
+
 Current relationships:
 
 | From | Field | Points to | Cleanup expectation |

@@ -203,13 +203,13 @@ Implemented:
 - Edit and delete messages.
 - Configure thread participants, persona, lorebooks, connection, and custom
   Messenger prompt through the Shoal chat settings rail.
-- Show missing/deleted references gracefully in several paths.
+- Show no-active-thread, empty-catalog, and missing/deleted reference states in
+  Messenger settings, with narrow actions to create required catalog records or
+  clear stale thread references.
+- Keep custom prompt editing labeled as Messenger-specific.
 
 Next work:
 
-- Finish polish on thread settings states, including disabled/empty cases and
-  clearer missing-reference summaries.
-- Review custom system prompt UX and make sure it is Messenger-specific.
 - Improve generated-reply warnings so provider failures are understandable to a
   nontechnical user.
 - Keep Messenger UI out of Roleplay internals and keep prompt assembly in
@@ -242,8 +242,8 @@ Implemented:
 
 Next work:
 
-- Build actual Roleplay settings UX instead of the disabled header settings
-  button in the thread surface.
+- Build actual Roleplay settings UX instead of the current not-ready settings
+  notice.
 - Decide which scene fields are first-class UI, not just stored fields.
 - Improve scene framing, speaker presentation, and continuation controls.
 - Keep Roleplay records separate from Messenger where presentation/continuity
