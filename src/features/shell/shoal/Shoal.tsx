@@ -799,6 +799,27 @@ function ChatSettingsDrawer({
   );
 }
 
+function ChatSettingsNotice({
+  actionLabel,
+  children,
+  onAction,
+}: {
+  actionLabel?: string;
+  children: ReactNode;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="chat-settings-notice">
+      <p>{children}</p>
+      {actionLabel && onAction && (
+        <button type="button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ChatSettingsRail({
   chatSettingsOpen,
   nav,
@@ -950,6 +971,41 @@ function ChatSettingsRail({
     );
   }
 
+  function resolveMissingMessengerConnection(connectionId: string | null) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadProviderConnection(
+        thread,
+        connectionId,
+        updatedAt,
+      ),
+    );
+  }
+
+  function clearMissingMessengerCompanions() {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadParticipants(
+        thread,
+        thread.characterIds.filter((characterId) =>
+          nav.characters.some((character) => character.id === characterId),
+        ),
+        updatedAt,
+      ),
+    );
+    setCompanionSelectorOpen(false);
+  }
+
+  function clearMissingMessengerLorebooks() {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadLorebooks(
+        thread,
+        thread.lorebookIds.filter((lorebookId) =>
+          nav.lorebooks.some((lorebook) => lorebook.id === lorebookId),
+        ),
+        updatedAt,
+      ),
+    );
+  }
+
   function handleMessengerSystemPromptModeChange(
     systemPromptMode: MessengerSystemPromptMode,
   ) {
@@ -1003,32 +1059,173 @@ function ChatSettingsRail({
       ),
     [nav.providerConnections],
   );
-  const defaultConnection =
-    sanitizedProviderConnections.find(
-      (connection) => connection.id === nav.appSettings.activeMessengerConnectionId,
-    ) ??
-    sanitizedProviderConnections[0] ??
-    null;
-  const defaultConnectionProvider = defaultConnection
-    ? getProviderConnectionProviderOption(defaultConnection.provider)
+  const settingsCharacterById = useMemo(
+    () => new Map(nav.characters.map((character) => [character.id, character])),
+    [nav.characters],
+  );
+  const settingsPersonaById = useMemo(
+    () => new Map(nav.personas.map((persona) => [persona.id, persona])),
+    [nav.personas],
+  );
+  const settingsLorebookById = useMemo(
+    () => new Map(nav.lorebooks.map((lorebook) => [lorebook.id, lorebook])),
+    [nav.lorebooks],
+  );
+  const settingsConnectionById = useMemo(
+    () =>
+      new Map(
+        sanitizedProviderConnections.map((connection) => [
+          connection.id,
+          connection,
+        ]),
+      ),
+    [sanitizedProviderConnections],
+  );
+  const configuredDefaultConnection =
+    settingsConnectionById.get(nav.appSettings.activeMessengerConnectionId) ?? null;
+  const firstAvailableConnection = sanitizedProviderConnections[0] ?? null;
+  const fallbackConnection =
+    configuredDefaultConnection ?? firstAvailableConnection;
+  const fallbackConnectionProvider = fallbackConnection
+    ? getProviderConnectionProviderOption(fallbackConnection.provider)
     : null;
+  const fallbackConnectionPrefix = configuredDefaultConnection
+    ? "App default"
+    : "First available";
+  const missingConnectionResolution = configuredDefaultConnection
+    ? {
+        actionLabel: "Use app default",
+        connectionId: configuredDefaultConnection.id,
+      }
+    : firstAvailableConnection
+      ? {
+          actionLabel: "Use first available",
+          connectionId: firstAvailableConnection.id,
+        }
+      : {
+          actionLabel: "Clear missing",
+          connectionId: null,
+        };
   const messengerConnectionValue = activeMessengerThread?.providerConnectionId ?? "";
-  const selectedCompanionCount = activeMessengerThread?.characterIds.length ?? 0;
+  const selectedConnection = messengerConnectionValue
+    ? settingsConnectionById.get(messengerConnectionValue) ?? null
+    : null;
+  const hasMissingConnection = !!messengerConnectionValue && !selectedConnection;
+  const connectionSummary = !activeMessengerThread
+    ? "No active Messenger thread"
+    : hasMissingConnection
+      ? "Missing connection"
+      : selectedConnection
+        ? selectedConnection.label
+        : fallbackConnection
+          ? `${fallbackConnectionPrefix}: ${fallbackConnection.label}`
+          : "No connection available";
+  const selectedPersonaId = activeMessengerThread?.activePersonaId ?? "";
+  const selectedPersona = selectedPersonaId
+    ? settingsPersonaById.get(selectedPersonaId) ?? null
+    : null;
+  const hasMissingPersona = !!selectedPersonaId && !selectedPersona;
+  const personaSummary = !activeMessengerThread
+    ? "No active Messenger thread"
+    : hasMissingPersona
+      ? "Missing persona"
+      : selectedPersona
+        ? selectedPersona.displayName
+        : "Anonymous";
+  const selectedCompanionIds = activeMessengerThread?.characterIds ?? [];
   const selectedCompanionNames = activeMessengerThread
     ? activeMessengerThread.characterIds.flatMap((characterId) => {
-        const character = nav.characters.find(
-          (candidate) => candidate.id === characterId,
-        );
+        const character = settingsCharacterById.get(characterId);
         return character ? [character.displayName] : [];
       })
     : [];
+  const missingCompanionIds = selectedCompanionIds.filter(
+    (characterId) => !settingsCharacterById.has(characterId),
+  );
+  const selectedCompanionCount = selectedCompanionIds.length;
+  const missingCompanionCount = missingCompanionIds.length;
+  const companionDrawerSummary = !activeMessengerThread
+    ? "No active Messenger thread"
+    : missingCompanionCount > 0
+      ? `${selectedCompanionNames.length} selected, ${missingCompanionCount} missing`
+      : selectedCompanionCount === 0
+        ? "No companions selected"
+        : `${selectedCompanionCount} selected`;
   const companionSelectionLabel =
-    selectedCompanionNames.join(", ") || "Choose companions";
-  const selectedLorebookCount = activeMessengerThread?.lorebookIds.length ?? 0;
+    selectedCompanionNames.join(", ") ||
+    (missingCompanionCount > 0
+      ? `${missingCompanionCount} missing companion${
+          missingCompanionCount === 1 ? "" : "s"
+        }`
+      : "Choose companions");
+  const selectedLorebookIds = activeMessengerThread?.lorebookIds ?? [];
+  const selectedLorebookNames = activeMessengerThread
+    ? activeMessengerThread.lorebookIds.flatMap((lorebookId) => {
+        const lorebook = settingsLorebookById.get(lorebookId);
+        return lorebook ? [lorebook.title] : [];
+      })
+    : [];
+  const missingLorebookIds = selectedLorebookIds.filter(
+    (lorebookId) => !settingsLorebookById.has(lorebookId),
+  );
+  const selectedLorebookCount = selectedLorebookIds.length;
+  const missingLorebookCount = missingLorebookIds.length;
+  const lorebookDrawerSummary = !activeMessengerThread
+    ? "No active Messenger thread"
+    : missingLorebookCount > 0
+      ? `${selectedLorebookNames.length} selected, ${missingLorebookCount} missing`
+      : selectedLorebookCount === 0
+        ? "No lorebooks selected"
+        : `${selectedLorebookCount} lorebook${
+            selectedLorebookCount === 1 ? "" : "s"
+          }`;
   const systemPromptMode = activeMessengerThread?.systemPromptMode ?? "default";
 
+  if (nav.selectedSurface !== MESSENGER) {
+    return (
+      <aside
+        className="shoal chat-settings-shoal"
+        aria-label={`The Shoal - ${settingsLabel}`}
+      >
+        <ShoalTopBar
+          chatSettingsOpen={chatSettingsOpen}
+          nav={nav}
+          onOpenChatSettings={onOpenChatSettings}
+          onToggleShoal={onToggleShoal}
+          shoalClosed={shoalClosed}
+        />
+        <div className="shoal-body">
+          <div className="shoal-head chat-settings-head">
+            <div className="shoal-title chat-settings-title">
+              <h2>{settingsLabel}</h2>
+              <button
+                type="button"
+                className="chat-settings-close"
+                aria-label="Close chat settings"
+                title="Close chat settings"
+                onClick={onCloseChatSettings}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div className="shoal-list chat-settings-list">
+            <ChatSettingsNotice>
+              Roleplay settings are not ready yet. Open a Messenger thread to
+              adjust Messenger-specific connection, persona, companion, prompt,
+              and lore settings.
+            </ChatSettingsNotice>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="shoal chat-settings-shoal" aria-label={`The Shoal — ${settingsLabel}`}>
+    <aside
+      className="shoal chat-settings-shoal"
+      aria-label={`The Shoal - ${settingsLabel}`}
+    >
       <ShoalTopBar
         chatSettingsOpen={chatSettingsOpen}
         nav={nav}
@@ -1082,10 +1279,19 @@ function ChatSettingsRail({
           )}
         </div>
         <div className="shoal-list chat-settings-list">
+          {!activeMessengerThread && (
+            <ChatSettingsNotice
+              actionLabel="New Messenger"
+              onAction={() => nav.createMessengerThread()}
+            >
+              Open or create a Messenger thread to edit connection, persona,
+              companion, prompt, and lore settings.
+            </ChatSettingsNotice>
+          )}
           <ChatSettingsDrawer
             drawerId="connection"
             open={openDrawers.connection}
-            summary="Provider route"
+            summary={connectionSummary}
             title="Connection"
             onToggle={toggleChatSettingsDrawer}
           >
@@ -1103,14 +1309,25 @@ function ChatSettingsRail({
                 }
               >
                 {sanitizedProviderConnections.length === 0 ? (
-                  <option value="">No connections</option>
+                  hasMissingConnection ? (
+                    <option value={messengerConnectionValue} disabled>
+                      Missing connection
+                    </option>
+                  ) : (
+                    <option value="">No connections</option>
+                  )
                 ) : (
                   <>
+                    {hasMissingConnection && (
+                      <option value={messengerConnectionValue} disabled>
+                        Missing connection
+                      </option>
+                    )}
                     <option value="">
-                      App default ·{" "}
-                      {defaultConnection && defaultConnectionProvider
-                        ? `${defaultConnection.label} · ${defaultConnectionProvider.label} · ${
-                            defaultConnection.model || "No model"
+                      {fallbackConnectionPrefix} ·{" "}
+                      {fallbackConnection && fallbackConnectionProvider
+                        ? `${fallbackConnection.label} · ${fallbackConnectionProvider.label} · ${
+                            fallbackConnection.model || "No model"
                           }`
                         : "No connection"}
                     </option>
@@ -1130,12 +1347,35 @@ function ChatSettingsRail({
                 )}
               </select>
             </label>
+            {hasMissingConnection && (
+              <ChatSettingsNotice
+                actionLabel={missingConnectionResolution.actionLabel}
+                onAction={() =>
+                  resolveMissingMessengerConnection(
+                    missingConnectionResolution.connectionId,
+                  )
+                }
+              >
+                This thread points to a connection that is no longer saved.
+                Choose another connection or clear the missing reference.
+              </ChatSettingsNotice>
+            )}
+            {activeMessengerThread &&
+              sanitizedProviderConnections.length === 0 &&
+              !hasMissingConnection && (
+                <ChatSettingsNotice
+                  actionLabel="Create connection"
+                  onAction={() => nav.setView({ kind: "connections", mode: "new" })}
+                >
+                  Create a connection before Messenger can generate replies.
+                </ChatSettingsNotice>
+              )}
           </ChatSettingsDrawer>
 
           <ChatSettingsDrawer
             drawerId="persona"
             open={openDrawers.persona}
-            summary="Speaker identity"
+            summary={personaSummary}
             title="Persona"
             onToggle={toggleChatSettingsDrawer}
           >
@@ -1143,12 +1383,15 @@ function ChatSettingsRail({
               <span>Active persona</span>
               <select
                 className="pondsel"
-                value={activeMessengerThread?.activePersonaId ?? ""}
+                value={selectedPersonaId}
                 disabled={!activeMessengerThread}
                 onChange={(event) =>
                   handleMessengerPersonaChange(event.currentTarget.value)
                 }
               >
+                {hasMissingPersona && (
+                  <option value={selectedPersonaId}>Missing persona</option>
+                )}
                 <option value="">Anonymous</option>
                 {nav.personas.map((persona) => (
                   <option value={persona.id} key={persona.id}>
@@ -1157,12 +1400,28 @@ function ChatSettingsRail({
                 ))}
               </select>
             </label>
+            {hasMissingPersona && (
+              <ChatSettingsNotice
+                actionLabel="Use Anonymous"
+                onAction={() => handleMessengerPersonaChange("")}
+              >
+                The selected persona is no longer saved. Choose Anonymous or
+                another persona before sending as that identity.
+              </ChatSettingsNotice>
+            )}
+            {activeMessengerThread &&
+              nav.personas.length === 0 &&
+              !hasMissingPersona && (
+                <p className="chat-settings-empty-line">
+                  No personas yet. Messages can still send as Anonymous.
+                </p>
+              )}
           </ChatSettingsDrawer>
 
           <ChatSettingsDrawer
             drawerId="companions"
             open={openDrawers.companions}
-            summary={`${selectedCompanionCount} selected`}
+            summary={companionDrawerSummary}
             title="Companions"
             onToggle={toggleChatSettingsDrawer}
           >
@@ -1217,6 +1476,34 @@ function ChatSettingsRail({
                     })}
                   </div>
                 )}
+              {missingCompanionCount > 0 && (
+                <ChatSettingsNotice
+                  actionLabel="Clear missing"
+                  onAction={clearMissingMessengerCompanions}
+                >
+                  {missingCompanionCount} selected companion
+                  {missingCompanionCount === 1 ? " is" : "s are"} no longer
+                  saved. Missing companions are skipped when Messenger builds a
+                  reply.
+                </ChatSettingsNotice>
+              )}
+              {activeMessengerThread &&
+                nav.characters.length === 0 &&
+                missingCompanionCount === 0 && (
+                  <ChatSettingsNotice
+                    actionLabel="Create companion"
+                    onAction={() => nav.setView({ kind: "companions", mode: "new" })}
+                  >
+                    Create a companion before Messenger can generate replies.
+                  </ChatSettingsNotice>
+                )}
+              {activeMessengerThread &&
+                nav.characters.length > 0 &&
+                selectedCompanionCount === 0 && (
+                  <p className="chat-settings-empty-line">
+                    Choose at least one companion before generating replies.
+                  </p>
+                )}
             </div>
           </ChatSettingsDrawer>
 
@@ -1228,11 +1515,11 @@ function ChatSettingsRail({
                 ? "Custom system prompt"
                 : "Default system prompt"
             }
-            title="Prompt"
+            title="Messenger Prompt"
             onToggle={toggleChatSettingsDrawer}
           >
             <label className="chat-settings-field">
-              <span>System prompt</span>
+              <span>Messenger system prompt</span>
               <div className="chat-settings-prompt-select">
                 <select
                   className="pondsel"
@@ -1262,14 +1549,33 @@ function ChatSettingsRail({
           <ChatSettingsDrawer
             drawerId="lorebooks"
             open={openDrawers.lorebooks}
-            summary={`${selectedLorebookCount} lorebooks`}
+            summary={lorebookDrawerSummary}
             title="Lorebooks"
             onToggle={toggleChatSettingsDrawer}
           >
             <div className="chat-settings-field">
               <span>Selected lorebooks</span>
+              {missingLorebookCount > 0 && (
+                <ChatSettingsNotice
+                  actionLabel="Clear missing"
+                  onAction={clearMissingMessengerLorebooks}
+                >
+                  {missingLorebookCount} selected lorebook
+                  {missingLorebookCount === 1 ? " is" : "s are"} no longer
+                  saved. Missing lorebooks are skipped when Messenger builds a
+                  reply.
+                </ChatSettingsNotice>
+              )}
               {nav.lorebooks.length === 0 ? (
-                <p className="chat-settings-empty-line">No lorebooks yet.</p>
+                <ChatSettingsNotice
+                  actionLabel="Create lorebook"
+                  onAction={() =>
+                    nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
+                  }
+                >
+                  No lorebooks yet. Messenger can start without lore, or you can
+                  create one for reusable context.
+                </ChatSettingsNotice>
               ) : (
                 <div className="chat-settings-check-list">
                   {nav.lorebooks.map((lorebook) => {
@@ -1378,7 +1684,7 @@ function ChatSettingsRail({
             onSubmit={savePromptEditor}
           >
             <div className="prompt-editor-head">
-              <b id="messenger-prompt-editor-title">System Prompt</b>
+              <b id="messenger-prompt-editor-title">Messenger System Prompt</b>
               <button
                 type="button"
                 aria-label="Close system prompt editor"
@@ -1388,7 +1694,7 @@ function ChatSettingsRail({
               </button>
             </div>
             <label className="prompt-editor-field">
-              <span>Prompt</span>
+              <span>Prompt text</span>
               <textarea
                 autoFocus
                 value={promptEditor.value}
