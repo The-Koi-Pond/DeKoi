@@ -6,7 +6,7 @@ import {
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
   renameMessengerThread as renameMessengerThreadRecord,
-} from "../../../engine/messenger-actions";
+} from "../../../engine/modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,

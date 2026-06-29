@@ -153,10 +153,12 @@ The short version:
 
 ## Current Shape
 
-- `src/engine/messenger.ts` and `src/engine/messenger-actions.ts` define native
-  Messenger records and mutations.
-- `src/engine/roleplay.ts` and `src/engine/roleplay-actions.ts` define the first
-  Roleplay scene records.
+- `src/engine/messenger.ts` and
+  `src/engine/modes/messenger/messenger-actions.ts` define native Messenger
+  records and mutations.
+- `src/engine/roleplay.ts` and
+  `src/engine/modes/roleplay/roleplay-actions.ts` define the first Roleplay
+  scene records.
 - `src/engine/contracts/types/character.ts`,
   `src/engine/contracts/types/persona.ts`,
   `src/engine/contracts/types/lorebook.ts`, and

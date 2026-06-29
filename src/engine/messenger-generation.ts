@@ -5,7 +5,7 @@ import {
   type MessengerMessage,
   type MessengerThread,
 } from "./messenger";
-import { getNextMessengerCompanion } from "./messenger-actions";
+import { getNextMessengerCompanion } from "./modes/messenger/messenger-actions";
 import type { PersonaRecord } from "./contracts/types/persona";
 import type { ProviderConnectionRecord } from "./provider-connection";
 import {

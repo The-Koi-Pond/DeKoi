@@ -15,7 +15,7 @@ import {
   setMessengerThreadPersona,
   setMessengerThreadProviderConnection,
   setMessengerThreadSystemPrompt,
-} from "../../../engine/messenger-actions";
+} from "../../../engine/modes/messenger/messenger-actions";
 import { getMessengerThreadActivityAt } from "../../../engine/messenger";
 import {
   getRoleplayThreadPreview,

@@ -17,8 +17,8 @@ import type {
   NavViewActions,
   NavViewState,
 } from '../../navigation'
-import { setRoleplayThreadPersona } from '../../../engine/roleplay-actions'
-import { setMessengerThreadPersona } from '../../../engine/messenger-actions'
+import { setRoleplayThreadPersona } from '../../../engine/modes/roleplay/roleplay-actions'
+import { setMessengerThreadPersona } from '../../../engine/modes/messenger/messenger-actions'
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,

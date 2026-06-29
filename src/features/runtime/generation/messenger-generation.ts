@@ -10,7 +10,7 @@ import {
 import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,
-} from "../../../engine/messenger-actions";
+} from "../../../engine/modes/messenger/messenger-actions";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";

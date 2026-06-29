@@ -13,7 +13,7 @@ import {
   appendMessengerMessages,
   createAnonymousMessengerMessage,
   createMessengerThread,
-} from "../../src/engine/messenger-actions";
+} from "../../src/engine/modes/messenger/messenger-actions";
 import {
   attachMessengerMessagesToThreads,
   extractMessengerMessages,
@@ -23,7 +23,7 @@ import {
   appendRoleplayEntries,
   createNarrationRoleplayEntry,
   createRoleplayThread,
-} from "../../src/engine/roleplay-actions";
+} from "../../src/engine/modes/roleplay/roleplay-actions";
 import {
   attachRoleplayEntriesToThreads,
   extractRoleplayEntries,
