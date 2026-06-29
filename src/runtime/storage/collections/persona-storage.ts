@@ -1,4 +1,4 @@
-import type { PersonaNoteRole, PersonaRecord } from "../../../engine/persona";
+import type { PersonaNoteRole, PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   isRecord,
   readNullableString,

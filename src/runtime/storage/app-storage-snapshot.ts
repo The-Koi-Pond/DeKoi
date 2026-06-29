@@ -1,16 +1,16 @@
-import type { CharacterRecord } from "../../engine/character";
+import type { CharacterRecord } from "../../engine/contracts/types/character";
 import {
   attachRoleplayEntriesToThreads,
   type RoleplayThread,
 } from "../../engine/roleplay";
-import type { LorebookRecord } from "../../engine/lorebook";
+import type { LorebookRecord } from "../../engine/contracts/types/lorebook";
 import {
   attachMessengerMessagesToThreads,
   type MessengerThread,
 } from "../../engine/messenger";
-import type { PersonaRecord } from "../../engine/persona";
+import type { PersonaRecord } from "../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../engine/provider-connection";
-import type { RippleState } from "../../engine/ripples";
+import type { RippleState } from "../../engine/contracts/types/ripples";
 import {
   loadAppSettingsFromStorage,
   saveAppSettingsToStorage,

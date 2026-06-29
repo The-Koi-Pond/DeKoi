@@ -1,4 +1,4 @@
-import type { CharacterNoteRole, CharacterRecord } from "../../../engine/character";
+import type { CharacterNoteRole, CharacterRecord } from "../../../engine/contracts/types/character";
 import {
   isRecord,
   readNullableString,

@@ -2,7 +2,7 @@ import {
   isProviderConnectionId,
   type ProviderConnectionId,
 } from "./provider-connection";
-import { MESSENGER, type SurfaceId } from "./surfaces";
+import { MESSENGER, type SurfaceId } from "./contracts/constants/surfaces";
 
 const MAX_SURFACE_STATUS_LENGTH = 80;
 

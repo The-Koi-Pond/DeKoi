@@ -50,7 +50,7 @@
             </tr>
             <tr>
               <td><code>src/engine</code></td>
-              <td>React-free records, pure actions, surface constants, and provider-neutral generation request assembly.</td>
+              <td>React-free records, contract leaf modules, pure actions, surface constants, and provider-neutral generation request assembly.</td>
               <td>React, browser helpers, feature UI, runtime adapters, Tauri, or raw provider transport.</td>
               <td><code>pnpm check:frontend-boundaries</code></td>
             </tr>
@@ -77,6 +77,38 @@
               <td>Desktop host commands, app-data collection storage, native dialogs, provider secrets, and desktop runtime dispatch.</td>
               <td>React UI concerns or TypeScript product rules.</td>
               <td><code>pnpm check:desktop-contracts</code>, <code>pnpm check:rust</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Engine Contract Modules</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>src/engine/contracts/types/character.ts</code></td>
+              <td>Companion/character record contract types.</td>
+            </tr>
+            <tr>
+              <td><code>src/engine/contracts/types/persona.ts</code></td>
+              <td>Persona record contract types.</td>
+            </tr>
+            <tr>
+              <td><code>src/engine/contracts/types/lorebook.ts</code></td>
+              <td>Lorebook record contract types.</td>
+            </tr>
+            <tr>
+              <td><code>src/engine/contracts/types/ripples.ts</code></td>
+              <td>Ripple state and owner contract types.</td>
+            </tr>
+            <tr>
+              <td><code>src/engine/contracts/constants/surfaces.ts</code></td>
+              <td>Surface IDs, labels, and metadata constants.</td>
             </tr>
           </tbody>
         </table>

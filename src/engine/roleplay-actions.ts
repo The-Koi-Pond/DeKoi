@@ -1,6 +1,6 @@
-import type { CharacterRecord } from "./character";
+import type { CharacterRecord } from "./contracts/types/character";
 import type { RoleplayEntry, RoleplayThread } from "./roleplay";
-import type { PersonaRecord } from "./persona";
+import type { PersonaRecord } from "./contracts/types/persona";
 
 function cleanText(value: string | undefined, fallback = "") {
   return value?.trim() || fallback;

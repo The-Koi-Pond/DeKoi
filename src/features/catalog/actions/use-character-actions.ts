@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import {
   createCharacterRecord,
   deleteCharacterRecord,

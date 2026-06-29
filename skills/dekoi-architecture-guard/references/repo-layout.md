@@ -70,21 +70,21 @@ src/engine/roleplay.ts
 src/engine/roleplay-actions.ts
   Roleplay thread records, scene records, and mutations.
 
-src/engine/character.ts
+src/engine/contracts/types/character.ts
 src/engine/character-actions.ts
-src/engine/persona.ts
+src/engine/contracts/types/persona.ts
 src/engine/persona-actions.ts
-src/engine/lorebook.ts
+src/engine/contracts/types/lorebook.ts
 src/engine/lorebook-actions.ts
 src/engine/provider-connection.ts
 src/engine/provider-connection-actions.ts
-src/engine/ripples.ts
+src/engine/contracts/types/ripples.ts
 src/engine/ripple-actions.ts
-  Catalog/context records and deterministic mutations.
+  Catalog/context record contracts and deterministic mutations.
 
 src/engine/app-settings.ts
 src/engine/project-plan.ts
-src/engine/surfaces.ts
+src/engine/contracts/constants/surfaces.ts
   App-level native records, planning records, and surface contracts.
 ```
 
@@ -98,7 +98,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
-src/engine/ripples         Ripple records and pure actions.
+src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports only when real adapters need them.
 ```
 

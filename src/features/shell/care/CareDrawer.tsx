@@ -17,7 +17,7 @@ import { NumberField } from "../../../shared/ui/primitives/NumberField";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Chip } from "../../../shared/ui/primitives/Chip";
 import { SettingSection } from "./SettingSection";
-import { ROLEPLAY, MESSENGER, RESERVED } from "../../../engine/surfaces";
+import { ROLEPLAY, MESSENGER, RESERVED } from "../../../engine/contracts/constants/surfaces";
 import {
   getDeKoiStorageBundleCounts,
   exportDesktopBundleFile,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SURFACES, type SurfaceId } from "../../../engine/surfaces";
+import { SURFACES, type SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import "./koi-card.css";
 
 interface KoiCardProps {

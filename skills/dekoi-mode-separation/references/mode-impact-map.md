@@ -58,7 +58,7 @@ Must not own:
 
 Owner paths:
 
-- `src/engine/ripples.ts`
+- `src/engine/contracts/types/ripples.ts`
 - `src/engine/ripple-actions.ts`
 - `src/features/runtime/ripples`
 

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { MessengerThread } from "../../../engine/messenger";
 import {
   clearMessengerMessages,
@@ -7,7 +7,7 @@ import {
   deleteMessengerThread as deleteMessengerThreadRecord,
   renameMessengerThread as renameMessengerThreadRecord,
 } from "../../../engine/messenger-actions";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,

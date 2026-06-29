@@ -11,10 +11,10 @@ import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,
 } from "../../../engine/messenger-actions";
-import type { CharacterRecord } from "../../../engine/character";
-import type { LorebookRecord } from "../../../engine/lorebook";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
+import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import {
   getGenerationModeForConnection,

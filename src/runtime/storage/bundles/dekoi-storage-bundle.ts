@@ -1,4 +1,4 @@
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import {
   extractRoleplayEntries,
   toRoleplayThreadRecord,
@@ -6,7 +6,7 @@ import {
   type RoleplayThread,
   type RoleplayThreadRecord,
 } from "../../../engine/roleplay";
-import type { LorebookRecord } from "../../../engine/lorebook";
+import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import {
   extractMessengerMessages,
   toMessengerThreadRecord,
@@ -14,13 +14,13 @@ import {
   type MessengerThread,
   type MessengerThreadRecord,
 } from "../../../engine/messenger";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import {
   getProviderConnectionProviderOption,
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import type { RippleState } from "../../../engine/ripples";
+import type { RippleState } from "../../../engine/contracts/types/ripples";
 import type { AppSettings } from "../../../engine/app-settings";
 import { normalizeAppSettings } from "../../../engine/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";

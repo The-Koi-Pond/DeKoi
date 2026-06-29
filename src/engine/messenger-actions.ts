@@ -4,8 +4,8 @@ import {
   type MessengerSystemPromptMode,
   type MessengerThread,
 } from './messenger'
-import type { CharacterRecord } from './character'
-import type { PersonaRecord } from './persona'
+import type { CharacterRecord } from './contracts/types/character'
+import type { PersonaRecord } from './contracts/types/persona'
 
 export function createMessengerThread({
   activePersonaId,

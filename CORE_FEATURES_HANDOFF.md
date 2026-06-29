@@ -77,9 +77,10 @@ Use current paths, not older seed paths:
   - `src/app/use-app-storage-sync.ts`
 - Engine records and pure behavior:
   - `src/engine/app-settings.ts`
-  - `src/engine/character.ts`
-  - `src/engine/persona.ts`
-  - `src/engine/lorebook.ts`
+  - `src/engine/contracts/constants/surfaces.ts`
+  - `src/engine/contracts/types/character.ts`
+  - `src/engine/contracts/types/persona.ts`
+  - `src/engine/contracts/types/lorebook.ts`
   - `src/engine/provider-connection.ts`
   - `src/engine/messenger.ts`
   - `src/engine/messenger-actions.ts`
@@ -87,7 +88,7 @@ Use current paths, not older seed paths:
   - `src/engine/roleplay.ts`
   - `src/engine/roleplay-actions.ts`
   - `src/engine/roleplay-generation.ts`
-  - `src/engine/ripples.ts`
+  - `src/engine/contracts/types/ripples.ts`
   - `src/engine/ripple-actions.ts`
 - Feature UI:
   - `src/features/shell/*`
