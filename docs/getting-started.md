@@ -49,9 +49,10 @@ Desktop collection files must be JSON arrays. If a collection file is empty,
 invalid, non-array JSON, or missing while `.json.bak`, `.json.tmp`, or
 `.json.pre-repair` recovery artifacts exist, desktop storage reports a
 recoverable error and blocks normal autosave overwrite. Collection writes keep a
-`.json.bak` sibling as a recovery aid. Rust-only repair helpers exist for
-explicitly confirmed backup restore or empty replacement, but they are not
-exposed in the app UI yet.
+`.json.bak` sibling as a recovery aid. Pond Care can explicitly repair one
+malformed desktop collection at a time by restoring a valid backup or, when no
+restorable backup exists, replacing it with an empty collection. The malformed
+bytes remain in `.json.pre-repair` until the user finishes the repair.
 
 ## Use A Remote Runtime
 

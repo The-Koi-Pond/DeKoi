@@ -21,11 +21,17 @@ import { ROLEPLAY, MESSENGER, RESERVED } from "../../../engine/surfaces";
 import {
   getDeKoiStorageBundleCounts,
   exportDesktopBundleFile,
+  finishAppStorageCollectionRepair,
   importDesktopBundleFile,
+  loadAppStorageRepairStatus,
   readDesktopStorageBundle,
+  repairAppStorageCollection,
   writeDesktopStorageBundle,
   previewDeKoiStorageBundleFile,
   previewLegacyImportFile,
+  type AppStorageRepairCollectionStatus,
+  type AppStorageRepairStatusResult,
+  type AppStorageRepairStrategy,
   type AppStorageReplaceResult,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
@@ -96,6 +102,9 @@ type ImportBackupResult =
   | { ok: false; message: string };
 
 type StorageImportFailureSource = "bundle" | "legacy";
+type StorageRepairConfirmationAction =
+  | AppStorageRepairStrategy
+  | "finish-repair";
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
@@ -127,6 +136,13 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
   const [storageReloadBusy, setStorageReloadBusy] = useState(false);
   const [storageReloadStatus, setStorageReloadStatus] = useState("");
+  const [storageRepairStatus, setStorageRepairStatus] =
+    useState<AppStorageRepairStatusResult | null>(null);
+  const [storageRepairBusy, setStorageRepairBusy] = useState<string | null>(
+    null,
+  );
+  const [storageRepairConfirmation, setStorageRepairConfirmation] =
+    useState<string | null>(null);
   const [bundlePreview, setBundlePreview] =
     useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
@@ -263,18 +279,65 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     }
   }
 
+  function storageRepairActionKey(
+    entity: string,
+    action: StorageRepairConfirmationAction,
+  ) {
+    return `${entity}:${action}`;
+  }
+
+  function storageRepairConfirmationMatches(
+    collection: AppStorageRepairCollectionStatus,
+    action: StorageRepairConfirmationAction,
+  ) {
+    return (
+      storageRepairConfirmation ===
+      storageRepairActionKey(collection.entity, action)
+    );
+  }
+
+  async function refreshStorageRepairStatus() {
+    const result = await loadAppStorageRepairStatus(nav.remoteRuntimeUrl);
+    setStorageRepairStatus(result);
+    return result;
+  }
+
+  function findStorageRepairStatus(
+    status: AppStorageRepairStatusResult,
+    collection: AppStorageRepairCollectionStatus,
+  ) {
+    return status.collections.find(
+      (item) => item.entity === collection.entity,
+    );
+  }
+
+  function formatRepairConfirmationProblem(
+    collection: AppStorageRepairCollectionStatus,
+    status: AppStorageRepairStatusResult,
+  ) {
+    const current = findStorageRepairStatus(status, collection);
+    if (!current) return "";
+
+    return current.error
+      ? ` ${current.error}`
+      : ` ${current.label} still has repair work pending.`;
+  }
+
   async function handleStorageStaleCheck() {
     setStorageReloadBusy(true);
     setStorageReloadStatus("Checking stored collections...");
 
     try {
       const result = await nav.checkAppStorageStale();
+      const repairStatus = await refreshStorageRepairStatus();
       const changedCount = result.changedCollectionKeys.length;
-      setStorageReloadStatus(
+      const repairMessage =
+        repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
+      const statusMessage =
         result.stale && changedCount > 0
           ? `${result.message} ${changedCount} collection(s) changed.`
-          : result.message,
-      );
+          : result.message;
+      setStorageReloadStatus(`${statusMessage}${repairMessage}`);
     } catch (error) {
       setStorageReloadStatus(
         error instanceof Error ? error.message : String(error),
@@ -290,13 +353,148 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
     try {
       const result = await nav.reloadAppStorage();
-      setStorageReloadStatus(result.message);
+      const repairStatus = await refreshStorageRepairStatus();
+      const repairMessage =
+        repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
+      setStorageReloadStatus(`${result.message}${repairMessage}`);
     } catch (error) {
       setStorageReloadStatus(
         error instanceof Error ? error.message : String(error),
       );
     } finally {
       setStorageReloadBusy(false);
+    }
+  }
+
+  async function handleStorageRepair(
+    collection: AppStorageRepairCollectionStatus,
+    strategy: AppStorageRepairStrategy,
+  ) {
+    if (!collection.known) {
+      setStorageReloadStatus(
+        `${collection.label} cannot be repaired by this app version.`,
+      );
+      return;
+    }
+
+    const actionKey = storageRepairActionKey(collection.entity, strategy);
+    if (storageRepairConfirmation !== actionKey) {
+      setStorageRepairConfirmation(actionKey);
+      setStorageReloadStatus(
+        strategy === "restore-backup"
+          ? `Select Restore backup again to repair ${collection.label}.`
+          : `Select Replace empty again to erase and repair ${collection.label}.`,
+      );
+      return;
+    }
+
+    setStorageRepairBusy(actionKey);
+    setStorageRepairConfirmation(null);
+    setStorageReloadStatus(`Repairing ${collection.label}...`);
+
+    try {
+      const result = await repairAppStorageCollection({
+        entity: collection.entity,
+        strategy,
+        confirm: true,
+        rawUrl: nav.remoteRuntimeUrl,
+      });
+      if (result.status !== "ready") {
+        setStorageReloadStatus(result.message);
+        return;
+      }
+
+      const repairStatus = await refreshStorageRepairStatus();
+      const postRepairStatus = findStorageRepairStatus(
+        repairStatus,
+        collection,
+      );
+      if (postRepairStatus?.error) {
+        setStorageReloadStatus(
+          `Repair did not produce a readable ${collection.label}. ${postRepairStatus.error}`,
+        );
+        return;
+      }
+
+      const reloadResult = await nav.reloadAppStorage();
+      const confirmedRepairStatus = await refreshStorageRepairStatus();
+      if (reloadResult.status !== "ready" || !reloadResult.reloaded) {
+        setStorageReloadStatus(
+          `Repair command completed, but storage reload did not confirm ${collection.label}. ${reloadResult.message}${formatRepairConfirmationProblem(
+            collection,
+            confirmedRepairStatus,
+          )}`,
+        );
+        return;
+      }
+
+      const confirmedTargetStatus = findStorageRepairStatus(
+        confirmedRepairStatus,
+        collection,
+      );
+      if (confirmedTargetStatus?.error) {
+        setStorageReloadStatus(
+          `Repair command completed, but metadata still reports a problem for ${collection.label}. ${confirmedTargetStatus.error}`,
+        );
+        return;
+      }
+
+      const needsFinish = confirmedTargetStatus?.canFinishRepair ?? false;
+      const finishMessage = needsFinish
+        ? " Finish repair after you verify the reloaded records."
+        : "";
+      setStorageReloadStatus(
+        `${result.message} ${reloadResult.message}${finishMessage}`,
+      );
+    } catch (error) {
+      setStorageReloadStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setStorageRepairBusy(null);
+    }
+  }
+
+  async function handleStorageRepairFinish(
+    collection: AppStorageRepairCollectionStatus,
+  ) {
+    if (!collection.known) {
+      setStorageReloadStatus(
+        `${collection.label} cannot be finished by this app version.`,
+      );
+      return;
+    }
+
+    const actionKey = storageRepairActionKey(
+      collection.entity,
+      "finish-repair",
+    );
+    if (storageRepairConfirmation !== actionKey) {
+      setStorageRepairConfirmation(actionKey);
+      setStorageReloadStatus(
+        `Select Finish repair again to clear the pre-repair copy for ${collection.label}.`,
+      );
+      return;
+    }
+
+    setStorageRepairBusy(actionKey);
+    setStorageRepairConfirmation(null);
+    setStorageReloadStatus(`Finishing repair for ${collection.label}...`);
+
+    try {
+      const result = await finishAppStorageCollectionRepair({
+        entity: collection.entity,
+        confirm: true,
+        rawUrl: nav.remoteRuntimeUrl,
+      });
+      const repairStatus = await refreshStorageRepairStatus();
+      setStorageReloadStatus(`${result.message} ${repairStatus.message}`);
+    } catch (error) {
+      setStorageReloadStatus(
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setStorageRepairBusy(null);
     }
   }
 
@@ -731,6 +929,137 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           />
           Add converted records to DeKoi
         </label>
+      </div>
+    );
+  }
+
+  function renderStorageRepairCollections() {
+    if (!storageRepairStatus || storageRepairStatus.collections.length === 0) {
+      return null;
+    }
+
+    const storageActionBusy =
+      storageReloadBusy ||
+      storageRepairBusy !== null ||
+      nav.messengerStorageStatus === "loading" ||
+      nav.messengerStorageStatus === "saving";
+
+    return (
+      <div className="storage-repair-list" aria-live="polite">
+        {storageRepairStatus.collections.map((collection) => {
+          const restoreConfirmed = storageRepairConfirmationMatches(
+            collection,
+            "restore-backup",
+          );
+          const replaceConfirmed = storageRepairConfirmationMatches(
+            collection,
+            "replace-empty",
+          );
+          const finishConfirmed = storageRepairConfirmationMatches(
+            collection,
+            "finish-repair",
+          );
+          const busyForCollection =
+            storageRepairBusy?.startsWith(`${collection.entity}:`) ?? false;
+
+          return (
+            <article
+              className={`storage-repair-row${
+                collection.error ? " error" : ""
+              }`}
+              key={collection.entity}
+            >
+              <div className="storage-repair-copy">
+                <b>{collection.label}</b>
+                <span>{collection.error ?? "Pre-repair copy is saved."}</span>
+                <div
+                  className="storage-repair-flags"
+                  aria-label={`${collection.label} recovery artifacts`}
+                >
+                  <span className={collection.backupExists ? "on" : ""}>
+                    Backup
+                  </span>
+                  <span className={collection.preRepairExists ? "on" : ""}>
+                    Pre-repair
+                  </span>
+                  {collection.temporaryExists && <span className="on">Temp</span>}
+                </div>
+              </div>
+
+              <div className="runtime-actions storage-repair-actions">
+                {collection.known && collection.repairable && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={
+                        storageActionBusy || !collection.canRestoreBackup
+                      }
+                      onClick={() =>
+                        handleStorageRepair(collection, "restore-backup")
+                      }
+                    >
+                      {restoreConfirmed ? "Confirm restore" : "Restore backup"}
+                    </button>
+                    {!collection.canRestoreBackup && (
+                      <button
+                        type="button"
+                        className="care-btn danger"
+                        disabled={storageActionBusy}
+                        onClick={() =>
+                          handleStorageRepair(collection, "replace-empty")
+                        }
+                      >
+                        {replaceConfirmed ? "Confirm empty" : "Replace empty"}
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {collection.known && collection.canFinishRepair && (
+                  <button
+                    type="button"
+                    className="care-btn primary"
+                    disabled={storageActionBusy}
+                    onClick={() => handleStorageRepairFinish(collection)}
+                  >
+                    {finishConfirmed ? "Confirm finish" : "Finish repair"}
+                  </button>
+                )}
+              </div>
+
+              {busyForCollection && (
+                <p className="bundle-note">Working on {collection.label}...</p>
+              )}
+              {!collection.known && (
+                <p className="bundle-note">
+                  Update DeKoi before repairing this collection in the app.
+                </p>
+              )}
+              {collection.known &&
+                collection.repairable &&
+                !collection.canRestoreBackup && (
+                  <p className="bundle-note">
+                    {collection.backupExists
+                      ? "Backup file exists but cannot be restored."
+                      : "No backup file is available for restore."}
+                  </p>
+                )}
+              {collection.known &&
+                collection.repairable &&
+                collection.canRestoreBackup && (
+                  <p className="bundle-note">
+                    Backup restore is available. Empty replacement is hidden.
+                  </p>
+                )}
+              {collection.temporaryExists && (
+                <p className="bundle-note">
+                  Temp is a leftover write scratch file. Repair works from the
+                  live file and backup.
+                </p>
+              )}
+            </article>
+          );
+        })}
       </div>
     );
   }
@@ -1345,6 +1674,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               {storageReloadStatus && (
                 <p className="bundle-status">{storageReloadStatus}</p>
               )}
+              {renderStorageRepairCollections()}
             </section>
 
             <hr className="care-divider" />

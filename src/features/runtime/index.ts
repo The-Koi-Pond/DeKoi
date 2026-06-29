@@ -1,5 +1,6 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  APP_STORAGE_COLLECTION_LABELS,
   appStorageCollectionCount,
   appStorageCollectionSignature,
   appStorageCollectionSource,
@@ -21,8 +22,17 @@ export {
   type AppStorageReplaceResult,
   type AppStorageSaveResult,
   type AppStorageSnapshot,
+  finishAppStorageCollectionRepair,
+  loadAppStorageRepairStatus,
+  repairAppStorageCollection,
+  type AppStorageRepairCollectionStatus,
+  type AppStorageRepairFinishResult,
+  type AppStorageRepairResult,
+  type AppStorageRepairStatusResult,
+  type AppStorageRepairStrategy,
   type MessengerStorageMode,
   type MessengerStorageStatus,
+  type StorageEntity,
 } from "./storage";
 export {
   addRippleToOwnerState,

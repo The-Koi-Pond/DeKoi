@@ -29,6 +29,8 @@ pub fn run() {
             runtime::dekoi_runtime_invoke,
             storage::dekoi_storage_read_bundle,
             storage::dekoi_storage_write_bundle,
+            storage::dekoi_storage_repair_collection,
+            storage::dekoi_storage_finish_collection_repair,
             storage::dekoi_storage_collection_metadata
         ])
         .run(tauri::generate_context!())

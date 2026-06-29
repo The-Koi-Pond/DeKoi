@@ -18,8 +18,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   generation.
 - Desktop collection metadata checks and explicit storage reload from Pond Care,
   with reload blocked while local saves are pending.
-- Rust-only helpers for explicitly confirmed malformed desktop collection
-  repair; no Tauri command or UI path is exposed yet.
+- Pond Care storage repair for malformed desktop collections, using explicit
+  Tauri commands, backup restore or empty replacement, and a separate finish
+  action for `.json.pre-repair` sidecars.
 - One-way legacy thread import into native Messenger records.
 
 ## Experimental Or Incomplete

@@ -1,5 +1,6 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  APP_STORAGE_COLLECTION_LABELS,
   changedAppStorageMetadataKeys,
   appStorageMetadataSignature,
   loadAppStorageSnapshot,
@@ -16,6 +17,16 @@ export {
   type AppStorageSaveResult,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";
+export {
+  finishAppStorageCollectionRepair,
+  loadAppStorageRepairStatus,
+  repairAppStorageCollection,
+  type AppStorageRepairCollectionStatus,
+  type AppStorageRepairFinishResult,
+  type AppStorageRepairResult,
+  type AppStorageRepairStatusResult,
+  type AppStorageRepairStrategy,
+} from "./storage/desktop-storage-repair";
 export {
   appStorageCollectionCount,
   appStorageCollectionSignature,

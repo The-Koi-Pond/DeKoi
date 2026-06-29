@@ -16,6 +16,7 @@ import {
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
+  APP_STORAGE_COLLECTION_LABELS,
   appStorageCollectionCount,
   appStorageCollectionSignature,
   appStorageCollectionSource,
@@ -34,10 +35,21 @@ export {
   type AppStorageReplaceResult,
   type AppStorageSaveResult,
   type AppStorageSnapshot,
+  type StorageEntity,
 } from "../../../runtime";
 export {
   type MessengerStorageMode,
   type MessengerStorageStatus,
+} from "../../../runtime";
+export {
+  finishAppStorageCollectionRepair,
+  loadAppStorageRepairStatus,
+  repairAppStorageCollection,
+  type AppStorageRepairCollectionStatus,
+  type AppStorageRepairFinishResult,
+  type AppStorageRepairResult,
+  type AppStorageRepairStatusResult,
+  type AppStorageRepairStrategy,
 } from "../../../runtime";
 
 export function loadInitialAppStorageRecords(): AppStorageRecords {
