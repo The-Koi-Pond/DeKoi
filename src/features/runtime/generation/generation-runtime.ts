@@ -16,6 +16,10 @@ export function isGenerationRuntimeMode(
 export function selectGenerationRuntime(
   mode: GenerationRuntimeMode = "remote-runtime",
 ): GenerationRuntimeSnapshot {
+  if (!isGenerationRuntimeMode(mode)) {
+    throw new Error(`Unsupported generation runtime mode: ${String(mode)}.`);
+  }
+
   return {
     mode,
     label: "Provider generation",

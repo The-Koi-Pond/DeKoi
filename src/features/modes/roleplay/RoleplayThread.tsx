@@ -171,8 +171,12 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    const generationBlocker = getProviderConnectionGenerationBlocker(threadConnection);
-    if (generationBlocker || !isProviderConnectionReady(threadConnection)) {
+    const sendConnection = getProviderConnectionById(
+      thread.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
+      nav.providerConnections,
+    );
+    const generationBlocker = getProviderConnectionGenerationBlocker(sendConnection);
+    if (generationBlocker || !isProviderConnectionReady(sendConnection)) {
       setGenerationState({
         threadId: thread.id,
         status: "error",
@@ -211,9 +215,9 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       const result = await generateRoleplayThreadTurn({
         characters: nav.characters,
         createId: createLocalId,
-        fallbackProviderConnectionId: threadConnection.id,
+        fallbackProviderConnectionId: sendConnection.id,
         lorebooks: nav.lorebooks,
-        mode: generationMode,
+        mode: getGenerationModeForConnection(sendConnection),
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,

@@ -42,6 +42,7 @@ import {
   createDeKoiStorageBundle,
   normalizeDeKoiStorageBundle,
 } from "../../src/runtime";
+import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/collections/provider-connection-storage";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -1200,6 +1201,54 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   );
   expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
     false,
+  );
+});
+
+test("provider connection storage skips removed mock lane records", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const legacyMockConnection = {
+    id: "connection-legacy-mock",
+    schemaVersion: 1,
+    kind: "mock",
+    provider: "custom",
+    label: "Local mock",
+    baseUrl: "",
+    model: "Mock adapter",
+    summary: "",
+    status: "ready",
+    modelLabel: "Mock adapter",
+    keeperDefault: false,
+    maxContext: null,
+    maxOutput: null,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  const remoteConnection = {
+    ...legacyMockConnection,
+    id: "connection-remote",
+    kind: "remote-runtime",
+    provider: "openai",
+    label: "Remote runtime",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    modelLabel: "gpt-4o-mini",
+  };
+
+  expect(normalizeProviderConnectionRecord(legacyMockConnection)).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord(remoteConnection, {
+      preserveReadyStatus: true,
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      id: "connection-remote",
+      kind: "remote-runtime",
+      provider: "openai",
+      label: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      status: "ready",
+    }),
   );
 });
 

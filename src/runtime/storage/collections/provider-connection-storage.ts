@@ -31,8 +31,8 @@ type ProviderConnectionSecretVerification = {
   };
 };
 
-function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
-  return value === "remote-runtime" ? value : "remote-runtime";
+function normalizeConnectionKind(value: unknown): ProviderConnectionKind | null {
+  return value === "remote-runtime" ? value : null;
 }
 
 function normalizeConnectionProvider(value: unknown) {
@@ -84,6 +84,8 @@ export function normalizeProviderConnectionRecord(
 
   const id = readString(value.id).trim();
   const kind = normalizeConnectionKind(value.kind);
+  if (!kind) return null;
+
   const provider = normalizeConnectionProvider(value.provider);
   const providerOption = getProviderConnectionProviderOption(provider);
   const label = normalizeLegacyLabel(

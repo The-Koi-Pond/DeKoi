@@ -152,6 +152,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
       ? deleteRequest
       : null;
+  const activeMessageInteractionMode = activeDeleteRequest
+    ? "delete"
+    : activeEditingMessage
+      ? "edit"
+      : "idle";
   const getMessageAuthorAvatar = (message: MessengerMessage) => {
     const { author } = message;
 
@@ -190,16 +195,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   }, [messengerThread, messengerThread?.messages.length]);
 
   useEffect(() => {
+    if (activeMessageInteractionMode !== "edit") return;
     const textarea = editTextareaRef.current;
     if (!textarea) return;
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-  }, [activeEditingMessage?.id]);
+  }, [activeEditingMessage?.id, activeMessageInteractionMode]);
 
   useEffect(() => {
+    if (activeMessageInteractionMode !== "delete") return;
     if (!activeDeleteRequest?.id) return;
     deleteConfirmRef.current?.focus();
-  }, [activeDeleteRequest?.id]);
+  }, [activeDeleteRequest?.id, activeMessageInteractionMode]);
 
   function handleEditMessage(message: MessengerMessage) {
     if (!messengerThread) return;
@@ -290,8 +297,13 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    const generationBlocker = getProviderConnectionGenerationBlocker(threadConnection);
-    if (generationBlocker || !isProviderConnectionReady(threadConnection)) {
+    const sendConnection = getProviderConnectionById(
+      messengerThread.providerConnectionId ??
+        nav.appSettings.activeMessengerConnectionId,
+      nav.providerConnections,
+    );
+    const generationBlocker = getProviderConnectionGenerationBlocker(sendConnection);
+    if (generationBlocker || !isProviderConnectionReady(sendConnection)) {
       setGenerationState({
         threadId: messengerThread.id,
         status: "error",
@@ -308,7 +320,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       ? messengerThread
       : setMessengerThreadProviderConnection(
           messengerThread,
-          threadConnection.id,
+          sendConnection.id,
           sentAt,
         );
     const userMessage = activePersona
@@ -340,9 +352,9 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       const result = await generateMessengerThreadReply({
         characters: nav.characters,
         createId: createLocalId,
-        fallbackProviderConnectionId: threadConnection.id,
+        fallbackProviderConnectionId: sendConnection.id,
         lorebooks: nav.lorebooks,
-        mode: generationMode,
+        mode: getMessengerGenerationModeForConnection(sendConnection),
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
