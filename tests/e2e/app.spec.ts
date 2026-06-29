@@ -1204,7 +1204,7 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   );
 });
 
-test("provider connection storage skips removed mock lane records", () => {
+test("provider connection storage skips removed non-remote lane records", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const legacyMockConnection = {
     id: "connection-legacy-mock",
@@ -1235,6 +1235,22 @@ test("provider connection storage skips removed mock lane records", () => {
   };
 
   expect(normalizeProviderConnectionRecord(legacyMockConnection)).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord({
+      ...legacyMockConnection,
+      id: "connection-legacy-local",
+      kind: "local",
+      label: "Local adapter",
+    }),
+  ).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord({
+      ...legacyMockConnection,
+      id: "connection-missing-kind",
+      kind: undefined,
+      label: "Missing kind",
+    }),
+  ).toBeNull();
   expect(
     normalizeProviderConnectionRecord(remoteConnection, {
       preserveReadyStatus: true,

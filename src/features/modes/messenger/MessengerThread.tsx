@@ -105,11 +105,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
-  const activePersona = messengerThread?.activePersonaId
-    ? nav.personas.find(
-        (persona) => persona.id === messengerThread.activePersonaId,
-      ) ?? null
-    : null;
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) =>
         messengerThread.characterIds.includes(companion.id),
@@ -120,11 +115,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     threadCompanions.map((companion) => companion.displayName).join(" + ") ||
     messengerThread?.title ||
     "No companion";
-  const configuredConnection = messengerThread?.providerConnectionId
-    ? nav.providerConnections.find(
-        (connection) => connection.id === messengerThread.providerConnectionId,
-      ) ?? null
-    : null;
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const isGenerating =
     generationState.threadId === activeThreadId &&
@@ -297,15 +287,22 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    const sendConnection = getProviderConnectionById(
-      messengerThread.providerConnectionId ??
+    const sentAt = new Date().toISOString();
+    const commitThread =
+      nav.messengerThreads.find((thread) => thread.id === activeThreadId) ??
+      null;
+    if (!commitThread) return false;
+
+    const commitConnection = getProviderConnectionById(
+      commitThread.providerConnectionId ??
         nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
-    const generationBlocker = getProviderConnectionGenerationBlocker(sendConnection);
-    if (generationBlocker || !isProviderConnectionReady(sendConnection)) {
+    const generationBlocker =
+      getProviderConnectionGenerationBlocker(commitConnection);
+    if (generationBlocker || !isProviderConnectionReady(commitConnection)) {
       setGenerationState({
-        threadId: messengerThread.id,
+        threadId: commitThread.id,
         status: "error",
         message:
           generationBlocker ?? "Create or select a connection before generating.",
@@ -313,22 +310,30 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       return false;
     }
 
-    const sentAt = new Date().toISOString();
+    const sendRuntime = selectMessengerGenerationRuntime(
+      getMessengerGenerationModeForConnection(commitConnection),
+    );
+    const sendPersona = commitThread.activePersonaId
+      ? nav.personas.find(
+          (persona) => persona.id === commitThread.activePersonaId,
+        ) ?? null
+      : null;
     const hasConfiguredConnection =
-      !!messengerThread.providerConnectionId && configuredConnection !== null;
+      !!commitThread.providerConnectionId &&
+      commitThread.providerConnectionId === commitConnection.id;
     const threadForSend = hasConfiguredConnection
-      ? messengerThread
+      ? commitThread
       : setMessengerThreadProviderConnection(
-          messengerThread,
-          sendConnection.id,
+          commitThread,
+          commitConnection.id,
           sentAt,
         );
-    const userMessage = activePersona
+    const userMessage = sendPersona
       ? createPersonaMessengerMessage({
           body: trimmedDraft,
           id: createLocalId("messenger-message"),
           now: sentAt,
-          persona: activePersona,
+          persona: sendPersona,
           thread: threadForSend,
         })
       : createAnonymousMessengerMessage({
@@ -343,18 +348,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     setDraftState({ body: "", threadId: activeThreadId });
 
     setGenerationState({
-      threadId: messengerThread.id,
+      threadId: commitThread.id,
       status: "generating",
-      message: `Generating through ${generationRuntime.label}.`,
+      message: `Generating through ${sendRuntime.label}.`,
     });
 
     try {
       const result = await generateMessengerThreadReply({
         characters: nav.characters,
         createId: createLocalId,
-        fallbackProviderConnectionId: sendConnection.id,
+        fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        mode: getMessengerGenerationModeForConnection(sendConnection),
+        mode: getMessengerGenerationModeForConnection(commitConnection),
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
@@ -374,7 +379,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           ),
         ].join(" + ");
         setGenerationState({
-          threadId: messengerThread.id,
+          threadId: commitThread.id,
           status: "generating",
           message: `${typingNames || companionDisplayName} is typing...`,
         });
@@ -387,12 +392,12 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       setGenerationState(
         result.generatedMessages.length > 0
           ? {
-              threadId: messengerThread.id,
+              threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
               message: result.warnings[0] ?? "",
             }
           : {
-              threadId: messengerThread.id,
+              threadId: commitThread.id,
               status: "error",
               message:
                 result.warnings[0] ??
@@ -401,7 +406,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       );
     } catch (error) {
       setGenerationState({
-        threadId: messengerThread.id,
+        threadId: commitThread.id,
         status: "error",
         message: formatGenerationFailureNotice(
           error,
