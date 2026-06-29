@@ -971,11 +971,11 @@ function ChatSettingsRail({
     );
   }
 
-  function resolveMissingMessengerConnection() {
+  function resolveMissingMessengerConnection(connectionId: string | null) {
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadProviderConnection(
         thread,
-        fallbackConnection?.id ?? null,
+        connectionId,
         updatedAt,
       ),
     );
@@ -1083,14 +1083,29 @@ function ChatSettingsRail({
   );
   const configuredDefaultConnection =
     settingsConnectionById.get(nav.appSettings.activeMessengerConnectionId) ?? null;
+  const firstAvailableConnection = sanitizedProviderConnections[0] ?? null;
   const fallbackConnection =
-    configuredDefaultConnection ?? sanitizedProviderConnections[0] ?? null;
+    configuredDefaultConnection ?? firstAvailableConnection;
   const fallbackConnectionProvider = fallbackConnection
     ? getProviderConnectionProviderOption(fallbackConnection.provider)
     : null;
   const fallbackConnectionPrefix = configuredDefaultConnection
     ? "App default"
     : "First available";
+  const missingConnectionResolution = configuredDefaultConnection
+    ? {
+        actionLabel: "Use app default",
+        connectionId: configuredDefaultConnection.id,
+      }
+    : firstAvailableConnection
+      ? {
+          actionLabel: "Use first available",
+          connectionId: firstAvailableConnection.id,
+        }
+      : {
+          actionLabel: "Clear missing",
+          connectionId: null,
+        };
   const messengerConnectionValue = activeMessengerThread?.providerConnectionId ?? "";
   const selectedConnection = messengerConnectionValue
     ? settingsConnectionById.get(messengerConnectionValue) ?? null
@@ -1334,14 +1349,12 @@ function ChatSettingsRail({
             </label>
             {hasMissingConnection && (
               <ChatSettingsNotice
-                actionLabel={
-                  configuredDefaultConnection
-                    ? "Use app default"
-                    : fallbackConnection
-                      ? "Use first available"
-                      : "Clear missing"
+                actionLabel={missingConnectionResolution.actionLabel}
+                onAction={() =>
+                  resolveMissingMessengerConnection(
+                    missingConnectionResolution.connectionId,
+                  )
                 }
-                onAction={resolveMissingMessengerConnection}
               >
                 This thread points to a connection that is no longer saved.
                 Choose another connection or clear the missing reference.
