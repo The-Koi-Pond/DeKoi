@@ -1,6 +1,6 @@
 # Core Features Handoff
 
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 This is the current development handoff for DeKoi core features. It replaces the
 older "build these eight features in order" plan. DeKoi has moved past the first
@@ -35,6 +35,8 @@ DeKoi is an early local-first React/Tauri app with:
 - One-way legacy thread import into native Messenger threads.
 - Desktop provider-key secrets scoped to connection/provider/base URL.
 - Provider connection check and model-fetch commands.
+- Native fixture proof confirmed desktop storage repair, finish repair, and
+  autosave overwrite protection for malformed collection files.
 - Provider-neutral generation request assembly for Messenger and Roleplay.
 - Mock generation, browser provider adapters, remote runtime invocation, and
   desktop runtime provider transport for a narrow set of provider families.
@@ -54,6 +56,12 @@ Important current bias:
 - Generation routing is still uneven: inside the desktop app, provider-backed
   generation uses the desktop runtime path; browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.
+- Desktop provider HTTP errors preserve common provider detail/code fields, and
+  OpenAI-compatible refusal parts produce specific empty-response warnings;
+  provider-specific parsing still needs more real-endpoint polish.
+- Messenger and Roleplay generation notices now format common provider failures
+  into concise actions such as checking the API key, Base URL, selected model, or
+  network.
 - Legacy import is compatibility only. Old names, prompts, UI copy, schemas, and
   product concepts must not become native DeKoi concepts.
 
@@ -295,6 +303,13 @@ Implemented:
 - Desktop runtime provider calls with stored API key lookup for required-key
   providers.
 - Provider connection check and model listing commands.
+- Desktop provider HTTP error parsing preserves common nested provider detail
+  and code fields instead of collapsing to only an HTTP status.
+- Browser and desktop OpenAI-compatible response parsing preserve refusal text
+  when it appears as a content part instead of a top-level message refusal.
+- Messenger and Roleplay use a shared feature-runtime formatter for provider
+  generation failure notices, while keeping each mode's send/generation
+  orchestration separate.
 
 Supported provider work is intentionally bare-minimum. Current adapters cover
 OpenAI-compatible providers plus Anthropic and Google-style endpoints. Treat
@@ -303,7 +318,7 @@ each provider as experimental until checked with a real endpoint.
 Next work:
 
 - Improve provider-specific response parsing and empty/refusal warnings.
-- Make provider errors concise and actionable in Messenger and Roleplay.
+- Continue polishing provider failure copy against real endpoint responses.
 - Keep generation commands separate from storage commands.
 - Keep provider secrets behind desktop secret capabilities.
 - Add durable tests only for risky contracts or known regressions.

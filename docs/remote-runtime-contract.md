@@ -127,8 +127,12 @@ Error response:
 }
 ```
 
-The browser adapter treats any non-2xx response as a runtime error and shows the
-message in the active chat surface.
+The browser adapter treats any non-2xx response as a runtime error and surfaces
+the message in the active chat surface. Provider-backed generation errors should
+keep actionable provider detail, such as nested `error.message`, `error.detail`,
+`error.type`, `error.code`, or the HTTP status. DeKoi formats common failures
+into user actions for API keys, Base URL, selected model, unsupported providers,
+and network reachability.
 
 ## Commands
 
@@ -393,6 +397,11 @@ Response:
 
 `messages[].characterId` must match a selected companion in the request. DeKoi
 drops unknown companion drafts and surfaces a warning.
+
+When a runtime returns no generated text because the provider refused or blocked
+the response, return a warning that includes the provider detail. Desktop and
+browser OpenAI-compatible parsing preserve refusal text from either a top-level
+message refusal or a refusal content part.
 
 Provider connection records in generation requests do not include saved API key
 material. Desktop generation resolves saved keys through the desktop provider

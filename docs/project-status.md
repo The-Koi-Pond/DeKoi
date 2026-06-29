@@ -16,6 +16,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   model listing, and generation commands.
 - Desktop runtime bridge for durable app-data storage and narrow provider-backed
   generation.
+- Provider-backed generation notices in Messenger and Roleplay format common
+  failures into actions for API keys, Base URL, selected model, provider support,
+  and network reachability while preserving provider refusal/error detail.
 - Desktop collection metadata checks and explicit storage reload from Pond Care,
   with reload blocked while local saves are pending.
 - Pond Care storage repair for malformed desktop collections, using explicit
@@ -25,8 +28,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 ## Experimental Or Incomplete
 
-- Provider transport is still narrow and experimental; required-key providers use
-  desktop provider-key storage through the runtime boundary.
+- Provider transport is still narrow and experimental; required-key providers
+  use desktop provider-key storage through the runtime boundary, and
+  provider-specific response parsing still needs more real-endpoint validation.
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.

@@ -25,6 +25,7 @@ import {
 } from "../../../engine/messenger-actions";
 import {
   generateMessengerThreadReply,
+  formatGenerationFailureNotice,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
@@ -307,10 +308,10 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       setGenerationState({
         threadId: messengerThread.id,
         status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Messenger generation failed.",
+        message: formatGenerationFailureNotice(
+          error,
+          "Messenger generation failed.",
+        ),
       });
     }
 

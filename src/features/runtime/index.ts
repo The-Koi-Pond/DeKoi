@@ -63,6 +63,7 @@ export {
   type DeKoiStorageBundlePreview,
 } from "./storage";
 export {
+  formatGenerationFailureNotice,
   getGenerationModeForConnection,
   isGenerationRuntimeMode,
   selectGenerationRuntime,

@@ -62,11 +62,11 @@ flowchart LR
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>Send flow, generated replies, message edit/delete, selected companions/persona/lorebooks/connection, prompt assembly, provider errors.</td>
+              <td>Send flow, generated replies, message edit/delete, selected companions/persona/lorebooks/connection, prompt assembly, provider errors, and failure notices.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td><code>MessengerThread.tsx</code>, Messenger engine actions, Messenger generation builder, provider generation adapter, storage dirty collection behavior.</td>
+              <td><code>MessengerThread.tsx</code>, Messenger engine actions, Messenger generation builder, provider generation adapter, generation failure formatter, storage dirty collection behavior.</td>
             </tr>
             <tr>
               <th>Verify</th>
@@ -93,11 +93,11 @@ flowchart LR
           <tbody>
             <tr>
               <th>Touching</th>
-              <td>Roleplay entry send flow, generated character turns, scene text, selected companions/persona/lorebooks/connection, Roleplay prompt assembly.</td>
+              <td>Roleplay entry send flow, generated character turns, scene text, selected companions/persona/lorebooks/connection, Roleplay prompt assembly, and provider failure notices.</td>
             </tr>
             <tr>
               <th>Review</th>
-              <td><code>RoleplayThread.tsx</code>, Roleplay engine actions, Roleplay generation builder, shared provider generation adapter, split entry storage.</td>
+              <td><code>RoleplayThread.tsx</code>, Roleplay engine actions, Roleplay generation builder, shared provider generation adapter, generation failure formatter, split entry storage.</td>
             </tr>
             <tr>
               <th>Verify</th>
