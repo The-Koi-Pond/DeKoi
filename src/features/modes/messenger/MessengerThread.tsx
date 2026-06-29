@@ -26,6 +26,7 @@ import {
 import {
   generateMessengerThreadReply,
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
@@ -301,7 +302,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: connectionReadiness.message,
+        message: formatGenerationReadinessFailure(connectionReadiness.code),
       });
       return false;
     }

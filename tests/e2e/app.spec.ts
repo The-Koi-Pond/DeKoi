@@ -31,6 +31,7 @@ import {
 } from "../../src/engine/roleplay";
 import {
   APP_STORAGE_COLLECTION_KEYS,
+  formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   saveAppStorageCollections,
   type AppStorageMetadata,
@@ -1271,25 +1272,38 @@ test("provider connection storage skips removed non-remote lane records", () => 
 
 test("provider generation readiness blocks desktop-key providers in browser mode", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
-  const openAiConnection = normalizeProviderConnectionRecord(
+  const keyedConnections = [
     {
       id: "connection-openai",
-      schemaVersion: 1,
-      kind: "remote-runtime",
       provider: "openai",
       label: "OpenAI",
       baseUrl: "https://api.openai.com/v1",
       model: "gpt-4o-mini",
-      summary: "",
-      status: "ready",
-      modelLabel: "gpt-4o-mini",
-      keeperDefault: false,
-      maxContext: null,
-      maxOutput: null,
-      createdAt,
-      updatedAt: createdAt,
     },
-    { preserveReadyStatus: true },
+    {
+      id: "connection-anthropic",
+      provider: "anthropic",
+      label: "Anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      model: "claude-sonnet-4-5",
+    },
+  ].map((connection) =>
+    normalizeProviderConnectionRecord(
+      {
+        ...connection,
+        schemaVersion: 1,
+        kind: "remote-runtime",
+        summary: "",
+        status: "ready",
+        modelLabel: connection.model,
+        keeperDefault: false,
+        maxContext: null,
+        maxOutput: null,
+        createdAt,
+        updatedAt: createdAt,
+      },
+      { preserveReadyStatus: true },
+    ),
   );
   const customConnection = normalizeProviderConnectionRecord(
     {
@@ -1312,17 +1326,24 @@ test("provider generation readiness blocks desktop-key providers in browser mode
     { preserveReadyStatus: true },
   );
 
-  expect(openAiConnection).not.toBeNull();
+  expect(keyedConnections).not.toContain(null);
   expect(customConnection).not.toBeNull();
-  if (!openAiConnection || !customConnection) {
+  if (keyedConnections.some((connection) => connection === null) || !customConnection) {
     throw new Error("Expected test provider connections to normalize.");
   }
 
-  const blocked = getGenerationConnectionReadiness(openAiConnection);
-  expect(blocked).toEqual({
-    ready: false,
-    message: expect.stringContaining("desktop app"),
-  });
+  for (const connection of keyedConnections) {
+    const blocked = getGenerationConnectionReadiness(connection);
+    expect(blocked).toEqual({
+      ready: false,
+      code: "desktop-key-store-unavailable",
+    });
+    if (!blocked.ready) {
+      expect(formatGenerationReadinessFailure(blocked.code)).toContain(
+        "desktop app",
+      );
+    }
+  }
 
   const ready = getGenerationConnectionReadiness(customConnection);
   expect(ready.ready).toBe(true);

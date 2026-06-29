@@ -19,6 +19,7 @@ import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   selectGenerationRuntime,
@@ -183,7 +184,7 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: connectionReadiness.message,
+        message: formatGenerationReadinessFailure(connectionReadiness.code),
       });
       return false;
     }

@@ -1,5 +1,6 @@
 export {
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
 } from "./generation-errors";
 export {
   getGenerationConnectionReadiness,
@@ -7,6 +8,7 @@ export {
   isGenerationRuntimeMode,
   selectGenerationRuntime,
   type GenerationConnectionReadiness,
+  type GenerationConnectionReadinessFailureCode,
   type GenerationRuntimeMode,
   type GenerationRuntimeSnapshot,
 } from "./generation-runtime";

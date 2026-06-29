@@ -1,7 +1,5 @@
 import {
-  getProviderConnectionGenerationBlocker,
   getProviderConnectionProviderOption,
-  isProviderConnectionReady,
   type ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
@@ -13,6 +11,13 @@ export interface GenerationRuntimeSnapshot {
   label: string;
 }
 
+export type GenerationConnectionReadinessFailureCode =
+  | "missing-connection"
+  | "connection-needs-key"
+  | "missing-base-url"
+  | "missing-model"
+  | "desktop-key-store-unavailable";
+
 export type GenerationConnectionReadiness =
   | {
       ready: true;
@@ -20,12 +25,8 @@ export type GenerationConnectionReadiness =
     }
   | {
       ready: false;
-      message: string;
+      code: GenerationConnectionReadinessFailureCode;
     };
-
-const missingConnectionMessage = "Create or select a connection before generating.";
-const desktopKeyStoreMessage =
-  "Provider API keys are only available in the desktop app. Open DeKoi desktop or choose a connection that does not require a key.";
 
 export function isGenerationRuntimeMode(
   value: unknown,
@@ -55,11 +56,31 @@ export function getGenerationModeForConnection(
 export function getGenerationConnectionReadiness(
   connection: ProviderConnectionRecord | null | undefined,
 ): GenerationConnectionReadiness {
-  const blocker = getProviderConnectionGenerationBlocker(connection);
-  if (blocker || !isProviderConnectionReady(connection)) {
+  if (!connection) {
     return {
       ready: false,
-      message: blocker ?? missingConnectionMessage,
+      code: "missing-connection",
+    };
+  }
+
+  if (connection.status !== "ready") {
+    return {
+      ready: false,
+      code: "connection-needs-key",
+    };
+  }
+
+  if (!connection.baseUrl.trim()) {
+    return {
+      ready: false,
+      code: "missing-base-url",
+    };
+  }
+
+  if (!connection.model.trim()) {
+    return {
+      ready: false,
+      code: "missing-model",
     };
   }
 
@@ -67,7 +88,7 @@ export function getGenerationConnectionReadiness(
   if (providerOption.apiKeyRequired && !isDesktopHostAvailable()) {
     return {
       ready: false,
-      message: desktopKeyStoreMessage,
+      code: "desktop-key-store-unavailable",
     };
   }
 
