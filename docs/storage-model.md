@@ -90,6 +90,9 @@ Desktop collection files expose explicit per-collection metadata:
 - byte length
 - updated-at milliseconds
 - content hash
+- sibling `.json.bak`, `.json.tmp`, and `.json.pre-repair` artifact state
+- whether a backup is restorable
+- whether the collection state is repairable
 
 The app stores metadata from the last loaded snapshot, completed import, or
 successful collection write as a staleness baseline. Pond Care > Deep Water can
@@ -103,6 +106,11 @@ explicit user action that reloads records from the active runtime target. Reload
 is blocked while collection saves or imports are pending or active. If only
 local unsaved changes remain, reload asks for confirmation before replacing the
 in-memory snapshot.
+
+When checking all desktop collections, metadata includes known DeKoi collection
+entities and any extra collection-like files discovered in the desktop
+collections directory. Unknown future entities are surfaced in Pond Care as
+unrepairable by the current app version instead of being silently hidden.
 
 Messenger and Roleplay transcripts are stored separately from thread metadata.
 The UI still receives assembled `MessengerThread` and `RoleplayThread` objects,
@@ -143,23 +151,28 @@ sibling:
 DeKoi storage bundle files use the same temp-file write and sync path, but they
 do not create `.json.bak` siblings.
 
-The backup is a recovery aid, not a user-facing repair workflow. The Rust
-desktop storage capability has internal repair helpers for malformed collection
-files, but no Tauri command or frontend UI is registered yet. Those helpers
-require `confirm: true`, accept only supported collection entities, and support
-two strategies:
+The backup is a recovery aid, not an automatic overwrite path. Pond Care exposes
+an explicit desktop-only repair workflow for one malformed collection at a time.
+Repair commands require `confirm: true`, accept only supported collection
+entities, and support two strategies:
 
 - `restore-backup`: validate the sibling `.json.bak` contains a JSON array,
   preserve the current malformed file as `<entity>.json.pre-repair` when that
   sidecar does not already exist, then install the backup records through the
   same temp-file atomic write path.
 - `replace-empty`: replace the malformed file with an empty JSON array through
-  the same temp-file atomic write path. If no `.json.bak` exists, preserve the
-  malformed current file as the backup; if one already exists, leave it intact
-  and use a transient rollback file only during installation.
+  the same temp-file atomic write path. This is rejected when a restorable
+  `.json.bak` backup is available. Otherwise, preserve the malformed current
+  file as `<entity>.json.pre-repair` when that sidecar does not already exist
+  and use it as the rollback source during installation.
 
 Repair results return the repaired collection metadata. Existing `.json.bak`
-backups and existing `.json.pre-repair` sidecars are preserved.
+backups and existing `.json.pre-repair` sidecars are preserved. When a
+`.json.pre-repair` sidecar exists beside a valid repaired collection, Pond Care
+shows a separate Finish repair action. That command requires `confirm: true`,
+verifies the live collection is usable, then removes only the pre-repair sidecar.
+Normal autosave still uses `storage_replace` and never invokes repair or finish
+repair automatically.
 
 ## Import Commit Safety
 

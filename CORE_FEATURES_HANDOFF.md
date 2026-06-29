@@ -160,13 +160,12 @@ Key behavior:
   explicit collection replacement.
 - Desktop malformed collection files are recoverable storage errors and block
   normal autosave overwrite.
-- Rust-only helpers can explicitly repair malformed desktop collection files by
-  restoring a valid `.json.bak` or replacing with an empty collection, but no
-  Tauri command or UI path is exposed yet.
+- Pond Care can explicitly repair one malformed desktop collection at a time by
+  restoring a valid `.json.bak` or, when no restorable backup exists, replacing
+  it with an empty collection; malformed bytes stay in `.json.pre-repair` until
+  the user finishes the repair.
 
 Next work:
-
-- Add a Tauri command and UI path for malformed desktop collection repair.
 - Keep migration signatures correct when user edits happen during legacy
   transcript migration.
 - Keep transcript activity ordering based on message/entry activity helpers, not

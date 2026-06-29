@@ -73,7 +73,8 @@
         <p>
           Desktop collection files are JSON arrays under <code>&lt;app-data&gt;/collections</code>. Malformed files
           and leftover recovery artifacts block normal autosave overwrite, and collection writes preserve a sibling
-          <code>.json.bak</code> recovery file.
+          <code>.json.bak</code> recovery file. Pond Care can explicitly repair one malformed desktop collection
+          at a time and keeps malformed bytes in <code>.json.pre-repair</code> until the user finishes the repair.
         </p>
         <p>
           Bundle imports in Pond Care &gt; Stocking preview first, require confirmation, create a pre-import backup, and

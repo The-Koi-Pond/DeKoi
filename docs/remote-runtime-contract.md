@@ -77,16 +77,20 @@ normal autosave. Desktop collection writes use a synced temp file and preserve
 the previous readable file as `<entity>.json.bak`; storage bundle writes use the
 temp/sync path without creating a backup.
 
-The desktop storage module also contains Rust-only helpers for explicit
-malformed-collection repair. They are not part of the remote runtime HTTP
-contract and are not registered as Tauri commands yet. The helpers require
-confirmation, support `restore-backup` and `replace-empty`, preserve existing
-`.json.bak` backups, and use `.json.pre-repair` sidecars before restoring from a
-backup.
+Malformed-collection repair is desktop-only and not part of the remote runtime
+HTTP contract. Pond Care uses dedicated Tauri commands to repair one collection
+at a time with explicit confirmation. Repair supports `restore-backup` and
+`replace-empty`, preserves existing `.json.bak` backups, saves malformed bytes
+as `.json.pre-repair`, and requires a separate finish action before removing
+that sidecar.
 
 Desktop stale checking uses the separate `dekoi_storage_collection_metadata`
 Tauri command to compare collection file existence, byte length, updated-at
 milliseconds, and content hash against the last loaded or app-written snapshot.
+That metadata also reports recovery artifact state, whether a backup is
+restorable, and whether the collection state is repairable. Whole-directory
+checks include known DeKoi collections and extra collection-like files so Pond
+Care can surface unknown future entities.
 Remote HTTP runtimes do not need to implement this metadata path; DeKoi reports
 stale-check metadata as unavailable for remote targets and still supports
 explicit reload through the normal storage commands. Missing or unavailable

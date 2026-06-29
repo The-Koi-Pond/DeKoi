@@ -14,6 +14,11 @@ export interface DesktopStorageCollectionMetadataResult {
   entity: string;
   metadata: DesktopStorageCollectionMetadata | null;
   error: string | null;
+  backupExists: boolean;
+  backupRestorable: boolean;
+  temporaryExists: boolean;
+  preRepairExists: boolean;
+  repairable: boolean;
 }
 
 function requireTauriForDesktopStorageMetadata() {

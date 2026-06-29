@@ -9,6 +9,8 @@ export const DESKTOP_COMMANDS = {
   runtimeInvoke: "dekoi_runtime_invoke",
   storageReadBundle: "dekoi_storage_read_bundle",
   storageWriteBundle: "dekoi_storage_write_bundle",
+  storageRepairCollection: "dekoi_storage_repair_collection",
+  storageFinishCollectionRepair: "dekoi_storage_finish_collection_repair",
   storageCollectionMetadata: "dekoi_storage_collection_metadata",
 } as const;
 
@@ -26,5 +28,7 @@ export const DESKTOP_COMMAND_ALLOWLIST = [
   DESKTOP_COMMANDS.runtimeInvoke,
   DESKTOP_COMMANDS.storageReadBundle,
   DESKTOP_COMMANDS.storageWriteBundle,
+  DESKTOP_COMMANDS.storageRepairCollection,
+  DESKTOP_COMMANDS.storageFinishCollectionRepair,
   DESKTOP_COMMANDS.storageCollectionMetadata,
 ] as const satisfies readonly DesktopCommand[];
