@@ -4,7 +4,6 @@ import type { PersonaRecord } from "./persona";
 import type { ProviderConnectionRecord } from "./provider-connection";
 
 export type GenerationProviderKind =
-  | "mock"
   | "remote-runtime"
   | "external-provider";
 

@@ -22,7 +22,6 @@ import {
   selectGenerationRuntime,
   type GenerationRuntimeMode,
 } from "./generation-runtime";
-import { mockMessengerGenerationAdapter } from "./mock-messenger-generation";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
 export type MessengerGenerationRuntimeMode = GenerationRuntimeMode;
@@ -67,22 +66,14 @@ export function isMessengerGenerationRuntimeMode(
 }
 
 export function selectMessengerGenerationRuntime(
-  mode: MessengerGenerationRuntimeMode = "mock",
+  mode: MessengerGenerationRuntimeMode = "remote-runtime",
 ): MessengerGenerationRuntimeSnapshot {
   const runtime = selectGenerationRuntime(mode);
 
-  if (runtime.mode === "remote-runtime") {
-    return {
-      mode: "remote-runtime",
-      label: runtime.label,
-      adapter: providerMessengerGenerationAdapter,
-    };
-  }
-
   return {
-    mode: "mock",
+    mode: runtime.mode,
     label: runtime.label,
-    adapter: mockMessengerGenerationAdapter,
+    adapter: providerMessengerGenerationAdapter,
   };
 }
 
@@ -94,7 +85,7 @@ export function getMessengerGenerationModeForConnection(
 
 export async function generateMessengerResponse(
   request: MessengerGenerationRequest,
-  mode: MessengerGenerationRuntimeMode = "mock",
+  mode: MessengerGenerationRuntimeMode = "remote-runtime",
 ): Promise<MessengerGenerationResponse> {
   const runtime = selectMessengerGenerationRuntime(mode);
   return runtime.adapter.generate(request);
@@ -105,7 +96,7 @@ export async function generateMessengerThreadReply({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
-  mode = "mock",
+  mode = "remote-runtime",
   now,
   parameters,
   personas,

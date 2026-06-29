@@ -38,8 +38,9 @@ DeKoi is an early local-first React/Tauri app with:
 - Native fixture proof confirmed desktop storage repair, finish repair, and
   autosave overwrite protection for malformed collection files.
 - Provider-neutral generation request assembly for Messenger and Roleplay.
-- Mock generation, browser provider adapters, remote runtime invocation, and
-  desktop runtime provider transport for a narrow set of provider families.
+- Provider-backed generation through browser provider adapters, remote runtime
+  invocation, and desktop runtime provider transport for a narrow set of
+  provider families.
 - Ripple engine records/actions/storage and bundle support, but no dedicated
   routed Ripple editor surface yet.
 
@@ -199,7 +200,7 @@ Implemented:
   and connection.
 - Save/reopen threads.
 - Send persona or anonymous messages.
-- Generate companion replies through mock or provider runtime.
+- Generate companion replies through a configured provider connection.
 - Edit and delete messages.
 - Configure thread participants, persona, lorebooks, connection, and custom
   Messenger prompt through the Shoal chat settings rail.
@@ -297,11 +298,14 @@ Implemented:
 - `src/engine/generation.ts` shared request helpers.
 - Messenger request assembly in `src/engine/messenger-generation.ts`.
 - Roleplay request assembly in `src/engine/roleplay-generation.ts`.
-- Mock generation adapters for development.
 - Provider generation workflow under `src/features/runtime/generation`.
-- Browser provider fallback for optional/no-key cases.
+- Browser provider fallback for optional/no-key cases with a configured Base URL
+  and model.
 - Desktop runtime provider calls with stored API key lookup for required-key
   providers.
+- Messenger and Roleplay block generation before adding the user message when
+  the selected connection is missing, needs a key, lacks a Base URL, or lacks a
+  model.
 - Provider connection check and model listing commands.
 - Desktop provider HTTP error parsing preserves common nested provider detail
   and code fields instead of collapsing to only an HTTP status.

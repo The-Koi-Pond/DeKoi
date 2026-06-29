@@ -13,7 +13,11 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
-import { getProviderConnectionById } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionById,
+  getProviderConnectionGenerationBlocker,
+  isProviderConnectionReady,
+} from "../../../engine/provider-connection";
 import { MESSENGER } from "../../../engine/surfaces";
 import {
   appendMessengerMessages,
@@ -89,10 +93,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
   const [editingMessage, setEditingMessage] = useState<{
+    threadId: string;
     id: string;
     body: string;
   } | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<{
+    threadId: string;
+    id: string;
+    label: string;
+  } | null>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   const activePersona = messengerThread?.activePersonaId
     ? nav.personas.find(
         (persona) => persona.id === messengerThread.activePersonaId,
@@ -134,6 +146,12 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   );
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
+  const activeEditingMessage =
+    editingMessage?.threadId === activeThreadId ? editingMessage : null;
+  const activeDeleteRequest =
+    nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
+      ? deleteRequest
+      : null;
   const getMessageAuthorAvatar = (message: MessengerMessage) => {
     const { author } = message;
 
@@ -171,8 +189,26 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
 
+  useEffect(() => {
+    const textarea = editTextareaRef.current;
+    if (!textarea) return;
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, [activeEditingMessage?.id]);
+
+  useEffect(() => {
+    if (!activeDeleteRequest?.id) return;
+    deleteConfirmRef.current?.focus();
+  }, [activeDeleteRequest?.id]);
+
   function handleEditMessage(message: MessengerMessage) {
-    setEditingMessage({ id: message.id, body: message.body });
+    if (!messengerThread) return;
+    setDeleteRequest(null);
+    setEditingMessage({
+      threadId: messengerThread.id,
+      id: message.id,
+      body: message.body,
+    });
   }
 
   function handleCancelEditMessage() {
@@ -180,14 +216,14 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   }
 
   function handleSaveEditedMessage() {
-    if (!messengerThread || !editingMessage) return;
-    const trimmedBody = editingMessage.body.trim();
+    if (!messengerThread || !activeEditingMessage) return;
+    const trimmedBody = activeEditingMessage.body.trim();
     if (!trimmedBody) return;
 
     nav.updateMessengerThread(
       updateMessengerMessageBody(
         messengerThread,
-        editingMessage.id,
+        activeEditingMessage.id,
         trimmedBody,
         new Date().toISOString(),
       ),
@@ -195,12 +231,57 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     setEditingMessage(null);
   }
 
-  function handleDeleteMessage(messageId: string) {
+  function commitDeleteMessage(messageId: string) {
     if (!messengerThread) return;
     nav.updateMessengerThread(deleteMessengerMessage(messengerThread, messageId));
-    if (editingMessage?.id === messageId) {
+    if (activeEditingMessage?.id === messageId) {
       setEditingMessage(null);
     }
+    setDeleteRequest(null);
+  }
+
+  function handleDeleteMessage(message: MessengerMessage) {
+    if (!messengerThread) return;
+    if (!messengerThread.messages.some((candidate) => candidate.id === message.id)) {
+      return;
+    }
+
+    if (nav.appSettings.confirmRelease) {
+      setEditingMessage(null);
+      setDeleteRequest({
+        threadId: messengerThread.id,
+        id: message.id,
+        label: message.author.label,
+      });
+      return;
+    }
+
+    commitDeleteMessage(message.id);
+  }
+
+  function handleCancelDeleteMessage() {
+    setDeleteRequest(null);
+  }
+
+  function handleEditMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleCancelEditMessage();
+      return;
+    }
+
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      handleSaveEditedMessage();
+    }
+  }
+
+  function handleDeleteConfirmKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    handleCancelDeleteMessage();
   }
 
   async function sendDraft() {
@@ -209,11 +290,13 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    if (!threadConnection) {
+    const generationBlocker = getProviderConnectionGenerationBlocker(threadConnection);
+    if (generationBlocker || !isProviderConnectionReady(threadConnection)) {
       setGenerationState({
         threadId: messengerThread.id,
         status: "error",
-        message: "Create or select a connection before generating.",
+        message:
+          generationBlocker ?? "Create or select a connection before generating.",
       });
       return false;
     }
@@ -376,6 +459,9 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         aria-label="Messenger messages"
         ref={messageListRef}
       >
+        {messengerThread.messages.length === 0 && (
+          <p className="messenger-empty-note">No messages yet.</p>
+        )}
         {messengerThread.messages.map((message, index) => {
           const authorAvatar = getMessageAuthorAvatar(message);
           const dateKey = getMessageDateKey(message.createdAt);
@@ -384,7 +470,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
               ? getMessageDateKey(messengerThread.messages[index - 1].createdAt)
               : "";
           const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
-          const isEditing = editingMessage?.id === message.id;
+          const isEditing = activeEditingMessage?.id === message.id;
+          const isConfirmingDelete = activeDeleteRequest?.id === message.id;
+          const deleteRequestLabel = isConfirmingDelete
+            ? activeDeleteRequest?.label ?? message.author.label
+            : message.author.label;
           const timeLabel = getMessageTimeLabel(message.createdAt);
 
           return (
@@ -397,7 +487,9 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                 </div>
               )}
               <article
-                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}`}
+                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}${
+                  isConfirmingDelete ? " confirming-delete" : ""
+                }`}
               >
                 <span className="message-avatar" aria-hidden="true">
                   {authorAvatar.avatarUrl ? (
@@ -425,10 +517,13 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                   {isEditing ? (
                     <div className="message-edit-form">
                       <textarea
+                        ref={editTextareaRef}
                         aria-label={`Edit message from ${message.author.label}`}
-                        value={editingMessage.body}
+                        value={activeEditingMessage?.body ?? ""}
+                        onKeyDown={handleEditMessageKeyDown}
                         onChange={(event) =>
                           setEditingMessage({
+                            threadId: messengerThread.id,
                             id: message.id,
                             body: event.target.value,
                           })
@@ -438,7 +533,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                         <button
                           type="button"
                           onClick={handleSaveEditedMessage}
-                          disabled={!editingMessage.body.trim()}
+                          disabled={!activeEditingMessage?.body.trim()}
                         >
                           Save
                         </button>
@@ -451,22 +546,49 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                     <>
                       <p>{message.body}</p>
                       <div className="message-actions" aria-label="Message actions">
-                        <button
-                          type="button"
-                          aria-label={`Edit message from ${message.author.label}`}
-                          title="Edit"
-                          onClick={() => handleEditMessage(message)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Delete message from ${message.author.label}`}
-                          title="Delete"
-                          onClick={() => handleDeleteMessage(message.id)}
-                        >
-                          ×
-                        </button>
+                        {isConfirmingDelete ? (
+                          <div
+                            className="message-delete-confirm"
+                            role="group"
+                            aria-label={`Confirm delete message from ${deleteRequestLabel}`}
+                            onKeyDown={handleDeleteConfirmKeyDown}
+                          >
+                            <button
+                              ref={deleteConfirmRef}
+                              type="button"
+                              aria-label={`Confirm delete message from ${deleteRequestLabel}`}
+                              onClick={() => commitDeleteMessage(message.id)}
+                            >
+                              Delete
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Cancel delete message from ${deleteRequestLabel}`}
+                              onClick={handleCancelDeleteMessage}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              aria-label={`Edit message from ${message.author.label}`}
+                              title="Edit"
+                              onClick={() => handleEditMessage(message)}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Delete message from ${message.author.label}`}
+                              title="Delete"
+                              onClick={() => handleDeleteMessage(message)}
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}

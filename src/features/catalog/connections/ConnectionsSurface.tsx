@@ -274,6 +274,14 @@ function ConnectionEditor({
   async function handleSave() {
     const input = draftToInput(draft);
     if (!input.label) return;
+    if (!input.baseUrl) {
+      setSaveStatus("Base URL required.");
+      return;
+    }
+    if (!input.model) {
+      setSaveStatus("Model required.");
+      return;
+    }
     setSaveBusy(true);
     setSaveStatus("");
 

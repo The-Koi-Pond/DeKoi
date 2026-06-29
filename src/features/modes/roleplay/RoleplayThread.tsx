@@ -12,7 +12,11 @@ import {
   updateRoleplayEntryBody,
 } from "../../../engine/roleplay-actions";
 import type { RoleplayEntry } from "../../../engine/roleplay";
-import { getProviderConnectionById } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionById,
+  getProviderConnectionGenerationBlocker,
+  isProviderConnectionReady,
+} from "../../../engine/provider-connection";
 import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
@@ -167,11 +171,13 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    if (!threadConnection) {
+    const generationBlocker = getProviderConnectionGenerationBlocker(threadConnection);
+    if (generationBlocker || !isProviderConnectionReady(threadConnection)) {
       setGenerationState({
         threadId: thread.id,
         status: "error",
-        message: "Create or select a connection before generating.",
+        message:
+          generationBlocker ?? "Create or select a connection before generating.",
       });
       return false;
     }

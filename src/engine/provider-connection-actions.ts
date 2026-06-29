@@ -1,5 +1,4 @@
 import type {
-  ProviderConnectionKind,
   ProviderConnectionProvider,
   ProviderConnectionRecord,
   ProviderConnectionStatus,
@@ -35,14 +34,6 @@ function cleanNullableNumber(value: number | null | undefined) {
     : null;
 }
 
-function connectionKindForInput(
-  input: ProviderConnectionInput,
-): ProviderConnectionKind {
-  return input.provider === "custom" && !input.baseUrl?.trim()
-    ? "mock"
-    : "remote-runtime";
-}
-
 function statusForInput(input: ProviderConnectionInput): ProviderConnectionStatus {
   const provider = getProviderConnectionProviderOption(input.provider);
   return provider.apiKeyRequired && !input.apiKey?.trim() && !input.hasSecret
@@ -64,7 +55,7 @@ export function createProviderConnectionRecord({
   return {
     id,
     schemaVersion: 1,
-    kind: connectionKindForInput(input),
+    kind: "remote-runtime",
     provider: provider.value,
     label: cleanText(input.label, "Unnamed connection"),
     baseUrl: cleanText(input.baseUrl),
@@ -90,7 +81,7 @@ export function updateProviderConnectionRecord(
   return {
     id: record.id,
     schemaVersion: 1,
-    kind: connectionKindForInput(input),
+    kind: "remote-runtime",
     provider: provider.value,
     label: cleanText(input.label, record.label),
     baseUrl: cleanText(input.baseUrl),

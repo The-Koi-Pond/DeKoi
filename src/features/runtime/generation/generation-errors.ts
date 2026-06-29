@@ -79,7 +79,7 @@ export function formatGenerationFailureNotice(
     normalized.includes("bare-minimum provider adapter")
   ) {
     return withDetail(
-      "This provider is not supported for generation yet. Choose another connection or use Mock generation.",
+      "This provider is not supported for generation yet. Choose another connection.",
       detail,
     );
   }
