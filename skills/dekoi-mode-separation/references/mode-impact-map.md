@@ -8,7 +8,7 @@ per-thread state.
 Owner paths:
 
 - `src/engine/messenger.ts`
-- `src/engine/messenger-actions.ts`
+- `src/engine/modes/messenger/messenger-actions.ts`
 - `src/engine/messenger-generation.ts`
 - `src/features/modes/messenger`
 - `src/features/runtime/generation/messenger-generation.ts`
@@ -35,7 +35,7 @@ Must not own:
 Owner paths:
 
 - `src/engine/roleplay.ts`
-- `src/engine/roleplay-actions.ts`
+- `src/engine/modes/roleplay/roleplay-actions.ts`
 - `src/features/modes/roleplay`
 - `src/features/runtime/generation/roleplay-generation.ts`
 

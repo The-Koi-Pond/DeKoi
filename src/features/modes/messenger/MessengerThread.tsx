@@ -22,7 +22,7 @@ import {
   deleteMessengerMessage,
   setMessengerThreadProviderConnection,
   updateMessengerMessageBody,
-} from "../../../engine/messenger-actions";
+} from "../../../engine/modes/messenger/messenger-actions";
 import {
   generateMessengerThreadReply,
   formatGenerationFailureNotice,

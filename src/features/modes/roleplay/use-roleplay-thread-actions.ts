@@ -8,7 +8,7 @@ import {
   createRoleplayThread as buildRoleplayThread,
   deleteRoleplayThread as deleteRoleplayThreadRecord,
   renameRoleplayThread as renameRoleplayThreadRecord,
-} from "../../../engine/roleplay-actions";
+} from "../../../engine/modes/roleplay/roleplay-actions";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {

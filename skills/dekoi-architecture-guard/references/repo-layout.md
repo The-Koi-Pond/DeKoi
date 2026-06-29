@@ -61,13 +61,13 @@ src/engine/
 
 ```text
 src/engine/messenger.ts
-src/engine/messenger-actions.ts
+src/engine/modes/messenger/messenger-actions.ts
 src/engine/messenger-generation.ts
   Messenger thread records, mutations, and provider-neutral generation request
   assembly.
 
 src/engine/roleplay.ts
-src/engine/roleplay-actions.ts
+src/engine/modes/roleplay/roleplay-actions.ts
   Roleplay thread records, scene records, and mutations.
 
 src/engine/contracts/types/character.ts

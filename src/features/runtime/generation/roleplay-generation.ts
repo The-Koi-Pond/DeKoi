@@ -5,7 +5,7 @@ import type { ProviderConnectionRecord } from "../../../engine/provider-connecti
 import {
   appendRoleplayEntries,
   createGeneratedRoleplayEntry,
-} from "../../../engine/roleplay-actions";
+} from "../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import {
   createRoleplayGenerationContext,

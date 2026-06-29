@@ -10,7 +10,7 @@ import {
   createPersonaRoleplayEntry,
   deleteRoleplayEntry,
   updateRoleplayEntryBody,
-} from "../../../engine/roleplay-actions";
+} from "../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayEntry } from "../../../engine/roleplay";
 import {
   getProviderConnectionById,

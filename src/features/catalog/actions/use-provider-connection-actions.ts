@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import type { RoleplayThread } from "../../../engine/roleplay";
-import { replaceRoleplayThreadProviderConnection } from "../../../engine/roleplay-actions";
+import { replaceRoleplayThreadProviderConnection } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
-import { replaceMessengerThreadProviderConnection } from "../../../engine/messenger-actions";
+import { replaceMessengerThreadProviderConnection } from "../../../engine/modes/messenger/messenger-actions";
 import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
 import { getProviderConnectionProviderOption } from "../../../engine/provider-connection";
 import {

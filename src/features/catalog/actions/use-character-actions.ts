@@ -8,9 +8,9 @@ import {
   type CharacterRecordInput,
 } from "../../../engine/character-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
-import { removeRoleplayThreadCharacter } from "../../../engine/roleplay-actions";
+import { removeRoleplayThreadCharacter } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
-import { removeMessengerThreadCharacter } from "../../../engine/messenger-actions";
+import { removeMessengerThreadCharacter } from "../../../engine/modes/messenger/messenger-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { StateSetter } from "../../../shared/react/state-setter";
