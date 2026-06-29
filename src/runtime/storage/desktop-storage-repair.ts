@@ -155,7 +155,7 @@ function normalizeUnknownRepairStatus(
     backupRestorable: result.backupRestorable,
     temporaryExists: result.temporaryExists,
     preRepairExists: result.preRepairExists,
-    repairable: result.repairable || result.error !== null,
+    repairable: result.repairable,
     canRestoreBackup: false,
     canFinishRepair: false,
   };
@@ -172,7 +172,7 @@ function normalizeRepairStatus(
 
   const metadata = normalizeMetadata(result.metadata);
   const error = result.error ?? null;
-  const repairable = result.repairable && error !== null;
+  const repairable = result.repairable;
   const canFinishRepair = result.preRepairExists && error === null;
 
   if (!error && !canFinishRepair) return null;

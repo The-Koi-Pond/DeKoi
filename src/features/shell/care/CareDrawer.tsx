@@ -302,6 +302,27 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return result;
   }
 
+  function findStorageRepairStatus(
+    status: AppStorageRepairStatusResult,
+    collection: AppStorageRepairCollectionStatus,
+  ) {
+    return status.collections.find(
+      (item) => item.entity === collection.entity,
+    );
+  }
+
+  function formatRepairConfirmationProblem(
+    collection: AppStorageRepairCollectionStatus,
+    status: AppStorageRepairStatusResult,
+  ) {
+    const current = findStorageRepairStatus(status, collection);
+    if (!current) return "";
+
+    return current.error
+      ? ` ${current.error}`
+      : ` ${current.label} still has repair work pending.`;
+  }
+
   async function handleStorageStaleCheck() {
     setStorageReloadBusy(true);
     setStorageReloadStatus("Checking stored collections...");
@@ -378,20 +399,49 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         confirm: true,
         rawUrl: nav.remoteRuntimeUrl,
       });
-      const repairStatus = await refreshStorageRepairStatus();
       if (result.status !== "ready") {
         setStorageReloadStatus(result.message);
         return;
       }
 
-      const reloadResult = await nav.reloadAppStorage();
-      const needsFinish = repairStatus.collections.some(
-        (item) => item.entity === collection.entity && item.canFinishRepair,
+      const repairStatus = await refreshStorageRepairStatus();
+      const postRepairStatus = findStorageRepairStatus(
+        repairStatus,
+        collection,
       );
+      if (postRepairStatus?.error) {
+        setStorageReloadStatus(
+          `Repair did not produce a readable ${collection.label}. ${postRepairStatus.error}`,
+        );
+        return;
+      }
+
+      const reloadResult = await nav.reloadAppStorage();
+      const confirmedRepairStatus = await refreshStorageRepairStatus();
+      if (reloadResult.status !== "ready" || !reloadResult.reloaded) {
+        setStorageReloadStatus(
+          `Repair command completed, but storage reload did not confirm ${collection.label}. ${reloadResult.message}${formatRepairConfirmationProblem(
+            collection,
+            confirmedRepairStatus,
+          )}`,
+        );
+        return;
+      }
+
+      const confirmedTargetStatus = findStorageRepairStatus(
+        confirmedRepairStatus,
+        collection,
+      );
+      if (confirmedTargetStatus?.error) {
+        setStorageReloadStatus(
+          `Repair command completed, but metadata still reports a problem for ${collection.label}. ${confirmedTargetStatus.error}`,
+        );
+        return;
+      }
+
+      const needsFinish = confirmedTargetStatus?.canFinishRepair ?? false;
       const finishMessage = needsFinish
-        ? reloadResult.reloaded
-          ? " Finish repair after you verify the reloaded records."
-          : " Reload records, then finish repair after you verify them."
+        ? " Finish repair after you verify the reloaded records."
         : "";
       setStorageReloadStatus(
         `${result.message} ${reloadResult.message}${finishMessage}`,
