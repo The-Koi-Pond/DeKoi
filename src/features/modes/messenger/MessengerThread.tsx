@@ -14,7 +14,7 @@ import type {
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
 import { getProviderConnectionById } from "../../../engine/provider-connection";
-import { MESSENGER } from "../../../engine/surfaces";
+import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import {
   appendMessengerMessages,
   createAnonymousMessengerMessage,

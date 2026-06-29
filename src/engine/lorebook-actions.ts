@@ -1,4 +1,4 @@
-import type { LorebookEntryRecord, LorebookRecord } from "./lorebook";
+import type { LorebookEntryRecord, LorebookRecord } from "./contracts/types/lorebook";
 
 export interface LorebookEntryInput {
   title: string;

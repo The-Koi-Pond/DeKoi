@@ -3,7 +3,7 @@ import type { RoleplayThread } from "../../../engine/roleplay";
 import { clearRoleplayThreadPersona } from "../../../engine/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { clearMessengerThreadPersona } from "../../../engine/messenger-actions";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   createPersonaRecord,
   deletePersonaRecord,

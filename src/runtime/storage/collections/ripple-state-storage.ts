@@ -3,7 +3,7 @@ import type {
   RippleState,
   RippleStateOwnerKind,
   RippleTone,
-} from "../../../engine/ripples";
+} from "../../../engine/contracts/types/ripples";
 import {
   createStorageRepository,
   type StorageMode,

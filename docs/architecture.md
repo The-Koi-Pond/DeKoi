@@ -22,8 +22,8 @@ src/app/
   React bootstrap, providers, startup effects, and app-level composition.
 
 src/features/catalog/
-  Resource/data owners: companions, personas, lorebooks, provider connections,
-  thread libraries, presets, galleries, and importable product collections.
+  Resource/data owners for implemented catalog behavior: companions, personas,
+  lorebooks, provider connections, catalog actions, and shared catalog UI.
 
 src/features/runtime/
   React-free frontend runtime workflows used by app, shell, and modes:
@@ -47,7 +47,7 @@ src/shared/api/
 
 src/engine/
   React-free product records, pure actions, selectors, generation contracts,
-  and capability ports.
+  and future capability ports only when a real adapter boundary needs them.
 
 src-tauri/
   Native capabilities, local storage, secrets, command dispatch, and remote

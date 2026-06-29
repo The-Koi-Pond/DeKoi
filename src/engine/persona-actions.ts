@@ -1,4 +1,4 @@
-import type { PersonaNoteRole, PersonaRecord } from "./persona";
+import type { PersonaNoteRole, PersonaRecord } from "./contracts/types/persona";
 
 export interface PersonaRecordInput {
   displayName: string;

@@ -1,5 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { RESERVED } from "../../../../engine/surfaces";
+import { RESERVED } from "../../../../engine/contracts/constants/surfaces";
 import type {
   NavCareActions,
   NavRoleplayThreadActions,

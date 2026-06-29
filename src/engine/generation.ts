@@ -1,6 +1,6 @@
-import type { CharacterRecord } from "./character";
-import type { LorebookRecord } from "./lorebook";
-import type { PersonaRecord } from "./persona";
+import type { CharacterRecord } from "./contracts/types/character";
+import type { LorebookRecord } from "./contracts/types/lorebook";
+import type { PersonaRecord } from "./contracts/types/persona";
 import type { ProviderConnectionRecord } from "./provider-connection";
 
 export type GenerationProviderKind =

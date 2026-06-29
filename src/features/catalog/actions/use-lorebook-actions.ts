@@ -1,9 +1,9 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import { removeCharacterLorebook } from "../../../engine/character-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import { removeRoleplayThreadLorebook } from "../../../engine/roleplay-actions";
-import type { LorebookRecord } from "../../../engine/lorebook";
+import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import {
   createLorebookEntryRecord,
   createLorebookRecord,

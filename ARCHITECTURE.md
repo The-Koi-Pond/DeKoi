@@ -100,7 +100,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
-src/engine/ripples         Ripple records and pure actions.
+src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports for storage, secrets, providers, files.
 ```
 
@@ -157,9 +157,14 @@ The short version:
   Messenger records and mutations.
 - `src/engine/roleplay.ts` and `src/engine/roleplay-actions.ts` define the first
   Roleplay scene records.
-- `src/engine/character.ts`, `src/engine/persona.ts`,
-  `src/engine/lorebook.ts`, `src/engine/provider-connection.ts`, and
-  `src/engine/ripples.ts` define the first catalog/context records.
+- `src/engine/contracts/types/character.ts`,
+  `src/engine/contracts/types/persona.ts`,
+  `src/engine/contracts/types/lorebook.ts`, and
+  `src/engine/contracts/types/ripples.ts` define the first catalog/context
+  record contracts. `src/engine/contracts/constants/surfaces.ts` defines the
+  surface IDs and metadata. `src/engine/provider-connection.ts` still owns the
+  provider connection record plus provider helpers until that mixed module is
+  split.
 - `src/engine/generation.ts`, `src/engine/messenger-generation.ts`, and
   `src/engine/roleplay-generation.ts` build shared, Messenger, and Roleplay
   provider-neutral generation requests.

@@ -6,7 +6,7 @@ import {
   RESERVED,
   SURFACES,
   type SurfaceId,
-} from "../../../engine/surfaces";
+} from "../../../engine/contracts/constants/surfaces";
 import type {
   NavViewActions,
   NavViewState,

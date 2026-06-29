@@ -2,7 +2,7 @@ import type {
   Ripple,
   RippleState,
   RippleStateOwnerKind,
-} from "../../../engine/ripples";
+} from "../../../engine/contracts/types/ripples";
 import {
   createRippleRecord,
   createRippleState,

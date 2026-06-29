@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CharacterNoteRole, CharacterRecord } from "../../../engine/character";
+import type { CharacterNoteRole, CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
 import type {
   NavCatalogState,

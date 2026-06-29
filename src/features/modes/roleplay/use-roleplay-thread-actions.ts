@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import {
   appendRoleplayEntries,
@@ -9,13 +9,13 @@ import {
   deleteRoleplayThread as deleteRoleplayThreadRecord,
   renameRoleplayThread as renameRoleplayThreadRecord,
 } from "../../../engine/roleplay-actions";
-import type { LorebookRecord } from "../../../engine/lorebook";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import type { RippleState } from "../../../engine/ripples";
+import type { RippleState } from "../../../engine/contracts/types/ripples";
 import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";

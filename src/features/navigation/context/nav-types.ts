@@ -1,25 +1,25 @@
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/character-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import type {
   LorebookEntryRecord,
   LorebookRecord,
-} from "../../../engine/lorebook";
+} from "../../../engine/contracts/types/lorebook";
 import type {
   LorebookEntryInput,
   LorebookInput,
 } from "../../../engine/lorebook-actions";
 import type { MessengerThread } from "../../../engine/messenger";
-import type { PersonaRecord } from "../../../engine/persona";
+import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/persona-actions";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/provider-connection-actions";
-import type { RippleState, RippleStateOwnerKind } from "../../../engine/ripples";
+import type { RippleState, RippleStateOwnerKind } from "../../../engine/contracts/types/ripples";
 import type { RippleInput } from "../../../engine/ripple-actions";
-import type { SurfaceId } from "../../../engine/surfaces";
+import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import type { AppSettings, ShoalSortMode } from "../../../engine/app-settings";
 import type {
   AppStorageCollectionKey,

@@ -34,7 +34,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
-import type { CharacterRecord } from "../../../engine/character";
+import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerSystemPromptMode,
@@ -45,7 +45,7 @@ import {
   getProviderConnectionProviderOption,
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import { ROLEPLAY, MESSENGER } from "../../../engine/surfaces";
+import { ROLEPLAY, MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];

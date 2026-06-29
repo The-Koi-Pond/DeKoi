@@ -1,4 +1,4 @@
-import type { LorebookEntryRecord, LorebookRecord } from "../../../engine/lorebook";
+import type { LorebookEntryRecord, LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import {
   isRecord,
   readString,
