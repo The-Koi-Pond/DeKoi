@@ -31,7 +31,6 @@ function readString(value: unknown, fallback = "") {
 
 function isProviderKind(value: unknown): value is GenerationProviderKind {
   return (
-    value === "mock" ||
     value === "remote-runtime" ||
     value === "external-provider"
   );

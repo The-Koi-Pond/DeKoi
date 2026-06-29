@@ -12,11 +12,15 @@ import {
   updateRoleplayEntryBody,
 } from "../../../engine/roleplay-actions";
 import type { RoleplayEntry } from "../../../engine/roleplay";
-import { getProviderConnectionById } from "../../../engine/provider-connection";
+import {
+  getProviderConnectionById,
+} from "../../../engine/provider-connection";
 import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
+  getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   selectGenerationRuntime,
 } from "../../runtime";
@@ -101,10 +105,6 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
   } | null>(null);
   const entryListRef = useRef<HTMLDivElement>(null);
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
-  const activePersona = thread?.activePersonaId
-    ? nav.personas.find((persona) => persona.id === thread.activePersonaId) ??
-      null
-    : null;
   const threadConnection = getProviderConnectionById(
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
@@ -167,47 +167,67 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    if (!threadConnection) {
+    const sentAt = new Date().toISOString();
+    const commitThread =
+      nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ??
+      null;
+    if (!commitThread) return false;
+
+    const selectedConnection = getProviderConnectionById(
+      commitThread.providerConnectionId ??
+        nav.appSettings.activeMessengerConnectionId,
+      nav.providerConnections,
+    );
+    const connectionReadiness =
+      getGenerationConnectionReadiness(selectedConnection);
+    if (!connectionReadiness.ready) {
       setGenerationState({
-        threadId: thread.id,
+        threadId: commitThread.id,
         status: "error",
-        message: "Create or select a connection before generating.",
+        message: formatGenerationReadinessFailure(connectionReadiness.code),
       });
       return false;
     }
 
-    const sentAt = new Date().toISOString();
-    const userEntry = activePersona
+    const commitConnection = connectionReadiness.connection;
+    const sendMode = getGenerationModeForConnection(commitConnection);
+    const sendRuntime = selectGenerationRuntime(sendMode);
+    const sendPersona = commitThread.activePersonaId
+      ? nav.personas.find(
+          (persona) => persona.id === commitThread.activePersonaId,
+        ) ?? null
+      : null;
+    const userEntry = sendPersona
       ? createPersonaRoleplayEntry({
           body: trimmedDraft,
           id: createLocalId("roleplay-entry"),
           now: sentAt,
-          persona: activePersona,
-          thread,
+          persona: sendPersona,
+          thread: commitThread,
         })
       : createNarrationRoleplayEntry({
           body: trimmedDraft,
           id: createLocalId("roleplay-entry"),
           now: sentAt,
-          thread,
+          thread: commitThread,
         });
-    const threadWithUserEntry = appendRoleplayEntries(thread, [userEntry]);
+    const threadWithUserEntry = appendRoleplayEntries(commitThread, [userEntry]);
 
     nav.updateRoleplayThread(threadWithUserEntry);
     setDraftState({ body: "", threadId: activeThreadId });
     setGenerationState({
-      threadId: thread.id,
+      threadId: commitThread.id,
       status: "generating",
-      message: `Generating through ${generationRuntime.label}.`,
+      message: `Generating through ${sendRuntime.label}.`,
     });
 
     try {
       const result = await generateRoleplayThreadTurn({
         characters: nav.characters,
         createId: createLocalId,
-        fallbackProviderConnectionId: threadConnection.id,
+        fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        mode: generationMode,
+        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
@@ -226,21 +246,21 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       setGenerationState(
         result.generatedEntryCount > 0
           ? {
-              threadId: thread.id,
+              threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
               message: result.warnings[0] ?? "",
             }
           : {
-              threadId: thread.id,
+              threadId: commitThread.id,
               status: "error",
               message:
                 result.warnings[0] ??
-                `${generationRuntime.label} did not return a Roleplay reply.`,
+                `${sendRuntime.label} did not return a Roleplay reply.`,
             },
       );
     } catch (error) {
       setGenerationState({
-        threadId: thread.id,
+        threadId: commitThread.id,
         status: "error",
         message: formatGenerationFailureNotice(
           error,

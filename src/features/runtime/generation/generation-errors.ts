@@ -1,3 +1,20 @@
+import type { GenerationConnectionReadinessFailureCode } from "./generation-runtime";
+
+const generationReadinessFailureMessages = {
+  "missing-connection": "Create or select a connection before generating.",
+  "connection-needs-key": "Add an API key to this connection before generating.",
+  "missing-base-url": "Add a Base URL to this connection before generating.",
+  "missing-model": "Select a model for this connection before generating.",
+  "desktop-key-store-unavailable":
+    "Provider API keys are only available in the desktop app. Open DeKoi desktop or choose a connection that does not require a key.",
+} as const satisfies Record<GenerationConnectionReadinessFailureCode, string>;
+
+export function formatGenerationReadinessFailure(
+  code: GenerationConnectionReadinessFailureCode,
+) {
+  return generationReadinessFailureMessages[code];
+}
+
 function asErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message || fallback;
   const message = String(error ?? "").trim();
@@ -79,7 +96,7 @@ export function formatGenerationFailureNotice(
     normalized.includes("bare-minimum provider adapter")
   ) {
     return withDetail(
-      "This provider is not supported for generation yet. Choose another connection or use Mock generation.",
+      "This provider is not supported for generation yet. Choose another connection.",
       detail,
     );
   }

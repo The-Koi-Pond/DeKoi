@@ -1,10 +1,14 @@
 export {
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
 } from "./generation-errors";
 export {
+  getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   isGenerationRuntimeMode,
   selectGenerationRuntime,
+  type GenerationConnectionReadiness,
+  type GenerationConnectionReadinessFailureCode,
   type GenerationRuntimeMode,
   type GenerationRuntimeSnapshot,
 } from "./generation-runtime";

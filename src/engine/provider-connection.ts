@@ -1,6 +1,6 @@
 export type ProviderConnectionId = string;
 
-export type ProviderConnectionKind = "mock" | "remote-runtime";
+export type ProviderConnectionKind = "remote-runtime";
 export type ProviderConnectionProvider =
   | "openai"
   | "openai_chatgpt"
@@ -215,7 +215,7 @@ export function normalizeProviderConnectionProvider(
 function normalizeProviderConnectionKind(
   value: unknown,
 ): ProviderConnectionKind {
-  return value === "remote-runtime" ? "remote-runtime" : "mock";
+  return value === "remote-runtime" ? value : "remote-runtime";
 }
 
 function normalizeProviderConnectionText(value: unknown, fallback = "") {
@@ -230,7 +230,7 @@ export function sanitizeProviderConnectionRecord(
   const kind = normalizeProviderConnectionKind(record.kind);
   const provider = normalizeProviderConnectionProvider(
     record.provider,
-    kind === "remote-runtime" ? "openai" : "custom",
+    "openai",
   );
   const providerOption = getProviderConnectionProviderOption(provider);
   const baseUrl = normalizeProviderConnectionText(record.baseUrl).trim();
@@ -249,7 +249,7 @@ export function sanitizeProviderConnectionRecord(
     provider,
     label:
       normalizeProviderConnectionText(record.label).trim() ||
-      (kind === "remote-runtime" ? providerOption.label : "Local"),
+      providerOption.label,
     baseUrl: baseUrl || providerOption.defaultBaseUrl,
     model: model || providerOption.defaultModel,
     summary: normalizeProviderConnectionText(record.summary),
@@ -296,6 +296,34 @@ export function getProviderConnectionById(
     null;
 
   return connection ? sanitizeProviderConnectionRecord(connection) : null;
+}
+
+export function isProviderConnectionReady(
+  connection: ProviderConnectionRecord | null | undefined,
+): connection is ProviderConnectionRecord {
+  return (
+    connection?.status === "ready" &&
+    connection.baseUrl.trim().length > 0 &&
+    connection.model.trim().length > 0
+  );
+}
+
+export function getProviderConnectionGenerationBlocker(
+  connection: ProviderConnectionRecord | null | undefined,
+) {
+  if (!connection) {
+    return "Create or select a connection before generating.";
+  }
+  if (connection.status !== "ready") {
+    return "Add an API key to this connection before generating.";
+  }
+  if (!connection.baseUrl.trim()) {
+    return "Add a Base URL to this connection before generating.";
+  }
+  if (!connection.model.trim()) {
+    return "Select a model for this connection before generating.";
+  }
+  return null;
 }
 
 export function getProviderConnectionStatusLabel(

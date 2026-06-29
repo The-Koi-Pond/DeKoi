@@ -31,17 +31,14 @@ type ProviderConnectionSecretVerification = {
   };
 };
 
-function normalizeConnectionKind(value: unknown): ProviderConnectionKind {
-  return value === "remote-runtime" ? "remote-runtime" : "mock";
+function normalizeConnectionKind(value: unknown): ProviderConnectionKind | null {
+  return value === "remote-runtime" ? value : null;
 }
 
-function normalizeConnectionProvider(
-  value: unknown,
-  kind: ProviderConnectionKind,
-) {
+function normalizeConnectionProvider(value: unknown) {
   return normalizeProviderConnectionProvider(
     value,
-    kind === "remote-runtime" ? "openai" : "custom",
+    "openai",
   );
 }
 
@@ -58,10 +55,12 @@ function normalizeConnectionStatus(
   return providerOption.apiKeyRequired ? "needs-key" : "ready";
 }
 
-function normalizeLegacyLabel(label: string, kind: ProviderConnectionKind) {
-  if (label === "Local mock") return "Local";
-  if (label === "Remote runtime") return "OpenAI";
-  return label || (kind === "remote-runtime" ? "OpenAI" : "Local");
+function normalizeLegacyLabel(label: string, provider: ProviderConnectionProvider) {
+  const providerOption = getProviderConnectionProviderOption(provider);
+  const cleanLabel = label.trim();
+  if (/^local mock$/i.test(cleanLabel)) return "Local";
+  if (/^remote runtime$/i.test(cleanLabel)) return "OpenAI";
+  return cleanLabel || providerOption.label;
 }
 
 function normalizeLegacySummary(summary: string, label: string) {
@@ -71,9 +70,9 @@ function normalizeLegacySummary(summary: string, label: string) {
   return summary;
 }
 
-function normalizeLegacyModel(model: string, label: string) {
-  if (label === "Local" && model === "Mock adapter") return "local";
-  return model;
+function normalizeLegacyModel(model: string) {
+  const cleanModel = model.trim();
+  return /^mock adapter$/i.test(cleanModel) ? "" : cleanModel;
 }
 
 export function normalizeProviderConnectionRecord(
@@ -85,18 +84,19 @@ export function normalizeProviderConnectionRecord(
 
   const id = readString(value.id).trim();
   const kind = normalizeConnectionKind(value.kind);
+  if (!kind) return null;
+
+  const provider = normalizeConnectionProvider(value.provider);
+  const providerOption = getProviderConnectionProviderOption(provider);
   const label = normalizeLegacyLabel(
     readString(value.label, readString(value.name)).trim(),
-    kind,
+    provider,
   );
   if (!id || !label) return null;
 
-  const provider = normalizeConnectionProvider(value.provider, kind);
-  const providerOption = getProviderConnectionProviderOption(provider);
   const baseUrl = readString(value.baseUrl, readString(value.url)).trim();
   const model = normalizeLegacyModel(
     readString(value.model, readString(value.modelLabel)).trim(),
-    label,
   );
   const summary = normalizeLegacySummary(readString(value.summary).trim(), label);
   const now = new Date().toISOString();

@@ -31,6 +31,8 @@ import {
 } from "../../src/engine/roleplay";
 import {
   APP_STORAGE_COLLECTION_KEYS,
+  formatGenerationReadinessFailure,
+  getGenerationConnectionReadiness,
   saveAppStorageCollections,
   type AppStorageMetadata,
   type AppStorageRecords,
@@ -42,6 +44,7 @@ import {
   createDeKoiStorageBundle,
   normalizeDeKoiStorageBundle,
 } from "../../src/runtime";
+import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/collections/provider-connection-storage";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -1201,6 +1204,152 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
     false,
   );
+});
+
+test("provider connection storage skips removed non-remote lane records", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const legacyMockConnection = {
+    id: "connection-legacy-mock",
+    schemaVersion: 1,
+    kind: "mock",
+    provider: "custom",
+    label: "Local mock",
+    baseUrl: "",
+    model: "Mock adapter",
+    summary: "",
+    status: "ready",
+    modelLabel: "Mock adapter",
+    keeperDefault: false,
+    maxContext: null,
+    maxOutput: null,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  const remoteConnection = {
+    ...legacyMockConnection,
+    id: "connection-remote",
+    kind: "remote-runtime",
+    provider: "openai",
+    label: "Remote runtime",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    modelLabel: "gpt-4o-mini",
+  };
+
+  expect(normalizeProviderConnectionRecord(legacyMockConnection)).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord({
+      ...legacyMockConnection,
+      id: "connection-legacy-local",
+      kind: "local",
+      label: "Local adapter",
+    }),
+  ).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord({
+      ...legacyMockConnection,
+      id: "connection-missing-kind",
+      kind: undefined,
+      label: "Missing kind",
+    }),
+  ).toBeNull();
+  expect(
+    normalizeProviderConnectionRecord(remoteConnection, {
+      preserveReadyStatus: true,
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      id: "connection-remote",
+      kind: "remote-runtime",
+      provider: "openai",
+      label: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      status: "ready",
+    }),
+  );
+});
+
+test("provider generation readiness blocks desktop-key providers in browser mode", () => {
+  const createdAt = "2026-06-28T00:00:00.000Z";
+  const keyedConnections = [
+    {
+      id: "connection-openai",
+      provider: "openai",
+      label: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+    },
+    {
+      id: "connection-anthropic",
+      provider: "anthropic",
+      label: "Anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      model: "claude-sonnet-4-5",
+    },
+  ].map((connection) =>
+    normalizeProviderConnectionRecord(
+      {
+        ...connection,
+        schemaVersion: 1,
+        kind: "remote-runtime",
+        summary: "",
+        status: "ready",
+        modelLabel: connection.model,
+        keeperDefault: false,
+        maxContext: null,
+        maxOutput: null,
+        createdAt,
+        updatedAt: createdAt,
+      },
+      { preserveReadyStatus: true },
+    ),
+  );
+  const customConnection = normalizeProviderConnectionRecord(
+    {
+      id: "connection-custom",
+      schemaVersion: 1,
+      kind: "remote-runtime",
+      provider: "custom",
+      label: "Local custom",
+      baseUrl: "http://localhost:11434/v1",
+      model: "local-model",
+      summary: "",
+      status: "ready",
+      modelLabel: "local-model",
+      keeperDefault: false,
+      maxContext: null,
+      maxOutput: null,
+      createdAt,
+      updatedAt: createdAt,
+    },
+    { preserveReadyStatus: true },
+  );
+
+  expect(keyedConnections).not.toContain(null);
+  expect(customConnection).not.toBeNull();
+  if (keyedConnections.some((connection) => connection === null) || !customConnection) {
+    throw new Error("Expected test provider connections to normalize.");
+  }
+
+  for (const connection of keyedConnections) {
+    const blocked = getGenerationConnectionReadiness(connection);
+    expect(blocked).toEqual({
+      ready: false,
+      code: "desktop-key-store-unavailable",
+    });
+    if (!blocked.ready) {
+      expect(formatGenerationReadinessFailure(blocked.code)).toContain(
+        "desktop app",
+      );
+    }
+  }
+
+  const ready = getGenerationConnectionReadiness(customConnection);
+  expect(ready.ready).toBe(true);
+  if (ready.ready) {
+    expect(ready.connection.id).toBe("connection-custom");
+  }
 });
 
 test("storage bundles merge split transcript rows against final thread records", () => {

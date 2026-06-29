@@ -10,11 +10,13 @@ import type { RoleplayThread } from "../../../engine/roleplay";
 import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequest,
-  type RoleplayGenerationRequest,
   type RoleplayGenerationResponse,
 } from "../../../engine/roleplay-generation";
 import type { GenerationRuntimeMode } from "./generation-runtime";
-import { generateWithConfiguredProvider } from "./provider-generation";
+import {
+  generateWithConfiguredProvider,
+  type ProviderGenerationRequest,
+} from "./provider-generation";
 
 export interface GenerateRoleplayThreadTurnInput {
   thread: RoleplayThread;
@@ -45,57 +47,11 @@ function providerErrorMessage(error: unknown) {
     : String(error ?? "Unknown provider error.");
 }
 
-function createMockRoleplayResponse(
-  request: RoleplayGenerationRequest,
-): RoleplayGenerationResponse {
-  const targetCharacterId = request.targetCharacterId;
-  const targetName = request.targetCharacterName ?? "Companion";
-
-  if (!targetCharacterId) {
-    return {
-      schemaVersion: 1,
-      requestId: request.id,
-      providerKind: "mock",
-      createdAt: request.createdAt,
-      messages: [],
-      warnings: ["No companion is available for this Roleplay thread."],
-    };
-  }
-
-  const personaName = request.activePersona?.displayName ?? "Anonymous";
-  const selectedLoreCount = request.lorebooks.reduce(
-    (count, lorebook) =>
-      count +
-      lorebook.entries.filter((entry) => entry.enabled && entry.body.trim()).length,
-    0,
-  );
-  const sceneLabel = request.thread.sceneText.trim()
-    ? "the active scene text"
-    : request.thread.title;
-
-  return {
-    schemaVersion: 1,
-    requestId: request.id,
-    providerKind: "mock",
-    createdAt: request.createdAt,
-    messages: [
-      {
-        characterId: targetCharacterId,
-        body: `Mock Roleplay reply from ${targetName}: I am responding to ${personaName} using ${sceneLabel} and ${selectedLoreCount} selected lore notes.`,
-      },
-    ],
-    warnings: [],
-  };
-}
-
 async function generateRoleplayResponse(
-  request: RoleplayGenerationRequest,
-  mode: GenerationRuntimeMode = "mock",
+  request: ProviderGenerationRequest,
+  mode: GenerationRuntimeMode = "remote-runtime",
 ): Promise<RoleplayGenerationResponse> {
-  if (mode !== "remote-runtime") {
-    return createMockRoleplayResponse(request);
-  }
-
+  void mode;
   try {
     return await generateWithConfiguredProvider(request);
   } catch (error) {
@@ -111,7 +67,7 @@ export async function generateRoleplayThreadTurn({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
-  mode = "mock",
+  mode = "remote-runtime",
   now,
   parameters,
   personas,

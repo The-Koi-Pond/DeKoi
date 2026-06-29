@@ -104,8 +104,8 @@ pnpm check:runtime-contracts
   replace collections through the storage commit path.
 - Use Pond Care > Catalog for provider-key checks and secret storage.
 - Required-key provider generation needs the desktop app so saved keys can stay
-  in the desktop key store; browser mode can still use Mock generation or
-  compatible no-key/local provider paths.
+  in the desktop key store; browser mode can still use compatible no-key/local
+  provider paths with a configured Base URL and model.
 - Treat legacy compatibility as explicit import work, not automatic migration.
   The current legacy thread import adds converted native Messenger records after
   the same backup and commit flow.

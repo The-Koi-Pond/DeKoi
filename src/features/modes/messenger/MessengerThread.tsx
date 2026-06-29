@@ -26,6 +26,8 @@ import {
 import {
   generateMessengerThreadReply,
   formatGenerationFailureNotice,
+  formatGenerationReadinessFailure,
+  getGenerationConnectionReadiness,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
@@ -89,15 +91,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     message: string;
   }>({ threadId: null, status: "idle", message: "" });
   const [editingMessage, setEditingMessage] = useState<{
+    threadId: string;
     id: string;
     body: string;
   } | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<{
+    threadId: string;
+    id: string;
+    label: string;
+  } | null>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
-  const activePersona = messengerThread?.activePersonaId
-    ? nav.personas.find(
-        (persona) => persona.id === messengerThread.activePersonaId,
-      ) ?? null
-    : null;
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) =>
         messengerThread.characterIds.includes(companion.id),
@@ -108,11 +113,6 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     threadCompanions.map((companion) => companion.displayName).join(" + ") ||
     messengerThread?.title ||
     "No companion";
-  const configuredConnection = messengerThread?.providerConnectionId
-    ? nav.providerConnections.find(
-        (connection) => connection.id === messengerThread.providerConnectionId,
-      ) ?? null
-    : null;
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const isGenerating =
     generationState.threadId === activeThreadId &&
@@ -134,6 +134,17 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   );
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
+  const activeEditingMessage =
+    editingMessage?.threadId === activeThreadId ? editingMessage : null;
+  const activeDeleteRequest =
+    nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
+      ? deleteRequest
+      : null;
+  const activeMessageInteractionMode = activeDeleteRequest
+    ? "delete"
+    : activeEditingMessage
+      ? "edit"
+      : "idle";
   const getMessageAuthorAvatar = (message: MessengerMessage) => {
     const { author } = message;
 
@@ -171,8 +182,28 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
   }, [messengerThread, messengerThread?.messages.length]);
 
+  useEffect(() => {
+    if (activeMessageInteractionMode !== "edit") return;
+    const textarea = editTextareaRef.current;
+    if (!textarea) return;
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, [activeEditingMessage?.id, activeMessageInteractionMode]);
+
+  useEffect(() => {
+    if (activeMessageInteractionMode !== "delete") return;
+    if (!activeDeleteRequest?.id) return;
+    deleteConfirmRef.current?.focus();
+  }, [activeDeleteRequest?.id, activeMessageInteractionMode]);
+
   function handleEditMessage(message: MessengerMessage) {
-    setEditingMessage({ id: message.id, body: message.body });
+    if (!messengerThread) return;
+    setDeleteRequest(null);
+    setEditingMessage({
+      threadId: messengerThread.id,
+      id: message.id,
+      body: message.body,
+    });
   }
 
   function handleCancelEditMessage() {
@@ -180,14 +211,14 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   }
 
   function handleSaveEditedMessage() {
-    if (!messengerThread || !editingMessage) return;
-    const trimmedBody = editingMessage.body.trim();
+    if (!messengerThread || !activeEditingMessage) return;
+    const trimmedBody = activeEditingMessage.body.trim();
     if (!trimmedBody) return;
 
     nav.updateMessengerThread(
       updateMessengerMessageBody(
         messengerThread,
-        editingMessage.id,
+        activeEditingMessage.id,
         trimmedBody,
         new Date().toISOString(),
       ),
@@ -195,12 +226,57 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     setEditingMessage(null);
   }
 
-  function handleDeleteMessage(messageId: string) {
+  function commitDeleteMessage(messageId: string) {
     if (!messengerThread) return;
     nav.updateMessengerThread(deleteMessengerMessage(messengerThread, messageId));
-    if (editingMessage?.id === messageId) {
+    if (activeEditingMessage?.id === messageId) {
       setEditingMessage(null);
     }
+    setDeleteRequest(null);
+  }
+
+  function handleDeleteMessage(message: MessengerMessage) {
+    if (!messengerThread) return;
+    if (!messengerThread.messages.some((candidate) => candidate.id === message.id)) {
+      return;
+    }
+
+    if (nav.appSettings.confirmRelease) {
+      setEditingMessage(null);
+      setDeleteRequest({
+        threadId: messengerThread.id,
+        id: message.id,
+        label: message.author.label,
+      });
+      return;
+    }
+
+    commitDeleteMessage(message.id);
+  }
+
+  function handleCancelDeleteMessage() {
+    setDeleteRequest(null);
+  }
+
+  function handleEditMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleCancelEditMessage();
+      return;
+    }
+
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      handleSaveEditedMessage();
+    }
+  }
+
+  function handleDeleteConfirmKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    handleCancelDeleteMessage();
   }
 
   async function sendDraft() {
@@ -209,31 +285,52 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
 
     const trimmedDraft = draft.trim();
     if (!trimmedDraft) return false;
-    if (!threadConnection) {
+    const sentAt = new Date().toISOString();
+    const commitThread =
+      nav.messengerThreads.find((thread) => thread.id === activeThreadId) ??
+      null;
+    if (!commitThread) return false;
+
+    const selectedConnection = getProviderConnectionById(
+      commitThread.providerConnectionId ??
+        nav.appSettings.activeMessengerConnectionId,
+      nav.providerConnections,
+    );
+    const connectionReadiness =
+      getGenerationConnectionReadiness(selectedConnection);
+    if (!connectionReadiness.ready) {
       setGenerationState({
-        threadId: messengerThread.id,
+        threadId: commitThread.id,
         status: "error",
-        message: "Create or select a connection before generating.",
+        message: formatGenerationReadinessFailure(connectionReadiness.code),
       });
       return false;
     }
 
-    const sentAt = new Date().toISOString();
+    const commitConnection = connectionReadiness.connection;
+    const sendMode = getMessengerGenerationModeForConnection(commitConnection);
+    const sendRuntime = selectMessengerGenerationRuntime(sendMode);
+    const sendPersona = commitThread.activePersonaId
+      ? nav.personas.find(
+          (persona) => persona.id === commitThread.activePersonaId,
+        ) ?? null
+      : null;
     const hasConfiguredConnection =
-      !!messengerThread.providerConnectionId && configuredConnection !== null;
+      !!commitThread.providerConnectionId &&
+      commitThread.providerConnectionId === commitConnection.id;
     const threadForSend = hasConfiguredConnection
-      ? messengerThread
+      ? commitThread
       : setMessengerThreadProviderConnection(
-          messengerThread,
-          threadConnection.id,
+          commitThread,
+          commitConnection.id,
           sentAt,
         );
-    const userMessage = activePersona
+    const userMessage = sendPersona
       ? createPersonaMessengerMessage({
           body: trimmedDraft,
           id: createLocalId("messenger-message"),
           now: sentAt,
-          persona: activePersona,
+          persona: sendPersona,
           thread: threadForSend,
         })
       : createAnonymousMessengerMessage({
@@ -248,18 +345,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     setDraftState({ body: "", threadId: activeThreadId });
 
     setGenerationState({
-      threadId: messengerThread.id,
+      threadId: commitThread.id,
       status: "generating",
-      message: `Generating through ${generationRuntime.label}.`,
+      message: `Generating through ${sendRuntime.label}.`,
     });
 
     try {
       const result = await generateMessengerThreadReply({
         characters: nav.characters,
         createId: createLocalId,
-        fallbackProviderConnectionId: threadConnection.id,
+        fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        mode: generationMode,
+        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
@@ -279,7 +376,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           ),
         ].join(" + ");
         setGenerationState({
-          threadId: messengerThread.id,
+          threadId: commitThread.id,
           status: "generating",
           message: `${typingNames || companionDisplayName} is typing...`,
         });
@@ -292,12 +389,12 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       setGenerationState(
         result.generatedMessages.length > 0
           ? {
-              threadId: messengerThread.id,
+              threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
               message: result.warnings[0] ?? "",
             }
           : {
-              threadId: messengerThread.id,
+              threadId: commitThread.id,
               status: "error",
               message:
                 result.warnings[0] ??
@@ -306,7 +403,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       );
     } catch (error) {
       setGenerationState({
-        threadId: messengerThread.id,
+        threadId: commitThread.id,
         status: "error",
         message: formatGenerationFailureNotice(
           error,
@@ -376,6 +473,9 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         aria-label="Messenger messages"
         ref={messageListRef}
       >
+        {messengerThread.messages.length === 0 && (
+          <p className="messenger-empty-note">No messages yet.</p>
+        )}
         {messengerThread.messages.map((message, index) => {
           const authorAvatar = getMessageAuthorAvatar(message);
           const dateKey = getMessageDateKey(message.createdAt);
@@ -384,7 +484,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
               ? getMessageDateKey(messengerThread.messages[index - 1].createdAt)
               : "";
           const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
-          const isEditing = editingMessage?.id === message.id;
+          const isEditing = activeEditingMessage?.id === message.id;
+          const isConfirmingDelete = activeDeleteRequest?.id === message.id;
+          const deleteRequestLabel = isConfirmingDelete
+            ? activeDeleteRequest?.label ?? message.author.label
+            : message.author.label;
           const timeLabel = getMessageTimeLabel(message.createdAt);
 
           return (
@@ -397,7 +501,9 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                 </div>
               )}
               <article
-                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}`}
+                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}${
+                  isConfirmingDelete ? " confirming-delete" : ""
+                }`}
               >
                 <span className="message-avatar" aria-hidden="true">
                   {authorAvatar.avatarUrl ? (
@@ -425,10 +531,13 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                   {isEditing ? (
                     <div className="message-edit-form">
                       <textarea
+                        ref={editTextareaRef}
                         aria-label={`Edit message from ${message.author.label}`}
-                        value={editingMessage.body}
+                        value={activeEditingMessage?.body ?? ""}
+                        onKeyDown={handleEditMessageKeyDown}
                         onChange={(event) =>
                           setEditingMessage({
+                            threadId: messengerThread.id,
                             id: message.id,
                             body: event.target.value,
                           })
@@ -438,7 +547,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                         <button
                           type="button"
                           onClick={handleSaveEditedMessage}
-                          disabled={!editingMessage.body.trim()}
+                          disabled={!activeEditingMessage?.body.trim()}
                         >
                           Save
                         </button>
@@ -451,22 +560,49 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                     <>
                       <p>{message.body}</p>
                       <div className="message-actions" aria-label="Message actions">
-                        <button
-                          type="button"
-                          aria-label={`Edit message from ${message.author.label}`}
-                          title="Edit"
-                          onClick={() => handleEditMessage(message)}
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Delete message from ${message.author.label}`}
-                          title="Delete"
-                          onClick={() => handleDeleteMessage(message.id)}
-                        >
-                          ×
-                        </button>
+                        {isConfirmingDelete ? (
+                          <div
+                            className="message-delete-confirm"
+                            role="group"
+                            aria-label={`Confirm delete message from ${deleteRequestLabel}`}
+                            onKeyDown={handleDeleteConfirmKeyDown}
+                          >
+                            <button
+                              ref={deleteConfirmRef}
+                              type="button"
+                              aria-label={`Confirm delete message from ${deleteRequestLabel}`}
+                              onClick={() => commitDeleteMessage(message.id)}
+                            >
+                              Delete
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Cancel delete message from ${deleteRequestLabel}`}
+                              onClick={handleCancelDeleteMessage}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              aria-label={`Edit message from ${message.author.label}`}
+                              title="Edit"
+                              onClick={() => handleEditMessage(message)}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Delete message from ${message.author.label}`}
+                              title="Delete"
+                              onClick={() => handleDeleteMessage(message)}
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}
