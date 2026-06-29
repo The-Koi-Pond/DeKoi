@@ -971,9 +971,13 @@ function ChatSettingsRail({
     );
   }
 
-  function clearMissingMessengerConnection() {
+  function resolveMissingMessengerConnection() {
     updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadProviderConnection(thread, null, updatedAt),
+      setMessengerThreadProviderConnection(
+        thread,
+        fallbackConnection?.id ?? null,
+        updatedAt,
+      ),
     );
   }
 
@@ -1337,7 +1341,7 @@ function ChatSettingsRail({
                       ? "Use first available"
                       : "Clear missing"
                 }
-                onAction={clearMissingMessengerConnection}
+                onAction={resolveMissingMessengerConnection}
               >
                 This thread points to a connection that is no longer saved.
                 Choose another connection or clear the missing reference.
