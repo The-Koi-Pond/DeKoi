@@ -253,6 +253,39 @@ function firstText(value: unknown): string {
   return "";
 }
 
+function firstRefusal(value: unknown): string {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const refusal = firstRefusal(item);
+      if (refusal) return refusal;
+    }
+    return "";
+  }
+
+  if (isRecord(value)) {
+    const direct =
+      typeof value.refusal === "string"
+        ? value.refusal.trim()
+        : firstText(value.refusal).trim();
+    if (direct) return direct;
+
+    for (const key of [
+      "content",
+      "parts",
+      "message",
+      "response",
+      "output",
+      "results",
+      "data",
+    ]) {
+      const refusal = firstRefusal(value[key]);
+      if (refusal) return refusal;
+    }
+  }
+
+  return "";
+}
+
 function genericProviderText(payload: unknown) {
   if (!isRecord(payload)) return firstText(payload).trim();
 
@@ -299,8 +332,7 @@ function openAiText(payload: unknown): ProviderTextResult {
   }
 
   const firstChoice = payload.choices.find(isRecord);
-  const message = isRecord(firstChoice?.message) ? firstChoice.message : null;
-  const refusal = message ? readString(message.refusal).trim() : "";
+  const refusal = firstChoice ? firstRefusal(firstChoice) : "";
   if (refusal) return { text: "", warning: `Provider refused the reply: ${refusal}` };
 
   const finishReason = firstChoice ? readString(firstChoice.finish_reason).trim() : "";

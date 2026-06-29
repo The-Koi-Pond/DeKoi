@@ -16,6 +16,7 @@ import { getProviderConnectionById } from "../../../engine/provider-connection";
 import { ROLEPLAY } from "../../../engine/surfaces";
 import {
   generateRoleplayThreadTurn,
+  formatGenerationFailureNotice,
   getGenerationModeForConnection,
   selectGenerationRuntime,
 } from "../../runtime";
@@ -241,8 +242,10 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       setGenerationState({
         threadId: thread.id,
         status: "error",
-        message:
-          error instanceof Error ? error.message : "Roleplay generation failed.",
+        message: formatGenerationFailureNotice(
+          error,
+          "Roleplay generation failed.",
+        ),
       });
     }
 

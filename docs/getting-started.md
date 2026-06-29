@@ -37,7 +37,8 @@ Use the desktop host when you need native capabilities:
 - App-data collection storage.
 - DeKoi bundle import and export through native file dialogs.
 - Provider-key secret storage.
-- The desktop runtime bridge selected as desktop://runtime.
+- The desktop runtime bridge selected as desktop://runtime for durable storage
+  and required-key provider-backed generation.
 
 Desktop collection records are stored under:
 
@@ -102,6 +103,9 @@ pnpm check:runtime-contracts
   preview first, require confirmation, create a pre-import backup, and then
   replace collections through the storage commit path.
 - Use Pond Care > Catalog for provider-key checks and secret storage.
+- Required-key provider generation needs the desktop app so saved keys can stay
+  in the desktop key store; browser mode can still use Mock generation or
+  compatible no-key/local provider paths.
 - Treat legacy compatibility as explicit import work, not automatic migration.
   The current legacy thread import adds converted native Messenger records after
   the same backup and commit flow.

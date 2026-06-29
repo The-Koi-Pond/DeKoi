@@ -1,4 +1,7 @@
 export {
+  formatGenerationFailureNotice,
+} from "./generation-errors";
+export {
   getGenerationModeForConnection,
   isGenerationRuntimeMode,
   selectGenerationRuntime,

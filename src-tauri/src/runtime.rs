@@ -123,6 +123,44 @@ fn first_text(value: &serde_json::Value) -> String {
     String::new()
 }
 
+fn first_refusal(value: &serde_json::Value) -> String {
+    if let Some(items) = value.as_array() {
+        for item in items {
+            let refusal = first_refusal(item);
+            if !refusal.is_empty() {
+                return refusal;
+            }
+        }
+        return String::new();
+    }
+
+    if let Some(record) = value.as_object() {
+        if let Some(refusal) = record.get("refusal") {
+            let text = if let Some(text) = refusal.as_str() {
+                text.trim().to_string()
+            } else {
+                first_text(refusal).trim().to_string()
+            };
+            if !text.is_empty() {
+                return text;
+            }
+        }
+
+        for key in [
+            "content", "parts", "message", "response", "output", "results", "data",
+        ] {
+            if let Some(field) = record.get(key) {
+                let refusal = first_refusal(field);
+                if !refusal.is_empty() {
+                    return refusal;
+                }
+            }
+        }
+    }
+
+    String::new()
+}
+
 fn generic_provider_text(payload: &serde_json::Value) -> String {
     if let Some(record) = payload.as_object() {
         for key in [
@@ -254,12 +292,7 @@ fn provider_empty_warning(provider: &str, payload: &serde_json::Value) -> String
             .get("choices")
             .and_then(|choices| choices.as_array())
             .and_then(|choices| choices.first());
-        let refusal = first_choice
-            .and_then(|choice| choice.get("message"))
-            .and_then(|message| message.get("refusal"))
-            .and_then(|refusal| refusal.as_str())
-            .unwrap_or("")
-            .trim();
+        let refusal = first_choice.map(first_refusal).unwrap_or_default();
         if !refusal.is_empty() {
             return format!("Provider refused the reply: {refusal}");
         }
@@ -363,14 +396,19 @@ fn strip_speaker_prefix(body: String, speaker_name: &str) -> String {
 }
 
 fn provider_error(payload: &serde_json::Value, status: reqwest::StatusCode) -> String {
-    payload
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(|message| message.as_str())
-        .or_else(|| payload.get("message").and_then(|message| message.as_str()))
-        .or_else(|| payload.get("error").and_then(|error| error.as_str()))
-        .map(ToString::to_string)
-        .unwrap_or_else(|| format!("Provider returned HTTP {status}."))
+    let message = provider_payload_error(payload).or_else(|| {
+        payload
+            .get("message")
+            .and_then(|message| message.as_str())
+            .map(ToString::to_string)
+    });
+
+    match message.map(|message| message.trim().to_string()) {
+        Some(message) if !message.is_empty() => {
+            format!("Provider returned HTTP {status}: {message}")
+        }
+        _ => format!("Provider returned HTTP {status}."),
+    }
 }
 
 fn provider_payload_error(payload: &serde_json::Value) -> Option<String> {
@@ -1006,5 +1044,66 @@ mod tests {
         }));
 
         assert_eq!(models, vec!["alpha".to_string(), "zeta".to_string()]);
+    }
+
+    #[test]
+    fn provider_error_preserves_nested_error_detail() {
+        let error = provider_error(
+            &serde_json::json!({
+                "error": {
+                    "detail": "The selected model is not available for this key."
+                }
+            }),
+            reqwest::StatusCode::BAD_REQUEST,
+        );
+
+        assert_eq!(
+            error,
+            "Provider returned HTTP 400 Bad Request: The selected model is not available for this key."
+        );
+    }
+
+    #[test]
+    fn provider_error_preserves_nested_error_code() {
+        let error = provider_error(
+            &serde_json::json!({
+                "error": {
+                    "code": "invalid_api_key"
+                }
+            }),
+            reqwest::StatusCode::UNAUTHORIZED,
+        );
+
+        assert_eq!(
+            error,
+            "Provider returned HTTP 401 Unauthorized: invalid_api_key"
+        );
+    }
+
+    #[test]
+    fn openai_empty_warning_preserves_content_part_refusal() {
+        let warning = provider_empty_warning(
+            "openai",
+            &serde_json::json!({
+                "choices": [
+                    {
+                        "message": {
+                            "content": [
+                                {
+                                    "type": "refusal",
+                                    "refusal": "Cannot help with that request."
+                                }
+                            ]
+                        },
+                        "finish_reason": "stop"
+                    }
+                ]
+            }),
+        );
+
+        assert_eq!(
+            warning,
+            "Provider refused the reply: Cannot help with that request."
+        );
     }
 }
