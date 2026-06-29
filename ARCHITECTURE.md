@@ -6,6 +6,13 @@ meaning stays in a React-free engine, UI stays in feature owners, runtime and
 host capabilities sit behind narrow adapters, and storage grows from documented
 native records instead of accidental feature state.
 
+This repo's current `src/` is the refactor source. The previous `C:\De-Koi`
+tree is only a reference for how mature owners are split. Follow the parts of
+that shape that match implemented DeKoi behavior; do not create old De-Koi
+product lanes such as game, agents, Deki, gallery, or trackers until DeKoi
+actually owns those products. Keep current DeKoi nouns such as Messenger,
+Roleplay, Pond, and Ripples instead of importing old names or UI copy.
+
 ## Architecture Decision
 
 Use the prior architecture skeleton in DeKoi-owned terms:
@@ -81,20 +88,40 @@ Stop and redesign if a change needs:
 
 ## Engine Growth Path
 
-The current engine is intentionally flat. Split only when ownership becomes
-real:
+The current engine is intentionally flat, but the next architecture step is to
+adopt the previous repo's deeper owner skeleton using DeKoi-native names. Split
+only around implemented behavior:
 
 ```text
-src/engine/contracts     Native record types, schemas, constants.
-src/engine/core          IDs, timestamps, result helpers, JSON primitives.
-src/engine/capabilities  Ports for storage, secrets, provider transport, files.
-src/engine/entities      Pure record operations for characters, threads, lore.
-src/engine/generation    Provider-neutral request/response assembly.
-src/engine/modes         Messenger and Roleplay orchestration.
+src/engine/contracts       Native record types, schemas, constants.
+src/engine/core            IDs, timestamps, result helpers, JSON primitives.
+src/engine/shared          Pure deterministic helpers shared by engine owners.
+src/engine/generation-core Prompt and provider-neutral generation primitives.
+src/engine/generation      Shared generation request/response assembly.
+src/engine/modes           Messenger and Roleplay orchestration.
+src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/ripples         Ripple records and pure actions.
+src/engine/capabilities    Future ports for storage, secrets, providers, files.
 ```
 
 Higher engine layers may use lower ones. Lower layers do not import higher
-layers.
+layers. Do not add capability ports until there is a concrete runtime, storage,
+provider, or host dependency to abstract.
+
+## Shape Trajectory
+
+Current DeKoi already has the top-level lanes. The refactor work is to deepen
+them in place:
+
+| Current owner | Current shape | Target trajectory |
+| --- | --- | --- |
+| Engine | Flat `src/engine/*.ts` record, action, and generation files. | Move records/constants to `engine/contracts`, generic primitives to `engine/core`, generation assembly to `engine/generation`, Messenger and Roleplay mutations to `engine/modes`, catalog actions to `engine/catalog`, and Ripple behavior to `engine/ripples`. |
+| Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
+| Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
+| Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
+| App | Provider/controller/storage sync hooks at app root. | Split app storage sync and app controller composition into app-owned subpackages after engine/feature public paths settle. |
+| Runtime | `src/runtime/storage` bridge with collections and bundles. | Keep storage/import/export here; deepen into repository, snapshots, repair, bundles, and legacy-import subpackages when those concerns change. |
+| Shared API | Focused desktop and remote wrappers. | Keep all raw Tauri and remote-runtime transport here; features call focused wrappers or feature-runtime workflows. |
 
 ## Storage Direction
 
@@ -162,8 +189,17 @@ The short version:
 
 ## Future Architecture Work
 
-1. Add a database-backed storage adapter behind
+1. Move the flat engine files into the implemented target skeleton:
+   `contracts`, `core`, `generation`, `modes`, `catalog`, and `ripples`.
+2. Deepen current feature packages using the previous repo's package pattern:
+   public entrypoint, `components`, `hooks`, `lib`, and local `types` when
+   needed.
+3. Split app storage sync and controller composition after engine and feature
+   public paths settle.
+4. Normalize `src/runtime/storage` subpackages when storage behavior changes
+   again, keeping repository factories as the future database swap point.
+5. Add a database-backed storage adapter behind
    `src/runtime/storage/storage-repository-factory.ts` when product needs justify
    replacing the current host-backed implementation.
-2. Split navigation contracts toward app or mode-router-owned contracts when a
+6. Split navigation contracts toward app or mode-router-owned contracts when a
    concrete route model exists.

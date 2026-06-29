@@ -3,6 +3,12 @@
 Use this as a quick map. `ARCHITECTURE.md` remains the source of truth for
 current source lanes and dependency direction.
 
+Current DeKoi is the source tree being refactored. The previous `C:\De-Koi`
+repo is an ownership-shape reference only. Reuse its deeper owner skeleton for
+implemented DeKoi behavior, but keep DeKoi product nouns such as Messenger,
+Roleplay, Pond, and Ripples. Do not create old repo product lanes such as game,
+agents, Deki, gallery, or trackers until this repo actually implements them.
+
 ## TypeScript
 
 ```text
@@ -80,6 +86,20 @@ src/engine/app-settings.ts
 src/engine/project-plan.ts
 src/engine/surfaces.ts
   App-level native records, planning records, and surface contracts.
+```
+
+Target direction for implemented behavior:
+
+```text
+src/engine/contracts       Native record types, schemas, constants.
+src/engine/core            IDs, timestamps, result helpers, JSON primitives.
+src/engine/shared          Pure deterministic helpers shared by engine owners.
+src/engine/generation-core Prompt and provider-neutral generation primitives.
+src/engine/generation      Shared generation request/response assembly.
+src/engine/modes           Messenger and Roleplay orchestration.
+src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/ripples         Ripple records and pure actions.
+src/engine/capabilities    Future ports only when real adapters need them.
 ```
 
 ## Runtime And Command Boundaries

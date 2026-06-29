@@ -5,6 +5,13 @@ is project-agnostic and keeps ownership visible: app composition, layered React
 features, shared runtime APIs, a React-free product engine, and native host
 capabilities stay separate.
 
+The current `C:\DeKoi` repo is the refactor source. The old `C:\De-Koi` repo is
+only the ownership-shape reference. Move toward the parts of that shape that
+match implemented DeKoi behavior, and keep DeKoi product terms such as
+Messenger, Roleplay, Pond, and Ripples. Do not create old repo lanes for game,
+agents, Deki, gallery, trackers, or other unimplemented products just because
+they exist in the reference tree.
+
 The current repo is still migrating toward that shape. Treat `src/runtime` and
 `src/features/navigation` as bridge layers, not as the final architecture.
 
@@ -58,6 +65,18 @@ src-tauri/
 | Feature UI bridge | None currently. New top-level feature folders should not be added without updating this doc and `scripts/check-frontend-boundaries.mjs`. | User workflows, screens, local presentation state, and component composition inside existing owners. | Durable data schemas, DB clients, host I/O, or duplicated engine rules. |
 | Shared helpers | `src/shared` | Generic browser and UI utilities that do not know concrete DeKoi feature ownership. | App features or feature-specific product workflows. |
 | Desktop host | `src-tauri` | Native capabilities, local filesystem storage, secrets, and runtime command dispatch. | React UI concerns or TypeScript product rules. |
+
+## Current To Target Trajectory
+
+| Current owner | Current shape | Target trajectory |
+| --- | --- | --- |
+| Engine | Flat `src/engine/*.ts` record, action, and generation files. | Split into `contracts`, `core`, `shared`, `generation-core`, `generation`, `modes`, `catalog`, `ripples`, and later `capabilities` when real adapters need ports. |
+| Feature modes | Messenger, Roleplay, and shared composer packages. | Keep DeKoi mode names; deepen packages with public entrypoints, `components`, `hooks`, `lib`, and local `types` as they grow. |
+| Feature catalog | Resource surfaces plus shared catalog action hooks. | Keep resource-owned packages; move pure surface view-model helpers into local `lib` folders before extracting generic shared UI. |
+| Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for app, shell, modes, and catalog. |
+| App | App provider/controller/storage sync hooks at app root. | Split app storage sync and controller composition into app-owned subpackages after public import paths settle. |
+| Runtime | Storage bridge with collections, bundles, host storage, repair, and snapshots. | Keep storage/import/export here; deepen subpackages by concern when storage behavior changes again. |
+| Shared API | Focused desktop and remote wrappers. | Keep raw Tauri and remote-runtime transport here; features use wrappers or feature-runtime workflows. |
 
 ## Enforced Import Boundaries
 
@@ -132,25 +151,31 @@ adapters still live under `src/runtime`. Do not route shell or mode UI around
 
 Move toward the old De-Koi skeleton in small, validated slices:
 
-1. Keep provider/startup composition in `src/app`; root entry files should stay
+1. Document the current-to-target trajectory before large source moves. The
+   reference shape is previous De-Koi's ownership skeleton, not its product
+   names or unimplemented features.
+2. Split the flat engine into implemented owners first:
+   `contracts`, `core`, `shared`, `generation-core`, `generation`, `modes`,
+   `catalog`, and `ripples`. Keep Messenger and Roleplay names DeKoi-native.
+3. Keep provider/startup composition in `src/app`; root entry files should stay
    thin and import app composition through the app package entrypoint.
-2. Keep app provider wiring plus top-level state, storage sync, and view
+4. Keep app provider wiring plus top-level state, storage sync, and view
    controller assembly in `src/app`. Catalog owns catalog record actions,
    modes own thread actions, shell care owns settings/import/export actions,
    and feature-runtime owns ripple/runtime actions. Import navigation through
    its package entrypoint while it remains a context/contracts bridge.
-3. Keep Messenger and Roleplay screens under `features/modes`; move future mode
+5. Keep Messenger and Roleplay screens under `features/modes`; move future mode
    surfaces there too, with a feature entrypoint plus package entrypoints for
    each mode.
-4. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
+6. Keep Pond shell, care drawer, shoal, tide, bank, and waterline under
    `features/shell`; move future app-level tools there too. Import the shell
    feature through its package entrypoint from app composition.
-5. Pass navigation state/actions through narrow feature-owned props into shell,
+7. Pass navigation state/actions through narrow feature-owned props into shell,
    mode, and catalog surfaces. Build those contracts from exported navigation
    state/action groups rather than reading the navigation context, importing
    `NavContextType`, accepting it directly, or picking from it inside
    non-navigation feature modules.
-6. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
+8. Keep desktop/remote transport, desktop bundle file/storage command wrappers,
    desktop host status, and provider secret wrappers in `src/shared/api`;
    keep DeKoi storage contracts, collection adapters, and bundle normalization
    organized under `src/runtime/storage`. Import
@@ -161,11 +186,11 @@ Move toward the old De-Koi skeleton in small, validated slices:
    storage startup and runtime target changes. Shell UI should use
    feature-runtime workflows for storage bundle file previews rather than
    calling raw bundle normalizers directly.
-7. Keep `features/catalog` organized as resource-owned packages with public
+9. Keep `features/catalog` organized as resource-owned packages with public
    entrypoints as collections grow. Import catalog surfaces through the catalog
    feature entrypoint from outside the catalog feature.
-8. Keep shell packages behind public entrypoints as they grow.
-9. Add stricter private-folder and public-entrypoint checks once those packages
+10. Keep shell packages behind public entrypoints as they grow.
+11. Add stricter private-folder and public-entrypoint checks once those packages
    exist.
 
 ## Storage And DB Direction
