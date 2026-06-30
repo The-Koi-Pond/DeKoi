@@ -34,6 +34,12 @@ import {
   PresetsCatalogRail,
 } from "./components/StaticCatalogRails";
 import { ChatSettingsRail } from "./components/ChatSettingsRail";
+import {
+  ThreadReleaseDialog,
+  type ThreadReleaseRequest,
+} from "./components/ThreadReleaseDialog";
+import { NewMessengerThreadPopover } from "./components/NewMessengerThreadPopover";
+import { NewRoleplayThreadPopover } from "./components/NewRoleplayThreadPopover";
 import type { ShoalProps, ShoalRailProps } from "./types";
 import "./Shoal.css";
 
@@ -42,12 +48,6 @@ const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
   freshest: "Freshest first",
   oldest: "Oldest first",
   title: "A-Z",
-};
-
-type ThreadReleaseRequest = {
-  id: string;
-  kind: "roleplay" | "messenger";
-  title: string;
 };
 
 function ThreadShoal({
@@ -482,398 +482,65 @@ function ThreadShoal({
         </div>
       </div>
       {!isRoleplaySurface && newMessengerOpen && (
-        <div
-          className="new-thread-backdrop"
-          role="presentation"
-          onClick={() => setNewMessengerOpen(false)}
-        >
-          <form
-            className="new-thread-popover"
-            id="new-messenger-thread-popover"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-messenger-thread-title"
-            onClick={(event) => event.stopPropagation()}
-            onSubmit={handleCreateMessengerThread}
-          >
-            <div className="new-thread-popover-head">
-              <b id="new-messenger-thread-title">New Messenger Thread</b>
-              <button
-                type="button"
-                aria-label="Close new Messenger thread"
-                onClick={() => setNewMessengerOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <label className="new-thread-field">
-              <span>Thread Name</span>
-              <input
-                value={newMessengerName}
-                onChange={(event) => {
-                  setNewMessengerName(event.target.value);
-                  setNewMessengerNameEdited(true);
-                }}
-                placeholder={getDraftCompanionName(newMessengerCharacterIds)}
-              />
-            </label>
-            <label className="new-thread-field">
-              <span>Connection</span>
-              <select
-                value={newMessengerConnectionId}
-                onChange={(event) =>
-                  setNewMessengerConnectionId(event.target.value)
-                }
-                disabled={sanitizedProviderConnections.length === 0}
-              >
-                {sanitizedProviderConnections.map((connection) => (
-                  <option value={connection.id} key={connection.id}>
-                    {connection.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="new-thread-field">
-              <span>Persona</span>
-              <select
-                value={newMessengerPersonaId}
-                onChange={(event) =>
-                  setNewMessengerPersonaId(event.target.value)
-                }
-              >
-                <option value="">Anonymous</option>
-                {nav.personas.map((persona) => (
-                  <option value={persona.id} key={persona.id}>
-                    {persona.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div
-              className="new-thread-dropdown-field"
-              onBlur={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget)) return;
-                setNewMessengerCompanionMenuOpen(false);
-              }}
-            >
-              <span id="new-thread-companions-label">Companions</span>
-              <button
-                type="button"
-                className="new-thread-select-button"
-                aria-controls="new-thread-companion-menu"
-                aria-expanded={newMessengerCompanionMenuOpen}
-                aria-haspopup="listbox"
-                aria-labelledby="new-thread-companions-label"
-                disabled={nav.characters.length === 0}
-                onClick={() =>
-                  setNewMessengerCompanionMenuOpen((open) => !open)
-                }
-              >
-                <span>
-                  {getCompanionLabel(newMessengerCharacterIds)}
-                </span>
-                <small>{newMessengerCharacterIds.length}</small>
-              </button>
-              {newMessengerCompanionMenuOpen && (
-                <div
-                  className="new-thread-select-menu"
-                  id="new-thread-companion-menu"
-                  role="listbox"
-                  aria-labelledby="new-thread-companions-label"
-                  aria-multiselectable="true"
-                >
-                  {nav.characters.map((character) => {
-                    const selected = newMessengerCharacterIds.includes(
-                      character.id,
-                    );
-
-                    return (
-                      <label
-                        className={`new-thread-check${selected ? " on" : ""}`}
-                        key={character.id}
-                        role="option"
-                        aria-selected={selected}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() =>
-                            toggleNewMessengerCharacter(character.id)
-                          }
-                        />
-                        <span>
-                          <b>{character.displayName}</b>
-                          <small>
-                            {character.nickname ||
-                              character.personality ||
-                              "Companion"}
-                          </small>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              {nav.characters.length === 0 && (
-                <p className="new-thread-empty">
-                  Add a companion before casting a Messenger thread.
-                </p>
-              )}
-            </div>
-            <div className="new-thread-actions">
-              <button type="button" onClick={() => setNewMessengerOpen(false)}>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={newMessengerCharacterIds.length === 0}
-              >
-                Create
-              </button>
-            </div>
-          </form>
-        </div>
+        <NewMessengerThreadPopover
+          characterIds={newMessengerCharacterIds}
+          characters={nav.characters}
+          companionLabel={getCompanionLabel(newMessengerCharacterIds)}
+          companionMenuOpen={newMessengerCompanionMenuOpen}
+          connectionId={newMessengerConnectionId}
+          connections={sanitizedProviderConnections}
+          name={newMessengerName}
+          namePlaceholder={getDraftCompanionName(newMessengerCharacterIds)}
+          personaId={newMessengerPersonaId}
+          personas={nav.personas}
+          onClose={() => setNewMessengerOpen(false)}
+          onCompanionMenuOpenChange={setNewMessengerCompanionMenuOpen}
+          onConnectionChange={setNewMessengerConnectionId}
+          onNameChange={(name) => {
+            setNewMessengerName(name);
+            setNewMessengerNameEdited(true);
+          }}
+          onPersonaChange={setNewMessengerPersonaId}
+          onSubmit={handleCreateMessengerThread}
+          onToggleCharacter={toggleNewMessengerCharacter}
+        />
       )}
       {isRoleplaySurface && newRoleplayOpen && (
-        <div
-          className="new-thread-backdrop"
-          role="presentation"
-          onClick={() => setNewRoleplayOpen(false)}
-        >
-          <form
-            className="new-thread-popover"
-            id="new-roleplay-thread-popover"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-roleplay-thread-title"
-            onClick={(event) => event.stopPropagation()}
-            onSubmit={handleCreateRoleplayThread}
-          >
-            <div className="new-thread-popover-head">
-              <b id="new-roleplay-thread-title">New Roleplay Thread</b>
-              <button
-                type="button"
-                aria-label="Close new Roleplay thread"
-                onClick={() => setNewRoleplayOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <label className="new-thread-field">
-              <span>Thread Name</span>
-              <input
-                value={newRoleplayName}
-                onChange={(event) => {
-                  setNewRoleplayName(event.target.value);
-                  setNewRoleplayNameEdited(true);
-                }}
-                placeholder={getDraftRoleplayName(newRoleplayCharacterIds)}
-              />
-            </label>
-            <label className="new-thread-field">
-              <span>Connection</span>
-              <select
-                value={newRoleplayConnectionId}
-                onChange={(event) => setNewRoleplayConnectionId(event.target.value)}
-                disabled={sanitizedProviderConnections.length === 0}
-              >
-                {sanitizedProviderConnections.map((connection) => (
-                  <option value={connection.id} key={connection.id}>
-                    {connection.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="new-thread-field">
-              <span>Persona</span>
-              <select
-                value={newRoleplayPersonaId}
-                onChange={(event) => setNewRoleplayPersonaId(event.target.value)}
-              >
-                <option value="">No persona</option>
-                {nav.personas.map((persona) => (
-                  <option value={persona.id} key={persona.id}>
-                    {persona.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div
-              className="new-thread-dropdown-field"
-              onBlur={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget)) return;
-                setNewRoleplayCompanionMenuOpen(false);
-              }}
-            >
-              <span id="new-roleplay-companions-label">Companions</span>
-              <button
-                type="button"
-                className="new-thread-select-button"
-                aria-controls="new-roleplay-companion-menu"
-                aria-expanded={newRoleplayCompanionMenuOpen}
-                aria-haspopup="listbox"
-                aria-labelledby="new-roleplay-companions-label"
-                disabled={nav.characters.length === 0}
-                onClick={() => {
-                  setNewRoleplayLorebookMenuOpen(false);
-                  setNewRoleplayCompanionMenuOpen((open) => !open);
-                }}
-              >
-                <span>
-                  {getCompanionLabel(newRoleplayCharacterIds)}
-                </span>
-                <small>{newRoleplayCharacterIds.length}</small>
-              </button>
-              {newRoleplayCompanionMenuOpen && (
-                <div
-                  className="new-thread-select-menu"
-                  id="new-roleplay-companion-menu"
-                  role="listbox"
-                  aria-labelledby="new-roleplay-companions-label"
-                  aria-multiselectable="true"
-                >
-                  {nav.characters.map((character) => {
-                    const selected = newRoleplayCharacterIds.includes(character.id);
-
-                    return (
-                      <label
-                        className={`new-thread-check${selected ? " on" : ""}`}
-                        key={character.id}
-                        role="option"
-                        aria-selected={selected}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleNewRoleplayCharacter(character.id)}
-                        />
-                        <span>
-                          <b>{character.displayName}</b>
-                          <small>
-                            {character.nickname ||
-                              character.personality ||
-                              "Companion"}
-                          </small>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              {nav.characters.length === 0 && (
-                <p className="new-thread-empty">
-                  Add a companion before starting a Roleplay thread.
-                </p>
-              )}
-            </div>
-            <div
-              className="new-thread-dropdown-field"
-              onBlur={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget)) return;
-                setNewRoleplayLorebookMenuOpen(false);
-              }}
-            >
-              <span id="new-roleplay-lorebooks-label">Lorebooks</span>
-              <button
-                type="button"
-                className="new-thread-select-button"
-                aria-controls="new-roleplay-lorebook-menu"
-                aria-expanded={newRoleplayLorebookMenuOpen}
-                aria-haspopup="listbox"
-                aria-labelledby="new-roleplay-lorebooks-label"
-                disabled={nav.lorebooks.length === 0}
-                onClick={() => {
-                  setNewRoleplayCompanionMenuOpen(false);
-                  setNewRoleplayLorebookMenuOpen((open) => !open);
-                }}
-              >
-                <span>
-                  {getLorebookLabel(newRoleplayLorebookIds)}
-                </span>
-                <small>{newRoleplayLorebookIds.length}</small>
-              </button>
-              {newRoleplayLorebookMenuOpen && (
-                <div
-                  className="new-thread-select-menu"
-                  id="new-roleplay-lorebook-menu"
-                  role="listbox"
-                  aria-labelledby="new-roleplay-lorebooks-label"
-                  aria-multiselectable="true"
-                >
-                  {nav.lorebooks.map((lorebook) => {
-                    const selected = newRoleplayLorebookIds.includes(lorebook.id);
-
-                    return (
-                      <label
-                        className={`new-thread-check${selected ? " on" : ""}`}
-                        key={lorebook.id}
-                        role="option"
-                        aria-selected={selected}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleNewRoleplayLorebook(lorebook.id)}
-                        />
-                        <span>
-                          <b>{lorebook.title}</b>
-                          <small>{lorebook.summary || "Lorebook"}</small>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="new-thread-actions">
-              <button type="button" onClick={() => setNewRoleplayOpen(false)}>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={newRoleplayCharacterIds.length === 0}
-              >
-                Create
-              </button>
-            </div>
-          </form>
-        </div>
+        <NewRoleplayThreadPopover
+          characterIds={newRoleplayCharacterIds}
+          characters={nav.characters}
+          companionLabel={getCompanionLabel(newRoleplayCharacterIds)}
+          companionMenuOpen={newRoleplayCompanionMenuOpen}
+          connectionId={newRoleplayConnectionId}
+          connections={sanitizedProviderConnections}
+          lorebookIds={newRoleplayLorebookIds}
+          lorebookLabel={getLorebookLabel(newRoleplayLorebookIds)}
+          lorebookMenuOpen={newRoleplayLorebookMenuOpen}
+          lorebooks={nav.lorebooks}
+          name={newRoleplayName}
+          namePlaceholder={getDraftRoleplayName(newRoleplayCharacterIds)}
+          personaId={newRoleplayPersonaId}
+          personas={nav.personas}
+          onClose={() => setNewRoleplayOpen(false)}
+          onCompanionMenuOpenChange={setNewRoleplayCompanionMenuOpen}
+          onConnectionChange={setNewRoleplayConnectionId}
+          onLorebookMenuOpenChange={setNewRoleplayLorebookMenuOpen}
+          onNameChange={(name) => {
+            setNewRoleplayName(name);
+            setNewRoleplayNameEdited(true);
+          }}
+          onPersonaChange={setNewRoleplayPersonaId}
+          onSubmit={handleCreateRoleplayThread}
+          onToggleCharacter={toggleNewRoleplayCharacter}
+          onToggleLorebook={toggleNewRoleplayLorebook}
+        />
       )}
       {releaseRequest && (
-        <div
-          className="release-dialog-backdrop"
-          role="presentation"
-          onClick={() => setReleaseRequest(null)}
-        >
-          <section
-            className="release-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="release-thread-title"
-            aria-describedby="release-thread-copy"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="release-dialog-icon" aria-hidden="true">
-              ×
-            </div>
-            <div className="release-dialog-copy">
-              <h2 id="release-thread-title">
-                Release {releaseRequest.kind === "roleplay" ? "scene" : "thread"}?
-              </h2>
-              <p id="release-thread-copy">
-                <b>{releaseRequest.title}</b> will be removed from the Shoal.
-              </p>
-            </div>
-            <div className="release-dialog-actions">
-              <button type="button" onClick={() => setReleaseRequest(null)}>
-                Cancel
-              </button>
-              <button type="button" onClick={confirmReleaseThread}>
-                Release
-              </button>
-            </div>
-          </section>
-        </div>
+        <ThreadReleaseDialog
+          request={releaseRequest}
+          onCancel={() => setReleaseRequest(null)}
+          onConfirm={confirmReleaseThread}
+        />
       )}
     </aside>
   );
