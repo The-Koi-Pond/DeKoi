@@ -48,6 +48,12 @@ import {
   getMessengerCardDetails,
   getRoleplayCardAvatarDetails,
 } from "./lib/thread-card-details";
+import {
+  getCompanionSelectionLabel,
+  getDraftCompanionName as getDraftCompanionNameLabel,
+  getDraftRoleplayName as getDraftRoleplayNameLabel,
+  getLorebookSelectionLabel,
+} from "./lib/new-thread-labels";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -1690,6 +1696,8 @@ function ThreadShoal({
   const [releaseRequest, setReleaseRequest] =
     useState<ThreadReleaseRequest | null>(null);
   const sortMode = nav.appSettings.shoalSortMode;
+  const nextMessengerThreadNumber = nav.messengerThreads.length + 1;
+  const nextRoleplayThreadNumber = nav.roleplayThreads.length + 1;
   const activeSurface = nav.selectedSurface === ROLEPLAY ? ROLEPLAY : MESSENGER;
   const isRoleplaySurface = activeSurface === ROLEPLAY;
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
@@ -1699,6 +1707,22 @@ function ThreadShoal({
     () => new Map(nav.characters.map((character) => [character.id, character])),
     [nav.characters],
   );
+  const getDraftCompanionName = (characterIds: string[]) =>
+    getDraftCompanionNameLabel(
+      characterIds,
+      characterById,
+      nextMessengerThreadNumber,
+    );
+  const getDraftRoleplayName = (characterIds: string[]) =>
+    getDraftRoleplayNameLabel(
+      characterIds,
+      characterById,
+      nextRoleplayThreadNumber,
+    );
+  const getCompanionLabel = (characterIds: string[]) =>
+    getCompanionSelectionLabel(characterIds, characterById);
+  const getLorebookLabel = (lorebookIds: string[]) =>
+    getLorebookSelectionLabel(lorebookIds, nav.lorebooks);
   const sanitizedProviderConnections = useMemo(
     () =>
       nav.providerConnections.map((connection) =>
@@ -1782,47 +1806,6 @@ function ThreadShoal({
     return () => document.removeEventListener("keydown", handleDocumentKeyDown);
   }, [releaseRequest]);
 
-  function getDraftCompanionName(characterIds: string[]) {
-    return (
-      characterIds
-        .map((characterId) => characterById.get(characterId)?.displayName ?? "")
-        .filter(Boolean)
-        .join(" + ") || `New Messenger ${nav.messengerThreads.length + 1}`
-    );
-  }
-
-  function getCompanionSelectionLabel(characterIds: string[]) {
-    const names = characterIds
-      .map((characterId) => characterById.get(characterId)?.displayName ?? "")
-      .filter(Boolean);
-
-    if (names.length === 0) return "Select companions";
-    if (names.length <= 2) return names.join(" + ");
-    return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
-  }
-
-  function getDraftRoleplayName(characterIds: string[]) {
-    return (
-      characterIds
-        .map((characterId) => characterById.get(characterId)?.displayName ?? "")
-        .filter(Boolean)
-        .join(" + ") || `New Roleplay ${nav.roleplayThreads.length + 1}`
-    );
-  }
-
-  function getLorebookSelectionLabel(lorebookIds: string[]) {
-    const lorebookById = new Map(
-      nav.lorebooks.map((lorebook) => [lorebook.id, lorebook.title]),
-    );
-    const names = lorebookIds
-      .map((lorebookId) => lorebookById.get(lorebookId) ?? "")
-      .filter(Boolean);
-
-    if (names.length === 0) return "No lorebooks";
-    if (names.length <= 2) return names.join(" + ");
-    return `${names.slice(0, 2).join(" + ")} + ${names.length - 2} more`;
-  }
-
   function openNewMessengerThreadPopover() {
     const initialCharacterIds = nav.characters[0] ? [nav.characters[0].id] : [];
     setNewRoleplayOpen(false);
@@ -1890,7 +1873,8 @@ function ThreadShoal({
     if (newMessengerCharacterIds.length === 0) return;
 
     const title =
-      newMessengerName.trim() || getDraftCompanionName(newMessengerCharacterIds);
+      newMessengerName.trim() ||
+      getDraftCompanionName(newMessengerCharacterIds);
     nav.createMessengerThread({
       activePersonaId: newMessengerPersonaId || null,
       characterIds: newMessengerCharacterIds,
@@ -1906,7 +1890,8 @@ function ThreadShoal({
     if (newRoleplayCharacterIds.length === 0) return;
 
     const title =
-      newRoleplayName.trim() || getDraftRoleplayName(newRoleplayCharacterIds);
+      newRoleplayName.trim() ||
+      getDraftRoleplayName(newRoleplayCharacterIds);
     nav.createRoleplayThread({
       activePersonaId: newRoleplayPersonaId || null,
       characterIds: newRoleplayCharacterIds,
@@ -2200,7 +2185,9 @@ function ThreadShoal({
                   setNewMessengerCompanionMenuOpen((open) => !open)
                 }
               >
-                <span>{getCompanionSelectionLabel(newMessengerCharacterIds)}</span>
+                <span>
+                  {getCompanionLabel(newMessengerCharacterIds)}
+                </span>
                 <small>{newMessengerCharacterIds.length}</small>
               </button>
               {newMessengerCompanionMenuOpen && (
@@ -2348,7 +2335,9 @@ function ThreadShoal({
                   setNewRoleplayCompanionMenuOpen((open) => !open);
                 }}
               >
-                <span>{getCompanionSelectionLabel(newRoleplayCharacterIds)}</span>
+                <span>
+                  {getCompanionLabel(newRoleplayCharacterIds)}
+                </span>
                 <small>{newRoleplayCharacterIds.length}</small>
               </button>
               {newRoleplayCompanionMenuOpen && (
@@ -2414,7 +2403,9 @@ function ThreadShoal({
                   setNewRoleplayLorebookMenuOpen((open) => !open);
                 }}
               >
-                <span>{getLorebookSelectionLabel(newRoleplayLorebookIds)}</span>
+                <span>
+                  {getLorebookLabel(newRoleplayLorebookIds)}
+                </span>
                 <small>{newRoleplayLorebookIds.length}</small>
               </button>
               {newRoleplayLorebookMenuOpen && (
