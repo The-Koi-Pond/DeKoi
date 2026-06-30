@@ -18,7 +18,7 @@ import type {
 } from "../../../engine/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/catalog/provider-connection-actions";
 import type { RippleState, RippleStateOwnerKind } from "../../../engine/contracts/types/ripples";
-import type { RippleInput } from "../../../engine/ripple-actions";
+import type { RippleInput } from "../../../engine/ripples/ripple-actions";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import type { AppSettings, ShoalSortMode } from "../../../engine/app-settings";
 import type {

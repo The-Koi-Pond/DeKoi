@@ -3,7 +3,7 @@ import type {
   RippleState,
   RippleStateOwnerKind,
   RippleTone,
-} from "./contracts/types/ripples";
+} from "../contracts/types/ripples";
 
 export interface RippleInput {
   tone?: RippleTone;

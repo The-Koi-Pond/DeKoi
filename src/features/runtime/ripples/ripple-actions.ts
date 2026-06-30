@@ -8,7 +8,7 @@ import {
   createRippleState,
   updateRippleRecord,
   type RippleInput,
-} from "../../../engine/ripple-actions";
+} from "../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 

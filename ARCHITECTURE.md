@@ -115,7 +115,7 @@ them in place:
 
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
-| Engine | Mostly flat `src/engine/*.ts` record and Ripple files, with contracts under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, and catalog actions under `src/engine/catalog`. | Move remaining generic primitives to `engine/core`, Ripple behavior to `engine/ripples`, and future shared pure helpers to `engine/shared` when they have real consumers. |
+| Engine | Mostly flat `src/engine/*.ts` record files, with contracts under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move remaining generic primitives to `engine/core` and future shared pure helpers to `engine/shared` when they have real consumers. |
 | Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
 | Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
@@ -172,6 +172,8 @@ The short version:
   `src/engine/catalog/lorebook-actions.ts`, and
   `src/engine/catalog/provider-connection-actions.ts` own deterministic catalog
   record mutations.
+- `src/engine/ripples/ripple-actions.ts` owns deterministic shared per-thread
+  Ripple state mutations.
 - `src/engine/generation/generation.ts`,
   `src/engine/generation/messenger-generation.ts`, and
   `src/engine/generation/roleplay-generation.ts` build shared, Messenger, and

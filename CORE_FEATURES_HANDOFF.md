@@ -93,7 +93,7 @@ Use current paths, not older seed paths:
   - `src/engine/modes/roleplay/roleplay-actions.ts`
   - `src/engine/generation/roleplay-generation.ts`
   - `src/engine/contracts/types/ripples.ts`
-  - `src/engine/ripple-actions.ts`
+  - `src/engine/ripples/ripple-actions.ts`
 - Feature UI:
   - `src/features/shell/*`
   - `src/features/modes/messenger/MessengerThread.tsx`
