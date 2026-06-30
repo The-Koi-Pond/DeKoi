@@ -9,10 +9,8 @@ import {
   NewThreadSelectField,
   NewThreadTextField,
 } from "./NewThreadPopoverBlocks";
-import {
-  NewThreadCharacterDropdown,
-  NewThreadLorebookDropdown,
-} from "./NewThreadDropdowns";
+import { NewThreadCharacterDropdown } from "./NewThreadCharacterDropdown";
+import { NewThreadLorebookDropdown } from "./NewThreadLorebookDropdown";
 
 interface NewRoleplayThreadPopoverProps {
   characterIds: string[];

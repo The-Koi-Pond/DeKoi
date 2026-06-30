@@ -8,7 +8,7 @@ import {
   NewThreadSelectField,
   NewThreadTextField,
 } from "./NewThreadPopoverBlocks";
-import { NewThreadCharacterDropdown } from "./NewThreadDropdowns";
+import { NewThreadCharacterDropdown } from "./NewThreadCharacterDropdown";
 
 interface NewMessengerThreadPopoverProps {
   characterIds: string[];
