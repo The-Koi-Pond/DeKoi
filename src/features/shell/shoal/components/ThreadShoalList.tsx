@@ -50,6 +50,11 @@ export function ThreadShoalList({
               thread.title,
               characterById,
             );
+            const preview = getRoleplayThreadPreview(thread);
+            const missingCompanionLabel =
+              avatarDetails.missingCharacterCount === 1
+                ? "1 missing companion"
+                : `${avatarDetails.missingCharacterCount} missing companions`;
 
             return (
               <KoiCard
@@ -59,7 +64,11 @@ export function ThreadShoalList({
                 icon={avatarDetails.hasCharacter ? undefined : <RoleplayCardIcon />}
                 initials={avatarDetails.initials}
                 name={thread.title}
-                sub={getRoleplayThreadPreview(thread)}
+                sub={
+                  avatarDetails.missingCharacterCount > 0
+                    ? `${missingCompanionLabel} - ${preview}`
+                    : preview
+                }
                 mode="roleplay"
                 active={thread.id === activeRoleplayThreadId}
                 showStatus={false}
