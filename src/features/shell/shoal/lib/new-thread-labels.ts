@@ -122,3 +122,38 @@ export function getLorebookSelectionLabel(
     "Missing lorebook selection",
   );
 }
+
+interface NewThreadLabelsInput {
+  characterById: Map<string, CharacterRecord>;
+  lorebooks: LorebookRecord[];
+  nextMessengerThreadNumber: number;
+  nextRoleplayThreadNumber: number;
+}
+
+export function createNewThreadLabels({
+  characterById,
+  lorebooks,
+  nextMessengerThreadNumber,
+  nextRoleplayThreadNumber,
+}: NewThreadLabelsInput) {
+  return {
+    getCompanionLabel: (characterIds: string[]) =>
+      getCompanionSelectionLabel(characterIds, characterById),
+    getDraftCompanionName: (characterIds: string[]) =>
+      getDraftCompanionName(
+        characterIds,
+        characterById,
+        nextMessengerThreadNumber,
+      ),
+    getDraftRoleplayName: (characterIds: string[]) =>
+      getDraftRoleplayName(
+        characterIds,
+        characterById,
+        nextRoleplayThreadNumber,
+      ),
+    getLorebookLabel: (lorebookIds: string[]) =>
+      getLorebookSelectionLabel(lorebookIds, lorebooks),
+  };
+}
+
+export type NewThreadLabels = ReturnType<typeof createNewThreadLabels>;
