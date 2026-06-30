@@ -36,6 +36,10 @@ export function useNewRoleplayThreadPopover({
     useState(false);
   const [newRoleplayLorebookMenuOpen, setNewRoleplayLorebookMenuOpen] =
     useState(false);
+  const liveLorebookIds = new Set(lorebooks.map((lorebook) => lorebook.id));
+  const selectedRoleplayLorebookIds = newRoleplayLorebookIds.filter((id) =>
+    liveLorebookIds.has(id),
+  );
 
   function resetNewRoleplayThreadPopover() {
     setNewRoleplayCharacterIds([]);
@@ -98,7 +102,7 @@ export function useNewRoleplayThreadPopover({
     onCreateRoleplayThread({
       activePersonaId: newRoleplayPersonaId || null,
       characterIds: newRoleplayCharacterIds,
-      lorebookIds: newRoleplayLorebookIds,
+      lorebookIds: selectedRoleplayLorebookIds,
       providerConnectionId: newRoleplayConnectionId || null,
       title,
     });
@@ -111,7 +115,7 @@ export function useNewRoleplayThreadPopover({
     newRoleplayCharacterIds,
     newRoleplayCompanionMenuOpen,
     newRoleplayConnectionId,
-    newRoleplayLorebookIds,
+    newRoleplayLorebookIds: selectedRoleplayLorebookIds,
     newRoleplayLorebookMenuOpen,
     newRoleplayName,
     newRoleplayOpen,
