@@ -8,11 +8,13 @@ import {
   type ProviderConnectionRecord,
 } from "../../../../engine/contracts/types/provider-connection";
 import {
-  getCompanionSettingsViewModel,
   getConnectionSettingsViewModel,
-  getLorebookSettingsViewModel,
   getPersonaSettingsViewModel,
-} from "./chat-settings-view-model-sections";
+} from "./chat-settings-identity-view-model";
+import {
+  getCompanionSettingsViewModel,
+  getLorebookSettingsViewModel,
+} from "./chat-settings-selection-view-model";
 
 interface ChatSettingsViewModelInput {
   activeMessengerThread: MessengerThread | null;
