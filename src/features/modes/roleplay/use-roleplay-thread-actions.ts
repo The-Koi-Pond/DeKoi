@@ -14,7 +14,7 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../../engine/contracts/types/ripples";
 import { deleteRippleStateForOwner } from "../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";

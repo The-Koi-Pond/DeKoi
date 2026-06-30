@@ -9,13 +9,13 @@ import {
   type MessengerThread,
 } from "../../engine/messenger";
 import type { PersonaRecord } from "../../engine/contracts/types/persona";
-import type { ProviderConnectionRecord } from "../../engine/provider-connection";
+import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../engine/contracts/types/ripples";
 import {
   loadAppSettingsFromStorage,
   saveAppSettingsToStorage,
 } from "./collections/app-settings";
-import type { AppSettings } from "../../engine/app-settings";
+import type { AppSettings } from "../../engine/contracts/types/app-settings";
 import {
   loadCharacterRecordsFromStorage,
   saveCharacterRecordsToStorage,

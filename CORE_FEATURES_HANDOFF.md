@@ -76,12 +76,13 @@ Use current paths, not older seed paths:
   - `src/app/use-app-state.ts`
   - `src/app/use-app-storage-sync.ts`
 - Engine records and pure behavior:
-  - `src/engine/app-settings.ts`
+  - `src/engine/contracts/types/app-settings.ts`
+  - `src/engine/contracts/types/project-plan.ts`
   - `src/engine/contracts/constants/surfaces.ts`
   - `src/engine/contracts/types/character.ts`
   - `src/engine/contracts/types/persona.ts`
   - `src/engine/contracts/types/lorebook.ts`
-  - `src/engine/provider-connection.ts`
+  - `src/engine/contracts/types/provider-connection.ts`
   - `src/engine/catalog/character-actions.ts`
   - `src/engine/catalog/persona-actions.ts`
   - `src/engine/catalog/lorebook-actions.ts`

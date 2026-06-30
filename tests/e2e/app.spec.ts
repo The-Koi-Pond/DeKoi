@@ -8,7 +8,7 @@ import {
   reconcileMigrationAppStorageSignatures,
   type AppStorageCollectionSignatures,
 } from "../../src/app/use-app-storage-sync";
-import { DEFAULT_APP_SETTINGS } from "../../src/engine/app-settings";
+import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
 import {
   appendMessengerMessages,
   createAnonymousMessengerMessage,

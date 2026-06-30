@@ -81,7 +81,7 @@ src/engine/contracts/types/persona.ts
 src/engine/catalog/persona-actions.ts
 src/engine/contracts/types/lorebook.ts
 src/engine/catalog/lorebook-actions.ts
-src/engine/provider-connection.ts
+src/engine/contracts/types/provider-connection.ts
 src/engine/catalog/provider-connection-actions.ts
   Catalog record contracts and deterministic mutations.
 
@@ -89,8 +89,8 @@ src/engine/contracts/types/ripples.ts
 src/engine/ripples/ripple-actions.ts
   Shared per-thread Ripple state contract and deterministic mutations.
 
-src/engine/app-settings.ts
-src/engine/project-plan.ts
+src/engine/contracts/types/app-settings.ts
+src/engine/contracts/types/project-plan.ts
 src/engine/contracts/constants/surfaces.ts
   App-level native records, planning records, and surface contracts.
 ```

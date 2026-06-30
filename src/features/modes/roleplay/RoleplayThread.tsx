@@ -14,7 +14,7 @@ import {
 import type { RoleplayEntry } from "../../../engine/roleplay";
 import {
   getProviderConnectionById,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
 import {
   generateRoleplayThreadTurn,

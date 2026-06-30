@@ -7,7 +7,7 @@ import {
 } from "../messenger";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type { ProviderConnectionRecord } from "../provider-connection";
+import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
   characterGenerationContext,
   cleanGenerationText,

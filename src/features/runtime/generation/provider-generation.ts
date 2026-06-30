@@ -8,7 +8,7 @@ import type {
 import {
   getProviderConnectionProviderOption,
   type ProviderConnectionProvider,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";

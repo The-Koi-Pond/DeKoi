@@ -3,8 +3,8 @@ import type { RoleplayThread } from "../../../engine/roleplay";
 import { replaceRoleplayThreadProviderConnection } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { replaceMessengerThreadProviderConnection } from "../../../engine/modes/messenger/messenger-actions";
-import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
-import { getProviderConnectionProviderOption } from "../../../engine/provider-connection";
+import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
+import { getProviderConnectionProviderOption } from "../../../engine/contracts/types/provider-connection";
 import {
   createProviderConnectionRecord,
   deleteProviderConnectionRecord,
@@ -19,7 +19,7 @@ import {
   deleteDesktopProviderSecret,
   writeDesktopProviderSecret,
 } from "../../../shared/api/desktop-provider-secrets";
-import type { AppSettings } from "../../../engine/app-settings";
+import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseProviderConnectionActionsInput = {

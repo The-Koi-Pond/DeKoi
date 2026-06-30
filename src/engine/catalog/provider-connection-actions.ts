@@ -2,8 +2,8 @@ import type {
   ProviderConnectionProvider,
   ProviderConnectionRecord,
   ProviderConnectionStatus,
-} from "../provider-connection";
-import { getProviderConnectionProviderOption } from "../provider-connection";
+} from "../contracts/types/provider-connection";
+import { getProviderConnectionProviderOption } from "../contracts/types/provider-connection";
 
 export interface ProviderConnectionInput {
   label: string;

@@ -2,7 +2,7 @@ import {
   getRoleplayThreadActivityAt,
   type RoleplayThread,
 } from "../../../engine/roleplay";
-import type { ShoalSortMode } from "../../../engine/app-settings";
+import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 
 export function sortRoleplayThreadsByUpdatedAt(threads: RoleplayThread[]) {
   return [...threads].sort((a, b) =>

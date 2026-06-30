@@ -8,7 +8,7 @@ import {
   type ProviderConnectionProvider,
   type ProviderConnectionRecord,
   type ProviderConnectionStatus,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
 import {
   isRecord,
