@@ -71,6 +71,22 @@ export function ChatSettingsRail({
     value: "",
   });
   const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
+  const activeChatNameEditor =
+    chatNameEditor.threadId === activeMessengerThreadId
+      ? chatNameEditor
+      : {
+          editing: false,
+          threadId: activeMessengerThreadId,
+          value: activeMessengerThreadTitle,
+        };
+  const activePromptEditor =
+    promptEditor.open && promptEditor.threadId === activeMessengerThreadId
+      ? promptEditor
+      : {
+          open: false,
+          threadId: null,
+          value: "",
+        };
 
   if (
     chatNameEditor.threadId !== activeMessengerThreadId ||
@@ -101,11 +117,15 @@ export function ChatSettingsRail({
   }
 
   function saveChatName() {
-    if (!activeMessengerThread || chatNameEditor.threadId !== activeMessengerThread.id) {
+    if (
+      !activeMessengerThread ||
+      activeChatNameEditor.threadId !== activeMessengerThreadId ||
+      activeChatNameEditor.threadId !== activeMessengerThread.id
+    ) {
       cancelChatNameEdit();
       return;
     }
-    const nextTitle = chatNameEditor.value.trim();
+    const nextTitle = activeChatNameEditor.value.trim();
     if (nextTitle) {
       nav.renameMessengerThread(activeMessengerThread.id, nextTitle);
     }
@@ -250,13 +270,22 @@ export function ChatSettingsRail({
 
   function savePromptEditor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!activeMessengerThread || promptEditor.threadId !== activeMessengerThread.id) {
+    if (
+      !activeMessengerThread ||
+      activePromptEditor.threadId !== activeMessengerThreadId ||
+      activePromptEditor.threadId !== activeMessengerThread.id
+    ) {
       closePromptEditor();
       return;
     }
 
     updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(thread, "custom", promptEditor.value, updatedAt),
+      setMessengerThreadSystemPrompt(
+        thread,
+        "custom",
+        activePromptEditor.value,
+        updatedAt,
+      ),
     );
     closePromptEditor();
   }
@@ -300,12 +329,12 @@ export function ChatSettingsRail({
     : "First available";
   const missingConnectionResolution = configuredDefaultConnection
     ? {
-        actionLabel: "Use app default",
+        actionLabel: `Use app default: ${configuredDefaultConnection.label}`,
         connectionId: configuredDefaultConnection.id,
       }
     : firstAvailableConnection
       ? {
-          actionLabel: "Use first available",
+          actionLabel: `Use first available: ${firstAvailableConnection.label}`,
           connectionId: firstAvailableConnection.id,
         }
       : {
@@ -457,8 +486,8 @@ export function ChatSettingsRail({
             <ChatSettingsNameEditor
               activeChatName={activeChatName}
               disabled={!activeMessengerThread}
-              editing={chatNameEditor.editing}
-              value={chatNameEditor.value}
+              editing={activeChatNameEditor.editing}
+              value={activeChatNameEditor.value}
               onCancel={cancelChatNameEdit}
               onSave={saveChatName}
               onStartEdit={startChatNameEdit}
@@ -564,8 +593,8 @@ export function ChatSettingsRail({
         </div>
       </div>
       <ChatSettingsPromptEditor
-        open={promptEditor.open && !!activeMessengerThread}
-        value={promptEditor.value}
+        open={activePromptEditor.open && !!activeMessengerThread}
+        value={activePromptEditor.value}
         onClose={closePromptEditor}
         onSave={savePromptEditor}
         onValueChange={(value) =>
