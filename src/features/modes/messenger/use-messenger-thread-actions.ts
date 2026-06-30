@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../engine/messenger";
+import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import {
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,

@@ -4,7 +4,7 @@ import {
   resolveMessengerSystemPrompt,
   type MessengerMessage,
   type MessengerThread,
-} from "../messenger";
+} from "../contracts/types/messenger";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";

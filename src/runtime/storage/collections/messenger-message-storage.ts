@@ -1,5 +1,5 @@
-import type { MessengerMessage } from "../../../engine/messenger";
-import { extractMessengerMessages, type MessengerThread } from "../../../engine/messenger";
+import type { MessengerMessage } from "../../../engine/contracts/types/messenger";
+import { extractMessengerMessages, type MessengerThread } from "../../../engine/contracts/types/messenger";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import { normalizeMessengerMessageRecord } from "./messenger-storage";

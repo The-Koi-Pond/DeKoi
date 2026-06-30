@@ -87,10 +87,10 @@ Use current paths, not older seed paths:
   - `src/engine/catalog/persona-actions.ts`
   - `src/engine/catalog/lorebook-actions.ts`
   - `src/engine/catalog/provider-connection-actions.ts`
-  - `src/engine/messenger.ts`
+  - `src/engine/contracts/types/messenger.ts`
   - `src/engine/modes/messenger/messenger-actions.ts`
   - `src/engine/generation/messenger-generation.ts`
-  - `src/engine/roleplay.ts`
+  - `src/engine/contracts/types/roleplay.ts`
   - `src/engine/modes/roleplay/roleplay-actions.ts`
   - `src/engine/generation/roleplay-generation.ts`
   - `src/engine/contracts/types/ripples.ts`

@@ -1,7 +1,7 @@
 import {
   getMessengerThreadActivityAt,
   type MessengerThread,
-} from "../../../engine/messenger";
+} from "../../../engine/contracts/types/messenger";
 import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 
 export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {

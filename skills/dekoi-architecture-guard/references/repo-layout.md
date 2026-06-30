@@ -60,17 +60,17 @@ src/engine/
 ## Current Engine Files
 
 ```text
-src/engine/messenger.ts
+src/engine/contracts/types/messenger.ts
 src/engine/modes/messenger/messenger-actions.ts
 src/engine/generation/messenger-generation.ts
-  Messenger thread records, mutations, and provider-neutral generation request
-  assembly.
+  Messenger thread/message records, mutations, and provider-neutral generation
+  request assembly.
 
-src/engine/roleplay.ts
+src/engine/contracts/types/roleplay.ts
 src/engine/modes/roleplay/roleplay-actions.ts
 src/engine/generation/roleplay-generation.ts
-  Roleplay thread records, scene records, mutations, and provider-neutral
-  generation request assembly.
+  Roleplay thread/entry records, mutations, and provider-neutral generation
+  request assembly.
 
 src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.

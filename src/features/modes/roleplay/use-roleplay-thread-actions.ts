@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import {
   appendRoleplayEntries,
   clearRoleplayEntries,

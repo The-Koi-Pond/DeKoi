@@ -5,7 +5,7 @@ import {
   type MessengerMessageOrigin,
   type MessengerThread,
   type MessengerThreadMode,
-} from "../../../engine/messenger";
+} from "../../../engine/contracts/types/messenger";
 import { isRecord, readNullableString, readString, readStringArray, readTimestamp } from "../storage-json";
 
 const LEGACY_BUBBLE_THREADS_STORAGE_KEY = "dekoi:bubble-threads:v1";

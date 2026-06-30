@@ -11,7 +11,7 @@ import {
   deleteRoleplayEntry,
   updateRoleplayEntryBody,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayEntry } from "../../../engine/roleplay";
+import type { RoleplayEntry } from "../../../engine/contracts/types/roleplay";
 import {
   getProviderConnectionById,
 } from "../../../engine/contracts/types/provider-connection";

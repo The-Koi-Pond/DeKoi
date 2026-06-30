@@ -33,11 +33,11 @@ adapters.
 | --- | --- | --- | --- |
 | `app-settings` | `src/engine/contracts/types/app-settings.ts` | `AppSettings` | `src/runtime/storage/collections/app-settings.ts` |
 | `characters` | `src/engine/contracts/types/character.ts` | `CharacterRecord` | `src/runtime/storage/collections/character-storage.ts` |
-| `roleplay-threads` | `src/engine/roleplay.ts` | `RoleplayThreadRecord` | `src/runtime/storage/collections/roleplay-storage.ts` |
-| `roleplay-entries` | `src/engine/roleplay.ts` | `RoleplayEntry` | `src/runtime/storage/collections/roleplay-entry-storage.ts` |
+| `roleplay-threads` | `src/engine/contracts/types/roleplay.ts` | `RoleplayThreadRecord` | `src/runtime/storage/collections/roleplay-storage.ts` |
+| `roleplay-entries` | `src/engine/contracts/types/roleplay.ts` | `RoleplayEntry` | `src/runtime/storage/collections/roleplay-entry-storage.ts` |
 | `lorebooks` | `src/engine/contracts/types/lorebook.ts` | `LorebookRecord` | `src/runtime/storage/collections/lorebook-storage.ts` |
-| `messenger-threads` | `src/engine/messenger.ts` | `MessengerThreadRecord` | `src/runtime/storage/collections/messenger-storage.ts` |
-| `messenger-messages` | `src/engine/messenger.ts` | `MessengerMessage` | `src/runtime/storage/collections/messenger-message-storage.ts` |
+| `messenger-threads` | `src/engine/contracts/types/messenger.ts` | `MessengerThreadRecord` | `src/runtime/storage/collections/messenger-storage.ts` |
+| `messenger-messages` | `src/engine/contracts/types/messenger.ts` | `MessengerMessage` | `src/runtime/storage/collections/messenger-message-storage.ts` |
 | `personas` | `src/engine/contracts/types/persona.ts` | `PersonaRecord` | `src/runtime/storage/collections/persona-storage.ts` |
 | `provider-connections` | `src/engine/contracts/types/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts` |
 | `ripple-states` | `src/engine/contracts/types/ripples.ts` | `RippleState` | `src/runtime/storage/collections/ripple-state-storage.ts` |

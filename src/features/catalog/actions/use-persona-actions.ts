@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import { clearRoleplayThreadPersona } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { MessengerThread } from "../../../engine/messenger";
+import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import { clearMessengerThreadPersona } from "../../../engine/modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {

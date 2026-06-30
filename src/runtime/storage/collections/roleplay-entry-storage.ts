@@ -1,5 +1,5 @@
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/roleplay";
-import { extractRoleplayEntries } from "../../../engine/roleplay";
+import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import { extractRoleplayEntries } from "../../../engine/contracts/types/roleplay";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import { normalizeRoleplayEntryRecord } from "./roleplay-storage";

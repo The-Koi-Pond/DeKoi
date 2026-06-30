@@ -1,11 +1,11 @@
 import {
   extractMessengerMessages,
   toMessengerThreadRecord,
-} from "../../engine/messenger";
+} from "../../engine/contracts/types/messenger";
 import {
   extractRoleplayEntries,
   toRoleplayThreadRecord,
-} from "../../engine/roleplay";
+} from "../../engine/contracts/types/roleplay";
 import type {
   AppStorageCollectionKey,
   AppStorageRecords,

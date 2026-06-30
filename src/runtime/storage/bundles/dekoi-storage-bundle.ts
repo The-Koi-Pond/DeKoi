@@ -5,7 +5,7 @@ import {
   type RoleplayEntry,
   type RoleplayThread,
   type RoleplayThreadRecord,
-} from "../../../engine/roleplay";
+} from "../../../engine/contracts/types/roleplay";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import {
   extractMessengerMessages,
@@ -13,7 +13,7 @@ import {
   type MessengerMessage,
   type MessengerThread,
   type MessengerThreadRecord,
-} from "../../../engine/messenger";
+} from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
