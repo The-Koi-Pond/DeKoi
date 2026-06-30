@@ -27,8 +27,23 @@ export function useNewMessengerThreadPopover({
   const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
     useState(false);
 
+  function resetNewMessengerThreadPopover() {
+    setNewMessengerCharacterIds([]);
+    setNewMessengerName("");
+    setNewMessengerNameEdited(false);
+    setNewMessengerConnectionId("");
+    setNewMessengerPersonaId("");
+    setNewMessengerCompanionMenuOpen(false);
+  }
+
+  function closeNewMessengerThreadPopover() {
+    resetNewMessengerThreadPopover();
+    setNewMessengerOpen(false);
+  }
+
   function openNewMessengerThreadPopover() {
     const initialCharacterIds = characters[0] ? [characters[0].id] : [];
+    resetNewMessengerThreadPopover();
     setNewMessengerCharacterIds(initialCharacterIds);
     setNewMessengerName(labels.getDraftCompanionName(initialCharacterIds));
     setNewMessengerNameEdited(false);
@@ -65,11 +80,11 @@ export function useNewMessengerThreadPopover({
       providerConnectionId: newMessengerConnectionId || null,
       title,
     });
-    setNewMessengerCompanionMenuOpen(false);
-    setNewMessengerOpen(false);
+    closeNewMessengerThreadPopover();
   }
 
   return {
+    closeNewMessengerThreadPopover,
     handleCreateMessengerThread,
     newMessengerCharacterIds,
     newMessengerCompanionMenuOpen,
@@ -82,7 +97,6 @@ export function useNewMessengerThreadPopover({
     setNewMessengerConnectionId,
     setNewMessengerName,
     setNewMessengerNameEdited,
-    setNewMessengerOpen,
     setNewMessengerPersonaId,
     toggleNewMessengerCharacter,
   };

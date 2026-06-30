@@ -41,16 +41,22 @@ export function useNewThreadPopovers({
     onCreateRoleplayThread,
     roleplayPersonaId,
   });
-  const { newMessengerOpen, setNewMessengerOpen } = messengerPopover;
-  const { newRoleplayOpen, setNewRoleplayOpen } = roleplayPopover;
+  const {
+    closeNewMessengerThreadPopover,
+    newMessengerOpen,
+  } = messengerPopover;
+  const {
+    closeNewRoleplayThreadPopover,
+    newRoleplayOpen,
+  } = roleplayPopover;
 
   useEffect(() => {
     if (!newMessengerOpen && !newRoleplayOpen) return;
 
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
-      setNewMessengerOpen(false);
-      setNewRoleplayOpen(false);
+      closeNewMessengerThreadPopover();
+      closeNewRoleplayThreadPopover();
     }
 
     document.addEventListener("keydown", handleDocumentKeyDown);
@@ -60,28 +66,28 @@ export function useNewThreadPopovers({
   }, [
     newRoleplayOpen,
     newMessengerOpen,
-    setNewMessengerOpen,
-    setNewRoleplayOpen,
+    closeNewMessengerThreadPopover,
+    closeNewRoleplayThreadPopover,
   ]);
 
   function handleCreateActiveThread() {
     if (isRoleplaySurface) {
       if (newRoleplayOpen) {
-        setNewRoleplayOpen(false);
+        closeNewRoleplayThreadPopover();
         return;
       }
 
-      setNewMessengerOpen(false);
+      closeNewMessengerThreadPopover();
       roleplayPopover.openNewRoleplayThreadPopover();
       return;
     }
 
     if (newMessengerOpen) {
-      setNewMessengerOpen(false);
+      closeNewMessengerThreadPopover();
       return;
     }
 
-    setNewRoleplayOpen(false);
+    closeNewRoleplayThreadPopover();
     messengerPopover.openNewMessengerThreadPopover();
   }
 

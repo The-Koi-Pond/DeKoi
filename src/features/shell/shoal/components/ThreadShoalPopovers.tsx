@@ -42,7 +42,7 @@ export function ThreadShoalPopovers({
           )}
           personaId={popovers.newMessengerPersonaId}
           personas={personas}
-          onClose={() => popovers.setNewMessengerOpen(false)}
+          onClose={popovers.closeNewMessengerThreadPopover}
           onCompanionMenuOpenChange={popovers.setNewMessengerCompanionMenuOpen}
           onConnectionChange={popovers.setNewMessengerConnectionId}
           onNameChange={(name) => {
@@ -74,7 +74,7 @@ export function ThreadShoalPopovers({
           )}
           personaId={popovers.newRoleplayPersonaId}
           personas={personas}
-          onClose={() => popovers.setNewRoleplayOpen(false)}
+          onClose={popovers.closeNewRoleplayThreadPopover}
           onCompanionMenuOpenChange={popovers.setNewRoleplayCompanionMenuOpen}
           onConnectionChange={popovers.setNewRoleplayConnectionId}
           onLorebookMenuOpenChange={popovers.setNewRoleplayLorebookMenuOpen}

@@ -37,8 +37,25 @@ export function useNewRoleplayThreadPopover({
   const [newRoleplayLorebookMenuOpen, setNewRoleplayLorebookMenuOpen] =
     useState(false);
 
+  function resetNewRoleplayThreadPopover() {
+    setNewRoleplayCharacterIds([]);
+    setNewRoleplayName("");
+    setNewRoleplayNameEdited(false);
+    setNewRoleplayConnectionId("");
+    setNewRoleplayPersonaId("");
+    setNewRoleplayLorebookIds([]);
+    setNewRoleplayCompanionMenuOpen(false);
+    setNewRoleplayLorebookMenuOpen(false);
+  }
+
+  function closeNewRoleplayThreadPopover() {
+    resetNewRoleplayThreadPopover();
+    setNewRoleplayOpen(false);
+  }
+
   function openNewRoleplayThreadPopover() {
     const initialCharacterIds = characters[0] ? [characters[0].id] : [];
+    resetNewRoleplayThreadPopover();
     setNewRoleplayCharacterIds(initialCharacterIds);
     setNewRoleplayName(labels.getDraftRoleplayName(initialCharacterIds));
     setNewRoleplayNameEdited(false);
@@ -85,12 +102,11 @@ export function useNewRoleplayThreadPopover({
       providerConnectionId: newRoleplayConnectionId || null,
       title,
     });
-    setNewRoleplayCompanionMenuOpen(false);
-    setNewRoleplayLorebookMenuOpen(false);
-    setNewRoleplayOpen(false);
+    closeNewRoleplayThreadPopover();
   }
 
   return {
+    closeNewRoleplayThreadPopover,
     handleCreateRoleplayThread,
     newRoleplayCharacterIds,
     newRoleplayCompanionMenuOpen,
@@ -106,7 +122,6 @@ export function useNewRoleplayThreadPopover({
     setNewRoleplayLorebookMenuOpen,
     setNewRoleplayName,
     setNewRoleplayNameEdited,
-    setNewRoleplayOpen,
     setNewRoleplayPersonaId,
     toggleNewRoleplayCharacter,
     toggleNewRoleplayLorebook,
