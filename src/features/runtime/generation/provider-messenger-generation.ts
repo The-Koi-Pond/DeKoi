@@ -1,4 +1,4 @@
-import type { MessengerGenerationAdapter } from "../../../engine/messenger-generation";
+import type { MessengerGenerationAdapter } from "../../../engine/generation/messenger-generation";
 import {
   generateWithConfiguredProvider,
   providerErrorMessage,

@@ -115,7 +115,7 @@ them in place:
 
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
-| Engine | Flat `src/engine/*.ts` record, action, and generation files. | Move records/constants to `engine/contracts`, generic primitives to `engine/core`, generation assembly to `engine/generation`, Messenger and Roleplay mutations to `engine/modes`, catalog actions to `engine/catalog`, and Ripple behavior to `engine/ripples`. |
+| Engine | Mostly flat `src/engine/*.ts` record and action files, with contracts under `src/engine/contracts`, generation request assembly under `src/engine/generation`, and Messenger/Roleplay actions under `src/engine/modes`. | Move records/constants to `engine/contracts`, generic primitives to `engine/core`, generation assembly to `engine/generation`, Messenger and Roleplay mutations to `engine/modes`, catalog actions to `engine/catalog`, and Ripple behavior to `engine/ripples`. |
 | Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
 | Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
@@ -167,9 +167,10 @@ The short version:
   surface IDs and metadata. `src/engine/provider-connection.ts` still owns the
   provider connection record plus provider helpers until that mixed module is
   split.
-- `src/engine/generation.ts`, `src/engine/messenger-generation.ts`, and
-  `src/engine/roleplay-generation.ts` build shared, Messenger, and Roleplay
-  provider-neutral generation requests.
+- `src/engine/generation/generation.ts`,
+  `src/engine/generation/messenger-generation.ts`, and
+  `src/engine/generation/roleplay-generation.ts` build shared, Messenger, and
+  Roleplay provider-neutral generation requests.
 - `src/features/*` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
   controller for the app provider, including top-level app state, storage sync,

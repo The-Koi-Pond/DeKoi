@@ -84,10 +84,10 @@ Use current paths, not older seed paths:
   - `src/engine/provider-connection.ts`
   - `src/engine/messenger.ts`
   - `src/engine/modes/messenger/messenger-actions.ts`
-  - `src/engine/messenger-generation.ts`
+  - `src/engine/generation/messenger-generation.ts`
   - `src/engine/roleplay.ts`
   - `src/engine/modes/roleplay/roleplay-actions.ts`
-  - `src/engine/roleplay-generation.ts`
+  - `src/engine/generation/roleplay-generation.ts`
   - `src/engine/contracts/types/ripples.ts`
   - `src/engine/ripple-actions.ts`
 - Feature UI:
@@ -215,7 +215,7 @@ Next work:
 - Improve generated-reply warnings so provider failures are understandable to a
   nontechnical user.
 - Keep Messenger UI out of Roleplay internals and keep prompt assembly in
-  `src/engine/messenger-generation.ts`.
+  `src/engine/generation/messenger-generation.ts`.
 
 Acceptance:
 
@@ -296,9 +296,10 @@ Status: provider-neutral generation is real but narrow.
 
 Implemented:
 
-- `src/engine/generation.ts` shared request helpers.
-- Messenger request assembly in `src/engine/messenger-generation.ts`.
-- Roleplay request assembly in `src/engine/roleplay-generation.ts`.
+- `src/engine/generation/generation.ts` shared request helpers.
+- Messenger request assembly in
+  `src/engine/generation/messenger-generation.ts`.
+- Roleplay request assembly in `src/engine/generation/roleplay-generation.ts`.
 - Provider generation workflow under `src/features/runtime/generation`.
 - Browser provider fallback for optional/no-key cases with a configured Base URL
   and model.

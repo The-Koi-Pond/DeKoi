@@ -4,7 +4,7 @@ import type {
   GenerationProviderKind,
   GenerationRequestBase,
   GenerationResponse,
-} from "../../../engine/generation";
+} from "../../../engine/generation/generation";
 import {
   getProviderConnectionProviderOption,
   type ProviderConnectionProvider,

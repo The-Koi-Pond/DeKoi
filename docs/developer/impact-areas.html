@@ -45,7 +45,7 @@ Checks planned:</code></pre>
 flowchart LR
   UI[features/modes/messenger]
   Actions[engine/modes/messenger/messenger-actions]
-  Engine[engine/messenger-generation]
+  Engine[engine/generation/messenger-generation]
   Runtime[features/runtime/generation]
   Provider[features/runtime/generation/provider-generation]
   Api[shared/api desktop-runtime]
@@ -80,7 +80,7 @@ flowchart LR
 flowchart LR
   UI[features/modes/roleplay]
   Actions[engine/modes/roleplay/roleplay-actions]
-  Engine[engine/roleplay-generation]
+  Engine[engine/generation/roleplay-generation]
   Runtime[features/runtime/generation]
   Provider[features/runtime/generation/provider-generation]
 
@@ -234,7 +234,7 @@ flowchart LR
         <h2>Shared Change Risk</h2>
         <div class="grid">
           <div class="panel">
-            <h3><code>src/engine/generation.ts</code></h3>
+            <h3><code>src/engine/generation/generation.ts</code></h3>
             <p>Review both Messenger and Roleplay request builders plus provider response normalization.</p>
           </div>
           <div class="panel">

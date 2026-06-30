@@ -11,7 +11,7 @@ import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequest,
   type RoleplayGenerationResponse,
-} from "../../../engine/roleplay-generation";
+} from "../../../engine/generation/roleplay-generation";
 import type { GenerationRuntimeMode } from "./generation-runtime";
 import {
   generateWithConfiguredProvider,
