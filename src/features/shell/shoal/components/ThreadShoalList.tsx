@@ -3,10 +3,8 @@ import type { MessengerThread } from "../../../../engine/contracts/types/messeng
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import { getRoleplayThreadPreview } from "../../../modes";
 import { KoiCard } from "../KoiCard";
-import {
-  getMessengerCardDetails,
-  getRoleplayCardAvatarDetails,
-} from "../lib/thread-card-details";
+import { getMessengerCardDetails } from "../lib/messenger-card-details";
+import { getRoleplayCardAvatarDetails } from "../lib/roleplay-card-avatar-details";
 import { RoleplayCardIcon } from "./ShoalIcons";
 import { ThreadShoalEmptyState } from "./ThreadShoalEmptyState";
 

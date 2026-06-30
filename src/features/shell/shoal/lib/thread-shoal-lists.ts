@@ -1,16 +1,13 @@
 import type { ShoalSortMode } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import {
-  getMessengerThreadActivityAt,
-  type MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import { sortRoleplayThreads } from "../../../modes";
 import {
-  getRoleplayThreadPreview,
-  sortMessengerThreads,
-  sortRoleplayThreads,
-} from "../../../modes";
-import { getMessengerCardDetails } from "./thread-card-details";
+  filterShoalMessengerThreads,
+  filterShoalRoleplayThreads,
+} from "./thread-shoal-filtering";
+import { getSortedShoalMessengerThreads } from "./thread-shoal-sorting";
 
 interface ThreadShoalListsInput {
   characterById: Map<string, CharacterRecord>;
@@ -51,55 +48,4 @@ export function getThreadShoalLists({
       normalizedQuery,
     ),
   };
-}
-
-function getSortedShoalMessengerThreads(
-  threads: readonly MessengerThread[],
-  sortMode: ShoalSortMode,
-  characterById: Map<string, CharacterRecord>,
-) {
-  if (sortMode !== "title") {
-    return sortMessengerThreads([...threads], sortMode);
-  }
-
-  return [...threads].sort((a, b) => {
-    const aDetails = getMessengerCardDetails(a, characterById);
-    const bDetails = getMessengerCardDetails(b, characterById);
-    return (
-      aDetails.name.localeCompare(bDetails.name, undefined, {
-        sensitivity: "base",
-      }) ||
-      getMessengerThreadActivityAt(b).localeCompare(
-        getMessengerThreadActivityAt(a),
-      )
-    );
-  });
-}
-
-function filterShoalMessengerThreads(
-  threads: readonly MessengerThread[],
-  normalizedQuery: string,
-  characterById: Map<string, CharacterRecord>,
-) {
-  if (!normalizedQuery) return [...threads];
-
-  return threads.filter((thread) => {
-    const details = getMessengerCardDetails(thread, characterById);
-    return details.searchText.includes(normalizedQuery);
-  });
-}
-
-function filterShoalRoleplayThreads(
-  threads: readonly RoleplayThread[],
-  normalizedQuery: string,
-) {
-  if (!normalizedQuery) return [...threads];
-
-  return threads.filter((thread) => {
-    const preview = getRoleplayThreadPreview(thread);
-    return (
-      thread.title.toLowerCase().includes(normalizedQuery) ||
-      preview.toLowerCase().includes(normalizedQuery)
-    );
-  });
 }
