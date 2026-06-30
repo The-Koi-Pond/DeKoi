@@ -76,14 +76,16 @@ export function ChatSettingsConnectionDrawer({
                   Missing connection
                 </option>
               )}
-              <option value="">
-                {fallbackConnectionPrefix} ·{" "}
-                {fallbackConnection && fallbackConnectionProvider
-                  ? `${fallbackConnection.label} · ${
-                      fallbackConnectionProvider.label
-                    } · ${fallbackConnection.model || "No model"}`
-                  : "No connection"}
-              </option>
+              {!hasMissingConnection && (
+                <option value="">
+                  {fallbackConnectionPrefix} ·{" "}
+                  {fallbackConnection && fallbackConnectionProvider
+                    ? `${fallbackConnection.label} · ${
+                        fallbackConnectionProvider.label
+                      } · ${fallbackConnection.model || "No model"}`
+                    : "No connection"}
+                </option>
+              )}
               {connections.map((connection) => {
                 const provider = getProviderConnectionProviderOption(
                   connection.provider,

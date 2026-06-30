@@ -49,6 +49,7 @@ export function ChatSettingsRail({
     ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
       null
     : null;
+  const activeMessengerThreadTitle = activeMessengerThread?.title ?? "";
   const [chatNameEditor, setChatNameEditor] = useState<{
     editing: boolean;
     threadId: string | null;
@@ -72,13 +73,21 @@ export function ChatSettingsRail({
   const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
 
   if (
-    !chatNameEditor.editing &&
-    chatNameEditor.threadId !== (activeMessengerThread?.id ?? null)
+    chatNameEditor.threadId !== activeMessengerThreadId ||
+    (!chatNameEditor.editing && chatNameEditor.value !== activeMessengerThreadTitle)
   ) {
     setChatNameEditor({
       editing: false,
-      threadId: activeMessengerThread?.id ?? null,
-      value: activeMessengerThread?.title ?? "",
+      threadId: activeMessengerThreadId,
+      value: activeMessengerThreadTitle,
+    });
+  }
+
+  if (promptEditor.open && promptEditor.threadId !== activeMessengerThreadId) {
+    setPromptEditor({
+      open: false,
+      threadId: null,
+      value: "",
     });
   }
 
@@ -92,7 +101,10 @@ export function ChatSettingsRail({
   }
 
   function saveChatName() {
-    if (!activeMessengerThread) return;
+    if (!activeMessengerThread || chatNameEditor.threadId !== activeMessengerThread.id) {
+      cancelChatNameEdit();
+      return;
+    }
     const nextTitle = chatNameEditor.value.trim();
     if (nextTitle) {
       nav.renameMessengerThread(activeMessengerThread.id, nextTitle);
@@ -336,7 +348,7 @@ export function ChatSettingsRail({
   const missingCompanionIds = selectedCompanionIds.filter(
     (characterId) => !settingsCharacterById.has(characterId),
   );
-  const selectedCompanionCount = selectedCompanionIds.length;
+  const selectedCompanionCount = selectedCompanionNames.length;
   const missingCompanionCount = missingCompanionIds.length;
   const companionDrawerSummary = !activeMessengerThread
     ? "No active Messenger thread"
@@ -362,7 +374,7 @@ export function ChatSettingsRail({
   const missingLorebookIds = selectedLorebookIds.filter(
     (lorebookId) => !settingsLorebookById.has(lorebookId),
   );
-  const selectedLorebookCount = selectedLorebookIds.length;
+  const selectedLorebookCount = selectedLorebookNames.length;
   const missingLorebookCount = missingLorebookIds.length;
   const lorebookDrawerSummary = !activeMessengerThread
     ? "No active Messenger thread"
