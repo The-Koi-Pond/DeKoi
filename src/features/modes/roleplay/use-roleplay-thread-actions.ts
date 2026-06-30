@@ -16,7 +16,7 @@ import type {
   ProviderConnectionRecord,
 } from "../../../engine/provider-connection";
 import type { RippleState } from "../../../engine/contracts/types/ripples";
-import { deleteRippleStateForOwner } from "../../../engine/ripple-actions";
+import { deleteRippleStateForOwner } from "../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { RoleplayThreadCreateInput, PondView } from "../../navigation";
