@@ -1,11 +1,11 @@
 import { useCallback } from "react";
-import type { ProviderConnectionId } from "../../../engine/provider-connection";
+import type { ProviderConnectionId } from "../../../engine/contracts/types/provider-connection";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import {
   normalizeSurfaceStatus,
   type AppSettings,
   type ShoalSortMode,
-} from "../../../engine/app-settings";
+} from "../../../engine/contracts/types/app-settings";
 import {
   type MessengerStorageStatus,
   writeRuntimeTargetUrl,

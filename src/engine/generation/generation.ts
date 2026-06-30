@@ -1,7 +1,7 @@
 import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type { ProviderConnectionRecord } from "../provider-connection";
+import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 
 export type GenerationProviderKind =
   | "remote-runtime"

@@ -13,7 +13,7 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/messenger";
-import { getProviderConnectionById } from "../../../engine/provider-connection";
+import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import {
   appendMessengerMessages,

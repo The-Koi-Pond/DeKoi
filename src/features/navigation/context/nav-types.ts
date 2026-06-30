@@ -15,12 +15,15 @@ import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/catalog/provider-connection-actions";
 import type { RippleState, RippleStateOwnerKind } from "../../../engine/contracts/types/ripples";
 import type { RippleInput } from "../../../engine/ripples/ripple-actions";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
-import type { AppSettings, ShoalSortMode } from "../../../engine/app-settings";
+import type {
+  AppSettings,
+  ShoalSortMode,
+} from "../../../engine/contracts/types/app-settings";
 import type {
   AppStorageCollectionKey,
   AppStorageReplaceResult,

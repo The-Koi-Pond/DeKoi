@@ -1,7 +1,7 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
-import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
+import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
   appendRoleplayEntries,
   createGeneratedRoleplayEntry,

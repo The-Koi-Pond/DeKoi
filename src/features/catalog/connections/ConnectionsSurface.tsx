@@ -8,12 +8,12 @@ import type {
 import type {
   ProviderConnectionProvider,
   ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import {
   getProviderConnectionProviderOption,
   PROVIDER_CONNECTION_PROVIDER_OPTIONS,
   sanitizeProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import type { ProviderConnectionInput } from "../../../engine/catalog/provider-connection-actions";
 import { checkProviderConnection } from "../../../shared/api/provider-connection-check";
 import { fetchProviderConnectionModels } from "../../../shared/api/provider-connection-models";

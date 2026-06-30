@@ -1,7 +1,7 @@
 import {
   getProviderConnectionProviderOption,
   type ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 
 export type GenerationRuntimeMode = "remote-runtime";

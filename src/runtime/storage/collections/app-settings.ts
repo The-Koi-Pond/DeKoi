@@ -2,7 +2,7 @@ import {
   DEFAULT_APP_SETTINGS,
   normalizeAppSettings,
   type AppSettings,
-} from "../../../engine/app-settings";
+} from "../../../engine/contracts/types/app-settings";
 import { isRecord, readString } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
@@ -22,7 +22,7 @@ export {
   type DensityPref,
   type MotionPref,
   type ShoalSortMode,
-} from "../../../engine/app-settings";
+} from "../../../engine/contracts/types/app-settings";
 
 function normalizeAppSettingsRecord(value: unknown): AppSettingsRecord | null {
   if (!isRecord(value)) return null;

@@ -11,7 +11,7 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { MessengerThreadCreateInput, PondView } from "../../navigation";

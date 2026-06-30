@@ -40,11 +40,11 @@ import {
   type MessengerSystemPromptMode,
   type MessengerThread,
 } from "../../../engine/messenger";
-import type { ShoalSortMode } from "../../../engine/app-settings";
+import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 import {
   getProviderConnectionProviderOption,
   sanitizeProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY, MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import "./Shoal.css";
 

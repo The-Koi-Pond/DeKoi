@@ -94,7 +94,7 @@ function firstReturnedObjectKeys(source, name) {
   fail(`Could not parse ${name} returned object.`);
 }
 
-const providerConnectionSource = readFile("src/engine/provider-connection.ts");
+const providerConnectionSource = readFile("src/engine/contracts/types/provider-connection.ts");
 const providerConnectionActionsSource = readFile(
   "src/engine/catalog/provider-connection-actions.ts",
 );

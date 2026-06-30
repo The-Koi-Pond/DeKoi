@@ -115,7 +115,7 @@ them in place:
 
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
-| Engine | Mostly flat `src/engine/*.ts` record files, with contracts under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move remaining generic primitives to `engine/core` and future shared pure helpers to `engine/shared` when they have real consumers. |
+| Engine | Messenger and Roleplay record files remain at `src/engine/*.ts`; contracts live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move remaining generic primitives to `engine/core` and future shared pure helpers to `engine/shared` when they have real consumers. |
 | Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
 | Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
@@ -161,12 +161,14 @@ The short version:
   scene records.
 - `src/engine/contracts/types/character.ts`,
   `src/engine/contracts/types/persona.ts`,
-  `src/engine/contracts/types/lorebook.ts`, and
-  `src/engine/contracts/types/ripples.ts` define the first catalog/context
-  record contracts. `src/engine/contracts/constants/surfaces.ts` defines the
-  surface IDs and metadata. `src/engine/provider-connection.ts` still owns the
-  provider connection record plus provider helpers until that mixed module is
-  split.
+  `src/engine/contracts/types/lorebook.ts`,
+  `src/engine/contracts/types/ripples.ts`,
+  `src/engine/contracts/types/app-settings.ts`, and
+  `src/engine/contracts/types/project-plan.ts` define the first catalog/context
+  and app-level record contracts. `src/engine/contracts/constants/surfaces.ts`
+  defines the surface IDs and metadata. `src/engine/contracts/types/provider-connection.ts`
+  still owns the provider connection record plus provider helpers until that
+  mixed module is split.
 - `src/engine/catalog/character-actions.ts`,
   `src/engine/catalog/persona-actions.ts`,
   `src/engine/catalog/lorebook-actions.ts`, and

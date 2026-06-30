@@ -15,14 +15,14 @@ import {
   type MessengerThreadRecord,
 } from "../../../engine/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
-import type { ProviderConnectionRecord } from "../../../engine/provider-connection";
+import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
   getProviderConnectionProviderOption,
   sanitizeProviderConnectionRecord,
-} from "../../../engine/provider-connection";
+} from "../../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../../engine/contracts/types/ripples";
-import type { AppSettings } from "../../../engine/app-settings";
-import { normalizeAppSettings } from "../../../engine/app-settings";
+import type { AppSettings } from "../../../engine/contracts/types/app-settings";
+import { normalizeAppSettings } from "../../../engine/contracts/types/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
