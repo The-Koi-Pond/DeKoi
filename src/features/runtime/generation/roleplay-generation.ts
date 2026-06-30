@@ -6,7 +6,7 @@ import {
   appendRoleplayEntries,
   createGeneratedRoleplayEntry,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequest,

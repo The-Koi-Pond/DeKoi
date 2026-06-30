@@ -6,7 +6,7 @@ import {
   type MessengerThread,
   type MessengerThreadRecord,
   toMessengerThreadRecord,
-} from "../../../engine/messenger";
+} from "../../../engine/contracts/types/messenger";
 import {
   HOST_STORAGE_UNAVAILABLE_MESSAGE,
   createStorageRepository,

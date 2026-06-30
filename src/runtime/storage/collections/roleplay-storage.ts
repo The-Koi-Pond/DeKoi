@@ -4,7 +4,7 @@ import {
   type RoleplayEntry,
   type RoleplayThread,
   type RoleplayThreadRecord,
-} from "../../../engine/roleplay";
+} from "../../../engine/contracts/types/roleplay";
 import {
   isRecord,
   readNullableString,

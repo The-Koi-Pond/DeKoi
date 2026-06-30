@@ -18,7 +18,7 @@ import {
   attachMessengerMessagesToThreads,
   extractMessengerMessages,
   toMessengerThreadRecord,
-} from "../../src/engine/messenger";
+} from "../../src/engine/contracts/types/messenger";
 import {
   appendRoleplayEntries,
   createNarrationRoleplayEntry,
@@ -28,7 +28,7 @@ import {
   attachRoleplayEntriesToThreads,
   extractRoleplayEntries,
   toRoleplayThreadRecord,
-} from "../../src/engine/roleplay";
+} from "../../src/engine/contracts/types/roleplay";
 import {
   APP_STORAGE_COLLECTION_KEYS,
   formatGenerationReadinessFailure,

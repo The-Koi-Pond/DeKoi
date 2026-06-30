@@ -16,7 +16,7 @@ import {
   setMessengerThreadProviderConnection,
   setMessengerThreadSystemPrompt,
 } from "../../../engine/modes/messenger/messenger-actions";
-import { getMessengerThreadActivityAt } from "../../../engine/messenger";
+import { getMessengerThreadActivityAt } from "../../../engine/contracts/types/messenger";
 import {
   getRoleplayThreadPreview,
   sortRoleplayThreads,
@@ -39,7 +39,7 @@ import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerSystemPromptMode,
   type MessengerThread,
-} from "../../../engine/messenger";
+} from "../../../engine/contracts/types/messenger";
 import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 import {
   getProviderConnectionProviderOption,

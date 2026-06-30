@@ -2,12 +2,12 @@ import type { CharacterRecord } from "../../engine/contracts/types/character";
 import {
   attachRoleplayEntriesToThreads,
   type RoleplayThread,
-} from "../../engine/roleplay";
+} from "../../engine/contracts/types/roleplay";
 import type { LorebookRecord } from "../../engine/contracts/types/lorebook";
 import {
   attachMessengerMessagesToThreads,
   type MessengerThread,
-} from "../../engine/messenger";
+} from "../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../engine/contracts/types/ripples";

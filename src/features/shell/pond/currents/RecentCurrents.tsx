@@ -1,5 +1,5 @@
 import type { NavThreadState, NavViewActions } from "../../../navigation";
-import { getMessengerThreadActivityAt } from "../../../../engine/messenger";
+import { getMessengerThreadActivityAt } from "../../../../engine/contracts/types/messenger";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,

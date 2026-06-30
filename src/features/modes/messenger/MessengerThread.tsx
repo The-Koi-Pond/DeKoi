@@ -12,7 +12,7 @@ import type {
   NavThreadState,
   NavViewState,
 } from "../../navigation";
-import { type MessengerMessage } from "../../../engine/messenger";
+import { type MessengerMessage } from "../../../engine/contracts/types/messenger";
 import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import {

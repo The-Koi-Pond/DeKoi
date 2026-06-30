@@ -3,7 +3,7 @@ import {
   type MessengerMessage,
   type MessengerSystemPromptMode,
   type MessengerThread,
-} from '../../messenger'
+} from '../../contracts/types/messenger'
 import type { CharacterRecord } from '../../contracts/types/character'
 import type { PersonaRecord } from '../../contracts/types/persona'
 

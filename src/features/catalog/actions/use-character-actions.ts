@@ -7,9 +7,9 @@ import {
   updateCharacterRecord,
   type CharacterRecordInput,
 } from "../../../engine/catalog/character-actions";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import { removeRoleplayThreadCharacter } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { MessengerThread } from "../../../engine/messenger";
+import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import { removeMessengerThreadCharacter } from "../../../engine/modes/messenger/messenger-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";

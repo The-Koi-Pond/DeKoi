@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
-import { attachMessengerMessagesToThreads } from "../../../engine/messenger";
-import { attachRoleplayEntriesToThreads } from "../../../engine/roleplay";
+import { attachMessengerMessagesToThreads } from "../../../engine/contracts/types/messenger";
+import { attachRoleplayEntriesToThreads } from "../../../engine/contracts/types/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
   type AppStorageRecords,

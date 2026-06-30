@@ -1,6 +1,6 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
-import type { RoleplayThread } from "../../../engine/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import type {
   LorebookEntryRecord,
   LorebookRecord,
@@ -9,7 +9,7 @@ import type {
   LorebookEntryInput,
   LorebookInput,
 } from "../../../engine/catalog/lorebook-actions";
-import type { MessengerThread } from "../../../engine/messenger";
+import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
 import type {

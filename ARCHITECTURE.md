@@ -115,7 +115,7 @@ them in place:
 
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
-| Engine | Messenger and Roleplay record files remain at `src/engine/*.ts`; contracts live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move remaining generic primitives to `engine/core` and future shared pure helpers to `engine/shared` when they have real consumers. |
+| Engine | Native records live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move future generic primitives to `engine/core` and shared pure helpers to `engine/shared` when they have real consumers. |
 | Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
 | Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
@@ -153,12 +153,12 @@ The short version:
 
 ## Current Shape
 
-- `src/engine/messenger.ts` and
-  `src/engine/modes/messenger/messenger-actions.ts` define native Messenger
-  records and mutations.
-- `src/engine/roleplay.ts` and
-  `src/engine/modes/roleplay/roleplay-actions.ts` define the first Roleplay
-  scene records.
+- `src/engine/contracts/types/messenger.ts` defines native Messenger thread and
+  message records. `src/engine/modes/messenger/messenger-actions.ts` owns
+  Messenger mutations.
+- `src/engine/contracts/types/roleplay.ts` defines native Roleplay thread and
+  entry records. `src/engine/modes/roleplay/roleplay-actions.ts` owns Roleplay
+  mutations.
 - `src/engine/contracts/types/character.ts`,
   `src/engine/contracts/types/persona.ts`,
   `src/engine/contracts/types/lorebook.ts`,

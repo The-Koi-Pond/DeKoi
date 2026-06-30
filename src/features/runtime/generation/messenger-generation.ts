@@ -13,7 +13,7 @@ import {
 } from "../../../engine/modes/messenger/messenger-actions";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
-import type { MessengerMessage, MessengerThread } from "../../../engine/messenger";
+import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
