@@ -2,7 +2,8 @@ import type { MessengerMessage } from "../../../../engine/contracts/types/messen
 
 export function getInitials(name: string) {
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
     .map((part) => part[0])
     .join("")
     .slice(0, 2)

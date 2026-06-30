@@ -2,7 +2,8 @@ import type { RoleplayEntry } from "../../../../engine/contracts/types/roleplay"
 
 export function getInitials(name: string) {
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
     .map((part) => part[0])
     .join("")
     .slice(0, 2)
