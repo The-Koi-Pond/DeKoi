@@ -5,12 +5,14 @@ import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import {
   NewThreadActions,
-  NewThreadCharacterDropdown,
-  NewThreadLorebookDropdown,
   NewThreadPopoverFrame,
   NewThreadSelectField,
   NewThreadTextField,
 } from "./NewThreadPopoverBlocks";
+import {
+  NewThreadCharacterDropdown,
+  NewThreadLorebookDropdown,
+} from "./NewThreadDropdowns";
 
 interface NewRoleplayThreadPopoverProps {
   characterIds: string[];

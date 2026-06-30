@@ -4,11 +4,11 @@ import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import {
   NewThreadActions,
-  NewThreadCharacterDropdown,
   NewThreadPopoverFrame,
   NewThreadSelectField,
   NewThreadTextField,
 } from "./NewThreadPopoverBlocks";
+import { NewThreadCharacterDropdown } from "./NewThreadDropdowns";
 
 interface NewMessengerThreadPopoverProps {
   characterIds: string[];
