@@ -32,17 +32,6 @@ export function useChatSettingsNameEditor({
           value: activeMessengerThreadTitle,
         };
 
-  if (
-    chatNameEditor.threadId !== activeMessengerThreadId ||
-    (!chatNameEditor.editing && chatNameEditor.value !== activeMessengerThreadTitle)
-  ) {
-    setChatNameEditor({
-      editing: false,
-      threadId: activeMessengerThreadId,
-      value: activeMessengerThreadTitle,
-    });
-  }
-
   function startChatNameEdit() {
     if (!activeMessengerThread) return;
     setChatNameEditor({

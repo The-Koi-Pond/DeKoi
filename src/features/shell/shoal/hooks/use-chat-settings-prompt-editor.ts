@@ -33,14 +33,6 @@ export function useChatSettingsPromptEditor({
           value: "",
         };
 
-  if (promptEditor.open && promptEditor.threadId !== activeMessengerThreadId) {
-    setPromptEditor({
-      open: false,
-      threadId: null,
-      value: "",
-    });
-  }
-
   function openPromptEditor() {
     if (!activeMessengerThread) return;
     setPromptEditor({

@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
+import type {
+  MessengerSystemPromptMode,
+  MessengerThread,
+} from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
 import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
@@ -18,7 +22,7 @@ import {
   type ChatSettingsDrawerId,
 } from "../lib/chat-settings-drawers";
 import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
-import type { ShoalRailProps } from "../types";
+import type { ShoalNav, ShoalRailProps } from "../types";
 
 export function ChatSettingsRail({
   chatSettingsOpen,
@@ -40,18 +44,6 @@ export function ChatSettingsRail({
     ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
       null
     : null;
-  const {
-    activeChatName,
-    activeChatNameEditor,
-    cancelChatNameEdit,
-    saveChatName,
-    startChatNameEdit,
-    updateChatNameValue,
-  } = useChatSettingsNameEditor({
-    activeMessengerThread,
-    activeMessengerThreadId,
-    onRenameMessengerThread: nav.renameMessengerThread,
-  });
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
   const {
@@ -70,17 +62,6 @@ export function ChatSettingsRail({
     lorebooks: nav.lorebooks,
     onCompanionSelectorOpenChange: setCompanionSelectorOpen,
     onUpdateMessengerThread: nav.updateMessengerThread,
-  });
-  const {
-    activePromptEditor,
-    closePromptEditor,
-    openPromptEditor,
-    savePromptEditor,
-    updatePromptEditorValue,
-  } = useChatSettingsPromptEditor({
-    activeMessengerThread,
-    activeMessengerThreadId,
-    onSaveCustomPrompt: saveCustomMessengerPrompt,
   });
 
   function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
@@ -173,18 +154,13 @@ export function ChatSettingsRail({
         shoalClosed={shoalClosed}
       />
       <div className="shoal-body">
-        <ChatSettingsRailHead
-          activeChatName={activeChatName}
-          chatNameDisabled={!activeMessengerThread}
-          chatNameEditing={activeChatNameEditor.editing}
-          chatNameValue={activeChatNameEditor.value}
+        <ChatSettingsRailHeadWithNameEditor
+          key={activeMessengerThreadId ?? "no-messenger-thread"}
+          activeMessengerThread={activeMessengerThread}
+          activeMessengerThreadId={activeMessengerThreadId}
           settingsLabel={settingsLabel}
-          showChatNameEditor
-          onCancelChatNameEdit={cancelChatNameEdit}
-          onChatNameValueChange={updateChatNameValue}
           onCloseChatSettings={onCloseChatSettings}
-          onSaveChatName={saveChatName}
-          onStartChatNameEdit={startChatNameEdit}
+          onRenameMessengerThread={nav.renameMessengerThread}
         />
         <div className="shoal-list chat-settings-list">
           {!activeMessengerThread && (
@@ -244,11 +220,14 @@ export function ChatSettingsRail({
             onToggleCompanion={toggleMessengerCompanion}
           />
 
-          <ChatSettingsPromptDrawer
+          <ChatSettingsPromptControls
+            key={activeMessengerThreadId ?? "no-messenger-thread"}
             activeMessengerThread={!!activeMessengerThread}
+            activeMessengerThreadRecord={activeMessengerThread}
+            activeMessengerThreadId={activeMessengerThreadId}
             open={openDrawers.prompt}
             systemPromptMode={systemPromptMode}
-            onOpenPromptEditor={openPromptEditor}
+            onSaveCustomPrompt={saveCustomMessengerPrompt}
             onSystemPromptModeChange={handleMessengerSystemPromptModeChange}
             onToggle={toggleChatSettingsDrawer}
           />
@@ -277,13 +256,105 @@ export function ChatSettingsRail({
           />
         </div>
       </div>
+    </aside>
+  );
+}
+
+interface ChatSettingsRailHeadWithNameEditorProps {
+  activeMessengerThread: MessengerThread | null;
+  activeMessengerThreadId: string | null;
+  settingsLabel: string;
+  onCloseChatSettings: () => void;
+  onRenameMessengerThread: ShoalNav["renameMessengerThread"];
+}
+
+function ChatSettingsRailHeadWithNameEditor({
+  activeMessengerThread,
+  activeMessengerThreadId,
+  settingsLabel,
+  onCloseChatSettings,
+  onRenameMessengerThread,
+}: ChatSettingsRailHeadWithNameEditorProps) {
+  const {
+    activeChatName,
+    activeChatNameEditor,
+    cancelChatNameEdit,
+    saveChatName,
+    startChatNameEdit,
+    updateChatNameValue,
+  } = useChatSettingsNameEditor({
+    activeMessengerThread,
+    activeMessengerThreadId,
+    onRenameMessengerThread,
+  });
+
+  return (
+    <ChatSettingsRailHead
+      activeChatName={activeChatName}
+      chatNameDisabled={!activeMessengerThread}
+      chatNameEditing={activeChatNameEditor.editing}
+      chatNameValue={activeChatNameEditor.value}
+      settingsLabel={settingsLabel}
+      showChatNameEditor
+      onCancelChatNameEdit={cancelChatNameEdit}
+      onChatNameValueChange={updateChatNameValue}
+      onCloseChatSettings={onCloseChatSettings}
+      onSaveChatName={saveChatName}
+      onStartChatNameEdit={startChatNameEdit}
+    />
+  );
+}
+
+interface ChatSettingsPromptControlsProps {
+  activeMessengerThread: boolean;
+  activeMessengerThreadRecord: MessengerThread | null;
+  activeMessengerThreadId: string | null;
+  open: boolean;
+  systemPromptMode: MessengerSystemPromptMode;
+  onSaveCustomPrompt: (prompt: string) => void;
+  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
+  onToggle: (drawerId: ChatSettingsDrawerId) => void;
+}
+
+function ChatSettingsPromptControls({
+  activeMessengerThread,
+  activeMessengerThreadRecord,
+  activeMessengerThreadId,
+  open,
+  systemPromptMode,
+  onSaveCustomPrompt,
+  onSystemPromptModeChange,
+  onToggle,
+}: ChatSettingsPromptControlsProps) {
+  const {
+    activePromptEditor,
+    closePromptEditor,
+    openPromptEditor,
+    savePromptEditor,
+    updatePromptEditorValue,
+  } = useChatSettingsPromptEditor({
+    activeMessengerThread: activeMessengerThreadRecord,
+    activeMessengerThreadId,
+    onSaveCustomPrompt,
+  });
+
+  return (
+    <>
+      <ChatSettingsPromptDrawer
+        activeMessengerThread={activeMessengerThread}
+        open={open}
+        systemPromptMode={systemPromptMode}
+        onOpenPromptEditor={openPromptEditor}
+        onSystemPromptModeChange={onSystemPromptModeChange}
+        onToggle={onToggle}
+      />
       <ChatSettingsPromptEditor
-        open={activePromptEditor.open && !!activeMessengerThread}
+        open={activePromptEditor.open && activeMessengerThread}
         value={activePromptEditor.value}
         onClose={closePromptEditor}
         onSave={savePromptEditor}
         onValueChange={updatePromptEditorValue}
       />
-    </aside>
+    </>
   );
 }
