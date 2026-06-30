@@ -1,21 +1,21 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
+import type { CharacterRecord } from "../../../../engine/contracts/types/character";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import {
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
   renameMessengerThread as renameMessengerThreadRecord,
-} from "../../../engine/modes/messenger/messenger-actions";
-import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+} from "../../../../engine/modes/messenger/messenger-actions";
+import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../../engine/contracts/types/provider-connection";
-import { currentIsoTimestamp } from "../../../shared/browser/current-time";
-import { createRecordId } from "../../../shared/browser/record-id";
-import type { MessengerThreadCreateInput, PondView } from "../../navigation";
-import type { StateSetter } from "../../../shared/react/state-setter";
+} from "../../../../engine/contracts/types/provider-connection";
+import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
+import { createRecordId } from "../../../../shared/browser/record-id";
+import type { MessengerThreadCreateInput, PondView } from "../../../navigation";
+import type { StateSetter } from "../../../../shared/react/state-setter";
 
 type UseMessengerThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;

@@ -71,7 +71,7 @@ src-tauri/
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
 | Engine | Native records live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Split future work into `core`, `shared`, `generation-core`, and later `capabilities` when real adapters need ports. |
-| Feature modes | Messenger, Roleplay, and shared composer packages. | Keep DeKoi mode names; deepen packages with public entrypoints, `components`, `hooks`, `lib`, and local `types` as they grow. |
+| Feature modes | Messenger and Roleplay packages with thread screens, mode-local `hooks`, mode-local `lib`, and shared composer files. | Keep DeKoi mode names; continue deepening packages with public entrypoints, `components`, `hooks`, `lib`, and local `types` as they grow. |
 | Feature catalog | Resource surfaces plus shared catalog action hooks. | Keep resource-owned packages; move pure surface view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for app, shell, modes, and catalog. |
 | App | App provider/controller/storage sync hooks at app root. | Split app storage sync and controller composition into app-owned subpackages after public import paths settle. |
@@ -161,9 +161,10 @@ Move toward the old De-Koi skeleton in small, validated slices:
    thin and import app composition through the app package entrypoint.
 4. Keep app provider wiring plus top-level state, storage sync, and view
    controller assembly in `src/app`. Catalog owns catalog record actions,
-   modes own thread actions, shell care owns settings/import/export actions,
-   and feature-runtime owns ripple/runtime actions. Import navigation through
-   its package entrypoint while it remains a context/contracts bridge.
+   modes own thread actions under their mode-local `hooks` folders, shell care
+   owns settings/import/export actions, and feature-runtime owns ripple/runtime
+   actions. Import navigation through its package entrypoint while it remains a
+   context/contracts bridge.
 5. Keep Messenger and Roleplay screens under `features/modes`; move future mode
    surfaces there too, with a feature entrypoint plus package entrypoints for
    each mode.

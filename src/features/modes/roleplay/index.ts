@@ -6,4 +6,4 @@ export {
   sortRoleplayThreads,
   sortRoleplayThreadsByUpdatedAt,
 } from "./roleplay-display";
-export { useRoleplayThreadActions } from "./use-roleplay-thread-actions";
+export { useRoleplayThreadActions } from "./hooks/use-roleplay-thread-actions";
