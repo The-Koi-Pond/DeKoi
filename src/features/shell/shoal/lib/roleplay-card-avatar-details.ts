@@ -6,11 +6,12 @@ export function getRoleplayCardAvatarDetails(
   fallbackName: string,
   characterById: Map<string, CharacterRecord>,
 ) {
-  const companions = characterIds.flatMap((characterId) => {
+  const uniqueCharacterIds = [...new Set(characterIds)];
+  const companions = uniqueCharacterIds.flatMap((characterId) => {
     const companion = characterById.get(characterId);
     return companion ? [companion] : [];
   });
-  const missingCharacterCount = characterIds.length - companions.length;
+  const missingCharacterCount = uniqueCharacterIds.length - companions.length;
   const companion =
     companions.find((candidate): candidate is CharacterRecord => !!candidate) ??
     null;
