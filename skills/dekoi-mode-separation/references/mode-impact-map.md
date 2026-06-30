@@ -9,7 +9,7 @@ Owner paths:
 
 - `src/engine/messenger.ts`
 - `src/engine/modes/messenger/messenger-actions.ts`
-- `src/engine/messenger-generation.ts`
+- `src/engine/generation/messenger-generation.ts`
 - `src/features/modes/messenger`
 - `src/features/runtime/generation/messenger-generation.ts`
 - `src/features/runtime/generation/mock-messenger-generation.ts`
@@ -36,6 +36,7 @@ Owner paths:
 
 - `src/engine/roleplay.ts`
 - `src/engine/modes/roleplay/roleplay-actions.ts`
+- `src/engine/generation/roleplay-generation.ts`
 - `src/features/modes/roleplay`
 - `src/features/runtime/generation/roleplay-generation.ts`
 

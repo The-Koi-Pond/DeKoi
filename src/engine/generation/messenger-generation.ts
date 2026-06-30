@@ -1,13 +1,13 @@
-import type { CharacterRecord } from "./contracts/types/character";
-import type { LorebookRecord } from "./contracts/types/lorebook";
+import type { CharacterRecord } from "../contracts/types/character";
+import type { LorebookRecord } from "../contracts/types/lorebook";
 import {
   resolveMessengerSystemPrompt,
   type MessengerMessage,
   type MessengerThread,
-} from "./messenger";
-import { getNextMessengerCompanion } from "./modes/messenger/messenger-actions";
-import type { PersonaRecord } from "./contracts/types/persona";
-import type { ProviderConnectionRecord } from "./provider-connection";
+} from "../messenger";
+import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
+import type { PersonaRecord } from "../contracts/types/persona";
+import type { ProviderConnectionRecord } from "../provider-connection";
 import {
   characterGenerationContext,
   cleanGenerationText,

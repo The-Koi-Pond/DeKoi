@@ -2,11 +2,11 @@ import type {
   MessengerGenerationAdapter,
   MessengerGenerationRequest,
   MessengerGenerationResponse,
-} from "../../../engine/messenger-generation";
+} from "../../../engine/generation/messenger-generation";
 import {
   createMessengerGenerationContext,
   createMessengerGenerationRequest,
-} from "../../../engine/messenger-generation";
+} from "../../../engine/generation/messenger-generation";
 import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,

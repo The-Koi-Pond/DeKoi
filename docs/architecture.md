@@ -70,7 +70,7 @@ src-tauri/
 
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
-| Engine | Mostly flat `src/engine/*.ts` record, action, and generation files, with Messenger and Roleplay actions under `src/engine/modes`. | Split into `contracts`, `core`, `shared`, `generation-core`, `generation`, `modes`, `catalog`, `ripples`, and later `capabilities` when real adapters need ports. |
+| Engine | Mostly flat `src/engine/*.ts` record and action files, with contracts under `src/engine/contracts`, generation request assembly under `src/engine/generation`, and Messenger/Roleplay actions under `src/engine/modes`. | Split into `contracts`, `core`, `shared`, `generation-core`, `generation`, `modes`, `catalog`, `ripples`, and later `capabilities` when real adapters need ports. |
 | Feature modes | Messenger, Roleplay, and shared composer packages. | Keep DeKoi mode names; deepen packages with public entrypoints, `components`, `hooks`, `lib`, and local `types` as they grow. |
 | Feature catalog | Resource surfaces plus shared catalog action hooks. | Keep resource-owned packages; move pure surface view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for app, shell, modes, and catalog. |
