@@ -1,12 +1,7 @@
 import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
-import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
-import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
-import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
-import { ChatSettingsLorebooksDrawer } from "./ChatSettingsLorebooksDrawer";
+import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
 import { ChatSettingsNameControls } from "./ChatSettingsNameControls";
-import { ChatSettingsPersonaDrawer } from "./ChatSettingsPersonaDrawer";
-import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 import { ChatSettingsRailShell } from "./ChatSettingsRailShell";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
@@ -65,27 +60,7 @@ export function ChatSettingsRail({
     }));
   }
 
-  const {
-    companionDrawerSummary,
-    companionSelectionLabel,
-    connectionSummary,
-    fallbackConnection,
-    fallbackConnectionPrefix,
-    hasMissingConnection,
-    hasMissingPersona,
-    lorebookDrawerSummary,
-    messengerConnectionValue,
-    missingCompanionCount,
-    missingConnectionResolution,
-    missingLorebookCount,
-    personaSummary,
-    sanitizedProviderConnections,
-    selectedCompanionCount,
-    selectedCompanionIds,
-    selectedLorebookIds,
-    selectedPersonaId,
-    systemPromptMode,
-  } = useMemo(
+  const chatSettingsViewModel = useMemo(
     () =>
       getChatSettingsViewModel({
         activeMessengerThread,
@@ -147,99 +122,40 @@ export function ChatSettingsRail({
         onCloseChatSettings={onCloseChatSettings}
         onRenameMessengerThread={nav.renameMessengerThread}
       />
-      <div className="shoal-list chat-settings-list">
-        {!activeMessengerThread && (
-          <ChatSettingsNotice
-            actionLabel="New Messenger"
-            onAction={() => nav.createMessengerThread()}
-          >
-            Open or create a Messenger thread to edit connection, persona,
-            companion, prompt, and lore settings.
-          </ChatSettingsNotice>
-        )}
-        <ChatSettingsConnectionDrawer
-          activeMessengerThread={!!activeMessengerThread}
-          connections={sanitizedProviderConnections}
-          fallbackConnection={fallbackConnection}
-          fallbackConnectionPrefix={fallbackConnectionPrefix}
-          hasMissingConnection={hasMissingConnection}
-          messengerConnectionValue={messengerConnectionValue}
-          missingConnectionResolution={missingConnectionResolution}
-          open={openDrawers.connection}
-          summary={connectionSummary}
-          onConnectionChange={handleMessengerConnectionChange}
-          onCreateConnection={() =>
-            nav.setView({ kind: "connections", mode: "new" })
-          }
-          onResolveMissingConnection={resolveMissingMessengerConnection}
-          onToggle={toggleChatSettingsDrawer}
-        />
-
-        <ChatSettingsPersonaDrawer
-          activeMessengerThread={!!activeMessengerThread}
-          hasMissingPersona={hasMissingPersona}
-          open={openDrawers.persona}
-          personas={nav.personas}
-          selectedPersonaId={selectedPersonaId}
-          summary={personaSummary}
-          onPersonaChange={handleMessengerPersonaChange}
-          onToggle={toggleChatSettingsDrawer}
-        />
-
-        <ChatSettingsCompanionsDrawer
-          activeMessengerThread={!!activeMessengerThread}
-          characters={nav.characters}
-          companionSelectorOpen={companionSelectorOpen}
-          missingCompanionCount={missingCompanionCount}
-          open={openDrawers.companions}
-          selectedCompanionCount={selectedCompanionCount}
-          selectedCompanionIds={selectedCompanionIds}
-          selectionLabel={companionSelectionLabel}
-          summary={companionDrawerSummary}
-          onClearMissingCompanions={clearMissingMessengerCompanions}
-          onCreateCompanion={() =>
-            nav.setView({ kind: "companions", mode: "new" })
-          }
-          onSelectorOpenChange={setCompanionSelectorOpen}
-          onToggle={toggleChatSettingsDrawer}
-          onToggleCompanion={toggleMessengerCompanion}
-        />
-
-        <ChatSettingsPromptControls
-          key={activeMessengerThreadId ?? "no-messenger-thread"}
-          activeMessengerThread={!!activeMessengerThread}
-          activeMessengerThreadRecord={activeMessengerThread}
-          activeMessengerThreadId={activeMessengerThreadId}
-          open={openDrawers.prompt}
-          systemPromptMode={systemPromptMode}
-          onSaveCustomPrompt={saveCustomMessengerPrompt}
-          onSystemPromptModeChange={handleMessengerSystemPromptModeChange}
-          onToggle={toggleChatSettingsDrawer}
-        />
-
-        <ChatSettingsLorebooksDrawer
-          activeMessengerThread={!!activeMessengerThread}
-          lorebooks={nav.lorebooks}
-          missingLorebookCount={missingLorebookCount}
-          open={openDrawers.lorebooks}
-          selectedLorebookIds={selectedLorebookIds}
-          summary={lorebookDrawerSummary}
-          onClearMissingLorebooks={clearMissingMessengerLorebooks}
-          onCreateLorebook={() =>
-            nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
-          }
-          onToggle={toggleChatSettingsDrawer}
-          onToggleLorebook={toggleMessengerLorebook}
-        />
-
-        <ChatSettingsAdvancedDrawer
-          appSettings={nav.appSettings}
-          open={openDrawers.advanced}
-          settingsLabel={settingsLabel}
-          onToggle={toggleChatSettingsDrawer}
-          updateAppSettings={nav.updateAppSettings}
-        />
-      </div>
+      <ChatSettingsMessengerDrawers
+        activeMessengerThread={activeMessengerThread}
+        activeMessengerThreadId={activeMessengerThreadId}
+        appSettings={nav.appSettings}
+        characters={nav.characters}
+        companionSelectorOpen={companionSelectorOpen}
+        lorebooks={nav.lorebooks}
+        openDrawers={openDrawers}
+        personas={nav.personas}
+        settingsLabel={settingsLabel}
+        viewModel={chatSettingsViewModel}
+        onClearMissingCompanions={clearMissingMessengerCompanions}
+        onClearMissingLorebooks={clearMissingMessengerLorebooks}
+        onConnectionChange={handleMessengerConnectionChange}
+        onCreateCompanion={() =>
+          nav.setView({ kind: "companions", mode: "new" })
+        }
+        onCreateConnection={() =>
+          nav.setView({ kind: "connections", mode: "new" })
+        }
+        onCreateLorebook={() =>
+          nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
+        }
+        onCreateMessengerThread={nav.createMessengerThread}
+        onPersonaChange={handleMessengerPersonaChange}
+        onResolveMissingConnection={resolveMissingMessengerConnection}
+        onSaveCustomPrompt={saveCustomMessengerPrompt}
+        onSelectorOpenChange={setCompanionSelectorOpen}
+        onSystemPromptModeChange={handleMessengerSystemPromptModeChange}
+        onToggle={toggleChatSettingsDrawer}
+        onToggleCompanion={toggleMessengerCompanion}
+        onToggleLorebook={toggleMessengerLorebook}
+        onUpdateAppSettings={nav.updateAppSettings}
+      />
     </ChatSettingsRailShell>
   );
 }

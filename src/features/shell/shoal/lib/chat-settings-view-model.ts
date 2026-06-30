@@ -159,3 +159,5 @@ export function getChatSettingsViewModel({
     systemPromptMode,
   };
 }
+
+export type ChatSettingsViewModel = ReturnType<typeof getChatSettingsViewModel>;
