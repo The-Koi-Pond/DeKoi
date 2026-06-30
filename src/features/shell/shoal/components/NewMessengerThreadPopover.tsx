@@ -2,13 +2,11 @@ import type { FormEventHandler } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
-import {
-  NewThreadActions,
-  NewThreadPopoverFrame,
-  NewThreadSelectField,
-  NewThreadTextField,
-} from "./NewThreadPopoverBlocks";
+import { NewThreadActions } from "./NewThreadActions";
 import { NewThreadCharacterDropdown } from "./NewThreadCharacterDropdown";
+import { NewThreadPopoverFrame } from "./NewThreadPopoverFrame";
+import { NewThreadSelectField } from "./NewThreadSelectField";
+import { NewThreadTextField } from "./NewThreadTextField";
 
 interface NewMessengerThreadPopoverProps {
   characterIds: string[];
