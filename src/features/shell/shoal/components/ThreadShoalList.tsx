@@ -3,10 +3,8 @@ import type { MessengerThread } from "../../../../engine/contracts/types/messeng
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import { getRoleplayThreadPreview } from "../../../modes";
 import { KoiCard } from "../KoiCard";
-import {
-  getMessengerCardDetails,
-  getRoleplayCardAvatarDetails,
-} from "../lib/thread-card-details";
+import { getMessengerCardDetails } from "../lib/messenger-card-details";
+import { getRoleplayCardAvatarDetails } from "../lib/roleplay-card-avatar-details";
 import { RoleplayCardIcon } from "./ShoalIcons";
 import { ThreadShoalEmptyState } from "./ThreadShoalEmptyState";
 
@@ -52,6 +50,11 @@ export function ThreadShoalList({
               thread.title,
               characterById,
             );
+            const preview = getRoleplayThreadPreview(thread);
+            const missingCompanionLabel =
+              avatarDetails.missingCharacterCount === 1
+                ? "1 missing companion reference"
+                : `${avatarDetails.missingCharacterCount} missing companion references`;
 
             return (
               <KoiCard
@@ -61,7 +64,11 @@ export function ThreadShoalList({
                 icon={avatarDetails.hasCharacter ? undefined : <RoleplayCardIcon />}
                 initials={avatarDetails.initials}
                 name={thread.title}
-                sub={getRoleplayThreadPreview(thread)}
+                sub={
+                  avatarDetails.missingCharacterCount > 0
+                    ? missingCompanionLabel
+                    : preview
+                }
                 mode="roleplay"
                 active={thread.id === activeRoleplayThreadId}
                 showStatus={false}
