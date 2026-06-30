@@ -76,13 +76,13 @@ src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.
 
 src/engine/contracts/types/character.ts
-src/engine/character-actions.ts
+src/engine/catalog/character-actions.ts
 src/engine/contracts/types/persona.ts
-src/engine/persona-actions.ts
+src/engine/catalog/persona-actions.ts
 src/engine/contracts/types/lorebook.ts
-src/engine/lorebook-actions.ts
+src/engine/catalog/lorebook-actions.ts
 src/engine/provider-connection.ts
-src/engine/provider-connection-actions.ts
+src/engine/catalog/provider-connection-actions.ts
 src/engine/contracts/types/ripples.ts
 src/engine/ripple-actions.ts
   Catalog/context record contracts and deterministic mutations.

@@ -11,7 +11,7 @@ import {
   duplicateProviderConnectionRecord,
   updateProviderConnectionRecord,
   type ProviderConnectionInput,
-} from "../../../engine/provider-connection-actions";
+} from "../../../engine/catalog/provider-connection-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";

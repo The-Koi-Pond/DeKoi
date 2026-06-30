@@ -6,7 +6,7 @@ import {
   duplicateCharacterRecord,
   updateCharacterRecord,
   type CharacterRecordInput,
-} from "../../../engine/character-actions";
+} from "../../../engine/catalog/character-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import { removeRoleplayThreadCharacter } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { MessengerThread } from "../../../engine/messenger";

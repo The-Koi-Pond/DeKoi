@@ -10,7 +10,7 @@ import {
   duplicatePersonaRecord,
   updatePersonaRecord,
   type PersonaRecordInput,
-} from "../../../engine/persona-actions";
+} from "../../../engine/catalog/persona-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { StateSetter } from "../../../shared/react/state-setter";

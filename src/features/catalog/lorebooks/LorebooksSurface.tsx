@@ -9,7 +9,7 @@ import type {
 import type {
   LorebookEntryInput,
   LorebookInput,
-} from "../../../engine/lorebook-actions";
+} from "../../../engine/catalog/lorebook-actions";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
