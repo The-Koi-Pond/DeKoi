@@ -44,3 +44,9 @@ export interface ShoalRailProps extends ShoalProps {
   onCloseChatSettings: () => void;
   onOpenChatSettings: () => void;
 }
+
+export type ThreadReleaseRequest = {
+  id: string;
+  kind: "roleplay" | "messenger";
+  title: string;
+};

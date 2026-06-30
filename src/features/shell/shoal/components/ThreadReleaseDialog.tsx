@@ -1,8 +1,4 @@
-export type ThreadReleaseRequest = {
-  id: string;
-  kind: "roleplay" | "messenger";
-  title: string;
-};
+import type { ThreadReleaseRequest } from "../types";
 
 interface ThreadReleaseDialogProps {
   request: ThreadReleaseRequest;
