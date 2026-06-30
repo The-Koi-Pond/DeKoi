@@ -3,12 +3,13 @@ import type {
   MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
-import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
-import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
-import { ChatSettingsLorebooksDrawer } from "./ChatSettingsLorebooksDrawer";
+import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-import { ChatSettingsPersonaDrawer } from "./ChatSettingsPersonaDrawer";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
+import {
+  ChatSettingsCompanionResourceDrawer,
+  ChatSettingsLorebookResourceDrawer,
+} from "./ChatSettingsResourceDrawers";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
@@ -83,43 +84,24 @@ export function ChatSettingsMessengerDrawers({
           companion, prompt, and lore settings.
         </ChatSettingsNotice>
       )}
-      <ChatSettingsConnectionDrawer
+      <ChatSettingsIdentityDrawers
         activeMessengerThread={active}
-        connections={viewModel.sanitizedProviderConnections}
-        fallbackConnection={viewModel.fallbackConnection}
-        fallbackConnectionPrefix={viewModel.fallbackConnectionPrefix}
-        hasMissingConnection={viewModel.hasMissingConnection}
-        messengerConnectionValue={viewModel.messengerConnectionValue}
-        missingConnectionResolution={viewModel.missingConnectionResolution}
-        open={openDrawers.connection}
-        summary={viewModel.connectionSummary}
+        openDrawers={openDrawers}
+        personas={personas}
+        viewModel={viewModel}
         onConnectionChange={onConnectionChange}
         onCreateConnection={onCreateConnection}
+        onPersonaChange={onPersonaChange}
         onResolveMissingConnection={onResolveMissingConnection}
         onToggle={onToggle}
       />
 
-      <ChatSettingsPersonaDrawer
-        activeMessengerThread={active}
-        hasMissingPersona={viewModel.hasMissingPersona}
-        open={openDrawers.persona}
-        personas={personas}
-        selectedPersonaId={viewModel.selectedPersonaId}
-        summary={viewModel.personaSummary}
-        onPersonaChange={onPersonaChange}
-        onToggle={onToggle}
-      />
-
-      <ChatSettingsCompanionsDrawer
+      <ChatSettingsCompanionResourceDrawer
         activeMessengerThread={active}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
-        missingCompanionCount={viewModel.missingCompanionCount}
-        open={openDrawers.companions}
-        selectedCompanionCount={viewModel.selectedCompanionCount}
-        selectedCompanionIds={viewModel.selectedCompanionIds}
-        selectionLabel={viewModel.companionSelectionLabel}
-        summary={viewModel.companionDrawerSummary}
+        openDrawers={openDrawers}
+        viewModel={viewModel}
         onClearMissingCompanions={onClearMissingCompanions}
         onCreateCompanion={onCreateCompanion}
         onSelectorOpenChange={onSelectorOpenChange}
@@ -139,13 +121,11 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsLorebooksDrawer
+      <ChatSettingsLorebookResourceDrawer
         activeMessengerThread={active}
         lorebooks={lorebooks}
-        missingLorebookCount={viewModel.missingLorebookCount}
-        open={openDrawers.lorebooks}
-        selectedLorebookIds={viewModel.selectedLorebookIds}
-        summary={viewModel.lorebookDrawerSummary}
+        openDrawers={openDrawers}
+        viewModel={viewModel}
         onClearMissingLorebooks={onClearMissingLorebooks}
         onCreateLorebook={onCreateLorebook}
         onToggle={onToggle}
