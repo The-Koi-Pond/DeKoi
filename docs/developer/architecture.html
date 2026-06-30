@@ -157,8 +157,8 @@
             </tr>
             <tr>
               <td>Feature modes</td>
-              <td>Messenger, Roleplay, and shared composer packages.</td>
-              <td>Keep DeKoi mode names; deepen packages with public entrypoints, <code>components</code>, <code>hooks</code>, <code>lib</code>, and local <code>types</code> as they grow.</td>
+              <td>Messenger and Roleplay packages with thread screens, mode-local <code>hooks</code>, mode-local <code>lib</code>, and shared composer files.</td>
+              <td>Keep DeKoi mode names; continue deepening packages with public entrypoints, <code>components</code>, <code>hooks</code>, <code>lib</code>, and local <code>types</code> as they grow.</td>
             </tr>
             <tr>
               <td>Feature catalog</td>
@@ -319,7 +319,7 @@
           <li>Document the current-to-target trajectory before large source moves. The reference shape is previous De-Koi's ownership skeleton, not its product names or unimplemented features.</li>
           <li>Split the flat engine into implemented owners first: <code>contracts</code>, <code>core</code>, <code>shared</code>, <code>generation-core</code>, <code>generation</code>, <code>modes</code>, <code>catalog</code>, and <code>ripples</code>. Keep Messenger and Roleplay names DeKoi-native.</li>
           <li>Keep provider/startup composition in <code>src/app</code>; root entry files should stay thin and import app composition through the app package entrypoint.</li>
-          <li>Keep app provider wiring plus top-level state, storage sync, and view controller assembly in <code>src/app</code>. Catalog owns catalog record actions, modes own thread actions, shell care owns settings/import/export actions, and feature-runtime owns ripple/runtime actions. Import navigation through its package entrypoint while it remains a context/contracts bridge.</li>
+          <li>Keep app provider wiring plus top-level state, storage sync, and view controller assembly in <code>src/app</code>. Catalog owns catalog record actions, modes own thread actions under their mode-local <code>hooks</code> folders, shell care owns settings/import/export actions, and feature-runtime owns ripple/runtime actions. Import navigation through its package entrypoint while it remains a context/contracts bridge.</li>
           <li>Keep Messenger and Roleplay screens under <code>features/modes</code>; move future mode surfaces there too, with a feature entrypoint plus package entrypoints for each mode.</li>
           <li>Keep Pond shell, care drawer, shoal, tide, bank, and waterline under <code>features/shell</code>; move future app-level tools there too. Import the shell feature through its package entrypoint from app composition.</li>
           <li>Pass navigation state/actions through narrow feature-owned props into shell, mode, and catalog surfaces. Build those contracts from exported navigation state/action groups rather than reading the navigation context, importing <code>NavContextType</code>, accepting it directly, or picking from it inside non-navigation feature modules.</li>

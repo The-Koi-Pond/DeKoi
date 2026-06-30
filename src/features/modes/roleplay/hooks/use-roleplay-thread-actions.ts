@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import type { CharacterRecord } from "../../../engine/contracts/types/character";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { CharacterRecord } from "../../../../engine/contracts/types/character";
+import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import {
   appendRoleplayEntries,
   clearRoleplayEntries,
@@ -8,19 +8,19 @@ import {
   createRoleplayThread as buildRoleplayThread,
   deleteRoleplayThread as deleteRoleplayThreadRecord,
   renameRoleplayThread as renameRoleplayThreadRecord,
-} from "../../../engine/modes/roleplay/roleplay-actions";
-import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
-import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+} from "../../../../engine/modes/roleplay/roleplay-actions";
+import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
+import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
-} from "../../../engine/contracts/types/provider-connection";
-import type { RippleState } from "../../../engine/contracts/types/ripples";
-import { deleteRippleStateForOwner } from "../../../engine/ripples/ripple-actions";
-import { currentIsoTimestamp } from "../../../shared/browser/current-time";
-import { createRecordId } from "../../../shared/browser/record-id";
-import type { RoleplayThreadCreateInput, PondView } from "../../navigation";
-import type { StateSetter } from "../../../shared/react/state-setter";
+} from "../../../../engine/contracts/types/provider-connection";
+import type { RippleState } from "../../../../engine/contracts/types/ripples";
+import { deleteRippleStateForOwner } from "../../../../engine/ripples/ripple-actions";
+import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
+import { createRecordId } from "../../../../shared/browser/record-id";
+import type { RoleplayThreadCreateInput, PondView } from "../../../navigation";
+import type { StateSetter } from "../../../../shared/react/state-setter";
 
 type UseRoleplayThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;

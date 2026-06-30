@@ -116,7 +116,7 @@ them in place:
 | Current owner | Current shape | Target trajectory |
 | --- | --- | --- |
 | Engine | Native records live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move future generic primitives to `engine/core` and shared pure helpers to `engine/shared` when they have real consumers. |
-| Feature modes | `features/modes/messenger`, `features/modes/roleplay`, and shared composer files. | Keep DeKoi mode names, then split packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
+| Feature modes | `features/modes/messenger` and `features/modes/roleplay` own thread screens, mode-local `hooks`, mode-local `lib`, and shared composer files. | Keep DeKoi mode names, then continue splitting packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
 | Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
 | Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
 | App | Provider/controller/storage sync hooks at app root. | Split app storage sync and app controller composition into app-owned subpackages after engine/feature public paths settle. |
@@ -186,7 +186,8 @@ The short version:
   and view actions. `src/features/navigation` owns only the navigation context
   and nav contracts while the seed still uses a single top-level app state
   provider.
-  Catalog owns catalog record action hooks, modes own thread action hooks, and
+  Catalog owns catalog record action hooks, modes own thread action hooks under
+  their mode-local `hooks` folders, and
   shell care owns settings/import/export action hooks. `src/features/runtime`
   owns runtime-facing workflows grouped under `generation`, `ripples`, and
   `storage`, including generation, ripple state operations, initial app-storage
