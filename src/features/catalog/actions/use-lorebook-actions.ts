@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
-import { removeCharacterLorebook } from "../../../engine/character-actions";
+import { removeCharacterLorebook } from "../../../engine/catalog/character-actions";
 import type { RoleplayThread } from "../../../engine/roleplay";
 import { removeRoleplayThreadLorebook } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
@@ -15,7 +15,7 @@ import {
   upsertLorebookEntry,
   type LorebookEntryInput,
   type LorebookInput,
-} from "../../../engine/lorebook-actions";
+} from "../../../engine/catalog/lorebook-actions";
 import type { MessengerThread } from "../../../engine/messenger";
 import { removeMessengerThreadLorebook } from "../../../engine/modes/messenger/messenger-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";

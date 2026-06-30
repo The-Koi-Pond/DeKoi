@@ -96,7 +96,7 @@ function firstReturnedObjectKeys(source, name) {
 
 const providerConnectionSource = readFile("src/engine/provider-connection.ts");
 const providerConnectionActionsSource = readFile(
-  "src/engine/provider-connection-actions.ts",
+  "src/engine/catalog/provider-connection-actions.ts",
 );
 const providerConnectionStorageSource = readFile(
   "src/runtime/storage/collections/provider-connection-storage.ts",

@@ -14,7 +14,7 @@ import {
   PROVIDER_CONNECTION_PROVIDER_OPTIONS,
   sanitizeProviderConnectionRecord,
 } from "../../../engine/provider-connection";
-import type { ProviderConnectionInput } from "../../../engine/provider-connection-actions";
+import type { ProviderConnectionInput } from "../../../engine/catalog/provider-connection-actions";
 import { checkProviderConnection } from "../../../shared/api/provider-connection-check";
 import { fetchProviderConnectionModels } from "../../../shared/api/provider-connection-models";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";

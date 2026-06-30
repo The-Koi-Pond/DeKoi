@@ -1,15 +1,11 @@
-import type { CharacterNoteRole, CharacterRecord } from "./contracts/types/character";
+import type { PersonaNoteRole, PersonaRecord } from "../contracts/types/persona";
 
-export interface CharacterRecordInput {
+export interface PersonaRecordInput {
   displayName: string;
   nickname?: string | null;
   description?: string;
   personality?: string;
   scenario?: string;
-  firstMessage?: string;
-  alternateGreetings?: string[];
-  groupOnlyGreetings?: string[];
-  exampleMessages?: string;
   systemPrompt?: string;
   postHistoryInstructions?: string;
   creator?: string;
@@ -18,10 +14,9 @@ export interface CharacterRecordInput {
   tags?: string[];
   characterNote?: string;
   characterNoteDepth?: number;
-  characterNoteRole?: CharacterNoteRole;
+  characterNoteRole?: PersonaNoteRole;
   talkativeness?: number;
   avatarUrl?: string | null;
-  lorebookIds?: string[];
 }
 
 function cleanText(value: string | undefined, fallback = "") {
@@ -33,15 +28,11 @@ function cleanNullableText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-function cleanLorebookIds(value: string[] | undefined) {
-  return [...new Set(value ?? [])].filter(Boolean);
-}
-
 function cleanTextArray(value: string[] | undefined) {
   return [...new Set(value?.map((item) => item.trim()).filter(Boolean) ?? [])];
 }
 
-function cleanNoteRole(value: CharacterNoteRole | undefined) {
+function cleanNoteRole(value: PersonaNoteRole | undefined) {
   return value === "user" || value === "assistant" ? value : "system";
 }
 
@@ -55,27 +46,23 @@ function cleanTalkativeness(value: number | undefined) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-export function createCharacterRecord({
+export function createPersonaRecord({
   id,
   input,
   now,
 }: {
   id: string;
-  input: CharacterRecordInput;
+  input: PersonaRecordInput;
   now: string;
-}): CharacterRecord {
+}): PersonaRecord {
   return {
     id,
     schemaVersion: 1,
-    displayName: cleanText(input.displayName, "Unnamed companion"),
+    displayName: cleanText(input.displayName, "Unnamed persona"),
     nickname: cleanNullableText(input.nickname),
     description: cleanText(input.description),
     personality: cleanText(input.personality),
     scenario: cleanText(input.scenario),
-    firstMessage: cleanText(input.firstMessage),
-    alternateGreetings: cleanTextArray(input.alternateGreetings),
-    groupOnlyGreetings: cleanTextArray(input.groupOnlyGreetings),
-    exampleMessages: cleanText(input.exampleMessages),
     systemPrompt: cleanText(input.systemPrompt),
     postHistoryInstructions: cleanText(input.postHistoryInstructions),
     creator: cleanText(input.creator),
@@ -87,17 +74,16 @@ export function createCharacterRecord({
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
-    lorebookIds: cleanLorebookIds(input.lorebookIds),
     createdAt: now,
     updatedAt: now,
   };
 }
 
-export function updateCharacterRecord(
-  record: CharacterRecord,
-  input: CharacterRecordInput,
+export function updatePersonaRecord(
+  record: PersonaRecord,
+  input: PersonaRecordInput,
   updatedAt: string,
-): CharacterRecord {
+): PersonaRecord {
   return {
     ...record,
     displayName: cleanText(input.displayName, record.displayName),
@@ -105,10 +91,6 @@ export function updateCharacterRecord(
     description: cleanText(input.description),
     personality: cleanText(input.personality),
     scenario: cleanText(input.scenario),
-    firstMessage: cleanText(input.firstMessage),
-    alternateGreetings: cleanTextArray(input.alternateGreetings),
-    groupOnlyGreetings: cleanTextArray(input.groupOnlyGreetings),
-    exampleMessages: cleanText(input.exampleMessages),
     systemPrompt: cleanText(input.systemPrompt),
     postHistoryInstructions: cleanText(input.postHistoryInstructions),
     creator: cleanText(input.creator),
@@ -120,16 +102,15 @@ export function updateCharacterRecord(
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
-    lorebookIds: cleanLorebookIds(input.lorebookIds),
     updatedAt,
   };
 }
 
-export function duplicateCharacterRecord(
-  record: CharacterRecord,
+export function duplicatePersonaRecord(
+  record: PersonaRecord,
   id: string,
   now: string,
-): CharacterRecord {
+): PersonaRecord {
   return {
     ...record,
     id,
@@ -139,20 +120,6 @@ export function duplicateCharacterRecord(
   };
 }
 
-export function deleteCharacterRecord(records: CharacterRecord[], id: string) {
+export function deletePersonaRecord(records: PersonaRecord[], id: string) {
   return records.filter((record) => record.id !== id);
-}
-
-export function removeCharacterLorebook(
-  record: CharacterRecord,
-  lorebookId: string,
-  updatedAt: string,
-): CharacterRecord {
-  if (!record.lorebookIds.includes(lorebookId)) return record;
-
-  return {
-    ...record,
-    lorebookIds: record.lorebookIds.filter((id) => id !== lorebookId),
-    updatedAt,
-  };
 }

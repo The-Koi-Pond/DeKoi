@@ -82,6 +82,10 @@ Use current paths, not older seed paths:
   - `src/engine/contracts/types/persona.ts`
   - `src/engine/contracts/types/lorebook.ts`
   - `src/engine/provider-connection.ts`
+  - `src/engine/catalog/character-actions.ts`
+  - `src/engine/catalog/persona-actions.ts`
+  - `src/engine/catalog/lorebook-actions.ts`
+  - `src/engine/catalog/provider-connection-actions.ts`
   - `src/engine/messenger.ts`
   - `src/engine/modes/messenger/messenger-actions.ts`
   - `src/engine/generation/messenger-generation.ts`

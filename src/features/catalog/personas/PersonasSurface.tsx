@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { PersonaNoteRole, PersonaRecord } from "../../../engine/contracts/types/persona";
-import type { PersonaRecordInput } from "../../../engine/persona-actions";
+import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
 import type {
   NavCatalogState,
   NavPersonaActions,
