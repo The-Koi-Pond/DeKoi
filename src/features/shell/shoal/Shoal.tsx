@@ -21,7 +21,6 @@ import {
   getRoleplayThreadPreview,
   sortRoleplayThreads,
   getMessengerThreadInitials,
-  getMessengerThreadPreview,
   sortMessengerThreads,
 } from "../../modes";
 import type {
@@ -34,7 +33,6 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
-import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerSystemPromptMode,
@@ -46,6 +44,10 @@ import {
   sanitizeProviderConnectionRecord,
 } from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY, MESSENGER } from "../../../engine/contracts/constants/surfaces";
+import {
+  getMessengerCardDetails,
+  getRoleplayCardAvatarDetails,
+} from "./lib/thread-card-details";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -219,67 +221,6 @@ function CatalogRailCard({
       </span>
     </button>
   );
-}
-
-function getMessengerCardDetails(
-  thread: MessengerThread,
-  characterById: Map<string, CharacterRecord>,
-) {
-  const companions = thread.characterIds.flatMap((characterId) => {
-    const companion = characterById.get(characterId);
-    return companion ? [companion] : [];
-  });
-  const missingCount = thread.characterIds.length - companions.length;
-  const name =
-    companions.map((companion) => companion.displayName).join(" + ") ||
-    (missingCount > 0 ? "Missing companion" : "No companion");
-  const threadTitle = thread.title.trim();
-  const displayName =
-    threadTitle && !/^New Messenger \d+$/i.test(threadTitle) ? threadTitle : name;
-  const preview = getMessengerThreadPreview(thread);
-  const searchText = [
-    displayName,
-    name,
-    threadTitle,
-    preview,
-    ...companions.flatMap((companion) => [
-      companion.nickname ?? "",
-      companion.personality,
-      companion.description,
-      companion.scenario,
-      companion.tags.join(" "),
-    ]),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return {
-    avatarUrl: companions[0]?.avatarUrl ?? null,
-    initials: getMessengerThreadInitials(name),
-    name: displayName,
-    preview,
-    searchText,
-  };
-}
-
-function getRoleplayCardAvatarDetails(
-  characterIds: string[],
-  fallbackName: string,
-  characterById: Map<string, CharacterRecord>,
-) {
-  const companion =
-    characterIds
-      .map((characterId) => characterById.get(characterId) ?? null)
-      .find((candidate): candidate is CharacterRecord => candidate !== null) ??
-    null;
-  const avatarLabel = companion?.displayName ?? fallbackName;
-
-  return {
-    avatarLabel,
-    avatarUrl: companion?.avatarUrl ?? null,
-    hasCharacter: companion !== null,
-    initials: getMessengerThreadInitials(avatarLabel),
-  };
 }
 
 function PeopleCatalogRail({
