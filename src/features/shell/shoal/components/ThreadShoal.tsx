@@ -1,24 +1,12 @@
-import { useMemo, useState } from "react";
-import { ROLEPLAY, MESSENGER } from "../../../../engine/contracts/constants/surfaces";
-import type { ShoalSortMode } from "../../../../engine/contracts/types/app-settings";
-import { sanitizeProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import { useNewThreadPopovers } from "../hooks/use-new-thread-popovers";
+import { useThreadShoalViewModel } from "../hooks/use-thread-shoal-view-model";
 import { useThreadReleaseActions } from "../hooks/use-thread-release-actions";
-import { createNewThreadLabels } from "../lib/new-thread-labels";
-import { getThreadShoalLists } from "../lib/thread-shoal-lists";
 import type { ShoalRailProps } from "../types";
 import { ShoalTopBar } from "./ShoalTopBar";
 import { ThreadReleaseDialog } from "./ThreadReleaseDialog";
 import { ThreadShoalHead } from "./ThreadShoalHead";
 import { ThreadShoalList } from "./ThreadShoalList";
 import { ThreadShoalPopovers } from "./ThreadShoalPopovers";
-
-const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
-const SHOAL_SORT_LABELS: Record<ShoalSortMode, string> = {
-  freshest: "Freshest first",
-  oldest: "Oldest first",
-  title: "A-Z",
-};
 
 export function ThreadShoal({
   chatSettingsOpen,
@@ -27,47 +15,22 @@ export function ThreadShoal({
   onToggleShoal,
   shoalClosed,
 }: ShoalRailProps) {
-  const [query, setQuery] = useState("");
-  const sortMode = nav.appSettings.shoalSortMode;
-  const nextMessengerThreadNumber = nav.messengerThreads.length + 1;
-  const nextRoleplayThreadNumber = nav.roleplayThreads.length + 1;
-  const activeSurface = nav.selectedSurface === ROLEPLAY ? ROLEPLAY : MESSENGER;
-  const isRoleplaySurface = activeSurface === ROLEPLAY;
-  const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
-  const activeRoleplayThreadId =
-    nav.view.kind === "roleplay" ? nav.view.threadId : null;
-  const characterById = useMemo(
-    () => new Map(nav.characters.map((character) => [character.id, character])),
-    [nav.characters],
-  );
-  const newThreadLabels = useMemo(
-    () =>
-      createNewThreadLabels({
-        characterById,
-        lorebooks: nav.lorebooks,
-        nextMessengerThreadNumber,
-        nextRoleplayThreadNumber,
-      }),
-    [
-      characterById,
-      nav.lorebooks,
-      nextMessengerThreadNumber,
-      nextRoleplayThreadNumber,
-    ],
-  );
-  const sanitizedProviderConnections = useMemo(
-    () =>
-      nav.providerConnections.map((connection) =>
-        sanitizeProviderConnectionRecord(connection),
-      ),
-    [nav.providerConnections],
-  );
-  const defaultMessengerConnectionId =
-    sanitizedProviderConnections.find(
-      (connection) => connection.id === nav.appSettings.activeMessengerConnectionId,
-    )?.id ??
-    sanitizedProviderConnections[0]?.id ??
-    "";
+  const {
+    activeMessengerThreadId,
+    activeRoleplayThreadId,
+    activeSurfaceLabel,
+    characterById,
+    defaultMessengerConnectionId,
+    isRoleplaySurface,
+    newThreadLabels,
+    query,
+    sanitizedProviderConnections,
+    searchPlaceholder,
+    sortLabel,
+    threadShoalLists,
+    cycleSortMode,
+    setQuery,
+  } = useThreadShoalViewModel({ nav });
   const newThreadPopovers = useNewThreadPopovers({
     characters: nav.characters,
     defaultMessengerConnectionId,
@@ -80,17 +43,6 @@ export function ThreadShoal({
   });
   const { handleCreateActiveThread, newMessengerOpen, newRoleplayOpen } =
     newThreadPopovers;
-  const threadShoalLists = useMemo(
-    () =>
-      getThreadShoalLists({
-        characterById,
-        messengerThreads: nav.messengerThreads,
-        query,
-        roleplayThreads: nav.roleplayThreads,
-        sortMode,
-      }),
-    [characterById, nav.messengerThreads, nav.roleplayThreads, query, sortMode],
-  );
   const {
     clearReleaseRequest,
     confirmReleaseThread,
@@ -104,18 +56,6 @@ export function ThreadShoal({
     onDeleteRoleplayThread: nav.deleteRoleplayThread,
     onRenameRoleplayThread: nav.renameRoleplayThread,
   });
-
-  function cycleSortMode() {
-    const currentIndex = SHOAL_SORT_ORDER.indexOf(sortMode);
-    const nextIndex =
-      currentIndex === -1 ? 0 : (currentIndex + 1) % SHOAL_SORT_ORDER.length;
-    nav.setShoalSortMode(SHOAL_SORT_ORDER[nextIndex]);
-  }
-
-  const activeSurfaceLabel = isRoleplaySurface ? "Roleplay" : "Messenger";
-  const searchPlaceholder = isRoleplaySurface
-    ? "Find a scene by name or text..."
-    : "Find a character by name or message...";
 
   return (
     <aside className="shoal thread-shoal" aria-label="The Shoal — saved threads">
@@ -134,13 +74,13 @@ export function ThreadShoal({
           newRoleplayOpen={newRoleplayOpen}
           query={query}
           searchPlaceholder={searchPlaceholder}
-          sortLabel={SHOAL_SORT_LABELS[sortMode]}
+          sortLabel={sortLabel}
           onCreateActiveThread={handleCreateActiveThread}
           onCycleSortMode={cycleSortMode}
           onQueryChange={setQuery}
         />
         <ThreadShoalList
-          activeMessengerThreadId={activeThreadId}
+          activeMessengerThreadId={activeMessengerThreadId}
           activeRoleplayThreadId={activeRoleplayThreadId}
           characterById={characterById}
           isRoleplaySurface={isRoleplaySurface}
