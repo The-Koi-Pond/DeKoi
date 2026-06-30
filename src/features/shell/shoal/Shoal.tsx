@@ -54,6 +54,8 @@ import {
   getDraftRoleplayName as getDraftRoleplayNameLabel,
   getLorebookSelectionLabel,
 } from "./lib/new-thread-labels";
+import { CatalogRailCard } from "./components/CatalogRailCard";
+import { FolderIcon, RoleplayCardIcon } from "./components/ShoalIcons";
 import "./Shoal.css";
 
 const SHOAL_SORT_ORDER: ShoalSortMode[] = ["freshest", "oldest", "title"];
@@ -131,16 +133,6 @@ export type ShoalNav = Pick<
   Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setView"> &
   Pick<NavViewState, "selectedSurface" | "sideRailView" | "view">;
 
-interface CatalogRailCardProps {
-  active?: boolean;
-  avatarUrl?: string | null;
-  initials: string;
-  name: string;
-  onOpen: () => void;
-  sub: string;
-  tone: "koi" | "jade" | "amber";
-}
-
 function ShoalTopBar({
   chatSettingsOpen,
   nav,
@@ -180,52 +172,6 @@ function ShoalTopBar({
         <span>{chatSettingsLabel}</span>
       </button>
     </div>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg viewBox="0 0 18 18" aria-hidden="true">
-      <path d="M2.5 5.5h5l1.3 1.7h6.7v6.2a1.1 1.1 0 0 1-1.1 1.1H3.6a1.1 1.1 0 0 1-1.1-1.1z" />
-      <path d="M2.5 5.5V4.6a1.1 1.1 0 0 1 1.1-1.1h3.1l1.2 2" />
-    </svg>
-  );
-}
-
-function RoleplayCardIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M5 5.5h5.7c1.2 0 2.3.5 3.1 1.3v11.7c-.8-.8-1.9-1.3-3.1-1.3H5z" />
-      <path d="M13.8 6.8c.8-.8 1.9-1.3 3.1-1.3H19v11.7h-2.1c-1.2 0-2.3.5-3.1 1.3" />
-      <path d="M7.6 9h3.2" />
-      <path d="M16.2 9h1.1" />
-    </svg>
-  );
-}
-
-function CatalogRailCard({
-  active,
-  avatarUrl,
-  initials,
-  name,
-  onOpen,
-  sub,
-  tone,
-}: CatalogRailCardProps) {
-  return (
-    <button
-      type="button"
-      className={`catalog-rail-card ${tone}${active ? " on" : ""}`}
-      onClick={onOpen}
-    >
-      <span className="catalog-rail-ava">
-        {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
-      </span>
-      <span className="catalog-rail-copy">
-        <b>{name}</b>
-        <small>{sub}</small>
-      </span>
-    </button>
   );
 }
 
