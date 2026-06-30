@@ -1,23 +1,22 @@
 import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
 import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
 import { ChatSettingsLorebooksDrawer } from "./ChatSettingsLorebooksDrawer";
+import { ChatSettingsNameControls } from "./ChatSettingsNameControls";
 import { ChatSettingsPersonaDrawer } from "./ChatSettingsPersonaDrawer";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ShoalTopBar } from "./ShoalTopBar";
 import { useChatSettingsMessengerActions } from "../hooks/use-chat-settings-messenger-actions";
-import { useChatSettingsNameEditor } from "../hooks/use-chat-settings-name-editor";
 import {
   CHAT_SETTINGS_DRAWER_DEFAULTS,
   type ChatSettingsDrawerId,
 } from "../lib/chat-settings-drawers";
 import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
-import type { ShoalNav, ShoalRailProps } from "../types";
+import type { ShoalRailProps } from "../types";
 
 export function ChatSettingsRail({
   chatSettingsOpen,
@@ -149,7 +148,7 @@ export function ChatSettingsRail({
         shoalClosed={shoalClosed}
       />
       <div className="shoal-body">
-        <ChatSettingsRailHeadWithNameEditor
+        <ChatSettingsNameControls
           key={activeMessengerThreadId ?? "no-messenger-thread"}
           activeMessengerThread={activeMessengerThread}
           activeMessengerThreadId={activeMessengerThreadId}
@@ -252,50 +251,5 @@ export function ChatSettingsRail({
         </div>
       </div>
     </aside>
-  );
-}
-
-interface ChatSettingsRailHeadWithNameEditorProps {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
-  settingsLabel: string;
-  onCloseChatSettings: () => void;
-  onRenameMessengerThread: ShoalNav["renameMessengerThread"];
-}
-
-function ChatSettingsRailHeadWithNameEditor({
-  activeMessengerThread,
-  activeMessengerThreadId,
-  settingsLabel,
-  onCloseChatSettings,
-  onRenameMessengerThread,
-}: ChatSettingsRailHeadWithNameEditorProps) {
-  const {
-    activeChatName,
-    activeChatNameEditor,
-    cancelChatNameEdit,
-    saveChatName,
-    startChatNameEdit,
-    updateChatNameValue,
-  } = useChatSettingsNameEditor({
-    activeMessengerThread,
-    activeMessengerThreadId,
-    onRenameMessengerThread,
-  });
-
-  return (
-    <ChatSettingsRailHead
-      activeChatName={activeChatName}
-      chatNameDisabled={!activeMessengerThread}
-      chatNameEditing={activeChatNameEditor.editing}
-      chatNameValue={activeChatNameEditor.value}
-      settingsLabel={settingsLabel}
-      showChatNameEditor
-      onCancelChatNameEdit={cancelChatNameEdit}
-      onChatNameValueChange={updateChatNameValue}
-      onCloseChatSettings={onCloseChatSettings}
-      onSaveChatName={saveChatName}
-      onStartChatNameEdit={startChatNameEdit}
-    />
   );
 }
