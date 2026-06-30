@@ -1,22 +1,17 @@
 import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
 import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
 import { ChatSettingsLorebooksDrawer } from "./ChatSettingsLorebooksDrawer";
 import { ChatSettingsPersonaDrawer } from "./ChatSettingsPersonaDrawer";
-import { ChatSettingsPromptDrawer } from "./ChatSettingsPromptDrawer";
-import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
+import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ShoalTopBar } from "./ShoalTopBar";
 import { useChatSettingsMessengerActions } from "../hooks/use-chat-settings-messenger-actions";
 import { useChatSettingsNameEditor } from "../hooks/use-chat-settings-name-editor";
-import { useChatSettingsPromptEditor } from "../hooks/use-chat-settings-prompt-editor";
 import {
   CHAT_SETTINGS_DRAWER_DEFAULTS,
   type ChatSettingsDrawerId,
@@ -302,59 +297,5 @@ function ChatSettingsRailHeadWithNameEditor({
       onSaveChatName={saveChatName}
       onStartChatNameEdit={startChatNameEdit}
     />
-  );
-}
-
-interface ChatSettingsPromptControlsProps {
-  activeMessengerThread: boolean;
-  activeMessengerThreadRecord: MessengerThread | null;
-  activeMessengerThreadId: string | null;
-  open: boolean;
-  systemPromptMode: MessengerSystemPromptMode;
-  onSaveCustomPrompt: (prompt: string) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
-}
-
-function ChatSettingsPromptControls({
-  activeMessengerThread,
-  activeMessengerThreadRecord,
-  activeMessengerThreadId,
-  open,
-  systemPromptMode,
-  onSaveCustomPrompt,
-  onSystemPromptModeChange,
-  onToggle,
-}: ChatSettingsPromptControlsProps) {
-  const {
-    activePromptEditor,
-    closePromptEditor,
-    openPromptEditor,
-    savePromptEditor,
-    updatePromptEditorValue,
-  } = useChatSettingsPromptEditor({
-    activeMessengerThread: activeMessengerThreadRecord,
-    activeMessengerThreadId,
-    onSaveCustomPrompt,
-  });
-
-  return (
-    <>
-      <ChatSettingsPromptDrawer
-        activeMessengerThread={activeMessengerThread}
-        open={open}
-        systemPromptMode={systemPromptMode}
-        onOpenPromptEditor={openPromptEditor}
-        onSystemPromptModeChange={onSystemPromptModeChange}
-        onToggle={onToggle}
-      />
-      <ChatSettingsPromptEditor
-        open={activePromptEditor.open && activeMessengerThread}
-        value={activePromptEditor.value}
-        onClose={closePromptEditor}
-        onSave={savePromptEditor}
-        onValueChange={updatePromptEditorValue}
-      />
-    </>
   );
 }

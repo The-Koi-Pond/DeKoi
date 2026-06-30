@@ -7,7 +7,7 @@ import {
 interface UseChatSettingsPromptEditorInput {
   activeMessengerThread: MessengerThread | null;
   activeMessengerThreadId: string | null;
-  onSaveCustomPrompt: (prompt: string) => void;
+  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
 }
 
 export function useChatSettingsPromptEditor({
@@ -55,16 +55,18 @@ export function useChatSettingsPromptEditor({
 
   function savePromptEditor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const promptThreadId = activePromptEditor.threadId;
     if (
+      !promptThreadId ||
       !activeMessengerThread ||
-      activePromptEditor.threadId !== activeMessengerThreadId ||
-      activePromptEditor.threadId !== activeMessengerThread.id
+      promptThreadId !== activeMessengerThreadId ||
+      promptThreadId !== activeMessengerThread.id
     ) {
       closePromptEditor();
       return;
     }
 
-    onSaveCustomPrompt(activePromptEditor.value);
+    onSaveCustomPrompt(promptThreadId, activePromptEditor.value);
     closePromptEditor();
   }
 

@@ -120,7 +120,8 @@ export function useChatSettingsMessengerActions({
     );
   }
 
-  function saveCustomMessengerPrompt(prompt: string) {
+  function saveCustomMessengerPrompt(threadId: string, prompt: string) {
+    if (activeMessengerThread?.id !== threadId) return;
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadSystemPrompt(thread, "custom", prompt, updatedAt),
     );
