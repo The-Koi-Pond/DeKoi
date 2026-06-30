@@ -1,33 +1,23 @@
-import { useMemo, useState, type FormEvent } from "react";
-import {
-  setMessengerThreadLorebooks,
-  setMessengerThreadParticipants,
-  setMessengerThreadPersona,
-  setMessengerThreadProviderConnection,
-  setMessengerThreadSystemPrompt,
-} from "../../../../engine/modes/messenger/messenger-actions";
-import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerSystemPromptMode,
-  type MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
-import { sanitizeProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
+import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsCompanionsDrawer } from "./ChatSettingsCompanionsDrawer";
 import { ChatSettingsConnectionDrawer } from "./ChatSettingsConnectionDrawer";
 import { ChatSettingsLorebooksDrawer } from "./ChatSettingsLorebooksDrawer";
-import { ChatSettingsNameEditor } from "./ChatSettingsNameEditor";
 import { ChatSettingsPersonaDrawer } from "./ChatSettingsPersonaDrawer";
-import { ChatSettingsPromptDrawer } from "./ChatSettingsPromptDrawer";
-import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
+import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
+import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ShoalTopBar } from "./ShoalTopBar";
+import { useChatSettingsMessengerActions } from "../hooks/use-chat-settings-messenger-actions";
+import { useChatSettingsNameEditor } from "../hooks/use-chat-settings-name-editor";
 import {
   CHAT_SETTINGS_DRAWER_DEFAULTS,
   type ChatSettingsDrawerId,
 } from "../lib/chat-settings-drawers";
-import type { ShoalRailProps } from "../types";
+import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
+import type { ShoalNav, ShoalRailProps } from "../types";
 
 export function ChatSettingsRail({
   chatSettingsOpen,
@@ -49,100 +39,25 @@ export function ChatSettingsRail({
     ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
       null
     : null;
-  const activeMessengerThreadTitle = activeMessengerThread?.title ?? "";
-  const [chatNameEditor, setChatNameEditor] = useState<{
-    editing: boolean;
-    threadId: string | null;
-    value: string;
-  }>({
-    editing: false,
-    threadId: activeMessengerThread?.id ?? null,
-    value: activeMessengerThread?.title ?? "",
-  });
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
-  const [promptEditor, setPromptEditor] = useState<{
-    open: boolean;
-    threadId: string | null;
-    value: string;
-  }>({
-    open: false,
-    threadId: null,
-    value: "",
+  const {
+    clearMissingMessengerCompanions,
+    clearMissingMessengerLorebooks,
+    handleMessengerConnectionChange,
+    handleMessengerPersonaChange,
+    handleMessengerSystemPromptModeChange,
+    resolveMissingMessengerConnection,
+    saveCustomMessengerPrompt,
+    toggleMessengerCompanion,
+    toggleMessengerLorebook,
+  } = useChatSettingsMessengerActions({
+    activeMessengerThread,
+    characters: nav.characters,
+    lorebooks: nav.lorebooks,
+    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
+    onUpdateMessengerThread: nav.updateMessengerThread,
   });
-  const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
-  const activeChatNameEditor =
-    chatNameEditor.threadId === activeMessengerThreadId
-      ? chatNameEditor
-      : {
-          editing: false,
-          threadId: activeMessengerThreadId,
-          value: activeMessengerThreadTitle,
-        };
-  const activePromptEditor =
-    promptEditor.open && promptEditor.threadId === activeMessengerThreadId
-      ? promptEditor
-      : {
-          open: false,
-          threadId: null,
-          value: "",
-        };
-
-  if (
-    chatNameEditor.threadId !== activeMessengerThreadId ||
-    (!chatNameEditor.editing && chatNameEditor.value !== activeMessengerThreadTitle)
-  ) {
-    setChatNameEditor({
-      editing: false,
-      threadId: activeMessengerThreadId,
-      value: activeMessengerThreadTitle,
-    });
-  }
-
-  if (promptEditor.open && promptEditor.threadId !== activeMessengerThreadId) {
-    setPromptEditor({
-      open: false,
-      threadId: null,
-      value: "",
-    });
-  }
-
-  function startChatNameEdit() {
-    if (!activeMessengerThread) return;
-    setChatNameEditor({
-      editing: true,
-      threadId: activeMessengerThread.id,
-      value: activeMessengerThread.title,
-    });
-  }
-
-  function saveChatName() {
-    if (
-      !activeMessengerThread ||
-      activeChatNameEditor.threadId !== activeMessengerThreadId ||
-      activeChatNameEditor.threadId !== activeMessengerThread.id
-    ) {
-      cancelChatNameEdit();
-      return;
-    }
-    const nextTitle = activeChatNameEditor.value.trim();
-    if (nextTitle) {
-      nav.renameMessengerThread(activeMessengerThread.id, nextTitle);
-    }
-    setChatNameEditor({
-      editing: false,
-      threadId: activeMessengerThread.id,
-      value: nextTitle || activeMessengerThread.title,
-    });
-  }
-
-  function cancelChatNameEdit() {
-    setChatNameEditor({
-      editing: false,
-      threadId: activeMessengerThread?.id ?? null,
-      value: activeMessengerThread?.title ?? "",
-    });
-  }
 
   function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
     setOpenDrawers((current) => ({
@@ -151,270 +66,45 @@ export function ChatSettingsRail({
     }));
   }
 
-  function updateActiveMessengerThread(
-    updater: (thread: MessengerThread, updatedAt: string) => MessengerThread,
-  ) {
-    if (!activeMessengerThread) return;
-    nav.updateMessengerThread(
-      updater(activeMessengerThread, new Date().toISOString()),
-    );
-  }
-
-  function handleMessengerConnectionChange(connectionId: string) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadProviderConnection(
-        thread,
-        connectionId.trim() || null,
-        updatedAt,
-      ),
-    );
-  }
-
-  function handleMessengerPersonaChange(personaId: string) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadPersona(thread, personaId.trim() || null, updatedAt),
-    );
-  }
-
-  function toggleMessengerCompanion(characterId: string) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadParticipants(
-        thread,
-        thread.characterIds.includes(characterId)
-          ? thread.characterIds.filter((id) => id !== characterId)
-          : [...thread.characterIds, characterId],
-        updatedAt,
-      ),
-    );
-  }
-
-  function toggleMessengerLorebook(lorebookId: string) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadLorebooks(
-        thread,
-        thread.lorebookIds.includes(lorebookId)
-          ? thread.lorebookIds.filter((id) => id !== lorebookId)
-          : [...thread.lorebookIds, lorebookId],
-        updatedAt,
-      ),
-    );
-  }
-
-  function resolveMissingMessengerConnection(connectionId: string | null) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadProviderConnection(
-        thread,
-        connectionId,
-        updatedAt,
-      ),
-    );
-  }
-
-  function clearMissingMessengerCompanions() {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadParticipants(
-        thread,
-        thread.characterIds.filter((characterId) =>
-          nav.characters.some((character) => character.id === characterId),
-        ),
-        updatedAt,
-      ),
-    );
-    setCompanionSelectorOpen(false);
-  }
-
-  function clearMissingMessengerLorebooks() {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadLorebooks(
-        thread,
-        thread.lorebookIds.filter((lorebookId) =>
-          nav.lorebooks.some((lorebook) => lorebook.id === lorebookId),
-        ),
-        updatedAt,
-      ),
-    );
-  }
-
-  function handleMessengerSystemPromptModeChange(
-    systemPromptMode: MessengerSystemPromptMode,
-  ) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(
-        thread,
-        systemPromptMode,
-        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
-        updatedAt,
-      ),
-    );
-  }
-
-  function openPromptEditor() {
-    if (!activeMessengerThread) return;
-    setPromptEditor({
-      open: true,
-      threadId: activeMessengerThread.id,
-      value:
-        activeMessengerThread.systemPromptMode === "custom"
-          ? activeMessengerThread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT
-          : DEFAULT_MESSENGER_SYSTEM_PROMPT,
-    });
-  }
-
-  function closePromptEditor() {
-    setPromptEditor({
-      open: false,
-      threadId: null,
-      value: "",
-    });
-  }
-
-  function savePromptEditor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (
-      !activeMessengerThread ||
-      activePromptEditor.threadId !== activeMessengerThreadId ||
-      activePromptEditor.threadId !== activeMessengerThread.id
-    ) {
-      closePromptEditor();
-      return;
-    }
-
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(
-        thread,
-        "custom",
-        activePromptEditor.value,
-        updatedAt,
-      ),
-    );
-    closePromptEditor();
-  }
-
-  const sanitizedProviderConnections = useMemo(
+  const {
+    companionDrawerSummary,
+    companionSelectionLabel,
+    connectionSummary,
+    fallbackConnection,
+    fallbackConnectionPrefix,
+    hasMissingConnection,
+    hasMissingPersona,
+    lorebookDrawerSummary,
+    messengerConnectionValue,
+    missingCompanionCount,
+    missingConnectionResolution,
+    missingLorebookCount,
+    personaSummary,
+    sanitizedProviderConnections,
+    selectedCompanionCount,
+    selectedCompanionIds,
+    selectedLorebookIds,
+    selectedPersonaId,
+    systemPromptMode,
+  } = useMemo(
     () =>
-      nav.providerConnections.map((connection) =>
-        sanitizeProviderConnectionRecord(connection),
-      ),
-    [nav.providerConnections],
+      getChatSettingsViewModel({
+        activeMessengerThread,
+        appSettings: nav.appSettings,
+        characters: nav.characters,
+        lorebooks: nav.lorebooks,
+        personas: nav.personas,
+        providerConnections: nav.providerConnections,
+      }),
+    [
+      activeMessengerThread,
+      nav.appSettings,
+      nav.characters,
+      nav.lorebooks,
+      nav.personas,
+      nav.providerConnections,
+    ],
   );
-  const settingsCharacterById = useMemo(
-    () => new Map(nav.characters.map((character) => [character.id, character])),
-    [nav.characters],
-  );
-  const settingsPersonaById = useMemo(
-    () => new Map(nav.personas.map((persona) => [persona.id, persona])),
-    [nav.personas],
-  );
-  const settingsLorebookById = useMemo(
-    () => new Map(nav.lorebooks.map((lorebook) => [lorebook.id, lorebook])),
-    [nav.lorebooks],
-  );
-  const settingsConnectionById = useMemo(
-    () =>
-      new Map(
-        sanitizedProviderConnections.map((connection) => [
-          connection.id,
-          connection,
-        ]),
-      ),
-    [sanitizedProviderConnections],
-  );
-  const configuredDefaultConnection =
-    settingsConnectionById.get(nav.appSettings.activeMessengerConnectionId) ?? null;
-  const firstAvailableConnection = sanitizedProviderConnections[0] ?? null;
-  const fallbackConnection =
-    configuredDefaultConnection ?? firstAvailableConnection;
-  const fallbackConnectionPrefix = configuredDefaultConnection
-    ? "App default"
-    : "First available";
-  const missingConnectionResolution = configuredDefaultConnection
-    ? {
-        actionLabel: `Use app default: ${configuredDefaultConnection.label}`,
-        connectionId: configuredDefaultConnection.id,
-      }
-    : firstAvailableConnection
-      ? {
-          actionLabel: `Use first available: ${firstAvailableConnection.label}`,
-          connectionId: firstAvailableConnection.id,
-        }
-      : {
-          actionLabel: "Clear missing",
-          connectionId: null,
-        };
-  const messengerConnectionValue = activeMessengerThread?.providerConnectionId ?? "";
-  const selectedConnection = messengerConnectionValue
-    ? settingsConnectionById.get(messengerConnectionValue) ?? null
-    : null;
-  const hasMissingConnection = !!messengerConnectionValue && !selectedConnection;
-  const connectionSummary = !activeMessengerThread
-    ? "No active Messenger thread"
-    : hasMissingConnection
-      ? "Missing connection"
-      : selectedConnection
-        ? selectedConnection.label
-        : fallbackConnection
-          ? `${fallbackConnectionPrefix}: ${fallbackConnection.label}`
-          : "No connection available";
-  const selectedPersonaId = activeMessengerThread?.activePersonaId ?? "";
-  const selectedPersona = selectedPersonaId
-    ? settingsPersonaById.get(selectedPersonaId) ?? null
-    : null;
-  const hasMissingPersona = !!selectedPersonaId && !selectedPersona;
-  const personaSummary = !activeMessengerThread
-    ? "No active Messenger thread"
-    : hasMissingPersona
-      ? "Missing persona"
-      : selectedPersona
-        ? selectedPersona.displayName
-        : "Anonymous";
-  const selectedCompanionIds = activeMessengerThread?.characterIds ?? [];
-  const selectedCompanionNames = activeMessengerThread
-    ? activeMessengerThread.characterIds.flatMap((characterId) => {
-        const character = settingsCharacterById.get(characterId);
-        return character ? [character.displayName] : [];
-      })
-    : [];
-  const missingCompanionIds = selectedCompanionIds.filter(
-    (characterId) => !settingsCharacterById.has(characterId),
-  );
-  const selectedCompanionCount = selectedCompanionNames.length;
-  const missingCompanionCount = missingCompanionIds.length;
-  const companionDrawerSummary = !activeMessengerThread
-    ? "No active Messenger thread"
-    : missingCompanionCount > 0
-      ? `${selectedCompanionNames.length} selected, ${missingCompanionCount} missing`
-      : selectedCompanionCount === 0
-        ? "No companions selected"
-        : `${selectedCompanionCount} selected`;
-  const companionSelectionLabel =
-    selectedCompanionNames.join(", ") ||
-    (missingCompanionCount > 0
-      ? `${missingCompanionCount} missing companion${
-          missingCompanionCount === 1 ? "" : "s"
-        }`
-      : "Choose companions");
-  const selectedLorebookIds = activeMessengerThread?.lorebookIds ?? [];
-  const selectedLorebookNames = activeMessengerThread
-    ? activeMessengerThread.lorebookIds.flatMap((lorebookId) => {
-        const lorebook = settingsLorebookById.get(lorebookId);
-        return lorebook ? [lorebook.title] : [];
-      })
-    : [];
-  const missingLorebookIds = selectedLorebookIds.filter(
-    (lorebookId) => !settingsLorebookById.has(lorebookId),
-  );
-  const selectedLorebookCount = selectedLorebookNames.length;
-  const missingLorebookCount = missingLorebookIds.length;
-  const lorebookDrawerSummary = !activeMessengerThread
-    ? "No active Messenger thread"
-    : missingLorebookCount > 0
-      ? `${selectedLorebookNames.length} selected, ${missingLorebookCount} missing`
-      : selectedLorebookCount === 0
-        ? "No lorebooks selected"
-        : `${selectedLorebookCount} lorebook${
-            selectedLorebookCount === 1 ? "" : "s"
-          }`;
-  const systemPromptMode = activeMessengerThread?.systemPromptMode ?? "default";
 
   if (nav.selectedSurface !== MESSENGER) {
     return (
@@ -430,20 +120,10 @@ export function ChatSettingsRail({
           shoalClosed={shoalClosed}
         />
         <div className="shoal-body">
-          <div className="shoal-head chat-settings-head">
-            <div className="shoal-title chat-settings-title">
-              <h2>{settingsLabel}</h2>
-              <button
-                type="button"
-                className="chat-settings-close"
-                aria-label="Close chat settings"
-                title="Close chat settings"
-                onClick={onCloseChatSettings}
-              >
-                ×
-              </button>
-            </div>
-          </div>
+          <ChatSettingsRailHead
+            settingsLabel={settingsLabel}
+            onCloseChatSettings={onCloseChatSettings}
+          />
           <div className="shoal-list chat-settings-list">
             <ChatSettingsNotice>
               Roleplay settings are not ready yet. Open a Messenger thread to
@@ -469,38 +149,14 @@ export function ChatSettingsRail({
         shoalClosed={shoalClosed}
       />
       <div className="shoal-body">
-        <div className="shoal-head chat-settings-head">
-          <div className="shoal-title chat-settings-title">
-            <h2>{settingsLabel}</h2>
-            <button
-              type="button"
-              className="chat-settings-close"
-              aria-label="Close chat settings"
-              title="Close chat settings"
-              onClick={onCloseChatSettings}
-            >
-              ×
-            </button>
-          </div>
-          {nav.selectedSurface === MESSENGER && (
-            <ChatSettingsNameEditor
-              activeChatName={activeChatName}
-              disabled={!activeMessengerThread}
-              editing={activeChatNameEditor.editing}
-              value={activeChatNameEditor.value}
-              onCancel={cancelChatNameEdit}
-              onSave={saveChatName}
-              onStartEdit={startChatNameEdit}
-              onValueChange={(value) =>
-                setChatNameEditor({
-                  editing: true,
-                  threadId: activeMessengerThread?.id ?? null,
-                  value,
-                })
-              }
-            />
-          )}
-        </div>
+        <ChatSettingsRailHeadWithNameEditor
+          key={activeMessengerThreadId ?? "no-messenger-thread"}
+          activeMessengerThread={activeMessengerThread}
+          activeMessengerThreadId={activeMessengerThreadId}
+          settingsLabel={settingsLabel}
+          onCloseChatSettings={onCloseChatSettings}
+          onRenameMessengerThread={nav.renameMessengerThread}
+        />
         <div className="shoal-list chat-settings-list">
           {!activeMessengerThread && (
             <ChatSettingsNotice
@@ -559,11 +215,14 @@ export function ChatSettingsRail({
             onToggleCompanion={toggleMessengerCompanion}
           />
 
-          <ChatSettingsPromptDrawer
+          <ChatSettingsPromptControls
+            key={activeMessengerThreadId ?? "no-messenger-thread"}
             activeMessengerThread={!!activeMessengerThread}
+            activeMessengerThreadRecord={activeMessengerThread}
+            activeMessengerThreadId={activeMessengerThreadId}
             open={openDrawers.prompt}
             systemPromptMode={systemPromptMode}
-            onOpenPromptEditor={openPromptEditor}
+            onSaveCustomPrompt={saveCustomMessengerPrompt}
             onSystemPromptModeChange={handleMessengerSystemPromptModeChange}
             onToggle={toggleChatSettingsDrawer}
           />
@@ -592,18 +251,51 @@ export function ChatSettingsRail({
           />
         </div>
       </div>
-      <ChatSettingsPromptEditor
-        open={activePromptEditor.open && !!activeMessengerThread}
-        value={activePromptEditor.value}
-        onClose={closePromptEditor}
-        onSave={savePromptEditor}
-        onValueChange={(value) =>
-          setPromptEditor((current) => ({
-            ...current,
-            value,
-          }))
-        }
-      />
     </aside>
+  );
+}
+
+interface ChatSettingsRailHeadWithNameEditorProps {
+  activeMessengerThread: MessengerThread | null;
+  activeMessengerThreadId: string | null;
+  settingsLabel: string;
+  onCloseChatSettings: () => void;
+  onRenameMessengerThread: ShoalNav["renameMessengerThread"];
+}
+
+function ChatSettingsRailHeadWithNameEditor({
+  activeMessengerThread,
+  activeMessengerThreadId,
+  settingsLabel,
+  onCloseChatSettings,
+  onRenameMessengerThread,
+}: ChatSettingsRailHeadWithNameEditorProps) {
+  const {
+    activeChatName,
+    activeChatNameEditor,
+    cancelChatNameEdit,
+    saveChatName,
+    startChatNameEdit,
+    updateChatNameValue,
+  } = useChatSettingsNameEditor({
+    activeMessengerThread,
+    activeMessengerThreadId,
+    onRenameMessengerThread,
+  });
+
+  return (
+    <ChatSettingsRailHead
+      activeChatName={activeChatName}
+      chatNameDisabled={!activeMessengerThread}
+      chatNameEditing={activeChatNameEditor.editing}
+      chatNameValue={activeChatNameEditor.value}
+      settingsLabel={settingsLabel}
+      showChatNameEditor
+      onCancelChatNameEdit={cancelChatNameEdit}
+      onChatNameValueChange={updateChatNameValue}
+      onCloseChatSettings={onCloseChatSettings}
+      onSaveChatName={saveChatName}
+      onStartChatNameEdit={startChatNameEdit}
+    />
   );
 }
