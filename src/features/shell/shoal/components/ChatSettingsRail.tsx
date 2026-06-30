@@ -1,16 +1,9 @@
-import { useMemo, useState } from "react";
-import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
 import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
 import { ChatSettingsNameControls } from "./ChatSettingsNameControls";
 import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 import { ChatSettingsRailShell } from "./ChatSettingsRailShell";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-import { useChatSettingsMessengerActions } from "../hooks/use-chat-settings-messenger-actions";
-import {
-  CHAT_SETTINGS_DRAWER_DEFAULTS,
-  type ChatSettingsDrawerId,
-} from "../lib/chat-settings-drawers";
-import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
+import { useChatSettingsRailController } from "../hooks/use-chat-settings-rail-controller";
 import type { ShoalRailProps } from "../types";
 
 export function ChatSettingsRail({
@@ -21,21 +14,14 @@ export function ChatSettingsRail({
   onToggleShoal,
   shoalClosed,
 }: ShoalRailProps) {
-  const settingsLabel =
-    nav.selectedSurface === ROLEPLAY
-      ? "Roleplay Settings"
-      : nav.selectedSurface === MESSENGER
-        ? "Messenger Settings"
-        : "Chat Settings";
-  const activeMessengerThreadId =
-    nav.view.kind === "messenger" ? nav.view.threadId : null;
-  const activeMessengerThread = activeMessengerThreadId
-    ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
-      null
-    : null;
-  const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
-  const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
   const {
+    activeMessengerThread,
+    activeMessengerThreadId,
+    chatSettingsViewModel,
+    companionSelectorOpen,
+    isMessengerSettings,
+    openDrawers,
+    settingsLabel,
     clearMissingMessengerCompanions,
     clearMissingMessengerLorebooks,
     handleMessengerConnectionChange,
@@ -43,44 +29,13 @@ export function ChatSettingsRail({
     handleMessengerSystemPromptModeChange,
     resolveMissingMessengerConnection,
     saveCustomMessengerPrompt,
+    setCompanionSelectorOpen,
+    toggleChatSettingsDrawer,
     toggleMessengerCompanion,
     toggleMessengerLorebook,
-  } = useChatSettingsMessengerActions({
-    activeMessengerThread,
-    characters: nav.characters,
-    lorebooks: nav.lorebooks,
-    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-    onUpdateMessengerThread: nav.updateMessengerThread,
-  });
+  } = useChatSettingsRailController({ nav });
 
-  function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
-    setOpenDrawers((current) => ({
-      ...current,
-      [drawerId]: !current[drawerId],
-    }));
-  }
-
-  const chatSettingsViewModel = useMemo(
-    () =>
-      getChatSettingsViewModel({
-        activeMessengerThread,
-        appSettings: nav.appSettings,
-        characters: nav.characters,
-        lorebooks: nav.lorebooks,
-        personas: nav.personas,
-        providerConnections: nav.providerConnections,
-      }),
-    [
-      activeMessengerThread,
-      nav.appSettings,
-      nav.characters,
-      nav.lorebooks,
-      nav.personas,
-      nav.providerConnections,
-    ],
-  );
-
-  if (nav.selectedSurface !== MESSENGER) {
+  if (!isMessengerSettings) {
     return (
       <ChatSettingsRailShell
         chatSettingsOpen={chatSettingsOpen}
