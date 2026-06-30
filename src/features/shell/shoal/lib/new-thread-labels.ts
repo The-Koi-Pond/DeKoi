@@ -32,7 +32,14 @@ function formatSelectionLabel(
 ) {
   if (missingCount > 0) {
     if (names.length === 0) return missingLabel;
-    return `${names.slice(0, 2).join(" + ")} + ${missingCount} missing`;
+    const hiddenNameCount = Math.max(names.length - 2, 0);
+    return [
+      names.slice(0, 2).join(" + "),
+      hiddenNameCount > 0 ? `${hiddenNameCount} more` : "",
+      `${missingCount} missing`,
+    ]
+      .filter(Boolean)
+      .join(" + ");
   }
 
   if (names.length === 0) return emptyLabel;
