@@ -39,6 +39,7 @@ import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
+import { getInitials, getMessageClassName } from "./lib/message-view";
 import "./messenger-thread.css";
 
 export type MessengerThreadNav = Pick<
@@ -49,22 +50,6 @@ export type MessengerThreadNav = Pick<
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewState, "view">;
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function getMessageClassName(message: MessengerMessage) {
-  return message.author.kind === "persona" ||
-    (message.author.kind === "unknown" && message.author.label === "Anonymous")
-    ? "messenger-message messenger-message-own"
-    : "messenger-message";
-}
 
 function createLocalId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {

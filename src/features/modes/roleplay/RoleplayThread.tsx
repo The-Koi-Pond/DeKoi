@@ -36,6 +36,7 @@ import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
+import { getInitials, isOwnRoleplayEntry } from "./lib/message-view";
 import "./roleplay-thread.css";
 
 export type RoleplayThreadNav = Pick<
@@ -56,19 +57,6 @@ function createLocalId(prefix: string) {
 
 interface RoleplayThreadProps {
   nav: RoleplayThreadNav;
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function isOwnRoleplayEntry(entry: RoleplayEntry) {
-  return entry.role === "persona" || entry.role === "narration";
 }
 
 function RoleplayChatSettingsButton() {
