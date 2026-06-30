@@ -1,2 +1,2 @@
 export { Shoal } from "./Shoal";
-export type { ShoalNav } from "./Shoal";
+export type { ShoalNav } from "./types";
