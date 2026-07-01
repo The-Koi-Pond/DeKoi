@@ -79,6 +79,7 @@ export interface NavStorageState {
   messengerStorageStatus: MessengerStorageStatus;
   messengerStorageMessage: string;
   storageHasUnsavedChanges: boolean;
+  importRecoveryState: NavStorageImportRecoveryState;
   remoteRuntimeUrl: string;
 }
 
@@ -223,8 +224,14 @@ export interface NavRippleActions {
 
 export interface NavStorageBundleActions {
   createStorageBundle: () => DeKoiStorageBundle;
-  importStorageBundle: (bundle: DeKoiStorageBundle) => Promise<AppStorageReplaceResult>;
-  importLegacyData: (data: DeKoiLegacyImportData) => Promise<AppStorageReplaceResult>;
+  importStorageBundle: (
+    bundle: DeKoiStorageBundle,
+    options: { previewFingerprint: string; desktopBackupPath?: string | null },
+  ) => Promise<AppStorageReplaceResult>;
+  importLegacyData: (
+    data: DeKoiLegacyImportData,
+    options: { previewFingerprint: string; desktopBackupPath?: string | null },
+  ) => Promise<AppStorageReplaceResult>;
 }
 
 export type NavStorageStaleCheckResult = {
@@ -245,9 +252,40 @@ export type NavStorageReloadResult = {
   reloaded: boolean;
 };
 
+export type NavStorageFlushReason =
+  | "backup"
+  | "export"
+  | "import"
+  | "reload"
+  | "shutdown"
+  | "manual";
+
+export type NavStorageFlushResult = {
+  mode: MessengerStorageMode;
+  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  message: string;
+  flushed: boolean;
+  blocked: boolean;
+  dirtyCollectionKeys: AppStorageCollectionKey[];
+  savedCollectionKeys: AppStorageCollectionKey[];
+  failedCollectionKeys: AppStorageCollectionKey[];
+};
+
+export type NavStorageImportRecoveryState = {
+  available: boolean;
+  createdAt: string | null;
+  counts: Record<AppStorageCollectionKey, number> | null;
+  desktopBackupPath?: string | null;
+  reason: "partial-import-failure" | "unexpected-import-failure" | null;
+};
+
 export interface NavStorageActions {
   checkAppStorageStale: () => Promise<NavStorageStaleCheckResult>;
+  flushAppStorageSaves: (options?: {
+    reason?: NavStorageFlushReason;
+  }) => Promise<NavStorageFlushResult>;
   reloadAppStorage: () => Promise<NavStorageReloadResult>;
+  restoreLastPreImportBackup: () => Promise<AppStorageReplaceResult>;
 }
 
 export interface NavCareActions {

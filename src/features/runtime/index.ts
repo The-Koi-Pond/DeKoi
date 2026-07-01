@@ -46,6 +46,7 @@ export {
 } from "./ripples";
 export {
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   exportDesktopBundleFile,
   getDeKoiStorageBundleCounts,
   importDesktopBundleFile,

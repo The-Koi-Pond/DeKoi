@@ -1,15 +1,19 @@
 import { useCallback } from "react";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
+import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import { attachMessengerMessagesToThreads } from "../../../engine/contracts/types/messenger";
 import { attachRoleplayEntriesToThreads } from "../../../engine/contracts/types/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
+  APP_STORAGE_COLLECTION_KEYS,
+  appStorageCollectionCount,
   type AppStorageRecords,
   type AppStorageReplaceResult,
 } from "../../runtime";
 import {
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   type DeKoiLegacyImportData,
   type DeKoiStorageBundle,
 } from "../../runtime";
@@ -22,8 +26,74 @@ type UseAppImportExportActionsInput = AppStorageRecords & {
   setView: (view: PondView) => void;
   commitAppStorageImport: (
     records: AppStorageRecords,
+    options?: { desktopBackupPath?: string | null },
   ) => Promise<AppStorageReplaceResult>;
 };
+
+type ImportCommitOptions = {
+  previewFingerprint: string;
+  desktopBackupPath?: string | null;
+};
+
+function createImportActionErrorResult(
+  records: AppStorageRecords,
+  message: string,
+): AppStorageReplaceResult {
+  return {
+    mode: "unavailable",
+    status: "error",
+    message,
+    counts: Object.fromEntries(
+      APP_STORAGE_COLLECTION_KEYS.map((collectionKey) => [
+        collectionKey,
+        appStorageCollectionCount(records, collectionKey),
+      ]),
+    ) as AppStorageReplaceResult["counts"],
+    collections: [],
+    failedCollectionKey: null,
+    requiresReload: false,
+    rollbackAvailable: false,
+    rollbackMessage:
+      "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.",
+    storageMetadata: {},
+  };
+}
+
+export function prepareLegacyImportData(
+  data: DeKoiLegacyImportData,
+): DeKoiLegacyImportData {
+  return {
+    ...data,
+    messengerThreads: data.messengerThreads.map((thread) => {
+      const id = createRecordId("messenger-thread");
+      return {
+        ...thread,
+        id,
+        messages: thread.messages.map((message) => ({
+          ...message,
+          threadId: id,
+        })),
+      };
+    }),
+  };
+}
+
+export function createLegacyImportDataFingerprint(
+  data: DeKoiLegacyImportData,
+) {
+  return createDeKoiStorageBundleFingerprint(
+    createDeKoiStorageBundle({
+      appSettings: DEFAULT_APP_SETTINGS,
+      characters: [],
+      roleplayThreads: [],
+      personas: [],
+      lorebooks: [],
+      providerConnections: [],
+      messengerThreads: data.messengerThreads,
+      rippleStates: [],
+    }),
+  );
+}
 
 export function useAppImportExportActions({
   appSettings,
@@ -63,7 +133,7 @@ export function useAppImportExportActions({
   );
 
   const importStorageBundle = useCallback(
-    async (bundle: DeKoiStorageBundle) => {
+    async (bundle: DeKoiStorageBundle, options: ImportCommitOptions) => {
       const importedConnections = bundle.data.providerConnections;
       const importedRoleplayThreads = attachRoleplayEntriesToThreads(
         bundle.data.roleplayThreads,
@@ -97,7 +167,17 @@ export function useAppImportExportActions({
         rippleStates: bundle.data.rippleStates,
       };
 
-      const storageResult = await commitAppStorageImport(importedRecords);
+      const actualFingerprint = createDeKoiStorageBundleFingerprint(bundle);
+      if (actualFingerprint !== options.previewFingerprint) {
+        return createImportActionErrorResult(
+          importedRecords,
+          "Import preview no longer matches the bundle to commit. Preview the file again before importing.",
+        );
+      }
+
+      const storageResult = await commitAppStorageImport(importedRecords, {
+        desktopBackupPath: options.desktopBackupPath,
+      });
 
       if (storageResult.status !== "ready") {
         return storageResult;
@@ -115,19 +195,8 @@ export function useAppImportExportActions({
   );
 
   const importLegacyData = useCallback(
-    async (data: DeKoiLegacyImportData) => {
-      const importedThreads = data.messengerThreads.map((thread) => {
-        const id = createRecordId("messenger-thread");
-        return {
-          ...thread,
-          id,
-          messages: thread.messages.map((message) => ({
-            ...message,
-            threadId: id,
-          })),
-        };
-      });
-      const firstImportedThreadId = importedThreads[0]?.id ?? null;
+    async (data: DeKoiLegacyImportData, options: ImportCommitOptions) => {
+      const firstImportedThreadId = data.messengerThreads[0]?.id ?? null;
 
       const importedRecords: AppStorageRecords = {
         appSettings,
@@ -136,11 +205,21 @@ export function useAppImportExportActions({
         lorebooks,
         providerConnections,
         roleplayThreads,
-        messengerThreads: [...importedThreads, ...messengerThreads],
+        messengerThreads: [...data.messengerThreads, ...messengerThreads],
         rippleStates,
       };
 
-      const storageResult = await commitAppStorageImport(importedRecords);
+      const actualFingerprint = createLegacyImportDataFingerprint(data);
+      if (actualFingerprint !== options.previewFingerprint) {
+        return createImportActionErrorResult(
+          importedRecords,
+          "Legacy import preview no longer matches the converted records to commit. Preview the file again before importing.",
+        );
+      }
+
+      const storageResult = await commitAppStorageImport(importedRecords, {
+        desktopBackupPath: options.desktopBackupPath,
+      });
       if (storageResult.status !== "ready") return storageResult;
 
       setSelectedSurface(MESSENGER);
