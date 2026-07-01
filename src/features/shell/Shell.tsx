@@ -61,7 +61,7 @@ export function Shell({ nav }: ShellProps) {
         shoalClosed={shoalClosed}
         onToggleShoal={() => setShoalClosed((closed) => !closed)}
       />
-      <Pond nav={nav} />
+      <Pond nav={nav} onOpenShoal={() => setShoalClosed(false)} />
       <Tide nav={nav} />
       <CareDrawer nav={nav} />
     </div>

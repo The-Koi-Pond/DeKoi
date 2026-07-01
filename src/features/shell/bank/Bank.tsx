@@ -48,7 +48,7 @@ const DIVES: { mode: SurfaceId; icon: React.ReactNode }[] = [
 ];
 
 const RAILS: {
-  view: Exclude<SideRailView, "shoal" | "connections">;
+  view: Exclude<SideRailView, "shoal" | "chat-settings" | "connections">;
   label: string;
   note: string;
   icon: React.ReactNode;

@@ -46,6 +46,7 @@ export type PondView =
 
 export type SideRailView =
   | "shoal"
+  | "chat-settings"
   | "lorebooks"
   | "people"
   | "media"
