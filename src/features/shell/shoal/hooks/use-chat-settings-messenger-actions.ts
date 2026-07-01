@@ -13,7 +13,7 @@ import {
 import type {
   ChatSettingsMessengerIdentityActions,
   ChatSettingsMessengerPromptActions,
-  ChatSettingsMessengerResourceActions,
+  ChatSettingsMessengerThreadResourceActions,
 } from "../lib/chat-settings-controller-groups";
 import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
@@ -138,10 +138,9 @@ export function useChatSettingsMessengerActions({
     onSaveCustomPrompt: saveCustomMessengerPrompt,
     onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
   };
-  const resourceActions: ChatSettingsMessengerResourceActions = {
+  const resourceActions: ChatSettingsMessengerThreadResourceActions = {
     clearMissingCompanions: clearMissingMessengerCompanions,
     clearMissingLorebooks: clearMissingMessengerLorebooks,
-    onSelectorOpenChange: onCompanionSelectorOpenChange,
     onToggleCompanion: toggleMessengerCompanion,
     onToggleLorebook: toggleMessengerLorebook,
   };

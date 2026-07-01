@@ -23,12 +23,16 @@ export interface ChatSettingsMessengerIdentityActions {
   onResolveMissingConnection: (connectionId: string | null) => void;
 }
 
-export interface ChatSettingsMessengerResourceActions {
+export interface ChatSettingsMessengerThreadResourceActions {
   clearMissingCompanions: () => void;
   clearMissingLorebooks: () => void;
-  onSelectorOpenChange: (open: boolean) => void;
   onToggleCompanion: (characterId: string) => void;
   onToggleLorebook: (lorebookId: string) => void;
+}
+
+export interface ChatSettingsMessengerResourceActions
+  extends ChatSettingsMessengerThreadResourceActions {
+  onSelectorOpenChange: (open: boolean) => void;
 }
 
 export interface ChatSettingsMessengerPromptActions {
