@@ -55,7 +55,7 @@ export function getChatSettingsMessengerDrawerModels({
     activeMessengerThreadId,
     advanced: getChatSettingsAdvancedDrawerModel({
       appSettings,
-      open: openDrawers.advanced,
+      open: chatSettingsActive && openDrawers.advanced,
       settingsLabel,
     }),
     companionSelectorOpen,

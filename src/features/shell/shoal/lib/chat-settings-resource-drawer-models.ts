@@ -49,7 +49,7 @@ export function getChatSettingsResourceDrawerModels({
     companion: {
       activeMessengerThread,
       missingCompanionCount: viewModel.missingCompanionCount,
-      open: openDrawers.companions,
+      open: activeMessengerThread && openDrawers.companions,
       selectedCompanionCount: viewModel.selectedCompanionCount,
       selectedCompanionIds: viewModel.selectedCompanionIds,
       selectionLabel: viewModel.companionSelectionLabel,
@@ -58,13 +58,13 @@ export function getChatSettingsResourceDrawerModels({
     lorebook: {
       activeMessengerThread,
       missingLorebookCount: viewModel.missingLorebookCount,
-      open: openDrawers.lorebooks,
+      open: activeMessengerThread && openDrawers.lorebooks,
       selectedLorebookIds: viewModel.selectedLorebookIds,
       summary: viewModel.lorebookDrawerSummary,
     },
     prompt: {
       activeMessengerThread,
-      open: openDrawers.prompt,
+      open: activeMessengerThread && openDrawers.prompt,
       systemPromptMode: viewModel.systemPromptMode,
     },
   };

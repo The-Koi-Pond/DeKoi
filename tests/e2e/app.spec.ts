@@ -18,6 +18,7 @@ import {
   attachMessengerMessagesToThreads,
   extractMessengerMessages,
   toMessengerThreadRecord,
+  type MessengerThread,
 } from "../../src/engine/contracts/types/messenger";
 import {
   appendRoleplayEntries,
@@ -45,6 +46,9 @@ import {
   normalizeDeKoiStorageBundle,
 } from "../../src/runtime";
 import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/collections/provider-connection-storage";
+import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/lib/chat-settings-drawers";
+import { getChatSettingsMessengerDrawerModels } from "../../src/features/shell/shoal/lib/chat-settings-messenger-drawer-models";
+import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -67,6 +71,28 @@ type RuntimeCall = {
   entity: StorageEntity | null;
 };
 type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
+
+function createChatSettingsViewModel(
+  activeMessengerThread: MessengerThread | null,
+) {
+  return getChatSettingsViewModel({
+    activeMessengerThread,
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [],
+  });
+}
+
+function createOpenChatSettingsDrawers() {
+  return Object.fromEntries(
+    Object.keys(CHAT_SETTINGS_DRAWER_DEFAULTS).map((drawerId) => [
+      drawerId,
+      true,
+    ]),
+  ) as typeof CHAT_SETTINGS_DRAWER_DEFAULTS;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -432,6 +458,54 @@ test("app shell renders the primary DeKoi surfaces", async ({ page }) => {
   await expect(modePools.getByRole("button", { name: "Roleplay" })).toBeVisible();
 
   expect(pageErrors).toEqual([]);
+});
+
+test("chat settings drawer models align active state with open state", () => {
+  const openDrawers = createOpenChatSettingsDrawers();
+  const inactiveModels = getChatSettingsMessengerDrawerModels({
+    appSettings: DEFAULT_APP_SETTINGS,
+    settings: {
+      activeMessengerThread: null,
+      activeMessengerThreadId: null,
+      chatSettingsViewModel: createChatSettingsViewModel(null),
+      companionSelectorOpen: true,
+      openDrawers,
+    },
+    settingsLabel: "Messenger Settings",
+  });
+
+  expect(inactiveModels.advanced.open).toBe(false);
+  expect(inactiveModels.identity.connection.open).toBe(false);
+  expect(inactiveModels.identity.persona.open).toBe(false);
+  expect(inactiveModels.resources.companion.open).toBe(false);
+  expect(inactiveModels.resources.lorebook.open).toBe(false);
+  expect(inactiveModels.resources.prompt.open).toBe(false);
+
+  const activeMessengerThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "thread-1",
+    now: "2026-01-01T00:00:00.000Z",
+    title: "Messenger",
+  });
+  const activeModels = getChatSettingsMessengerDrawerModels({
+    appSettings: DEFAULT_APP_SETTINGS,
+    settings: {
+      activeMessengerThread,
+      activeMessengerThreadId: activeMessengerThread.id,
+      chatSettingsViewModel: createChatSettingsViewModel(activeMessengerThread),
+      companionSelectorOpen: true,
+      openDrawers,
+    },
+    settingsLabel: "Messenger Settings",
+  });
+
+  expect(activeModels.advanced.open).toBe(true);
+  expect(activeModels.identity.connection.open).toBe(true);
+  expect(activeModels.identity.persona.open).toBe(true);
+  expect(activeModels.resources.companion.open).toBe(true);
+  expect(activeModels.resources.lorebook.open).toBe(true);
+  expect(activeModels.resources.prompt.open).toBe(true);
 });
 
 test("storage import reload decision falls back to completed collections", () => {
