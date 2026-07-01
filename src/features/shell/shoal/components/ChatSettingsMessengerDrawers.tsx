@@ -1,72 +1,49 @@
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
 import { ChatSettingsMessengerResourceSection } from "./ChatSettingsMessengerResourceSection";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
-import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
+import type {
+  ChatSettingsMessengerActionGroup,
+  ChatSettingsMessengerSettings,
+} from "../lib/chat-settings-controller-groups";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerDrawersProps {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
+  actions: ChatSettingsMessengerActionGroup;
   appSettings: ShoalRailProps["nav"]["appSettings"];
   characters: ShoalRailProps["nav"]["characters"];
-  companionSelectorOpen: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
   personas: ShoalRailProps["nav"]["personas"];
+  settings: ChatSettingsMessengerSettings;
   settingsLabel: string;
-  viewModel: ChatSettingsViewModel;
-  onClearMissingCompanions: () => void;
-  onClearMissingLorebooks: () => void;
-  onConnectionChange: (connectionId: string) => void;
   onCreateCompanion: () => void;
   onCreateConnection: () => void;
   onCreateLorebook: () => void;
   onCreateMessengerThread: () => void;
-  onPersonaChange: (personaId: string) => void;
-  onResolveMissingConnection: (connectionId: string | null) => void;
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSelectorOpenChange: (open: boolean) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
-  onToggleCompanion: (characterId: string) => void;
-  onToggleLorebook: (lorebookId: string) => void;
   onUpdateAppSettings: ShoalRailProps["nav"]["updateAppSettings"];
 }
 
 export function ChatSettingsMessengerDrawers({
-  activeMessengerThread,
-  activeMessengerThreadId,
+  actions,
   appSettings,
   characters,
-  companionSelectorOpen,
   lorebooks,
-  openDrawers,
   personas,
+  settings,
   settingsLabel,
-  viewModel,
-  onClearMissingCompanions,
-  onClearMissingLorebooks,
-  onConnectionChange,
   onCreateCompanion,
   onCreateConnection,
   onCreateLorebook,
   onCreateMessengerThread,
-  onPersonaChange,
-  onResolveMissingConnection,
-  onSaveCustomPrompt,
-  onSelectorOpenChange,
-  onSystemPromptModeChange,
-  onToggle,
-  onToggleCompanion,
-  onToggleLorebook,
   onUpdateAppSettings,
 }: ChatSettingsMessengerDrawersProps) {
+  const {
+    activeMessengerThread,
+    activeMessengerThreadId,
+    chatSettingsViewModel,
+    companionSelectorOpen,
+    openDrawers,
+  } = settings;
   const active = !!activeMessengerThread;
 
   return (
@@ -84,15 +61,16 @@ export function ChatSettingsMessengerDrawers({
         activeMessengerThread={active}
         openDrawers={openDrawers}
         personas={personas}
-        viewModel={viewModel}
-        onConnectionChange={onConnectionChange}
+        viewModel={chatSettingsViewModel}
+        onConnectionChange={actions.identity.onConnectionChange}
         onCreateConnection={onCreateConnection}
-        onPersonaChange={onPersonaChange}
-        onResolveMissingConnection={onResolveMissingConnection}
-        onToggle={onToggle}
+        onPersonaChange={actions.identity.onPersonaChange}
+        onResolveMissingConnection={actions.identity.onResolveMissingConnection}
+        onToggle={actions.drawers.onToggle}
       />
 
       <ChatSettingsMessengerResourceSection
+        actions={actions}
         activeMessengerThread={active}
         activeMessengerThreadRecord={activeMessengerThread}
         activeMessengerThreadId={activeMessengerThreadId}
@@ -100,24 +78,16 @@ export function ChatSettingsMessengerDrawers({
         companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}
         openDrawers={openDrawers}
-        viewModel={viewModel}
-        onClearMissingCompanions={onClearMissingCompanions}
-        onClearMissingLorebooks={onClearMissingLorebooks}
         onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
-        onSaveCustomPrompt={onSaveCustomPrompt}
-        onSelectorOpenChange={onSelectorOpenChange}
-        onSystemPromptModeChange={onSystemPromptModeChange}
-        onToggle={onToggle}
-        onToggleCompanion={onToggleCompanion}
-        onToggleLorebook={onToggleLorebook}
+        viewModel={chatSettingsViewModel}
       />
 
       <ChatSettingsAdvancedDrawer
         appSettings={appSettings}
         open={openDrawers.advanced}
         settingsLabel={settingsLabel}
-        onToggle={onToggle}
+        onToggle={actions.drawers.onToggle}
         updateAppSettings={onUpdateAppSettings}
       />
     </div>

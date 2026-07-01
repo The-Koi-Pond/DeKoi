@@ -1,17 +1,19 @@
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import {
   ChatSettingsCompanionResourceDrawer,
   ChatSettingsLorebookResourceDrawer,
 } from "./ChatSettingsResourceDrawers";
+import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
+  actions: Pick<
+    ChatSettingsMessengerActionGroup,
+    "drawers" | "prompt" | "resources"
+  >;
   activeMessengerThread: boolean;
   activeMessengerThreadId: string | null;
   activeMessengerThreadRecord: MessengerThread | null;
@@ -20,19 +22,12 @@ interface ChatSettingsMessengerResourceSectionProps {
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   openDrawers: Record<ChatSettingsDrawerId, boolean>;
   viewModel: ChatSettingsViewModel;
-  onClearMissingCompanions: () => void;
-  onClearMissingLorebooks: () => void;
   onCreateCompanion: () => void;
   onCreateLorebook: () => void;
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSelectorOpenChange: (open: boolean) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
-  onToggleCompanion: (characterId: string) => void;
-  onToggleLorebook: (lorebookId: string) => void;
 }
 
 export function ChatSettingsMessengerResourceSection({
+  actions,
   activeMessengerThread,
   activeMessengerThreadId,
   activeMessengerThreadRecord,
@@ -41,16 +36,8 @@ export function ChatSettingsMessengerResourceSection({
   lorebooks,
   openDrawers,
   viewModel,
-  onClearMissingCompanions,
-  onClearMissingLorebooks,
   onCreateCompanion,
   onCreateLorebook,
-  onSaveCustomPrompt,
-  onSelectorOpenChange,
-  onSystemPromptModeChange,
-  onToggle,
-  onToggleCompanion,
-  onToggleLorebook,
 }: ChatSettingsMessengerResourceSectionProps) {
   return (
     <>
@@ -60,11 +47,11 @@ export function ChatSettingsMessengerResourceSection({
         companionSelectorOpen={companionSelectorOpen}
         openDrawers={openDrawers}
         viewModel={viewModel}
-        onClearMissingCompanions={onClearMissingCompanions}
+        onClearMissingCompanions={actions.resources.clearMissingCompanions}
         onCreateCompanion={onCreateCompanion}
-        onSelectorOpenChange={onSelectorOpenChange}
-        onToggle={onToggle}
-        onToggleCompanion={onToggleCompanion}
+        onSelectorOpenChange={actions.resources.onSelectorOpenChange}
+        onToggle={actions.drawers.onToggle}
+        onToggleCompanion={actions.resources.onToggleCompanion}
       />
 
       <ChatSettingsPromptControls
@@ -74,9 +61,9 @@ export function ChatSettingsMessengerResourceSection({
         activeMessengerThreadId={activeMessengerThreadId}
         open={openDrawers.prompt}
         systemPromptMode={viewModel.systemPromptMode}
-        onSaveCustomPrompt={onSaveCustomPrompt}
-        onSystemPromptModeChange={onSystemPromptModeChange}
-        onToggle={onToggle}
+        onSaveCustomPrompt={actions.prompt.onSaveCustomPrompt}
+        onSystemPromptModeChange={actions.prompt.onSystemPromptModeChange}
+        onToggle={actions.drawers.onToggle}
       />
 
       <ChatSettingsLorebookResourceDrawer
@@ -84,10 +71,10 @@ export function ChatSettingsMessengerResourceSection({
         lorebooks={lorebooks}
         openDrawers={openDrawers}
         viewModel={viewModel}
-        onClearMissingLorebooks={onClearMissingLorebooks}
+        onClearMissingLorebooks={actions.resources.clearMissingLorebooks}
         onCreateLorebook={onCreateLorebook}
-        onToggle={onToggle}
-        onToggleLorebook={onToggleLorebook}
+        onToggle={actions.drawers.onToggle}
+        onToggleLorebook={actions.resources.onToggleLorebook}
       />
     </>
   );
