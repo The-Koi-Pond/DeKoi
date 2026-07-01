@@ -133,6 +133,13 @@
   min-width: 0;
 }
 
+.thread-generation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  align-items: center;
+}
+
 .thread-generation-notice button {
   display: grid;
   width: 22px;
@@ -147,6 +154,19 @@
   font-size: 16px;
   line-height: 1;
   opacity: 0.72;
+}
+
+.thread-generation-notice .thread-generation-action {
+  width: auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 9px;
+  border-color: currentColor;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0.9;
 }
 
 .thread-generation-notice button:hover,

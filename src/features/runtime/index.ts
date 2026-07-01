@@ -64,6 +64,8 @@ export {
   type DeKoiStorageBundlePreview,
 } from "./storage";
 export {
+  describeGenerationFailureNotice,
+  describeGenerationReadinessFailure,
   formatGenerationFailureNotice,
   formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
@@ -72,6 +74,8 @@ export {
   selectGenerationRuntime,
   type GenerationConnectionReadiness,
   type GenerationConnectionReadinessFailureCode,
+  type GenerationFailureNotice,
+  type GenerationFailureRecoveryTarget,
   type GenerationRuntimeMode,
   type GenerationRuntimeSnapshot,
 } from "./generation";

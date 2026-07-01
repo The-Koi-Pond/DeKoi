@@ -32,6 +32,7 @@ import {
 } from "../../src/engine/contracts/types/roleplay";
 import {
   APP_STORAGE_COLLECTION_KEYS,
+  describeGenerationFailureNotice,
   formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   saveAppStorageCollections,
@@ -50,6 +51,7 @@ import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/col
 import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/lib/chat-settings-drawers";
 import { getChatSettingsMessengerDrawerModels } from "../../src/features/shell/shoal/lib/chat-settings-messenger-drawer-models";
 import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
+import { getGenerationNoticeAction } from "../../src/features/modes/shared/generation-notice";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -1473,6 +1475,79 @@ test("provider generation readiness blocks desktop-key providers in browser mode
   if (ready.ready) {
     expect(ready.connection.id).toBe("connection-custom");
   }
+});
+
+test("provider generation failure notices point to useful recovery", () => {
+  expect(getGenerationNoticeAction("new-connection", null)).toEqual({
+    kind: "create-connection",
+    label: "Create connection",
+  });
+  expect(getGenerationNoticeAction("connections", "connection-openai")).toEqual({
+    kind: "open-connection",
+    label: "Open connection",
+    connectionId: "connection-openai",
+  });
+  expect(getGenerationNoticeAction("connections", null)).toEqual({
+    kind: "open-connection",
+    label: "Open Connections",
+    connectionId: null,
+  });
+
+  const missingConnection = describeGenerationFailureNotice(
+    new Error(
+      "Provider Messenger generation failed. Generation needs a configured provider connection.",
+    ),
+    "Messenger generation failed.",
+  );
+
+  expect(missingConnection.message).toContain("provider connection");
+  expect(missingConnection.recoveryTarget).toBe("new-connection");
+
+  const rejectedKey = describeGenerationFailureNotice(
+    new Error(
+      "Provider Messenger generation failed. Provider returned HTTP 401 Unauthorized: invalid_api_key",
+    ),
+    "Messenger generation failed.",
+  );
+
+  expect(rejectedKey.message).toContain("API key");
+  expect(rejectedKey.message).toContain("invalid_api_key");
+  expect(rejectedKey.recoveryTarget).toBe("connections");
+
+  const unavailableModel = describeGenerationFailureNotice(
+    new Error(
+      "Provider returned HTTP 400 Bad Request: The selected model is not available for this key.",
+    ),
+    "Messenger generation failed.",
+  );
+
+  expect(unavailableModel.message).toContain("model");
+  expect(unavailableModel.message).toContain("not available");
+  expect(unavailableModel.recoveryTarget).toBe("connections");
+
+  const rateLimit = describeGenerationFailureNotice(
+    "Provider returned HTTP 429 Too Many Requests: rate limit exceeded",
+    "Messenger generation failed.",
+  );
+
+  expect(rateLimit.message).toContain("rate limit");
+  expect(rateLimit.recoveryTarget).toBeUndefined();
+
+  const corsBlocked = describeGenerationFailureNotice(
+    "TypeError: CORS request blocked",
+    "Messenger generation failed.",
+  );
+
+  expect(corsBlocked.message).toContain("Browser provider request was blocked");
+  expect(corsBlocked.recoveryTarget).toBe("connections");
+
+  const noText = describeGenerationFailureNotice(
+    "Provider returned no text (finish reason: length).",
+    "Provider generation did not return a Messenger reply.",
+  );
+
+  expect(noText.message).toContain("did not return text");
+  expect(noText.recoveryTarget).toBeUndefined();
 });
 
 test("storage bundles merge split transcript rows against final thread records", () => {
