@@ -27,10 +27,16 @@ interface ChatSettingsResourceDrawerModelsInput {
   viewModel: ChatSettingsViewModel;
 }
 
+interface ChatSettingsResourceDrawerModels {
+  companion: ChatSettingsCompanionResourceModel;
+  lorebook: ChatSettingsLorebookResourceModel;
+  prompt: ChatSettingsPromptResourceModel;
+}
+
 export function getChatSettingsResourceDrawerModels({
   openDrawers,
   viewModel,
-}: ChatSettingsResourceDrawerModelsInput) {
+}: ChatSettingsResourceDrawerModelsInput): ChatSettingsResourceDrawerModels {
   return {
     companion: {
       missingCompanionCount: viewModel.missingCompanionCount,
