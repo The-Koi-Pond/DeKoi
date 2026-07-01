@@ -4,6 +4,7 @@ import type {
 } from "../../../../engine/contracts/types/messenger";
 import { useChatSettingsPromptEditor } from "../hooks/use-chat-settings-prompt-editor";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
+import type { ChatSettingsPromptResourceModel } from "../lib/chat-settings-resource-drawer-models";
 import { ChatSettingsPromptDrawer } from "./ChatSettingsPromptDrawer";
 import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
 
@@ -11,8 +12,7 @@ interface ChatSettingsPromptControlsProps {
   activeMessengerThread: boolean;
   activeMessengerThreadRecord: MessengerThread | null;
   activeMessengerThreadId: string | null;
-  open: boolean;
-  systemPromptMode: MessengerSystemPromptMode;
+  model: ChatSettingsPromptResourceModel;
   onSaveCustomPrompt: (threadId: string, prompt: string) => void;
   onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
@@ -22,8 +22,7 @@ export function ChatSettingsPromptControls({
   activeMessengerThread,
   activeMessengerThreadRecord,
   activeMessengerThreadId,
-  open,
-  systemPromptMode,
+  model,
   onSaveCustomPrompt,
   onSystemPromptModeChange,
   onToggle,
@@ -44,8 +43,8 @@ export function ChatSettingsPromptControls({
     <>
       <ChatSettingsPromptDrawer
         activeMessengerThread={activeMessengerThread}
-        open={open}
-        systemPromptMode={systemPromptMode}
+        open={model.open}
+        systemPromptMode={model.systemPromptMode}
         onOpenPromptEditor={openPromptEditor}
         onSystemPromptModeChange={onSystemPromptModeChange}
         onToggle={onToggle}
