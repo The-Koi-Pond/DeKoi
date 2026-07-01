@@ -2,7 +2,7 @@ import type {
   MessengerSystemPromptMode,
   MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
-import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
+import { ChatSettingsMessengerDrawerHost } from "./ChatSettingsMessengerDrawerHost";
 import { ChatSettingsNameControls } from "./ChatSettingsNameControls";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
@@ -61,30 +61,17 @@ export function ChatSettingsMessengerRailContent({
         onCloseChatSettings={onCloseChatSettings}
         onRenameMessengerThread={nav.renameMessengerThread}
       />
-      <ChatSettingsMessengerDrawers
+      <ChatSettingsMessengerDrawerHost
         activeMessengerThread={activeMessengerThread}
         activeMessengerThreadId={activeMessengerThreadId}
-        appSettings={nav.appSettings}
-        characters={nav.characters}
+        chatSettingsViewModel={chatSettingsViewModel}
         companionSelectorOpen={companionSelectorOpen}
-        lorebooks={nav.lorebooks}
+        nav={nav}
         openDrawers={openDrawers}
-        personas={nav.personas}
         settingsLabel={settingsLabel}
-        viewModel={chatSettingsViewModel}
         onClearMissingCompanions={onClearMissingCompanions}
         onClearMissingLorebooks={onClearMissingLorebooks}
         onConnectionChange={onConnectionChange}
-        onCreateCompanion={() =>
-          nav.setView({ kind: "companions", mode: "new" })
-        }
-        onCreateConnection={() =>
-          nav.setView({ kind: "connections", mode: "new" })
-        }
-        onCreateLorebook={() =>
-          nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
-        }
-        onCreateMessengerThread={nav.createMessengerThread}
         onPersonaChange={onPersonaChange}
         onResolveMissingConnection={onResolveMissingConnection}
         onSaveCustomPrompt={onSaveCustomPrompt}
@@ -93,7 +80,6 @@ export function ChatSettingsMessengerRailContent({
         onToggle={onToggle}
         onToggleCompanion={onToggleCompanion}
         onToggleLorebook={onToggleLorebook}
-        onUpdateAppSettings={nav.updateAppSettings}
       />
     </>
   );
