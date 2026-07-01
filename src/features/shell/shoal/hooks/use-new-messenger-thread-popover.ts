@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { NewThreadLabels } from "../lib/new-thread-labels";
+import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
 interface UseNewMessengerThreadPopoverInput {
@@ -61,10 +62,9 @@ export function useNewMessengerThreadPopover({
   }
 
   function toggleNewMessengerCharacter(characterId: string) {
-    const nextIds = newMessengerCharacterIds.includes(characterId)
-      ? newMessengerCharacterIds.filter((id) => id !== characterId)
-      : [...newMessengerCharacterIds, characterId];
-    updateNewMessengerCharacterIds(nextIds);
+    updateNewMessengerCharacterIds(
+      toggleSelectedId(newMessengerCharacterIds, characterId),
+    );
   }
 
   function handleCreateMessengerThread(event: FormEvent<HTMLFormElement>) {

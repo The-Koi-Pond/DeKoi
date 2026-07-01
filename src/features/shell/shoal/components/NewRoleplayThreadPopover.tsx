@@ -4,10 +4,8 @@ import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import { NewThreadActions } from "./NewThreadActions";
-import { NewThreadConnectionField } from "./NewThreadConnectionField";
-import { NewThreadPersonaField } from "./NewThreadPersonaField";
+import { NewThreadIdentityFields } from "./NewThreadIdentityFields";
 import { NewThreadPopoverFrame } from "./NewThreadPopoverFrame";
-import { NewThreadTextField } from "./NewThreadTextField";
 import { NewRoleplayThreadResourceFields } from "./NewRoleplayThreadResourceFields";
 
 interface NewRoleplayThreadPopoverProps {
@@ -70,22 +68,17 @@ export function NewRoleplayThreadPopover({
       onClose={onClose}
       onSubmit={onSubmit}
     >
-      <NewThreadTextField
-        label="Thread Name"
-        placeholder={namePlaceholder}
-        value={name}
-        onChange={onNameChange}
-      />
-      <NewThreadConnectionField
+      <NewThreadIdentityFields
+        connectionId={connectionId}
         connections={connections}
-        value={connectionId}
-        onChange={onConnectionChange}
-      />
-      <NewThreadPersonaField
-        emptyLabel="No persona"
+        name={name}
+        namePlaceholder={namePlaceholder}
+        personaEmptyLabel="No persona"
+        personaId={personaId}
         personas={personas}
-        value={personaId}
-        onChange={onPersonaChange}
+        onConnectionChange={onConnectionChange}
+        onNameChange={onNameChange}
+        onPersonaChange={onPersonaChange}
       />
       <NewRoleplayThreadResourceFields
         characterIds={characterIds}

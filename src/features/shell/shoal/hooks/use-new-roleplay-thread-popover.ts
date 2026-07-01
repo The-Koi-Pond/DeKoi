@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import type { NewThreadLabels } from "../lib/new-thread-labels";
+import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
 interface UseNewRoleplayThreadPopoverInput {
@@ -79,17 +80,14 @@ export function useNewRoleplayThreadPopover({
   }
 
   function toggleNewRoleplayCharacter(characterId: string) {
-    const nextIds = newRoleplayCharacterIds.includes(characterId)
-      ? newRoleplayCharacterIds.filter((id) => id !== characterId)
-      : [...newRoleplayCharacterIds, characterId];
-    updateNewRoleplayCharacterIds(nextIds);
+    updateNewRoleplayCharacterIds(
+      toggleSelectedId(newRoleplayCharacterIds, characterId),
+    );
   }
 
   function toggleNewRoleplayLorebook(lorebookId: string) {
     setNewRoleplayLorebookIds((currentIds) =>
-      currentIds.includes(lorebookId)
-        ? currentIds.filter((id) => id !== lorebookId)
-        : [...currentIds, lorebookId],
+      toggleSelectedId(currentIds, lorebookId),
     );
   }
 

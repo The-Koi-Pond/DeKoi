@@ -2,12 +2,10 @@ import type { FormEventHandler } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
+import { NewMessengerThreadResourceFields } from "./NewMessengerThreadResourceFields";
 import { NewThreadActions } from "./NewThreadActions";
-import { NewThreadCharacterDropdown } from "./NewThreadCharacterDropdown";
-import { NewThreadConnectionField } from "./NewThreadConnectionField";
-import { NewThreadPersonaField } from "./NewThreadPersonaField";
+import { NewThreadIdentityFields } from "./NewThreadIdentityFields";
 import { NewThreadPopoverFrame } from "./NewThreadPopoverFrame";
-import { NewThreadTextField } from "./NewThreadTextField";
 
 interface NewMessengerThreadPopoverProps {
   characterIds: string[];
@@ -57,32 +55,24 @@ export function NewMessengerThreadPopover({
       onClose={onClose}
       onSubmit={onSubmit}
     >
-      <NewThreadTextField
-        label="Thread Name"
-        placeholder={namePlaceholder}
-        value={name}
-        onChange={onNameChange}
-      />
-      <NewThreadConnectionField
+      <NewThreadIdentityFields
+        connectionId={connectionId}
         connections={connections}
-        value={connectionId}
-        onChange={onConnectionChange}
-      />
-      <NewThreadPersonaField
-        emptyLabel="Anonymous"
+        name={name}
+        namePlaceholder={namePlaceholder}
+        personaEmptyLabel="Anonymous"
+        personaId={personaId}
         personas={personas}
-        value={personaId}
-        onChange={onPersonaChange}
+        onConnectionChange={onConnectionChange}
+        onNameChange={onNameChange}
+        onPersonaChange={onPersonaChange}
       />
-      <NewThreadCharacterDropdown
+      <NewMessengerThreadResourceFields
+        characterIds={characterIds}
         characters={characters}
-        emptyMessage="Add a companion before casting a Messenger thread."
-        labelId="new-thread-companions-label"
-        menuId="new-thread-companion-menu"
-        open={companionMenuOpen}
-        selectedIds={characterIds}
-        selectionLabel={companionLabel}
-        onOpenChange={onCompanionMenuOpenChange}
+        companionLabel={companionLabel}
+        companionMenuOpen={companionMenuOpen}
+        onCompanionMenuOpenChange={onCompanionMenuOpenChange}
         onToggleCharacter={onToggleCharacter}
       />
       <NewThreadActions

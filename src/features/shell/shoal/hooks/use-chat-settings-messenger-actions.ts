@@ -10,6 +10,7 @@ import {
   type MessengerSystemPromptMode,
   type MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
+import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
 interface UseChatSettingsMessengerActionsInput {
@@ -56,9 +57,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadParticipants(
         thread,
-        thread.characterIds.includes(characterId)
-          ? thread.characterIds.filter((id) => id !== characterId)
-          : [...thread.characterIds, characterId],
+        toggleSelectedId(thread.characterIds, characterId),
         updatedAt,
       ),
     );
@@ -68,9 +67,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadLorebooks(
         thread,
-        thread.lorebookIds.includes(lorebookId)
-          ? thread.lorebookIds.filter((id) => id !== lorebookId)
-          : [...thread.lorebookIds, lorebookId],
+        toggleSelectedId(thread.lorebookIds, lorebookId),
         updatedAt,
       ),
     );
