@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { NewThreadLabels } from "../lib/new-thread-labels";
-import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
+import { useNewThreadCharacterDraft } from "./use-new-thread-character-draft";
 
 interface UseNewMessengerThreadPopoverInput {
   characters: readonly CharacterRecord[];
@@ -18,20 +18,16 @@ export function useNewMessengerThreadPopover({
   onCreateMessengerThread,
 }: UseNewMessengerThreadPopoverInput) {
   const [newMessengerOpen, setNewMessengerOpen] = useState(false);
-  const [newMessengerName, setNewMessengerName] = useState("");
-  const [newMessengerNameEdited, setNewMessengerNameEdited] = useState(false);
   const [newMessengerConnectionId, setNewMessengerConnectionId] = useState("");
   const [newMessengerPersonaId, setNewMessengerPersonaId] = useState("");
-  const [newMessengerCharacterIds, setNewMessengerCharacterIds] = useState<
-    string[]
-  >([]);
   const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
     useState(false);
+  const characterDraft = useNewThreadCharacterDraft({
+    getDraftName: labels.getDraftCompanionName,
+  });
 
   function resetNewMessengerThreadPopover() {
-    setNewMessengerCharacterIds([]);
-    setNewMessengerName("");
-    setNewMessengerNameEdited(false);
+    characterDraft.resetCharacterDraft();
     setNewMessengerConnectionId("");
     setNewMessengerPersonaId("");
     setNewMessengerCompanionMenuOpen(false);
@@ -45,45 +41,22 @@ export function useNewMessengerThreadPopover({
   function openNewMessengerThreadPopover() {
     const initialCharacterIds = characters[0] ? [characters[0].id] : [];
     resetNewMessengerThreadPopover();
-    setNewMessengerCharacterIds(initialCharacterIds);
-    setNewMessengerName(labels.getDraftCompanionName(initialCharacterIds));
-    setNewMessengerNameEdited(false);
+    characterDraft.initializeCharacterDraft(initialCharacterIds);
     setNewMessengerConnectionId(defaultMessengerConnectionId);
     setNewMessengerPersonaId("");
     setNewMessengerCompanionMenuOpen(false);
     setNewMessengerOpen(true);
   }
 
-  function updateNewMessengerCharacterIds(characterIds: string[]) {
-    setNewMessengerCharacterIds(characterIds);
-    if (!newMessengerNameEdited) {
-      setNewMessengerName(labels.getDraftCompanionName(characterIds));
-    }
-  }
-
-  function toggleNewMessengerCharacter(characterId: string) {
-    updateNewMessengerCharacterIds(
-      toggleSelectedId(newMessengerCharacterIds, characterId),
-    );
-  }
-
-  function handleNewMessengerNameChange(name: string) {
-    setNewMessengerName(name);
-    setNewMessengerNameEdited(true);
-  }
-
   function handleCreateMessengerThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (newMessengerCharacterIds.length === 0) return;
+    if (characterDraft.characterIds.length === 0) return;
 
-    const title =
-      newMessengerName.trim() ||
-      labels.getDraftCompanionName(newMessengerCharacterIds);
     onCreateMessengerThread({
       activePersonaId: newMessengerPersonaId || null,
-      characterIds: newMessengerCharacterIds,
+      characterIds: characterDraft.characterIds,
       providerConnectionId: newMessengerConnectionId || null,
-      title,
+      title: characterDraft.getTitle(),
     });
     closeNewMessengerThreadPopover();
   }
@@ -94,16 +67,16 @@ export function useNewMessengerThreadPopover({
       open: openNewMessengerThreadPopover,
       setCompanionMenuOpen: setNewMessengerCompanionMenuOpen,
       setConnectionId: setNewMessengerConnectionId,
-      setName: handleNewMessengerNameChange,
+      setName: characterDraft.updateName,
       setPersonaId: setNewMessengerPersonaId,
       submit: handleCreateMessengerThread,
-      toggleCharacter: toggleNewMessengerCharacter,
+      toggleCharacter: characterDraft.toggleCharacter,
     },
     state: {
-      characterIds: newMessengerCharacterIds,
+      characterIds: characterDraft.characterIds,
       companionMenuOpen: newMessengerCompanionMenuOpen,
       connectionId: newMessengerConnectionId,
-      name: newMessengerName,
+      name: characterDraft.name,
       open: newMessengerOpen,
       personaId: newMessengerPersonaId,
     },
