@@ -3,14 +3,12 @@ import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import type { ChatSettingsPersonaDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsPersonaControlsProps {
-  activeMessengerThread: boolean;
   model: ChatSettingsPersonaDrawerModel;
   personas: PersonaRecord[];
   onPersonaChange: (personaId: string) => void;
 }
 
 export function ChatSettingsPersonaControls({
-  activeMessengerThread,
   model,
   personas,
   onPersonaChange,
@@ -22,7 +20,7 @@ export function ChatSettingsPersonaControls({
         <select
           className="pondsel"
           value={model.selectedPersonaId}
-          disabled={!activeMessengerThread}
+          disabled={!model.activeMessengerThread}
           onChange={(event) => onPersonaChange(event.currentTarget.value)}
         >
           {model.hasMissingPersona && (
@@ -45,7 +43,7 @@ export function ChatSettingsPersonaControls({
           persona before sending as that identity.
         </ChatSettingsNotice>
       )}
-      {activeMessengerThread &&
+      {model.activeMessengerThread &&
         personas.length === 0 &&
         !model.hasMissingPersona && (
           <p className="chat-settings-empty-line">

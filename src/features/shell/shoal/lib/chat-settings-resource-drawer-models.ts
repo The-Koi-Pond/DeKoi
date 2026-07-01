@@ -2,6 +2,7 @@ import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
 
 export interface ChatSettingsCompanionResourceModel {
+  activeMessengerThread: boolean;
   missingCompanionCount: number;
   open: boolean;
   selectedCompanionCount: number;
@@ -11,11 +12,13 @@ export interface ChatSettingsCompanionResourceModel {
 }
 
 export interface ChatSettingsPromptResourceModel {
+  activeMessengerThread: boolean;
   open: boolean;
   systemPromptMode: ChatSettingsViewModel["systemPromptMode"];
 }
 
 export interface ChatSettingsLorebookResourceModel {
+  activeMessengerThread: boolean;
   missingLorebookCount: number;
   open: boolean;
   selectedLorebookIds: string[];
@@ -23,37 +26,45 @@ export interface ChatSettingsLorebookResourceModel {
 }
 
 interface ChatSettingsResourceDrawerModelsInput {
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
+  activeMessengerThread: boolean;
+  openDrawers: Pick<
+    Record<ChatSettingsDrawerId, boolean>,
+    "companions" | "lorebooks" | "prompt"
+  >;
   viewModel: ChatSettingsViewModel;
 }
 
-interface ChatSettingsResourceDrawerModels {
+export interface ChatSettingsResourceDrawerModels {
   companion: ChatSettingsCompanionResourceModel;
   lorebook: ChatSettingsLorebookResourceModel;
   prompt: ChatSettingsPromptResourceModel;
 }
 
 export function getChatSettingsResourceDrawerModels({
+  activeMessengerThread,
   openDrawers,
   viewModel,
 }: ChatSettingsResourceDrawerModelsInput): ChatSettingsResourceDrawerModels {
   return {
     companion: {
+      activeMessengerThread,
       missingCompanionCount: viewModel.missingCompanionCount,
-      open: openDrawers.companions,
+      open: activeMessengerThread && openDrawers.companions,
       selectedCompanionCount: viewModel.selectedCompanionCount,
       selectedCompanionIds: viewModel.selectedCompanionIds,
       selectionLabel: viewModel.companionSelectionLabel,
       summary: viewModel.companionDrawerSummary,
     },
     lorebook: {
+      activeMessengerThread,
       missingLorebookCount: viewModel.missingLorebookCount,
-      open: openDrawers.lorebooks,
+      open: activeMessengerThread && openDrawers.lorebooks,
       selectedLorebookIds: viewModel.selectedLorebookIds,
       summary: viewModel.lorebookDrawerSummary,
     },
     prompt: {
-      open: openDrawers.prompt,
+      activeMessengerThread,
+      open: activeMessengerThread && openDrawers.prompt,
       systemPromptMode: viewModel.systemPromptMode,
     },
   };

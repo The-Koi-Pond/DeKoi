@@ -1,33 +1,33 @@
-import type { AppSettings } from "../../../../engine/contracts/types/app-settings";
 import { NumberField } from "../../../../shared/ui/primitives/NumberField";
 import { Slider } from "../../../../shared/ui/primitives/Slider";
-
-export type AdvancedChatSettings = Pick<
-  AppSettings,
-  "defaultTemperature" | "defaultMaxTokens" | "defaultTopP"
->;
+import type {
+  AdvancedChatSettings,
+  ChatSettingsAdvancedDrawerModel,
+} from "../lib/chat-settings-advanced-drawer-models";
 
 interface ChatSettingsAdvancedControlsProps {
-  appSettings: AdvancedChatSettings;
-  settingsLabel: string;
-  updateAppSettings: (settings: Partial<AdvancedChatSettings>) => void;
+  model: ChatSettingsAdvancedDrawerModel;
+  onUpdateAppSettings: (settings: Partial<AdvancedChatSettings>) => void;
 }
 
 export function ChatSettingsAdvancedControls({
-  appSettings,
-  settingsLabel,
-  updateAppSettings,
+  model,
+  onUpdateAppSettings,
 }: ChatSettingsAdvancedControlsProps) {
+  const { settings, settingsLabel } = model;
+
   return (
     <>
       <div className="slider-field">
         <div className="sl-top">
           <b>Temperature</b>
-          <span>{(appSettings.defaultTemperature / 100).toFixed(2)}</span>
+          <span>{(settings.defaultTemperature / 100).toFixed(2)}</span>
         </div>
         <Slider
-          value={appSettings.defaultTemperature}
-          onChange={(value) => updateAppSettings({ defaultTemperature: value })}
+          value={settings.defaultTemperature}
+          onChange={(value) =>
+            onUpdateAppSettings({ defaultTemperature: value })
+          }
           min={0}
           max={200}
           step={5}
@@ -42,11 +42,13 @@ export function ChatSettingsAdvancedControls({
       <div className="slider-field">
         <div className="sl-top">
           <b>Max tokens</b>
-          <span>{appSettings.defaultMaxTokens}</span>
+          <span>{settings.defaultMaxTokens}</span>
         </div>
         <NumberField
-          value={appSettings.defaultMaxTokens}
-          onChange={(value) => updateAppSettings({ defaultMaxTokens: value })}
+          value={settings.defaultMaxTokens}
+          onChange={(value) =>
+            onUpdateAppSettings({ defaultMaxTokens: value })
+          }
           min={64}
           max={8192}
           step={64}
@@ -57,11 +59,11 @@ export function ChatSettingsAdvancedControls({
       <div className="slider-field">
         <div className="sl-top">
           <b>Top-p</b>
-          <span>{(appSettings.defaultTopP / 100).toFixed(2)}</span>
+          <span>{(settings.defaultTopP / 100).toFixed(2)}</span>
         </div>
         <Slider
-          value={appSettings.defaultTopP}
-          onChange={(value) => updateAppSettings({ defaultTopP: value })}
+          value={settings.defaultTopP}
+          onChange={(value) => onUpdateAppSettings({ defaultTopP: value })}
           min={0}
           max={100}
           step={1}

@@ -4,7 +4,6 @@ import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsConnectionDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsConnectionDrawerProps {
-  activeMessengerThread: boolean;
   model: ChatSettingsConnectionDrawerModel;
   onConnectionChange: (connectionId: string) => void;
   onCreateConnection: () => void;
@@ -13,7 +12,6 @@ interface ChatSettingsConnectionDrawerProps {
 }
 
 export function ChatSettingsConnectionDrawer({
-  activeMessengerThread,
   model,
   onConnectionChange,
   onCreateConnection,
@@ -29,7 +27,6 @@ export function ChatSettingsConnectionDrawer({
       onToggle={onToggle}
     >
       <ChatSettingsConnectionControls
-        activeMessengerThread={activeMessengerThread}
         model={model}
         onConnectionChange={onConnectionChange}
         onCreateConnection={onCreateConnection}

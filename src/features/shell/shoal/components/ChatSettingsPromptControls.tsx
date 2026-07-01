@@ -9,7 +9,6 @@ import { ChatSettingsPromptDrawer } from "./ChatSettingsPromptDrawer";
 import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
 
 interface ChatSettingsPromptControlsProps {
-  activeMessengerThread: boolean;
   activeMessengerThreadRecord: MessengerThread | null;
   activeMessengerThreadId: string | null;
   model: ChatSettingsPromptResourceModel;
@@ -19,7 +18,6 @@ interface ChatSettingsPromptControlsProps {
 }
 
 export function ChatSettingsPromptControls({
-  activeMessengerThread,
   activeMessengerThreadRecord,
   activeMessengerThreadId,
   model,
@@ -42,7 +40,7 @@ export function ChatSettingsPromptControls({
   return (
     <>
       <ChatSettingsPromptDrawer
-        activeMessengerThread={activeMessengerThread}
+        activeMessengerThread={model.activeMessengerThread}
         open={model.open}
         systemPromptMode={model.systemPromptMode}
         onOpenPromptEditor={openPromptEditor}
@@ -50,7 +48,7 @@ export function ChatSettingsPromptControls({
         onToggle={onToggle}
       />
       <ChatSettingsPromptEditor
-        open={activePromptEditor.open && activeMessengerThread}
+        open={activePromptEditor.open && model.activeMessengerThread}
         value={activePromptEditor.value}
         onClose={closePromptEditor}
         onSave={savePromptEditor}

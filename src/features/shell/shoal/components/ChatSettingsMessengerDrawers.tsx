@@ -6,6 +6,7 @@ import type {
   ChatSettingsMessengerActionGroup,
   ChatSettingsMessengerSettings,
 } from "../lib/chat-settings-controller-groups";
+import { getChatSettingsMessengerDrawerModels } from "../lib/chat-settings-messenger-drawer-models";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerDrawersProps {
@@ -49,11 +50,15 @@ export function ChatSettingsMessengerDrawers({
   const {
     activeMessengerThread,
     activeMessengerThreadId,
-    chatSettingsViewModel,
+    advanced,
     companionSelectorOpen,
-    openDrawers,
-  } = settings;
-  const active = !!activeMessengerThread;
+    identity,
+    resources,
+  } = getChatSettingsMessengerDrawerModels({
+    appSettings,
+    settings,
+    settingsLabel,
+  });
 
   return (
     <div className="shoal-list chat-settings-list">
@@ -68,33 +73,27 @@ export function ChatSettingsMessengerDrawers({
       )}
       <ChatSettingsIdentityDrawers
         actions={actions}
-        activeMessengerThread={active}
-        openDrawers={openDrawers}
+        models={identity}
         personas={personas}
-        viewModel={chatSettingsViewModel}
         onCreateConnection={onCreateConnection}
       />
 
       <ChatSettingsMessengerResourceSection
         actions={actions}
-        activeMessengerThread={active}
         activeMessengerThreadRecord={activeMessengerThread}
         activeMessengerThreadId={activeMessengerThreadId}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}
-        openDrawers={openDrawers}
+        models={resources}
         onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
-        viewModel={chatSettingsViewModel}
       />
 
       <ChatSettingsAdvancedDrawer
-        appSettings={appSettings}
-        open={openDrawers.advanced}
-        settingsLabel={settingsLabel}
+        model={advanced}
         onToggle={actions.drawers.onToggle}
-        updateAppSettings={onUpdateAppSettings}
+        onUpdateAppSettings={onUpdateAppSettings}
       />
     </div>
   );
