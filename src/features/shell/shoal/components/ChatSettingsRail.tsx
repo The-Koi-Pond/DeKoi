@@ -13,24 +13,10 @@ export function ChatSettingsRail({
   shoalClosed,
 }: ShoalRailProps) {
   const {
-    activeMessengerThread,
-    activeMessengerThreadId,
-    chatSettingsViewModel,
-    companionSelectorOpen,
     isMessengerSettings,
-    openDrawers,
+    messengerActions,
+    messengerSettings,
     settingsLabel,
-    clearMissingMessengerCompanions,
-    clearMissingMessengerLorebooks,
-    handleMessengerConnectionChange,
-    handleMessengerPersonaChange,
-    handleMessengerSystemPromptModeChange,
-    resolveMissingMessengerConnection,
-    saveCustomMessengerPrompt,
-    setCompanionSelectorOpen,
-    toggleChatSettingsDrawer,
-    toggleMessengerCompanion,
-    toggleMessengerLorebook,
   } = useChatSettingsRailController({ nav });
 
   return (
@@ -44,25 +30,11 @@ export function ChatSettingsRail({
     >
       {isMessengerSettings ? (
         <ChatSettingsMessengerRailContent
-          activeMessengerThread={activeMessengerThread}
-          activeMessengerThreadId={activeMessengerThreadId}
-          chatSettingsViewModel={chatSettingsViewModel}
-          companionSelectorOpen={companionSelectorOpen}
+          actions={messengerActions}
+          settings={messengerSettings}
           nav={nav}
-          openDrawers={openDrawers}
           settingsLabel={settingsLabel}
-          onClearMissingCompanions={clearMissingMessengerCompanions}
-          onClearMissingLorebooks={clearMissingMessengerLorebooks}
           onCloseChatSettings={onCloseChatSettings}
-          onConnectionChange={handleMessengerConnectionChange}
-          onPersonaChange={handleMessengerPersonaChange}
-          onResolveMissingConnection={resolveMissingMessengerConnection}
-          onSaveCustomPrompt={saveCustomMessengerPrompt}
-          onSelectorOpenChange={setCompanionSelectorOpen}
-          onSystemPromptModeChange={handleMessengerSystemPromptModeChange}
-          onToggle={toggleChatSettingsDrawer}
-          onToggleCompanion={toggleMessengerCompanion}
-          onToggleLorebook={toggleMessengerLorebook}
         />
       ) : (
         <ChatSettingsUnavailableNotice
