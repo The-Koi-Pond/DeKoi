@@ -1,4 +1,6 @@
-import { FolderIcon } from "./ShoalIcons";
+import { ThreadShoalActions } from "./ThreadShoalActions";
+import { ThreadShoalSearch } from "./ThreadShoalSearch";
+import { ThreadShoalSortControl } from "./ThreadShoalSortControl";
 
 interface ThreadShoalHeadProps {
   activeSurfaceLabel: string;
@@ -29,55 +31,23 @@ export function ThreadShoalHead({
     <>
       <div className="shoal-surface-title">{activeSurfaceLabel}</div>
       <div className="shoal-head">
-        <div className="shoal-title">
-          <button
-            className={`pill ${isRoleplaySurface ? "roleplay" : "koi"} title-cast`}
-            type="button"
-            aria-controls={
-              isRoleplaySurface
-                ? "new-roleplay-thread-popover"
-                : "new-messenger-thread-popover"
-            }
-            aria-expanded={isRoleplaySurface ? newRoleplayOpen : newMessengerOpen}
-            onClick={onCreateActiveThread}
-          >
-            {isRoleplaySurface ? "+ New Roleplay" : "+ Cast a Line"}
-          </button>
-          <button
-            className={`pill ${isRoleplaySurface ? "roleplay" : "koi"} title-folder`}
-            type="button"
-            title="Add grouping folder"
-            aria-label="Add grouping folder"
-            disabled
-          >
-            <FolderIcon />
-            Folder
-          </button>
-        </div>
-        <div className="shoal-search">
-          <label className="glyph" aria-hidden="true" htmlFor="shoal-search-input">
-            ⌕
-          </label>
-          <input
-            id="shoal-search-input"
-            type="search"
-            placeholder={searchPlaceholder}
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-          />
-        </div>
+        <ThreadShoalActions
+          isRoleplaySurface={isRoleplaySurface}
+          newMessengerOpen={newMessengerOpen}
+          newRoleplayOpen={newRoleplayOpen}
+          onCreateActiveThread={onCreateActiveThread}
+        />
+        <ThreadShoalSearch
+          query={query}
+          searchPlaceholder={searchPlaceholder}
+          onQueryChange={onQueryChange}
+        />
       </div>
-      <div className="shoal-meta">
-        <button
-          type="button"
-          className="sort"
-          aria-label={`Sort ${activeSurfaceLabel} threads: ${sortLabel}`}
-          title="Change thread sort"
-          onClick={onCycleSortMode}
-        >
-          ↕ {sortLabel}
-        </button>
-      </div>
+      <ThreadShoalSortControl
+        activeSurfaceLabel={activeSurfaceLabel}
+        sortLabel={sortLabel}
+        onCycleSortMode={onCycleSortMode}
+      />
     </>
   );
 }
