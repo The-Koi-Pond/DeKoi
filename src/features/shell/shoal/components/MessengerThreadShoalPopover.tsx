@@ -19,36 +19,31 @@ export function MessengerThreadShoalPopover({
   personas,
   popovers,
 }: MessengerThreadShoalPopoverProps) {
-  if (!popovers.newMessengerOpen) {
+  const { actions, state } = popovers.messenger;
+
+  if (!state.open) {
     return null;
   }
 
   return (
     <NewMessengerThreadPopover
-      characterIds={popovers.newMessengerCharacterIds}
+      characterIds={state.characterIds}
       characters={characters}
-      companionLabel={labels.getCompanionLabel(
-        popovers.newMessengerCharacterIds,
-      )}
-      companionMenuOpen={popovers.newMessengerCompanionMenuOpen}
-      connectionId={popovers.newMessengerConnectionId}
+      companionLabel={labels.getCompanionLabel(state.characterIds)}
+      companionMenuOpen={state.companionMenuOpen}
+      connectionId={state.connectionId}
       connections={connections}
-      name={popovers.newMessengerName}
-      namePlaceholder={labels.getDraftCompanionName(
-        popovers.newMessengerCharacterIds,
-      )}
-      personaId={popovers.newMessengerPersonaId}
+      name={state.name}
+      namePlaceholder={labels.getDraftCompanionName(state.characterIds)}
+      personaId={state.personaId}
       personas={personas}
-      onClose={popovers.closeNewMessengerThreadPopover}
-      onCompanionMenuOpenChange={popovers.setNewMessengerCompanionMenuOpen}
-      onConnectionChange={popovers.setNewMessengerConnectionId}
-      onNameChange={(name) => {
-        popovers.setNewMessengerName(name);
-        popovers.setNewMessengerNameEdited(true);
-      }}
-      onPersonaChange={popovers.setNewMessengerPersonaId}
-      onSubmit={popovers.handleCreateMessengerThread}
-      onToggleCharacter={popovers.toggleNewMessengerCharacter}
+      onClose={actions.close}
+      onCompanionMenuOpenChange={actions.setCompanionMenuOpen}
+      onConnectionChange={actions.setConnectionId}
+      onNameChange={actions.setName}
+      onPersonaChange={actions.setPersonaId}
+      onSubmit={actions.submit}
+      onToggleCharacter={actions.toggleCharacter}
     />
   );
 }

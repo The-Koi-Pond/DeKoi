@@ -41,59 +41,53 @@ export function useNewThreadPopovers({
     onCreateRoleplayThread,
     roleplayPersonaId,
   });
-  const {
-    closeNewMessengerThreadPopover,
-    newMessengerOpen,
-  } = messengerPopover;
-  const {
-    closeNewRoleplayThreadPopover,
-    newRoleplayOpen,
-  } = roleplayPopover;
+  const { close: closeMessenger, open: openMessenger } =
+    messengerPopover.actions;
+  const { close: closeRoleplay, open: openRoleplay } = roleplayPopover.actions;
+  const newMessengerOpen = messengerPopover.state.open;
+  const newRoleplayOpen = roleplayPopover.state.open;
 
   useEffect(() => {
     if (!newMessengerOpen && !newRoleplayOpen) return;
 
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
-      closeNewMessengerThreadPopover();
-      closeNewRoleplayThreadPopover();
+      closeMessenger();
+      closeRoleplay();
     }
 
     document.addEventListener("keydown", handleDocumentKeyDown);
     return () => {
       document.removeEventListener("keydown", handleDocumentKeyDown);
     };
-  }, [
-    newRoleplayOpen,
-    newMessengerOpen,
-    closeNewMessengerThreadPopover,
-    closeNewRoleplayThreadPopover,
-  ]);
+  }, [newRoleplayOpen, newMessengerOpen, closeMessenger, closeRoleplay]);
 
   function handleCreateActiveThread() {
     if (isRoleplaySurface) {
       if (newRoleplayOpen) {
-        closeNewRoleplayThreadPopover();
+        closeRoleplay();
         return;
       }
 
-      closeNewMessengerThreadPopover();
-      roleplayPopover.openNewRoleplayThreadPopover();
+      closeMessenger();
+      openRoleplay();
       return;
     }
 
     if (newMessengerOpen) {
-      closeNewMessengerThreadPopover();
+      closeMessenger();
       return;
     }
 
-    closeNewRoleplayThreadPopover();
-    messengerPopover.openNewMessengerThreadPopover();
+    closeRoleplay();
+    openMessenger();
   }
 
   return {
-    ...messengerPopover,
-    ...roleplayPopover,
+    messenger: messengerPopover,
+    newMessengerOpen,
+    newRoleplayOpen,
+    roleplay: roleplayPopover,
     handleCreateActiveThread,
   };
 }

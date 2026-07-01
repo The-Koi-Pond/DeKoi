@@ -67,6 +67,11 @@ export function useNewMessengerThreadPopover({
     );
   }
 
+  function handleNewMessengerNameChange(name: string) {
+    setNewMessengerName(name);
+    setNewMessengerNameEdited(true);
+  }
+
   function handleCreateMessengerThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (newMessengerCharacterIds.length === 0) return;
@@ -84,20 +89,23 @@ export function useNewMessengerThreadPopover({
   }
 
   return {
-    closeNewMessengerThreadPopover,
-    handleCreateMessengerThread,
-    newMessengerCharacterIds,
-    newMessengerCompanionMenuOpen,
-    newMessengerConnectionId,
-    newMessengerName,
-    newMessengerOpen,
-    newMessengerPersonaId,
-    openNewMessengerThreadPopover,
-    setNewMessengerCompanionMenuOpen,
-    setNewMessengerConnectionId,
-    setNewMessengerName,
-    setNewMessengerNameEdited,
-    setNewMessengerPersonaId,
-    toggleNewMessengerCharacter,
+    actions: {
+      close: closeNewMessengerThreadPopover,
+      open: openNewMessengerThreadPopover,
+      setCompanionMenuOpen: setNewMessengerCompanionMenuOpen,
+      setConnectionId: setNewMessengerConnectionId,
+      setName: handleNewMessengerNameChange,
+      setPersonaId: setNewMessengerPersonaId,
+      submit: handleCreateMessengerThread,
+      toggleCharacter: toggleNewMessengerCharacter,
+    },
+    state: {
+      characterIds: newMessengerCharacterIds,
+      companionMenuOpen: newMessengerCompanionMenuOpen,
+      connectionId: newMessengerConnectionId,
+      name: newMessengerName,
+      open: newMessengerOpen,
+      personaId: newMessengerPersonaId,
+    },
   };
 }
