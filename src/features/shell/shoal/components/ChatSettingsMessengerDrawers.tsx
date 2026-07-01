@@ -5,9 +5,9 @@ import type {
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
 import {
-  ChatSettingsMessengerCompanionResourceDrawer,
-  ChatSettingsMessengerLorebookResourceDrawer,
-} from "./ChatSettingsMessengerResourceDrawers";
+  ChatSettingsCompanionResourceDrawer,
+  ChatSettingsLorebookResourceDrawer,
+} from "./ChatSettingsResourceDrawers";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
@@ -96,7 +96,7 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsMessengerCompanionResourceDrawer
+      <ChatSettingsCompanionResourceDrawer
         activeMessengerThread={active}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
@@ -121,7 +121,7 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsMessengerLorebookResourceDrawer
+      <ChatSettingsLorebookResourceDrawer
         activeMessengerThread={active}
         lorebooks={lorebooks}
         openDrawers={openDrawers}
