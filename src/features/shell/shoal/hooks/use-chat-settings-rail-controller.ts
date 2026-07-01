@@ -1,44 +1,19 @@
 import { useMemo, useState } from "react";
 import { MESSENGER, ROLEPLAY } from "../../../../engine/contracts/constants/surfaces";
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
 import {
   CHAT_SETTINGS_DRAWER_DEFAULTS,
   type ChatSettingsDrawerId,
 } from "../lib/chat-settings-drawers";
-import {
-  getChatSettingsViewModel,
-  type ChatSettingsViewModel,
-} from "../lib/chat-settings-view-model";
+import type {
+  ChatSettingsMessengerActionGroup,
+  ChatSettingsMessengerSettings,
+} from "../lib/chat-settings-controller-groups";
+import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
 import { useChatSettingsMessengerActions } from "./use-chat-settings-messenger-actions";
 
 interface UseChatSettingsRailControllerInput {
   nav: ShoalRailProps["nav"];
-}
-
-export interface ChatSettingsMessengerSettings {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
-  chatSettingsViewModel: ChatSettingsViewModel;
-  companionSelectorOpen: boolean;
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
-}
-
-export interface ChatSettingsMessengerActionGroup {
-  clearMissingCompanions: () => void;
-  clearMissingLorebooks: () => void;
-  onConnectionChange: (connectionId: string) => void;
-  onPersonaChange: (personaId: string) => void;
-  onResolveMissingConnection: (connectionId: string | null) => void;
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSelectorOpenChange: (open: boolean) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
-  onToggleCompanion: (characterId: string) => void;
-  onToggleLorebook: (lorebookId: string) => void;
 }
 
 export function useChatSettingsRailController({

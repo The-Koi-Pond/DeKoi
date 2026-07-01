@@ -2,7 +2,7 @@ import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
 import type {
   ChatSettingsMessengerActionGroup,
   ChatSettingsMessengerSettings,
-} from "../hooks/use-chat-settings-rail-controller";
+} from "../lib/chat-settings-controller-groups";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerDrawerHostProps {
