@@ -1,8 +1,8 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
-import { getMessengerThreadInitials } from "../../../modes";
 import type { PeopleCatalogTab } from "../lib/people-catalog-view-model";
-import { CatalogRailCard } from "./CatalogRailCard";
+import { PeopleCompanionCatalogList } from "./PeopleCompanionCatalogList";
+import { PeoplePersonaCatalogList } from "./PeoplePersonaCatalogList";
 
 interface PeopleCatalogListProps {
   activeCharacterId: string | null;
@@ -37,43 +37,19 @@ export function PeopleCatalogList({
   return (
     <div className="shoal-list">
       {isCompanionTab ? (
-        <>
-          <div className="group-label people-label">
-            <span>Companions</span>
-            <span className="count-bubble">{characters.length}</span>
-          </div>
-          {filteredCharacters.map((character) => (
-            <CatalogRailCard
-              key={character.id}
-              active={character.id === activeCharacterId}
-              avatarUrl={character.avatarUrl}
-              initials={getMessengerThreadInitials(character.displayName)}
-              name={character.displayName}
-              sub={character.personality || character.nickname || "No personality yet."}
-              tone="koi"
-              onOpen={() => onOpenCharacter(character.id)}
-            />
-          ))}
-        </>
+        <PeopleCompanionCatalogList
+          activeCharacterId={activeCharacterId}
+          characters={characters}
+          filteredCharacters={filteredCharacters}
+          onOpenCharacter={onOpenCharacter}
+        />
       ) : (
-        <>
-          <div className="group-label people-label">
-            <span>Personas</span>
-            <span className="count-bubble">{personas.length}</span>
-          </div>
-          {filteredPersonas.map((persona) => (
-            <CatalogRailCard
-              key={persona.id}
-              active={persona.id === activePersonaId}
-              avatarUrl={persona.avatarUrl}
-              initials={getMessengerThreadInitials(persona.displayName)}
-              name={persona.displayName}
-              sub={persona.personality || persona.nickname || "No personality yet."}
-              tone="jade"
-              onOpen={() => onOpenPersona(persona.id)}
-            />
-          ))}
-        </>
+        <PeoplePersonaCatalogList
+          activePersonaId={activePersonaId}
+          filteredPersonas={filteredPersonas}
+          personas={personas}
+          onOpenPersona={onOpenPersona}
+        />
       )}
       {shownCount === 0 && (
         <div className="shoal-empty">
