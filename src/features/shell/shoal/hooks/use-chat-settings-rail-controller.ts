@@ -7,10 +7,13 @@ import {
 import type {
   ChatSettingsMessengerActionGroup,
   ChatSettingsMessengerSettings,
+  ChatSettingsRoleplayActionGroup,
+  ChatSettingsRoleplaySettings,
 } from "../lib/chat-settings-controller-groups";
 import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
 import { useChatSettingsMessengerActions } from "./use-chat-settings-messenger-actions";
+import { useChatSettingsRoleplayActions } from "./use-chat-settings-roleplay-actions";
 
 interface UseChatSettingsRailControllerInput {
   nav: ShoalRailProps["nav"];
@@ -26,10 +29,17 @@ export function useChatSettingsRailController({
         ? "Messenger Settings"
         : "Chat Settings";
   const isMessengerSettings = nav.selectedSurface === MESSENGER;
+  const isRoleplaySettings = nav.selectedSurface === ROLEPLAY;
   const activeMessengerThreadId =
     nav.view.kind === "messenger" ? nav.view.threadId : null;
   const activeMessengerThread = activeMessengerThreadId
     ? nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ??
+      null
+    : null;
+  const activeRoleplayThreadId =
+    nav.view.kind === "roleplay" ? nav.view.threadId : null;
+  const activeRoleplayThread = activeRoleplayThreadId
+    ? nav.roleplayThreads.find((thread) => thread.id === activeRoleplayThreadId) ??
       null
     : null;
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
@@ -44,6 +54,16 @@ export function useChatSettingsRailController({
     lorebooks: nav.lorebooks,
     onCompanionSelectorOpenChange: setCompanionSelectorOpen,
     onUpdateMessengerThread: nav.updateMessengerThread,
+  });
+  const {
+    identityActions: roleplayIdentityActions,
+    resourceActions: roleplayResourceActions,
+  } = useChatSettingsRoleplayActions({
+    activeRoleplayThread,
+    characters: nav.characters,
+    lorebooks: nav.lorebooks,
+    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
+    onUpdateRoleplayThread: nav.updateRoleplayThread,
   });
 
   function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
@@ -62,9 +82,30 @@ export function useChatSettingsRailController({
         lorebooks: nav.lorebooks,
         personas: nav.personas,
         providerConnections: nav.providerConnections,
+        threadLabel: "Messenger",
       }),
     [
       activeMessengerThread,
+      nav.appSettings,
+      nav.characters,
+      nav.lorebooks,
+      nav.personas,
+      nav.providerConnections,
+    ],
+  );
+  const roleplayChatSettingsViewModel = useMemo(
+    () =>
+      getChatSettingsViewModel({
+        activeThread: activeRoleplayThread,
+        appSettings: nav.appSettings,
+        characters: nav.characters,
+        lorebooks: nav.lorebooks,
+        personas: nav.personas,
+        providerConnections: nav.providerConnections,
+        threadLabel: "Roleplay",
+      }),
+    [
+      activeRoleplayThread,
       nav.appSettings,
       nav.characters,
       nav.lorebooks,
@@ -90,11 +131,31 @@ export function useChatSettingsRailController({
       onSelectorOpenChange: setCompanionSelectorOpen,
     },
   };
+  const roleplaySettings: ChatSettingsRoleplaySettings = {
+    activeRoleplayThread,
+    activeRoleplayThreadId,
+    chatSettingsViewModel: roleplayChatSettingsViewModel,
+    companionSelectorOpen,
+    openDrawers,
+  };
+  const roleplayActions: ChatSettingsRoleplayActionGroup = {
+    drawers: {
+      onToggle: toggleChatSettingsDrawer,
+    },
+    identity: roleplayIdentityActions,
+    resources: {
+      ...roleplayResourceActions,
+      onSelectorOpenChange: setCompanionSelectorOpen,
+    },
+  };
 
   return {
     isMessengerSettings,
+    isRoleplaySettings,
     messengerActions,
     messengerSettings,
+    roleplayActions,
+    roleplaySettings,
     settingsLabel,
   };
 }

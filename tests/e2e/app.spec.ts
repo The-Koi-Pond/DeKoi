@@ -52,12 +52,17 @@ import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/col
 import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/lib/chat-settings-drawers";
 import { getChatSettingsMessengerDrawerModels } from "../../src/features/shell/shoal/lib/chat-settings-messenger-drawer-models";
 import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
-import { getGenerationNoticeAction } from "../../src/features/modes/shared/generation-notice";
+import { getGenerationNoticeAction } from "../../src/features/modes/shared/generation-notice-actions";
 import {
   getMessengerThreadReferenceNotices,
   getMessengerThreadReferenceSummary,
   getMessengerThreadSendBlocker,
 } from "../../src/features/modes/messenger/lib/thread-reference-summary";
+import {
+  getRoleplayThreadReferenceNotices,
+  getRoleplayThreadReferenceSummary,
+  getRoleplayThreadSendBlocker,
+} from "../../src/features/modes/roleplay/lib/thread-reference-summary";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -587,6 +592,80 @@ test("messenger thread reference summary flags missing settings before send", ()
     },
   });
   expect(getMessengerThreadSendBlocker(companionBlockerSummary)).toContain(
+    "clear missing companions",
+  );
+});
+
+test("roleplay thread reference summary flags missing settings before send", () => {
+  const readyProviderConnection = {
+    id: "connection-ready",
+    schemaVersion: 1,
+    kind: "remote-runtime",
+    provider: "custom",
+    label: "Ready Connection",
+    baseUrl: "http://localhost:11434/v1",
+    model: "local-model",
+    summary: "",
+    status: "ready",
+    modelLabel: "local-model",
+    keeperDefault: false,
+    maxContext: null,
+    maxOutput: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  } satisfies ProviderConnectionRecord;
+  const activeRoleplayThread = createRoleplayThread({
+    activePersonaId: "persona-missing",
+    characterIds: ["companion-missing"],
+    id: "roleplay-missing-references",
+    lorebookIds: ["lorebook-missing"],
+    now: "2026-01-01T00:00:00.000Z",
+    providerConnectionId: "connection-missing",
+    title: "Missing References",
+  });
+  const summary = getRoleplayThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [],
+    thread: activeRoleplayThread,
+  });
+
+  expect(summary).toEqual(
+    expect.objectContaining({
+      hasMissingConnection: true,
+      hasMissingPersona: true,
+      hasNoConnectionAvailable: true,
+      missingCompanionCount: 1,
+      missingLorebookCount: 1,
+      selectedCompanionCount: 0,
+    }),
+  );
+  expect(getRoleplayThreadSendBlocker(summary)).toContain(
+    "Create a connection",
+  );
+  expect(
+    getRoleplayThreadReferenceNotices(summary).map((notice) => notice.id),
+  ).toEqual([
+    "no-connection",
+    "no-companion",
+    "missing-persona",
+    "missing-lorebooks",
+  ]);
+
+  const companionBlockerSummary = getRoleplayThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [readyProviderConnection],
+    thread: {
+      ...activeRoleplayThread,
+      providerConnectionId: readyProviderConnection.id,
+    },
+  });
+  expect(getRoleplayThreadSendBlocker(companionBlockerSummary)).toContain(
     "clear missing companions",
   );
 });

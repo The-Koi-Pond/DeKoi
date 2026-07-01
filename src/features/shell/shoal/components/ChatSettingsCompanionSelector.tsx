@@ -10,6 +10,7 @@ interface ChatSettingsCompanionSelectorProps {
   selectedCompanionCount: number;
   selectedCompanionIds: string[];
   selectionLabel: string;
+  surfaceLabel?: string;
   onClearMissingCompanions: () => void;
   onCreateCompanion: () => void;
   onSelectorOpenChange: (open: boolean) => void;
@@ -24,6 +25,7 @@ export function ChatSettingsCompanionSelector({
   selectedCompanionCount,
   selectedCompanionIds,
   selectionLabel,
+  surfaceLabel = "Messenger",
   onClearMissingCompanions,
   onCreateCompanion,
   onSelectorOpenChange,
@@ -41,7 +43,7 @@ export function ChatSettingsCompanionSelector({
       <button
         type="button"
         className="chat-settings-select-button"
-        aria-controls="messenger-settings-companion-menu"
+        aria-controls="chat-settings-companion-menu"
         aria-expanded={companionSelectorOpen}
         aria-haspopup="listbox"
         disabled={!activeMessengerThread || characters.length === 0}
@@ -62,6 +64,7 @@ export function ChatSettingsCompanionSelector({
         characterCount={characters.length}
         missingCompanionCount={missingCompanionCount}
         selectedCompanionCount={selectedCompanionCount}
+        surfaceLabel={surfaceLabel}
         onClearMissingCompanions={onClearMissingCompanions}
         onCreateCompanion={onCreateCompanion}
       />

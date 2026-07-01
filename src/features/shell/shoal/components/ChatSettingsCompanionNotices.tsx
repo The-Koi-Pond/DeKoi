@@ -5,6 +5,7 @@ interface ChatSettingsCompanionNoticesProps {
   characterCount: number;
   missingCompanionCount: number;
   selectedCompanionCount: number;
+  surfaceLabel?: string;
   onClearMissingCompanions: () => void;
   onCreateCompanion: () => void;
 }
@@ -14,6 +15,7 @@ export function ChatSettingsCompanionNotices({
   characterCount,
   missingCompanionCount,
   selectedCompanionCount,
+  surfaceLabel = "Messenger",
   onClearMissingCompanions,
   onCreateCompanion,
 }: ChatSettingsCompanionNoticesProps) {
@@ -26,7 +28,7 @@ export function ChatSettingsCompanionNotices({
         >
           {missingCompanionCount} selected companion
           {missingCompanionCount === 1 ? " is" : "s are"} no longer saved.
-          Missing companions are skipped when Messenger builds a reply.
+          Missing companions are skipped when {surfaceLabel} builds a reply.
         </ChatSettingsNotice>
       )}
       {activeMessengerThread &&
@@ -36,7 +38,7 @@ export function ChatSettingsCompanionNotices({
             actionLabel="Create companion"
             onAction={onCreateCompanion}
           >
-            Create a companion before Messenger can generate replies.
+            Create a companion before {surfaceLabel} can generate replies.
           </ChatSettingsNotice>
         )}
       {activeMessengerThread &&

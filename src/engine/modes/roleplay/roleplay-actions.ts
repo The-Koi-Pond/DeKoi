@@ -222,6 +222,18 @@ export function removeRoleplayThreadCharacter(
   };
 }
 
+export function setRoleplayThreadParticipants(
+  thread: RoleplayThread,
+  characterIds: string[],
+  updatedAt: string,
+): RoleplayThread {
+  return {
+    ...thread,
+    characterIds: cleanIds(characterIds),
+    updatedAt,
+  };
+}
+
 export function setRoleplayThreadPersona(
   thread: RoleplayThread,
   activePersonaId: string | null,
@@ -243,6 +255,18 @@ export function clearRoleplayThreadPersona(
   return setRoleplayThreadPersona(thread, null, updatedAt);
 }
 
+export function setRoleplayThreadLorebooks(
+  thread: RoleplayThread,
+  lorebookIds: string[],
+  updatedAt: string,
+): RoleplayThread {
+  return {
+    ...thread,
+    lorebookIds: cleanIds(lorebookIds),
+    updatedAt,
+  };
+}
+
 export function removeRoleplayThreadLorebook(
   thread: RoleplayThread,
   lorebookId: string,
@@ -253,6 +277,18 @@ export function removeRoleplayThreadLorebook(
   return {
     ...thread,
     lorebookIds: thread.lorebookIds.filter((id) => id !== lorebookId),
+    updatedAt,
+  };
+}
+
+export function setRoleplayThreadProviderConnection(
+  thread: RoleplayThread,
+  providerConnectionId: string | null,
+  updatedAt: string,
+): RoleplayThread {
+  return {
+    ...thread,
+    providerConnectionId: providerConnectionId?.trim() || null,
     updatedAt,
   };
 }

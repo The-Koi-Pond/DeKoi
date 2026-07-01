@@ -45,6 +45,8 @@ Owns:
 - Roleplay thread records and scene records
 - scene create/update/fork-style semantics as they are added
 - cast, world, and context setup
+- Roleplay-owned thread reference mutations for participants, persona,
+  lorebooks, and provider connection
 - Roleplay scene display behavior
 - Roleplay-specific generation behavior
 
@@ -81,7 +83,8 @@ Allowed shared homes:
 
 - `src/engine`: native record types, deterministic actions, and pure helpers
   that do not encode concrete mode orchestration.
-- `src/features/modes/shared`: shared mode UI such as `ChatComposer`.
+- `src/features/modes/shared`: shared mode UI and mode-safe helpers such as
+  `ChatComposer` and reference-summary helpers.
 - `src/features/runtime/generation`: generation workflows that bind mode-owned
   request builders to provider/runtime transport.
 - `src/features/runtime/storage`: storage workflows used by mode and shell
@@ -91,9 +94,9 @@ Allowed shared homes:
 - `src/shared/ui`: generic UI atoms.
 - `src/shared/api`: typed host and remote-runtime command wrappers.
 
-Shared mode UI should stay mode-neutral. If a shared component needs a concrete
-mode action, pass that action in from the owning mode surface or move the
-component to the owning mode package.
+Shared mode UI/helpers should stay mode-neutral. If a shared component or helper
+needs concrete Messenger or Roleplay behavior, pass labels, data, or actions in
+from the owning mode surface or move the behavior to the owning mode package.
 
 ## Impact Report Questions
 

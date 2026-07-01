@@ -1,6 +1,6 @@
 ---
 name: dekoi-mode-separation
-description: "Enforce DeKoi's separation between Messenger, Roleplay, shared generation, and shared ripple state. Use when changing mode engines, mode UI, Messenger threads, Roleplay scenes, shared ChatComposer behavior, generation routing, prompt assembly, provider generation workflows, ripple state, storage tied to modes, or any shared code that could affect more than one mode."
+description: "Enforce DeKoi's separation between Messenger, Roleplay, shared generation, and shared ripple state. Use when changing mode engines, mode UI, Messenger threads, Roleplay scenes, shared ChatComposer or reference-summary behavior, generation routing, prompt assembly, provider generation workflows, ripple state, storage tied to modes, or any shared code that could affect more than one mode."
 ---
 
 # DeKoi Mode Separation
@@ -8,8 +8,8 @@ description: "Enforce DeKoi's separation between Messenger, Roleplay, shared gen
 ## Overview
 
 Use this skill whenever a change touches Messenger, Roleplay, shared generation,
-or shared per-thread state. The goal is to keep each product path explicit so a
-fix in one mode does not silently change another.
+shared mode helpers, or shared per-thread state. The goal is to keep each
+product path explicit so a fix in one mode does not silently change another.
 
 This is a local DeKoi port of MuniMuni-authored Tauri app framework guidance.
 It is project-agnostic in origin, but the mode names and owners here are adapted
@@ -42,8 +42,8 @@ Before editing:
 2. Identify the mode-owned entry point.
 3. Identify lower-layer helpers that are safe to share.
 4. Verify no concrete mode imports another concrete mode.
-5. Verify shared mode UI receives mode-owned callbacks or lower-layer data, not
-   concrete mode orchestration.
+5. Verify shared mode UI/helpers receive mode-owned callbacks or lower-layer
+   data, not concrete mode orchestration.
 6. State whether generation, prompt assembly, storage, ripples, provider
    transport, or UI are also impacted.
 
@@ -65,9 +65,10 @@ After editing:
   and keep each mode's orchestration separate.
 - Do not add a mode flag to a generic function when a mode-owned service would
   make the behavior explicit.
-- If shared mode UI needs concrete Messenger or Roleplay behavior, pass a
-  mode-owned callback from the concrete mode surface. Move the UI to the owning
-  mode if the shared component starts learning mode orchestration.
+- If shared mode UI/helpers need concrete Messenger or Roleplay behavior, pass
+  labels, data, or callbacks from the concrete mode surface. Move the behavior
+  to the owning mode if the shared component or helper starts learning mode
+  orchestration.
 
 ## Rejection Rules
 

@@ -8,6 +8,7 @@ interface ChatSettingsIdentityDrawersProps {
   actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "identity">;
   models: ChatSettingsIdentityDrawerModels;
   personas: ShoalRailProps["nav"]["personas"];
+  surfaceLabel?: string;
   onCreateConnection: () => void;
 }
 
@@ -15,12 +16,14 @@ export function ChatSettingsIdentityDrawers({
   actions,
   models,
   personas,
+  surfaceLabel = "Messenger",
   onCreateConnection,
 }: ChatSettingsIdentityDrawersProps) {
   return (
     <>
       <ChatSettingsConnectionDrawer
         model={models.connection}
+        surfaceLabel={surfaceLabel}
         onConnectionChange={actions.identity.onConnectionChange}
         onCreateConnection={onCreateConnection}
         onResolveMissingConnection={actions.identity.onResolveMissingConnection}

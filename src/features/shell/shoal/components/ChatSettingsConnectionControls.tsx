@@ -4,6 +4,7 @@ import type { ChatSettingsConnectionDrawerModel } from "../lib/chat-settings-ide
 
 interface ChatSettingsConnectionControlsProps {
   model: ChatSettingsConnectionDrawerModel;
+  surfaceLabel?: string;
   onConnectionChange: (connectionId: string) => void;
   onCreateConnection: () => void;
   onResolveMissingConnection: (connectionId: string | null) => void;
@@ -11,6 +12,7 @@ interface ChatSettingsConnectionControlsProps {
 
 export function ChatSettingsConnectionControls({
   model,
+  surfaceLabel = "Messenger",
   onConnectionChange,
   onCreateConnection,
   onResolveMissingConnection,
@@ -31,6 +33,7 @@ export function ChatSettingsConnectionControls({
         connectionCount={model.connections.length}
         hasMissingConnection={model.hasMissingConnection}
         missingConnectionResolution={model.missingConnectionResolution}
+        surfaceLabel={surfaceLabel}
         onCreateConnection={onCreateConnection}
         onResolveMissingConnection={onResolveMissingConnection}
       />

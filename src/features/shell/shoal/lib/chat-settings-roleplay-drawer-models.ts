@@ -1,7 +1,5 @@
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type {
-  ChatSettingsMessengerSettings,
-} from "./chat-settings-controller-groups";
+import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { ChatSettingsRoleplaySettings } from "./chat-settings-controller-groups";
 import {
   getChatSettingsAdvancedDrawerModel,
   type AdvancedChatSettings,
@@ -16,34 +14,34 @@ import {
   type ChatSettingsResourceDrawerModels,
 } from "./chat-settings-resource-drawer-models";
 
-export interface ChatSettingsMessengerDrawerModels {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
+export interface ChatSettingsRoleplayDrawerModels {
+  activeRoleplayThread: RoleplayThread | null;
+  activeRoleplayThreadId: string | null;
   advanced: ChatSettingsAdvancedDrawerModel;
   companionSelectorOpen: boolean;
   identity: ChatSettingsIdentityDrawerModels;
   resources: ChatSettingsResourceDrawerModels;
 }
 
-interface ChatSettingsMessengerDrawerModelsInput {
+interface ChatSettingsRoleplayDrawerModelsInput {
   appSettings: AdvancedChatSettings;
-  settings: ChatSettingsMessengerSettings;
+  settings: ChatSettingsRoleplaySettings;
   settingsLabel: string;
 }
 
-export function getChatSettingsMessengerDrawerModels({
+export function getChatSettingsRoleplayDrawerModels({
   appSettings,
   settings,
   settingsLabel,
-}: ChatSettingsMessengerDrawerModelsInput): ChatSettingsMessengerDrawerModels {
+}: ChatSettingsRoleplayDrawerModelsInput): ChatSettingsRoleplayDrawerModels {
   const {
-    activeMessengerThread,
-    activeMessengerThreadId,
+    activeRoleplayThread,
+    activeRoleplayThreadId,
     chatSettingsViewModel,
     companionSelectorOpen,
     openDrawers,
   } = settings;
-  const chatSettingsActive = !!activeMessengerThread;
+  const chatSettingsActive = !!activeRoleplayThread;
   const modelInput = {
     activeThread: chatSettingsActive,
     openDrawers,
@@ -51,8 +49,8 @@ export function getChatSettingsMessengerDrawerModels({
   };
 
   return {
-    activeMessengerThread,
-    activeMessengerThreadId,
+    activeRoleplayThread,
+    activeRoleplayThreadId,
     advanced: getChatSettingsAdvancedDrawerModel({
       appSettings,
       open: chatSettingsActive && openDrawers.advanced,

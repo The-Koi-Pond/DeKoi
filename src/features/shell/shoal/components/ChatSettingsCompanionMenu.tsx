@@ -15,7 +15,7 @@ export function ChatSettingsCompanionMenu({
   return (
     <div
       className="chat-settings-select-menu"
-      id="messenger-settings-companion-menu"
+      id="chat-settings-companion-menu"
       role="listbox"
       aria-multiselectable="true"
     >

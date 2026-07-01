@@ -18,7 +18,7 @@ export function ChatSettingsDrawer({
   title,
   onToggle,
 }: ChatSettingsDrawerProps) {
-  const bodyId = `messenger-settings-${drawerId}-drawer`;
+  const bodyId = `chat-settings-${drawerId}-drawer`;
 
   return (
     <section className={`chat-settings-card${open ? " open" : ""}`}>

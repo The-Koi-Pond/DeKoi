@@ -28,8 +28,8 @@ Also read:
   owners, adapters, runtime wrappers, storage boundaries, Rust commands, or file
   layout.
 - `skills/dekoi-mode-separation/SKILL.md` if the fix touches Messenger,
-  Roleplay, shared generation, prompts, ripple state, shared mode UI, or
-  mode-owned storage behavior.
+  Roleplay, shared generation, prompts, ripple state, shared mode UI/helpers,
+  or mode-owned storage behavior.
 - `ARCHITECTURE.md` if the fix changes imports, owners, adapters, runtime
   commands, Rust commands, storage boundaries, or file layout.
 - `SURFACE_LABELS.md` if the fix touches Messenger, Roleplay, catalog,

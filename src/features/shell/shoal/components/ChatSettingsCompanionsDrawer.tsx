@@ -13,6 +13,7 @@ interface ChatSettingsCompanionsDrawerProps {
   selectedCompanionIds: string[];
   selectionLabel: string;
   summary: string;
+  surfaceLabel?: string;
   onClearMissingCompanions: () => void;
   onCreateCompanion: () => void;
   onSelectorOpenChange: (open: boolean) => void;
@@ -30,6 +31,7 @@ export function ChatSettingsCompanionsDrawer({
   selectedCompanionIds,
   selectionLabel,
   summary,
+  surfaceLabel = "Messenger",
   onClearMissingCompanions,
   onCreateCompanion,
   onSelectorOpenChange,
@@ -52,6 +54,7 @@ export function ChatSettingsCompanionsDrawer({
         selectedCompanionCount={selectedCompanionCount}
         selectedCompanionIds={selectedCompanionIds}
         selectionLabel={selectionLabel}
+        surfaceLabel={surfaceLabel}
         onClearMissingCompanions={onClearMissingCompanions}
         onCreateCompanion={onCreateCompanion}
         onSelectorOpenChange={onSelectorOpenChange}

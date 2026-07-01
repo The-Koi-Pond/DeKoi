@@ -6,6 +6,7 @@ import type { ShoalRailProps } from "../types";
 interface ChatSettingsLorebookResourceDrawerProps {
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   model: ChatSettingsLorebookResourceModel;
+  surfaceLabel?: string;
   onClearMissingLorebooks: () => void;
   onCreateLorebook: () => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
@@ -15,6 +16,7 @@ interface ChatSettingsLorebookResourceDrawerProps {
 export function ChatSettingsLorebookResourceDrawer({
   lorebooks,
   model,
+  surfaceLabel = "Messenger",
   onClearMissingLorebooks,
   onCreateLorebook,
   onToggle,
@@ -28,6 +30,7 @@ export function ChatSettingsLorebookResourceDrawer({
       open={model.open}
       selectedLorebookIds={model.selectedLorebookIds}
       summary={model.summary}
+      surfaceLabel={surfaceLabel}
       onClearMissingLorebooks={onClearMissingLorebooks}
       onCreateLorebook={onCreateLorebook}
       onToggle={onToggle}
