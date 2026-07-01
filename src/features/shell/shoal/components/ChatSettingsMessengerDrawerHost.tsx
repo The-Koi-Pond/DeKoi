@@ -21,21 +21,24 @@ export function ChatSettingsMessengerDrawerHost({
   return (
     <ChatSettingsMessengerDrawers
       actions={actions}
-      appSettings={nav.appSettings}
-      characters={nav.characters}
-      lorebooks={nav.lorebooks}
-      personas={nav.personas}
+      catalog={{
+        appSettings: nav.appSettings,
+        characters: nav.characters,
+        lorebooks: nav.lorebooks,
+        personas: nav.personas,
+      }}
+      navigation={{
+        onCreateCompanion: () =>
+          nav.setView({ kind: "companions", mode: "new" }),
+        onCreateConnection: () =>
+          nav.setView({ kind: "connections", mode: "new" }),
+        onCreateLorebook: () =>
+          nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
+        onCreateMessengerThread: nav.createMessengerThread,
+        onUpdateAppSettings: nav.updateAppSettings,
+      }}
       settings={settings}
       settingsLabel={settingsLabel}
-      onCreateCompanion={() => nav.setView({ kind: "companions", mode: "new" })}
-      onCreateConnection={() =>
-        nav.setView({ kind: "connections", mode: "new" })
-      }
-      onCreateLorebook={() =>
-        nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
-      }
-      onCreateMessengerThread={nav.createMessengerThread}
-      onUpdateAppSettings={nav.updateAppSettings}
     />
   );
 }

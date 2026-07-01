@@ -10,12 +10,20 @@ import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerDrawersProps {
   actions: ChatSettingsMessengerActionGroup;
+  catalog: ChatSettingsMessengerDrawerCatalog;
+  navigation: ChatSettingsMessengerDrawerNavigation;
+  settings: ChatSettingsMessengerSettings;
+  settingsLabel: string;
+}
+
+interface ChatSettingsMessengerDrawerCatalog {
   appSettings: ShoalRailProps["nav"]["appSettings"];
   characters: ShoalRailProps["nav"]["characters"];
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   personas: ShoalRailProps["nav"]["personas"];
-  settings: ChatSettingsMessengerSettings;
-  settingsLabel: string;
+}
+
+interface ChatSettingsMessengerDrawerNavigation {
   onCreateCompanion: () => void;
   onCreateConnection: () => void;
   onCreateLorebook: () => void;
@@ -25,18 +33,19 @@ interface ChatSettingsMessengerDrawersProps {
 
 export function ChatSettingsMessengerDrawers({
   actions,
-  appSettings,
-  characters,
-  lorebooks,
-  personas,
+  catalog,
+  navigation,
   settings,
   settingsLabel,
-  onCreateCompanion,
-  onCreateConnection,
-  onCreateLorebook,
-  onCreateMessengerThread,
-  onUpdateAppSettings,
 }: ChatSettingsMessengerDrawersProps) {
+  const { appSettings, characters, lorebooks, personas } = catalog;
+  const {
+    onCreateCompanion,
+    onCreateConnection,
+    onCreateLorebook,
+    onCreateMessengerThread,
+    onUpdateAppSettings,
+  } = navigation;
   const {
     activeMessengerThread,
     activeMessengerThreadId,
