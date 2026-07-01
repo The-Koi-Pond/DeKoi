@@ -4,12 +4,8 @@ import type {
 } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
-import {
-  ChatSettingsCompanionResourceDrawer,
-  ChatSettingsLorebookResourceDrawer,
-} from "./ChatSettingsResourceDrawers";
+import { ChatSettingsMessengerResourceSection } from "./ChatSettingsMessengerResourceSection";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
@@ -96,39 +92,24 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsCompanionResourceDrawer
-        activeMessengerThread={active}
-        characters={characters}
-        companionSelectorOpen={companionSelectorOpen}
-        openDrawers={openDrawers}
-        viewModel={viewModel}
-        onClearMissingCompanions={onClearMissingCompanions}
-        onCreateCompanion={onCreateCompanion}
-        onSelectorOpenChange={onSelectorOpenChange}
-        onToggle={onToggle}
-        onToggleCompanion={onToggleCompanion}
-      />
-
-      <ChatSettingsPromptControls
-        key={activeMessengerThreadId ?? "no-messenger-thread"}
+      <ChatSettingsMessengerResourceSection
         activeMessengerThread={active}
         activeMessengerThreadRecord={activeMessengerThread}
         activeMessengerThreadId={activeMessengerThreadId}
-        open={openDrawers.prompt}
-        systemPromptMode={viewModel.systemPromptMode}
-        onSaveCustomPrompt={onSaveCustomPrompt}
-        onSystemPromptModeChange={onSystemPromptModeChange}
-        onToggle={onToggle}
-      />
-
-      <ChatSettingsLorebookResourceDrawer
-        activeMessengerThread={active}
+        characters={characters}
+        companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}
         openDrawers={openDrawers}
         viewModel={viewModel}
+        onClearMissingCompanions={onClearMissingCompanions}
         onClearMissingLorebooks={onClearMissingLorebooks}
+        onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
+        onSaveCustomPrompt={onSaveCustomPrompt}
+        onSelectorOpenChange={onSelectorOpenChange}
+        onSystemPromptModeChange={onSystemPromptModeChange}
         onToggle={onToggle}
+        onToggleCompanion={onToggleCompanion}
         onToggleLorebook={onToggleLorebook}
       />
 
