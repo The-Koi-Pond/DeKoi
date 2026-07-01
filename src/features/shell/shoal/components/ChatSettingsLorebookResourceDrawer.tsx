@@ -4,7 +4,6 @@ import type { ChatSettingsLorebookResourceModel } from "../lib/chat-settings-res
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsLorebookResourceDrawerProps {
-  activeMessengerThread: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   model: ChatSettingsLorebookResourceModel;
   onClearMissingLorebooks: () => void;
@@ -14,7 +13,6 @@ interface ChatSettingsLorebookResourceDrawerProps {
 }
 
 export function ChatSettingsLorebookResourceDrawer({
-  activeMessengerThread,
   lorebooks,
   model,
   onClearMissingLorebooks,
@@ -24,7 +22,7 @@ export function ChatSettingsLorebookResourceDrawer({
 }: ChatSettingsLorebookResourceDrawerProps) {
   return (
     <ChatSettingsLorebooksDrawer
-      activeMessengerThread={activeMessengerThread}
+      activeMessengerThread={model.activeMessengerThread}
       lorebooks={lorebooks}
       missingLorebookCount={model.missingLorebookCount}
       open={model.open}

@@ -4,7 +4,6 @@ import type { ChatSettingsCompanionResourceModel } from "../lib/chat-settings-re
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsCompanionResourceDrawerProps {
-  activeMessengerThread: boolean;
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   model: ChatSettingsCompanionResourceModel;
@@ -16,7 +15,6 @@ interface ChatSettingsCompanionResourceDrawerProps {
 }
 
 export function ChatSettingsCompanionResourceDrawer({
-  activeMessengerThread,
   characters,
   companionSelectorOpen,
   model,
@@ -28,7 +26,7 @@ export function ChatSettingsCompanionResourceDrawer({
 }: ChatSettingsCompanionResourceDrawerProps) {
   return (
     <ChatSettingsCompanionsDrawer
-      activeMessengerThread={activeMessengerThread}
+      activeMessengerThread={model.activeMessengerThread}
       characters={characters}
       companionSelectorOpen={companionSelectorOpen}
       missingCompanionCount={model.missingCompanionCount}

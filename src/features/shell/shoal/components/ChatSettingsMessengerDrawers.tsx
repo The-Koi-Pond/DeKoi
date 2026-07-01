@@ -51,7 +51,6 @@ export function ChatSettingsMessengerDrawers({
     activeMessengerThread,
     activeMessengerThreadId,
     advanced,
-    chatSettingsActive,
     companionSelectorOpen,
     identity,
     resources,
@@ -74,7 +73,6 @@ export function ChatSettingsMessengerDrawers({
       )}
       <ChatSettingsIdentityDrawers
         actions={actions}
-        activeMessengerThread={chatSettingsActive}
         models={identity}
         personas={personas}
         onCreateConnection={onCreateConnection}
@@ -82,7 +80,6 @@ export function ChatSettingsMessengerDrawers({
 
       <ChatSettingsMessengerResourceSection
         actions={actions}
-        activeMessengerThread={chatSettingsActive}
         activeMessengerThreadRecord={activeMessengerThread}
         activeMessengerThreadId={activeMessengerThreadId}
         characters={characters}

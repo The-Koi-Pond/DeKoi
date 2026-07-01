@@ -11,7 +11,6 @@ interface ChatSettingsMessengerResourceSectionProps {
     ChatSettingsMessengerActionGroup,
     "drawers" | "prompt" | "resources"
   >;
-  activeMessengerThread: boolean;
   activeMessengerThreadId: string | null;
   activeMessengerThreadRecord: MessengerThread | null;
   characters: ShoalRailProps["nav"]["characters"];
@@ -24,7 +23,6 @@ interface ChatSettingsMessengerResourceSectionProps {
 
 export function ChatSettingsMessengerResourceSection({
   actions,
-  activeMessengerThread,
   activeMessengerThreadId,
   activeMessengerThreadRecord,
   characters,
@@ -37,7 +35,6 @@ export function ChatSettingsMessengerResourceSection({
   return (
     <>
       <ChatSettingsCompanionResourceDrawer
-        activeMessengerThread={activeMessengerThread}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
         model={models.companion}
@@ -50,7 +47,6 @@ export function ChatSettingsMessengerResourceSection({
 
       <ChatSettingsPromptControls
         key={activeMessengerThreadId ?? "no-messenger-thread"}
-        activeMessengerThread={activeMessengerThread}
         activeMessengerThreadRecord={activeMessengerThreadRecord}
         activeMessengerThreadId={activeMessengerThreadId}
         model={models.prompt}
@@ -60,7 +56,6 @@ export function ChatSettingsMessengerResourceSection({
       />
 
       <ChatSettingsLorebookResourceDrawer
-        activeMessengerThread={activeMessengerThread}
         lorebooks={lorebooks}
         model={models.lorebook}
         onClearMissingLorebooks={actions.resources.clearMissingLorebooks}

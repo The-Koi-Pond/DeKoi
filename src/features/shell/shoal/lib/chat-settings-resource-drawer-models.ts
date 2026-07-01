@@ -2,6 +2,7 @@ import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
 
 export interface ChatSettingsCompanionResourceModel {
+  activeMessengerThread: boolean;
   missingCompanionCount: number;
   open: boolean;
   selectedCompanionCount: number;
@@ -11,11 +12,13 @@ export interface ChatSettingsCompanionResourceModel {
 }
 
 export interface ChatSettingsPromptResourceModel {
+  activeMessengerThread: boolean;
   open: boolean;
   systemPromptMode: ChatSettingsViewModel["systemPromptMode"];
 }
 
 export interface ChatSettingsLorebookResourceModel {
+  activeMessengerThread: boolean;
   missingLorebookCount: number;
   open: boolean;
   selectedLorebookIds: string[];
@@ -23,6 +26,7 @@ export interface ChatSettingsLorebookResourceModel {
 }
 
 interface ChatSettingsResourceDrawerModelsInput {
+  activeMessengerThread: boolean;
   openDrawers: Pick<
     Record<ChatSettingsDrawerId, boolean>,
     "companions" | "lorebooks" | "prompt"
@@ -37,11 +41,13 @@ export interface ChatSettingsResourceDrawerModels {
 }
 
 export function getChatSettingsResourceDrawerModels({
+  activeMessengerThread,
   openDrawers,
   viewModel,
 }: ChatSettingsResourceDrawerModelsInput): ChatSettingsResourceDrawerModels {
   return {
     companion: {
+      activeMessengerThread,
       missingCompanionCount: viewModel.missingCompanionCount,
       open: openDrawers.companions,
       selectedCompanionCount: viewModel.selectedCompanionCount,
@@ -50,12 +56,14 @@ export function getChatSettingsResourceDrawerModels({
       summary: viewModel.companionDrawerSummary,
     },
     lorebook: {
+      activeMessengerThread,
       missingLorebookCount: viewModel.missingLorebookCount,
       open: openDrawers.lorebooks,
       selectedLorebookIds: viewModel.selectedLorebookIds,
       summary: viewModel.lorebookDrawerSummary,
     },
     prompt: {
+      activeMessengerThread,
       open: openDrawers.prompt,
       systemPromptMode: viewModel.systemPromptMode,
     },

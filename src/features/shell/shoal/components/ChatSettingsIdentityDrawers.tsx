@@ -6,7 +6,6 @@ import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsIdentityDrawersProps {
   actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "identity">;
-  activeMessengerThread: boolean;
   models: ChatSettingsIdentityDrawerModels;
   personas: ShoalRailProps["nav"]["personas"];
   onCreateConnection: () => void;
@@ -14,7 +13,6 @@ interface ChatSettingsIdentityDrawersProps {
 
 export function ChatSettingsIdentityDrawers({
   actions,
-  activeMessengerThread,
   models,
   personas,
   onCreateConnection,
@@ -22,7 +20,6 @@ export function ChatSettingsIdentityDrawers({
   return (
     <>
       <ChatSettingsConnectionDrawer
-        activeMessengerThread={activeMessengerThread}
         model={models.connection}
         onConnectionChange={actions.identity.onConnectionChange}
         onCreateConnection={onCreateConnection}
@@ -31,7 +28,6 @@ export function ChatSettingsIdentityDrawers({
       />
 
       <ChatSettingsPersonaDrawer
-        activeMessengerThread={activeMessengerThread}
         model={models.persona}
         personas={personas}
         onPersonaChange={actions.identity.onPersonaChange}

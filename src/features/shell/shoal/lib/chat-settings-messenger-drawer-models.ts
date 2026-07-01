@@ -2,7 +2,6 @@ import type { MessengerThread } from "../../../../engine/contracts/types/messeng
 import type {
   ChatSettingsMessengerSettings,
 } from "./chat-settings-controller-groups";
-import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import {
   getChatSettingsAdvancedDrawerModel,
   type AdvancedChatSettings,
@@ -21,7 +20,6 @@ export interface ChatSettingsMessengerDrawerModels {
   activeMessengerThread: MessengerThread | null;
   activeMessengerThreadId: string | null;
   advanced: ChatSettingsAdvancedDrawerModel;
-  chatSettingsActive: boolean;
   companionSelectorOpen: boolean;
   identity: ChatSettingsIdentityDrawerModels;
   resources: ChatSettingsResourceDrawerModels;
@@ -46,12 +44,9 @@ export function getChatSettingsMessengerDrawerModels({
     openDrawers,
   } = settings;
   const chatSettingsActive = !!activeMessengerThread;
-  const activeOpenDrawers = getActiveMessengerOpenDrawers({
-    active: chatSettingsActive,
-    openDrawers,
-  });
   const modelInput = {
-    openDrawers: activeOpenDrawers,
+    activeMessengerThread: chatSettingsActive,
+    openDrawers,
     viewModel: chatSettingsViewModel,
   };
 
@@ -60,33 +55,11 @@ export function getChatSettingsMessengerDrawerModels({
     activeMessengerThreadId,
     advanced: getChatSettingsAdvancedDrawerModel({
       appSettings,
-      open: activeOpenDrawers.advanced,
+      open: openDrawers.advanced,
       settingsLabel,
     }),
-    chatSettingsActive,
     companionSelectorOpen,
     identity: getChatSettingsIdentityDrawerModels(modelInput),
     resources: getChatSettingsResourceDrawerModels(modelInput),
-  };
-}
-
-function getActiveMessengerOpenDrawers({
-  active,
-  openDrawers,
-}: {
-  active: boolean;
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
-}): Record<ChatSettingsDrawerId, boolean> {
-  if (active) {
-    return openDrawers;
-  }
-
-  return {
-    advanced: false,
-    companions: false,
-    connection: false,
-    lorebooks: false,
-    persona: false,
-    prompt: false,
   };
 }

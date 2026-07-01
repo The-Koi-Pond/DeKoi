@@ -5,7 +5,6 @@ import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsPersonaDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsPersonaDrawerProps {
-  activeMessengerThread: boolean;
   model: ChatSettingsPersonaDrawerModel;
   personas: PersonaRecord[];
   onPersonaChange: (personaId: string) => void;
@@ -13,7 +12,6 @@ interface ChatSettingsPersonaDrawerProps {
 }
 
 export function ChatSettingsPersonaDrawer({
-  activeMessengerThread,
   model,
   personas,
   onPersonaChange,
@@ -28,7 +26,6 @@ export function ChatSettingsPersonaDrawer({
       onToggle={onToggle}
     >
       <ChatSettingsPersonaControls
-        activeMessengerThread={activeMessengerThread}
         model={model}
         personas={personas}
         onPersonaChange={onPersonaChange}
