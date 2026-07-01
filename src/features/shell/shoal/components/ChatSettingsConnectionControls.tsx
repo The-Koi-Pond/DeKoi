@@ -1,13 +1,9 @@
+import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import {
-  getProviderConnectionProviderOption,
-  type ProviderConnectionRecord,
-} from "../../../../engine/contracts/types/provider-connection";
-import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-
-interface MissingConnectionResolution {
-  actionLabel: string;
-  connectionId: string | null;
-}
+  ChatSettingsConnectionNotices,
+  type MissingConnectionResolution,
+} from "./ChatSettingsConnectionNotices";
+import { ChatSettingsConnectionSelect } from "./ChatSettingsConnectionSelect";
 
 interface ChatSettingsConnectionControlsProps {
   activeMessengerThread: boolean;
@@ -34,82 +30,25 @@ export function ChatSettingsConnectionControls({
   onCreateConnection,
   onResolveMissingConnection,
 }: ChatSettingsConnectionControlsProps) {
-  const fallbackConnectionProvider = fallbackConnection
-    ? getProviderConnectionProviderOption(fallbackConnection.provider)
-    : null;
-
   return (
     <>
-      <label className="chat-settings-field">
-        <span>Provider</span>
-        <select
-          className="pondsel"
-          value={messengerConnectionValue}
-          disabled={!activeMessengerThread || connections.length === 0}
-          onChange={(event) => onConnectionChange(event.currentTarget.value)}
-        >
-          {connections.length === 0 ? (
-            hasMissingConnection ? (
-              <option value={messengerConnectionValue} disabled>
-                Missing connection
-              </option>
-            ) : (
-              <option value="">No connections</option>
-            )
-          ) : (
-            <>
-              {hasMissingConnection && (
-                <option value={messengerConnectionValue} disabled>
-                  Missing connection
-                </option>
-              )}
-              {!hasMissingConnection && (
-                <option value="">
-                  {fallbackConnectionPrefix} ·{" "}
-                  {fallbackConnection && fallbackConnectionProvider
-                    ? `${fallbackConnection.label} · ${
-                        fallbackConnectionProvider.label
-                      } · ${fallbackConnection.model || "No model"}`
-                    : "No connection"}
-                </option>
-              )}
-              {connections.map((connection) => {
-                const provider = getProviderConnectionProviderOption(
-                  connection.provider,
-                );
-                const model = connection.model || "No model";
-
-                return (
-                  <option value={connection.id} key={connection.id}>
-                    {connection.label} · {provider.label} · {model}
-                  </option>
-                );
-              })}
-            </>
-          )}
-        </select>
-      </label>
-      {hasMissingConnection && (
-        <ChatSettingsNotice
-          actionLabel={missingConnectionResolution.actionLabel}
-          onAction={() =>
-            onResolveMissingConnection(missingConnectionResolution.connectionId)
-          }
-        >
-          This thread points to a connection that is no longer saved. Choose
-          another connection or clear the missing reference.
-        </ChatSettingsNotice>
-      )}
-      {activeMessengerThread &&
-        connections.length === 0 &&
-        !hasMissingConnection && (
-          <ChatSettingsNotice
-            actionLabel="Create connection"
-            onAction={onCreateConnection}
-          >
-            Create a connection before Messenger can generate replies.
-          </ChatSettingsNotice>
-        )}
+      <ChatSettingsConnectionSelect
+        activeMessengerThread={activeMessengerThread}
+        connections={connections}
+        fallbackConnection={fallbackConnection}
+        fallbackConnectionPrefix={fallbackConnectionPrefix}
+        hasMissingConnection={hasMissingConnection}
+        messengerConnectionValue={messengerConnectionValue}
+        onConnectionChange={onConnectionChange}
+      />
+      <ChatSettingsConnectionNotices
+        activeMessengerThread={activeMessengerThread}
+        connectionCount={connections.length}
+        hasMissingConnection={hasMissingConnection}
+        missingConnectionResolution={missingConnectionResolution}
+        onCreateConnection={onCreateConnection}
+        onResolveMissingConnection={onResolveMissingConnection}
+      />
     </>
   );
 }

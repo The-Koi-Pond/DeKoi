@@ -1,5 +1,6 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import { ChatSettingsNotice } from "./ChatSettingsBlocks";
+import { ChatSettingsCompanionMenu } from "./ChatSettingsCompanionMenu";
+import { ChatSettingsCompanionNotices } from "./ChatSettingsCompanionNotices";
 
 interface ChatSettingsCompanionSelectorProps {
   activeMessengerThread: boolean;
@@ -50,60 +51,20 @@ export function ChatSettingsCompanionSelector({
         <small>{selectedCompanionCount}</small>
       </button>
       {companionSelectorOpen && activeMessengerThread && characters.length > 0 && (
-        <div
-          className="chat-settings-select-menu"
-          id="messenger-settings-companion-menu"
-          role="listbox"
-          aria-multiselectable="true"
-        >
-          {characters.map((character) => {
-            const selected = selectedCompanionIds.includes(character.id);
-
-            return (
-              <label
-                className={`chat-settings-check${selected ? " on" : ""}`}
-                key={character.id}
-                role="option"
-                aria-selected={selected}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  onChange={() => onToggleCompanion(character.id)}
-                />
-                <span>{character.displayName}</span>
-              </label>
-            );
-          })}
-        </div>
+        <ChatSettingsCompanionMenu
+          characters={characters}
+          selectedCompanionIds={selectedCompanionIds}
+          onToggleCompanion={onToggleCompanion}
+        />
       )}
-      {missingCompanionCount > 0 && (
-        <ChatSettingsNotice
-          actionLabel="Clear missing"
-          onAction={onClearMissingCompanions}
-        >
-          {missingCompanionCount} selected companion
-          {missingCompanionCount === 1 ? " is" : "s are"} no longer saved.
-          Missing companions are skipped when Messenger builds a reply.
-        </ChatSettingsNotice>
-      )}
-      {activeMessengerThread &&
-        characters.length === 0 &&
-        missingCompanionCount === 0 && (
-          <ChatSettingsNotice
-            actionLabel="Create companion"
-            onAction={onCreateCompanion}
-          >
-            Create a companion before Messenger can generate replies.
-          </ChatSettingsNotice>
-        )}
-      {activeMessengerThread &&
-        characters.length > 0 &&
-        selectedCompanionCount === 0 && (
-          <p className="chat-settings-empty-line">
-            Choose at least one companion before generating replies.
-          </p>
-        )}
+      <ChatSettingsCompanionNotices
+        activeMessengerThread={activeMessengerThread}
+        characterCount={characters.length}
+        missingCompanionCount={missingCompanionCount}
+        selectedCompanionCount={selectedCompanionCount}
+        onClearMissingCompanions={onClearMissingCompanions}
+        onCreateCompanion={onCreateCompanion}
+      />
     </div>
   );
 }
