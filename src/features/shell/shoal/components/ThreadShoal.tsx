@@ -3,9 +3,8 @@ import { useThreadShoalViewModel } from "../hooks/use-thread-shoal-view-model";
 import { useThreadReleaseActions } from "../hooks/use-thread-release-actions";
 import type { ShoalRailProps } from "../types";
 import { ShoalTopBar } from "./ShoalTopBar";
-import { ThreadReleaseDialog } from "./ThreadReleaseDialog";
-import { ThreadShoalHead } from "./ThreadShoalHead";
-import { ThreadShoalList } from "./ThreadShoalList";
+import { ThreadReleaseDialogHost } from "./ThreadReleaseDialogHost";
+import { ThreadShoalBody } from "./ThreadShoalBody";
 import { ThreadShoalPopovers } from "./ThreadShoalPopovers";
 
 export function ThreadShoal({
@@ -66,34 +65,28 @@ export function ThreadShoal({
         onToggleShoal={onToggleShoal}
         shoalClosed={shoalClosed}
       />
-      <div className="shoal-body">
-        <ThreadShoalHead
-          activeSurfaceLabel={activeSurfaceLabel}
-          isRoleplaySurface={isRoleplaySurface}
-          newMessengerOpen={newMessengerOpen}
-          newRoleplayOpen={newRoleplayOpen}
-          query={query}
-          searchPlaceholder={searchPlaceholder}
-          sortLabel={sortLabel}
-          onCreateActiveThread={handleCreateActiveThread}
-          onCycleSortMode={cycleSortMode}
-          onQueryChange={setQuery}
-        />
-        <ThreadShoalList
-          activeMessengerThreadId={activeMessengerThreadId}
-          activeRoleplayThreadId={activeRoleplayThreadId}
-          characterById={characterById}
-          isRoleplaySurface={isRoleplaySurface}
-          messengerThreads={threadShoalLists.messengerThreads}
-          roleplayThreads={threadShoalLists.roleplayThreads}
-          onCreateActiveThread={handleCreateActiveThread}
-          onDeleteMessengerThread={handleDeleteMessenger}
-          onDeleteRoleplayThread={handleDeleteRoleplay}
-          onOpenMessengerThread={nav.openMessengerThread}
-          onOpenRoleplayThread={nav.openRoleplayThread}
-          onRenameRoleplayThread={handleRenameRoleplay}
-        />
-      </div>
+      <ThreadShoalBody
+        activeMessengerThreadId={activeMessengerThreadId}
+        activeRoleplayThreadId={activeRoleplayThreadId}
+        activeSurfaceLabel={activeSurfaceLabel}
+        characterById={characterById}
+        isRoleplaySurface={isRoleplaySurface}
+        messengerThreads={threadShoalLists.messengerThreads}
+        newMessengerOpen={newMessengerOpen}
+        newRoleplayOpen={newRoleplayOpen}
+        query={query}
+        roleplayThreads={threadShoalLists.roleplayThreads}
+        searchPlaceholder={searchPlaceholder}
+        sortLabel={sortLabel}
+        onCreateActiveThread={handleCreateActiveThread}
+        onCycleSortMode={cycleSortMode}
+        onDeleteMessengerThread={handleDeleteMessenger}
+        onDeleteRoleplayThread={handleDeleteRoleplay}
+        onOpenMessengerThread={nav.openMessengerThread}
+        onOpenRoleplayThread={nav.openRoleplayThread}
+        onQueryChange={setQuery}
+        onRenameRoleplayThread={handleRenameRoleplay}
+      />
       <ThreadShoalPopovers
         characters={nav.characters}
         connections={sanitizedProviderConnections}
@@ -103,13 +96,11 @@ export function ThreadShoal({
         personas={nav.personas}
         popovers={newThreadPopovers}
       />
-      {releaseRequest && (
-        <ThreadReleaseDialog
-          request={releaseRequest}
-          onCancel={clearReleaseRequest}
-          onConfirm={confirmReleaseThread}
-        />
-      )}
+      <ThreadReleaseDialogHost
+        request={releaseRequest}
+        onCancel={clearReleaseRequest}
+        onConfirm={confirmReleaseThread}
+      />
     </aside>
   );
 }

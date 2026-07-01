@@ -2,8 +2,8 @@ import type { ProviderConnectionRecord } from "../../../../engine/contracts/type
 import type { NewThreadPopovers } from "../hooks/use-new-thread-popovers";
 import type { NewThreadLabels } from "../lib/new-thread-labels";
 import type { ShoalNav } from "../types";
-import { NewMessengerThreadPopover } from "./NewMessengerThreadPopover";
-import { NewRoleplayThreadPopover } from "./NewRoleplayThreadPopover";
+import { MessengerThreadShoalPopover } from "./MessengerThreadShoalPopover";
+import { RoleplayThreadShoalPopover } from "./RoleplayThreadShoalPopover";
 
 interface ThreadShoalPopoversProps {
   characters: ShoalNav["characters"];
@@ -26,66 +26,23 @@ export function ThreadShoalPopovers({
 }: ThreadShoalPopoversProps) {
   return (
     <>
-      {!isRoleplaySurface && popovers.newMessengerOpen && (
-        <NewMessengerThreadPopover
-          characterIds={popovers.newMessengerCharacterIds}
+      {!isRoleplaySurface && (
+        <MessengerThreadShoalPopover
           characters={characters}
-          companionLabel={labels.getCompanionLabel(
-            popovers.newMessengerCharacterIds,
-          )}
-          companionMenuOpen={popovers.newMessengerCompanionMenuOpen}
-          connectionId={popovers.newMessengerConnectionId}
           connections={connections}
-          name={popovers.newMessengerName}
-          namePlaceholder={labels.getDraftCompanionName(
-            popovers.newMessengerCharacterIds,
-          )}
-          personaId={popovers.newMessengerPersonaId}
+          labels={labels}
           personas={personas}
-          onClose={popovers.closeNewMessengerThreadPopover}
-          onCompanionMenuOpenChange={popovers.setNewMessengerCompanionMenuOpen}
-          onConnectionChange={popovers.setNewMessengerConnectionId}
-          onNameChange={(name) => {
-            popovers.setNewMessengerName(name);
-            popovers.setNewMessengerNameEdited(true);
-          }}
-          onPersonaChange={popovers.setNewMessengerPersonaId}
-          onSubmit={popovers.handleCreateMessengerThread}
-          onToggleCharacter={popovers.toggleNewMessengerCharacter}
+          popovers={popovers}
         />
       )}
-      {isRoleplaySurface && popovers.newRoleplayOpen && (
-        <NewRoleplayThreadPopover
-          characterIds={popovers.newRoleplayCharacterIds}
+      {isRoleplaySurface && (
+        <RoleplayThreadShoalPopover
           characters={characters}
-          companionLabel={labels.getCompanionLabel(
-            popovers.newRoleplayCharacterIds,
-          )}
-          companionMenuOpen={popovers.newRoleplayCompanionMenuOpen}
-          connectionId={popovers.newRoleplayConnectionId}
           connections={connections}
-          lorebookIds={popovers.newRoleplayLorebookIds}
-          lorebookLabel={labels.getLorebookLabel(popovers.newRoleplayLorebookIds)}
-          lorebookMenuOpen={popovers.newRoleplayLorebookMenuOpen}
+          labels={labels}
           lorebooks={lorebooks}
-          name={popovers.newRoleplayName}
-          namePlaceholder={labels.getDraftRoleplayName(
-            popovers.newRoleplayCharacterIds,
-          )}
-          personaId={popovers.newRoleplayPersonaId}
           personas={personas}
-          onClose={popovers.closeNewRoleplayThreadPopover}
-          onCompanionMenuOpenChange={popovers.setNewRoleplayCompanionMenuOpen}
-          onConnectionChange={popovers.setNewRoleplayConnectionId}
-          onLorebookMenuOpenChange={popovers.setNewRoleplayLorebookMenuOpen}
-          onNameChange={(name) => {
-            popovers.setNewRoleplayName(name);
-            popovers.setNewRoleplayNameEdited(true);
-          }}
-          onPersonaChange={popovers.setNewRoleplayPersonaId}
-          onSubmit={popovers.handleCreateRoleplayThread}
-          onToggleCharacter={popovers.toggleNewRoleplayCharacter}
-          onToggleLorebook={popovers.toggleNewRoleplayLorebook}
+          popovers={popovers}
         />
       )}
     </>
