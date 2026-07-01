@@ -67,15 +67,12 @@ export function ChatSettingsMessengerDrawers({
         </ChatSettingsNotice>
       )}
       <ChatSettingsIdentityDrawers
+        actions={actions}
         activeMessengerThread={active}
         openDrawers={openDrawers}
         personas={personas}
         viewModel={chatSettingsViewModel}
-        onConnectionChange={actions.identity.onConnectionChange}
         onCreateConnection={onCreateConnection}
-        onPersonaChange={actions.identity.onPersonaChange}
-        onResolveMissingConnection={actions.identity.onResolveMissingConnection}
-        onToggle={actions.drawers.onToggle}
       />
 
       <ChatSettingsMessengerResourceSection
