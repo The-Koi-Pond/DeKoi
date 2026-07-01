@@ -4,6 +4,10 @@ This document is the storage guardrail for DeKoi-native records. It is not a SQL
 migration plan. The goal is to keep durable data shaped by product ownership
 before the app grows enough to need a heavier database implementation.
 
+For longer-term storage direction, see [Storage Roadmap](./storage-roadmap.md).
+The roadmap is not an enforceable contract unless this document and the storage
+contract check are updated.
+
 ## Decision
 
 DeKoi storage is collection-backed first.

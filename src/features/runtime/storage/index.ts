@@ -36,6 +36,7 @@ export {
 } from "./app-storage-workflows";
 export {
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   exportDesktopBundleFile,
   getDeKoiStorageBundleCounts,
   importDesktopBundleFile,

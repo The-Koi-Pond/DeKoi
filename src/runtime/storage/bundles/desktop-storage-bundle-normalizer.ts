@@ -2,6 +2,7 @@ import {
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
+  type DeKoiStorageBundlePreview,
 } from "./dekoi-storage-bundle";
 import type {
   DeKoiDesktopStorageBundleInfo,
@@ -17,6 +18,7 @@ export type DeKoiDesktopStorageBundleResult =
       ok: true;
       bundle: DeKoiStorageBundle;
       counts: DeKoiStorageBundleCounts;
+      fingerprint: DeKoiStorageBundlePreview["fingerprint"];
       info: DeKoiDesktopStorageBundleInfo;
       warnings: string[];
     }
@@ -32,6 +34,7 @@ export function normalizeDesktopStorageBundleSnapshot(
     ok: true,
     bundle: normalized.preview.bundle,
     counts: normalized.preview.counts,
+    fingerprint: normalized.preview.fingerprint,
     info: {
       path: snapshot.path,
       byteLength: snapshot.byteLength,

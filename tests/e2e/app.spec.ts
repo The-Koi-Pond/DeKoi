@@ -43,6 +43,7 @@ import { createHostStorageMetadataResult } from "../../src/runtime/storage/host-
 import {
   changedAppStorageMetadataKeys,
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   normalizeDeKoiStorageBundle,
 } from "../../src/runtime";
 import { normalizeProviderConnectionRecord } from "../../src/runtime/storage/collections/provider-connection-storage";
@@ -1280,6 +1281,54 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   );
 });
 
+test("storage bundle fingerprints track normalized data but ignore export time", () => {
+  const bundle = createBundleFixture();
+  const preview = normalizeDeKoiStorageBundle(bundle);
+  expect(preview.ok).toBe(true);
+  if (!preview.ok) return;
+
+  const laterExport = normalizeDeKoiStorageBundle({
+    ...bundle,
+    exportedAt: "2026-06-29T00:00:00.000Z",
+  });
+  expect(laterExport.ok).toBe(true);
+  if (!laterExport.ok) return;
+
+  const changedData = normalizeDeKoiStorageBundle({
+    ...bundle,
+    data: {
+      ...bundle.data,
+      appSettings: { accent: "jade" },
+    },
+  });
+  const undefinedFieldData = normalizeDeKoiStorageBundle({
+    ...bundle,
+    data: {
+      ...bundle.data,
+      appSettings: {
+        ...bundle.data.appSettings,
+        ignored: undefined,
+      },
+    },
+  });
+  expect(changedData.ok).toBe(true);
+  expect(undefinedFieldData.ok).toBe(true);
+  if (!changedData.ok) return;
+  if (!undefinedFieldData.ok) return;
+
+  expect(preview.preview.fingerprint).toMatch(/^fnv1a32:/);
+  expect(laterExport.preview.fingerprint).toBe(preview.preview.fingerprint);
+  expect(undefinedFieldData.preview.fingerprint).toBe(
+    preview.preview.fingerprint,
+  );
+  expect(changedData.preview.fingerprint).not.toBe(
+    preview.preview.fingerprint,
+  );
+  expect(createDeKoiStorageBundleFingerprint(preview.preview.bundle)).toBe(
+    preview.preview.fingerprint,
+  );
+});
+
 test("provider connection storage skips removed non-remote lane records", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const legacyMockConnection = {
@@ -1626,6 +1675,77 @@ test("bundle import failure reloads partial storage and requires fresh confirmat
   await page.locator(".settings-button").click();
   await expect(confirmCheckbox).not.toBeChecked();
   await expect(importButton).toBeDisabled();
+});
+
+test("bundle import failure can restore the in-session pre-import backup", async ({
+  page,
+}) => {
+  const runtime = await installFailingRemoteRuntime(page, "characters");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await page.getByRole("radio", { name: "Jade" }).click();
+  await page.getByRole("tab", { name: /Data & Backup/ }).click();
+
+  await page.locator("#dekoi-bundle-file").setInputFiles(
+    jsonFilePayload("bundle.json", createBundleFixture()),
+  );
+  const importButton = page.getByRole("button", { name: "Import bundle" });
+  await page
+    .getByLabel("Replace current DeKoi records with this bundle")
+    .check();
+  await importButton.click();
+
+  await expect(page.getByText(/Import failed\./)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Restore pre-import backup" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Restore pre-import backup" }).click();
+  await expect(page.getByText(/Restore will replace current DeKoi records/)).toBeVisible();
+  await page.getByRole("button", { name: "Confirm restore" }).click();
+
+  await expect(page.getByText(/Restored pre-import backup\./)).toBeVisible();
+  await expect
+    .poll(() => runtime.records.get("app-settings")?.[0], { timeout: 8000 })
+    .toEqual(expect.objectContaining({ accent: "jade" }));
+});
+
+test("import recovery is cleared when the storage target changes", async ({
+  page,
+}) => {
+  const runtime = await installFailingRemoteRuntime(page, "characters");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  await page.locator("#dekoi-bundle-file").setInputFiles(
+    jsonFilePayload("bundle.json", createBundleFixture()),
+  );
+  const importButton = page.getByRole("button", { name: "Import bundle" });
+  await page
+    .getByLabel("Replace current DeKoi records with this bundle")
+    .check();
+  await importButton.click();
+
+  await expect(page.getByText(/Import failed\./)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Restore pre-import backup" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Use host default" }).click();
+  await expect(
+    page.getByRole("button", { name: "Restore pre-import backup" }),
+  ).toHaveCount(0);
+  const restoreReplaceCount = runtime.calls.filter(
+    (call) => call.command === "storage_replace",
+  ).length;
+  await expect
+    .poll(
+      () =>
+        runtime.calls.filter((call) => call.command === "storage_replace")
+          .length,
+    )
+    .toBe(restoreReplaceCount);
 });
 
 test("legacy import failure can be acknowledged without arming retry", async ({

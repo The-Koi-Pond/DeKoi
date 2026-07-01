@@ -1,5 +1,6 @@
 export {
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   getDeKoiStorageBundleCounts,
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,

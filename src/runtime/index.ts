@@ -37,6 +37,7 @@ export { loadCharacterRecords } from "./storage/collections/character-storage";
 export { loadRoleplayThreads } from "./storage/collections/roleplay-storage";
 export {
   createDeKoiStorageBundle,
+  createDeKoiStorageBundleFingerprint,
   getDeKoiStorageBundleCounts,
   normalizeDeKoiStorageBundle,
   type DeKoiStorageBundle,

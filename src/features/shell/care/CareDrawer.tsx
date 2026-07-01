@@ -46,6 +46,10 @@ import { DESKTOP_RUNTIME_URL } from "../../../shared/api/runtime-target";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
 import { downloadJsonFile } from "../../../shared/browser/download-json";
 import { CARE_TABS } from "./care-tabs";
+import {
+  createLegacyImportDataFingerprint,
+  prepareLegacyImportData,
+} from "./use-app-import-export-actions";
 import "./CareDrawer.css";
 import "./care-fields.css";
 import "../../../shared/ui/primitives/Chip.css";
@@ -73,9 +77,16 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     NavStorageBundleActions,
     "createStorageBundle" | "importLegacyData" | "importStorageBundle"
   > &
-  Pick<NavStorageActions, "checkAppStorageStale" | "reloadAppStorage"> &
+  Pick<
+    NavStorageActions,
+    | "checkAppStorageStale"
+    | "flushAppStorageSaves"
+    | "reloadAppStorage"
+    | "restoreLastPreImportBackup"
+  > &
   Pick<
     NavStorageState,
+    | "importRecoveryState"
     | "messengerStorageMessage"
     | "messengerStorageMode"
     | "messengerStorageStatus"
@@ -105,6 +116,9 @@ type StorageImportFailureSource = "bundle" | "legacy";
 type StorageRepairConfirmationAction =
   | AppStorageRepairStrategy
   | "finish-repair";
+type PreparedLegacyImportPreview = DeKoiLegacyImportPreview & {
+  fingerprint: string;
+};
 
 export function CareDrawer({ nav }: CareDrawerProps) {
   const open = nav.careOpen;
@@ -151,8 +165,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [desktopFileBusy, setDesktopFileBusy] = useState(false);
   const [storageImportFailureSource, setStorageImportFailureSource] =
     useState<StorageImportFailureSource | null>(null);
+  const [storageImportRestoreConfirmed, setStorageImportRestoreConfirmed] =
+    useState(false);
+  const [storageImportRestoreBusy, setStorageImportRestoreBusy] =
+    useState(false);
   const [legacyPreview, setLegacyPreview] =
-    useState<DeKoiLegacyImportPreview | null>(null);
+    useState<PreparedLegacyImportPreview | null>(null);
   const [legacyImportConfirmed, setLegacyImportConfirmed] = useState(false);
   const [legacyImportBusy, setLegacyImportBusy] = useState(false);
   const [legacyStatus, setLegacyStatus] = useState("");
@@ -175,9 +193,16 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setCareTab(4);
   }, [open, setCareOpen, setCareTab, storageImportFailureSource]);
 
+  function clearStorageImportRecoveryUi() {
+    setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
+    setStorageImportRestoreBusy(false);
+  }
+
   function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRuntimeHealth("");
+    clearStorageImportRecoveryUi();
     nav.setRemoteRuntimeUrl(runtimeUrl);
   }
 
@@ -189,6 +214,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
   function handleUseLocalStorage() {
     setRuntimeUrl("");
+    clearStorageImportRecoveryUi();
     nav.setRemoteRuntimeUrl("");
     setRuntimeHealth(
       "Using desktop host storage when available; otherwise this browser session is temporary.",
@@ -197,6 +223,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
   function handleUseDesktopRuntime() {
     setRuntimeUrl(DESKTOP_RUNTIME_URL);
+    clearStorageImportRecoveryUi();
     nav.setRemoteRuntimeUrl(DESKTOP_RUNTIME_URL);
     setRuntimeHealth("Desktop runtime selected for storage and profile data.");
   }
@@ -229,10 +256,17 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
   async function handleDesktopStorageSave() {
     setDesktopStorageBusy(true);
-    setDesktopStorageStatus("Saving desktop host bundle...");
+    setDesktopStorageStatus("Flushing storage before host bundle save...");
 
     try {
-      const info = await writeDesktopStorageBundle(nav.createStorageBundle());
+      const bundleResult = await createStorageBundleAfterFlush("export");
+      if (!bundleResult.ok) {
+        setDesktopStorageStatus(bundleResult.message);
+        return;
+      }
+
+      setDesktopStorageStatus("Saving desktop host bundle...");
+      const info = await writeDesktopStorageBundle(bundleResult.bundle);
       await refreshDesktopHostStatus();
       setDesktopStorageStatus(
         `Saved desktop host bundle (${formatBytes(info.byteLength)}).`,
@@ -260,6 +294,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setBundlePreview({
         bundle: result.bundle,
         counts: result.counts,
+        fingerprint: result.fingerprint,
         warnings: result.warnings,
       });
       setBundleReplaceConfirmed(false);
@@ -508,10 +543,47 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       .replace(/[:.]/g, "-")}.json`;
   }
 
+  function formatFlushFailureMessage(result: {
+    message: string;
+    dirtyCollectionKeys: string[];
+    failedCollectionKeys: string[];
+  }) {
+    const dirty =
+      result.dirtyCollectionKeys.length > 0
+        ? ` Dirty: ${result.dirtyCollectionKeys.join(", ")}.`
+        : "";
+    const failed =
+      result.failedCollectionKeys.length > 0
+        ? ` Failed: ${result.failedCollectionKeys.join(", ")}.`
+        : "";
+    return `${result.message}${dirty}${failed}`;
+  }
+
+  async function createStorageBundleAfterFlush(
+    reason: "backup" | "export" | "import",
+  ) {
+    const flushResult = await nav.flushAppStorageSaves({ reason });
+    if (!flushResult.flushed) {
+      return {
+        ok: false as const,
+        message: formatFlushFailureMessage(flushResult),
+      };
+    }
+
+    return { ok: true as const, bundle: nav.createStorageBundle() };
+  }
+
   async function createPreImportBackup(
     backupFilename: string,
   ): Promise<ImportBackupResult> {
-    const backupBundle = nav.createStorageBundle();
+    const backupBundleResult = await createStorageBundleAfterFlush("import");
+    if (!backupBundleResult.ok) {
+      return {
+        ok: false,
+        message: `Storage flush failed. Import was not started. ${backupBundleResult.message}`,
+      };
+    }
+    const backupBundle = backupBundleResult.bundle;
 
     if (isDesktopHostAvailable()) {
       try {
@@ -607,21 +679,40 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return `${result.message} ${completedCollections}/${Object.keys(result.counts).length} collection(s) were replaced before the failure.${failedDetail}`;
   }
 
-  function handleBundleExport() {
-    downloadJsonFile({
-      data: nav.createStorageBundle(),
-      filename: getBundleFilename(),
-    });
-    setBundleStatus("Exported a DeKoi JSON bundle.");
+  async function handleBundleExport() {
+    setBundleStatus("Flushing storage before export...");
+
+    try {
+      const bundleResult = await createStorageBundleAfterFlush("export");
+      if (!bundleResult.ok) {
+        setBundleStatus(bundleResult.message);
+        return;
+      }
+
+      downloadJsonFile({
+        data: bundleResult.bundle,
+        filename: getBundleFilename(),
+      });
+      setBundleStatus("Exported a DeKoi JSON bundle.");
+    } catch (error) {
+      setBundleStatus(error instanceof Error ? error.message : String(error));
+    }
   }
 
   async function handleDesktopBundleExport() {
     setDesktopFileBusy(true);
-    setBundleStatus("Opening desktop save dialog...");
+    setBundleStatus("Flushing storage before desktop export...");
 
     try {
+      const bundleResult = await createStorageBundleAfterFlush("export");
+      if (!bundleResult.ok) {
+        setBundleStatus(bundleResult.message);
+        return;
+      }
+
+      setBundleStatus("Opening desktop save dialog...");
       const info = await exportDesktopBundleFile(
-        nav.createStorageBundle(),
+        bundleResult.bundle,
         getBundleFilename(),
       );
       setBundleStatus(
@@ -643,6 +734,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setBundlePreview(null);
     setBundleReplaceConfirmed(false);
     setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
 
     if (!file) return;
 
@@ -668,6 +760,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     const backupFilename = getImportBackupFilename();
     setBundleImportBusy(true);
     setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
     setBundleStatus("Creating pre-import backup...");
     let backup: Extract<ImportBackupResult, { ok: true }> | null = null;
 
@@ -683,7 +776,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         `${formatImportBackupCreatedStatus(backup)} Importing DeKoi bundle...`,
       );
 
-      const result = await nav.importStorageBundle(bundlePreview.bundle);
+      const result = await nav.importStorageBundle(bundlePreview.bundle, {
+        previewFingerprint: bundlePreview.fingerprint,
+        desktopBackupPath: backup.path,
+      });
       const resultMessage = formatImportCommitResult(result);
       if (result.status !== "ready") {
         setBundleReplaceConfirmed(false);
@@ -724,6 +820,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setBundlePreview(null);
     setBundleReplaceConfirmed(false);
     setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
 
     try {
       const result = await importDesktopBundleFile();
@@ -737,6 +834,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setBundlePreview({
         bundle: result.bundle,
         counts: result.counts,
+        fingerprint: result.fingerprint,
         warnings: result.warnings,
       });
       setBundleStatus(
@@ -756,6 +854,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     setLegacyPreview(null);
     setLegacyImportConfirmed(false);
     setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
 
     if (!file) return;
 
@@ -766,7 +865,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       return;
     }
 
-    setLegacyPreview(result.preview);
+    const preparedData = prepareLegacyImportData(result.preview.data);
+    setLegacyPreview({
+      ...result.preview,
+      data: preparedData,
+      fingerprint: createLegacyImportDataFingerprint(preparedData),
+    });
     setLegacyStatus(`Previewing ${file.name}.`);
     input.value = "";
   }
@@ -781,6 +885,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     const backupFilename = getImportBackupFilename();
     setLegacyImportBusy(true);
     setStorageImportFailureSource(null);
+    setStorageImportRestoreConfirmed(false);
     setLegacyStatus("Creating pre-import backup...");
     let backup: Extract<ImportBackupResult, { ok: true }> | null = null;
 
@@ -796,7 +901,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         `${formatImportBackupCreatedStatus(backup)} Importing converted records...`,
       );
 
-      const result = await nav.importLegacyData(legacyPreview.data);
+      const result = await nav.importLegacyData(legacyPreview.data, {
+        previewFingerprint: legacyPreview.fingerprint,
+        desktopBackupPath: backup.path,
+      });
       if (result.status !== "ready") {
         setLegacyImportConfirmed(false);
         setStorageImportFailureSource("legacy");
@@ -839,7 +947,104 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setLegacyImportConfirmed(false);
     }
 
+    setStorageImportRestoreConfirmed(false);
     setStorageImportFailureSource(null);
+  }
+
+  function setStorageImportFailureStatus(message: string) {
+    if (storageImportFailureSource === "legacy") {
+      setLegacyStatus(message);
+    } else {
+      setBundleStatus(message);
+    }
+  }
+
+  async function handleRestorePreImportBackup() {
+    if (!nav.importRecoveryState.available) {
+      setStorageImportFailureStatus(
+        "No in-session pre-import backup is available. Import the saved backup file instead.",
+      );
+      return;
+    }
+
+    if (!storageImportRestoreConfirmed) {
+      setStorageImportRestoreConfirmed(true);
+      setStorageImportFailureStatus(
+        "Restore will replace current DeKoi records with the backup created before this import. Select Restore pre-import backup again to continue.",
+      );
+      return;
+    }
+
+    setStorageImportRestoreBusy(true);
+    setStorageImportFailureStatus("Restoring pre-import backup...");
+    const source = storageImportFailureSource;
+
+    try {
+      const result = await nav.restoreLastPreImportBackup();
+      if (result.status !== "ready") {
+        setStorageImportRestoreConfirmed(false);
+        setStorageImportFailureStatus(
+          `Restore failed. Import the saved pre-import backup file if needed. ${formatImportCommitResult(result)}`,
+        );
+        return;
+      }
+
+      setBundleReplaceConfirmed(false);
+      setLegacyImportConfirmed(false);
+      setStorageImportFailureSource(null);
+      setStorageImportRestoreConfirmed(false);
+      if (source === "legacy") {
+        setLegacyStatus(`Restored pre-import backup. ${result.message}`);
+        setBundleStatus("");
+      } else {
+        setBundleStatus(`Restored pre-import backup. ${result.message}`);
+        setLegacyStatus("");
+      }
+    } catch (error) {
+      setStorageImportRestoreConfirmed(false);
+      setStorageImportFailureStatus(
+        `Restore failed. Import the saved pre-import backup file if needed. ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    } finally {
+      setStorageImportRestoreBusy(false);
+    }
+  }
+
+  function renderStorageImportFailureActions(
+    source: StorageImportFailureSource,
+  ) {
+    const restoreAvailable = nav.importRecoveryState.available;
+    const backupPath = nav.importRecoveryState.desktopBackupPath;
+    const fallback = backupPath
+      ? `Saved backup file: ${backupPath}.`
+      : "Manual fallback: import the pre-import backup bundle file you saved.";
+
+    return (
+      <>
+        <p className="bundle-note">{fallback}</p>
+        <div className="runtime-actions">
+          {restoreAvailable && (
+            <button
+              type="button"
+              className="care-btn primary"
+              disabled={storageImportRestoreBusy}
+              onClick={handleRestorePreImportBackup}
+            >
+              {storageImportRestoreBusy
+                ? "Restoring backup"
+                : storageImportRestoreConfirmed
+                  ? "Confirm restore"
+                  : "Restore pre-import backup"}
+            </button>
+          )}
+          <button type="button" onClick={acknowledgeStorageImportFailure}>
+            Acknowledge {source === "legacy" ? "legacy " : ""}import failure
+          </button>
+        </div>
+      </>
+    );
   }
 
   function handleCareClose() {
@@ -1158,13 +1363,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           )}
 
           {bundleStatus && <p className="bundle-status">{bundleStatus}</p>}
-          {storageImportFailureSource === "bundle" && (
-            <div className="runtime-actions">
-              <button type="button" onClick={acknowledgeStorageImportFailure}>
-                Acknowledge import failure
-              </button>
-            </div>
-          )}
+          {storageImportFailureSource === "bundle" &&
+            renderStorageImportFailureActions("bundle")}
 
           <div className="runtime-actions">
             <button
@@ -1205,13 +1405,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
           {legacyPreview && renderLegacyPreview(legacyPreview)}
           {legacyStatus && <p className="bundle-status">{legacyStatus}</p>}
-          {storageImportFailureSource === "legacy" && (
-            <div className="runtime-actions">
-              <button type="button" onClick={acknowledgeStorageImportFailure}>
-                Acknowledge import failure
-              </button>
-            </div>
-          )}
+          {storageImportFailureSource === "legacy" &&
+            renderStorageImportFailureActions("legacy")}
 
           <div className="runtime-actions">
             <button

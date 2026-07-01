@@ -61,8 +61,43 @@ export type AppStorageReloadResult = SaveStatusResult & {
   reloaded: boolean;
 };
 
+export type AppStorageFlushReason =
+  | "backup"
+  | "export"
+  | "import"
+  | "reload"
+  | "shutdown"
+  | "manual";
+
+export type AppStorageFlushResult = SaveStatusResult & {
+  flushed: boolean;
+  blocked: boolean;
+  dirtyCollectionKeys: AppStorageCollectionKey[];
+  savedCollectionKeys: AppStorageCollectionKey[];
+  failedCollectionKeys: AppStorageCollectionKey[];
+};
+
+export type AppStorageImportRecoveryState = {
+  available: boolean;
+  createdAt: string | null;
+  counts: Record<AppStorageCollectionKey, number> | null;
+  desktopBackupPath?: string | null;
+  reason: "partial-import-failure" | "unexpected-import-failure" | null;
+};
+
+type AppStorageCommitImportOptions = {
+  desktopBackupPath?: string | null;
+};
+
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
+const EMPTY_IMPORT_RECOVERY_STATE: AppStorageImportRecoveryState = {
+  available: false,
+  createdAt: null,
+  counts: null,
+  desktopBackupPath: null,
+  reason: null,
+};
 const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
 const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
   "Reload blocked because DeKoi still has unsaved storage changes. Wait for saving to finish before reloading.";
@@ -305,6 +340,12 @@ function firstSaveErrorMessage(errors: SaveErrorMessages) {
   return null;
 }
 
+function saveErrorCollectionKeys(errors: SaveErrorMessages) {
+  return APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) => errors[collectionKey] !== undefined,
+  );
+}
+
 function hasPendingSaveForGeneration(
   pendingSaves: SaveQueueEntries,
   generation: number,
@@ -342,6 +383,14 @@ function changedAppStorageSignatureKeys(
     (collectionKey) =>
       previousSignatures[collectionKey] !== currentSignatures[collectionKey],
   );
+}
+
+function cloneAppStorageRecords(records: AppStorageRecords): AppStorageRecords {
+  if (typeof structuredClone === "function") {
+    return structuredClone(records) as AppStorageRecords;
+  }
+
+  return JSON.parse(JSON.stringify(records)) as AppStorageRecords;
 }
 
 type UseAppStorageSyncInput = AppStorageRecords & {
@@ -389,6 +438,8 @@ export function useAppStorageSync({
 }: UseAppStorageSyncInput) {
   const [storageHasUnsavedChanges, setStorageHasUnsavedChanges] =
     useState(false);
+  const [importRecoveryState, setImportRecoveryState] =
+    useState<AppStorageImportRecoveryState>(EMPTY_IMPORT_RECOVERY_STATE);
   const storageGeneration = useRef(0);
   const currentStorageMode = useRef<MessengerStorageMode>("unavailable");
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
@@ -403,6 +454,12 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const lastPreImportRecovery = useRef<{
+    records: AppStorageRecords;
+    createdAt: string;
+    rawUrl: string;
+    desktopBackupPath?: string | null;
+  } | null>(null);
   const confirmedReloadBlockToken = useRef<AppStorageReloadBlockToken | null>(
     null,
   );
@@ -555,8 +612,292 @@ export function useAppStorageSync({
       importCommitRunning.current ||
       activeSavePromise.current !== null ||
       saveQueueRunning.current !== null ||
+      queuedSaveTimer.current !== null ||
+      queuedSaveIdleHandle.current !== null ||
       hasPendingSave(pendingSaves.current),
     [],
+  );
+
+  const enqueueAppStorageCollectionSaves = useCallback(
+    ({
+      snapshot,
+      collectionKeys,
+      rawUrl,
+      generation,
+      signatures,
+    }: {
+      snapshot: AppStorageRecords;
+      collectionKeys: readonly AppStorageCollectionKey[];
+      rawUrl: string;
+      generation: number;
+      signatures: PartialAppStorageCollectionSignatures;
+    }) => {
+      for (const collectionKey of collectionKeys) {
+        const signature = signatures[collectionKey];
+        if (signature === undefined) continue;
+
+        pendingSaves.current[collectionKey] = {
+          snapshot,
+          rawUrl,
+          generation,
+          signature,
+        };
+      }
+    },
+    [],
+  );
+
+  const drainSaveQueue = useCallback(
+    function drainSaveQueue() {
+      if (saveQueueRunning.current === storageGeneration.current) return;
+
+      const collectionKey = APP_STORAGE_COLLECTION_KEYS.find(
+        (key) => pendingSaves.current[key],
+      );
+      if (!collectionKey) return;
+
+      const entry = pendingSaves.current[collectionKey];
+      delete pendingSaves.current[collectionKey];
+      if (!entry) return;
+
+      if (entry.generation !== storageGeneration.current) {
+        drainSaveQueue();
+        return;
+      }
+
+      saveQueueRunning.current = entry.generation;
+      activeSaveSignatures.current[collectionKey] = entry.signature;
+      setMessengerStorageStatus("saving");
+
+      const savePromise = saveAppStorageCollections(
+        entry.snapshot,
+        [collectionKey],
+        entry.rawUrl,
+      ).then((storageResult) => {
+        if (entry.generation !== storageGeneration.current) return;
+
+        if (storageResult.status === "ready") {
+          mergeLoadedStorageMetadata(storageResult.storageMetadata);
+          savedSignatures.current = savedSignatures.current
+            ? {
+                ...savedSignatures.current,
+                [collectionKey]: entry.signature,
+              }
+            : null;
+          if (unsavedSignatures.current[collectionKey] === entry.signature) {
+            delete unsavedSignatures.current[collectionKey];
+          }
+          delete saveErrors.current[collectionKey];
+        } else {
+          if (!unsavedSignatures.current[collectionKey]) {
+            unsavedSignatures.current[collectionKey] = entry.signature;
+          }
+          saveErrors.current[collectionKey] = storageResult.message;
+        }
+
+        refreshSaveStatus(entry.generation, storageResult);
+      }, (error: unknown) => {
+        if (entry.generation !== storageGeneration.current) return;
+
+        if (!unsavedSignatures.current[collectionKey]) {
+          unsavedSignatures.current[collectionKey] = entry.signature;
+        }
+        saveErrors.current[collectionKey] =
+          error instanceof Error ? error.message : "Storage save failed.";
+        refreshSaveStatus(entry.generation);
+      }).finally(() => {
+        if (activeSaveSignatures.current[collectionKey] === entry.signature) {
+          delete activeSaveSignatures.current[collectionKey];
+        }
+        if (saveQueueRunning.current === entry.generation) {
+          saveQueueRunning.current = null;
+        }
+        if (activeSavePromise.current === savePromise) {
+          activeSavePromise.current = null;
+        }
+        if (entry.generation !== storageGeneration.current) return;
+        refreshSaveStatus(entry.generation);
+        drainSaveQueue();
+      });
+      activeSavePromise.current = savePromise;
+    },
+    [
+      mergeLoadedStorageMetadata,
+      refreshSaveStatus,
+      setMessengerStorageStatus,
+    ],
+  );
+
+  const flushAppStorageSaves = useCallback(
+    async (
+      options?: { reason?: AppStorageFlushReason },
+    ): Promise<AppStorageFlushResult> => {
+      const reason = options?.reason ?? "manual";
+      const generation = storageGeneration.current;
+
+      if (importCommitRunning.current) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message:
+            "Storage flush blocked because an import is already in progress.",
+          flushed: false,
+          blocked: true,
+          dirtyCollectionKeys: [],
+          savedCollectionKeys: [],
+          failedCollectionKeys: [],
+        };
+      }
+
+      if (!storageReady || !savedSignatures.current) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message:
+            "Storage flush skipped because app storage is not ready yet.",
+          flushed: false,
+          blocked: true,
+          dirtyCollectionKeys: [],
+          savedCollectionKeys: [],
+          failedCollectionKeys: [],
+        };
+      }
+
+      cancelQueuedSaveDispatch();
+      const snapshot = currentAppStorageRecords.current;
+      const signatures = createAppStorageSignatures(snapshot);
+      const dirtyCollectionKeys = APP_STORAGE_COLLECTION_KEYS.filter(
+        (collectionKey) => {
+          const signature = signatures[collectionKey];
+          const activeSignature = activeSaveSignatures.current[collectionKey];
+          return (
+            savedSignatures.current?.[collectionKey] !== signature ||
+            unsavedSignatures.current[collectionKey] !== undefined ||
+            (activeSignature !== undefined && activeSignature !== signature) ||
+            pendingSaves.current[collectionKey] !== undefined
+          );
+        },
+      );
+
+      if (
+        dirtyCollectionKeys.length === 0 &&
+        activeSavePromise.current === null &&
+        !hasPendingSave(pendingSaves.current)
+      ) {
+        return {
+          mode: currentStorageMode.current,
+          status: "ready",
+          message: `Storage is already flushed for ${reason}.`,
+          flushed: true,
+          blocked: false,
+          dirtyCollectionKeys: [],
+          savedCollectionKeys: [],
+          failedCollectionKeys: [],
+        };
+      }
+
+      for (const collectionKey of dirtyCollectionKeys) {
+        unsavedSignatures.current[collectionKey] = signatures[collectionKey];
+      }
+      enqueueAppStorageCollectionSaves({
+        snapshot,
+        collectionKeys: dirtyCollectionKeys,
+        rawUrl: remoteRuntimeUrl,
+        generation,
+        signatures,
+      });
+      refreshSaveStatus(generation);
+
+      while (activeSavePromise.current || hasPendingSave(pendingSaves.current)) {
+        if (storageGeneration.current !== generation) {
+          return {
+            mode: currentStorageMode.current,
+            status: "error",
+            message:
+              "Storage flush was interrupted because the storage target changed.",
+            flushed: false,
+            blocked: true,
+            dirtyCollectionKeys,
+            savedCollectionKeys: [],
+            failedCollectionKeys: saveErrorCollectionKeys(saveErrors.current),
+          };
+        }
+
+        drainSaveQueue();
+        const activeSave = activeSavePromise.current;
+        if (activeSave) {
+          await activeSave.catch(() => undefined);
+        }
+      }
+
+      const currentSignatures = createAppStorageSignatures(
+        currentAppStorageRecords.current,
+      );
+      const changedDuringFlushKeys = changedAppStorageSignatureKeys(
+        signatures,
+        currentSignatures,
+      );
+      if (changedDuringFlushKeys.length > 0) {
+        for (const collectionKey of changedDuringFlushKeys) {
+          unsavedSignatures.current[collectionKey] =
+            currentSignatures[collectionKey];
+        }
+        refreshSaveStatus(generation, {
+          mode: currentStorageMode.current,
+          status: "error",
+          message:
+            "Storage flush stopped after records changed while saves were flushing. Some saves may have completed; retry before export or import.",
+        });
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message:
+            "Storage flush stopped after records changed while saves were flushing. Some saves may have completed; retry before export or import.",
+          flushed: false,
+          blocked: true,
+          dirtyCollectionKeys: changedDuringFlushKeys,
+          savedCollectionKeys: dirtyCollectionKeys.filter(
+            (collectionKey) => !changedDuringFlushKeys.includes(collectionKey),
+          ),
+          failedCollectionKeys: saveErrorCollectionKeys(saveErrors.current),
+        };
+      }
+
+      const failedCollectionKeys = saveErrorCollectionKeys(saveErrors.current);
+      if (failedCollectionKeys.length > 0) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: "Storage flush failed for one or more collections.",
+          flushed: false,
+          blocked: false,
+          dirtyCollectionKeys,
+          savedCollectionKeys: dirtyCollectionKeys.filter(
+            (collectionKey) => !failedCollectionKeys.includes(collectionKey),
+          ),
+          failedCollectionKeys,
+        };
+      }
+
+      return {
+        mode: currentStorageMode.current,
+        status: "ready",
+        message: `Storage saves flushed for ${reason}.`,
+        flushed: true,
+        blocked: false,
+        dirtyCollectionKeys,
+        savedCollectionKeys: dirtyCollectionKeys,
+        failedCollectionKeys: [],
+      };
+    },
+    [
+      cancelQueuedSaveDispatch,
+      drainSaveQueue,
+      enqueueAppStorageCollectionSaves,
+      refreshSaveStatus,
+      remoteRuntimeUrl,
+      storageReady,
+    ],
   );
 
   const reloadPersistedStorageAfterImportFailure = useCallback(
@@ -601,8 +942,27 @@ export function useAppStorageSync({
     [applyLoadedAppStorageSnapshot, remoteRuntimeUrl],
   );
 
+  const setAvailableImportRecovery = useCallback(
+    (
+      recovery: NonNullable<typeof lastPreImportRecovery.current>,
+      reason: AppStorageImportRecoveryState["reason"],
+    ) => {
+      setImportRecoveryState({
+        available: true,
+        createdAt: recovery.createdAt,
+        counts: createAppStorageCounts(recovery.records),
+        desktopBackupPath: recovery.desktopBackupPath ?? null,
+        reason,
+      });
+    },
+    [],
+  );
+
   const commitAppStorageImport = useCallback(
-    async (records: AppStorageRecords): Promise<AppStorageReplaceResult> => {
+    async (
+      records: AppStorageRecords,
+      options?: AppStorageCommitImportOptions,
+    ): Promise<AppStorageReplaceResult> => {
       if (importCommitRunning.current) {
         const result = createImportErrorResult(
           records,
@@ -617,6 +977,7 @@ export function useAppStorageSync({
       importCommitRunning.current = true;
 
       try {
+        setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
         setMessengerStorageStatus("saving");
         setMessengerStorageMessage("Importing DeKoi bundle...");
 
@@ -640,6 +1001,13 @@ export function useAppStorageSync({
           return result;
         }
 
+        const preImportRecovery = {
+          records: cloneAppStorageRecords(currentAppStorageRecords.current),
+          createdAt: new Date().toISOString(),
+          rawUrl: remoteRuntimeUrl,
+          desktopBackupPath: options?.desktopBackupPath ?? null,
+        };
+        lastPreImportRecovery.current = preImportRecovery;
         activeSaveSignatures.current = {};
         saveQueueRunning.current = null;
 
@@ -659,6 +1027,10 @@ export function useAppStorageSync({
             ),
             generation,
             { force: true },
+          );
+          setAvailableImportRecovery(
+            preImportRecovery,
+            "unexpected-import-failure",
           );
           setMessengerStorageMode(failureResult.mode);
           setMessengerStorageStatus("error");
@@ -695,12 +1067,22 @@ export function useAppStorageSync({
           setMessengerStorageMode(storageResult.mode);
           setMessengerStorageStatus("ready");
           setMessengerStorageMessage(storageResult.message);
+          lastPreImportRecovery.current = null;
+          setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
           return storageResult;
         }
 
         const failureResult = await reloadPersistedStorageAfterImportFailure(
           storageResult,
           generation,
+        );
+        setAvailableImportRecovery(
+          preImportRecovery,
+          storageResult.collections.some(
+            (collection) => collection.status === "ready",
+          )
+            ? "partial-import-failure"
+            : "unexpected-import-failure",
         );
 
         setMessengerStorageMode(failureResult.mode);
@@ -716,6 +1098,7 @@ export function useAppStorageSync({
       cancelQueuedSaveDispatch,
       reloadPersistedStorageAfterImportFailure,
       remoteRuntimeUrl,
+      setAvailableImportRecovery,
       setMessengerStorageMessage,
       setMessengerStorageMode,
       setMessengerStorageStatus,
@@ -723,6 +1106,187 @@ export function useAppStorageSync({
       waitForActiveSaveToSettle,
     ],
   );
+
+  const restoreLastPreImportBackup =
+    useCallback(async (): Promise<AppStorageReplaceResult> => {
+      const recovery = lastPreImportRecovery.current;
+      const records = recovery?.records ?? currentAppStorageRecords.current;
+
+      if (!recovery) {
+        const result = createImportErrorResult(
+          records,
+          "No in-session pre-import backup is available. Import the saved pre-import backup file instead.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
+
+      if (recovery.rawUrl !== remoteRuntimeUrl) {
+        lastPreImportRecovery.current = null;
+        setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
+        const result = createImportErrorResult(
+          recovery.records,
+          "Pre-import backup restore is no longer available because the storage target changed. Import the saved pre-import backup file instead.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
+
+      if (importCommitRunning.current) {
+        const result = createImportErrorResult(
+          recovery.records,
+          "Restore blocked because an import or restore is already in progress.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
+
+      if (
+        activeSavePromise.current ||
+        saveQueueRunning.current !== null ||
+        queuedSaveTimer.current !== null ||
+        queuedSaveIdleHandle.current !== null ||
+        hasPendingSave(pendingSaves.current) ||
+        hasUnsavedSignature(unsavedSignatures.current)
+      ) {
+        const result = createImportErrorResult(
+          recovery.records,
+          "Restore blocked because DeKoi has active or unsaved storage changes. Wait for saves to finish before restoring the pre-import backup.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
+
+      importCommitRunning.current = true;
+
+      try {
+        setMessengerStorageStatus("saving");
+        setMessengerStorageMessage("Restoring pre-import backup...");
+
+        cancelQueuedSaveDispatch();
+        storageGeneration.current += 1;
+        const generation = storageGeneration.current;
+        pendingSaves.current = {};
+        unsavedSignatures.current = {};
+        saveErrors.current = {};
+
+        await waitForActiveSaveToSettle();
+
+        if (storageGeneration.current !== generation) {
+          const result = createImportErrorResult(
+            recovery.records,
+            "Restore was interrupted because the storage target changed. Retry on the current storage target.",
+          );
+          setAvailableImportRecovery(recovery, "unexpected-import-failure");
+          setMessengerStorageMode(result.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(result.message);
+          return result;
+        }
+
+        activeSaveSignatures.current = {};
+        saveQueueRunning.current = null;
+
+        let storageResult: AppStorageReplaceResult;
+        try {
+          storageResult = await replaceAppStorageSnapshot(
+            recovery.records,
+            remoteRuntimeUrl,
+          );
+        } catch (error) {
+          const failureResult = await reloadPersistedStorageAfterImportFailure(
+            createImportErrorResult(
+              recovery.records,
+              `Restore failed unexpectedly. ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+            generation,
+            { force: true },
+          );
+          setAvailableImportRecovery(recovery, "unexpected-import-failure");
+          setMessengerStorageMode(failureResult.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(failureResult.message);
+          return failureResult;
+        }
+
+        if (storageGeneration.current !== generation) {
+          const result: AppStorageReplaceResult = {
+            ...storageResult,
+            status: "error",
+            message:
+              "Restore finished after the storage target changed. Retry on the current storage target before using restored records.",
+          };
+          setAvailableImportRecovery(recovery, "unexpected-import-failure");
+          setMessengerStorageMode(result.mode);
+          setMessengerStorageStatus("error");
+          setMessengerStorageMessage(result.message);
+          return result;
+        }
+
+        if (storageResult.status === "ready") {
+          savedSignatures.current = createAppStorageSignatures(
+            recovery.records,
+          );
+          loadedStorageMetadata.current = storageResult.storageMetadata;
+          lastSeenSnapshot.current = recovery.records;
+          unsavedSignatures.current = {};
+          activeSaveSignatures.current = {};
+          pendingSaves.current = {};
+          saveErrors.current = {};
+          saveQueueRunning.current = null;
+          applyAppStorageRecords(recovery.records);
+          setStorageReady(true);
+          setStorageHasUnsavedChanges(false);
+          currentStorageMode.current = storageResult.mode;
+          setMessengerStorageMode(storageResult.mode);
+          setMessengerStorageStatus("ready");
+          setMessengerStorageMessage(storageResult.message);
+          lastPreImportRecovery.current = null;
+          setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
+          return storageResult;
+        }
+
+        const failureResult = await reloadPersistedStorageAfterImportFailure(
+          storageResult,
+          generation,
+        );
+        setAvailableImportRecovery(
+          recovery,
+          storageResult.collections.some(
+            (collection) => collection.status === "ready",
+          )
+            ? "partial-import-failure"
+            : "unexpected-import-failure",
+        );
+        setMessengerStorageMode(failureResult.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(failureResult.message);
+        return failureResult;
+      } finally {
+        importCommitRunning.current = false;
+      }
+    }, [
+      applyAppStorageRecords,
+      cancelQueuedSaveDispatch,
+      reloadPersistedStorageAfterImportFailure,
+      remoteRuntimeUrl,
+      setAvailableImportRecovery,
+      setMessengerStorageMessage,
+      setMessengerStorageMode,
+      setMessengerStorageStatus,
+      setStorageReady,
+      waitForActiveSaveToSettle,
+    ]);
 
   const checkAppStorageStale =
     useCallback(async (): Promise<AppStorageStaleCheckResult> => {
@@ -961,6 +1525,8 @@ export function useAppStorageSync({
     savedSignatures.current = null;
     loadedStorageMetadata.current = {};
     lastSeenSnapshot.current = null;
+    lastPreImportRecovery.current = null;
+    setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
     unsavedSignatures.current = {};
     activeSaveSignatures.current = {};
     pendingSaves.current = {};
@@ -1152,94 +1718,16 @@ export function useAppStorageSync({
 
     let idleHandle: IdleHandle | undefined;
 
-    const drainSaveQueue = () => {
-      if (saveQueueRunning.current === storageGeneration.current) return;
-
-      const collectionKey = APP_STORAGE_COLLECTION_KEYS.find(
-        (key) => pendingSaves.current[key],
-      );
-      if (!collectionKey) return;
-
-      const entry = pendingSaves.current[collectionKey];
-      delete pendingSaves.current[collectionKey];
-      if (!entry) return;
-
-      if (entry.generation !== storageGeneration.current) {
-        drainSaveQueue();
-        return;
-      }
-
-      saveQueueRunning.current = entry.generation;
-      activeSaveSignatures.current[collectionKey] = entry.signature;
-      setMessengerStorageStatus("saving");
-
-      const savePromise = saveAppStorageCollections(
-        entry.snapshot,
-        [collectionKey],
-        entry.rawUrl,
-      ).then((storageResult) => {
-        if (entry.generation !== storageGeneration.current) return;
-
-        if (storageResult.status === "ready") {
-          mergeLoadedStorageMetadata(storageResult.storageMetadata);
-          savedSignatures.current = savedSignatures.current
-            ? {
-                ...savedSignatures.current,
-                [collectionKey]: entry.signature,
-              }
-            : null;
-          if (unsavedSignatures.current[collectionKey] === entry.signature) {
-            delete unsavedSignatures.current[collectionKey];
-          }
-          delete saveErrors.current[collectionKey];
-        } else {
-          if (!unsavedSignatures.current[collectionKey]) {
-            unsavedSignatures.current[collectionKey] = entry.signature;
-          }
-          saveErrors.current[collectionKey] = storageResult.message;
-        }
-
-        refreshSaveStatus(entry.generation, storageResult);
-      }, (error: unknown) => {
-        if (entry.generation !== storageGeneration.current) return;
-
-        if (!unsavedSignatures.current[collectionKey]) {
-          unsavedSignatures.current[collectionKey] = entry.signature;
-        }
-        saveErrors.current[collectionKey] =
-          error instanceof Error ? error.message : "Storage save failed.";
-        refreshSaveStatus(entry.generation);
-      }).finally(() => {
-        if (activeSaveSignatures.current[collectionKey] === entry.signature) {
-          delete activeSaveSignatures.current[collectionKey];
-        }
-        if (saveQueueRunning.current === entry.generation) {
-          saveQueueRunning.current = null;
-        }
-        if (activeSavePromise.current === savePromise) {
-          activeSavePromise.current = null;
-        }
-        if (entry.generation !== storageGeneration.current) return;
-        refreshSaveStatus(entry.generation);
-        drainSaveQueue();
-      });
-      activeSavePromise.current = savePromise;
-    };
-
     const timer = setTimeout(() => {
       idleHandle = requestIdle(() => {
         queuedSaveIdleHandle.current = null;
-        for (const collectionKey of dirtyCollectionKeys) {
-          const signature = nextSignatures[collectionKey];
-          if (signature === undefined) continue;
-
-          pendingSaves.current[collectionKey] = {
-            snapshot,
-            rawUrl: remoteRuntimeUrl,
-            generation: storageGeneration.current,
-            signature,
-          };
-        }
+        enqueueAppStorageCollectionSaves({
+          snapshot,
+          collectionKeys: dirtyCollectionKeys,
+          rawUrl: remoteRuntimeUrl,
+          generation: storageGeneration.current,
+          signatures: nextSignatures,
+        });
         drainSaveQueue();
       });
       queuedSaveTimer.current = null;
@@ -1267,8 +1755,9 @@ export function useAppStorageSync({
     providerConnections,
     remoteRuntimeUrl,
     rippleStates,
+    drainSaveQueue,
+    enqueueAppStorageCollectionSaves,
     refreshSaveStatus,
-    mergeLoadedStorageMetadata,
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
@@ -1278,7 +1767,10 @@ export function useAppStorageSync({
   return {
     checkAppStorageStale,
     commitAppStorageImport,
+    flushAppStorageSaves,
+    importRecoveryState,
     reloadAppStorage,
+    restoreLastPreImportBackup,
     storageHasUnsavedChanges,
   };
 }

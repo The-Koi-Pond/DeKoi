@@ -86,6 +86,7 @@ export interface DeKoiStorageBundlePreview {
   bundle: DeKoiStorageBundle;
   counts: DeKoiStorageBundleCounts;
   warnings: string[];
+  fingerprint: string;
 }
 
 export type DeKoiStorageBundleParseResult =
@@ -94,6 +95,46 @@ export type DeKoiStorageBundleParseResult =
 
 function cloneRecords<T>(records: T[]): T[] {
   return records.map((record) => ({ ...record }));
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
+    return `{${entries
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableStringify(entryValue)}`)
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value) ?? "undefined";
+}
+
+function fnv1a32(input: string) {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
+}
+
+export function createDeKoiStorageBundleFingerprint(
+  bundle: DeKoiStorageBundle,
+): string {
+  return fnv1a32(
+    stableStringify({
+      kind: bundle.kind,
+      schemaVersion: bundle.schemaVersion,
+      data: bundle.data,
+    }),
+  );
 }
 
 const PROVIDER_CONNECTION_SECRET_FIELDS = [
@@ -431,6 +472,7 @@ export function normalizeDeKoiStorageBundle(
       bundle,
       counts: getDeKoiStorageBundleCounts(data),
       warnings,
+      fingerprint: createDeKoiStorageBundleFingerprint(bundle),
     },
   };
 }
