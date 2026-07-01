@@ -30,9 +30,9 @@ export function ChatSettingsMessengerDrawerHost({
       personas={nav.personas}
       settingsLabel={settingsLabel}
       viewModel={settings.chatSettingsViewModel}
-      onClearMissingCompanions={actions.clearMissingCompanions}
-      onClearMissingLorebooks={actions.clearMissingLorebooks}
-      onConnectionChange={actions.onConnectionChange}
+      onClearMissingCompanions={actions.resources.clearMissingCompanions}
+      onClearMissingLorebooks={actions.resources.clearMissingLorebooks}
+      onConnectionChange={actions.identity.onConnectionChange}
       onCreateCompanion={() => nav.setView({ kind: "companions", mode: "new" })}
       onCreateConnection={() =>
         nav.setView({ kind: "connections", mode: "new" })
@@ -41,14 +41,14 @@ export function ChatSettingsMessengerDrawerHost({
         nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
       }
       onCreateMessengerThread={nav.createMessengerThread}
-      onPersonaChange={actions.onPersonaChange}
-      onResolveMissingConnection={actions.onResolveMissingConnection}
-      onSaveCustomPrompt={actions.onSaveCustomPrompt}
-      onSelectorOpenChange={actions.onSelectorOpenChange}
-      onSystemPromptModeChange={actions.onSystemPromptModeChange}
-      onToggle={actions.onToggle}
-      onToggleCompanion={actions.onToggleCompanion}
-      onToggleLorebook={actions.onToggleLorebook}
+      onPersonaChange={actions.identity.onPersonaChange}
+      onResolveMissingConnection={actions.identity.onResolveMissingConnection}
+      onSaveCustomPrompt={actions.prompt.onSaveCustomPrompt}
+      onSelectorOpenChange={actions.resources.onSelectorOpenChange}
+      onSystemPromptModeChange={actions.prompt.onSystemPromptModeChange}
+      onToggle={actions.drawers.onToggle}
+      onToggleCompanion={actions.resources.onToggleCompanion}
+      onToggleLorebook={actions.resources.onToggleLorebook}
       onUpdateAppSettings={nav.updateAppSettings}
     />
   );
