@@ -4,7 +4,10 @@ import type {
 } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
-import { ChatSettingsMessengerResourceDrawers } from "./ChatSettingsMessengerResourceDrawers";
+import {
+  ChatSettingsMessengerCompanionResourceDrawer,
+  ChatSettingsMessengerLorebookResourceDrawer,
+} from "./ChatSettingsMessengerResourceDrawers";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
@@ -93,21 +96,17 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsMessengerResourceDrawers
+      <ChatSettingsMessengerCompanionResourceDrawer
         activeMessengerThread={active}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
-        lorebooks={lorebooks}
         openDrawers={openDrawers}
         viewModel={viewModel}
         onClearMissingCompanions={onClearMissingCompanions}
-        onClearMissingLorebooks={onClearMissingLorebooks}
         onCreateCompanion={onCreateCompanion}
-        onCreateLorebook={onCreateLorebook}
         onSelectorOpenChange={onSelectorOpenChange}
         onToggle={onToggle}
         onToggleCompanion={onToggleCompanion}
-        onToggleLorebook={onToggleLorebook}
       />
 
       <ChatSettingsPromptControls
@@ -120,6 +119,17 @@ export function ChatSettingsMessengerDrawers({
         onSaveCustomPrompt={onSaveCustomPrompt}
         onSystemPromptModeChange={onSystemPromptModeChange}
         onToggle={onToggle}
+      />
+
+      <ChatSettingsMessengerLorebookResourceDrawer
+        activeMessengerThread={active}
+        lorebooks={lorebooks}
+        openDrawers={openDrawers}
+        viewModel={viewModel}
+        onClearMissingLorebooks={onClearMissingLorebooks}
+        onCreateLorebook={onCreateLorebook}
+        onToggle={onToggle}
+        onToggleLorebook={onToggleLorebook}
       />
 
       <ChatSettingsAdvancedDrawer

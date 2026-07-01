@@ -23,47 +23,72 @@ interface ChatSettingsMessengerResourceDrawersProps {
   onToggleLorebook: (lorebookId: string) => void;
 }
 
-export function ChatSettingsMessengerResourceDrawers({
+type ChatSettingsMessengerCompanionResourceDrawerProps = Omit<
+  ChatSettingsMessengerResourceDrawersProps,
+  | "lorebooks"
+  | "onClearMissingLorebooks"
+  | "onCreateLorebook"
+  | "onToggleLorebook"
+>;
+
+export function ChatSettingsMessengerCompanionResourceDrawer({
   activeMessengerThread,
   characters,
   companionSelectorOpen,
-  lorebooks,
   openDrawers,
   viewModel,
   onClearMissingCompanions,
-  onClearMissingLorebooks,
   onCreateCompanion,
-  onCreateLorebook,
   onSelectorOpenChange,
   onToggle,
   onToggleCompanion,
-  onToggleLorebook,
-}: ChatSettingsMessengerResourceDrawersProps) {
+}: ChatSettingsMessengerCompanionResourceDrawerProps) {
   return (
-    <>
-      <ChatSettingsCompanionResourceDrawer
-        activeMessengerThread={activeMessengerThread}
-        characters={characters}
-        companionSelectorOpen={companionSelectorOpen}
-        openDrawers={openDrawers}
-        viewModel={viewModel}
-        onClearMissingCompanions={onClearMissingCompanions}
-        onCreateCompanion={onCreateCompanion}
-        onSelectorOpenChange={onSelectorOpenChange}
-        onToggle={onToggle}
-        onToggleCompanion={onToggleCompanion}
-      />
+    <ChatSettingsCompanionResourceDrawer
+      activeMessengerThread={activeMessengerThread}
+      characters={characters}
+      companionSelectorOpen={companionSelectorOpen}
+      openDrawers={openDrawers}
+      viewModel={viewModel}
+      onClearMissingCompanions={onClearMissingCompanions}
+      onCreateCompanion={onCreateCompanion}
+      onSelectorOpenChange={onSelectorOpenChange}
+      onToggle={onToggle}
+      onToggleCompanion={onToggleCompanion}
+    />
+  );
+}
 
-      <ChatSettingsLorebookResourceDrawer
-        activeMessengerThread={activeMessengerThread}
-        lorebooks={lorebooks}
-        openDrawers={openDrawers}
-        viewModel={viewModel}
-        onClearMissingLorebooks={onClearMissingLorebooks}
-        onCreateLorebook={onCreateLorebook}
-        onToggle={onToggle}
-        onToggleLorebook={onToggleLorebook}
-      />
-    </>
+type ChatSettingsMessengerLorebookResourceDrawerProps = Omit<
+  ChatSettingsMessengerResourceDrawersProps,
+  | "characters"
+  | "companionSelectorOpen"
+  | "onClearMissingCompanions"
+  | "onCreateCompanion"
+  | "onSelectorOpenChange"
+  | "onToggleCompanion"
+>;
+
+export function ChatSettingsMessengerLorebookResourceDrawer({
+  activeMessengerThread,
+  lorebooks,
+  openDrawers,
+  viewModel,
+  onClearMissingLorebooks,
+  onCreateLorebook,
+  onToggle,
+  onToggleLorebook,
+}: ChatSettingsMessengerLorebookResourceDrawerProps) {
+  return (
+    <ChatSettingsLorebookResourceDrawer
+      activeMessengerThread={activeMessengerThread}
+      lorebooks={lorebooks}
+      openDrawers={openDrawers}
+      viewModel={viewModel}
+      onClearMissingLorebooks={onClearMissingLorebooks}
+      onCreateLorebook={onCreateLorebook}
+      onToggle={onToggle}
+      onToggleLorebook={onToggleLorebook}
+    />
   );
 }
