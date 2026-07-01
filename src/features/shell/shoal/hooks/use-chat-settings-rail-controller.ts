@@ -35,15 +35,9 @@ export function useChatSettingsRailController({
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
   const {
-    clearMissingMessengerCompanions,
-    clearMissingMessengerLorebooks,
-    handleMessengerConnectionChange,
-    handleMessengerPersonaChange,
-    handleMessengerSystemPromptModeChange,
-    resolveMissingMessengerConnection,
-    saveCustomMessengerPrompt,
-    toggleMessengerCompanion,
-    toggleMessengerLorebook,
+    identityActions,
+    promptActions,
+    resourceActions,
   } = useChatSettingsMessengerActions({
     activeMessengerThread,
     characters: nav.characters,
@@ -86,17 +80,15 @@ export function useChatSettingsRailController({
     openDrawers,
   };
   const messengerActions: ChatSettingsMessengerActionGroup = {
-    clearMissingCompanions: clearMissingMessengerCompanions,
-    clearMissingLorebooks: clearMissingMessengerLorebooks,
-    onConnectionChange: handleMessengerConnectionChange,
-    onPersonaChange: handleMessengerPersonaChange,
-    onResolveMissingConnection: resolveMissingMessengerConnection,
-    onSaveCustomPrompt: saveCustomMessengerPrompt,
-    onSelectorOpenChange: setCompanionSelectorOpen,
-    onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
-    onToggle: toggleChatSettingsDrawer,
-    onToggleCompanion: toggleMessengerCompanion,
-    onToggleLorebook: toggleMessengerLorebook,
+    drawers: {
+      onToggle: toggleChatSettingsDrawer,
+    },
+    identity: identityActions,
+    prompt: promptActions,
+    resources: {
+      ...resourceActions,
+      onSelectorOpenChange: setCompanionSelectorOpen,
+    },
   };
 
   return {

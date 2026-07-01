@@ -13,16 +13,36 @@ export interface ChatSettingsMessengerSettings {
   openDrawers: Record<ChatSettingsDrawerId, boolean>;
 }
 
-export interface ChatSettingsMessengerActionGroup {
-  clearMissingCompanions: () => void;
-  clearMissingLorebooks: () => void;
+export interface ChatSettingsMessengerDrawerActions {
+  onToggle: (drawerId: ChatSettingsDrawerId) => void;
+}
+
+export interface ChatSettingsMessengerIdentityActions {
   onConnectionChange: (connectionId: string) => void;
   onPersonaChange: (personaId: string) => void;
   onResolveMissingConnection: (connectionId: string | null) => void;
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSelectorOpenChange: (open: boolean) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
+}
+
+export interface ChatSettingsMessengerThreadResourceActions {
+  clearMissingCompanions: () => void;
+  clearMissingLorebooks: () => void;
   onToggleCompanion: (characterId: string) => void;
   onToggleLorebook: (lorebookId: string) => void;
+}
+
+export interface ChatSettingsMessengerResourceActions
+  extends ChatSettingsMessengerThreadResourceActions {
+  onSelectorOpenChange: (open: boolean) => void;
+}
+
+export interface ChatSettingsMessengerPromptActions {
+  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
+  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
+}
+
+export interface ChatSettingsMessengerActionGroup {
+  drawers: ChatSettingsMessengerDrawerActions;
+  identity: ChatSettingsMessengerIdentityActions;
+  prompt: ChatSettingsMessengerPromptActions;
+  resources: ChatSettingsMessengerResourceActions;
 }

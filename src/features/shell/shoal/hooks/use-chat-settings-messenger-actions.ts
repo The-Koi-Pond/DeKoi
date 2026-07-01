@@ -10,6 +10,11 @@ import {
   type MessengerSystemPromptMode,
   type MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
+import type {
+  ChatSettingsMessengerIdentityActions,
+  ChatSettingsMessengerPromptActions,
+  ChatSettingsMessengerThreadResourceActions,
+} from "../lib/chat-settings-controller-groups";
 import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
@@ -124,15 +129,25 @@ export function useChatSettingsMessengerActions({
     );
   }
 
+  const identityActions: ChatSettingsMessengerIdentityActions = {
+    onConnectionChange: handleMessengerConnectionChange,
+    onPersonaChange: handleMessengerPersonaChange,
+    onResolveMissingConnection: resolveMissingMessengerConnection,
+  };
+  const promptActions: ChatSettingsMessengerPromptActions = {
+    onSaveCustomPrompt: saveCustomMessengerPrompt,
+    onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
+  };
+  const resourceActions: ChatSettingsMessengerThreadResourceActions = {
+    clearMissingCompanions: clearMissingMessengerCompanions,
+    clearMissingLorebooks: clearMissingMessengerLorebooks,
+    onToggleCompanion: toggleMessengerCompanion,
+    onToggleLorebook: toggleMessengerLorebook,
+  };
+
   return {
-    clearMissingMessengerCompanions,
-    clearMissingMessengerLorebooks,
-    handleMessengerConnectionChange,
-    handleMessengerPersonaChange,
-    handleMessengerSystemPromptModeChange,
-    resolveMissingMessengerConnection,
-    saveCustomMessengerPrompt,
-    toggleMessengerCompanion,
-    toggleMessengerLorebook,
+    identityActions,
+    promptActions,
+    resourceActions,
   };
 }
