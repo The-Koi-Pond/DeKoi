@@ -32,7 +32,7 @@
     {
       "name": "Engine and source lanes",
       "prefixes": ["src/app/", "src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/"],
-      "guidance": ["ARCHITECTURE.md", "docs/architecture.md", "skills/dekoi-architecture-guard/SKILL.md"],
+      "guidance": ["ARCHITECTURE.md", "skills/dekoi-architecture-guard/SKILL.md"],
       "checks": [
         "App code stays composition and provider wiring, not product rules, storage adapters, or host I/O.",
         "Engine code stays React-free and does not import feature internals, runtime adapters, Tauri APIs, or browser APIs.",

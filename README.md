@@ -56,15 +56,22 @@ Desktop records are stored under:
 <app-data>/collections/<entity>.json
 ~~~
 
-Desktop collection files are JSON arrays. Malformed files and leftover recovery
-artifacts are treated as recoverable storage errors and block autosave overwrite;
-collection writes preserve a sibling `.json.bak` as a recovery aid. Pond Care
-can explicitly repair one malformed desktop collection by restoring the backup
-or replacing it with an empty collection; restored corrupt bytes remain in
-`.json.pre-repair` until the user finishes the repair. See
-[Storage Model](./docs/storage-model.md) for the full policy.
+Desktop collection files are JSON arrays with explicit recovery behavior for
+malformed files, backup sidecars, pre-repair sidecars, manual repair, stale
+checks, and reloads. See [Storage Model](./docs/storage-model.md) for the full
+durable storage policy.
 
-Pond Care > Deep Water can check host readiness, save and load DeKoi-native bundles through the desktop app-data directory, check desktop collection files for outside edits or repair needs, explicitly repair or reload stored collections, and select desktop://runtime for host-backed fixture generation. Reload is blocked while local storage saves are still pending. Pond Care > Stocking can export and import bundle files through desktop dialogs; imports preview first, create a pre-import backup, then replace collections through the storage commit path. Pond Care > Catalog can save, check, and clear provider keys without exporting secret values.
+Pond Care > Deep Water can check host readiness, save and load DeKoi-native
+bundles through the desktop app-data directory, check desktop collection files
+for outside edits or repair needs, explicitly repair or reload stored
+collections, and select `desktop://runtime` for durable desktop storage and
+desktop runtime health checks. When the Tauri host is available, provider-backed
+generation can also route through the desktop runtime bridge. Reload is blocked
+while local storage saves are still pending. Pond Care > Stocking can export and
+import bundle files through desktop dialogs; imports preview first, create a
+pre-import backup, then replace collections through the storage commit path.
+Pond Care > Catalog can save, check, and clear provider keys without exporting
+secret values.
 
 ## DeKoi And De-Koi
 
@@ -95,11 +102,10 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules and [AGENTS.md](
 - [Design System](./DESIGN.md): active visual tokens, component guidance, and UI do/don'ts.
 - [Agent Guidance](./AGENTS.md): source lanes, proof expectations, and shipping workflow.
 - [Surface Labels](./SURFACE_LABELS.md): DeKoi-owned naming map.
-- [Domain Model](./DOMAIN_MODEL.md): first native product records.
+- [Domain Model](./DOMAIN_MODEL.md): product-record glossary and naming guardrails.
 - [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
 - [Storage Model](./docs/storage-model.md): collection-backed durable data guardrails.
 - [Remote Runtime Contract](./docs/remote-runtime-contract.md): compatible runtime health, invoke, generation, and storage commands.
-- [Developer Docs](./docs/developer/index.html): migrated developer docs that still need validation against the new implementation.
 
 ## License
 

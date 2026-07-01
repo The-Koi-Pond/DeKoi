@@ -1,9 +1,10 @@
 # Domain Model
 
-This document defines DeKoi's first native product records in plain language.
-It is not a storage schema yet. Use it to agree on names, ownership, and
-relationships before writing TypeScript types, saved-file formats, migrations,
-or import adapters.
+This document is DeKoi's plain-language product-record glossary. Exact
+TypeScript contracts now live under `src/engine/contracts/types`, and durable
+collection rules live in [docs/storage-model.md](./docs/storage-model.md). Use
+this file for names, ownership, and relationships, not as the source of truth
+for exact fields or saved-file formats.
 
 ## Model Rules
 
@@ -12,10 +13,10 @@ or import adapters.
 - Generic ecosystem terms such as `persona`, `lorebook`, `character card`, and
   `preset` are allowed when used as broad AI-character-chat vocabulary.
 - Cute or themed labels should not hide what a record actually does.
-- Every durable record should eventually carry an ID, timestamps, and a schema
-  version, but this document does not define exact fields yet.
+- Persisted records should keep IDs, timestamps, and schema versions in their
+  typed contracts where the current storage model requires them.
 
-## First Product Area
+## First Product Areas
 
 The first DeKoi loop is **Messenger**.
 
@@ -23,9 +24,10 @@ A Messenger thread is a DM-style thread between the user and one or more
 characters. It should feel like a private or group message chat: compact turns,
 quick replies, clear speakers, and saved history.
 
-Roleplay is reserved as the second major surface. It should reuse characters,
-personas, lorebooks, presets, and providers where that makes sense, but its
-scene presentation and continuity needs can diverge from Messenger.
+Roleplay now exists as the second native surface in early form. It reuses
+characters, personas, lorebooks, providers, generation contracts, split
+transcript storage, and Ripples where that makes sense, while keeping room for
+scene presentation and continuity needs that diverge from Messenger.
 
 Game/adventure-style play is intentionally out of scope for now.
 
@@ -49,10 +51,10 @@ Likely relationships:
 - Can appear in many Roleplay threads.
 - Can reference lorebooks, presets, or media later.
 
-Not decided yet:
+Not fully settled yet:
 
-- Exact character card field names.
-- SillyTavern import compatibility.
+- Deeper character card field depth.
+- Legacy character-card import compatibility.
 - Sprite and avatar storage.
 
 ### Persona
@@ -71,7 +73,7 @@ Likely relationships:
 - A Roleplay thread may have one active persona.
 - A persona can be reused across many threads.
 
-Not decided yet:
+Not fully settled yet:
 
 - Whether a default persona is required.
 - Whether personas can have media/sprites in the first slice.
@@ -92,7 +94,7 @@ Likely relationships:
 - Can be attached to Messenger or Roleplay threads.
 - Can contain many lore entries.
 
-Not decided yet:
+Not fully settled yet:
 
 - Keyword activation rules.
 - Entry priority and token budgeting.
@@ -114,7 +116,7 @@ Likely relationships:
 - A Roleplay thread may use one active preset.
 - Presets may be global or copied into a thread later if needed.
 
-Not decided yet:
+Not fully settled yet:
 
 - Exact parameters.
 - Prompt-template format.
@@ -137,10 +139,10 @@ Likely relationships:
 - A Messenger or Roleplay thread may choose a connection.
 - A preset may be compatible with some connections.
 
-Not decided yet:
+Not fully settled yet:
 
 - Final provider roster and provider-specific capability depth.
-- Browser-only support for required-key providers.
+- Provider support depth outside the current desktop secret-backed path.
 
 ## Messenger Records
 
@@ -171,7 +173,7 @@ Important behavior:
 - Durable storage keeps MessengerMessages in a separate collection keyed by
   thread ID, while UI and generation receive assembled MessengerThread objects.
 
-Not decided yet:
+Still evolving:
 
 - Whether the public action should be `New thread`, `New Messenger`, or both.
 - Whether group Messenger threads use one shared character response or separate character
@@ -199,9 +201,10 @@ Important behavior:
 - Attachments, reactions, edits, and status indicators can come later.
 - Provider-specific response metadata should not become the message model.
 
-Not decided yet:
+Still evolving:
 
-- Exact role names.
+- Future author metadata beyond the current persona, character, system, and
+  unknown author kinds.
 - Edit history.
 - Attachment format.
 
@@ -230,16 +233,16 @@ Important behavior:
 - Durable storage keeps RoleplayEntries in a separate collection keyed by thread
   ID, while UI and generation receive assembled RoleplayThread objects.
 
-Not decided yet:
+Still evolving:
 
 - Deeper Roleplay turn semantics beyond the first RoleplayEntry shape.
 - Sprite/background ownership.
 
-## Reserved Records
+## Shared State Records
 
 ### RippleState
 
-RippleState is the reserved DeKoi name for dynamic per-thread state.
+RippleState is the DeKoi name for dynamic per-thread state.
 The current public sidebar/panel label for this state is **Ripple Dock**.
 
 Purpose:
@@ -256,7 +259,7 @@ Likely relationships:
 - May be updated manually or by future helper modules.
 - May contain many individual Ripples.
 
-Not decided yet:
+Not fully settled yet:
 
 - Whether Ripples stay freeform notes or grow structured fields/event logs.
 - Whether Roleplay and Messenger share one state shape.
@@ -277,7 +280,7 @@ Likely relationships:
 - Reads and edits RippleState for the active MessengerThread or RoleplayThread.
 - May be hidden, docked, or expanded depending on layout.
 
-Not decided yet:
+Not fully settled yet:
 
 - Exact Roleplay panel layout.
 - Which future structured Ripple fields are editable.
@@ -288,25 +291,33 @@ Current implementation:
 - Ripples are editable freeform records with `note`, `shift`, and `meter` tones.
 - RippleState is saved locally and included in DeKoi storage bundles.
 
-## First Implementation Slice
+## Implemented Slice
 
-The first useful implementation should prove:
+The first useful implementation has moved past the original Messenger-only
+proof. The current app proves:
 
-1. Create or define one character.
-2. Create one MessengerThread.
-3. Add user-authored MessengerMessages.
-4. Add placeholder character MessengerMessages without a provider.
-5. Save and reload the thread locally.
+1. Create and edit Companions, Personas, Lorebooks, and provider connections.
+2. Create Messenger and Roleplay threads.
+3. Store MessengerMessages and RoleplayEntries in split transcript collections.
+4. Save and reload DeKoi-native records through desktop storage or a compatible
+   remote runtime.
+5. Export and import DeKoi-native bundles through the desktop host.
+6. Import legacy threads one way into native Messenger records.
+7. Generate provider-backed Messenger and Roleplay replies through the runtime
+   boundary.
 
-This proves the DeKoi-native model before adding providers, Tauri file storage,
-Roleplay presentation, or legacy import.
+Messenger remains the first polish target. Roleplay, provider transport,
+desktop storage, bundle import/export, legacy import, and Ripples are present in
+early form and should keep deepening behind the same native record boundaries.
 
 ## Later Boundaries
 
-### Storage Schema
+### Storage Contract
 
-The storage schema should come after these nouns settle. It should define exact
-field names, defaults, versioning, and migrations.
+Exact storage fields, collection names, defaults, versioning, and normalization
+rules live in the TypeScript contracts and [Storage Model](./docs/storage-model.md).
+This glossary should change when product nouns or relationships change, not for
+every field-level storage edit.
 
 ### Legacy Import
 
