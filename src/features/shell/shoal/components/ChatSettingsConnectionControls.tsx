@@ -1,18 +1,10 @@
-import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
-import {
-  ChatSettingsConnectionNotices,
-  type MissingConnectionResolution,
-} from "./ChatSettingsConnectionNotices";
+import { ChatSettingsConnectionNotices } from "./ChatSettingsConnectionNotices";
 import { ChatSettingsConnectionSelect } from "./ChatSettingsConnectionSelect";
+import type { ChatSettingsConnectionDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsConnectionControlsProps {
   activeMessengerThread: boolean;
-  connections: ProviderConnectionRecord[];
-  fallbackConnection: ProviderConnectionRecord | null;
-  fallbackConnectionPrefix: string;
-  hasMissingConnection: boolean;
-  messengerConnectionValue: string;
-  missingConnectionResolution: MissingConnectionResolution;
+  model: ChatSettingsConnectionDrawerModel;
   onConnectionChange: (connectionId: string) => void;
   onCreateConnection: () => void;
   onResolveMissingConnection: (connectionId: string | null) => void;
@@ -20,12 +12,7 @@ interface ChatSettingsConnectionControlsProps {
 
 export function ChatSettingsConnectionControls({
   activeMessengerThread,
-  connections,
-  fallbackConnection,
-  fallbackConnectionPrefix,
-  hasMissingConnection,
-  messengerConnectionValue,
-  missingConnectionResolution,
+  model,
   onConnectionChange,
   onCreateConnection,
   onResolveMissingConnection,
@@ -34,23 +21,21 @@ export function ChatSettingsConnectionControls({
     <>
       <ChatSettingsConnectionSelect
         activeMessengerThread={activeMessengerThread}
-        connections={connections}
-        fallbackConnection={fallbackConnection}
-        fallbackConnectionPrefix={fallbackConnectionPrefix}
-        hasMissingConnection={hasMissingConnection}
-        messengerConnectionValue={messengerConnectionValue}
+        connections={model.connections}
+        fallbackConnection={model.fallbackConnection}
+        fallbackConnectionPrefix={model.fallbackConnectionPrefix}
+        hasMissingConnection={model.hasMissingConnection}
+        messengerConnectionValue={model.messengerConnectionValue}
         onConnectionChange={onConnectionChange}
       />
       <ChatSettingsConnectionNotices
         activeMessengerThread={activeMessengerThread}
-        connectionCount={connections.length}
-        hasMissingConnection={hasMissingConnection}
-        missingConnectionResolution={missingConnectionResolution}
+        connectionCount={model.connections.length}
+        hasMissingConnection={model.hasMissingConnection}
+        missingConnectionResolution={model.missingConnectionResolution}
         onCreateConnection={onCreateConnection}
         onResolveMissingConnection={onResolveMissingConnection}
       />
     </>
   );
 }
-
-export type { MissingConnectionResolution };

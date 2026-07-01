@@ -1,19 +1,18 @@
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
+import type { ChatSettingsPersonaDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsPersonaControlsProps {
   activeMessengerThread: boolean;
-  hasMissingPersona: boolean;
+  model: ChatSettingsPersonaDrawerModel;
   personas: PersonaRecord[];
-  selectedPersonaId: string;
   onPersonaChange: (personaId: string) => void;
 }
 
 export function ChatSettingsPersonaControls({
   activeMessengerThread,
-  hasMissingPersona,
+  model,
   personas,
-  selectedPersonaId,
   onPersonaChange,
 }: ChatSettingsPersonaControlsProps) {
   return (
@@ -22,12 +21,12 @@ export function ChatSettingsPersonaControls({
         <span>Active persona</span>
         <select
           className="pondsel"
-          value={selectedPersonaId}
+          value={model.selectedPersonaId}
           disabled={!activeMessengerThread}
           onChange={(event) => onPersonaChange(event.currentTarget.value)}
         >
-          {hasMissingPersona && (
-            <option value={selectedPersonaId}>Missing persona</option>
+          {model.hasMissingPersona && (
+            <option value={model.selectedPersonaId}>Missing persona</option>
           )}
           <option value="">Anonymous</option>
           {personas.map((persona) => (
@@ -37,7 +36,7 @@ export function ChatSettingsPersonaControls({
           ))}
         </select>
       </label>
-      {hasMissingPersona && (
+      {model.hasMissingPersona && (
         <ChatSettingsNotice
           actionLabel="Use Anonymous"
           onAction={() => onPersonaChange("")}
@@ -46,11 +45,13 @@ export function ChatSettingsPersonaControls({
           persona before sending as that identity.
         </ChatSettingsNotice>
       )}
-      {activeMessengerThread && personas.length === 0 && !hasMissingPersona && (
-        <p className="chat-settings-empty-line">
-          No personas yet. Messages can still send as Anonymous.
-        </p>
-      )}
+      {activeMessengerThread &&
+        personas.length === 0 &&
+        !model.hasMissingPersona && (
+          <p className="chat-settings-empty-line">
+            No personas yet. Messages can still send as Anonymous.
+          </p>
+        )}
     </>
   );
 }

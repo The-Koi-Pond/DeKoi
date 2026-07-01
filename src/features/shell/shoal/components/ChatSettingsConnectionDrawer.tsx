@@ -1,21 +1,11 @@
-import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import { ChatSettingsDrawer } from "./ChatSettingsBlocks";
-import {
-  ChatSettingsConnectionControls,
-  type MissingConnectionResolution,
-} from "./ChatSettingsConnectionControls";
+import { ChatSettingsConnectionControls } from "./ChatSettingsConnectionControls";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
+import type { ChatSettingsConnectionDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsConnectionDrawerProps {
   activeMessengerThread: boolean;
-  connections: ProviderConnectionRecord[];
-  fallbackConnection: ProviderConnectionRecord | null;
-  fallbackConnectionPrefix: string;
-  hasMissingConnection: boolean;
-  messengerConnectionValue: string;
-  missingConnectionResolution: MissingConnectionResolution;
-  open: boolean;
-  summary: string;
+  model: ChatSettingsConnectionDrawerModel;
   onConnectionChange: (connectionId: string) => void;
   onCreateConnection: () => void;
   onResolveMissingConnection: (connectionId: string | null) => void;
@@ -24,14 +14,7 @@ interface ChatSettingsConnectionDrawerProps {
 
 export function ChatSettingsConnectionDrawer({
   activeMessengerThread,
-  connections,
-  fallbackConnection,
-  fallbackConnectionPrefix,
-  hasMissingConnection,
-  messengerConnectionValue,
-  missingConnectionResolution,
-  open,
-  summary,
+  model,
   onConnectionChange,
   onCreateConnection,
   onResolveMissingConnection,
@@ -40,19 +23,14 @@ export function ChatSettingsConnectionDrawer({
   return (
     <ChatSettingsDrawer
       drawerId="connection"
-      open={open}
-      summary={summary}
+      open={model.open}
+      summary={model.summary}
       title="Connection"
       onToggle={onToggle}
     >
       <ChatSettingsConnectionControls
         activeMessengerThread={activeMessengerThread}
-        connections={connections}
-        fallbackConnection={fallbackConnection}
-        fallbackConnectionPrefix={fallbackConnectionPrefix}
-        hasMissingConnection={hasMissingConnection}
-        messengerConnectionValue={messengerConnectionValue}
-        missingConnectionResolution={missingConnectionResolution}
+        model={model}
         onConnectionChange={onConnectionChange}
         onCreateConnection={onCreateConnection}
         onResolveMissingConnection={onResolveMissingConnection}
