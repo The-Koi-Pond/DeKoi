@@ -4,8 +4,9 @@ import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import { NewThreadActions } from "./NewThreadActions";
 import { NewThreadCharacterDropdown } from "./NewThreadCharacterDropdown";
+import { NewThreadConnectionField } from "./NewThreadConnectionField";
+import { NewThreadPersonaField } from "./NewThreadPersonaField";
 import { NewThreadPopoverFrame } from "./NewThreadPopoverFrame";
-import { NewThreadSelectField } from "./NewThreadSelectField";
 import { NewThreadTextField } from "./NewThreadTextField";
 
 interface NewMessengerThreadPopoverProps {
@@ -62,30 +63,17 @@ export function NewMessengerThreadPopover({
         value={name}
         onChange={onNameChange}
       />
-      <NewThreadSelectField
-        disabled={connections.length === 0}
-        label="Connection"
+      <NewThreadConnectionField
+        connections={connections}
         value={connectionId}
         onChange={onConnectionChange}
-      >
-        {connections.map((connection) => (
-          <option value={connection.id} key={connection.id}>
-            {connection.label}
-          </option>
-        ))}
-      </NewThreadSelectField>
-      <NewThreadSelectField
-        label="Persona"
+      />
+      <NewThreadPersonaField
+        emptyLabel="Anonymous"
+        personas={personas}
         value={personaId}
         onChange={onPersonaChange}
-      >
-        <option value="">Anonymous</option>
-        {personas.map((persona) => (
-          <option value={persona.id} key={persona.id}>
-            {persona.displayName}
-          </option>
-        ))}
-      </NewThreadSelectField>
+      />
       <NewThreadCharacterDropdown
         characters={characters}
         emptyMessage="Add a companion before casting a Messenger thread."
