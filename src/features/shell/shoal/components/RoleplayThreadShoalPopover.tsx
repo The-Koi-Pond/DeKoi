@@ -21,40 +21,37 @@ export function RoleplayThreadShoalPopover({
   personas,
   popovers,
 }: RoleplayThreadShoalPopoverProps) {
-  if (!popovers.newRoleplayOpen) {
+  const { actions, state } = popovers.roleplay;
+
+  if (!state.open) {
     return null;
   }
 
   return (
     <NewRoleplayThreadPopover
-      characterIds={popovers.newRoleplayCharacterIds}
+      characterIds={state.characterIds}
       characters={characters}
-      companionLabel={labels.getCompanionLabel(popovers.newRoleplayCharacterIds)}
-      companionMenuOpen={popovers.newRoleplayCompanionMenuOpen}
-      connectionId={popovers.newRoleplayConnectionId}
+      companionLabel={labels.getCompanionLabel(state.characterIds)}
+      companionMenuOpen={state.companionMenuOpen}
+      connectionId={state.connectionId}
       connections={connections}
-      lorebookIds={popovers.newRoleplayLorebookIds}
-      lorebookLabel={labels.getLorebookLabel(popovers.newRoleplayLorebookIds)}
-      lorebookMenuOpen={popovers.newRoleplayLorebookMenuOpen}
+      lorebookIds={state.lorebookIds}
+      lorebookLabel={labels.getLorebookLabel(state.lorebookIds)}
+      lorebookMenuOpen={state.lorebookMenuOpen}
       lorebooks={lorebooks}
-      name={popovers.newRoleplayName}
-      namePlaceholder={labels.getDraftRoleplayName(
-        popovers.newRoleplayCharacterIds,
-      )}
-      personaId={popovers.newRoleplayPersonaId}
+      name={state.name}
+      namePlaceholder={labels.getDraftRoleplayName(state.characterIds)}
+      personaId={state.personaId}
       personas={personas}
-      onClose={popovers.closeNewRoleplayThreadPopover}
-      onCompanionMenuOpenChange={popovers.setNewRoleplayCompanionMenuOpen}
-      onConnectionChange={popovers.setNewRoleplayConnectionId}
-      onLorebookMenuOpenChange={popovers.setNewRoleplayLorebookMenuOpen}
-      onNameChange={(name) => {
-        popovers.setNewRoleplayName(name);
-        popovers.setNewRoleplayNameEdited(true);
-      }}
-      onPersonaChange={popovers.setNewRoleplayPersonaId}
-      onSubmit={popovers.handleCreateRoleplayThread}
-      onToggleCharacter={popovers.toggleNewRoleplayCharacter}
-      onToggleLorebook={popovers.toggleNewRoleplayLorebook}
+      onClose={actions.close}
+      onCompanionMenuOpenChange={actions.setCompanionMenuOpen}
+      onConnectionChange={actions.setConnectionId}
+      onLorebookMenuOpenChange={actions.setLorebookMenuOpen}
+      onNameChange={actions.setName}
+      onPersonaChange={actions.setPersonaId}
+      onSubmit={actions.submit}
+      onToggleCharacter={actions.toggleCharacter}
+      onToggleLorebook={actions.toggleLorebook}
     />
   );
 }

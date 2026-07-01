@@ -91,12 +91,18 @@ export function useNewRoleplayThreadPopover({
     );
   }
 
+  function handleNewRoleplayNameChange(name: string) {
+    setNewRoleplayName(name);
+    setNewRoleplayNameEdited(true);
+  }
+
   function handleCreateRoleplayThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (newRoleplayCharacterIds.length === 0) return;
 
     const title =
-      newRoleplayName.trim() || labels.getDraftRoleplayName(newRoleplayCharacterIds);
+      newRoleplayName.trim() ||
+      labels.getDraftRoleplayName(newRoleplayCharacterIds);
     onCreateRoleplayThread({
       activePersonaId: newRoleplayPersonaId || null,
       characterIds: newRoleplayCharacterIds,
@@ -108,24 +114,27 @@ export function useNewRoleplayThreadPopover({
   }
 
   return {
-    closeNewRoleplayThreadPopover,
-    handleCreateRoleplayThread,
-    newRoleplayCharacterIds,
-    newRoleplayCompanionMenuOpen,
-    newRoleplayConnectionId,
-    newRoleplayLorebookIds: selectedRoleplayLorebookIds,
-    newRoleplayLorebookMenuOpen,
-    newRoleplayName,
-    newRoleplayOpen,
-    newRoleplayPersonaId,
-    openNewRoleplayThreadPopover,
-    setNewRoleplayCompanionMenuOpen,
-    setNewRoleplayConnectionId,
-    setNewRoleplayLorebookMenuOpen,
-    setNewRoleplayName,
-    setNewRoleplayNameEdited,
-    setNewRoleplayPersonaId,
-    toggleNewRoleplayCharacter,
-    toggleNewRoleplayLorebook,
+    actions: {
+      close: closeNewRoleplayThreadPopover,
+      open: openNewRoleplayThreadPopover,
+      setCompanionMenuOpen: setNewRoleplayCompanionMenuOpen,
+      setConnectionId: setNewRoleplayConnectionId,
+      setLorebookMenuOpen: setNewRoleplayLorebookMenuOpen,
+      setName: handleNewRoleplayNameChange,
+      setPersonaId: setNewRoleplayPersonaId,
+      submit: handleCreateRoleplayThread,
+      toggleCharacter: toggleNewRoleplayCharacter,
+      toggleLorebook: toggleNewRoleplayLorebook,
+    },
+    state: {
+      characterIds: newRoleplayCharacterIds,
+      companionMenuOpen: newRoleplayCompanionMenuOpen,
+      connectionId: newRoleplayConnectionId,
+      lorebookIds: selectedRoleplayLorebookIds,
+      lorebookMenuOpen: newRoleplayLorebookMenuOpen,
+      name: newRoleplayName,
+      open: newRoleplayOpen,
+      personaId: newRoleplayPersonaId,
+    },
   };
 }
