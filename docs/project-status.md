@@ -36,7 +36,6 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.
-- Developer docs under docs/developer are migrated material that still needs validation against this implementation.
 - Roleplay is present as a native surface, but the first product loop is still centered on Messenger and shared catalog records.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
@@ -44,6 +43,18 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Legacy thread import is an explicit one-way adapter into native Messenger
   records; automatic browser-storage migration remains out of scope.
 - Storage is collection-backed first; a database may replace the implementation later only behind the same record contracts.
+
+## Current Priorities
+
+Build in this order unless the active task redirects:
+
+1. Harden provider connection UX and provider-backed generation errors.
+2. Polish Messenger thread settings, send/edit/delete, and missing-reference UX.
+3. Bring Roleplay closer to Messenger parity while keeping mode records separate.
+4. Harden catalog validation, deletion cleanup, and empty states.
+5. Keep bundle import/export, legacy import, desktop storage repair, and runtime
+   contracts reliable as storage changes.
+6. Keep docs current when implementation paths or product status change.
 
 ## Intentionally Out Of Scope For Now
 
@@ -56,6 +67,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 ## Near-Term Documentation Needs
 
-- Validate migrated developer docs against current source.
+- Convert `DOMAIN_MODEL.md` fully into a stable product-language glossary, or
+  merge its durable record details into `docs/storage-model.md` and
+  `ARCHITECTURE.md`.
 - Add screenshots or short walkthroughs once the first user loop is stable enough to document visually.
 - Keep README status current as provider transport and legacy import become real features.

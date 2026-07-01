@@ -49,12 +49,18 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   storage startup, runtime target changes, bundle previews, and import/export
   orchestration. This is the only feature layer that adapts the lower
   `src/runtime` bridge.
+- `src/features/navigation`: navigation context and nav state/action contracts
+  while the seed still uses a single top-level app state provider. It does not
+  own concrete feature screens or app provider/controller assembly.
 - `src/runtime`: frontend storage boundary for this seed. Its public entrypoint
   exports DeKoi storage contracts, collection adapters, app snapshot
   orchestration, bundle import/export normalization, and legacy import. Host and
   remote transport wrappers live in `src/shared/api`.
 - `src/shared`: reusable UI primitives, styling tokens, browser-only helpers,
   and other code that is genuinely generic across feature owners.
+- `src/shared/api`: typed wrappers around desktop Tauri commands and
+  remote-runtime HTTP invocation. Feature code may call focused wrappers or
+  feature-runtime workflows. Engine code may not.
 - `src-tauri`: privileged desktop and hostable capabilities: local files,
   app-data collection storage, provider secrets, native dialogs, desktop runtime
   dispatch, and provider transport.
@@ -69,7 +75,8 @@ features            -> engine, shared
 shell/modes/catalog -> features/runtime for runtime-facing workflows
 features/runtime    -> engine, runtime, shared, shared API wrappers
 runtime             -> engine types/contracts, shared API wrappers
-shared              -> no feature owners
+shared/api          -> Tauri invoke and remote-runtime HTTP wrappers
+shared              -> no feature owners, no runtime bridge, no engine imports
 engine              -> no React, features, runtime, Tauri, or browser APIs
 src-tauri -> no TypeScript product imports
 ```
@@ -85,6 +92,49 @@ Stop and redesign if a change needs:
 - A storage command that also performs generation.
 - A generation command that also persists records.
 - A compatibility branch that makes old record names native DeKoi concepts.
+
+## Enforced Boundary Check
+
+Run:
+
+```sh
+pnpm check:frontend-boundaries
+```
+
+The check enforces the current frontend architecture rules:
+
+- `src/engine` must not import app composition, runtime adapters, feature code,
+  shared frontend helpers, React, browser APIs, or Tauri packages.
+- `src/app` imports feature entrypoints and shared helpers; it must not import
+  engine modules or runtime adapters directly.
+- `src/runtime` owns storage/import/export contracts and may import engine
+  types/contracts plus shared API wrappers. It must not import app composition,
+  feature modules, React, Tauri packages, or desktop command catalogs directly.
+- Runtime bridge modules are imported through `src/runtime/index.ts`; runtime
+  implementation files stay in owner packages under `src/runtime`.
+- Runtime collection adapters use the storage repository factory so host-backed
+  storage and future database-backed storage share one swap point.
+- Top-level feature folders are `catalog`, `modes`, `navigation`, `runtime`,
+  and `shell`.
+- Feature layer direction is `shell -> modes -> runtime -> catalog`.
+- `src/features/runtime` is the only feature layer that may adapt the lower
+  `src/runtime` bridge. Shell, mode, catalog, and navigation modules route
+  runtime-facing work through feature-runtime workflows.
+- Feature-runtime implementation files live under `generation`, `ripples`, or
+  `storage`; feature-runtime workflows stay React-free and do not import
+  navigation orchestration.
+- `src/features/navigation` is a bridge layer. It must not import sibling shell,
+  mode, or catalog UI modules, `src/runtime`, or `src/shared/api` directly.
+- Non-navigation feature modules receive navigation state/actions through narrow
+  feature-owned props built from exported navigation state/action groups. They
+  do not read `useNav()` directly, import `NavContextType`, accept
+  `nav: NavContextType`, or pick props from the full navigation type.
+- Catalog, modes, navigation, shell, and feature-runtime packages are imported
+  through public entrypoints. Package entrypoints use explicit exports, not
+  wildcard exports.
+- Catalog resource packages and shell packages stay behind their public
+  entrypoints as they grow. Catalog source files live in resource or shared
+  packages, not directly under `src/features/catalog`.
 
 ## Engine Growth Path
 
@@ -207,7 +257,7 @@ The short version:
 
 ## Future Architecture Work
 
-1. Move the flat engine files into the implemented target skeleton:
+1. Move remaining flat engine work into the implemented target skeleton:
    `contracts`, `core`, `generation`, `modes`, `catalog`, and `ripples`.
 2. Deepen current feature packages using the previous repo's package pattern:
    public entrypoint, `components`, `hooks`, `lib`, and local `types` when
@@ -221,3 +271,31 @@ The short version:
    replacing the current host-backed implementation.
 6. Split navigation contracts toward app or mode-router-owned contracts when a
    concrete route model exists.
+
+## Adding Or Moving Code
+
+1. Put product record types and pure mutations in `src/engine`.
+2. Put typed desktop/remote runtime calls in `src/shared/api`.
+3. Put storage contracts, collection adapters, app snapshots, bundle
+   normalization, and the legacy import bridge in `src/runtime/storage`.
+4. Put app-level composition in `src/app`.
+5. Put shell tools in `src/features/shell`.
+6. Put mode surfaces in `src/features/modes`.
+7. Put shared mode-neutral runtime systems in `src/features/runtime`.
+8. Put resource data/library owners in `src/features/catalog`.
+9. Put privileged local work in `src-tauri`.
+10. Put only generic helpers in `src/shared`.
+11. Update this document and `scripts/check-frontend-boundaries.mjs` when a new
+   architectural boundary becomes stable enough to enforce.
+
+## Related Checks
+
+- `pnpm check:storage-contracts` keeps TypeScript storage entities and the Rust
+  desktop allowlist aligned.
+- `pnpm check:provider-secret-safety` keeps provider connection records, bundle
+  export/import, desktop secret lookup, and editor key handling from persisting
+  API keys as ordinary storage data.
+- `pnpm check:runtime-contracts` keeps TypeScript runtime commands, Rust runtime
+  dispatch, and the remote fixture aligned.
+- `pnpm check:desktop-contracts` keeps desktop command names aligned.
+- `pnpm check:frontend-boundaries` keeps frontend import direction aligned.

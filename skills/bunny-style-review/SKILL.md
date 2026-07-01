@@ -59,7 +59,7 @@ For DeKoi reviews, use current repo sources as truth:
   prompt/generation, and product-language boundaries.
 - Read `PRODUCT.md` and `DESIGN.md` for UI, UX, visual design, onboarding,
   settings, mode surfaces, copy, or polish reviews.
-- Read developer docs only when the diff touches or claims behavior they define.
+- Read canonical repo docs when the diff touches or claims behavior they define.
 
 Review against the changed owner: `src/app`, `src/features`, `src/shared`, `src/engine`, `src-tauri`, docs/skills, package/scripts/config/CI/release files.
 

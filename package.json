@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "vite",
     "dev:tauri-frontend": "vite --host 127.0.0.1 --port 1420 --strictPort",
-    "docs:dev": "vite docs/developer --host 127.0.0.1 --port 4174",
     "runtime:fixture": "node scripts/remote-runtime-fixture.mjs",
     "check:desktop-contracts": "node scripts/check-desktop-contracts.mjs",
     "check:storage-contracts": "node scripts/check-storage-contracts.mjs",

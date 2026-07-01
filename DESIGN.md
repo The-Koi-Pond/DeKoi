@@ -235,6 +235,16 @@ Use unframed groups, bands, dividers, or table/list structure instead.
 - **Secondary:** Water or shallow fill with reed border and foam text.
 - **Focus:** Visible outline using `--accent` or jade, never color alone.
 
+### Pending Edits
+
+- Primary save actions such as `Save Changes` stay present in the same location
+  when a surface is clean, but use a darker, quieter, lower-emphasis state.
+- When local edits differ from the last saved record, the primary save action
+  should light up with the surface accent and a restrained glow.
+- Dirty-state comparisons should use normalized draft values where the save path
+  normalizes them, so whitespace-only differences do not create false pending
+  states.
+
 ### Chips And Segments
 
 - **Style:** Compact rounded pills or segmented controls with tonal fill and
