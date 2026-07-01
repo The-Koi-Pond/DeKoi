@@ -1,28 +1,14 @@
-import { useMemo, useState } from "react";
-import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import {
-  countLorebookCatalogEntries,
-  filterLorebookCatalogRecords,
-} from "../lib/lorebook-catalog-view-model";
+  useLorebookCatalogRailController,
+  type LorebookCatalogRailNav,
+} from "../hooks/use-lorebook-catalog-rail-controller";
 import { LorebookCatalogHead } from "./LorebookCatalogHead";
 import { LorebookCatalogList } from "./LorebookCatalogList";
 import { ShoalTopBar } from "./ShoalTopBar";
 
 interface LorebookCatalogRailProps {
   chatSettingsOpen: boolean;
-  nav: {
-    lorebooks: LorebookRecord[];
-    selectedSurface: string;
-    setView: (
-      view:
-        | { kind: "lorebooks"; lorebookId: string }
-        | { kind: "lorebooks"; mode: "new-lorebook" },
-    ) => void;
-    view: {
-      kind: string;
-      lorebookId?: string;
-    };
-  };
+  nav: LorebookCatalogRailNav;
   onOpenChatSettings: () => void;
   onToggleShoal: () => void;
   shoalClosed: boolean;
@@ -35,22 +21,15 @@ export function LorebookCatalogRail({
   onToggleShoal,
   shoalClosed,
 }: LorebookCatalogRailProps) {
-  const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
-  const activeLorebookId =
-    nav.view.kind === "lorebooks" ? nav.view.lorebookId ?? null : null;
-  const filteredLorebooks = useMemo(
-    () => filterLorebookCatalogRecords(nav.lorebooks, normalizedQuery),
-    [nav.lorebooks, normalizedQuery],
-  );
-  const entryCount = useMemo(
-    () => countLorebookCatalogEntries(nav.lorebooks),
-    [nav.lorebooks],
-  );
-
-  function openNewLorebook() {
-    nav.setView({ kind: "lorebooks", mode: "new-lorebook" });
-  }
+  const {
+    activeLorebookId,
+    entryCount,
+    filteredLorebooks,
+    query,
+    openLorebook,
+    openNewLorebook,
+    setQuery,
+  } = useLorebookCatalogRailController({ nav });
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — lorebooks">
@@ -72,9 +51,7 @@ export function LorebookCatalogRail({
           activeLorebookId={activeLorebookId}
           lorebooks={filteredLorebooks}
           onCreateLorebook={openNewLorebook}
-          onOpenLorebook={(lorebookId) =>
-            nav.setView({ kind: "lorebooks", lorebookId })
-          }
+          onOpenLorebook={openLorebook}
         />
       </div>
     </aside>

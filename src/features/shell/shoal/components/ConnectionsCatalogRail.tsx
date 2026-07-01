@@ -1,25 +1,14 @@
-import { useMemo } from "react";
-import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
-import { getConnectionCatalogCards } from "../lib/connection-catalog-view-model";
+import {
+  useConnectionsCatalogRailController,
+  type ConnectionsCatalogRailNav,
+} from "../hooks/use-connections-catalog-rail-controller";
 import { ConnectionsCatalogHead } from "./ConnectionsCatalogHead";
 import { ConnectionsCatalogList } from "./ConnectionsCatalogList";
 import { ShoalTopBar } from "./ShoalTopBar";
 
 interface ConnectionsCatalogRailProps {
   chatSettingsOpen: boolean;
-  nav: {
-    providerConnections: ProviderConnectionRecord[];
-    selectedSurface: string;
-    setView: (
-      view:
-        | { kind: "connections"; connectionId: string }
-        | { kind: "connections"; mode: "new" },
-    ) => void;
-    view: {
-      connectionId?: string;
-      kind: string;
-    };
-  };
+  nav: ConnectionsCatalogRailNav;
   onOpenChatSettings: () => void;
   onToggleShoal: () => void;
   shoalClosed: boolean;
@@ -32,16 +21,12 @@ export function ConnectionsCatalogRail({
   onToggleShoal,
   shoalClosed,
 }: ConnectionsCatalogRailProps) {
-  const activeConnectionId =
-    nav.view.kind === "connections" ? nav.view.connectionId ?? null : null;
-  const connections = useMemo(
-    () => getConnectionCatalogCards(nav.providerConnections),
-    [nav.providerConnections],
-  );
-
-  function openNewConnection() {
-    nav.setView({ kind: "connections", mode: "new" });
-  }
+  const {
+    activeConnectionId,
+    connections,
+    openConnection,
+    openNewConnection,
+  } = useConnectionsCatalogRailController({ nav });
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">
@@ -57,9 +42,7 @@ export function ConnectionsCatalogRail({
         <ConnectionsCatalogList
           activeConnectionId={activeConnectionId}
           connections={connections}
-          onOpenConnection={(connectionId) =>
-            nav.setView({ kind: "connections", connectionId })
-          }
+          onOpenConnection={openConnection}
         />
       </div>
     </aside>
