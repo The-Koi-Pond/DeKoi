@@ -24,7 +24,7 @@ interface ChatSettingsIdentityDrawerModelsInput {
   viewModel: ChatSettingsViewModel;
 }
 
-interface ChatSettingsIdentityDrawerModels {
+export interface ChatSettingsIdentityDrawerModels {
   connection: ChatSettingsConnectionDrawerModel;
   persona: ChatSettingsPersonaDrawerModel;
 }

@@ -3,9 +3,7 @@ import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionReso
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
-import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
-import { getChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
-import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
+import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
@@ -19,8 +17,7 @@ interface ChatSettingsMessengerResourceSectionProps {
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
-  viewModel: ChatSettingsViewModel;
+  models: ChatSettingsResourceDrawerModels;
   onCreateCompanion: () => void;
   onCreateLorebook: () => void;
 }
@@ -33,24 +30,17 @@ export function ChatSettingsMessengerResourceSection({
   characters,
   companionSelectorOpen,
   lorebooks,
-  openDrawers,
-  viewModel,
+  models,
   onCreateCompanion,
   onCreateLorebook,
 }: ChatSettingsMessengerResourceSectionProps) {
-  const {
-    companion: companionModel,
-    lorebook: lorebookModel,
-    prompt: promptModel,
-  } = getChatSettingsResourceDrawerModels({ openDrawers, viewModel });
-
   return (
     <>
       <ChatSettingsCompanionResourceDrawer
         activeMessengerThread={activeMessengerThread}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
-        model={companionModel}
+        model={models.companion}
         onClearMissingCompanions={actions.resources.clearMissingCompanions}
         onCreateCompanion={onCreateCompanion}
         onSelectorOpenChange={actions.resources.onSelectorOpenChange}
@@ -63,7 +53,7 @@ export function ChatSettingsMessengerResourceSection({
         activeMessengerThread={activeMessengerThread}
         activeMessengerThreadRecord={activeMessengerThreadRecord}
         activeMessengerThreadId={activeMessengerThreadId}
-        model={promptModel}
+        model={models.prompt}
         onSaveCustomPrompt={actions.prompt.onSaveCustomPrompt}
         onSystemPromptModeChange={actions.prompt.onSystemPromptModeChange}
         onToggle={actions.drawers.onToggle}
@@ -72,7 +62,7 @@ export function ChatSettingsMessengerResourceSection({
       <ChatSettingsLorebookResourceDrawer
         activeMessengerThread={activeMessengerThread}
         lorebooks={lorebooks}
-        model={lorebookModel}
+        model={models.lorebook}
         onClearMissingLorebooks={actions.resources.clearMissingLorebooks}
         onCreateLorebook={onCreateLorebook}
         onToggle={actions.drawers.onToggle}

@@ -1,37 +1,33 @@
-import {
-  ChatSettingsAdvancedControls,
-  type AdvancedChatSettings,
-} from "./ChatSettingsAdvancedControls";
+import { ChatSettingsAdvancedControls } from "./ChatSettingsAdvancedControls";
 import { ChatSettingsDrawer } from "./ChatSettingsBlocks";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
+import type {
+  AdvancedChatSettings,
+  ChatSettingsAdvancedDrawerModel,
+} from "../lib/chat-settings-advanced-drawer-models";
 
 interface ChatSettingsAdvancedDrawerProps {
-  appSettings: AdvancedChatSettings;
-  open: boolean;
-  settingsLabel: string;
+  model: ChatSettingsAdvancedDrawerModel;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
-  updateAppSettings: (settings: Partial<AdvancedChatSettings>) => void;
+  onUpdateAppSettings: (settings: Partial<AdvancedChatSettings>) => void;
 }
 
 export function ChatSettingsAdvancedDrawer({
-  appSettings,
-  open,
-  settingsLabel,
+  model,
   onToggle,
-  updateAppSettings,
+  onUpdateAppSettings,
 }: ChatSettingsAdvancedDrawerProps) {
   return (
     <ChatSettingsDrawer
       drawerId="advanced"
-      open={open}
-      summary="Temperature and limits"
+      open={model.open}
+      summary={model.summary}
       title="Advanced Parameters"
       onToggle={onToggle}
     >
       <ChatSettingsAdvancedControls
-        appSettings={appSettings}
-        settingsLabel={settingsLabel}
-        updateAppSettings={updateAppSettings}
+        model={model}
+        onUpdateAppSettings={onUpdateAppSettings}
       />
     </ChatSettingsDrawer>
   );

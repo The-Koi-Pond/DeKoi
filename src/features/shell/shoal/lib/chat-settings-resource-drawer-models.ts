@@ -27,7 +27,7 @@ interface ChatSettingsResourceDrawerModelsInput {
   viewModel: ChatSettingsViewModel;
 }
 
-interface ChatSettingsResourceDrawerModels {
+export interface ChatSettingsResourceDrawerModels {
   companion: ChatSettingsCompanionResourceModel;
   lorebook: ChatSettingsLorebookResourceModel;
   prompt: ChatSettingsPromptResourceModel;
