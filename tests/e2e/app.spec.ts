@@ -1769,13 +1769,38 @@ test("legacy import failure can be acknowledged without arming retry", async ({
 
   await importButton.click();
   await expect(page.getByText(/Legacy import failed\./)).toBeVisible();
-  await expect(confirmCheckbox).not.toBeChecked();
+  await expect(page.getByText("Legacy import preview")).toHaveCount(0);
   await expect(importButton).toBeDisabled();
 
-  await page.getByRole("button", { name: "Acknowledge import failure" }).click();
+  await page
+    .getByRole("button", { name: "Acknowledge legacy import failure" })
+    .click();
   await page.getByLabel("Close Settings").click();
   await expect(page.locator("aside.care")).not.toHaveClass(/open/);
   await page.locator(".settings-button").click();
-  await expect(confirmCheckbox).not.toBeChecked();
+  await expect(page.getByText("Legacy import preview")).toHaveCount(0);
+  await expect(importButton).toBeDisabled();
+});
+
+test("legacy import retry requires a fresh preview after partial persistence", async ({
+  page,
+}) => {
+  await installFailingRemoteRuntime(page, "ripple-states");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  await page.locator("#legacy-thread-file").setInputFiles(
+    jsonFilePayload("legacy.json", createLegacyImportFixture()),
+  );
+  await expect(page.getByText("Legacy import preview")).toBeVisible();
+  const importButton = page.getByRole("button", {
+    name: "Import converted records",
+  });
+  await page.getByLabel("Add converted records to DeKoi").check();
+  await expect(importButton).toBeEnabled();
+
+  await importButton.click();
+  await expect(page.getByText(/Legacy import failed\./)).toBeVisible();
+  await expect(page.getByText("Legacy import preview")).toHaveCount(0);
   await expect(importButton).toBeDisabled();
 });

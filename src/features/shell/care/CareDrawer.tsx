@@ -906,6 +906,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         desktopBackupPath: backup.path,
       });
       if (result.status !== "ready") {
+        setLegacyPreview(null);
         setLegacyImportConfirmed(false);
         setStorageImportFailureSource("legacy");
         setCareOpen(true);
@@ -922,6 +923,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setLegacyPreview(null);
       setLegacyImportConfirmed(false);
     } catch (error) {
+      setLegacyPreview(null);
       setLegacyImportConfirmed(false);
       setStorageImportFailureSource("legacy");
       setCareOpen(true);
