@@ -1,5 +1,6 @@
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import { NewThreadDropdownField } from "./NewThreadDropdownField";
+import { NewThreadLorebookOption } from "./NewThreadLorebookOption";
 
 interface NewThreadLorebookDropdownProps {
   labelId: string;
@@ -36,28 +37,14 @@ export function NewThreadLorebookDropdown({
       onOpenChange={onOpenChange}
       onToggleOpenChange={onToggleOpenChange}
     >
-      {lorebooks.map((lorebook) => {
-        const selected = selectedIds.includes(lorebook.id);
-
-        return (
-          <label
-            className={`new-thread-check${selected ? " on" : ""}`}
-            key={lorebook.id}
-            role="option"
-            aria-selected={selected}
-          >
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={() => onToggleLorebook(lorebook.id)}
-            />
-            <span>
-              <b>{lorebook.title}</b>
-              <small>{lorebook.summary || "Lorebook"}</small>
-            </span>
-          </label>
-        );
-      })}
+      {lorebooks.map((lorebook) => (
+        <NewThreadLorebookOption
+          key={lorebook.id}
+          lorebook={lorebook}
+          selected={selectedIds.includes(lorebook.id)}
+          onToggle={() => onToggleLorebook(lorebook.id)}
+        />
+      ))}
     </NewThreadDropdownField>
   );
 }
