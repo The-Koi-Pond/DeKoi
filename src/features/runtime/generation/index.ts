@@ -1,6 +1,10 @@
 export {
+  describeGenerationFailureNotice,
+  describeGenerationReadinessFailure,
   formatGenerationFailureNotice,
   formatGenerationReadinessFailure,
+  type GenerationFailureNotice,
+  type GenerationFailureRecoveryTarget,
 } from "./generation-errors";
 export {
   getGenerationConnectionReadiness,

@@ -10,6 +10,7 @@ import type {
   NavMessengerThreadActions,
   NavSettingsState,
   NavThreadState,
+  NavViewActions,
   NavViewState,
 } from "../../navigation";
 import { type MessengerMessage } from "../../../engine/contracts/types/messenger";
@@ -24,14 +25,19 @@ import {
   updateMessengerMessageBody,
 } from "../../../engine/modes/messenger/messenger-actions";
 import {
+  describeGenerationFailureNotice,
+  describeGenerationReadinessFailure,
   generateMessengerThreadReply,
-  formatGenerationFailureNotice,
-  formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
-import { ChatComposer } from "../shared";
+import {
+  ChatComposer,
+  GenerationNotice,
+  getGenerationNoticeAction,
+  type GenerationNoticeAction,
+} from "../shared";
 import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
 import {
   getMessageDateKey,
@@ -49,6 +55,7 @@ export type MessengerThreadNav = Pick<
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "messengerThreads"> &
+  Pick<NavViewActions, "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
 
 function createLocalId(prefix: string) {
@@ -74,7 +81,8 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     threadId: string | null;
     status: "idle" | "generating" | "warning" | "error";
     message: string;
-  }>({ threadId: null, status: "idle", message: "" });
+    action: GenerationNoticeAction | null;
+  }>({ threadId: null, status: "idle", message: "", action: null });
   const [editingMessage, setEditingMessage] = useState<{
     threadId: string;
     id: string;
@@ -111,6 +119,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       : "";
   const generationStatusMessage =
     generationState.threadId === activeThreadId ? generationState.message : "";
+  const generationNoticeAction =
+    generationState.threadId === activeThreadId &&
+    (generationState.status === "error" || generationState.status === "warning")
+      ? generationState.action
+      : null;
   const canSend = draft.trim().length > 0 && !isGenerating;
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
@@ -284,10 +297,15 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     const connectionReadiness =
       getGenerationConnectionReadiness(selectedConnection);
     if (!connectionReadiness.ready) {
+      const notice = describeGenerationReadinessFailure(connectionReadiness.code);
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: formatGenerationReadinessFailure(connectionReadiness.code),
+        message: notice.message,
+        action: getGenerationNoticeAction(
+          notice.recoveryTarget,
+          selectedConnection?.id,
+        ),
       });
       return false;
     }
@@ -333,6 +351,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       threadId: commitThread.id,
       status: "generating",
       message: `Generating through ${sendRuntime.label}.`,
+      action: null,
     });
 
     try {
@@ -364,6 +383,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           threadId: commitThread.id,
           status: "generating",
           message: `${typingNames || companionDisplayName} is typing...`,
+          action: null,
         });
         await waitForGeneratedTypingDelay(
           result.generatedMessages.map((message) => message.body).join("\n"),
@@ -377,22 +397,36 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
               threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
               message: result.warnings[0] ?? "",
+              action: null,
             }
-          : {
-              threadId: commitThread.id,
-              status: "error",
-              message:
-                result.warnings[0] ??
+          : (() => {
+              const notice = describeGenerationFailureNotice(
+                result.warnings[0] ?? "",
                 `${result.runtimeLabel} did not return a Messenger reply.`,
-            },
+              );
+              return {
+                threadId: commitThread.id,
+                status: "error" as const,
+                message: notice.message,
+                action: getGenerationNoticeAction(
+                  notice.recoveryTarget,
+                  commitConnection.id,
+                ),
+              };
+            })(),
       );
     } catch (error) {
+      const notice = describeGenerationFailureNotice(
+        error,
+        "Messenger generation failed.",
+      );
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: formatGenerationFailureNotice(
-          error,
-          "Messenger generation failed.",
+        message: notice.message,
+        action: getGenerationNoticeAction(
+          notice.recoveryTarget,
+          commitConnection.id,
         ),
       });
     }
@@ -405,7 +439,33 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
   }
 
   function dismissGenerationNotice() {
-    setGenerationState({ threadId: null, status: "idle", message: "" });
+    setGenerationState({
+      threadId: null,
+      status: "idle",
+      message: "",
+      action: null,
+    });
+  }
+
+  function handleGenerationNoticeAction() {
+    const action = generationNoticeAction;
+    if (!action) return;
+
+    dismissGenerationNotice();
+    nav.setSideRailView("connections");
+    if (action.kind === "create-connection") {
+      nav.setView({ kind: "connections", mode: "new" });
+      return;
+    }
+
+    nav.setView(
+      action.connectionId
+        ? {
+            kind: "connections",
+            connectionId: action.connectionId,
+          }
+        : { kind: "connections" },
+    );
   }
 
   function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -598,28 +658,14 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         })}
       </div>
 
-      {visibleGenerationStatus !== "idle" && (
-        <div
-          className={`thread-generation-notice ${visibleGenerationStatus}`}
-          role={visibleGenerationStatus === "error" ? "alert" : "status"}
-        >
-          <span>
-            {generationStatusMessage ||
-              `${generationRuntime.label} is replying through the provider path.`}
-          </span>
-          {(visibleGenerationStatus === "error" ||
-            visibleGenerationStatus === "warning") && (
-            <button
-              type="button"
-              aria-label="Dismiss generation message"
-              title="Dismiss"
-              onClick={dismissGenerationNotice}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      )}
+      <GenerationNotice
+        action={generationNoticeAction}
+        fallbackMessage={`${generationRuntime.label} is replying through the provider path.`}
+        message={generationStatusMessage}
+        onAction={handleGenerationNoticeAction}
+        onDismiss={dismissGenerationNotice}
+        status={visibleGenerationStatus}
+      />
 
       <ChatComposer
         ariaLabel="Messenger composer"

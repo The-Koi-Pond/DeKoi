@@ -17,9 +17,9 @@ import {
 } from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
 import {
+  describeGenerationFailureNotice,
+  describeGenerationReadinessFailure,
   generateRoleplayThreadTurn,
-  formatGenerationFailureNotice,
-  formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
   getGenerationModeForConnection,
   selectGenerationRuntime,
@@ -29,9 +29,15 @@ import type {
   NavRoleplayThreadActions,
   NavSettingsState,
   NavThreadState,
+  NavViewActions,
   NavViewState,
 } from "../../navigation";
-import { ChatComposer } from "../shared";
+import {
+  ChatComposer,
+  GenerationNotice,
+  getGenerationNoticeAction,
+  type GenerationNoticeAction,
+} from "../shared";
 import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
@@ -46,6 +52,7 @@ export type RoleplayThreadNav = Pick<
   Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "roleplayThreads"> &
+  Pick<NavViewActions, "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
 
 function createLocalId(prefix: string) {
@@ -86,7 +93,8 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
     threadId: string | null;
     status: "idle" | "generating" | "warning" | "error";
     message: string;
-  }>({ threadId: null, status: "idle", message: "" });
+    action: GenerationNoticeAction | null;
+  }>({ threadId: null, status: "idle", message: "", action: null });
   const [editingEntry, setEditingEntry] = useState<{
     id: string;
     body: string;
@@ -106,9 +114,16 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
     generationState.threadId === activeThreadId ? generationState.status : "idle";
   const generationNotice =
     generationState.threadId === activeThreadId &&
-    (generationState.status === "warning" || generationState.status === "error")
+    (generationState.status === "error" || generationState.status === "warning")
       ? generationState.message
       : "";
+  const generationStatusMessage =
+    generationState.threadId === activeThreadId ? generationState.message : "";
+  const generationNoticeAction =
+    generationState.threadId === activeThreadId &&
+    (generationState.status === "error" || generationState.status === "warning")
+      ? generationState.action
+      : null;
   const canSend = !!thread && draft.trim().length > 0 && !isGenerating;
 
   useEffect(() => {
@@ -169,10 +184,15 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
     const connectionReadiness =
       getGenerationConnectionReadiness(selectedConnection);
     if (!connectionReadiness.ready) {
+      const notice = describeGenerationReadinessFailure(connectionReadiness.code);
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: formatGenerationReadinessFailure(connectionReadiness.code),
+        message: notice.message,
+        action: getGenerationNoticeAction(
+          notice.recoveryTarget,
+          selectedConnection?.id,
+        ),
       });
       return false;
     }
@@ -207,6 +227,7 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
       threadId: commitThread.id,
       status: "generating",
       message: `Generating through ${sendRuntime.label}.`,
+      action: null,
     });
 
     try {
@@ -237,22 +258,36 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
               threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
               message: result.warnings[0] ?? "",
+              action: null,
             }
-          : {
-              threadId: commitThread.id,
-              status: "error",
-              message:
-                result.warnings[0] ??
+          : (() => {
+              const notice = describeGenerationFailureNotice(
+                result.warnings[0] ?? "",
                 `${sendRuntime.label} did not return a Roleplay reply.`,
-            },
+              );
+              return {
+                threadId: commitThread.id,
+                status: "error" as const,
+                message: notice.message,
+                action: getGenerationNoticeAction(
+                  notice.recoveryTarget,
+                  commitConnection.id,
+                ),
+              };
+            })(),
       );
     } catch (error) {
+      const notice = describeGenerationFailureNotice(
+        error,
+        "Roleplay generation failed.",
+      );
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
-        message: formatGenerationFailureNotice(
-          error,
-          "Roleplay generation failed.",
+        message: notice.message,
+        action: getGenerationNoticeAction(
+          notice.recoveryTarget,
+          commitConnection.id,
         ),
       });
     }
@@ -265,7 +300,33 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
   }
 
   function dismissGenerationNotice() {
-    setGenerationState({ threadId: null, status: "idle", message: "" });
+    setGenerationState({
+      threadId: null,
+      status: "idle",
+      message: "",
+      action: null,
+    });
+  }
+
+  function handleGenerationNoticeAction() {
+    const action = generationNoticeAction;
+    if (!action) return;
+
+    dismissGenerationNotice();
+    nav.setSideRailView("connections");
+    if (action.kind === "create-connection") {
+      nav.setView({ kind: "connections", mode: "new" });
+      return;
+    }
+
+    nav.setView(
+      action.connectionId
+        ? {
+            kind: "connections",
+            connectionId: action.connectionId,
+          }
+        : { kind: "connections" },
+    );
   }
 
   function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -433,28 +494,14 @@ export function RoleplayThread({ nav }: RoleplayThreadProps) {
         )}
       </div>
 
-      {visibleGenerationStatus !== "idle" && (
-        <div
-          className={`thread-generation-notice ${visibleGenerationStatus}`}
-          role={visibleGenerationStatus === "error" ? "alert" : "status"}
-        >
-          <span>
-            {generationNotice ||
-              `${generationRuntime.label} is replying through the provider path.`}
-          </span>
-          {(visibleGenerationStatus === "error" ||
-            visibleGenerationStatus === "warning") && (
-            <button
-              type="button"
-              aria-label="Dismiss generation message"
-              title="Dismiss"
-              onClick={dismissGenerationNotice}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      )}
+      <GenerationNotice
+        action={generationNoticeAction}
+        fallbackMessage={`${generationRuntime.label} is replying through the provider path.`}
+        message={generationStatusMessage}
+        onAction={handleGenerationNoticeAction}
+        onDismiss={dismissGenerationNotice}
+        status={visibleGenerationStatus}
+      />
 
       <ChatComposer
         ariaLabel="Roleplay composer"
