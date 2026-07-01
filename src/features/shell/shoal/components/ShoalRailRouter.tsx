@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChatSettingsRail } from "./ChatSettingsRail";
 import { ConnectionsCatalogRail } from "./ConnectionsCatalogRail";
 import { LorebookCatalogRail } from "./LorebookCatalogRail";
@@ -15,12 +14,13 @@ export function ShoalRailRouter({
   onToggleShoal,
   shoalClosed,
 }: ShoalProps) {
-  const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
+  const chatSettingsOpen = nav.sideRailView === "chat-settings";
+
   const railProps: ShoalRailProps = {
     chatSettingsOpen,
     nav,
-    onCloseChatSettings: () => setChatSettingsOpen(false),
-    onOpenChatSettings: () => setChatSettingsOpen(true),
+    onCloseChatSettings: () => nav.setSideRailView("shoal"),
+    onOpenChatSettings: () => nav.setSideRailView("chat-settings"),
     onToggleShoal,
     shoalClosed,
   };

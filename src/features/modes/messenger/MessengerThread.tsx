@@ -46,6 +46,11 @@ import {
   getMessageTimeLabel,
 } from "../shared/message-time";
 import { getInitials, getMessageClassName } from "./lib/message-view";
+import {
+  getMessengerThreadReferenceNotices,
+  getMessengerThreadReferenceSummary,
+  getMessengerThreadSendBlocker,
+} from "./lib/thread-reference-summary";
 import "./messenger-thread.css";
 
 export type MessengerThreadNav = Pick<
@@ -67,9 +72,10 @@ function createLocalId(prefix: string) {
 
 interface MessengerThreadProps {
   nav: MessengerThreadNav;
+  onOpenSideRail?: () => void;
 }
 
-export function MessengerThread({ nav }: MessengerThreadProps) {
+export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const messengerThread =
     nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;
@@ -124,7 +130,23 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     (generationState.status === "error" || generationState.status === "warning")
       ? generationState.action
       : null;
-  const canSend = draft.trim().length > 0 && !isGenerating;
+  const threadReferenceSummary = messengerThread
+    ? getMessengerThreadReferenceSummary({
+        appSettings: nav.appSettings,
+        characters: nav.characters,
+        lorebooks: nav.lorebooks,
+        personas: nav.personas,
+        providerConnections: nav.providerConnections,
+        thread: messengerThread,
+      })
+    : null;
+  const threadReferenceNotices = threadReferenceSummary
+    ? getMessengerThreadReferenceNotices(threadReferenceSummary)
+    : [];
+  const sendBlocker = threadReferenceSummary
+    ? getMessengerThreadSendBlocker(threadReferenceSummary)
+    : "";
+  const canSend = draft.trim().length > 0 && !isGenerating && !sendBlocker;
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ??
       nav.appSettings.activeMessengerConnectionId,
@@ -212,6 +234,18 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     if (!messengerThread || !activeEditingMessage) return;
     const trimmedBody = activeEditingMessage.body.trim();
     if (!trimmedBody) return;
+    const originalMessage =
+      messengerThread.messages.find(
+        (message) => message.id === activeEditingMessage.id,
+      ) ?? null;
+    if (!originalMessage) {
+      setEditingMessage(null);
+      return;
+    }
+    if (originalMessage.body === trimmedBody) {
+      setEditingMessage(null);
+      return;
+    }
 
     nav.updateMessengerThread(
       updateMessengerMessageBody(
@@ -288,6 +322,25 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
       nav.messengerThreads.find((thread) => thread.id === activeThreadId) ??
       null;
     if (!commitThread) return false;
+    const commitSendBlocker = getMessengerThreadSendBlocker(
+      getMessengerThreadReferenceSummary({
+        appSettings: nav.appSettings,
+        characters: nav.characters,
+        lorebooks: nav.lorebooks,
+        personas: nav.personas,
+        providerConnections: nav.providerConnections,
+        thread: commitThread,
+      }),
+    );
+    if (commitSendBlocker) {
+      setGenerationState({
+        threadId: commitThread.id,
+        status: "error",
+        message: commitSendBlocker,
+        action: null,
+      });
+      return false;
+    }
 
     const selectedConnection = getProviderConnectionById(
       commitThread.providerConnectionId ??
@@ -452,6 +505,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
     if (!action) return;
 
     dismissGenerationNotice();
+    onOpenSideRail?.();
     nav.setSideRailView("connections");
     if (action.kind === "create-connection") {
       nav.setView({ kind: "connections", mode: "new" });
@@ -466,6 +520,11 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           }
         : { kind: "connections" },
     );
+  }
+
+  function openMessengerThreadSettings() {
+    onOpenSideRail?.();
+    nav.setSideRailView("chat-settings");
   }
 
   function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -508,10 +567,45 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
           )}
           <span className="messenger-contact-status" />
         </span>
-        <h2 id="messenger-contact-name" title={companionDisplayName}>
-          {companionDisplayName}
-        </h2>
+        <div className="messenger-contact-title">
+          <h2 id="messenger-contact-name" title={companionDisplayName}>
+            {companionDisplayName}
+          </h2>
+        </div>
+        <button
+          type="button"
+          className="messenger-thread-settings-button"
+          aria-label="Open Messenger thread settings"
+          title="Thread settings"
+          onClick={openMessengerThreadSettings}
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
       </header>
+
+      {threadReferenceNotices.length > 0 && (
+        <div
+          className="messenger-thread-notices"
+          aria-label="Messenger thread notices"
+        >
+          {threadReferenceNotices.map((notice) => (
+            <div
+              className={`messenger-thread-notice ${notice.tone}`}
+              key={notice.id}
+              role={notice.tone === "error" ? "alert" : "status"}
+            >
+              <p>{notice.message}</p>
+              <button
+                type="button"
+                aria-label={`Open settings for ${notice.id}`}
+                onClick={openMessengerThreadSettings}
+              >
+                Open settings
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div
         className="message-list"
@@ -592,11 +686,16 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
                         <button
                           type="button"
                           onClick={handleSaveEditedMessage}
+                          aria-label={`Save edited message from ${message.author.label}`}
                           disabled={!activeEditingMessage?.body.trim()}
                         >
                           Save
                         </button>
-                        <button type="button" onClick={handleCancelEditMessage}>
+                        <button
+                          type="button"
+                          aria-label={`Cancel editing message from ${message.author.label}`}
+                          onClick={handleCancelEditMessage}
+                        >
                           Cancel
                         </button>
                       </div>
@@ -673,6 +772,7 @@ export function MessengerThread({ nav }: MessengerThreadProps) {
         disabled={!canSend}
         hint={
           generationNotice ||
+          sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||
               `${generationRuntime.label} is replying through the provider-neutral path.`

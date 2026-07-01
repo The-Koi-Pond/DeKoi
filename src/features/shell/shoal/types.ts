@@ -30,7 +30,10 @@ export type ShoalNav = Pick<
   > &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
-  Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setView"> &
+  Pick<
+    NavViewActions,
+    "openRoleplayThread" | "openMessengerThread" | "setSideRailView" | "setView"
+  > &
   Pick<NavViewState, "selectedSurface" | "sideRailView" | "view">;
 
 export interface ShoalProps {

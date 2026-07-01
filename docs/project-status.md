@@ -21,6 +21,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   and network reachability while preserving provider refusal/error detail.
 - Messenger settings surface no-active-thread, empty-catalog, and missing
   connection/persona/companion/lorebook states with narrow recovery actions.
+- Messenger thread surface exposes thread settings, pre-send missing-reference
+  notices, and touch-friendly edit/delete message actions.
 - Desktop collection metadata checks and explicit storage reload from Pond Care,
   with reload blocked while local saves are pending.
 - Pond Care storage repair for malformed desktop collections, using explicit

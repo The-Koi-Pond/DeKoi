@@ -20,6 +20,7 @@ import {
   toMessengerThreadRecord,
   type MessengerThread,
 } from "../../src/engine/contracts/types/messenger";
+import type { ProviderConnectionRecord } from "../../src/engine/contracts/types/provider-connection";
 import {
   appendRoleplayEntries,
   createNarrationRoleplayEntry,
@@ -52,6 +53,11 @@ import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/li
 import { getChatSettingsMessengerDrawerModels } from "../../src/features/shell/shoal/lib/chat-settings-messenger-drawer-models";
 import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
 import { getGenerationNoticeAction } from "../../src/features/modes/shared/generation-notice";
+import {
+  getMessengerThreadReferenceNotices,
+  getMessengerThreadReferenceSummary,
+  getMessengerThreadSendBlocker,
+} from "../../src/features/modes/messenger/lib/thread-reference-summary";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
 const STORAGE_ENTITIES = [
@@ -509,6 +515,80 @@ test("chat settings drawer models align active state with open state", () => {
   expect(activeModels.resources.companion.open).toBe(true);
   expect(activeModels.resources.lorebook.open).toBe(true);
   expect(activeModels.resources.prompt.open).toBe(true);
+});
+
+test("messenger thread reference summary flags missing settings before send", () => {
+  const readyProviderConnection = {
+    id: "connection-ready",
+    schemaVersion: 1,
+    kind: "remote-runtime",
+    provider: "custom",
+    label: "Ready Connection",
+    baseUrl: "http://localhost:11434/v1",
+    model: "local-model",
+    summary: "",
+    status: "ready",
+    modelLabel: "local-model",
+    keeperDefault: false,
+    maxContext: null,
+    maxOutput: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  } satisfies ProviderConnectionRecord;
+  const activeMessengerThread = createMessengerThread({
+    activePersonaId: "persona-missing",
+    characterIds: ["companion-missing"],
+    id: "thread-missing-references",
+    lorebookIds: ["lorebook-missing"],
+    now: "2026-01-01T00:00:00.000Z",
+    providerConnectionId: "connection-missing",
+    title: "Missing References",
+  });
+  const summary = getMessengerThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [],
+    thread: activeMessengerThread,
+  });
+
+  expect(summary).toEqual(
+    expect.objectContaining({
+      hasMissingConnection: true,
+      hasMissingPersona: true,
+      hasNoConnectionAvailable: true,
+      missingCompanionCount: 1,
+      missingLorebookCount: 1,
+      selectedCompanionCount: 0,
+    }),
+  );
+  expect(getMessengerThreadSendBlocker(summary)).toContain(
+    "Create a connection",
+  );
+  expect(
+    getMessengerThreadReferenceNotices(summary).map((notice) => notice.id),
+  ).toEqual([
+    "no-connection",
+    "no-companion",
+    "missing-persona",
+    "missing-lorebooks",
+  ]);
+
+  const companionBlockerSummary = getMessengerThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [readyProviderConnection],
+    thread: {
+      ...activeMessengerThread,
+      providerConnectionId: readyProviderConnection.id,
+    },
+  });
+  expect(getMessengerThreadSendBlocker(companionBlockerSummary)).toContain(
+    "clear missing companions",
+  );
 });
 
 test("storage import reload decision falls back to completed collections", () => {

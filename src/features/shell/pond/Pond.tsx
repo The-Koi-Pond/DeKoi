@@ -20,6 +20,7 @@ import "./Pond.css";
 
 interface PondProps {
   nav: PondNav;
+  onOpenShoal: () => void;
 }
 
 export type PondNav = Pick<
@@ -34,7 +35,7 @@ export type PondNav = Pick<
   PersonasSurfaceNav &
   PondHomeNav;
 
-export function Pond({ nav }: PondProps) {
+export function Pond({ nav, onOpenShoal }: PondProps) {
   const inMessenger = nav.view.kind === "messenger";
   const inRoleplay = nav.view.kind === "roleplay";
   const inThread = inMessenger || inRoleplay;
@@ -57,7 +58,7 @@ export function Pond({ nav }: PondProps) {
     <main className={`pond${inThread ? " pond-thread-surface" : ""}`}>
       <div className={`pond-inner${inThread ? " pond-inner-thread" : ""}`}>
         {inMessenger ? (
-          <MessengerThread nav={nav} />
+          <MessengerThread nav={nav} onOpenSideRail={onOpenShoal} />
         ) : inRoleplay ? (
           <RoleplayThread nav={nav} />
         ) : (
