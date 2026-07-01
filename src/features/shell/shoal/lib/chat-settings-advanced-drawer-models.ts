@@ -1,5 +1,4 @@
 import type { AppSettings } from "../../../../engine/contracts/types/app-settings";
-import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 
 export type AdvancedChatSettings = Pick<
   AppSettings,
@@ -15,17 +14,17 @@ export interface ChatSettingsAdvancedDrawerModel {
 
 interface ChatSettingsAdvancedDrawerModelInput {
   appSettings: AdvancedChatSettings;
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
+  open: boolean;
   settingsLabel: string;
 }
 
 export function getChatSettingsAdvancedDrawerModel({
   appSettings,
-  openDrawers,
+  open,
   settingsLabel,
 }: ChatSettingsAdvancedDrawerModelInput): ChatSettingsAdvancedDrawerModel {
   return {
-    open: openDrawers.advanced,
+    open,
     settings: appSettings,
     settingsLabel,
     summary: "Temperature and limits",

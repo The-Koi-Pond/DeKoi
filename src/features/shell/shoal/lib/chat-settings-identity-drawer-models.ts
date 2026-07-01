@@ -20,7 +20,7 @@ export interface ChatSettingsPersonaDrawerModel {
 }
 
 interface ChatSettingsIdentityDrawerModelsInput {
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
+  openDrawers: Pick<Record<ChatSettingsDrawerId, boolean>, "connection" | "persona">;
   viewModel: ChatSettingsViewModel;
 }
 

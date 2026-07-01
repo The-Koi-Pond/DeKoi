@@ -1,7 +1,7 @@
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
 import { ChatSettingsMessengerResourceSection } from "./ChatSettingsMessengerResourceSection";
-import { ChatSettingsNoActiveMessengerNotice } from "./ChatSettingsNoActiveMessengerNotice";
+import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import type {
   ChatSettingsMessengerActionGroup,
   ChatSettingsMessengerSettings,
@@ -64,9 +64,13 @@ export function ChatSettingsMessengerDrawers({
   return (
     <div className="shoal-list chat-settings-list">
       {!activeMessengerThread && (
-        <ChatSettingsNoActiveMessengerNotice
-          onCreateMessengerThread={onCreateMessengerThread}
-        />
+        <ChatSettingsNotice
+          actionLabel="New Messenger"
+          onAction={onCreateMessengerThread}
+        >
+          Open or create a Messenger thread to edit connection, persona,
+          companion, prompt, and lore settings.
+        </ChatSettingsNotice>
       )}
       <ChatSettingsIdentityDrawers
         actions={actions}
