@@ -4,6 +4,10 @@ import {
   CHAT_SETTINGS_DRAWER_DEFAULTS,
   type ChatSettingsDrawerId,
 } from "../lib/chat-settings-drawers";
+import type {
+  ChatSettingsMessengerActionGroup,
+  ChatSettingsMessengerSettings,
+} from "../lib/chat-settings-controller-groups";
 import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
 import { useChatSettingsMessengerActions } from "./use-chat-settings-messenger-actions";
@@ -74,25 +78,31 @@ export function useChatSettingsRailController({
       nav.providerConnections,
     ],
   );
-
-  return {
+  const messengerSettings: ChatSettingsMessengerSettings = {
     activeMessengerThread,
     activeMessengerThreadId,
     chatSettingsViewModel,
     companionSelectorOpen,
-    isMessengerSettings,
     openDrawers,
+  };
+  const messengerActions: ChatSettingsMessengerActionGroup = {
+    clearMissingCompanions: clearMissingMessengerCompanions,
+    clearMissingLorebooks: clearMissingMessengerLorebooks,
+    onConnectionChange: handleMessengerConnectionChange,
+    onPersonaChange: handleMessengerPersonaChange,
+    onResolveMissingConnection: resolveMissingMessengerConnection,
+    onSaveCustomPrompt: saveCustomMessengerPrompt,
+    onSelectorOpenChange: setCompanionSelectorOpen,
+    onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
+    onToggle: toggleChatSettingsDrawer,
+    onToggleCompanion: toggleMessengerCompanion,
+    onToggleLorebook: toggleMessengerLorebook,
+  };
+
+  return {
+    isMessengerSettings,
+    messengerActions,
+    messengerSettings,
     settingsLabel,
-    clearMissingMessengerCompanions,
-    clearMissingMessengerLorebooks,
-    handleMessengerConnectionChange,
-    handleMessengerPersonaChange,
-    handleMessengerSystemPromptModeChange,
-    resolveMissingMessengerConnection,
-    saveCustomMessengerPrompt,
-    setCompanionSelectorOpen,
-    toggleChatSettingsDrawer,
-    toggleMessengerCompanion,
-    toggleMessengerLorebook,
   };
 }

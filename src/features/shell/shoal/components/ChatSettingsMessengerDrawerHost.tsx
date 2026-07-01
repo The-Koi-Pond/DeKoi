@@ -1,68 +1,38 @@
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
-import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
-import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
+import type {
+  ChatSettingsMessengerActionGroup,
+  ChatSettingsMessengerSettings,
+} from "../lib/chat-settings-controller-groups";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerDrawerHostProps {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
-  chatSettingsViewModel: ChatSettingsViewModel;
-  companionSelectorOpen: boolean;
+  actions: ChatSettingsMessengerActionGroup;
   nav: ShoalRailProps["nav"];
-  openDrawers: Record<ChatSettingsDrawerId, boolean>;
+  settings: ChatSettingsMessengerSettings;
   settingsLabel: string;
-  onClearMissingCompanions: () => void;
-  onClearMissingLorebooks: () => void;
-  onConnectionChange: (connectionId: string) => void;
-  onPersonaChange: (personaId: string) => void;
-  onResolveMissingConnection: (connectionId: string | null) => void;
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSelectorOpenChange: (open: boolean) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
-  onToggle: (drawerId: ChatSettingsDrawerId) => void;
-  onToggleCompanion: (characterId: string) => void;
-  onToggleLorebook: (lorebookId: string) => void;
 }
 
 export function ChatSettingsMessengerDrawerHost({
-  activeMessengerThread,
-  activeMessengerThreadId,
-  chatSettingsViewModel,
-  companionSelectorOpen,
+  actions,
   nav,
-  openDrawers,
+  settings,
   settingsLabel,
-  onClearMissingCompanions,
-  onClearMissingLorebooks,
-  onConnectionChange,
-  onPersonaChange,
-  onResolveMissingConnection,
-  onSaveCustomPrompt,
-  onSelectorOpenChange,
-  onSystemPromptModeChange,
-  onToggle,
-  onToggleCompanion,
-  onToggleLorebook,
 }: ChatSettingsMessengerDrawerHostProps) {
   return (
     <ChatSettingsMessengerDrawers
-      activeMessengerThread={activeMessengerThread}
-      activeMessengerThreadId={activeMessengerThreadId}
+      activeMessengerThread={settings.activeMessengerThread}
+      activeMessengerThreadId={settings.activeMessengerThreadId}
       appSettings={nav.appSettings}
       characters={nav.characters}
-      companionSelectorOpen={companionSelectorOpen}
+      companionSelectorOpen={settings.companionSelectorOpen}
       lorebooks={nav.lorebooks}
-      openDrawers={openDrawers}
+      openDrawers={settings.openDrawers}
       personas={nav.personas}
       settingsLabel={settingsLabel}
-      viewModel={chatSettingsViewModel}
-      onClearMissingCompanions={onClearMissingCompanions}
-      onClearMissingLorebooks={onClearMissingLorebooks}
-      onConnectionChange={onConnectionChange}
+      viewModel={settings.chatSettingsViewModel}
+      onClearMissingCompanions={actions.clearMissingCompanions}
+      onClearMissingLorebooks={actions.clearMissingLorebooks}
+      onConnectionChange={actions.onConnectionChange}
       onCreateCompanion={() => nav.setView({ kind: "companions", mode: "new" })}
       onCreateConnection={() =>
         nav.setView({ kind: "connections", mode: "new" })
@@ -71,14 +41,14 @@ export function ChatSettingsMessengerDrawerHost({
         nav.setView({ kind: "lorebooks", mode: "new-lorebook" })
       }
       onCreateMessengerThread={nav.createMessengerThread}
-      onPersonaChange={onPersonaChange}
-      onResolveMissingConnection={onResolveMissingConnection}
-      onSaveCustomPrompt={onSaveCustomPrompt}
-      onSelectorOpenChange={onSelectorOpenChange}
-      onSystemPromptModeChange={onSystemPromptModeChange}
-      onToggle={onToggle}
-      onToggleCompanion={onToggleCompanion}
-      onToggleLorebook={onToggleLorebook}
+      onPersonaChange={actions.onPersonaChange}
+      onResolveMissingConnection={actions.onResolveMissingConnection}
+      onSaveCustomPrompt={actions.onSaveCustomPrompt}
+      onSelectorOpenChange={actions.onSelectorOpenChange}
+      onSystemPromptModeChange={actions.onSystemPromptModeChange}
+      onToggle={actions.onToggle}
+      onToggleCompanion={actions.onToggleCompanion}
+      onToggleLorebook={actions.onToggleLorebook}
       onUpdateAppSettings={nav.updateAppSettings}
     />
   );
