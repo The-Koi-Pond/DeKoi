@@ -4,12 +4,12 @@ import type {
 } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
+import {
+  ChatSettingsMessengerCompanionResourceDrawer,
+  ChatSettingsMessengerLorebookResourceDrawer,
+} from "./ChatSettingsMessengerResourceDrawers";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
-import {
-  ChatSettingsCompanionResourceDrawer,
-  ChatSettingsLorebookResourceDrawer,
-} from "./ChatSettingsResourceDrawers";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
@@ -96,7 +96,7 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsCompanionResourceDrawer
+      <ChatSettingsMessengerCompanionResourceDrawer
         activeMessengerThread={active}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
@@ -121,7 +121,7 @@ export function ChatSettingsMessengerDrawers({
         onToggle={onToggle}
       />
 
-      <ChatSettingsLorebookResourceDrawer
+      <ChatSettingsMessengerLorebookResourceDrawer
         activeMessengerThread={active}
         lorebooks={lorebooks}
         openDrawers={openDrawers}
