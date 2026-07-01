@@ -4,6 +4,7 @@ import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook
 import type { NewThreadLabels } from "../lib/new-thread-labels";
 import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
+import { useNewThreadCharacterDraft } from "./use-new-thread-character-draft";
 
 interface UseNewRoleplayThreadPopoverInput {
   characters: readonly CharacterRecord[];
@@ -23,13 +24,8 @@ export function useNewRoleplayThreadPopover({
   roleplayPersonaId,
 }: UseNewRoleplayThreadPopoverInput) {
   const [newRoleplayOpen, setNewRoleplayOpen] = useState(false);
-  const [newRoleplayName, setNewRoleplayName] = useState("");
-  const [newRoleplayNameEdited, setNewRoleplayNameEdited] = useState(false);
   const [newRoleplayConnectionId, setNewRoleplayConnectionId] = useState("");
   const [newRoleplayPersonaId, setNewRoleplayPersonaId] = useState("");
-  const [newRoleplayCharacterIds, setNewRoleplayCharacterIds] = useState<
-    string[]
-  >([]);
   const [newRoleplayLorebookIds, setNewRoleplayLorebookIds] = useState<string[]>(
     [],
   );
@@ -41,11 +37,12 @@ export function useNewRoleplayThreadPopover({
   const selectedRoleplayLorebookIds = newRoleplayLorebookIds.filter((id) =>
     liveLorebookIds.has(id),
   );
+  const characterDraft = useNewThreadCharacterDraft({
+    getDraftName: labels.getDraftRoleplayName,
+  });
 
   function resetNewRoleplayThreadPopover() {
-    setNewRoleplayCharacterIds([]);
-    setNewRoleplayName("");
-    setNewRoleplayNameEdited(false);
+    characterDraft.resetCharacterDraft();
     setNewRoleplayConnectionId("");
     setNewRoleplayPersonaId("");
     setNewRoleplayLorebookIds([]);
@@ -61,9 +58,7 @@ export function useNewRoleplayThreadPopover({
   function openNewRoleplayThreadPopover() {
     const initialCharacterIds = characters[0] ? [characters[0].id] : [];
     resetNewRoleplayThreadPopover();
-    setNewRoleplayCharacterIds(initialCharacterIds);
-    setNewRoleplayName(labels.getDraftRoleplayName(initialCharacterIds));
-    setNewRoleplayNameEdited(false);
+    characterDraft.initializeCharacterDraft(initialCharacterIds);
     setNewRoleplayConnectionId(defaultMessengerConnectionId);
     setNewRoleplayPersonaId(roleplayPersonaId);
     setNewRoleplayLorebookIds(lorebooks.map((lorebook) => lorebook.id));
@@ -72,43 +67,22 @@ export function useNewRoleplayThreadPopover({
     setNewRoleplayOpen(true);
   }
 
-  function updateNewRoleplayCharacterIds(characterIds: string[]) {
-    setNewRoleplayCharacterIds(characterIds);
-    if (!newRoleplayNameEdited) {
-      setNewRoleplayName(labels.getDraftRoleplayName(characterIds));
-    }
-  }
-
-  function toggleNewRoleplayCharacter(characterId: string) {
-    updateNewRoleplayCharacterIds(
-      toggleSelectedId(newRoleplayCharacterIds, characterId),
-    );
-  }
-
   function toggleNewRoleplayLorebook(lorebookId: string) {
     setNewRoleplayLorebookIds((currentIds) =>
       toggleSelectedId(currentIds, lorebookId),
     );
   }
 
-  function handleNewRoleplayNameChange(name: string) {
-    setNewRoleplayName(name);
-    setNewRoleplayNameEdited(true);
-  }
-
   function handleCreateRoleplayThread(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (newRoleplayCharacterIds.length === 0) return;
+    if (characterDraft.characterIds.length === 0) return;
 
-    const title =
-      newRoleplayName.trim() ||
-      labels.getDraftRoleplayName(newRoleplayCharacterIds);
     onCreateRoleplayThread({
       activePersonaId: newRoleplayPersonaId || null,
-      characterIds: newRoleplayCharacterIds,
+      characterIds: characterDraft.characterIds,
       lorebookIds: selectedRoleplayLorebookIds,
       providerConnectionId: newRoleplayConnectionId || null,
-      title,
+      title: characterDraft.getTitle(),
     });
     closeNewRoleplayThreadPopover();
   }
@@ -120,19 +94,19 @@ export function useNewRoleplayThreadPopover({
       setCompanionMenuOpen: setNewRoleplayCompanionMenuOpen,
       setConnectionId: setNewRoleplayConnectionId,
       setLorebookMenuOpen: setNewRoleplayLorebookMenuOpen,
-      setName: handleNewRoleplayNameChange,
+      setName: characterDraft.updateName,
       setPersonaId: setNewRoleplayPersonaId,
       submit: handleCreateRoleplayThread,
-      toggleCharacter: toggleNewRoleplayCharacter,
+      toggleCharacter: characterDraft.toggleCharacter,
       toggleLorebook: toggleNewRoleplayLorebook,
     },
     state: {
-      characterIds: newRoleplayCharacterIds,
+      characterIds: characterDraft.characterIds,
       companionMenuOpen: newRoleplayCompanionMenuOpen,
       connectionId: newRoleplayConnectionId,
       lorebookIds: selectedRoleplayLorebookIds,
       lorebookMenuOpen: newRoleplayLorebookMenuOpen,
-      name: newRoleplayName,
+      name: characterDraft.name,
       open: newRoleplayOpen,
       personaId: newRoleplayPersonaId,
     },
