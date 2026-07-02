@@ -1,230 +1,284 @@
 /* DeKoi pond theme — ported from design/pond-mockup.html */
 
 :root {
-  --abyss: #091317;
-  --water: #0e1b21;
-  --shallow: #13242b;
-  --raise: #172d35;
-  --reed: #233b44;
-  --reed-soft: #1b313a;
-  --koi: #f47a35;
-  --koi-hot: #ff9a4d;
-  --koi-deep: #d85f23;
-  --jade: #27b3aa;
-  --jade-hot: #3ad0c6;
-  --amber: #e3a534;
-  --amber-hot: #f3bd55;
-  --foam: #e9f1f2;
-  --mist: #86a0a8;
-  --mist-dim: #5c7882;
-  --belly: #f5ece1;
-  --display: "Shippori Mincho", "Songti SC", serif;
-  --ui: "Inter", system-ui, -apple-system, sans-serif;
-  --r-lg: 22px;
-  --r-md: 14px;
-  --r-sm: 10px;
+    --abyss: #091317;
+    --water: #0e1b21;
+    --shallow: #13242b;
+    --raise: #172d35;
+    --reed: #233b44;
+    --reed-soft: #1b313a;
+    --koi: #f47a35;
+    --koi-hot: #ff9a4d;
+    --koi-deep: #d85f23;
+    --jade: #27b3aa;
+    --jade-hot: #3ad0c6;
+    --amber: #e3a534;
+    --amber-hot: #f3bd55;
+    --foam: #e9f1f2;
+    --mist: #86a0a8;
+    --mist-dim: #5c7882;
+    --belly: #f5ece1;
+    --ink: #0c1216;
+    --display: "Shippori Mincho", "Songti SC", serif;
+    --ui: "Inter", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, monospace;
+
+    /* type scale — DESIGN.md §5; sizes multiply by --font-scale where applied */
+    --fs-display-xl: 36px;
+    --lh-display-xl: 1.15;
+    --fs-display-lg: 24px;
+    --lh-display-lg: 1.2;
+    --fs-title: 18px;
+    --lh-title: 1.3;
+    --fs-heading: 15px;
+    --lh-heading: 1.35;
+    --fs-body: 14px;
+    --lh-body: 1.5;
+    --fs-message: 14px;
+    --lh-message: 1.5;
+    --fs-meta: 11.5px;
+    --lh-meta: 1.35;
+    --fs-caption: 10.5px;
+    --lh-caption: 1.3;
+
+    --r-lg: 22px;
+    --r-md: 14px;
+    --r-sm: 10px;
+
+    /* motion — DESIGN.md §6 */
+    --dur-instant: 80ms;
+    --dur-quick: 140ms;
+    --dur-settle: 220ms;
+    --dur-glide: 340ms;
+    --ease-standard: ease-in-out;
+    --ease-glide: cubic-bezier(0.3, 0.8, 0.3, 1);
+    --dur-orbit-inner: 18s;
+    --dur-orbit-outer: 26s;
+    --dur-orbit-wide: 34s;
+    --dur-ripple: 4.5s;
+    --dur-tail: 0.7s;
+    --dur-drift-a: 26s;
+    --dur-drift-b: 38s;
+
+    /* opacity — DESIGN.json tokens.opacity */
+    --op-watermark: 0.04;
+    --op-caustics-primary: 0.5;
+    --op-caustics-secondary: 0.35;
+    --op-border-quiet: 0.18;
+    --op-border-accent: 0.3;
+    --op-tint-fill: 0.1;
+    --op-disabled: 0.45;
 }
 
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html,
 body {
-  height: 100%;
+    height: 100%;
 }
 
 body {
-  font-family: var(--ui);
-  background:
-    radial-gradient(1200px 700px at 18% -10%, #112a30 0%, transparent 55%),
-    radial-gradient(900px 600px at 100% 110%, #10242b 0%, transparent 50%),
-    var(--abyss);
-  color: var(--foam);
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
+    font-family: var(--ui);
+    background:
+        radial-gradient(1200px 700px at 18% -10%, #112a30 0%, transparent 55%),
+        radial-gradient(900px 600px at 100% 110%, #10242b 0%, transparent 50%),
+        var(--abyss);
+    color: var(--foam);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ---- caustic water texture overlay ---- */
 .caustics {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.5;
-  background:
-    radial-gradient(
-      circle at 20% 30%,
-      rgba(39, 179, 170, 0.06),
-      transparent 9%
-    ),
-    radial-gradient(
-      circle at 70% 20%,
-      rgba(244, 122, 53, 0.05),
-      transparent 8%
-    ),
-    radial-gradient(
-      circle at 40% 80%,
-      rgba(39, 179, 170, 0.05),
-      transparent 10%
-    ),
-    radial-gradient(
-      circle at 85% 65%,
-      rgba(227, 165, 52, 0.04),
-      transparent 9%
-    );
-  animation: drift 26s ease-in-out infinite alternate;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: var(--op-caustics-primary);
+    background:
+        radial-gradient(
+            circle at 20% 30%,
+            rgba(39, 179, 170, 0.06),
+            transparent 9%
+        ),
+        radial-gradient(
+            circle at 70% 20%,
+            rgba(244, 122, 53, 0.05),
+            transparent 8%
+        ),
+        radial-gradient(
+            circle at 40% 80%,
+            rgba(39, 179, 170, 0.05),
+            transparent 10%
+        ),
+        radial-gradient(
+            circle at 85% 65%,
+            rgba(227, 165, 52, 0.04),
+            transparent 9%
+        );
+    animation: drift var(--dur-drift-a) var(--ease-standard) infinite alternate;
 }
 
 .caustics.b {
-  animation: drift-b 38s ease-in-out infinite alternate;
-  opacity: 0.35;
-  background:
-    radial-gradient(
-      circle at 65% 35%,
-      rgba(39, 179, 170, 0.04),
-      transparent 12%
-    ),
-    radial-gradient(
-      circle at 30% 70%,
-      rgba(227, 165, 52, 0.04),
-      transparent 10%
-    ),
-    radial-gradient(
-      circle at 80% 50%,
-      rgba(244, 122, 53, 0.03),
-      transparent 11%
-    );
+    animation: drift-b var(--dur-drift-b) var(--ease-standard) infinite
+        alternate;
+    opacity: var(--op-caustics-secondary);
+    background:
+        radial-gradient(
+            circle at 65% 35%,
+            rgba(39, 179, 170, 0.04),
+            transparent 12%
+        ),
+        radial-gradient(
+            circle at 30% 70%,
+            rgba(227, 165, 52, 0.04),
+            transparent 10%
+        ),
+        radial-gradient(
+            circle at 80% 50%,
+            rgba(244, 122, 53, 0.03),
+            transparent 11%
+        );
 }
 
 @keyframes drift {
-  from {
-    transform: translate(0, 0);
-  }
-  to {
-    transform: translate(-22px, 16px);
-  }
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(-22px, 16px);
+    }
 }
 
 @keyframes drift-b {
-  from {
-    transform: translate(0, 0);
-  }
-  to {
-    transform: translate(18px, -12px);
-  }
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(18px, -12px);
+    }
 }
 
 /* ---- app shell grid ---- */
 .app {
-  --bank-width: 56px;
-  --shoal-collapsed-width: 0;
-  --waterline-height: 38px;
-  position: relative;
-  z-index: 1;
-  height: 100vh;
-  display: grid;
-  grid-template-columns: var(--bank-width) minmax(264px, 300px) minmax(0, 1fr) 0;
-  grid-template-rows: var(--waterline-height) 1fr 46px;
-  grid-template-areas:
-    "waterline waterline waterline waterline"
-    "bank      shoal     pond      care"
-    "tide      tide      tide      tide";
-  transition: grid-template-columns 0.34s cubic-bezier(0.3, 0.8, 0.3, 1);
+    --bank-width: 56px;
+    --shoal-collapsed-width: 0;
+    --waterline-height: 38px;
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: grid;
+    grid-template-columns:
+        var(--bank-width) minmax(264px, 300px) minmax(0, 1fr)
+        0;
+    grid-template-rows: var(--waterline-height) 1fr 46px;
+    grid-template-areas:
+        "waterline waterline waterline waterline"
+        "bank      shoal     pond      care"
+        "tide      tide      tide      tide";
+    transition: grid-template-columns var(--dur-glide) var(--ease-glide);
 }
 
 .app.care-open {
-  grid-template-columns: var(--bank-width) minmax(264px, 300px) minmax(0, 1fr) clamp(360px, 30vw, 430px);
+    grid-template-columns:
+        var(--bank-width) minmax(264px, 300px) minmax(0, 1fr)
+        clamp(360px, 30vw, 430px);
 }
 
 .app::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  box-shadow: inset 0 0 200px 40px rgba(0, 0, 0, 0.45);
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    box-shadow: inset 0 0 200px 40px rgba(0, 0, 0, 0.45);
 }
 
 .app.shoal-closed {
-  grid-template-columns: var(--bank-width) var(--shoal-collapsed-width) minmax(0, 1fr) 0;
+    grid-template-columns:
+        var(--bank-width) var(--shoal-collapsed-width)
+        minmax(0, 1fr) 0;
 }
 
 .app.shoal-closed.care-open {
-  grid-template-columns: var(--bank-width) var(--shoal-collapsed-width) minmax(0, 1fr) clamp(360px, 30vw, 430px);
+    grid-template-columns:
+        var(--bank-width) var(--shoal-collapsed-width)
+        minmax(0, 1fr) clamp(360px, 30vw, 430px);
 }
 
 /* ---- scrollbar ---- */
 ::-webkit-scrollbar {
-  width: 9px;
+    width: 9px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--reed);
-  border-radius: 8px;
+    background: var(--reed);
+    border-radius: 8px;
 }
 
 /* ---- focus/active ---- */
 :focus-visible {
-  outline: 2px solid var(--accent, var(--jade));
-  outline-offset: 2px;
-  border-radius: inherit;
+    outline: 2px solid var(--accent, var(--jade));
+    outline-offset: 2px;
+    border-radius: inherit;
 }
 
 /* ---- accent tokens (set by Appearance applier) ---- */
 
 /* Default accent is koi (orange) */
 :root {
-  --accent: var(--koi);
-  --accent-hot: var(--koi-hot);
-  --accent-deep: var(--koi-deep);
+    --accent: var(--koi);
+    --accent-hot: var(--koi-hot);
+    --accent-deep: var(--koi-deep);
 }
 
 /* Accent-specific color mapping */
 :root[data-accent="jade"] {
-  --accent: var(--jade);
-  --accent-hot: var(--jade-hot);
-  --accent-deep: var(--jade);
+    --accent: var(--jade);
+    --accent-hot: var(--jade-hot);
+    --accent-deep: var(--jade);
 }
 
 :root[data-accent="amber"] {
-  --accent: var(--amber);
-  --accent-hot: var(--amber-hot);
-  --accent-deep: var(--amber);
+    --accent: var(--amber);
+    --accent-hot: var(--amber-hot);
+    --accent-deep: var(--amber);
 }
 
 /* ---- font scale (set by Appearance applier) ---- */
 :root {
-  --font-scale: 1;
+    --font-scale: 1;
 }
 
 body {
-  font-size: calc(var(--font-scale) * 14px);
+    font-size: calc(var(--font-scale) * var(--fs-body));
 }
 
 /* ---- density (set by Appearance applier) ---- */
 /* Comfortable is the default — no override needed. */
 
 :root[data-density="compact"] .care-body {
-  padding: 14px 18px 24px;
+    padding: 14px 18px 24px;
 }
 
 :root[data-density="compact"] .toggle-row {
-  padding: 8px 0;
+    padding: 8px 0;
 }
 
 :root[data-density="compact"] .slider-field {
-  margin-bottom: 16px;
+    margin-bottom: 16px;
 }
 
 :root[data-density="compact"] .field {
-  margin-bottom: 14px;
+    margin-bottom: 14px;
 }
 
 :root[data-density="compact"] .setting-section-body {
-  gap: 12px;
+    gap: 12px;
 }
 
 /* ---- motion (set by Appearance applier) ---- */
@@ -232,30 +286,30 @@ body {
 /* "auto" follows system preference (handled by the @media below). */
 :root[data-motion="off"] .caustics,
 :root[data-motion="off"] .caustics.b {
-  animation: none !important;
+    animation: none !important;
 }
 
 :root[data-motion="off"] *,
 :root[data-motion="reduced"] * {
-  animation-duration: 0.01ms !important;
-  transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
 }
 
 /* ---- reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation: none !important;
-    transition-duration: 0.01ms !important;
-  }
+    * {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 /* ---- sumi-e koi watermark (koi-bg.svg) ---- */
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url("/koi-bg.svg") no-repeat center / cover;
-  opacity: 0.04;
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: url("/koi-bg.svg") no-repeat center / cover;
+    opacity: var(--op-watermark);
 }

@@ -1,0 +1,717 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": {
+    "name": "DeKoi",
+    "kind": "local-first story and character engine",
+    "surfaces": [
+      "Messenger",
+      "Roleplay",
+      "Pond",
+      "Companions",
+      "Personas",
+      "Lorebooks",
+      "Currents",
+      "Ripples",
+      "Ripple Dock",
+      "Keepers",
+      "Inlets",
+      "Net",
+      "Pond Care"
+    ],
+    "audience": [
+      "casual character-chat friends",
+      "writers wanting scene continuity",
+      "local-first power users",
+      "nontechnical setup users"
+    ],
+    "firstCreativeLoop": [
+      "create or import a companion or bundle",
+      "start a Messenger thread or Roleplay scene",
+      "save into DeKoi-owned local records visibly",
+      "reopen without external services",
+      "configure an Inlet only when needed"
+    ]
+  },
+  "northStar": "Keep a pond, not a platform: a lantern-lit studio over dark water where every story lives in the user's own files, every control feels shaped by hand, koi and ripples move only in open water, and dense creative work happens on calm opaque surfaces.",
+  "experiencePillars": [
+    {
+      "name": "ownershipYouCanSee",
+      "rule": "Save state, storage destination, and active provider are calm visible facts, detailed on demand, never buried or shouted."
+    },
+    {
+      "name": "livingPondQuietly",
+      "rule": "Ambient motion lives at the edges and in open water; it never performs while the user reads or types."
+    },
+    {
+      "name": "depthWithoutFog",
+      "rule": "Depth comes from stacked opaque materials and hairline borders, not blur, translucency over text, or gradient haze."
+    },
+    {
+      "name": "handmadeWarmth",
+      "rule": "Controls feel shaped: pill buttons, soft radii, ink-on-lantern fills, serif identity moments, brush motifs used sparingly."
+    },
+    {
+      "name": "twoDoorsIntoTheWater",
+      "rule": "Creating and resuming threads are always the most obvious actions; configuration never blocks the first thread."
+    },
+    {
+      "name": "siblingsNotTwins",
+      "rule": "Messenger is the quick row-based surface; Roleplay is the staged bubble-based surface; same pond, different depths, no cloned costumes."
+    },
+    {
+      "name": "deepToolsAreKept",
+      "rule": "Provider, storage, and repair surfaces get the same craft as the hero: aligned forms, readable logs, explicit dangerous actions."
+    }
+  ],
+  "tokens": {
+    "color": {
+      "abyss": {
+        "value": "#091317",
+        "role": "app backdrop only; deepest layer; hosts backdrop gradients and watermark"
+      },
+      "water": {
+        "value": "#0e1b21",
+        "role": "shell chrome regions: waterline, bank, tide"
+      },
+      "shallow": {
+        "value": "#13242b",
+        "role": "secondary panels, thread headers, drawer chrome"
+      },
+      "raise": {
+        "value": "#172d35",
+        "role": "primary work surfaces, cards, editors, thread bodies"
+      },
+      "reed": {
+        "value": "#233b44",
+        "role": "strong borders, scrollbar thumbs, control outlines"
+      },
+      "reedSoft": {
+        "value": "#1b313a",
+        "role": "quiet hairlines and section seams"
+      },
+      "koi": {
+        "value": "#f47a35",
+        "role": "primary action, current creative state, character-side identity warmth; never a panel background"
+      },
+      "koiHot": {
+        "value": "#ff9a4d",
+        "role": "koi hover and active; gradient high end"
+      },
+      "koiDeep": {
+        "value": "#d85f23",
+        "role": "koi pressed; gradient low end"
+      },
+      "jade": {
+        "value": "#27b3aa",
+        "role": "runtime health, calm support, focus outlines, persona-side identity, presence, secondary living motion"
+      },
+      "jadeHot": {
+        "value": "#3ad0c6",
+        "role": "jade hover and active"
+      },
+      "amber": {
+        "value": "#e3a534",
+        "role": "warnings, recency, unsaved and pending attention, story warmth; states that resolve, never permanent decoration"
+      },
+      "amberHot": {
+        "value": "#f3bd55",
+        "role": "amber hover and active"
+      },
+      "foam": {
+        "value": "#e9f1f2",
+        "role": "primary readable text and strong icons"
+      },
+      "mist": {
+        "value": "#86a0a8",
+        "role": "secondary text and informative metadata"
+      },
+      "mistDim": {
+        "value": "#5c7882",
+        "role": "tertiary non-essential metadata and disabled text only; about 3:1 on raise, never sole carrier of information"
+      },
+      "belly": {
+        "value": "#f5ece1",
+        "role": "warm paper highlight in artwork and rare warm emphasis; not a general text color"
+      },
+      "ink": {
+        "value": "#0c1216",
+        "role": "text and glyphs on koi, jade, or amber fills; foam fails contrast on accent fills"
+      }
+    },
+    "colorProhibitions": [
+      "no koi-tinted backgrounds larger than a control",
+      "jade and amber are semantic, never random decoration",
+      "no accent-on-accent pairings; accents meet only through ink or dark waters",
+      "gradient fills limited to koi ramp on primary actions and jade ramp on Roleplay equivalents",
+      "no gradient text outside the hero wordmark",
+      "no unnamed hex values; new hues require a named token and written role first"
+    ],
+    "typography": {
+      "families": {
+        "display": "\"Shippori Mincho\", \"Songti SC\", serif",
+        "ui": "\"Inter\", system-ui, -apple-system, sans-serif",
+        "mono": "ui-monospace, monospace"
+      },
+      "familyRoles": {
+        "display": "identity at thresholds: hero wordmark, surface titles, empty-state headings, Roleplay scene headers; never body copy, labels, buttons, or metadata",
+        "ui": "all dense work: messages, forms, catalogs, settings, logs",
+        "mono": "keys, URLs, and file paths only"
+      },
+      "scale": {
+        "displayXl": { "sizePx": 36, "lineHeight": 1.15, "use": "hero wordmark only" },
+        "displayLg": { "sizePx": 24, "lineHeight": 1.2, "use": "surface titles, scene headers" },
+        "title": { "sizePx": 18, "lineHeight": 1.3, "use": "panel and dialog titles" },
+        "heading": { "sizePx": 15, "lineHeight": 1.35, "use": "section headings, card titles" },
+        "body": { "sizePx": 14, "lineHeight": 1.5, "use": "default UI text, forms, catalogs, logs" },
+        "message": { "sizePx": 14, "lineHeight": 1.5, "use": "message body; 1.5 in Messenger, 1.6 in Roleplay; never below 13px at default scale" },
+        "meta": { "sizePx": 11.5, "lineHeight": 1.35, "use": "timestamps, counts, hints, badges" },
+        "caption": { "sizePx": 10.5, "lineHeight": 1.3, "use": "role chips and date separators; smallest legal text" }
+      },
+      "fontScaleVariable": "--font-scale",
+      "measure": { "minCh": 60, "maxCh": 75 }
+    },
+    "radius": {
+      "lg": 22,
+      "md": 14,
+      "sm": 10,
+      "pill": 999
+    },
+    "spacing": {
+      "unitPx": 4,
+      "steps": {
+        "hairline": 2,
+        "xs": 4,
+        "sm": 8,
+        "md": 12,
+        "lg": 18,
+        "xl": 26,
+        "xxl": 40
+      }
+    },
+    "elevation": {
+      "model": "elevation is a step up the opaque material stack, not a shadow",
+      "stack": ["abyss", "water", "shallow", "raise"],
+      "floatingShadow": "0 12px 34px rgba(0, 0, 0, 0.5)",
+      "floatingShadowUse": "care drawer, menus, dialogs, and the hero mark glow only",
+      "viewportVignette": "inset 0 0 200px 40px rgba(0, 0, 0, 0.45)"
+    },
+    "motion": {
+      "durations": {
+        "instantMs": 80,
+        "quickMs": 140,
+        "settleMs": 220,
+        "glideMs": 340
+      },
+      "easings": {
+        "standard": "ease-in-out",
+        "glide": "cubic-bezier(0.3, 0.8, 0.3, 1)"
+      },
+      "ambient": {
+        "orbitInnerS": 18,
+        "orbitOuterS": 26,
+        "orbitWideS": 34,
+        "ripplePingS": 4.5,
+        "tailWiggleS": 0.7,
+        "causticDriftAS": 26,
+        "causticDriftBS": 38
+      }
+    },
+    "opacity": {
+      "watermark": 0.04,
+      "causticsPrimary": 0.5,
+      "causticsSecondary": 0.35,
+      "borderQuiet": 0.18,
+      "borderAccent": 0.3,
+      "tintFill": 0.1,
+      "disabled": 0.45
+    }
+  },
+  "surfaces": {
+    "waterline": {
+      "concept": "top bar",
+      "material": "water",
+      "heightPx": 38,
+      "rules": ["app identity, global actions, window controls", "never grows into a toolbar junk drawer"]
+    },
+    "bank": {
+      "concept": "navigation rail",
+      "material": "water",
+      "widthPx": 56,
+      "rules": ["icon rail for places", "active place marked by accent plus shape, never color alone", "labels via tooltip or expansion"]
+    },
+    "shoal": {
+      "concept": "thread list",
+      "material": "shallow",
+      "widthPx": { "min": 264, "max": 300 },
+      "rules": ["saved Messenger and Roleplay threads with kind, title, recency", "collapsible with a visible reopen affordance"]
+    },
+    "pond": {
+      "concept": "main surface",
+      "material": "raise",
+      "rules": ["hosts home, threads, catalogs, editors", "home content centered at max 920px", "threads manage their own text measure"]
+    },
+    "tide": {
+      "concept": "status strip",
+      "material": "water",
+      "heightPx": 46,
+      "rules": ["runtime and provider health, storage and save state, quiet background activity", "always current, never nagging"]
+    },
+    "care": {
+      "concept": "settings drawer",
+      "material": "shallow",
+      "widthClamp": "clamp(360px, 30vw, 430px)",
+      "rules": ["Pond Care sections: Deep Water, Stocking, Catalog, appearance", "glides over the pond and carries the floating shadow", "becomes a scrimmed overlay below 1280px"]
+    },
+    "rippleDock": {
+      "concept": "per-thread state panel",
+      "material": "shallow",
+      "rules": ["docks inside the pond region beside a thread", "not a second care drawer"]
+    },
+    "responsive": {
+      "wideMinPx": 1280,
+      "midRangePx": [960, 1280],
+      "narrowRangePx": [720, 960],
+      "touchMaxPx": 720,
+      "rules": [
+        "at 960 to 1280 the care drawer overlays with scrim",
+        "at 720 to 960 the shoal overlays from the left",
+        "below 720 the bank condenses to essential places, one panel at a time, thumb-sized controls, tide collapses to status dot plus sheet"
+      ]
+    },
+    "density": {
+      "default": "comfortable",
+      "compactRule": "compact tightens padding on care and settings surfaces only; never shrinks type below scale minimums",
+      "catalogs": "card grids or rows with one line of name plus one line of metadata; browsing surfaces, not spreadsheets",
+      "settings": "single-column labeled fields in bordered sections with plain headings",
+      "providerForms": "densest allowed forms; visible labels, inline validation, plain-language descriptions; secrets write-only",
+      "storageLogs": "table-like rows at body size with status chips and adjacent inline repair or reload actions",
+      "messenger": "compact grouped message rows with small gaps",
+      "roleplay": "roomier vertical rhythm with air around bubbles in one calm center column"
+    }
+  },
+  "messageDesign": {
+    "messenger": {
+      "purpose": "fast familiar DM-style character chat; message-first, scan-first",
+      "visualDensity": "compact grouped rows; dense but breathing",
+      "layoutPattern": "left-gutter rows: 40px avatar column plus content column; sender name, role chip, timestamp on group head; consecutive same-sender messages grouped under one header with hover timestamp",
+      "avatarRules": [
+        "small functional round avatars with hairline identity ring",
+        "koi-tinted ring for companions, jade-tinted for the user persona",
+        "monogram fallback on tinted well",
+        "empty alt when the display name is adjacent text"
+      ],
+      "bubbleRules": [
+        "no ornate bubbles; rows sit directly on the raise surface",
+        "subtle full-row hover and focus tint",
+        "no per-message gradients, mood art, or decorative chrome"
+      ],
+      "metadataRules": [
+        "timestamps and date separators in mist at meta and caption sizes",
+        "date separators as centered caption pills on hairlines",
+        "per-turn generation detail behind a disclosure, not printed on every turn"
+      ],
+      "stateTreatments": {
+        "user": "jade-ringed avatar plus name; same row layout as companions, never mirrored",
+        "companion": "koi-ringed avatar plus name",
+        "system": "centered meta pill notice",
+        "pending": "quiet jade shimmer-dot row with Generating text and reserved layout space",
+        "error": "amber or koi bordered inline notice on the failed turn with retry adjacent",
+        "generated": "visually ordinary once complete; provenance in disclosure"
+      },
+      "providerRuntimeRules": [
+        "active Inlet, runtime health, and save state visible in tide strip and thread header dot",
+        "plain product wording such as Saved to desktop, Generating, Inlet disconnected",
+        "no transport or plumbing language in default UI"
+      ],
+      "accessibilityRules": [
+        "hover actions are also focus-revealed and always visible on touch",
+        "message text at message scale, 1.5 line height, 60 to 75ch measure",
+        "full keyboard traversal including message actions",
+        "state never conveyed by color alone"
+      ],
+      "avoid": [
+        "Discord clone layout, server or channel metaphors, cloned spacing, iconography, or copy",
+        "decorative bubbles and novelty layouts",
+        "mood art or animation behind message text",
+        "anything that slows scanning a 500-turn thread"
+      ]
+    },
+    "roleplay": {
+      "purpose": "staged scene-aware character roleplay; a scene being kept, adjacent to visual-novel staging without becoming game UI",
+      "visualDensity": "roomier than Messenger; generous vertical rhythm; one calm center column",
+      "layoutPattern": "centered scene column with max 680px text measure; avatars staged at outer edges, cast left, user persona right; optional scene header with display serif title, cast strip, and scene status",
+      "avatarRules": [
+        "larger staged avatars, 36 to 44px, at the column edges",
+        "identity carried by rings, chips, and speaker lines, never bubble background floods",
+        "monogram fallback on tinted well",
+        "accessible name equals display name when no adjacent text"
+      ],
+      "bubbleRules": [
+        "real bubble containers: raise-on-raise cards with hairline border tinted by speaker kind",
+        "koi-family borders for companions, jade-family for personas",
+        "sm radius, roomy padding, one border and one background, no glows or tails",
+        "readable during multi-hour sessions"
+      ],
+      "speakerIdentityRules": [
+        "speaker line above the bubble with name, role, and optional presence",
+        "cast strip in scene header shows who is present",
+        "identity accents stay in borders, rings, and chips"
+      ],
+      "narrationRules": [
+        "narration and action beats render without avatar, italic or serif-inflected message text, jade-tinted left rule, slightly inset column",
+        "spoken dialogue stays upright inside bubbles",
+        "out-of-character notes step out of the scene: plain shallow row with an OOC caption chip and no theatrical styling"
+      ],
+      "metadataRules": [
+        "timestamps at meta size on the speaker line",
+        "deep per-entry detail behind disclosure",
+        "system and runtime notices use the shared quiet notice language above the entries"
+      ],
+      "stateTreatments": {
+        "dialogue": "bordered bubble keyed to speaker kind",
+        "narration": "inset avatar-free beat with jade-tinted rule",
+        "ooc": "plain shallow row with OOC caption chip",
+        "system": "full-width quiet notice; amber warning, koi error",
+        "pending": "jade shimmer-dot entry with reserved space",
+        "error": "bordered inline notice on the failed entry with retry adjacent"
+      },
+      "continuityRippleRules": [
+        "Ripple updates render as compact jade-accented seam markers summarizing what shifted",
+        "expandable in place with full state in the Ripple Dock",
+        "reads as rings on water, never as game HUD"
+      ],
+      "accessibilityRules": [
+        "edit, retry, branch, delete on the shared hover and focus pill pattern anchored to the speaker line",
+        "atmosphere never buries controls",
+        "text column stays generous, calm, and skimmable",
+        "state never conveyed by color alone"
+      ],
+      "avoid": [
+        "narrowing the text column for staging",
+        "busy bubble chrome or per-character color floods",
+        "background scene art behind text",
+        "styling that tires the reader over long sessions"
+      ]
+    },
+    "sharedConversationRules": {
+      "generationState": "generation status is always discoverable in tide and thread header, worded in product language with role=status semantics",
+      "saveState": "save destination and saved or unsaved state visible at a glance; jade saved, amber pending or unsaved",
+      "errorState": "errors are inline and adjacent to the failed turn with role=alert, one clear next action, dismissible where safe",
+      "reducedMotion": "system preference and in-app motion setting both freeze ambient and celebratory motion; every animated cue has a static text, icon, or color equivalent",
+      "keyboardTouch": "full keyboard traversal, visible focus, hover affordances mirrored on focus and always visible on touch, targets at least 40px on coarse pointers",
+      "longSessionReadability": "opaque calm backgrounds, stable line lengths, no flicker on stream updates, scroll position respected on regenerate",
+      "atmosphereBoundary": "pond life surrounds the conversation in backdrop, seams, and empty states; never behind message text",
+      "legacyBoundary": "no prior-project message layouts, prompt labels, mode chrome, or UI copy; requirements written in DeKoi terms first"
+    }
+  },
+  "components": {
+    "button": {
+      "primary": "koi gradient fill koiHot to koiDeep, ink text, md radius, min 36px tall, 40px on touch; Roleplay primary may use the jade ramp",
+      "secondary": "raise fill, reed border, foam text",
+      "quiet": "borderless mist text gaining jade tint on hover",
+      "rules": ["one primary button per view region"]
+    },
+    "iconButton": {
+      "rules": [
+        "round or pill with hairline border and transparent-to-dark fill",
+        "hover and focus shift to jade-tinted border and tint",
+        "min hit area 24px with spacing, 40px on touch",
+        "always has an accessible name"
+      ]
+    },
+    "input": {
+      "rules": [
+        "dark wells on raise with sm to md radius and hairline border",
+        "focus is jade border plus soft 1px jade ring",
+        "labels above, help or error text below with icon",
+        "textareas auto-grow to a max then scroll",
+        "no placeholder-as-label"
+      ]
+    },
+    "panelDrawer": {
+      "rules": [
+        "opaque materials per the surface table",
+        "drawers glide at 340ms and carry the app's one floating shadow",
+        "labeled close affordance and focus trap while open"
+      ]
+    },
+    "cardListRow": {
+      "rules": [
+        "raise on shallow or hairline-separated rows, md radius for cards",
+        "hover lightens border and tint, never scales",
+        "one-line name plus one-line meta with ellipsis truncation",
+        "whole row clickable with distinct secondary-action affordance"
+      ]
+    },
+    "chipSegment": {
+      "rules": [
+        "pill outlines at caption or meta size",
+        "selected state is accent border plus tint fill plus foam text plus a non-color cue",
+        "segmented controls are chips in a hairline-bordered track"
+      ]
+    },
+    "navigation": {
+      "rules": [
+        "active place gets accent tint, edge marker, and label",
+        "inactive places are mist icons",
+        "never tint alone"
+      ]
+    },
+    "statusIndicator": {
+      "rules": [
+        "dot plus label pattern",
+        "jade healthy or connected or saved, amber pending or attention, koi error or blocked, mist idle",
+        "dots never appear without an accessible text equivalent"
+      ]
+    },
+    "messengerMessageRow": {
+      "rules": [
+        "gutter rows with grouping per messageDesign.messenger",
+        "quiet pill action row on hover and focus, always visible on touch",
+        "inline delete confirm within the row"
+      ]
+    },
+    "roleplayBubble": {
+      "rules": [
+        "bordered bubbles keyed to speaker kind per messageDesign.roleplay",
+        "speaker line above with name, role, presence",
+        "narration, OOC, and ripple-seam variants"
+      ]
+    },
+    "avatar": {
+      "rules": [
+        "round, object-fit cover, hairline identity ring: koi companion, jade persona",
+        "monogram fallback on tinted well",
+        "empty alt when a visible name is adjacent",
+        "presence badges pair with reachable text"
+      ]
+    },
+    "timestampMetadata": {
+      "rules": [
+        "meta size in mist",
+        "relative time with absolute on hover or focus",
+        "mistDim only for redundant metadata"
+      ]
+    },
+    "pendingGeneratedError": {
+      "rules": [
+        "pending shows jade dot-shimmer plus Generating text with reserved layout space",
+        "generated content is visually ordinary once complete; provenance in disclosure",
+        "errors are bordered inline notices: amber recoverable, koi failure, one clear next action"
+      ]
+    },
+    "importExportStorageProvider": {
+      "rules": [
+        "preview before replace and automatic pre-import backup stated in the UI",
+        "progress and result rows",
+        "destructive actions in koi with inline typed or explicit confirm",
+        "paths and keys in monospace, secrets write-only with save, check, clear affordances",
+        "same tokens and radii as the rest of the app; no engineering-mode styling"
+      ]
+    }
+  },
+  "assets": {
+    "logoPng": {
+      "path": "/logo.png",
+      "purpose": "lantern-koi core mark",
+      "allowedUse": ["center of the hero living mark", "app icon contexts"],
+      "overuseRisk": "repetition in chrome dilutes the hero moment; use the wordmark or koi-mark.svg elsewhere",
+      "accessibility": "static; empty alt inside the decorative hero because the adjacent wordmark names the app"
+    },
+    "koiMarkSvg": {
+      "path": "/koi-mark.svg",
+      "purpose": "line-drawn koi glyph for small identity",
+      "allowedUse": ["waterline identity", "favicon-adjacent chrome", "about and empty-state accents"],
+      "overuseRisk": "becoming a bullet point or list decoration",
+      "accessibility": "static; aria-hidden when adjacent to the app name"
+    },
+    "koiBgSvg": {
+      "path": "/koi-bg.svg",
+      "purpose": "sumi-e koi watermark",
+      "allowedUse": ["fixed full-viewport backdrop at 0.05 opacity or less, exactly once"],
+      "overuseRisk": "any second placement, opacity raise, or use inside panels",
+      "accessibility": "static; must remain invisible under opaque text surfaces"
+    },
+    "lotusDividerSvg": {
+      "path": "/lotus-divider.svg",
+      "purpose": "lotus seam ornament",
+      "allowedUse": ["section seams on home and designed empty states, at most one per view"],
+      "overuseRisk": "wallpapering every section break; it marks thresholds, not paragraphs",
+      "accessibility": "static; empty alt or aria-hidden"
+    },
+    "koiSprite": {
+      "path": "src/shared/ui/KoiSprite.tsx",
+      "purpose": "shared inline SVG koi and fish symbols for the living mark",
+      "allowedUse": ["referenced via use elements by the hero and designed empty states"],
+      "overuseRisk": "scattering swimming koi across working surfaces",
+      "accessibility": "tail animation freezes under reduced motion"
+    },
+    "pondEye": {
+      "path": "src/features/shell/pond/hero/PondEye.tsx",
+      "purpose": "the signature living mark: logo, still rings, ripple pings, orbiting koi in koi, jade, amber",
+      "allowedUse": ["Pond home hero only"],
+      "overuseRisk": "reuse as spinner, loader, or button is forbidden; miniaturization into chrome is forbidden",
+      "accessibility": "renders a designed still composition under reduced motion; aria-hidden art with the heading carrying the name"
+    },
+    "caustics": {
+      "path": "src/shared/ui/pond-tokens.css",
+      "purpose": "ambient light texture in the deep water",
+      "allowedUse": ["two fixed backdrop layers at 0.5 opacity or less"],
+      "overuseRisk": "adding layers, raising opacity, or placing inside panels",
+      "accessibility": "drift stops entirely under reduced motion or motion off"
+    }
+  },
+  "motionRules": {
+    "ambient": {
+      "allowedIn": ["backdrop", "Pond home hero", "designed empty states"],
+      "forbiddenIn": ["message lists", "forms", "catalogs", "logs", "any surface with body text"],
+      "character": "slow cycles of 4 seconds or more, low contrast, water-like drift and ripple"
+    },
+    "responsive": {
+      "feedbackWithinMs": 140,
+      "layoutEasing": "glide",
+      "hoverLimits": ["opacity or fade", "max 3px translate", "border and color shifts", "no scale pops on rows or messages"]
+    },
+    "celebratory": {
+      "allowed": "single non-looping ripple ring confirming a meaningful save, import, or first-thread moment",
+      "maxDurationMs": 1200,
+      "forbidden": ["confetti", "repetition for routine acts", "blocking animation"]
+    },
+    "reducedMotion": {
+      "triggers": ["prefers-reduced-motion", "data-motion reduced", "data-motion off"],
+      "stops": ["orbits", "tail wiggle", "ripple pings", "caustic drift", "celebratory ripples"],
+      "becomesStatic": "hero renders a designed still composition with koi placed on rings, mark and wordmark intact",
+      "transitions": "collapse to near-zero duration; hover reveals become instant",
+      "invariant": "no state is conveyed by animation alone; static text, icon, or color equivalents always remain"
+    },
+    "placementRules": [
+      "koi swim only in the hero and at most one designed empty state",
+      "ripples ping in the hero and may fire once near a control as confirmation",
+      "caustics exist only as the two fixed backdrop layers",
+      "no motion behind long text ever"
+    ]
+  },
+  "accessibility": {
+    "contrast": {
+      "bodyTextMin": 4.5,
+      "essentialIconMin": 3.0,
+      "notes": [
+        "foam on raise is about 12:1 and mist on raise about 5:1; both pass",
+        "mistDim is about 3:1 on raise and restricted to decorative or redundant text",
+        "text on accent fills uses ink, about 7:1 on koi"
+      ]
+    },
+    "focus": "2px accent outline at 2px offset on focus-visible everywhere; never removed; drawers and dialogs trap and restore focus",
+    "keyboard": "full traversal of shell, threads, and message actions; hover-revealed actions are focus-revealed; composer submit and escape documented in the hint line",
+    "touchTarget": "minimum 40px on coarse pointers; hover-only affordances become always visible; scrolling never fights the message list",
+    "nonColorState": "every state pairs color with an icon, label, or shape",
+    "reducedMotion": "honored via system preference and in-app setting per motionRules.reducedMotion",
+    "longSessions": "opaque reading surfaces, whole type scale multiplies by the user font scale, stable measures, no flashing beyond the quiet pending cue",
+    "denseText": "nothing below 10.5px; logs and forms at body size; compact density tightens spacing, never type size",
+    "messageReadability": "measure, line height, and grouping rules are requirements, not aesthetics",
+    "avatars": "empty alt beside visible names; otherwise accessible name equals display name; presence conveyed in text, not dot-only",
+    "statusSemantics": "role=status for progress, role=alert for failures; errors keep a visible next action; toasts never carry vanishing information"
+  },
+  "voice": {
+    "principles": [
+      "calm, direct, lightly atmospheric only at thresholds",
+      "theme words name places and records; verbs stay plain",
+      "status and errors are concrete: what happened, where things stand, what to do next",
+      "no blame, no jokes in error states"
+    ],
+    "ownedLabels": [
+      "Messenger",
+      "Roleplay",
+      "Pond",
+      "Companions",
+      "Personas",
+      "Lorebooks",
+      "Currents",
+      "Ripples",
+      "Ripple Dock",
+      "Keepers",
+      "Inlets",
+      "Net",
+      "Pond Care",
+      "Deep Water",
+      "Stocking",
+      "Catalog"
+    ],
+    "messengerLabels": "plain utilitarian: New thread, Copy, Retry, Edit, Delete",
+    "roleplayLabels": "scene-aware where it clarifies: Set the scene, Continue scene, Branch from here; primary actions remain instantly legible",
+    "legacyRule": "prior-project mode names, prompt labels, and interaction copy are never reused"
+  },
+  "dos": [
+    "keep Messenger fast, familiar, and restrained: rows, not costumes",
+    "let Roleplay carry more character identity and staging: bubbles, speaker lines, scene headers, ripple seams",
+    "preserve the orbiting-koi hero as the singular living mark with a designed reduced-motion still",
+    "keep dense text on calm opaque surfaces with atmosphere in the water around them",
+    "make provider, runtime, and save state visible in tide and header language without exposing machinery",
+    "use the material stack abyss to water to shallow to raise for depth instead of shadows and blur",
+    "give Inlets, Deep Water, and Stocking the same craft as the hero",
+    "pair every color-coded state with an icon or label"
+  ],
+  "donts": [
+    "do not turn Messenger into a Discord clone in layout, metaphors, spacing, iconography, or copy",
+    "do not make Roleplay so theatrical that long scenes become hard to read",
+    "do not put animated water, swimming koi, or ornamental texture behind long text",
+    "do not use koi orange as panel wallpaper, page tint, or large background fills",
+    "do not copy prior-project mode chrome, prompt wording, schemas, or layouts",
+    "do not miniaturize or repurpose the living mark as a spinner, button, or repeated ornament",
+    "do not add unnamed hex values, new hues, or accent-on-accent pairings",
+    "do not hide errors in toasts or bury retry behind menus",
+    "do not let compact density shrink type below scale minimums",
+    "do not ship hover-only affordances without focus and touch equivalents"
+  ],
+  "implementationStages": [
+    {
+      "stage": 1,
+      "name": "token and doc sync",
+      "items": [
+        "align pond-tokens.css with the color, motion, opacity, and type scale tokens",
+        "add the ink token and named motion and opacity variables",
+        "re-cut the stray presence green to jade",
+        "verify DESIGN.json values match CSS one-to-one"
+      ]
+    },
+    {
+      "stage": 2,
+      "name": "hero and shell consistency",
+      "items": [
+        "refine the living mark: ring spacing, koi drawing, wake subtlety, designed reduced-motion still",
+        "normalize waterline, bank, shoal, and tide materials and borders to the material stack",
+        "give the care drawer its floating shadow and scrimmed overlay behavior at narrow widths"
+      ]
+    },
+    {
+      "stage": 3,
+      "name": "Messenger and Roleplay differentiation",
+      "items": [
+        "implement Messenger grouping, gutter rhythm, and quiet action pills",
+        "implement Roleplay scene header, speaker lines, narration, OOC, and ripple-seam variants with staged avatars",
+        "raise message body type to the documented scale",
+        "unify pending and error turn treatments across both surfaces"
+      ]
+    },
+    {
+      "stage": 4,
+      "name": "catalog, settings, storage, and provider polish",
+      "items": [
+        "apply density rules to Companions, Personas, Lorebooks, Currents, Keepers, and Net catalogs",
+        "rebuild Inlets forms to labeled-field standards with secret-safe affordances",
+        "bring Deep Water and Stocking logs to readable-row and inline-action standards with honest destructive confirms"
+      ]
+    },
+    {
+      "stage": 5,
+      "name": "accessibility and motion audit",
+      "items": [
+        "contrast pass on every token pairing in use",
+        "keyboard walk of the shell and both thread surfaces",
+        "touch-target audit at coarse pointer sizes",
+        "reduced-motion visual QA of hero, caustics, and celebratory ripples",
+        "screen-reader pass on status, alerts, avatars, and the living mark"
+      ]
+    }
+  ]
+}
