@@ -5,6 +5,8 @@ import {
   entryDraftDisablesBannerSave,
   lorebookEntryDraftToInput,
   parseLorebookEntryKeys,
+  readNullableNonNegativeIntegerInput,
+  readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { readScanDepthInput } from "./lorebook-scan-depth";
@@ -28,6 +30,10 @@ const baseDraft: LorebookEntryDraft = {
   enabled: true,
   strategy: "constant",
   key: "",
+  insertionOrder: "100",
+  insertionPosition: "after-character",
+  depth: "0",
+  role: "system",
 };
 
 describe("lorebook entry draft helpers", () => {
@@ -74,6 +80,51 @@ describe("lorebook entry draft helpers", () => {
       strategy: "selective",
       key: ["canal"],
     });
+  });
+
+  it("serializes insertion order, position, depth, and role", () => {
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        insertionPosition: "at-depth",
+      }),
+    ).toMatchObject({
+      insertionPosition: "at-depth",
+      role: "system",
+    });
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        insertionOrder: "25.5",
+        insertionPosition: "at-depth",
+        depth: "2.9",
+        role: "assistant",
+      }),
+    ).toMatchObject({
+      insertionOrder: 25.5,
+      insertionPosition: "at-depth",
+      depth: 2,
+      role: "assistant",
+    });
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        insertionPosition: "before-character",
+        depth: "4",
+        role: "user",
+      }),
+    ).toMatchObject({
+      insertionPosition: "before-character",
+      depth: null,
+      role: null,
+    });
+  });
+
+  it("normalizes nullable budget inputs", () => {
+    expect(readNullableNonNegativeIntegerInput("", 7)).toBeNull();
+    expect(readNullableNonNegativeIntegerInput("3.9", null)).toBe(3);
+    expect(readNullableNonNegativeIntegerInput("nope", 7)).toBe(7);
+    expect(readNullablePercentInput("150", null)).toBe(100);
   });
 
   it("applies entry draft save blocking only when the entry editor owns save", () => {

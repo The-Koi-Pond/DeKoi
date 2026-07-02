@@ -13,13 +13,25 @@ export interface LorebookScanSource {
   body: string | null | undefined;
 }
 
-/** Activated entry plus match provenance for prompt/debug surfaces. */
+/** Activated entry plus match provenance, ordering, and summary metadata. */
 export interface ActivatedLoreEntry {
   lorebookId: string;
   lorebookTitle: string;
+  lorebookSummary: string;
   entry: LoreEntryRecord;
   matchReason: "constant" | "primary-key";
   matchedKey: string | null;
+  sourceOrder: number;
+  entryIndex: number;
+}
+
+/** Options for trimming activated lore with absolute or context-percent caps. */
+export interface ApplyTokenBudgetOptions {
+  budgetTokens?: number | null;
+  budgetPercent?: number | null;
+  contextTokens?: number | null;
+  approxTokens?: (entry: ActivatedLoreEntry) => number;
+  reservedTokens?: number;
 }
 
 function isRegexLikeKey(key: string) {
@@ -104,6 +116,8 @@ function entryHasBody(entry: LoreEntryRecord) {
 function activateEntry(
   lorebook: LorebookRecord,
   entry: LoreEntryRecord,
+  sourceOrder: number,
+  entryIndex: number,
   scanBuffer: string,
 ): ActivatedLoreEntry | null {
   if (!entry.enabled || !entryHasBody(entry)) return null;
@@ -111,9 +125,12 @@ function activateEntry(
     return {
       lorebookId: lorebook.id,
       lorebookTitle: lorebook.title,
+      lorebookSummary: lorebook.summary,
       entry,
       matchReason: "constant",
       matchedKey: null,
+      sourceOrder,
+      entryIndex,
     };
   }
 
@@ -128,10 +145,103 @@ function activateEntry(
   return {
     lorebookId: lorebook.id,
     lorebookTitle: lorebook.title,
+    lorebookSummary: lorebook.summary,
     entry,
     matchReason: "primary-key",
     matchedKey,
+    sourceOrder,
+    entryIndex,
   };
+}
+
+function stableEntryTiebreaker(
+  left: ActivatedLoreEntry,
+  right: ActivatedLoreEntry,
+) {
+  if (left.sourceOrder !== right.sourceOrder) {
+    return left.sourceOrder - right.sourceOrder;
+  }
+  return left.entryIndex - right.entryIndex;
+}
+
+/**
+ * Sorts activated entries in prompt priority order. Higher insertion order wins;
+ * equal order keeps lorebook/source order, then original entry order.
+ */
+export function sortActivatedEntries(entries: ActivatedLoreEntry[]) {
+  return [...entries].sort((left, right) => {
+    const orderDelta = right.entry.insertionOrder - left.entry.insertionOrder;
+    return orderDelta || stableEntryTiebreaker(left, right);
+  });
+}
+
+function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
+  const constants = entries.filter((entry) => entry.entry.strategy === "constant");
+  const selective = entries.filter((entry) => entry.entry.strategy !== "constant");
+  return [...sortActivatedEntries(constants), ...sortActivatedEntries(selective)];
+}
+
+export function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
+  const promptText =
+    `${entry.lorebookTitle} / ${entry.entry.title}: ${entry.entry.body.trim()}`;
+  return Math.ceil(promptText.length / 4);
+}
+
+function resolveTokenBudget({
+  budgetPercent,
+  budgetTokens,
+  contextTokens,
+}: ApplyTokenBudgetOptions) {
+  if (
+    typeof budgetTokens === "number" &&
+    Number.isFinite(budgetTokens) &&
+    budgetTokens >= 0
+  ) {
+    return Math.trunc(budgetTokens);
+  }
+
+  if (
+    typeof budgetPercent === "number" &&
+    Number.isFinite(budgetPercent) &&
+    budgetPercent >= 0 &&
+    typeof contextTokens === "number" &&
+    Number.isFinite(contextTokens) &&
+    contextTokens >= 0
+  ) {
+    return Math.trunc((contextTokens * Math.min(100, budgetPercent)) / 100);
+  }
+
+  return null;
+}
+
+/**
+ * Applies a lore budget with a cheap token estimate. DeKoi currently has no
+ * tokenizer dependency, so the default estimate is roughly chars / 4. Percent
+ * budgets are only resolved when caller-provided context size is known.
+ */
+export function applyTokenBudget(
+  entries: ActivatedLoreEntry[],
+  options: ApplyTokenBudgetOptions,
+) {
+  const budget = resolveTokenBudget(options);
+  if (budget === null) return sortActivatedEntries(entries);
+
+  const approxTokens = options.approxTokens ?? approximateLoreEntryTokens;
+  const kept: ActivatedLoreEntry[] = [];
+  let usedTokens =
+    typeof options.reservedTokens === "number" &&
+    Number.isFinite(options.reservedTokens)
+      ? Math.max(0, Math.ceil(options.reservedTokens))
+      : 0;
+
+  for (const entry of budgetPriorityEntries(entries)) {
+    const entryTokens = Math.max(0, Math.ceil(approxTokens(entry)));
+    if (usedTokens + entryTokens > budget) continue;
+    kept.push(entry);
+    usedTokens += entryTokens;
+  }
+
+  return sortActivatedEntries(kept);
 }
 
 /**
@@ -141,9 +251,17 @@ function activateEntry(
 export function activateLorebookEntries(
   lorebook: LorebookRecord,
   scanBuffer: string,
+  options: { sourceOrder?: number } = {},
 ) {
-  return lorebook.entries.flatMap((entry) => {
-    const activatedEntry = activateEntry(lorebook, entry, scanBuffer);
+  const sourceOrder = options.sourceOrder ?? 0;
+  return lorebook.entries.flatMap((entry, entryIndex) => {
+    const activatedEntry = activateEntry(
+      lorebook,
+      entry,
+      sourceOrder,
+      entryIndex,
+      scanBuffer,
+    );
     return activatedEntry ? [activatedEntry] : [];
   });
 }

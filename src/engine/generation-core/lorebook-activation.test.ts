@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   activateLorebookEntries,
+  applyTokenBudget,
   buildScanBuffer,
   matchKey,
+  sortActivatedEntries,
 } from "./lorebook-activation";
 import {
   createLorebookEntryRecord,
@@ -205,5 +207,143 @@ describe("lorebook activation", () => {
         matchWholeWords: false,
       }),
     ).toBe(false);
+  });
+
+  it("sorts activated entries by insertion order with stable source tiebreaks", () => {
+    const low = entry({
+      title: "Low",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const tiedFirst = entry({
+      title: "Tied First",
+      strategy: "constant",
+      insertionOrder: 50,
+    });
+    const tiedSecond = entry({
+      title: "Tied Second",
+      strategy: "constant",
+      insertionOrder: 50,
+    });
+    const highOtherSource = entry({
+      title: "High Other Source",
+      strategy: "constant",
+      insertionOrder: 100,
+    });
+    const firstLorebookEntries = activateLorebookEntries(
+      lorebook([low, tiedFirst, tiedSecond]),
+      "",
+      { sourceOrder: 0 },
+    );
+    const secondLorebookEntries = activateLorebookEntries(
+      lorebook([highOtherSource]),
+      "",
+      { sourceOrder: 1 },
+    );
+
+    expect(
+      sortActivatedEntries([
+        ...firstLorebookEntries,
+        ...secondLorebookEntries,
+      ]).map((item) => item.entry.title),
+    ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);
+  });
+
+  it("applies token budgets before lower-priority activated entries", () => {
+    const constant = entry({
+      title: "Constant",
+      strategy: "constant",
+      insertionOrder: 0,
+    });
+    const high = entry({
+      title: "High",
+      strategy: "selective",
+      key: ["gate"],
+      insertionOrder: 30,
+    });
+    const medium = entry({
+      title: "Medium",
+      strategy: "selective",
+      key: ["gate"],
+      insertionOrder: 20,
+    });
+    const low = entry({
+      title: "Low",
+      strategy: "selective",
+      key: ["gate"],
+      insertionOrder: 10,
+    });
+    const oversized = entry({
+      title: "Oversized",
+      strategy: "selective",
+      key: ["gate"],
+      insertionOrder: 40,
+    });
+    const activated = activateLorebookEntries(
+      lorebook([low, constant, medium, high, oversized]),
+      "gate",
+    );
+
+    const budgeted = applyTokenBudget(activated, {
+      budgetTokens: 3,
+      approxTokens: (item) => (item.entry.title === "Oversized" ? 4 : 1),
+    });
+
+    expect(budgeted.map((item) => item.entry.title)).toEqual([
+      "High",
+      "Medium",
+      "Constant",
+    ]);
+  });
+
+  it("derives percent budgets from context tokens and leaves entries alone without context", () => {
+    const first = entry({
+      title: "First",
+      strategy: "constant",
+      insertionOrder: 20,
+    });
+    const second = entry({
+      title: "Second",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const activated = activateLorebookEntries(lorebook([first, second]), "");
+
+    expect(
+      applyTokenBudget(activated, {
+        budgetPercent: 50,
+        contextTokens: 2,
+        approxTokens: () => 1,
+      }).map((item) => item.entry.title),
+    ).toEqual(["First"]);
+    expect(
+      applyTokenBudget(activated, {
+        budgetPercent: 50,
+        contextTokens: null,
+        approxTokens: () => 100,
+      }).map((item) => item.entry.title),
+    ).toEqual(["First", "Second"]);
+  });
+
+  it("counts reserved prompt text against the token budget", () => {
+    const first = entry({
+      title: "First",
+      strategy: "constant",
+      insertionOrder: 20,
+    });
+    const second = entry({
+      title: "Second",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const activated = activateLorebookEntries(lorebook([first, second]), "");
+
+    expect(
+      applyTokenBudget(activated, {
+        budgetTokens: 2,
+        reservedTokens: 1,
+        approxTokens: () => 1,
+      }).map((item) => item.entry.title),
+    ).toEqual(["First"]);
   });
 });

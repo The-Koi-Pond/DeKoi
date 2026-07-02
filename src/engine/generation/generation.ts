@@ -4,7 +4,10 @@ import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
   activateLorebookEntries,
+  applyTokenBudget,
   buildScanBuffer,
+  sortActivatedEntries,
+  type ActivatedLoreEntry,
   type LorebookScanSource,
 } from "../generation-core/lorebook-activation";
 
@@ -103,6 +106,23 @@ export function replaceGenerationPromptMacros(
     .replaceAll("{{user}}", userName);
 }
 
+export interface LoreGenerationContextOptions {
+  includeSummary?: boolean;
+  scanSources?: LorebookScanSource[];
+  contextTokens?: number | null;
+}
+
+/** Formatting state shared across system-prompt and at-depth lore placement. */
+export interface LoreGenerationFormatOptions {
+  includeSummary?: boolean;
+  providerConnection?: ProviderConnectionRecord | null;
+  summarizedLorebookIds?: Set<string>;
+}
+
+function approximatePromptTextTokens(value: string) {
+  return Math.ceil(value.length / 4);
+}
+
 export function characterGenerationContext(
   character: CharacterRecord,
   options: { includeExamples?: boolean; systemPromptLabel?: string } = {},
@@ -141,29 +161,156 @@ export function personaGenerationContext(
   ].filter(Boolean);
 }
 
-export function loreGenerationContext(
+/** Activates selected lorebooks, applies their budgets, and sorts the result. */
+export function activateLoreGenerationEntries(
   lorebooks: LorebookRecord[],
-  options: { includeSummary?: boolean; scanSources?: LorebookScanSource[] } = {},
+  options: LoreGenerationContextOptions = {},
 ) {
-  return lorebooks.flatMap((lorebook) => {
+  const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
     const scanBuffer = buildScanBuffer(
       options.scanSources ?? [],
       lorebook.activation,
     );
-    const activatedEntries = activateLorebookEntries(lorebook, scanBuffer);
+    const summary = lorebook.summary.trim();
+    const reservedTokens =
+      options.includeSummary && summary
+        ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
+        : 0;
+    return applyTokenBudget(
+      activateLorebookEntries(lorebook, scanBuffer, { sourceOrder }),
+      {
+        budgetTokens: lorebook.activation.budgetTokens,
+        budgetPercent: lorebook.activation.budgetPercent,
+        contextTokens: options.contextTokens,
+        reservedTokens,
+      },
+    );
+  });
+  return sortActivatedEntries(activatedEntries);
+}
+
+/** Formats activated entries, deduping optional lorebook summaries if needed. */
+export function formatLoreGenerationEntries(
+  entries: ActivatedLoreEntry[],
+  options: LoreGenerationFormatOptions = {},
+) {
+  const summarizedLorebookIds =
+    options.summarizedLorebookIds ?? new Set<string>();
+  return entries.flatMap((activatedEntry) => {
+    const summary = activatedEntry.lorebookSummary.trim();
+    const summaryLine =
+      options.includeSummary &&
+      summary &&
+      !summarizedLorebookIds.has(activatedEntry.lorebookId)
+        ? `${activatedEntry.lorebookTitle}: ${summary}`
+        : null;
+    summarizedLorebookIds.add(activatedEntry.lorebookId);
 
     return [
-      ...(options.includeSummary &&
-      activatedEntries.length > 0 &&
-      lorebook.summary.trim()
-        ? [`${lorebook.title}: ${lorebook.summary.trim()}`]
-        : []),
-      ...activatedEntries.map(
-        ({ entry, lorebookTitle }) =>
-          `${lorebookTitle} / ${entry.title}: ${entry.body.trim()}`,
-      ),
+      ...(summaryLine ? [summaryLine] : []),
+      `${activatedEntry.lorebookTitle} / ${activatedEntry.entry.title}: ${activatedEntry.entry.body.trim()}`,
     ];
   });
+}
+
+function atDepthInsertionIndex(messageCount: number, depth: number | null) {
+  const safeDepth =
+    typeof depth === "number" && Number.isFinite(depth)
+      ? Math.max(0, Math.trunc(depth))
+      : 0;
+  return Math.max(0, Math.min(messageCount, messageCount - safeDepth));
+}
+
+function providerHoistsSystemMessages(
+  providerConnection: ProviderConnectionRecord | null | undefined,
+) {
+  return (
+    providerConnection?.provider === "anthropic" ||
+    providerConnection?.provider === "google"
+  );
+}
+
+function atDepthLoreRole(
+  entry: ActivatedLoreEntry,
+  providerConnection: ProviderConnectionRecord | null | undefined,
+) {
+  const role = entry.entry.role ?? "system";
+  return role === "system" && providerHoistsSystemMessages(providerConnection)
+    ? "user"
+    : role;
+}
+
+function groupedAtDepthLoreMessages(
+  entries: ActivatedLoreEntry[],
+  options: LoreGenerationFormatOptions = {},
+) {
+  const groups = new Map<
+    string,
+    {
+      depth: number | null;
+      entries: ActivatedLoreEntry[];
+      role: GenerationPromptMessage["role"];
+    }
+  >();
+
+  for (const entry of entries) {
+    const depth = entry.entry.depth ?? 0;
+    const role = atDepthLoreRole(entry, options.providerConnection);
+    const groupKey = `${depth}:${role}`;
+    const group = groups.get(groupKey);
+    if (group) {
+      group.entries.push(entry);
+    } else {
+      groups.set(groupKey, { depth, entries: [entry], role });
+    }
+  }
+
+  return [...groups.values()].map((group) => {
+    const [content] = namedGenerationBlock(
+      "Selected lore",
+      formatLoreGenerationEntries(group.entries, options),
+    );
+    return {
+      depth: group.depth,
+      message: {
+        role: group.role,
+        content: content ?? "",
+      },
+    };
+  });
+}
+
+/**
+ * Inserts lore into transcript messages by depth from the newest transcript
+ * item. Depth 0 appends after the transcript; depth 1 inserts before the newest
+ * transcript item. Caller-owned tail prompts should be appended after this.
+ */
+export function injectAtDepth(
+  messages: GenerationPromptMessage[],
+  entries: ActivatedLoreEntry[],
+  options: LoreGenerationFormatOptions = {},
+) {
+  const groupedLoreMessages = groupedAtDepthLoreMessages(entries, options)
+    .filter((group) => group.message.content.trim())
+    .map((group) => ({
+      insertionIndex: atDepthInsertionIndex(messages.length, group.depth),
+      message: group.message,
+    }));
+
+  const groupsByIndex = new Map<number, GenerationPromptMessage[]>();
+  for (const group of groupedLoreMessages) {
+    const existing = groupsByIndex.get(group.insertionIndex) ?? [];
+    existing.push(group.message);
+    groupsByIndex.set(group.insertionIndex, existing);
+  }
+
+  const result: GenerationPromptMessage[] = [];
+  for (let index = 0; index <= messages.length; index += 1) {
+    result.push(...(groupsByIndex.get(index) ?? []));
+    if (index < messages.length) result.push(messages[index]);
+  }
+
+  return result;
 }
 
 export function exampleDialogueGenerationContext(companions: CharacterRecord[]) {

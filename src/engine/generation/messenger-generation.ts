@@ -5,15 +5,20 @@ import {
   type MessengerMessage,
   type MessengerThread,
 } from "../contracts/types/messenger";
-import type { LorebookScanSource } from "../generation-core/lorebook-activation";
+import type {
+  ActivatedLoreEntry,
+  LorebookScanSource,
+} from "../generation-core/lorebook-activation";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
+  activateLoreGenerationEntries,
   characterGenerationContext,
   cleanGenerationText,
   createGenerationParameters,
-  loreGenerationContext,
+  formatLoreGenerationEntries,
+  injectAtDepth,
   namedGenerationBlock,
   personaGenerationContext,
   replaceGenerationPromptMacros,
@@ -130,14 +135,14 @@ function messengerLoreScanSources(thread: MessengerThread): LorebookScanSource[]
 
 function buildSystemPrompt({
   activePersona,
+  activatedLoreEntries,
   companions,
-  lorebooks,
   targetCompanion,
   thread,
 }: {
   activePersona: PersonaRecord | null;
+  activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
-  lorebooks: LorebookRecord[];
   targetCompanion: CharacterRecord | null;
   thread: MessengerThread;
 }) {
@@ -152,6 +157,14 @@ function buildSystemPrompt({
   return [
     selectedPrompt,
     ...namedGenerationBlock(
+      "Selected lore",
+      formatLoreGenerationEntries(
+        activatedLoreEntries.filter(
+          (entry) => entry.entry.insertionPosition === "before-character",
+        ),
+      ),
+    ),
+    ...namedGenerationBlock(
       "Active persona",
       activePersona ? personaGenerationContext(activePersona) : ["Anonymous user"],
     ),
@@ -165,9 +178,11 @@ function buildSystemPrompt({
     ),
     ...namedGenerationBlock(
       "Selected lore",
-      loreGenerationContext(lorebooks, {
-        scanSources: messengerLoreScanSources(thread),
-      }),
+      formatLoreGenerationEntries(
+        activatedLoreEntries.filter(
+          (entry) => entry.entry.insertionPosition === "after-character",
+        ),
+      ),
     ),
     ...(targetCompanion?.postHistoryInstructions
       ? [`Post-history instructions\n${targetCompanion.postHistoryInstructions}`]
@@ -182,34 +197,47 @@ function createMessengerPromptMessages({
   activePersona,
   companions,
   lorebooks,
+  providerConnection,
   thread,
   targetCompanion,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
+  providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
 }): MessengerGenerationPromptMessage[] {
+  const activatedLoreEntries = activateLoreGenerationEntries(lorebooks, {
+    contextTokens: providerConnection?.maxContext ?? null,
+    scanSources: messengerLoreScanSources(thread),
+  });
   const transcript = thread.messages
     .filter((message) => message.body.trim())
     .map((message) => ({
       role: messageRole(message),
       content: messageContent(message),
     }));
+  const transcriptWithDepthLore = injectAtDepth(
+    transcript,
+    activatedLoreEntries.filter(
+      (entry) => entry.entry.insertionPosition === "at-depth",
+    ),
+    { providerConnection },
+  );
 
   return [
     {
       role: "system",
       content: buildSystemPrompt({
         activePersona,
+        activatedLoreEntries,
         companions,
-        lorebooks,
         targetCompanion,
         thread,
       }),
     },
-    ...transcript,
+    ...transcriptWithDepthLore,
   ];
 }
 
@@ -248,6 +276,7 @@ export function createMessengerGenerationRequest({
       activePersona: context.activePersona,
       companions: context.companions,
       lorebooks: context.lorebooks,
+      providerConnection: context.providerConnection,
       thread: context.requestThread,
       targetCompanion,
     }),
