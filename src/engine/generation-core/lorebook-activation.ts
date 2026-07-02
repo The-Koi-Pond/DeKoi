@@ -21,8 +21,15 @@ export interface ActivatedLoreEntry {
   entry: LoreEntryRecord;
   matchReason: "constant" | "primary-key";
   matchedKey: string | null;
+  warnings: string[];
   sourceOrder: number;
   entryIndex: number;
+}
+
+/** Activated lore entries plus warnings discovered while evaluating keys. */
+export interface LorebookActivationResult {
+  entries: ActivatedLoreEntry[];
+  warnings: string[];
 }
 
 /** Options for trimming activated lore with absolute or context-percent caps. */
@@ -34,12 +41,220 @@ export interface ApplyTokenBudgetOptions {
   reservedTokens?: number;
 }
 
-function isRegexLikeKey(key: string) {
-  return /^\/.+\/[A-Za-z]*$/.test(key.trim());
+interface CompiledRegexKey {
+  regex: RegExp | null;
+  warning: string | null;
+}
+
+interface KeyMatchContext {
+  regexCache: Map<string, CompiledRegexKey>;
+}
+
+interface KeyMatchResult {
+  matched: boolean;
+  warnings: string[];
+}
+
+interface EntryActivationResult {
+  entry: ActivatedLoreEntry | null;
+  warnings: string[];
+}
+
+interface RegexGroupSafety {
+  hasInnerVariableQuantifier: boolean;
+  hasAlternation: boolean;
+}
+
+type RegexSafetyAtom =
+  | { kind: "group"; group: RegexGroupSafety }
+  | { kind: "atom" }
+  | { kind: "none" };
+
+function createKeyMatchContext(): KeyMatchContext {
+  return { regexCache: new Map() };
+}
+
+function parseRegexKey(key: string) {
+  const match = key.trim().match(/^\/(.+)\/([A-Za-z]*)$/);
+  if (!match) return null;
+  const pattern = match[1];
+  const flags = match[2] ?? "";
+  if (pattern === undefined) return null;
+  return {
+    pattern,
+    flags,
+  };
+}
+
+function regexQuantifierAt(pattern: string, index: number) {
+  const char = pattern[index];
+  if (char === "*" || char === "+") {
+    return { endIndex: index, canRepeat: true, canVary: true };
+  }
+  if (char === "?") {
+    return { endIndex: index, canRepeat: false, canVary: true };
+  }
+  if (char !== "{") return null;
+
+  const closeIndex = pattern.indexOf("}", index + 1);
+  if (closeIndex === -1) return null;
+  const quantifier = pattern.slice(index + 1, closeIndex);
+  const match = quantifier.match(/^(\d+)(?:,(\d*))?$/);
+  if (!match) return null;
+
+  const minimum = Number(match[1]);
+  const maximum =
+    match[2] === undefined
+      ? minimum
+      : match[2] === ""
+        ? Infinity
+        : Number(match[2]);
+
+  return {
+    endIndex: closeIndex,
+    canRepeat: maximum > 1,
+    canVary: minimum !== maximum,
+  };
+}
+
+function unsafeRegexPatternReason(pattern: string) {
+  const groups: RegexGroupSafety[] = [];
+  let atom: RegexSafetyAtom = { kind: "none" };
+  let escaped = false;
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (escaped) {
+      escaped = false;
+      if (!inCharacterClass) atom = { kind: "atom" };
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (inCharacterClass) {
+      if (char === "]") {
+        inCharacterClass = false;
+        atom = { kind: "atom" };
+      }
+      continue;
+    }
+
+    if (char === "[") {
+      inCharacterClass = true;
+      atom = { kind: "none" };
+      continue;
+    }
+
+    if (char === "(") {
+      groups.push({ hasInnerVariableQuantifier: false, hasAlternation: false });
+      atom = { kind: "none" };
+      continue;
+    }
+
+    if (char === ")") {
+      const group = groups.pop();
+      if (!group) {
+        atom = { kind: "atom" };
+        continue;
+      }
+      const parentGroup = groups[groups.length - 1];
+      if (parentGroup) {
+        parentGroup.hasInnerVariableQuantifier ||=
+          group.hasInnerVariableQuantifier;
+        parentGroup.hasAlternation ||= group.hasAlternation;
+      }
+      atom = { kind: "group", group };
+      continue;
+    }
+
+    if (char === "|") {
+      const group = groups[groups.length - 1];
+      if (group) group.hasAlternation = true;
+      atom = { kind: "none" };
+      continue;
+    }
+
+    const quantifier = regexQuantifierAt(pattern, index);
+    if (quantifier !== null && atom.kind !== "none") {
+      if (
+        quantifier.canRepeat &&
+        atom.kind === "group" &&
+        (atom.group.hasInnerVariableQuantifier || atom.group.hasAlternation)
+      ) {
+        return "nested variable quantifiers or repeated alternation can hang generation";
+      }
+      const group = groups[groups.length - 1];
+      if (group && quantifier.canVary) {
+        group.hasInnerVariableQuantifier = true;
+      }
+      index = quantifier.endIndex;
+      if (pattern[index + 1] === "?") index += 1;
+      atom = { kind: "none" };
+      continue;
+    }
+
+    atom = { kind: "atom" };
+  }
+
+  return null;
+}
+
+function compileRegexKey(
+  key: string,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys">,
+  context: KeyMatchContext,
+): CompiledRegexKey | null {
+  const parsedKey = parseRegexKey(key);
+  if (!parsedKey) return null;
+
+  const flags =
+    activation.caseSensitiveKeys || parsedKey.flags.includes("i")
+      ? parsedKey.flags
+      : `${parsedKey.flags}i`;
+  const cacheKey = `${parsedKey.pattern}/${flags}`;
+  const cached = context.regexCache.get(cacheKey);
+  if (cached) return cached;
+
+  const unsafeReason = unsafeRegexPatternReason(parsedKey.pattern);
+  if (unsafeReason) {
+    const compiled = {
+      regex: null,
+      warning: `Unsafe regex key "${key.trim()}" treated as plaintext: ${unsafeReason}`,
+    };
+    context.regexCache.set(cacheKey, compiled);
+    return compiled;
+  }
+
+  try {
+    const compiled = {
+      regex: new RegExp(parsedKey.pattern, flags),
+      warning: null,
+    };
+    context.regexCache.set(cacheKey, compiled);
+    return compiled;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const compiled = {
+      regex: null,
+      warning: `Invalid regex key "${key.trim()}" treated as plaintext: ${message}`,
+    };
+    context.regexCache.set(cacheKey, compiled);
+    return compiled;
+  }
 }
 
 function isWordCharacter(value: string | undefined) {
   return !!value && /[A-Za-z0-9_]/.test(value);
+}
+
+function hasAsciiWordCharacter(value: string) {
+  return /[A-Za-z0-9_]/.test(value);
 }
 
 /**
@@ -74,11 +289,7 @@ export function buildScanBuffer(
     .join("\n");
 }
 
-/**
- * Matches plaintext keys only. Regex-like slash keys are intentionally deferred
- * and return false until regex activation is implemented.
- */
-export function matchKey(
+function matchPlaintextKey(
   key: string,
   scanBuffer: string,
   activation: Pick<
@@ -87,7 +298,7 @@ export function matchKey(
   >,
 ) {
   const trimmedKey = key.trim();
-  if (!trimmedKey || isRegexLikeKey(trimmedKey)) return false;
+  if (!trimmedKey) return false;
 
   const haystack = activation.caseSensitiveKeys
     ? scanBuffer
@@ -96,7 +307,12 @@ export function matchKey(
     ? trimmedKey
     : trimmedKey.toLowerCase();
 
-  if (!activation.matchWholeWords) return haystack.includes(needle);
+  // JavaScript word boundaries are ASCII-centric. For non-ASCII scripts such as
+  // CJK, use substring matching instead of pretending whole-word detection is
+  // reliable.
+  if (!activation.matchWholeWords || !hasAsciiWordCharacter(needle)) {
+    return haystack.includes(needle);
+  }
 
   let index = haystack.indexOf(needle);
   while (index !== -1) {
@@ -109,6 +325,50 @@ export function matchKey(
   return false;
 }
 
+function matchKeyWithContext(
+  key: string,
+  scanBuffer: string,
+  activation: Pick<
+    LorebookActivationSettings,
+    "caseSensitiveKeys" | "matchWholeWords"
+  >,
+  context: KeyMatchContext,
+): KeyMatchResult {
+  const trimmedKey = key.trim();
+  if (!trimmedKey) return { matched: false, warnings: [] };
+
+  const compiledRegex = compileRegexKey(trimmedKey, activation, context);
+  if (compiledRegex?.regex) {
+    compiledRegex.regex.lastIndex = 0;
+    return {
+      matched: compiledRegex.regex.test(scanBuffer),
+      warnings: [],
+    };
+  }
+
+  const matched = matchPlaintextKey(trimmedKey, scanBuffer, activation);
+  return {
+    matched,
+    warnings: compiledRegex?.warning ? [compiledRegex.warning] : [],
+  };
+}
+
+export function matchKey(
+  key: string,
+  scanBuffer: string,
+  activation: Pick<
+    LorebookActivationSettings,
+    "caseSensitiveKeys" | "matchWholeWords"
+  >,
+) {
+  return matchKeyWithContext(
+    key,
+    scanBuffer,
+    activation,
+    createKeyMatchContext(),
+  ).matched;
+}
+
 function entryHasBody(entry: LoreEntryRecord) {
   return entry.body.trim().length > 0;
 }
@@ -119,39 +379,137 @@ function activateEntry(
   sourceOrder: number,
   entryIndex: number,
   scanBuffer: string,
-): ActivatedLoreEntry | null {
-  if (!entry.enabled || !entryHasBody(entry)) return null;
+  matchContext: KeyMatchContext,
+): EntryActivationResult {
+  if (!entry.enabled || !entryHasBody(entry)) {
+    return { entry: null, warnings: [] };
+  }
   if (entry.strategy === "constant") {
     return {
-      lorebookId: lorebook.id,
-      lorebookTitle: lorebook.title,
-      lorebookSummary: lorebook.summary,
-      entry,
-      matchReason: "constant",
-      matchedKey: null,
-      sourceOrder,
-      entryIndex,
+      entry: {
+        lorebookId: lorebook.id,
+        lorebookTitle: lorebook.title,
+        lorebookSummary: lorebook.summary,
+        entry,
+        matchReason: "constant",
+        matchedKey: null,
+        warnings: [],
+        sourceOrder,
+        entryIndex,
+      },
+      warnings: [],
     };
   }
 
   const primaryKeys = entry.key?.map((key) => key.trim()).filter(Boolean) ?? [];
-  if (primaryKeys.length === 0) return null;
+  if (primaryKeys.length === 0) return { entry: null, warnings: [] };
 
-  const matchedKey =
-    primaryKeys.find((key) => matchKey(key, scanBuffer, lorebook.activation)) ??
-    null;
-  if (!matchedKey) return null;
+  const primaryMatch = matchFirstKey(
+    primaryKeys,
+    scanBuffer,
+    lorebook.activation,
+    matchContext,
+  );
+  if (!primaryMatch.matchedKey) {
+    return { entry: null, warnings: uniqueWarnings(primaryMatch.warnings) };
+  }
 
+  const secondaryKeys =
+    entry.keySecondary?.map((key) => key.trim()).filter(Boolean) ?? [];
+  const secondaryMatch =
+    secondaryKeys.length > 0
+      ? matchAllKeys(secondaryKeys, scanBuffer, lorebook.activation, matchContext)
+      : { matchedKeys: [], warnings: [] };
+
+  if (
+    secondaryKeys.length > 0 &&
+    !secondaryMatchSatisfiesLogic(
+      entry.selectiveLogic ?? "and-any",
+      secondaryKeys.length,
+      secondaryMatch.matchedKeys.length,
+    )
+  ) {
+    return {
+      entry: null,
+      warnings: uniqueWarnings([
+        ...primaryMatch.warnings,
+        ...secondaryMatch.warnings,
+      ]),
+    };
+  }
+
+  const warnings = uniqueWarnings([
+    ...primaryMatch.warnings,
+    ...secondaryMatch.warnings,
+  ]);
   return {
-    lorebookId: lorebook.id,
-    lorebookTitle: lorebook.title,
-    lorebookSummary: lorebook.summary,
-    entry,
-    matchReason: "primary-key",
-    matchedKey,
-    sourceOrder,
-    entryIndex,
+    entry: {
+      lorebookId: lorebook.id,
+      lorebookTitle: lorebook.title,
+      lorebookSummary: lorebook.summary,
+      entry,
+      matchReason: "primary-key",
+      matchedKey: primaryMatch.matchedKey,
+      warnings,
+      sourceOrder,
+      entryIndex,
+    },
+    warnings,
   };
+}
+
+function matchFirstKey(
+  keys: string[],
+  scanBuffer: string,
+  activation: LorebookActivationSettings,
+  context: KeyMatchContext,
+) {
+  const warnings: string[] = [];
+  for (const key of keys) {
+    const result = matchKeyWithContext(key, scanBuffer, activation, context);
+    warnings.push(...result.warnings);
+    if (result.matched) {
+      return { matchedKey: key, warnings };
+    }
+  }
+  return { matchedKey: null, warnings };
+}
+
+function matchAllKeys(
+  keys: string[],
+  scanBuffer: string,
+  activation: LorebookActivationSettings,
+  context: KeyMatchContext,
+) {
+  const matchedKeys: string[] = [];
+  const warnings: string[] = [];
+  for (const key of keys) {
+    const result = matchKeyWithContext(key, scanBuffer, activation, context);
+    warnings.push(...result.warnings);
+    if (result.matched) matchedKeys.push(key);
+  }
+  return { matchedKeys, warnings };
+}
+
+function secondaryMatchSatisfiesLogic(
+  logic: NonNullable<LoreEntryRecord["selectiveLogic"]>,
+  secondaryKeyCount: number,
+  matchedSecondaryKeyCount: number,
+) {
+  switch (logic) {
+    case "and-any":
+      return matchedSecondaryKeyCount > 0;
+    case "and-all":
+      return matchedSecondaryKeyCount === secondaryKeyCount;
+    case "not-any":
+      return matchedSecondaryKeyCount === 0;
+    case "not-all":
+      return matchedSecondaryKeyCount < secondaryKeyCount;
+  }
+}
+
+function uniqueWarnings(warnings: string[]) {
+  return [...new Set(warnings)];
 }
 
 function stableEntryTiebreaker(
@@ -253,15 +611,32 @@ export function activateLorebookEntries(
   scanBuffer: string,
   options: { sourceOrder?: number } = {},
 ) {
+  return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options)
+    .entries;
+}
+
+export function activateLorebookEntriesWithWarnings(
+  lorebook: LorebookRecord,
+  scanBuffer: string,
+  options: { sourceOrder?: number } = {},
+): LorebookActivationResult {
   const sourceOrder = options.sourceOrder ?? 0;
-  return lorebook.entries.flatMap((entry, entryIndex) => {
-    const activatedEntry = activateEntry(
+  const matchContext = createKeyMatchContext();
+  const entries: ActivatedLoreEntry[] = [];
+  const warnings: string[] = [];
+
+  for (const [entryIndex, entry] of lorebook.entries.entries()) {
+    const activation = activateEntry(
       lorebook,
       entry,
       sourceOrder,
       entryIndex,
       scanBuffer,
+      matchContext,
     );
-    return activatedEntry ? [activatedEntry] : [];
-  });
+    warnings.push(...activation.warnings);
+    if (activation.entry) entries.push(activation.entry);
+  }
+
+  return { entries, warnings: uniqueWarnings(warnings) };
 }

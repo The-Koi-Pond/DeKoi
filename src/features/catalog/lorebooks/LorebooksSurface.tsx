@@ -12,6 +12,7 @@ import {
   type LoreEntryRole,
   type LoreEntryStrategy,
   type LoreInsertionPosition,
+  type LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
@@ -56,6 +57,8 @@ interface LorebookDraftState {
   title: string;
   summary: string;
   scanDepth: string;
+  caseSensitiveKeys: boolean;
+  matchWholeWords: boolean;
   budgetTokens: string;
   budgetPercent: string;
 }
@@ -66,6 +69,8 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   enabled: true,
   strategy: "constant",
   key: "",
+  keySecondary: "",
+  selectiveLogic: "and-any",
   insertionOrder: "100",
   insertionPosition: "after-character",
   depth: "0",
@@ -75,6 +80,8 @@ const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   title: "",
   summary: "",
   scanDepth: String(DEFAULT_LOREBOOK_ACTIVATION.scanDepth),
+  caseSensitiveKeys: DEFAULT_LOREBOOK_ACTIVATION.caseSensitiveKeys,
+  matchWholeWords: DEFAULT_LOREBOOK_ACTIVATION.matchWholeWords,
   budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
   budgetPercent: DEFAULT_LOREBOOK_ACTIVATION.budgetPercent?.toString() ?? "",
 };
@@ -85,6 +92,8 @@ function draftFromEntry(entry: {
   enabled: boolean;
   strategy: LoreEntryStrategy;
   key: string[] | null;
+  keySecondary: string[] | null;
+  selectiveLogic: LoreSelectiveLogic | null;
   insertionOrder: number;
   insertionPosition: LoreInsertionPosition;
   depth: number | null;
@@ -96,6 +105,8 @@ function draftFromEntry(entry: {
     enabled: entry.enabled,
     strategy: entry.strategy,
     key: entry.key?.join(", ") ?? "",
+    keySecondary: entry.keySecondary?.join(", ") ?? "",
+    selectiveLogic: entry.selectiveLogic ?? "and-any",
     insertionOrder: String(entry.insertionOrder),
     insertionPosition: entry.insertionPosition,
     depth: String(entry.depth ?? 0),
@@ -270,6 +281,8 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           lorebookDraft.scanDepth,
           DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
         ),
+        caseSensitiveKeys: lorebookDraft.caseSensitiveKeys,
+        matchWholeWords: lorebookDraft.matchWholeWords,
         budgetTokens,
         budgetPercent,
       },
@@ -330,6 +343,34 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
         budgetTokens:
           budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
         budgetPercent,
+      },
+    });
+  }
+
+  function commitActiveCaseSensitiveKeys(caseSensitiveKeys: boolean) {
+    if (!activeLorebook) return;
+    if (caseSensitiveKeys === activeLorebook.activation.caseSensitiveKeys) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        caseSensitiveKeys,
+      },
+    });
+  }
+
+  function commitActiveMatchWholeWords(matchWholeWords: boolean) {
+    if (!activeLorebook) return;
+    if (matchWholeWords === activeLorebook.activation.matchWholeWords) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        matchWholeWords,
       },
     });
   }
@@ -431,6 +472,32 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   scanDepth: e.target.value,
                 })
               }
+            />
+          </div>
+          <div className="catalog-editor-field catalog-editor-toggle">
+            <span className="catalog-toggle-label">Case-sensitive keys</span>
+            <Switch
+              checked={lorebookDraft.caseSensitiveKeys}
+              onChange={(caseSensitiveKeys) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  caseSensitiveKeys,
+                })
+              }
+              ariaLabel="Case-sensitive keys"
+            />
+          </div>
+          <div className="catalog-editor-field catalog-editor-toggle">
+            <span className="catalog-toggle-label">Match whole words</span>
+            <Switch
+              checked={lorebookDraft.matchWholeWords}
+              onChange={(matchWholeWords) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  matchWholeWords,
+                })
+              }
+              ariaLabel="Match whole words"
             />
           </div>
           <div className="catalog-editor-field">
@@ -610,6 +677,22 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   onCommit={commitActiveScanDepth}
                 />
               </div>
+              <div className="catalog-editor-field catalog-editor-toggle">
+                <span className="catalog-toggle-label">Case-sensitive keys</span>
+                <Switch
+                  checked={activeLorebook.activation.caseSensitiveKeys}
+                  onChange={commitActiveCaseSensitiveKeys}
+                  ariaLabel="Case-sensitive keys"
+                />
+              </div>
+              <div className="catalog-editor-field catalog-editor-toggle">
+                <span className="catalog-toggle-label">Match whole words</span>
+                <Switch
+                  checked={activeLorebook.activation.matchWholeWords}
+                  onChange={commitActiveMatchWholeWords}
+                  ariaLabel="Match whole words"
+                />
+              </div>
               <div className="catalog-editor-field">
                 <label htmlFor="active-lorebook-budget-tokens">
                   Budget (tokens)
@@ -761,7 +844,49 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                         Selective entries need at least one key to activate.
                       </p>
                     )}
+                  <p className="catalog-field-hint">
+                    Regex keys use /pattern/flags and activate during generation.
+                  </p>
                 </div>
+                <div className="catalog-editor-field">
+                  <label htmlFor="lore-key-secondary">Optional Filter</label>
+                  <input
+                    id="lore-key-secondary"
+                    className="pondinput"
+                    type="text"
+                    value={draft.keySecondary}
+                    onChange={(e) =>
+                      setDraft({ ...draft, keySecondary: e.target.value })
+                    }
+                    placeholder="secondary keyword, another filter"
+                  />
+                  <p className="catalog-field-hint">
+                    Optional filters also support /pattern/flags regex keys.
+                  </p>
+                </div>
+                {parseLorebookEntryKeys(draft.keySecondary) && (
+                  <div className="catalog-editor-field">
+                    <label htmlFor="lore-selective-logic">
+                      Selective Logic
+                    </label>
+                    <select
+                      id="lore-selective-logic"
+                      className="pondinput"
+                      value={draft.selectiveLogic}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          selectiveLogic: e.target.value as LoreSelectiveLogic,
+                        })
+                      }
+                    >
+                      <option value="and-any">AND ANY</option>
+                      <option value="and-all">AND ALL</option>
+                      <option value="not-any">NOT ANY</option>
+                      <option value="not-all">NOT ALL</option>
+                    </select>
+                  </div>
+                )}
                 <div className="catalog-editor-field">
                   <label htmlFor="lore-insertion-order">Insertion Order</label>
                   <input
