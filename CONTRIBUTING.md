@@ -52,9 +52,10 @@ off a ready PR:
 pnpm check
 ~~~
 
-Use focused checks when changing a narrow contract:
+Use focused checks when changing a narrow contract or pure behavior:
 
 ~~~sh
+pnpm test
 pnpm check:storage-contracts
 pnpm check:provider-secret-safety
 pnpm check:runtime-contracts

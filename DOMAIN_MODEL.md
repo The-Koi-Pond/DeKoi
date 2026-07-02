@@ -94,10 +94,21 @@ Likely relationships:
 - Can be attached to Messenger or Roleplay threads.
 - Can contain many lore entries.
 
+Current implementation:
+
+- Lorebooks are saved as `schemaVersion: 2` records with activation defaults
+  for scan depth, name inclusion, key matching, recursion, and budget caps.
+- Lore entries are `schemaVersion: 2` records; newly created entries default to
+  enabled constant notes placed after character context, with optional keys,
+  filters, triggers, timing, recursion, role, and match-source blocks unset.
+- Current generation still includes selected enabled entry bodies directly.
+  Activation and placement fields are stored for future selection logic, not
+  applied to prompt assembly yet.
+
 Not fully settled yet:
 
-- Keyword activation rules.
-- Entry priority and token budgeting.
+- Runtime keyword matching, placement, priority, and token budgeting behavior.
+- UI for advanced activation fields.
 - Import format.
 
 ### Preset

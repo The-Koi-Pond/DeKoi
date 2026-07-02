@@ -49,6 +49,21 @@ security, or risky-work boundaries.
   - The regression or risky invariant.
   - Why existing proof is insufficient.
   - Why this test is narrow.
+- Meaningful test coverage is about semantic depth, not test count. Tests should
+  assert behavior against a source of truth outside the implementation: user
+  request, issue, implementation plan, docs, public contract, or hand-authored
+  fixture.
+- Avoid circular validation. Do not write tests by copying the current code's
+  branches, constants, or helper output and then claim the code is proven.
+  Prefer spec-first tests before implementation, fail-first tests for fixes, or
+  a deliberate bad variant/mutation that demonstrates the test fails for the
+  bug class it is meant to catch.
+- Durable tests for risky logic should include at least one negative control or
+  edge case unless the rationale explains why one is not meaningful.
+- Prefer invariant/property-style tests for parsers, normalization, ordering,
+  budgeting, filtering, activation, permission checks, and state transitions.
+- Line coverage and test count are weak signals. Use them to find untested
+  areas, but do not treat them as proof without behavior-oriented assertions.
 
 ## Workflow Triage
 
@@ -197,6 +212,12 @@ Maintainer-equivalent self-review questions:
 
 - Does the change solve the user's actual problem?
 - Does the proof demonstrate the real claim?
+- Do new tests trace expected behavior to a source of truth outside the
+  implementation?
+- Did any new test fail before the fix, fail against a seeded bad variant, or
+  include a negative control that proves it can catch the intended bug class?
+- Could a shallow or circular test suite pass while the semantic behavior is
+  still wrong?
 - Which user path remains untested?
 - Could a legacy/default path contradict the summary?
 - Is the diff narrow and easy to review?

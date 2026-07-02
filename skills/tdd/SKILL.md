@@ -26,9 +26,12 @@ Temporary uncommitted tests and harnesses are allowed for proof. Commit tests
 when they protect a known regression, risky behavior, or nearby stable test
 pattern.
 
-If this repo does not yet have a stable test runner for the target layer, prefer
-a temporary harness or the nearest existing validation command. Add new durable
-test infrastructure only when the durable-test rationale justifies it.
+This repo has Vitest for fast unit tests under `src/**/*.test.{ts,tsx}`. Use
+`pnpm test` for engine, storage, and other pure TypeScript behavior that can be
+proved without browser or Tauri proof. If a target layer still lacks a stable
+runner, prefer a temporary harness or the nearest existing validation command.
+Add new durable test infrastructure only when the durable-test rationale
+justifies it.
 
 ## Workflow
 
@@ -67,6 +70,8 @@ Bad tests:
 ## Current Validation Commands
 
 - Full repo gate: `pnpm check`.
+- Fast unit tests: `pnpm test`.
+- Unit test watch mode: `pnpm test:watch`.
 - Browser UI smoke: `pnpm test:ui`.
 - Browser UI rerun without rebuilding first: `pnpm test:ui:run`.
 - Build/type behavior: `pnpm build`.

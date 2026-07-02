@@ -63,6 +63,25 @@ App-wide load/save orchestration lives in
 Bundle import/export and legacy import normalization live under
 `src/runtime/storage/bundles`.
 
+Lorebooks currently use `schemaVersion: 2`. New lorebooks default activation to
+`scanDepth: 2`, `includeNames: true`, `caseSensitiveKeys: false`,
+`matchWholeWords: true`, `recursiveScan: false`, `maxRecursionSteps: 0`,
+`budgetTokens: null`, and `budgetPercent: 25`.
+
+Lore entries inside a lorebook also use `schemaVersion: 2`. New entries default
+to `enabled: true`, `strategy: "constant"`, `probability: 100`,
+`insertionPosition: "after-character"`, `insertionOrder: 100`, and null keys,
+selective logic, inclusion group, depth, role, recursion, timing, triggers,
+character filter, and match-source blocks.
+
+The lorebook collection adapter normalizes v2 values, filters malformed v2
+entries without dropping valid sibling entries, clamps percentages to 0-100,
+and intentionally rejects pre-v2 lorebook or entry records instead of migrating
+them. Pre-v2 lorebook records were development-only; revisit this before DeKoi
+has supported user data that requires compatibility. Current generation still
+builds prompt context from selected enabled entry bodies and does not apply the
+v2 activation or placement fields yet.
+
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
 owning runtime adapter for each collection.

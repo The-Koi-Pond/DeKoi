@@ -87,12 +87,22 @@ For a frontend build only:
 pnpm build
 ~~~
 
-Focused contract checks are also available:
+For fast engine and storage unit tests:
 
 ~~~sh
+pnpm test
+~~~
+
+Focused checks are also available:
+
+~~~sh
+pnpm check:desktop-contracts
 pnpm check:storage-contracts
 pnpm check:provider-secret-safety
 pnpm check:runtime-contracts
+pnpm check:frontend-boundaries
+pnpm check:bunny-review
+pnpm check:rust
 ~~~
 
 ## First Launch Notes

@@ -244,7 +244,7 @@ Request:
         "title": "Example Messenger",
         "characterIds": ["character-koi"],
         "activePersonaId": "persona-xel",
-        "lorebookIds": ["lorebook-main"],
+        "lorebookIds": [],
         "presetId": null,
         "providerConnectionId": "connection-remote-runtime",
         "systemPromptMode": "default",
@@ -317,26 +317,7 @@ Request:
         "createdAt": "2026-06-24T07:00:00.000Z",
         "updatedAt": "2026-06-24T07:00:00.000Z"
       },
-      "lorebooks": [
-        {
-          "id": "lorebook-main",
-          "schemaVersion": 1,
-          "title": "Main Lorebook",
-          "summary": "Example lore.",
-          "entries": [
-            {
-              "id": "lore-entry-1",
-              "title": "Contract",
-              "body": "The runtime should return provider-neutral drafts.",
-              "enabled": true,
-              "createdAt": "2026-06-24T07:00:00.000Z",
-              "updatedAt": "2026-06-24T07:00:00.000Z"
-            }
-          ],
-          "createdAt": "2026-06-24T07:00:00.000Z",
-          "updatedAt": "2026-06-24T07:00:00.000Z"
-        }
-      ],
+      "lorebooks": [],
       "providerConnectionId": "connection-remote-runtime",
       "providerConnection": {
         "id": "connection-remote-runtime",
@@ -434,6 +415,21 @@ live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
 `threadId`. DeKoi assembles thread records with their transcript items before
 rendering or generating. Legacy embedded `messages` or `entries` may still be
 accepted on load or bundle import, but normal writes use the split collections.
+
+`lorebooks` records use `schemaVersion: 2`. Remote runtimes should preserve the
+lorebook `activation` block and each entry's activation, placement, trigger,
+filter, timing, recursion, role, and match-source fields when listing or
+replacing storage. New DeKoi records default activation to scan depth 2,
+include names, whole-word matching, no recursive scan, no token cap, and a 25
+percent budget cap; new entries default to enabled `constant` notes placed
+`after-character` with insertion order 100 and probability 100. Pre-v2
+lorebook rows were development-only and are rejected by DeKoi normalization
+rather than migrated.
+
+When `generation_generate` includes selected lorebooks, they use the same v2
+shape. Current DeKoi prompt assembly already flattens selected enabled entry
+bodies into `promptMessages`; compatible runtimes do not need to implement
+lorebook activation or placement matching for Phase 0.
 
 `storage_list`:
 
