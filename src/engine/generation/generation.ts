@@ -204,7 +204,7 @@ export function formatLoreGenerationEntries(
       !summarizedLorebookIds.has(activatedEntry.lorebookId)
         ? `${activatedEntry.lorebookTitle}: ${summary}`
         : null;
-    summarizedLorebookIds.add(activatedEntry.lorebookId);
+    if (summaryLine) summarizedLorebookIds.add(activatedEntry.lorebookId);
 
     return [
       ...(summaryLine ? [summaryLine] : []),

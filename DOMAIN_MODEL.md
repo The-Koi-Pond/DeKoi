@@ -114,8 +114,11 @@ Current implementation:
 - Lorebook budgets can use an absolute token cap or a percent of the provider
   max context when known. Budgeting uses a cheap text-length estimate because
   DeKoi has no tokenizer dependency; percent budgets are left unapplied when
-  provider context size is unknown. Roleplay lorebook summaries count against
-  budgets and emit at most once per generation request.
+  provider context size is unknown. Budget trimming gives constant entries
+  first claim on the cap, then selective entries; each strategy group still
+  uses descending insertion order and stable lorebook/entry tiebreakers.
+  Roleplay lorebook summaries count against budgets and emit at most once per
+  generation request.
 - Catalog UI exposes entry Strategy, comma-separated Key, insertion order,
   insertion position, at-depth depth/role, and lorebook Scan depth plus budget
   fields.

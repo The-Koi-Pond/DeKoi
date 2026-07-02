@@ -95,11 +95,13 @@ connections convert at-depth system lore to `user` because those providers
 hoist system messages. Lorebook budgets apply per lorebook, using
 `budgetTokens` first or `budgetPercent` against provider `maxContext` when
 known. Percent budgets are left unapplied when context size is unknown. Budget
-estimates use roughly characters divided by 4 because DeKoi has no tokenizer
-dependency. Roleplay lorebook summaries count against budgets and are emitted
-at most once per generation request. Probability, secondary-key logic,
-recursion, triggers, and filters remain normalized storage fields but are not
-applied to prompt assembly yet.
+trimming spends budget on constant entries before selective entries, then uses
+descending `insertionOrder` plus the same stable tiebreakers within each
+strategy group. Estimates use roughly characters divided by 4 because DeKoi
+has no tokenizer dependency. Roleplay lorebook summaries count against budgets
+and are emitted at most once per generation request. Probability,
+secondary-key logic, recursion, triggers, and filters remain normalized storage
+fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

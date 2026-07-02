@@ -249,7 +249,7 @@ describe("lorebook activation", () => {
     ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);
   });
 
-  it("applies token budgets before lower-priority activated entries", () => {
+  it("lets constant entries outrank selective entries when applying token budgets", () => {
     const constant = entry({
       title: "Constant",
       strategy: "constant",
@@ -293,6 +293,73 @@ describe("lorebook activation", () => {
       "High",
       "Medium",
       "Constant",
+    ]);
+  });
+
+  it("uses constant-first budget priority for percent budgets after context resolution", () => {
+    const constant = entry({
+      title: "Constant",
+      strategy: "constant",
+      insertionOrder: 0,
+    });
+    const high = entry({
+      title: "High",
+      strategy: "selective",
+      key: ["gate"],
+      insertionOrder: 50,
+    });
+    const activated = activateLorebookEntries(
+      lorebook([high, constant], { budgetPercent: 50 }),
+      "gate",
+    );
+
+    const budgeted = applyTokenBudget(activated, {
+      budgetPercent: 50,
+      contextTokens: 2,
+      approxTokens: () => 1,
+    });
+
+    expect(budgeted.map((item) => item.entry.title)).toEqual(["Constant"]);
+  });
+
+  it("uses source and entry order tiebreaks within budget priority groups", () => {
+    const secondSource = entry({
+      title: "Second Source",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const firstEntry = entry({
+      title: "First Entry",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const secondEntry = entry({
+      title: "Second Entry",
+      strategy: "constant",
+      insertionOrder: 10,
+    });
+    const firstLorebookEntries = activateLorebookEntries(
+      lorebook([firstEntry, secondEntry]),
+      "",
+      { sourceOrder: 0 },
+    );
+    const secondLorebookEntries = activateLorebookEntries(
+      lorebook([secondSource]),
+      "",
+      { sourceOrder: 1 },
+    );
+
+    const budgeted = applyTokenBudget(
+      [...secondLorebookEntries, ...firstLorebookEntries],
+      {
+        budgetTokens: 2,
+        approxTokens: () => 1,
+      },
+    );
+
+    expect(budgeted.map((item) => item.entry.title)).toEqual([
+      "First Entry",
+      "Second Entry",
     ]);
   });
 

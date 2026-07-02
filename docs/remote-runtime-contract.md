@@ -436,7 +436,10 @@ using the lorebook activation settings. DeKoi sorts activated entries by
 descending insertion order, places them before character context, after
 character context, or at transcript depth, and applies lorebook budget caps
 before the runtime receives `promptMessages`. Budget estimates use roughly
-characters divided by 4. Percent budgets apply only when the selected provider
+characters divided by 4. Budget trimming gives constant entries first claim on
+the cap, then selective entries; each strategy group still uses descending
+insertion order and stable lorebook/entry tiebreakers. Percent budgets apply
+only when the selected provider
 connection has `maxContext`; otherwise DeKoi leaves the activated lore in place
 instead of silently dropping it. Runtimes should preserve the provided
 `promptMessages` roles and content, including at-depth system lore that DeKoi

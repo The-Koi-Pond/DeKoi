@@ -13,7 +13,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   primary-key entries from recent Messenger or Roleplay transcript text, orders
   them by insertion order, places them before character context, after
   character context, or at transcript depth, and applies lorebook budget caps
-  with a cheap text-length estimate.
+  with constants taking budget priority before selective entries and a cheap
+  text-length estimate.
 - Lorebook catalog controls expose scan depth, budget tokens or percent, entry
   Strategy/Key, insertion order, insertion position, and at-depth depth/role.
 - Collection-backed storage entity registry and Rust allowlist checks, including

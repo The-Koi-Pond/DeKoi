@@ -19,6 +19,8 @@ import type {
   RoleplayEntry,
   RoleplayThread,
 } from "../contracts/types/roleplay";
+import { activateLorebookEntries } from "../generation-core/lorebook-activation";
+import { formatLoreGenerationEntries } from "./generation";
 import {
   createMessengerGenerationContext,
   createMessengerGenerationRequest,
@@ -436,6 +438,79 @@ describe("generation lorebook activation wiring", () => {
     );
     expect(promptText).toContain("Before-position grove lore.");
     expect(promptText).toContain("After-position grove lore.");
+  });
+
+  it("marks lorebook summaries summarized only after emitting them", () => {
+    const activated = activateLorebookEntries(
+      selectiveLorebook({
+        id: "forest-lore",
+        title: "Forest Lore",
+        summary: "Shared forest summary.",
+        entries: [
+          {
+            id: "match",
+            title: "Grove",
+            body: "The hidden grove opens at sunset.",
+            key: ["grove"],
+          },
+        ],
+      }),
+      "grove",
+    );
+    const summarizedLorebookIds = new Set<string>();
+
+    expect(
+      formatLoreGenerationEntries(activated, {
+        includeSummary: false,
+        summarizedLorebookIds,
+      }),
+    ).toEqual(["Forest Lore / Grove: The hidden grove opens at sunset."]);
+
+    expect(
+      formatLoreGenerationEntries(activated, {
+        includeSummary: true,
+        summarizedLorebookIds,
+      }),
+    ).toEqual([
+      "Forest Lore: Shared forest summary.",
+      "Forest Lore / Grove: The hidden grove opens at sunset.",
+    ]);
+  });
+
+  it("keeps lorebook summaries at most once across formatter calls", () => {
+    const activated = activateLorebookEntries(
+      selectiveLorebook({
+        id: "forest-lore",
+        title: "Forest Lore",
+        summary: "Shared forest summary.",
+        entries: [
+          {
+            id: "match",
+            title: "Grove",
+            body: "The hidden grove opens at sunset.",
+            key: ["grove"],
+          },
+        ],
+      }),
+      "grove",
+    );
+    const summarizedLorebookIds = new Set<string>();
+
+    expect(
+      formatLoreGenerationEntries(activated, {
+        includeSummary: true,
+        summarizedLorebookIds,
+      }),
+    ).toEqual([
+      "Forest Lore: Shared forest summary.",
+      "Forest Lore / Grove: The hidden grove opens at sunset.",
+    ]);
+    expect(
+      formatLoreGenerationEntries(activated, {
+        includeSummary: true,
+        summarizedLorebookIds,
+      }),
+    ).toEqual(["Forest Lore / Grove: The hidden grove opens at sunset."]);
   });
 
   it("routes Messenger lore around character context by insertion position", () => {
