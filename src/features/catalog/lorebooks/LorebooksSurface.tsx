@@ -9,7 +9,9 @@ import type {
 import type { LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import {
   DEFAULT_LOREBOOK_ACTIVATION,
+  type LoreEntryRole,
   type LoreEntryStrategy,
+  type LoreInsertionPosition,
 } from "../../../engine/contracts/types/lorebook";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
@@ -19,6 +21,10 @@ import {
   entryDraftDisablesBannerSave,
   lorebookEntryDraftToInput,
   parseLorebookEntryKeys,
+  readFiniteNumberInput,
+  readNonNegativeIntegerInput,
+  readNullableNonNegativeIntegerInput,
+  readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { readScanDepthInput } from "./lorebook-scan-depth";
@@ -50,6 +56,8 @@ interface LorebookDraftState {
   title: string;
   summary: string;
   scanDepth: string;
+  budgetTokens: string;
+  budgetPercent: string;
 }
 
 const EMPTY_DRAFT: LorebookEntryDraft = {
@@ -58,11 +66,17 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   enabled: true,
   strategy: "constant",
   key: "",
+  insertionOrder: "100",
+  insertionPosition: "after-character",
+  depth: "0",
+  role: "system",
 };
 const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   title: "",
   summary: "",
   scanDepth: String(DEFAULT_LOREBOOK_ACTIVATION.scanDepth),
+  budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
+  budgetPercent: DEFAULT_LOREBOOK_ACTIVATION.budgetPercent?.toString() ?? "",
 };
 
 function draftFromEntry(entry: {
@@ -71,6 +85,10 @@ function draftFromEntry(entry: {
   enabled: boolean;
   strategy: LoreEntryStrategy;
   key: string[] | null;
+  insertionOrder: number;
+  insertionPosition: LoreInsertionPosition;
+  depth: number | null;
+  role: LoreEntryRole | null;
 }): LorebookEntryDraft {
   return {
     title: entry.title,
@@ -78,6 +96,10 @@ function draftFromEntry(entry: {
     enabled: entry.enabled,
     strategy: entry.strategy,
     key: entry.key?.join(", ") ?? "",
+    insertionOrder: String(entry.insertionOrder),
+    insertionPosition: entry.insertionPosition,
+    depth: String(entry.depth ?? 0),
+    role: entry.role ?? "system",
   };
 }
 
@@ -106,6 +128,45 @@ function ScanDepthInput({
       className="pondinput"
       type="number"
       min={0}
+      step={1}
+      value={draft}
+      onBlur={commitDraft}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) =>
+        e.key === "Enter" ? e.currentTarget.blur() : undefined
+      }
+    />
+  );
+}
+
+function NullableActivationInput({
+  id,
+  initialValue,
+  max,
+  onCommit,
+  reader,
+}: {
+  id: string;
+  initialValue: number | null;
+  max?: number;
+  onCommit: (value: number | null) => void;
+  reader: (value: string, fallback: number | null) => number | null;
+}) {
+  const [draft, setDraft] = useState(initialValue?.toString() ?? "");
+
+  function commitDraft() {
+    const parsedValue = reader(draft, initialValue);
+    setDraft(parsedValue?.toString() ?? "");
+    onCommit(parsedValue);
+  }
+
+  return (
+    <input
+      id={id}
+      className="pondinput"
+      type="number"
+      min={0}
+      max={max}
       step={1}
       value={draft}
       onBlur={commitDraft}
@@ -193,6 +254,14 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   }
 
   function handleLorebookSave() {
+    const budgetTokens = readNullableNonNegativeIntegerInput(
+      lorebookDraft.budgetTokens,
+      null,
+    );
+    const budgetPercent =
+      budgetTokens === null
+        ? readNullablePercentInput(lorebookDraft.budgetPercent, null)
+        : null;
     const input: LorebookInput = {
       title: lorebookDraft.title.trim(),
       summary: lorebookDraft.summary.trim(),
@@ -201,6 +270,8 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           lorebookDraft.scanDepth,
           DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
         ),
+        budgetTokens,
+        budgetPercent,
       },
     };
     if (!input.title) return;
@@ -227,6 +298,38 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       activation: {
         ...activeLorebook.activation,
         scanDepth,
+      },
+    });
+  }
+
+  function commitActiveBudgetTokens(budgetTokens: number | null) {
+    if (!activeLorebook) return;
+    if (budgetTokens === activeLorebook.activation.budgetTokens) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        budgetTokens,
+        budgetPercent:
+          budgetTokens === null ? activeLorebook.activation.budgetPercent : null,
+      },
+    });
+  }
+
+  function commitActiveBudgetPercent(budgetPercent: number | null) {
+    if (!activeLorebook) return;
+    if (budgetPercent === activeLorebook.activation.budgetPercent) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        budgetTokens:
+          budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
+        budgetPercent,
       },
     });
   }
@@ -326,6 +429,69 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 setLorebookDraft({
                   ...lorebookDraft,
                   scanDepth: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="catalog-editor-field">
+            <label htmlFor="lorebook-budget-tokens">Budget (tokens)</label>
+            <input
+              id="lorebook-budget-tokens"
+              className="pondinput"
+              type="number"
+              min={0}
+              step={1}
+              value={lorebookDraft.budgetTokens}
+              onBlur={() =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  budgetTokens:
+                    readNullableNonNegativeIntegerInput(
+                      lorebookDraft.budgetTokens,
+                      null,
+                    )?.toString() ?? "",
+                })
+              }
+              onChange={(e) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  budgetTokens: e.target.value,
+                  budgetPercent: e.target.value.trim()
+                    ? ""
+                    : lorebookDraft.budgetPercent,
+                })
+              }
+            />
+          </div>
+          <div className="catalog-editor-field">
+            <label htmlFor="lorebook-budget-percent">
+              Budget (% of context)
+            </label>
+            <input
+              id="lorebook-budget-percent"
+              className="pondinput"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={lorebookDraft.budgetPercent}
+              onBlur={() =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  budgetPercent:
+                    readNullablePercentInput(
+                      lorebookDraft.budgetPercent,
+                      null,
+                    )?.toString() ?? "",
+                })
+              }
+              onChange={(e) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  budgetTokens: e.target.value.trim()
+                    ? ""
+                    : lorebookDraft.budgetTokens,
+                  budgetPercent: e.target.value,
                 })
               }
             />
@@ -442,6 +608,31 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   initialValue={activeLorebook.activation.scanDepth}
                   fallback={activeLorebook.activation.scanDepth}
                   onCommit={commitActiveScanDepth}
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="active-lorebook-budget-tokens">
+                  Budget (tokens)
+                </label>
+                <NullableActivationInput
+                  key={`${activeLorebook.id}:tokens:${activeLorebook.activation.budgetTokens ?? "none"}`}
+                  id="active-lorebook-budget-tokens"
+                  initialValue={activeLorebook.activation.budgetTokens}
+                  onCommit={commitActiveBudgetTokens}
+                  reader={readNullableNonNegativeIntegerInput}
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="active-lorebook-budget-percent">
+                  Budget (% of context)
+                </label>
+                <NullableActivationInput
+                  key={`${activeLorebook.id}:percent:${activeLorebook.activation.budgetPercent ?? "none"}`}
+                  id="active-lorebook-budget-percent"
+                  initialValue={activeLorebook.activation.budgetPercent}
+                  max={100}
+                  onCommit={commitActiveBudgetPercent}
+                  reader={readNullablePercentInput}
                 />
               </div>
             </details>
@@ -571,6 +762,91 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                       </p>
                     )}
                 </div>
+                <div className="catalog-editor-field">
+                  <label htmlFor="lore-insertion-order">Insertion Order</label>
+                  <input
+                    id="lore-insertion-order"
+                    className="pondinput"
+                    type="number"
+                    step={1}
+                    value={draft.insertionOrder}
+                    onBlur={() =>
+                      setDraft({
+                        ...draft,
+                        insertionOrder: String(
+                          readFiniteNumberInput(draft.insertionOrder, 100),
+                        ),
+                      })
+                    }
+                    onChange={(e) =>
+                      setDraft({ ...draft, insertionOrder: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="catalog-editor-field">
+                  <label htmlFor="lore-insertion-position">
+                    Insertion Position
+                  </label>
+                  <select
+                    id="lore-insertion-position"
+                    className="pondinput"
+                    value={draft.insertionPosition}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        insertionPosition: e.target.value as LoreInsertionPosition,
+                      })
+                    }
+                  >
+                    <option value="before-character">Before Character</option>
+                    <option value="after-character">After Character</option>
+                    <option value="at-depth">At Depth</option>
+                  </select>
+                </div>
+                {draft.insertionPosition === "at-depth" && (
+                  <>
+                    <div className="catalog-editor-field">
+                      <label htmlFor="lore-depth">Depth</label>
+                      <input
+                        id="lore-depth"
+                        className="pondinput"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={draft.depth}
+                        onBlur={() =>
+                          setDraft({
+                            ...draft,
+                            depth: String(
+                              readNonNegativeIntegerInput(draft.depth, 0),
+                            ),
+                          })
+                        }
+                        onChange={(e) =>
+                          setDraft({ ...draft, depth: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="catalog-editor-field">
+                      <label htmlFor="lore-role">Role</label>
+                      <select
+                        id="lore-role"
+                        className="pondinput"
+                        value={draft.role}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            role: e.target.value as LoreEntryRole,
+                          })
+                        }
+                      >
+                        <option value="system">System</option>
+                        <option value="user">User</option>
+                        <option value="assistant">Assistant</option>
+                      </select>
+                    </div>
+                  </>
+                )}
                 <div className="catalog-editor-field catalog-editor-toggle">
                   <span className="catalog-toggle-label">Enabled</span>
                   <Switch

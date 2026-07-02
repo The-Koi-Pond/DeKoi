@@ -6,13 +6,18 @@ import type {
   RoleplayEntry,
   RoleplayThread,
 } from "../contracts/types/roleplay";
-import type { LorebookScanSource } from "../generation-core/lorebook-activation";
+import type {
+  ActivatedLoreEntry,
+  LorebookScanSource,
+} from "../generation-core/lorebook-activation";
 import {
+  activateLoreGenerationEntries,
   characterGenerationContext,
   cleanGenerationText,
   createGenerationParameters,
   exampleDialogueGenerationContext,
-  loreGenerationContext,
+  formatLoreGenerationEntries,
+  injectAtDepth,
   namedGenerationBlock,
   personaGenerationContext,
   replaceGenerationPromptMacros,
@@ -163,14 +168,16 @@ export function createRoleplayGenerationContext({
 
 function buildRoleplaySystemPrompt({
   activePersona,
+  activatedLoreEntries,
   companions,
-  lorebooks,
+  summarizedLorebookIds,
   targetCompanion,
   thread,
 }: {
   activePersona: PersonaRecord | null;
+  activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
-  lorebooks: LorebookRecord[];
+  summarizedLorebookIds: Set<string>;
   targetCompanion: CharacterRecord | null;
   thread: RoleplayThread;
 }) {
@@ -188,6 +195,15 @@ function buildRoleplaySystemPrompt({
       thread.title ? `Title: ${thread.title}` : "",
       thread.sceneText ? thread.sceneText : "",
     ]),
+    ...namedGenerationBlock(
+      "Selected lore",
+      formatLoreGenerationEntries(
+        activatedLoreEntries.filter(
+          (entry) => entry.entry.insertionPosition === "before-character",
+        ),
+        { includeSummary: true, summarizedLorebookIds },
+      ),
+    ),
     ...namedGenerationBlock(
       "Active persona",
       activePersona
@@ -207,10 +223,12 @@ function buildRoleplaySystemPrompt({
     ),
     ...namedGenerationBlock(
       "Selected lore",
-      loreGenerationContext(lorebooks, {
-        includeSummary: true,
-        scanSources: roleplayLoreScanSources(thread),
-      }),
+      formatLoreGenerationEntries(
+        activatedLoreEntries.filter(
+          (entry) => entry.entry.insertionPosition === "after-character",
+        ),
+        { includeSummary: true, summarizedLorebookIds },
+      ),
     ),
     ...namedGenerationBlock(
       "Example dialogue",
@@ -247,34 +265,51 @@ function createRoleplayPromptMessages({
   activePersona,
   companions,
   lorebooks,
+  providerConnection,
   thread,
   targetCompanion,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
+  providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
 }): RoleplayGenerationPromptMessage[] {
+  const activatedLoreEntries = activateLoreGenerationEntries(lorebooks, {
+    contextTokens: providerConnection?.maxContext ?? null,
+    includeSummary: true,
+    scanSources: roleplayLoreScanSources(thread),
+  });
   const transcript = thread.entries
     .filter((entry) => entry.body.trim())
     .map((entry) => ({
       role: roleplayEntryRole(entry),
       content: roleplayEntryContent(entry),
     }));
+  const summarizedLorebookIds = new Set<string>();
+  const systemPrompt = buildRoleplaySystemPrompt({
+    activePersona,
+    activatedLoreEntries,
+    companions,
+    summarizedLorebookIds,
+    targetCompanion,
+    thread,
+  });
+  const transcriptWithDepthLore = injectAtDepth(
+    transcript,
+    activatedLoreEntries.filter(
+      (entry) => entry.entry.insertionPosition === "at-depth",
+    ),
+    { includeSummary: true, providerConnection, summarizedLorebookIds },
+  );
 
   return [
     {
       role: "system",
-      content: buildRoleplaySystemPrompt({
-        activePersona,
-        companions,
-        lorebooks,
-        targetCompanion,
-        thread,
-      }),
+      content: systemPrompt,
     },
-    ...transcript,
+    ...transcriptWithDepthLore,
     {
       role: "user",
       content: buildPostHistoryPrompt({ activePersona, targetCompanion }),
@@ -314,6 +349,7 @@ export function createRoleplayGenerationRequest({
       activePersona: context.activePersona,
       companions: context.companions,
       lorebooks: context.lorebooks,
+      providerConnection: context.providerConnection,
       thread: context.requestThread,
       targetCompanion,
     }),

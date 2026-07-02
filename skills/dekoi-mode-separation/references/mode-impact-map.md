@@ -83,6 +83,8 @@ Allowed shared homes:
 
 - `src/engine`: native record types, deterministic actions, and pure helpers
   that do not encode concrete mode orchestration.
+- `src/engine/generation-core`: mode-neutral activation and prompt-selection
+  primitives shared by Messenger and Roleplay.
 - `src/features/modes/shared`: shared mode UI and mode-safe helpers such as
   `ChatComposer` and reference-summary helpers.
 - `src/features/runtime/generation`: generation workflows that bind mode-owned

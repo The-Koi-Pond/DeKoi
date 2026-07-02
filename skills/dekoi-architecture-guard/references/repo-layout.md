@@ -75,6 +75,9 @@ src/engine/generation/roleplay-generation.ts
 src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.
 
+src/engine/generation-core/lorebook-activation.ts
+  Mode-neutral lore activation, deterministic ordering, and budget helpers.
+
 src/engine/contracts/types/character.ts
 src/engine/catalog/character-actions.ts
 src/engine/contracts/types/persona.ts

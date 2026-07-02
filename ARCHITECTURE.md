@@ -223,9 +223,12 @@ The short version:
   still owns the provider connection record plus provider helpers until that
   mixed module is split. The lorebook contract is the first catalog record at
   `schemaVersion: 2`; it stores activation, placement, trigger, filter, and
-  budget fields. `src/engine/generation-core/lorebook-activation.ts` owns the
-  first prompt-activation slice; placement, budgeting, recursion, and advanced
-  matching remain future behavior.
+  budget fields. `src/engine/generation-core/lorebook-activation.ts` owns
+  lore activation, deterministic insertion ordering, and approximate lore
+  budget trimming. `src/engine/generation/generation.ts` owns shared lore
+  formatting and at-depth insertion helpers used by Messenger and Roleplay.
+  Recursion, probability, filters, and advanced matching remain future
+  behavior.
 - `src/engine/catalog/character-actions.ts`,
   `src/engine/catalog/persona-actions.ts`,
   `src/engine/catalog/lorebook-actions.ts`, and

@@ -79,15 +79,29 @@ entries without dropping valid sibling entries, requires non-negative integer
 activation depths, clamps percentages to 0-100, and intentionally rejects pre-v2
 lorebook or entry records instead of migrating them. Pre-v2 lorebook records
 were development-only; revisit this before DeKoi has supported user data that
-requires compatibility. Current generation applies the first activation slice
-before building prompt context: enabled constant entries with non-empty bodies
+requires compatibility. Current generation applies lore activation before
+building prompt context: enabled constant entries with non-empty bodies
 activate automatically, while selective entries activate when any non-empty
 plaintext primary key matches the last `scanDepth` transcript items, optionally
 including speaker names. Matching respects `caseSensitiveKeys` and
 `matchWholeWords`; regex-like `/.../` keys are deferred as non-matches.
-Placement, probability, secondary-key logic, recursion, triggers, filters,
-roles, and budget caps remain normalized storage fields but are not applied to
-prompt assembly yet.
+Activated entries are sorted by descending `insertionOrder`, with selected
+lorebook order and original entry order as stable tiebreakers. Messenger and
+Roleplay prompt assembly places `before-character` entries before persona and
+character context, `after-character` entries after character context, and
+`at-depth` entries into transcript messages by depth from the newest transcript
+item. At-depth role defaults to `system`; Anthropic and Google provider
+connections convert at-depth system lore to `user` because those providers
+hoist system messages. Lorebook budgets apply per lorebook, using
+`budgetTokens` first or `budgetPercent` against provider `maxContext` when
+known. Percent budgets are left unapplied when context size is unknown. Budget
+trimming spends budget on constant entries before selective entries, then uses
+descending `insertionOrder` plus the same stable tiebreakers within each
+strategy group. Estimates use roughly characters divided by 4 because DeKoi
+has no tokenizer dependency. Roleplay lorebook summaries count against budgets
+and are emitted at most once per generation request. Probability,
+secondary-key logic, recursion, triggers, and filters remain normalized storage
+fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

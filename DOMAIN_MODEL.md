@@ -107,14 +107,27 @@ Current implementation:
   transcript text using scan depth, speaker-name inclusion, case sensitivity,
   and whole-word settings. Regex-like `/.../` keys are stored but ignored by
   current activation.
-- Catalog UI exposes entry Strategy, comma-separated Key, and lorebook Scan
-  depth. Remaining advanced activation and placement fields are storage-only.
+- Activated entries are sorted by descending insertion order with selected
+  lorebook order and original entry order as stable tiebreakers. Entries can be
+  placed before character context, after character context, or at a transcript
+  depth counted from the newest turn.
+- Lorebook budgets can use an absolute token cap or a percent of the provider
+  max context when known. Budgeting uses a cheap text-length estimate because
+  DeKoi has no tokenizer dependency; percent budgets are left unapplied when
+  provider context size is unknown. Budget trimming gives constant entries
+  first claim on the cap, then selective entries; each strategy group still
+  uses descending insertion order and stable lorebook/entry tiebreakers.
+  Roleplay lorebook summaries count against budgets and emit at most once per
+  generation request.
+- Catalog UI exposes entry Strategy, comma-separated Key, insertion order,
+  insertion position, at-depth depth/role, and lorebook Scan depth plus budget
+  fields.
 
 Not fully settled yet:
 
-- Placement, priority, secondary-key logic, recursion, triggers, filters, role
-  placement, probability, and token budgeting behavior.
-- UI for advanced activation fields.
+- Probability, secondary-key logic, recursion, triggers, filters, and exact
+  tokenizer-backed budgeting.
+- UI for the remaining advanced activation fields.
 - Import format.
 
 ### Preset
