@@ -7,7 +7,7 @@ export type ChatSettingsDrawerId =
   | "advanced";
 
 export const CHAT_SETTINGS_DRAWER_DEFAULTS: Record<ChatSettingsDrawerId, boolean> = {
-  connection: true,
+  connection: false,
   persona: false,
   companions: false,
   prompt: false,
