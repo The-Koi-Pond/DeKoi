@@ -227,8 +227,8 @@ The short version:
   lore activation, deterministic insertion ordering, and approximate lore
   budget trimming. `src/engine/generation/generation.ts` owns shared lore
   formatting and at-depth insertion helpers used by Messenger and Roleplay.
-  Recursion, probability, filters, and advanced matching remain future
-  behavior.
+  Recursion, probability, triggers, and character/match-source filters remain
+  future behavior.
 - `src/engine/catalog/character-actions.ts`,
   `src/engine/catalog/persona-actions.ts`,
   `src/engine/catalog/lorebook-actions.ts`, and

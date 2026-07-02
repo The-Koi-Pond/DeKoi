@@ -103,10 +103,11 @@ Current implementation:
   filters, triggers, timing, recursion, role, and match-source blocks unset.
 - Messenger and Roleplay prompt assembly activates selected lorebooks before
   provider requests. Enabled constant entries with body text always activate;
-  selective entries activate from plaintext primary keys found in recent
-  transcript text using scan depth, speaker-name inclusion, case sensitivity,
-  and whole-word settings. Regex-like `/.../` keys are stored but ignored by
-  current activation.
+  selective entries activate from primary keys found in recent transcript text
+  using scan depth, speaker-name inclusion, case sensitivity, and whole-word
+  settings. Slash-delimited `/pattern/flags` keys activate as regex; invalid or
+  unsafe regex keys fall back to plaintext matching with warnings. Optional
+  filter keys use each entry's selective logic after the primary-key match.
 - Activated entries are sorted by descending insertion order with selected
   lorebook order and original entry order as stable tiebreakers. Entries can be
   placed before character context, after character context, or at a transcript
@@ -119,13 +120,14 @@ Current implementation:
   uses descending insertion order and stable lorebook/entry tiebreakers.
   Roleplay lorebook summaries count against budgets and emit at most once per
   generation request.
-- Catalog UI exposes entry Strategy, comma-separated Key, insertion order,
-  insertion position, at-depth depth/role, and lorebook Scan depth plus budget
-  fields.
+- Catalog UI exposes entry Strategy, comma-separated Key, Optional Filter,
+  Selective Logic, insertion order, insertion position, at-depth depth/role,
+  regex-key hints, and lorebook Scan depth, case-sensitive matching, whole-word
+  matching, and budget fields.
 
 Not fully settled yet:
 
-- Probability, secondary-key logic, recursion, triggers, filters, and exact
+- Probability, recursion, triggers, character/match-source filters, and exact
   tokenizer-backed budgeting.
 - UI for the remaining advanced activation fields.
 - Import format.

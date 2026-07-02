@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   activateLorebookEntries,
+  activateLorebookEntriesWithWarnings,
   applyTokenBudget,
   buildScanBuffer,
   matchKey,
@@ -200,13 +201,283 @@ describe("lorebook activation", () => {
     expect(matched).toBe(true);
   });
 
-  it("treats regex-like keys as deferred non-matches", () => {
+  it.each([
+    {
+      logic: "and-any" as const,
+      activeBuffer: "The gate opens near amber.",
+      blockedBuffer: "The gate opens.",
+    },
+    {
+      logic: "and-all" as const,
+      activeBuffer: "The gate opens near amber and violet.",
+      blockedBuffer: "The gate opens near amber.",
+    },
+    {
+      logic: "not-any" as const,
+      activeBuffer: "The gate opens.",
+      blockedBuffer: "The gate opens near amber.",
+    },
+    {
+      logic: "not-all" as const,
+      activeBuffer: "The gate opens near amber.",
+      blockedBuffer: "The gate opens near amber and violet.",
+    },
+  ])(
+    "applies $logic optional-filter selective logic",
+    ({ activeBuffer, blockedBuffer, logic }) => {
+      const filtered = entry({
+        title: "Filtered",
+        strategy: "selective",
+        key: ["gate"],
+        keySecondary: ["amber", "violet"],
+        selectiveLogic: logic,
+      });
+
+      expect(
+        activateLorebookEntries(lorebook([filtered]), activeBuffer).map(
+          (item) => item.entry.title,
+        ),
+      ).toEqual(["Filtered"]);
+      expect(activateLorebookEntries(lorebook([filtered]), blockedBuffer)).toEqual(
+        [],
+      );
+    },
+  );
+
+  it("ignores selective logic when optional-filter keys are blank", () => {
+    const filtered = entry({
+      title: "Filtered",
+      strategy: "selective",
+      key: ["gate"],
+      keySecondary: ["  "],
+      selectiveLogic: "and-all",
+    });
+
     expect(
-      matchKey("/moon gate/i", "moon gate", {
+      activateLorebookEntries(lorebook([filtered]), "The gate opens.").map(
+        (item) => item.entry.title,
+      ),
+    ).toEqual(["Filtered"]);
+  });
+
+  it("matches regex primary and optional-filter keys", () => {
+    const primaryRegex = entry({
+      title: "Primary Regex",
+      strategy: "selective",
+      key: ["/moon\\s+gate/i"],
+    });
+    const secondaryRegex = entry({
+      title: "Secondary Regex",
+      strategy: "selective",
+      key: ["gate"],
+      keySecondary: ["/amber\\s+bell/"],
+      selectiveLogic: "and-any",
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([primaryRegex, secondaryRegex]),
+      "The moon     gate opens beside the amber bell.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual([
+      "Primary Regex",
+      "Secondary Regex",
+    ]);
+  });
+
+  it("falls back to plaintext for invalid regex keys and surfaces a warning", () => {
+    const invalidRegex = entry({
+      title: "Invalid Regex",
+      strategy: "selective",
+      key: ["/[bad/"],
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([invalidRegex], { matchWholeWords: false }),
+      "Use literal /[bad/ text.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual([
+      "Invalid Regex",
+    ]);
+    expect(activated[0]?.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+  });
+
+  it("surfaces unsupported regex flags as invalid regex warnings", () => {
+    const invalidFlag = entry({
+      title: "Invalid Flag",
+      strategy: "selective",
+      key: ["/[bad/q"],
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([invalidFlag], { matchWholeWords: false }),
+      "Use literal /[bad/q text.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual([
+      "Invalid Flag",
+    ]);
+    expect(activated[0]?.warnings[0]).toContain(
+      'Invalid regex key "/[bad/q" treated as plaintext',
+    );
+  });
+
+  it("surfaces invalid regex warnings when primary keys do not activate", () => {
+    const invalidRegex = entry({
+      title: "Inactive Invalid Regex",
+      strategy: "selective",
+      key: ["/[bad/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([invalidRegex], { matchWholeWords: false }),
+      "No literal fallback text appears.",
+    );
+
+    expect(activation.entries).toEqual([]);
+    expect(activation.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+  });
+
+  it("surfaces invalid regex warnings when optional filters block activation", () => {
+    const invalidFilter = entry({
+      title: "Blocked Invalid Filter",
+      strategy: "selective",
+      key: ["gate"],
+      keySecondary: ["/[bad/"],
+      selectiveLogic: "and-any",
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([invalidFilter], { matchWholeWords: false }),
+      "The gate opens without the fallback text.",
+    );
+
+    expect(activation.entries).toEqual([]);
+    expect(activation.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+  });
+
+  it("rejects unsafe regex keys before matching and falls back to plaintext", () => {
+    const unsafeRegex = entry({
+      title: "Unsafe Regex",
+      strategy: "selective",
+      key: ["/(a+)+$/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([unsafeRegex], { matchWholeWords: false }),
+      "The literal /(a+)+$/ appears.",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Unsafe Regex",
+    ]);
+    expect(activation.entries[0]?.warnings[0]).toContain(
+      'Unsafe regex key "/(a+)+$/" treated as plaintext',
+    );
+    expect(activation.warnings[0]).toContain(
+      'Unsafe regex key "/(a+)+$/" treated as plaintext',
+    );
+  });
+
+  it("allows optional and exact-one group quantifiers in regex keys", () => {
+    const optionalGroup = entry({
+      title: "Optional Group",
+      strategy: "selective",
+      key: ["/(cat|dog)? gate/"],
+    });
+    const exactOneGroup = entry({
+      title: "Exact One Group",
+      strategy: "selective",
+      key: ["/(moon|sun){1} gate/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([optionalGroup, exactOneGroup], { matchWholeWords: false }),
+      "The cat gate and moon gate open.",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Optional Group",
+      "Exact One Group",
+    ]);
+    expect(activation.warnings).toEqual([]);
+  });
+
+  it("rejects optional inner quantifiers inside repeated regex groups", () => {
+    const optionalInner = entry({
+      title: "Optional Inner",
+      strategy: "selective",
+      key: ["/(a?){30}a{30}/"],
+    });
+    const boundedOptionalInner = entry({
+      title: "Bounded Optional Inner",
+      strategy: "selective",
+      key: ["/(a{0,1}){30}a{30}/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([optionalInner, boundedOptionalInner], {
+        matchWholeWords: false,
+      }),
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    );
+
+    expect(activation.entries).toEqual([]);
+    expect(activation.warnings[0]).toContain(
+      'Unsafe regex key "/(a?){30}a{30}/" treated as plaintext',
+    );
+    expect(activation.warnings[1]).toContain(
+      'Unsafe regex key "/(a{0,1}){30}a{30}/" treated as plaintext',
+    );
+  });
+
+  it("rejects repeated regex alternation before matching", () => {
+    const repeatedAlternation = entry({
+      title: "Repeated Alternation",
+      strategy: "selective",
+      key: ["/(cat|dog)+ gate/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([repeatedAlternation], { matchWholeWords: false }),
+      "The catdog gate opens.",
+    );
+
+    expect(activation.entries).toEqual([]);
+    expect(activation.warnings[0]).toContain(
+      'Unsafe regex key "/(cat|dog)+ gate/" treated as plaintext',
+    );
+  });
+
+  it("applies case-sensitivity defaults to regex keys without explicit flags", () => {
+    expect(
+      matchKey("/moon gate/", "MOON GATE", {
         caseSensitiveKeys: false,
         matchWholeWords: false,
       }),
+    ).toBe(true);
+    expect(
+      matchKey("/moon gate/", "MOON GATE", {
+        caseSensitiveKeys: true,
+        matchWholeWords: false,
+      }),
     ).toBe(false);
+  });
+
+  it("does not apply whole-word wrapping to regex keys", () => {
+    expect(
+      matchKey("/cat/", "catalog", {
+        caseSensitiveKeys: false,
+        matchWholeWords: true,
+      }),
+    ).toBe(true);
   });
 
   it("sorts activated entries by insertion order with stable source tiebreaks", () => {

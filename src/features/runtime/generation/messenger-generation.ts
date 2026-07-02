@@ -143,6 +143,11 @@ export async function generateMessengerThreadReply({
       }),
     ];
   });
+  const warnings = [
+    ...response.warnings,
+    ...droppedDraftWarnings,
+    ...request.warnings,
+  ];
 
   return {
     thread:
@@ -153,6 +158,6 @@ export async function generateMessengerThreadReply({
     generatedMessages,
     runtimeMode: runtime.mode,
     runtimeLabel: runtime.label,
-    warnings: [...context.warnings, ...response.warnings, ...droppedDraftWarnings],
+    warnings,
   };
 }

@@ -13,7 +13,7 @@ import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions"
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
-  activateLoreGenerationEntries,
+  activateLoreGenerationEntriesWithWarnings,
   characterGenerationContext,
   cleanGenerationText,
   createGenerationParameters,
@@ -52,6 +52,10 @@ export interface MessengerGenerationRequest {
   targetCharacterName: string | null;
   promptMessages: MessengerGenerationPromptMessage[];
   parameters: MessengerGenerationParameters;
+  /**
+   * Non-fatal app-side context or activation warnings to surface after generation.
+   */
+  warnings: string[];
 }
 
 export type MessengerGeneratedMessageDraft = GeneratedMessageDraft;
@@ -193,7 +197,7 @@ function buildSystemPrompt({
   ].join("\n\n");
 }
 
-function createMessengerPromptMessages({
+function createMessengerPromptAssembly({
   activePersona,
   companions,
   lorebooks,
@@ -207,11 +211,15 @@ function createMessengerPromptMessages({
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
-}): MessengerGenerationPromptMessage[] {
-  const activatedLoreEntries = activateLoreGenerationEntries(lorebooks, {
+}): {
+  promptMessages: MessengerGenerationPromptMessage[];
+  warnings: string[];
+} {
+  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
     contextTokens: providerConnection?.maxContext ?? null,
     scanSources: messengerLoreScanSources(thread),
   });
+  const activatedLoreEntries = loreActivation.entries;
   const transcript = thread.messages
     .filter((message) => message.body.trim())
     .map((message) => ({
@@ -226,19 +234,22 @@ function createMessengerPromptMessages({
     { providerConnection },
   );
 
-  return [
-    {
-      role: "system",
-      content: buildSystemPrompt({
-        activePersona,
-        activatedLoreEntries,
-        companions,
-        targetCompanion,
-        thread,
-      }),
-    },
-    ...transcriptWithDepthLore,
-  ];
+  return {
+    promptMessages: [
+      {
+        role: "system",
+        content: buildSystemPrompt({
+          activePersona,
+          activatedLoreEntries,
+          companions,
+          targetCompanion,
+          thread,
+        }),
+      },
+      ...transcriptWithDepthLore,
+    ],
+    warnings: loreActivation.warnings,
+  };
 }
 
 export function createMessengerGenerationRequest({
@@ -258,6 +269,14 @@ export function createMessengerGenerationRequest({
     context.requestThread,
     context.companions,
   );
+  const promptAssembly = createMessengerPromptAssembly({
+    activePersona: context.activePersona,
+    companions: context.companions,
+    lorebooks: context.lorebooks,
+    providerConnection: context.providerConnection,
+    thread: context.requestThread,
+    targetCompanion,
+  });
 
   return {
     schemaVersion: 1,
@@ -272,14 +291,8 @@ export function createMessengerGenerationRequest({
     providerConnection: context.providerConnection,
     targetCharacterId: targetCompanion?.id ?? null,
     targetCharacterName: targetCompanion?.displayName ?? null,
-    promptMessages: createMessengerPromptMessages({
-      activePersona: context.activePersona,
-      companions: context.companions,
-      lorebooks: context.lorebooks,
-      providerConnection: context.providerConnection,
-      thread: context.requestThread,
-      targetCompanion,
-    }),
+    promptMessages: promptAssembly.promptMessages,
     parameters: createGenerationParameters(parameters, context.providerConnection),
+    warnings: [...context.warnings, ...promptAssembly.warnings],
   };
 }

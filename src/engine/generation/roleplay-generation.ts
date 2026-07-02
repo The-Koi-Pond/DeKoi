@@ -11,7 +11,7 @@ import type {
   LorebookScanSource,
 } from "../generation-core/lorebook-activation";
 import {
-  activateLoreGenerationEntries,
+  activateLoreGenerationEntriesWithWarnings,
   characterGenerationContext,
   cleanGenerationText,
   createGenerationParameters,
@@ -69,6 +69,10 @@ export interface RoleplayGenerationRequest {
   targetCharacterName: string | null;
   promptMessages: RoleplayGenerationPromptMessage[];
   parameters: RoleplayGenerationParameters;
+  /**
+   * Non-fatal app-side context or activation warnings to surface after generation.
+   */
+  warnings: string[];
 }
 
 export type RoleplayGenerationAdapter = GenerationAdapter<RoleplayGenerationRequest>;
@@ -261,7 +265,7 @@ function buildPostHistoryPrompt({
     .join("\n");
 }
 
-function createRoleplayPromptMessages({
+function createRoleplayPromptAssembly({
   activePersona,
   companions,
   lorebooks,
@@ -275,12 +279,16 @@ function createRoleplayPromptMessages({
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
-}): RoleplayGenerationPromptMessage[] {
-  const activatedLoreEntries = activateLoreGenerationEntries(lorebooks, {
+}): {
+  promptMessages: RoleplayGenerationPromptMessage[];
+  warnings: string[];
+} {
+  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
     contextTokens: providerConnection?.maxContext ?? null,
     includeSummary: true,
     scanSources: roleplayLoreScanSources(thread),
   });
+  const activatedLoreEntries = loreActivation.entries;
   const transcript = thread.entries
     .filter((entry) => entry.body.trim())
     .map((entry) => ({
@@ -304,17 +312,20 @@ function createRoleplayPromptMessages({
     { includeSummary: true, providerConnection, summarizedLorebookIds },
   );
 
-  return [
-    {
-      role: "system",
-      content: systemPrompt,
-    },
-    ...transcriptWithDepthLore,
-    {
-      role: "user",
-      content: buildPostHistoryPrompt({ activePersona, targetCompanion }),
-    },
-  ];
+  return {
+    promptMessages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      ...transcriptWithDepthLore,
+      {
+        role: "user",
+        content: buildPostHistoryPrompt({ activePersona, targetCompanion }),
+      },
+    ],
+    warnings: loreActivation.warnings,
+  };
 }
 
 export function createRoleplayGenerationRequest({
@@ -332,6 +343,14 @@ export function createRoleplayGenerationRequest({
     context.requestThread,
     context.companions,
   );
+  const promptAssembly = createRoleplayPromptAssembly({
+    activePersona: context.activePersona,
+    companions: context.companions,
+    lorebooks: context.lorebooks,
+    providerConnection: context.providerConnection,
+    thread: context.requestThread,
+    targetCompanion,
+  });
 
   return {
     schemaVersion: 1,
@@ -345,14 +364,8 @@ export function createRoleplayGenerationRequest({
     providerConnection: context.providerConnection,
     targetCharacterId: targetCompanion?.id ?? null,
     targetCharacterName: targetCompanion?.displayName ?? null,
-    promptMessages: createRoleplayPromptMessages({
-      activePersona: context.activePersona,
-      companions: context.companions,
-      lorebooks: context.lorebooks,
-      providerConnection: context.providerConnection,
-      thread: context.requestThread,
-      targetCompanion,
-    }),
+    promptMessages: promptAssembly.promptMessages,
     parameters: createGenerationParameters(parameters, context.providerConnection),
+    warnings: [...context.warnings, ...promptAssembly.warnings],
   };
 }

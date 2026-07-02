@@ -352,7 +352,8 @@ Request:
         "temperature": 0.8,
         "maxTokens": 1024,
         "topP": 0.95
-      }
+      },
+      "warnings": []
     }
   }
 }
@@ -378,6 +379,11 @@ Response:
 
 `messages[].characterId` must match a selected companion in the request. DeKoi
 drops unknown companion drafts and surfaces a warning.
+
+`request.warnings` contains non-fatal DeKoi-side context and lore activation
+warnings discovered before the runtime call, such as invalid or unsafe regex
+keys that fell back to plaintext. Runtimes do not need to echo these warnings;
+DeKoi surfaces them alongside runtime response warnings after generation.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
@@ -431,21 +437,24 @@ shape. Current DeKoi prompt assembly resolves selected lorebooks into
 `promptMessages` before sending the request. Compatible runtimes should use
 `promptMessages` for provider calls and do not need to re-run lorebook
 activation. Activation includes enabled non-empty constant entries and
-selective entries whose plaintext primary keys match recent transcript text
-using the lorebook activation settings. DeKoi sorts activated entries by
-descending insertion order, places them before character context, after
+selective entries whose primary keys match recent transcript text using the
+lorebook activation settings, including slash-delimited regex keys that fall
+back to plaintext with warnings when invalid or unsafe, and whose optional
+filter keys satisfy the entry's selective logic. DeKoi sorts activated entries
+by descending insertion order, places them before character context, after
 character context, or at transcript depth, and applies lorebook budget caps
 before the runtime receives `promptMessages`. Budget estimates use roughly
 characters divided by 4. Budget trimming gives constant entries first claim on
-the cap, then selective entries; each strategy group still uses descending
-insertion order and stable lorebook/entry tiebreakers. Percent budgets apply
-only when the selected provider
+the cap, then selective entries;
+each strategy group still uses descending insertion order and stable
+lorebook/entry tiebreakers. Percent budgets apply only when the selected provider
 connection has `maxContext`; otherwise DeKoi leaves the activated lore in place
 instead of silently dropping it. Runtimes should preserve the provided
 `promptMessages` roles and content, including at-depth system lore that DeKoi
 has already converted to `user` for Anthropic or Google provider connections.
-Recursion, secondary-key logic, probability, triggers, and filters are still not
-applied by DeKoi prompt assembly.
+Secondary-key logic is already applied before the runtime receives
+`promptMessages`. Recursion, probability, and triggers are still not applied by
+DeKoi prompt assembly.
 
 `storage_list`:
 

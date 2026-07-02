@@ -111,13 +111,18 @@ export async function generateRoleplayThreadTurn({
       }),
     ];
   });
+  const warnings = [
+    ...response.warnings,
+    ...droppedDraftWarnings,
+    ...request.warnings,
+  ];
 
   return {
     thread:
       entries.length > 0
         ? appendRoleplayEntries(thread, entries)
         : thread,
-    warnings: [...context.warnings, ...response.warnings, ...droppedDraftWarnings],
+    warnings,
     generatedEntryCount: entries.length,
   };
 }

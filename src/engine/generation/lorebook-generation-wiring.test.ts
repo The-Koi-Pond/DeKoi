@@ -207,6 +207,114 @@ describe("generation lorebook activation wiring", () => {
     expect(systemPrompt).not.toContain("The tower bell rings at dawn.");
   });
 
+  it("surfaces Messenger invalid regex lorebook warnings on the request", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Use literal /[bad/ text.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [character()],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { matchWholeWords: false },
+          entries: [
+            {
+              id: "invalid-regex",
+              title: "Invalid Regex",
+              body: "This still activates as plaintext.",
+              key: ["/[bad/"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+
+    expect(request.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+    expect(request.promptMessages[0].content).toContain(
+      "This still activates as plaintext.",
+    );
+  });
+
+  it("surfaces Messenger invalid regex warnings from inactive lore entries", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Only the canal is here.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [character()],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { matchWholeWords: false },
+          entries: [
+            {
+              id: "invalid-regex",
+              title: "Inactive Invalid Regex",
+              body: "This entry should stay out of the prompt.",
+              key: ["/[bad/"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+
+    expect(request.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+    expect(request.promptMessages[0].content).not.toContain(
+      "This entry should stay out of the prompt.",
+    );
+  });
+
   it("ignores blank trailing Messenger messages before scan-depth accounting", () => {
     const thread: MessengerThread = {
       id: "messenger-thread-1",
@@ -324,6 +432,108 @@ describe("generation lorebook activation wiring", () => {
     );
     expect(systemPrompt).not.toContain("Lake Lore: Things known near the lake.");
     expect(systemPrompt).not.toContain("The lake freezes in summer.");
+  });
+
+  it("surfaces Roleplay invalid regex lorebook warnings on the request", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "Use literal /[bad/ text.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [character()],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          activation: { matchWholeWords: false },
+          entries: [
+            {
+              id: "invalid-regex",
+              title: "Invalid Regex",
+              body: "This still activates as plaintext.",
+              key: ["/[bad/"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+
+    expect(request.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+    expect(request.promptMessages[0].content).toContain(
+      "This still activates as plaintext.",
+    );
+  });
+
+  it("surfaces Roleplay invalid regex warnings from inactive lore entries", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "Only the grove is here.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [character()],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          activation: { matchWholeWords: false },
+          entries: [
+            {
+              id: "invalid-regex",
+              title: "Inactive Invalid Regex",
+              body: "This entry should stay out of the prompt.",
+              key: ["/[bad/"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+
+    expect(request.warnings[0]).toContain(
+      'Invalid regex key "/[bad/" treated as plaintext',
+    );
+    expect(request.promptMessages[0].content).not.toContain(
+      "This entry should stay out of the prompt.",
+    );
   });
 
   it("counts Roleplay lorebook summaries against the lore token budget", () => {

@@ -3,7 +3,7 @@ import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
-  activateLorebookEntries,
+  activateLorebookEntriesWithWarnings,
   applyTokenBudget,
   buildScanBuffer,
   sortActivatedEntries,
@@ -48,6 +48,10 @@ export interface GenerationRequestBase {
   targetCharacterName: string | null;
   promptMessages: GenerationPromptMessage[];
   parameters: GenerationParameters;
+  /**
+   * Non-fatal app-side context or activation warnings to surface after generation.
+   */
+  warnings: string[];
 }
 
 export interface GenerationAdapter<Request extends GenerationRequestBase> {
@@ -112,6 +116,11 @@ export interface LoreGenerationContextOptions {
   contextTokens?: number | null;
 }
 
+export interface ActivatedLoreGenerationResult {
+  entries: ActivatedLoreEntry[];
+  warnings: string[];
+}
+
 /** Formatting state shared across system-prompt and at-depth lore placement. */
 export interface LoreGenerationFormatOptions {
   includeSummary?: boolean;
@@ -121,6 +130,12 @@ export interface LoreGenerationFormatOptions {
 
 function approximatePromptTextTokens(value: string) {
   return Math.ceil(value.length / 4);
+}
+
+function uniqueCleanWarnings(warnings: string[]) {
+  return [
+    ...new Set(warnings.map((warning) => warning.trim()).filter(Boolean)),
+  ];
 }
 
 export function characterGenerationContext(
@@ -161,11 +176,11 @@ export function personaGenerationContext(
   ].filter(Boolean);
 }
 
-/** Activates selected lorebooks, applies their budgets, and sorts the result. */
-export function activateLoreGenerationEntries(
+export function activateLoreGenerationEntriesWithWarnings(
   lorebooks: LorebookRecord[],
   options: LoreGenerationContextOptions = {},
-) {
+): ActivatedLoreGenerationResult {
+  const warnings: string[] = [];
   const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
     const scanBuffer = buildScanBuffer(
       options.scanSources ?? [],
@@ -176,8 +191,12 @@ export function activateLoreGenerationEntries(
       options.includeSummary && summary
         ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
         : 0;
+    const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
+      sourceOrder,
+    });
+    warnings.push(...activation.warnings);
     return applyTokenBudget(
-      activateLorebookEntries(lorebook, scanBuffer, { sourceOrder }),
+      activation.entries,
       {
         budgetTokens: lorebook.activation.budgetTokens,
         budgetPercent: lorebook.activation.budgetPercent,
@@ -186,7 +205,18 @@ export function activateLoreGenerationEntries(
       },
     );
   });
-  return sortActivatedEntries(activatedEntries);
+  return {
+    entries: sortActivatedEntries(activatedEntries),
+    warnings: uniqueCleanWarnings(warnings),
+  };
+}
+
+/** Activates selected lorebooks, applies their budgets, and sorts the result. */
+export function activateLoreGenerationEntries(
+  lorebooks: LorebookRecord[],
+  options: LoreGenerationContextOptions = {},
+) {
+  return activateLoreGenerationEntriesWithWarnings(lorebooks, options).entries;
 }
 
 /** Formats activated entries, deduping optional lorebook summaries if needed. */
@@ -211,6 +241,10 @@ export function formatLoreGenerationEntries(
       `${activatedEntry.lorebookTitle} / ${activatedEntry.entry.title}: ${activatedEntry.entry.body.trim()}`,
     ];
   });
+}
+
+export function activatedLoreGenerationWarnings(entries: ActivatedLoreEntry[]) {
+  return uniqueCleanWarnings(entries.flatMap((entry) => entry.warnings));
 }
 
 function atDepthInsertionIndex(messageCount: number, depth: number | null) {

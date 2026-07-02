@@ -30,6 +30,8 @@ const baseDraft: LorebookEntryDraft = {
   enabled: true,
   strategy: "constant",
   key: "",
+  keySecondary: "",
+  selectiveLogic: "and-any",
   insertionOrder: "100",
   insertionPosition: "after-character",
   depth: "0",
@@ -70,6 +72,33 @@ describe("lorebook entry draft helpers", () => {
       "canal",
       "tower",
     ]);
+    expect(parseLorebookEntryKeys(" /wolf{2,3}/i, canal ")).toEqual([
+      "/wolf{2,3}/i",
+      "canal",
+    ]);
+    expect(parseLorebookEntryKeys(" /amber,bell/, tower ")).toEqual([
+      "/amber,bell/",
+      "tower",
+    ]);
+    expect(parseLorebookEntryKeys(" /route, canal ")).toEqual([
+      "/route",
+      "canal",
+    ]);
+    expect(parseLorebookEntryKeys(" /route, canal, /wolf/ ")).toEqual([
+      "/route",
+      "canal",
+      "/wolf/",
+    ]);
+    expect(parseLorebookEntryKeys(" /route, canal, /wolf ")).toEqual([
+      "/route",
+      "canal",
+      "/wolf",
+    ]);
+    expect(parseLorebookEntryKeys(" /route, canal, /wolf/q ")).toEqual([
+      "/route",
+      "canal",
+      "/wolf/q",
+    ]);
     expect(
       lorebookEntryDraftToInput({
         ...baseDraft,
@@ -79,6 +108,29 @@ describe("lorebook entry draft helpers", () => {
     ).toMatchObject({
       strategy: "selective",
       key: ["canal"],
+    });
+  });
+
+  it("serializes optional filters and clears stale selective logic", () => {
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        keySecondary: "amber,  violet ,, ",
+        selectiveLogic: "and-all",
+      }),
+    ).toMatchObject({
+      keySecondary: ["amber", "violet"],
+      selectiveLogic: "and-all",
+    });
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        keySecondary: " , , ",
+        selectiveLogic: "not-any",
+      }),
+    ).toMatchObject({
+      keySecondary: null,
+      selectiveLogic: null,
     });
   });
 

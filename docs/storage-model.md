@@ -82,9 +82,10 @@ were development-only; revisit this before DeKoi has supported user data that
 requires compatibility. Current generation applies lore activation before
 building prompt context: enabled constant entries with non-empty bodies
 activate automatically, while selective entries activate when any non-empty
-plaintext primary key matches the last `scanDepth` transcript items, optionally
-including speaker names. Matching respects `caseSensitiveKeys` and
-`matchWholeWords`; regex-like `/.../` keys are deferred as non-matches.
+primary key matches the last `scanDepth` transcript items, optionally including
+speaker names. Plaintext matching respects `caseSensitiveKeys` and
+`matchWholeWords`; `/pattern/flags` keys compile as regex, bypass whole-word
+wrapping, and fall back to plaintext with a warning when invalid or unsafe.
 Activated entries are sorted by descending `insertionOrder`, with selected
 lorebook order and original entry order as stable tiebreakers. Messenger and
 Roleplay prompt assembly places `before-character` entries before persona and
@@ -99,8 +100,9 @@ trimming spends budget on constant entries before selective entries, then uses
 descending `insertionOrder` plus the same stable tiebreakers within each
 strategy group. Estimates use roughly characters divided by 4 because DeKoi
 has no tokenizer dependency. Roleplay lorebook summaries count against budgets
-and are emitted at most once per generation request. Probability,
-secondary-key logic, recursion, triggers, and filters remain normalized storage
+and are emitted at most once per generation request. Optional secondary keys
+and `selectiveLogic` are applied during activation. Probability, recursion,
+triggers, character filters, and match-source blocks remain normalized storage
 fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in

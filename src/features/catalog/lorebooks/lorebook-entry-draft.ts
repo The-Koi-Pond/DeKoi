@@ -5,7 +5,10 @@ import type {
   LoreEntryRole,
   LoreEntryStrategy,
   LoreInsertionPosition,
+  LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
+
+const supportedRegexFlags = new Set(["d", "g", "i", "m", "s", "u", "v", "y"]);
 
 export interface LorebookEntryDraft {
   title: string;
@@ -13,17 +16,108 @@ export interface LorebookEntryDraft {
   enabled: boolean;
   strategy: LoreEntryStrategy;
   key: string;
+  keySecondary: string;
+  selectiveLogic: LoreSelectiveLogic;
   insertionOrder: string;
   insertionPosition: LoreInsertionPosition;
   depth: string;
   role: LoreEntryRole;
 }
 
+function splitLorebookEntryKeys(value: string) {
+  const keys: string[] = [];
+  let currentKey = "";
+  let regexState: "body" | "flags" | null = null;
+  let escaped = false;
+  let regexFlagsAreWellFormed = true;
+  let regexFlags = "";
+
+  function pushCurrentKey() {
+    const key = currentKey.trim();
+    if (key) keys.push(key);
+    currentKey = "";
+    regexState = null;
+    escaped = false;
+    regexFlagsAreWellFormed = true;
+    regexFlags = "";
+  }
+
+  function splitMalformedRegexCandidate() {
+    for (const key of currentKey.split(",")) {
+      const trimmedKey = key.trim();
+      if (trimmedKey) keys.push(trimmedKey);
+    }
+    currentKey = "";
+    regexState = null;
+    escaped = false;
+    regexFlagsAreWellFormed = true;
+    regexFlags = "";
+  }
+
+  for (const char of value) {
+    if (regexState === null) {
+      if (char === ",") {
+        pushCurrentKey();
+        continue;
+      }
+      if (char === "/" && currentKey.trim().length === 0) {
+        regexState = "body";
+        regexFlags = "";
+      }
+      currentKey += char;
+      continue;
+    }
+
+    currentKey += char;
+
+    if (regexState === "body") {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === "/") {
+        regexState = "flags";
+      }
+      continue;
+    }
+
+    if (char === ",") {
+      currentKey = currentKey.slice(0, -1);
+      if (!regexFlagsAreWellFormed) {
+        splitMalformedRegexCandidate();
+        continue;
+      }
+      pushCurrentKey();
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      continue;
+    }
+
+    if (
+      !supportedRegexFlags.has(char) ||
+      regexFlags.includes(char) ||
+      ((char === "u" && regexFlags.includes("v")) ||
+        (char === "v" && regexFlags.includes("u")))
+    ) {
+      regexFlagsAreWellFormed = false;
+    } else {
+      regexFlags += char;
+    }
+  }
+
+  if (regexState === "body" || !regexFlagsAreWellFormed) {
+    splitMalformedRegexCandidate();
+    return keys;
+  }
+
+  pushCurrentKey();
+  return keys;
+}
+
 export function parseLorebookEntryKeys(value: string) {
-  const keys = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const keys = splitLorebookEntryKeys(value);
   return keys.length > 0 ? keys : null;
 }
 
@@ -83,6 +177,7 @@ export function entryDraftDisablesBannerSave({
 export function lorebookEntryDraftToInput(
   draft: LorebookEntryDraft,
 ): LorebookEntryInput {
+  const keySecondary = parseLorebookEntryKeys(draft.keySecondary);
   const depth =
     draft.insertionPosition === "at-depth"
       ? readNonNegativeIntegerInput(draft.depth, 0)
@@ -93,6 +188,8 @@ export function lorebookEntryDraftToInput(
     enabled: draft.enabled,
     strategy: draft.strategy,
     key: parseLorebookEntryKeys(draft.key),
+    keySecondary,
+    selectiveLogic: keySecondary ? draft.selectiveLogic : null,
     insertionOrder: readFiniteNumberInput(draft.insertionOrder, 100),
     insertionPosition: draft.insertionPosition,
     depth,
