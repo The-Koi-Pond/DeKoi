@@ -59,12 +59,49 @@ function definedOrFallback<T>(value: T | undefined, fallback: T) {
   return value === undefined ? fallback : value;
 }
 
+function readFiniteNumber(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function readNonNegativeInteger(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : fallback;
+}
+
+function readNullableNonNegativeInteger(
+  value: number | null | undefined,
+  fallback: number | null,
+) {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : fallback;
+}
+
+function readProbability(value: number | undefined, fallback = 100) {
+  const probability = readFiniteNumber(value, fallback);
+  return Math.min(100, Math.max(0, probability));
+}
+
+function readNullablePercent(
+  value: number | null | undefined,
+  fallback: number | null,
+) {
+  if (value === null) return null;
+  const percent = readNullableNonNegativeInteger(value, fallback);
+  return typeof percent === "number" ? Math.min(100, percent) : percent;
+}
+
 function activationWithDefaults(
   activation: Partial<LorebookActivationSettings> | undefined,
   fallback: LorebookActivationSettings = DEFAULT_LOREBOOK_ACTIVATION,
 ): LorebookActivationSettings {
   return {
-    scanDepth: definedOrFallback(activation?.scanDepth, fallback.scanDepth),
+    scanDepth: readNonNegativeInteger(
+      activation?.scanDepth,
+      fallback.scanDepth,
+    ),
     includeNames: definedOrFallback(
       activation?.includeNames,
       fallback.includeNames,
@@ -81,18 +118,57 @@ function activationWithDefaults(
       activation?.recursiveScan,
       fallback.recursiveScan,
     ),
-    maxRecursionSteps: definedOrFallback(
+    maxRecursionSteps: readNonNegativeInteger(
       activation?.maxRecursionSteps,
       fallback.maxRecursionSteps,
     ),
-    budgetTokens: definedOrFallback(
+    budgetTokens: readNullableNonNegativeInteger(
       activation?.budgetTokens,
       fallback.budgetTokens,
     ),
-    budgetPercent: definedOrFallback(
+    budgetPercent: readNullablePercent(
       activation?.budgetPercent,
       fallback.budgetPercent,
     ),
+  };
+}
+
+function normalizeEntryRecursion(
+  value: LoreEntryRecursion | null | undefined,
+  fallback: LoreEntryRecursion | null,
+) {
+  if (value === undefined) return fallback;
+  if (value === null) return null;
+  return {
+    nonRecursable:
+      typeof value.nonRecursable === "boolean"
+        ? value.nonRecursable
+        : (fallback?.nonRecursable ?? false),
+    preventFurther:
+      typeof value.preventFurther === "boolean"
+        ? value.preventFurther
+        : (fallback?.preventFurther ?? false),
+    delayUntilRecursion:
+      typeof value.delayUntilRecursion === "boolean"
+        ? value.delayUntilRecursion
+        : (fallback?.delayUntilRecursion ?? false),
+    recursionLevel: readNonNegativeInteger(
+      value.recursionLevel,
+      fallback?.recursionLevel ?? 0,
+    ),
+  };
+}
+
+function normalizeEntryTiming(
+  value: LoreEntryTiming | null | undefined,
+  fallback: LoreEntryTiming | null,
+) {
+  if (value === undefined) return fallback;
+  if (value === null) return null;
+  return {
+    sticky: readNonNegativeInteger(value.sticky, fallback?.sticky ?? 0),
+    cooldown: readNonNegativeInteger(value.cooldown, fallback?.cooldown ?? 0),
+    delay: readNonNegativeInteger(value.delay, fallback?.delay ?? 0),
   };
 }
 
@@ -150,14 +226,14 @@ export function createLorebookEntryRecord({
     keySecondary: cleanStringList(input.keySecondary),
     selectiveLogic: input.selectiveLogic ?? null,
     strategy: input.strategy ?? "constant",
-    probability: input.probability ?? 100,
+    probability: readProbability(input.probability),
     inclusionGroup: cleanNullableText(input.inclusionGroup),
     insertionPosition: input.insertionPosition ?? "after-character",
-    insertionOrder: input.insertionOrder ?? 100,
-    depth: input.depth ?? null,
+    insertionOrder: readFiniteNumber(input.insertionOrder, 100),
+    depth: readNullableNonNegativeInteger(input.depth, null),
     role: input.role ?? null,
-    recursion: input.recursion ?? null,
-    timing: input.timing ?? null,
+    recursion: normalizeEntryRecursion(input.recursion, null),
+    timing: normalizeEntryTiming(input.timing, null),
     triggers: input.triggers ?? null,
     characterFilter: input.characterFilter ?? null,
     matchSources: input.matchSources ?? null,
@@ -186,17 +262,26 @@ export function updateLorebookEntryRecord(
         ? record.selectiveLogic
         : input.selectiveLogic,
     strategy: input.strategy ?? record.strategy,
-    probability: input.probability ?? record.probability,
+    probability:
+      input.probability === undefined
+        ? record.probability
+        : readProbability(input.probability, record.probability),
     inclusionGroup:
       input.inclusionGroup === undefined
         ? record.inclusionGroup
         : cleanNullableText(input.inclusionGroup),
     insertionPosition: input.insertionPosition ?? record.insertionPosition,
-    insertionOrder: input.insertionOrder ?? record.insertionOrder,
-    depth: input.depth === undefined ? record.depth : input.depth,
+    insertionOrder: readFiniteNumber(
+      input.insertionOrder,
+      record.insertionOrder,
+    ),
+    depth:
+      input.depth === undefined
+        ? record.depth
+        : readNullableNonNegativeInteger(input.depth, record.depth),
     role: input.role === undefined ? record.role : input.role,
-    recursion: input.recursion === undefined ? record.recursion : input.recursion,
-    timing: input.timing === undefined ? record.timing : input.timing,
+    recursion: normalizeEntryRecursion(input.recursion, record.recursion),
+    timing: normalizeEntryTiming(input.timing, record.timing),
     triggers: input.triggers === undefined ? record.triggers : input.triggers,
     characterFilter:
       input.characterFilter === undefined

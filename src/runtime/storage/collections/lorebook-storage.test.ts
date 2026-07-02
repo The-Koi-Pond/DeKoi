@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  createLorebookEntryRecord,
+  createLorebookRecord,
+  upsertLorebookEntry,
+} from "../../../engine/catalog/lorebook-actions";
 import { normalizeLorebookRecord } from "./lorebook-storage";
 
 describe("normalizeLorebookRecord", () => {
@@ -98,5 +103,46 @@ describe("normalizeLorebookRecord", () => {
 
     expect(record?.entries).toHaveLength(1);
     expect(record?.entries[0]?.id).toBe("valid-entry");
+  });
+
+  it("preserves engine-created v2 records through storage normalization", () => {
+    const now = "2026-06-24T07:00:00.000Z";
+    const lorebook = createLorebookRecord({
+      id: "lorebook-under-test",
+      input: {
+        title: "Activation Contract",
+        activation: {
+          scanDepth: 4,
+          maxRecursionSteps: 8,
+          budgetTokens: 512,
+          budgetPercent: 50,
+        },
+      },
+      now,
+    });
+    const entry = createLorebookEntryRecord({
+      id: "entry-under-test",
+      input: {
+        title: "Defaulted Entry",
+        probability: 75,
+        insertionOrder: 25,
+        depth: 2,
+        recursion: {
+          nonRecursable: true,
+          preventFurther: false,
+          delayUntilRecursion: true,
+          recursionLevel: 3,
+        },
+        timing: {
+          sticky: 1,
+          cooldown: 2,
+          delay: 3,
+        },
+      },
+      now,
+    });
+    const record = upsertLorebookEntry(lorebook, entry, now);
+
+    expect(normalizeLorebookRecord(record)).toEqual(record);
   });
 });
