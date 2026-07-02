@@ -5,6 +5,7 @@ import {
   type MessengerMessage,
   type MessengerThread,
 } from "../contracts/types/messenger";
+import type { LorebookScanSource } from "../generation-core/lorebook-activation";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
@@ -120,6 +121,13 @@ function messageContent(message: MessengerMessage) {
   return `${label}: ${message.body.trim()}`;
 }
 
+function messengerLoreScanSources(thread: MessengerThread): LorebookScanSource[] {
+  return thread.messages.map((message) => ({
+    name: cleanGenerationText(message.author.label) || null,
+    body: message.body,
+  }));
+}
+
 function buildSystemPrompt({
   activePersona,
   companions,
@@ -155,7 +163,12 @@ function buildSystemPrompt({
         characterGenerationContext(companion),
       ),
     ),
-    ...namedGenerationBlock("Selected lore", loreGenerationContext(lorebooks)),
+    ...namedGenerationBlock(
+      "Selected lore",
+      loreGenerationContext(lorebooks, {
+        scanSources: messengerLoreScanSources(thread),
+      }),
+    ),
     ...(targetCompanion?.postHistoryInstructions
       ? [`Post-history instructions\n${targetCompanion.postHistoryInstructions}`]
       : []),

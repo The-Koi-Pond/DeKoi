@@ -10,9 +10,14 @@ import type {
   LorebookEntryInput,
   LorebookInput,
 } from "../../../engine/catalog/lorebook-actions";
+import {
+  DEFAULT_LOREBOOK_ACTIVATION,
+  type LoreEntryStrategy,
+} from "../../../engine/contracts/types/lorebook";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
+import { readScanDepthInput } from "./lorebook-scan-depth";
 import "../shared/CatalogSurface.css";
 
 interface LorebooksSurfaceProps {
@@ -31,6 +36,7 @@ export type LorebooksSurfaceNav = Pick<
     | "deleteLorebookEntry"
     | "duplicateLorebookEntry"
     | "updateLorebookEntry"
+    | "updateLorebook"
   > &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavViewActions, "setView"> &
@@ -40,22 +46,87 @@ interface DraftState {
   title: string;
   body: string;
   enabled: boolean;
+  strategy: LoreEntryStrategy;
+  key: string;
 }
 
 interface LorebookDraftState {
   title: string;
   summary: string;
+  scanDepth: string;
 }
 
-const EMPTY_DRAFT: DraftState = { title: "", body: "", enabled: true };
-const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = { title: "", summary: "" };
+const EMPTY_DRAFT: DraftState = {
+  title: "",
+  body: "",
+  enabled: true,
+  strategy: "constant",
+  key: "",
+};
+const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
+  title: "",
+  summary: "",
+  scanDepth: String(DEFAULT_LOREBOOK_ACTIVATION.scanDepth),
+};
 
 function draftFromEntry(entry: {
   title: string;
   body: string;
   enabled: boolean;
+  strategy: LoreEntryStrategy;
+  key: string[] | null;
 }): DraftState {
-  return { title: entry.title, body: entry.body, enabled: entry.enabled };
+  return {
+    title: entry.title,
+    body: entry.body,
+    enabled: entry.enabled,
+    strategy: entry.strategy,
+    key: entry.key?.join(", ") ?? "",
+  };
+}
+
+function parseKeyList(value: string) {
+  const keys = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return keys.length > 0 ? keys : null;
+}
+
+function ScanDepthInput({
+  fallback,
+  id,
+  initialValue,
+  onCommit,
+}: {
+  fallback: number;
+  id: string;
+  initialValue: number;
+  onCommit: (scanDepth: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(initialValue));
+
+  function commitDraft() {
+    const scanDepth = readScanDepthInput(draft, fallback);
+    setDraft(String(scanDepth));
+    onCommit(scanDepth);
+  }
+
+  return (
+    <input
+      id={id}
+      className="pondinput"
+      type="number"
+      min={0}
+      step={1}
+      value={draft}
+      onBlur={commitDraft}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) =>
+        e.key === "Enter" ? e.currentTarget.blur() : undefined
+      }
+    />
+  );
 }
 
 function draftToInput(draft: DraftState): LorebookEntryInput {
@@ -63,6 +134,8 @@ function draftToInput(draft: DraftState): LorebookEntryInput {
     title: draft.title.trim() || "Untitled note",
     body: draft.body.trim(),
     enabled: draft.enabled,
+    strategy: draft.strategy,
+    key: parseKeyList(draft.key),
   };
 }
 
@@ -143,6 +216,12 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     const input: LorebookInput = {
       title: lorebookDraft.title.trim(),
       summary: lorebookDraft.summary.trim(),
+      activation: {
+        scanDepth: readScanDepthInput(
+          lorebookDraft.scanDepth,
+          DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
+        ),
+      },
     };
     if (!input.title) return;
     const lorebook = nav.createLorebook(input);
@@ -156,6 +235,20 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     if (selectedLorebookId === lorebookId) {
       setSelectedLorebookId(null);
     }
+  }
+
+  function commitActiveScanDepth(scanDepth: number) {
+    if (!activeLorebook) return;
+    if (scanDepth === activeLorebook.activation.scanDepth) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        scanDepth,
+      },
+    });
   }
 
   function renderBanner() {
@@ -221,6 +314,37 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
             placeholder="Optional description"
           />
         </div>
+        <details className="catalog-editor-section" open>
+          <summary>Activation</summary>
+          <div className="catalog-editor-field">
+            <label htmlFor="lorebook-scan-depth">Scan depth</label>
+            <input
+              id="lorebook-scan-depth"
+              className="pondinput"
+              type="number"
+              min={0}
+              step={1}
+              value={lorebookDraft.scanDepth}
+              onBlur={() =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  scanDepth: String(
+                    readScanDepthInput(
+                      lorebookDraft.scanDepth,
+                      DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
+                    ),
+                  ),
+                })
+              }
+              onChange={(e) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  scanDepth: e.target.value,
+                })
+              }
+            />
+          </div>
+        </details>
       </div>
     );
   }
@@ -322,6 +446,20 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
               <p className="lorebook-summary">{activeLorebook.summary}</p>
             )}
 
+            <details className="catalog-editor-section lorebook-activation" open>
+              <summary>Activation</summary>
+              <div className="catalog-editor-field">
+                <label htmlFor="active-lorebook-scan-depth">Scan depth</label>
+                <ScanDepthInput
+                  key={`${activeLorebook.id}:${activeLorebook.activation.scanDepth}`}
+                  id="active-lorebook-scan-depth"
+                  initialValue={activeLorebook.activation.scanDepth}
+                  fallback={activeLorebook.activation.scanDepth}
+                  onCommit={commitActiveScanDepth}
+                />
+              </div>
+            </details>
+
             <div className="catalog-toolbar">
               <span className="catalog-count">{entries.length} entries</span>
               <button
@@ -406,6 +544,45 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     }
                     placeholder="Entry content…"
                   />
+                </div>
+                <div className="catalog-editor-field">
+                  <span className="catalog-editor-label">Strategy</span>
+                  <div className="catalog-segmented" role="group" aria-label="Strategy">
+                    <button
+                      type="button"
+                      aria-pressed={draft.strategy === "constant"}
+                      className={`catalog-segment${draft.strategy === "constant" ? " on" : ""}`}
+                      onClick={() => setDraft({ ...draft, strategy: "constant" })}
+                    >
+                      Constant
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={draft.strategy === "selective"}
+                      className={`catalog-segment${draft.strategy === "selective" ? " on" : ""}`}
+                      onClick={() => setDraft({ ...draft, strategy: "selective" })}
+                    >
+                      Selective
+                    </button>
+                  </div>
+                </div>
+                <div className="catalog-editor-field">
+                  <label htmlFor="lore-key">Key</label>
+                  <input
+                    id="lore-key"
+                    className="pondinput"
+                    type="text"
+                    value={draft.key}
+                    onChange={(e) =>
+                      setDraft({ ...draft, key: e.target.value })
+                    }
+                    placeholder="keyword, another keyword"
+                  />
+                  {draft.strategy === "selective" && !parseKeyList(draft.key) && (
+                    <p className="catalog-field-hint">
+                      Selective entries need at least one key to activate.
+                    </p>
+                  )}
                 </div>
                 <div className="catalog-editor-field catalog-editor-toggle">
                   <span className="catalog-toggle-label">Enabled</span>

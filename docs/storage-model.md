@@ -75,12 +75,19 @@ selective logic, inclusion group, depth, role, recursion, timing, triggers,
 character filter, and match-source blocks.
 
 The lorebook collection adapter normalizes v2 values, filters malformed v2
-entries without dropping valid sibling entries, clamps percentages to 0-100,
-and intentionally rejects pre-v2 lorebook or entry records instead of migrating
-them. Pre-v2 lorebook records were development-only; revisit this before DeKoi
-has supported user data that requires compatibility. Current generation still
-builds prompt context from selected enabled entry bodies and does not apply the
-v2 activation or placement fields yet.
+entries without dropping valid sibling entries, requires non-negative integer
+activation depths, clamps percentages to 0-100, and intentionally rejects pre-v2
+lorebook or entry records instead of migrating them. Pre-v2 lorebook records
+were development-only; revisit this before DeKoi has supported user data that
+requires compatibility. Current generation applies the first activation slice
+before building prompt context: enabled constant entries with non-empty bodies
+activate automatically, while selective entries activate when any non-empty
+plaintext primary key matches the last `scanDepth` transcript items, optionally
+including speaker names. Matching respects `caseSensitiveKeys` and
+`matchWholeWords`; regex-like `/.../` keys are deferred as non-matches.
+Placement, probability, secondary-key logic, recursion, triggers, filters,
+roles, and budget caps remain normalized storage fields but are not applied to
+prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

@@ -393,6 +393,16 @@
     letter-spacing: 0.4px;
 }
 
+.catalog-editor-section summary {
+    color: var(--foam);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
 .catalog-editor-field {
     margin-bottom: 14px;
 }
@@ -408,6 +418,16 @@
 }
 
 .catalog-editor-field label {
+    display: block;
+    color: var(--mist);
+    font-size: 11.5px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.catalog-editor-label {
     display: block;
     color: var(--mist);
     font-size: 11.5px;
@@ -493,6 +513,46 @@
     font-size: 11px;
     line-height: 1.35;
     margin-top: 5px;
+}
+
+.catalog-segmented {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--reed-soft);
+    border-radius: var(--r-sm);
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.catalog-segment {
+    min-width: 92px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: calc(var(--r-sm) - 2px);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    font-family: var(--ui);
+    font-size: 12px;
+    transition: 0.15s;
+}
+
+.catalog-segment:hover,
+.catalog-segment:focus-visible {
+    color: var(--foam);
+}
+
+.catalog-segment.on {
+    border-color: var(--jade);
+    background: var(--shallow);
+    color: var(--jade-hot);
+}
+
+.catalog-field-hint {
+    color: var(--mist-dim);
+    font-size: 11px;
+    line-height: 1.35;
+    margin-top: 6px;
 }
 
 .catalog-editor-field .pondtextarea {

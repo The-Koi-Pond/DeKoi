@@ -101,13 +101,19 @@ Current implementation:
 - Lore entries are `schemaVersion: 2` records; newly created entries default to
   enabled constant notes placed after character context, with optional keys,
   filters, triggers, timing, recursion, role, and match-source blocks unset.
-- Current generation still includes selected enabled entry bodies directly.
-  Activation and placement fields are stored for future selection logic, not
-  applied to prompt assembly yet.
+- Messenger and Roleplay prompt assembly activates selected lorebooks before
+  provider requests. Enabled constant entries with body text always activate;
+  selective entries activate from plaintext primary keys found in recent
+  transcript text using scan depth, speaker-name inclusion, case sensitivity,
+  and whole-word settings. Regex-like `/.../` keys are stored but ignored by
+  current activation.
+- Catalog UI exposes entry Strategy, comma-separated Key, and lorebook Scan
+  depth. Remaining advanced activation and placement fields are storage-only.
 
 Not fully settled yet:
 
-- Runtime keyword matching, placement, priority, and token budgeting behavior.
+- Placement, priority, secondary-key logic, recursion, triggers, filters, role
+  placement, probability, and token budgeting behavior.
 - UI for advanced activation fields.
 - Import format.
 

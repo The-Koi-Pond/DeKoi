@@ -427,9 +427,14 @@ lorebook rows were development-only and are rejected by DeKoi normalization
 rather than migrated.
 
 When `generation_generate` includes selected lorebooks, they use the same v2
-shape. Current DeKoi prompt assembly already flattens selected enabled entry
-bodies into `promptMessages`; compatible runtimes do not need to implement
-lorebook activation or placement matching for Phase 0.
+shape. Current DeKoi prompt assembly resolves selected lorebooks into
+`promptMessages` before sending the request. Compatible runtimes should use
+`promptMessages` for provider calls and do not need to re-run lorebook
+activation. Phase 1 activation includes enabled non-empty constant entries and
+selective entries whose plaintext primary keys match recent transcript text
+using the lorebook activation settings. Placement, priority, recursion,
+secondary-key logic, and token-budget fields are still not applied by DeKoi
+prompt assembly.
 
 `storage_list`:
 

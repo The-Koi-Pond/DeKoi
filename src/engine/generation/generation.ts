@@ -2,6 +2,11 @@ import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
+import {
+  activateLorebookEntries,
+  buildScanBuffer,
+  type LorebookScanSource,
+} from "../generation-core/lorebook-activation";
 
 export type GenerationProviderKind =
   | "remote-runtime"
@@ -138,16 +143,27 @@ export function personaGenerationContext(
 
 export function loreGenerationContext(
   lorebooks: LorebookRecord[],
-  options: { includeSummary?: boolean } = {},
+  options: { includeSummary?: boolean; scanSources?: LorebookScanSource[] } = {},
 ) {
-  return lorebooks.flatMap((lorebook) => [
-    ...(options.includeSummary && lorebook.summary.trim()
-      ? [`${lorebook.title}: ${lorebook.summary.trim()}`]
-      : []),
-    ...lorebook.entries
-      .filter((entry) => entry.enabled && entry.body.trim())
-      .map((entry) => `${lorebook.title} / ${entry.title}: ${entry.body.trim()}`),
-  ]);
+  return lorebooks.flatMap((lorebook) => {
+    const scanBuffer = buildScanBuffer(
+      options.scanSources ?? [],
+      lorebook.activation,
+    );
+    const activatedEntries = activateLorebookEntries(lorebook, scanBuffer);
+
+    return [
+      ...(options.includeSummary &&
+      activatedEntries.length > 0 &&
+      lorebook.summary.trim()
+        ? [`${lorebook.title}: ${lorebook.summary.trim()}`]
+        : []),
+      ...activatedEntries.map(
+        ({ entry, lorebookTitle }) =>
+          `${lorebookTitle} / ${entry.title}: ${entry.body.trim()}`,
+      ),
+    ];
+  });
 }
 
 export function exampleDialogueGenerationContext(companions: CharacterRecord[]) {
