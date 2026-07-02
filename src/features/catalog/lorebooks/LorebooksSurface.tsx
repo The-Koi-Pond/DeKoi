@@ -16,6 +16,7 @@ import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
 import {
   canSaveLorebookEntryDraft,
+  entryDraftDisablesBannerSave,
   lorebookEntryDraftToInput,
   parseLorebookEntryKeys,
   type LorebookEntryDraft,
@@ -241,7 +242,11 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       : editingEntryId
         ? "Save Changes"
         : "Create";
-    const saveDisabled = showEditor && !canSaveLorebookEntryDraft(draft);
+    const saveDisabled = entryDraftDisablesBannerSave({
+      draft,
+      showEditor,
+      showLorebookEditor,
+    });
     const deleteAction =
       showEditor && editingEntryId
         ? () => handleDelete(editingEntryId)

@@ -25,6 +25,22 @@ export function canSaveLorebookEntryDraft(draft: LorebookEntryDraft) {
   );
 }
 
+export function entryDraftDisablesBannerSave({
+  draft,
+  showEditor,
+  showLorebookEditor,
+}: {
+  draft: LorebookEntryDraft;
+  showEditor: boolean;
+  showLorebookEditor: boolean;
+}) {
+  return (
+    showEditor &&
+    !showLorebookEditor &&
+    !canSaveLorebookEntryDraft(draft)
+  );
+}
+
 export function lorebookEntryDraftToInput(
   draft: LorebookEntryDraft,
 ): LorebookEntryInput {

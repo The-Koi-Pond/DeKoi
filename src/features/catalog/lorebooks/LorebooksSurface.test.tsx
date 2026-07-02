@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canSaveLorebookEntryDraft,
+  entryDraftDisablesBannerSave,
   lorebookEntryDraftToInput,
   parseLorebookEntryKeys,
   type LorebookEntryDraft,
@@ -73,5 +74,28 @@ describe("lorebook entry draft helpers", () => {
       strategy: "selective",
       key: ["canal"],
     });
+  });
+
+  it("applies entry draft save blocking only when the entry editor owns save", () => {
+    const invalidSelectiveDraft: LorebookEntryDraft = {
+      ...baseDraft,
+      strategy: "selective",
+      key: "",
+    };
+
+    expect(
+      entryDraftDisablesBannerSave({
+        draft: invalidSelectiveDraft,
+        showEditor: true,
+        showLorebookEditor: false,
+      }),
+    ).toBe(true);
+    expect(
+      entryDraftDisablesBannerSave({
+        draft: invalidSelectiveDraft,
+        showEditor: true,
+        showLorebookEditor: true,
+      }),
+    ).toBe(false);
   });
 });
