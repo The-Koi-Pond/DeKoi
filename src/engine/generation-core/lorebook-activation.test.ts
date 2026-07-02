@@ -119,6 +119,18 @@ describe("lorebook activation", () => {
     expect(buffer).toBe("B: second\nC: third");
   });
 
+  it("drops empty-body sources before applying scan depth", () => {
+    const buffer = buildScanBuffer(
+      [
+        { name: "Alex", body: "open the moon gate" },
+        { name: "Moon Gate", body: "   " },
+      ],
+      { scanDepth: 1, includeNames: true },
+    );
+
+    expect(buffer).toBe("Alex: open the moon gate");
+  });
+
   it("includes or excludes names from the scan buffer", () => {
     const sources = [{ name: "SecretName", body: "ordinary body" }];
 

@@ -39,16 +39,26 @@ export function buildScanBuffer(
   activation: Pick<LorebookActivationSettings, "scanDepth" | "includeNames">,
 ) {
   const scanDepth = Math.max(0, activation.scanDepth);
+  const filledSources = sources.flatMap((source) => {
+    const body = source.body?.trim() ?? "";
+    if (!body) return [];
+    return [
+      {
+        name: source.name?.trim() ?? "",
+        body,
+      },
+    ];
+  });
   const selectedSources =
-    scanDepth === 0 ? [] : sources.slice(Math.max(0, sources.length - scanDepth));
+    scanDepth === 0
+      ? []
+      : filledSources.slice(Math.max(0, filledSources.length - scanDepth));
 
   return selectedSources
     .map((source) => {
-      const body = source.body?.trim() ?? "";
-      const name = activation.includeNames ? source.name?.trim() : "";
-      return [name, body].filter(Boolean).join(": ");
+      const name = activation.includeNames ? source.name : "";
+      return [name, source.body].filter(Boolean).join(": ");
     })
-    .filter(Boolean)
     .join("\n");
 }
 

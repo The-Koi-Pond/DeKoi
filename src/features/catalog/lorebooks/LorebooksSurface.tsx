@@ -6,10 +6,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
-import type {
-  LorebookEntryInput,
-  LorebookInput,
-} from "../../../engine/catalog/lorebook-actions";
+import type { LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import {
   DEFAULT_LOREBOOK_ACTIVATION,
   type LoreEntryStrategy,
@@ -17,6 +14,12 @@ import {
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
+import {
+  canSaveLorebookEntryDraft,
+  lorebookEntryDraftToInput,
+  parseLorebookEntryKeys,
+  type LorebookEntryDraft,
+} from "./lorebook-entry-draft";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 import "../shared/CatalogSurface.css";
 
@@ -42,21 +45,13 @@ export type LorebooksSurfaceNav = Pick<
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
-interface DraftState {
-  title: string;
-  body: string;
-  enabled: boolean;
-  strategy: LoreEntryStrategy;
-  key: string;
-}
-
 interface LorebookDraftState {
   title: string;
   summary: string;
   scanDepth: string;
 }
 
-const EMPTY_DRAFT: DraftState = {
+const EMPTY_DRAFT: LorebookEntryDraft = {
   title: "",
   body: "",
   enabled: true,
@@ -75,7 +70,7 @@ function draftFromEntry(entry: {
   enabled: boolean;
   strategy: LoreEntryStrategy;
   key: string[] | null;
-}): DraftState {
+}): LorebookEntryDraft {
   return {
     title: entry.title,
     body: entry.body,
@@ -83,14 +78,6 @@ function draftFromEntry(entry: {
     strategy: entry.strategy,
     key: entry.key?.join(", ") ?? "",
   };
-}
-
-function parseKeyList(value: string) {
-  const keys = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return keys.length > 0 ? keys : null;
 }
 
 function ScanDepthInput({
@@ -129,16 +116,6 @@ function ScanDepthInput({
   );
 }
 
-function draftToInput(draft: DraftState): LorebookEntryInput {
-  return {
-    title: draft.title.trim() || "Untitled note",
-    body: draft.body.trim(),
-    enabled: draft.enabled,
-    strategy: draft.strategy,
-    key: parseKeyList(draft.key),
-  };
-}
-
 export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   const routedLorebookId =
     nav.view.kind === "lorebooks" ? nav.view.lorebookId : null;
@@ -151,7 +128,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     initialLorebookId,
   );
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<LorebookEntryDraft>(EMPTY_DRAFT);
   const [showEditor, setShowEditor] = useState(false);
   const [showLorebookEditor, setShowLorebookEditor] = useState(
     nav.view.kind === "lorebooks" && nav.view.mode === "new-lorebook",
@@ -179,7 +156,9 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
 
   function handleSave() {
     if (!selectedLorebookId) return;
-    const input = draftToInput(draft);
+    if (!canSaveLorebookEntryDraft(draft)) return;
+
+    const input = lorebookEntryDraftToInput(draft);
     if (!input.title.trim()) return;
 
     if (editingEntryId) {
@@ -262,6 +241,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       : editingEntryId
         ? "Save Changes"
         : "Create";
+    const saveDisabled = showEditor && !canSaveLorebookEntryDraft(draft);
     const deleteAction =
       showEditor && editingEntryId
         ? () => handleDelete(editingEntryId)
@@ -273,8 +253,9 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
         onBack={() => nav.setView({ kind: "pond" })}
         onDelete={deleteAction}
         onSave={saveAction}
+        saveDisabled={saveDisabled}
         saveLabel={saveLabel}
-        saveState={saveAction ? "pending" : "clean"}
+        saveState={saveAction && !saveDisabled ? "pending" : "clean"}
         title="Lorebooks"
       />
     );
@@ -578,11 +559,12 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     }
                     placeholder="keyword, another keyword"
                   />
-                  {draft.strategy === "selective" && !parseKeyList(draft.key) && (
-                    <p className="catalog-field-hint">
-                      Selective entries need at least one key to activate.
-                    </p>
-                  )}
+                  {draft.strategy === "selective" &&
+                    !parseLorebookEntryKeys(draft.key) && (
+                      <p className="catalog-field-hint">
+                        Selective entries need at least one key to activate.
+                      </p>
+                    )}
                 </div>
                 <div className="catalog-editor-field catalog-editor-toggle">
                   <span className="catalog-toggle-label">Enabled</span>

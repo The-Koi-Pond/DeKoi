@@ -5,7 +5,10 @@ import {
   createLorebookRecord,
 } from "../catalog/lorebook-actions";
 import type { CharacterRecord } from "../contracts/types/character";
-import type { LorebookRecord } from "../contracts/types/lorebook";
+import type {
+  LorebookActivationSettings,
+  LorebookRecord,
+} from "../contracts/types/lorebook";
 import type {
   MessengerMessage,
   MessengerThread,
@@ -60,10 +63,12 @@ function selectiveLorebook({
   id,
   summary = "",
   title,
+  activation,
 }: {
   id: string;
   title: string;
   summary?: string;
+  activation?: Partial<LorebookActivationSettings>;
   entries: {
     body: string;
     id: string;
@@ -73,7 +78,7 @@ function selectiveLorebook({
 }): LorebookRecord {
   const record = createLorebookRecord({
     id,
-    input: { title, summary },
+    input: { title, summary, activation },
     now,
   });
 
@@ -180,6 +185,60 @@ describe("generation lorebook activation wiring", () => {
       "City Lore / Canal: The canals run under the old district.",
     );
     expect(systemPrompt).not.toContain("The tower bell rings at dawn.");
+  });
+
+  it("ignores blank trailing Messenger messages before scan-depth accounting", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [
+        messengerMessage("message-1", "Did you see the canal?"),
+        messengerMessage("message-2", "   "),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [character()],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { scanDepth: 1 },
+          entries: [
+            {
+              id: "match",
+              title: "Canal",
+              body: "The canals run under the old district.",
+              key: ["canal"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+
+    expect(request.promptMessages[0].content).toContain(
+      "City Lore / Canal: The canals run under the old district.",
+    );
   });
 
   it("includes Roleplay lorebook summaries only when an entry activates", () => {
