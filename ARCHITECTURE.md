@@ -223,7 +223,9 @@ The short version:
   still owns the provider connection record plus provider helpers until that
   mixed module is split. The lorebook contract is the first catalog record at
   `schemaVersion: 2`; it stores activation, placement, trigger, filter, and
-  budget fields before those fields have full UI and generation behavior.
+  budget fields. `src/engine/generation-core/lorebook-activation.ts` owns the
+  first prompt-activation slice; placement, budgeting, recursion, and advanced
+  matching remain future behavior.
 - `src/engine/catalog/character-actions.ts`,
   `src/engine/catalog/persona-actions.ts`,
   `src/engine/catalog/lorebook-actions.ts`, and
@@ -234,7 +236,8 @@ The short version:
 - `src/engine/generation/generation.ts`,
   `src/engine/generation/messenger-generation.ts`, and
   `src/engine/generation/roleplay-generation.ts` build shared, Messenger, and
-  Roleplay provider-neutral generation requests.
+  Roleplay provider-neutral generation requests, including activated lorebook
+  context for selected Messenger or Roleplay lorebooks.
 - `src/features/*` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
   controller for the app provider, including top-level app state, storage sync,

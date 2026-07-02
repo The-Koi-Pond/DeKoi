@@ -6,6 +6,7 @@ import type {
   RoleplayEntry,
   RoleplayThread,
 } from "../contracts/types/roleplay";
+import type { LorebookScanSource } from "../generation-core/lorebook-activation";
 import {
   characterGenerationContext,
   cleanGenerationText,
@@ -95,6 +96,13 @@ function roleplayEntryContent(entry: RoleplayEntry) {
   if (entry.role === "scene") return `Scene: ${entry.body.trim()}`;
   if (entry.role === "narration") return `Narration: ${entry.body.trim()}`;
   return `${label}: ${entry.body.trim()}`;
+}
+
+function roleplayLoreScanSources(thread: RoleplayThread): LorebookScanSource[] {
+  return thread.entries.map((entry) => ({
+    name: cleanGenerationText(entry.label) || null,
+    body: entry.body,
+  }));
 }
 
 export function getNextRoleplayCompanion(
@@ -199,7 +207,10 @@ function buildRoleplaySystemPrompt({
     ),
     ...namedGenerationBlock(
       "Selected lore",
-      loreGenerationContext(lorebooks, { includeSummary: true }),
+      loreGenerationContext(lorebooks, {
+        includeSummary: true,
+        scanSources: roleplayLoreScanSources(thread),
+      }),
     ),
     ...namedGenerationBlock(
       "Example dialogue",
