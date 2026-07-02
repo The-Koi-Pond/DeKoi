@@ -183,6 +183,9 @@ The short version:
 - Relationships are stored as IDs and documented with cleanup expectations.
 - Import/export validates schema versions and never treats provider secrets as
   ordinary records.
+- Lorebook records currently use a DeKoi-native `schemaVersion: 2` foundation;
+  pre-v2 lorebook rows were development-only and are rejected rather than
+  migrated.
 - Provider connection records store metadata only; desktop provider secrets are
   scoped to the connection provider and base URL.
 - Collection adapters depend on `storage-repository-factory.ts`, keeping the
@@ -218,7 +221,9 @@ The short version:
   and app-level record contracts. `src/engine/contracts/constants/surfaces.ts`
   defines the surface IDs and metadata. `src/engine/contracts/types/provider-connection.ts`
   still owns the provider connection record plus provider helpers until that
-  mixed module is split.
+  mixed module is split. The lorebook contract is the first catalog record at
+  `schemaVersion: 2`; it stores activation, placement, trigger, filter, and
+  budget fields before those fields have full UI and generation behavior.
 - `src/engine/catalog/character-actions.ts`,
   `src/engine/catalog/persona-actions.ts`,
   `src/engine/catalog/lorebook-actions.ts`, and
@@ -299,3 +304,4 @@ The short version:
   dispatch, and the remote fixture aligned.
 - `pnpm check:desktop-contracts` keeps desktop command names aligned.
 - `pnpm check:frontend-boundaries` keeps frontend import direction aligned.
+- `pnpm test` runs fast Vitest unit tests under `src/**/*.test.{ts,tsx}`.

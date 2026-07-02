@@ -183,6 +183,7 @@ function normalizeList<T extends { id: string }>(
   label: string,
   normalizeRecord: (value: unknown) => T | null,
   warnings: string[],
+  expectedSchemaVersion = 1,
 ) {
   if (!Array.isArray(value)) {
     warnings.push(`${label} was missing or not an array; imported as empty.`);
@@ -191,7 +192,9 @@ function normalizeList<T extends { id: string }>(
 
   const normalized = normalizeStorageRecordList(value, normalizeRecord);
   if (normalized === null) {
-    warnings.push(`${label} did not contain valid schema version 1 records.`);
+    warnings.push(
+      `${label} did not contain valid schema version ${expectedSchemaVersion} records.`,
+    );
     return [];
   }
 
@@ -409,6 +412,7 @@ export function normalizeDeKoiStorageBundle(
       "Lorebooks",
       normalizeLorebookRecord,
       warnings,
+      2,
     ),
     providerConnections: normalizeList(
       rawProviderConnections,

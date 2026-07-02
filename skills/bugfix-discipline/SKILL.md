@@ -117,6 +117,8 @@ changed:
 
 - TypeScript, shared UI, engine behavior, or import graph changes: `pnpm build`
   and, when relevant, `pnpm lint`.
+- Engine actions, storage normalization, parsers, or other fast pure TypeScript
+  behavior with unit coverage: `pnpm test`.
 - Feature boundary changes: `pnpm check:frontend-boundaries`.
 - Storage contracts, import/export, bundle handling, or persistence changes:
   `pnpm check:storage-contracts`.

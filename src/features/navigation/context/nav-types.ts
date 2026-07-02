@@ -2,7 +2,7 @@ import type { CharacterRecord } from "../../../engine/contracts/types/character"
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
 import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import type {
-  LorebookEntryRecord,
+  LoreEntryRecord,
   LorebookRecord,
 } from "../../../engine/contracts/types/lorebook";
 import type {
@@ -138,7 +138,7 @@ export interface NavLorebookActions {
   createLorebookEntry: (
     lorebookId: string,
     input: LorebookEntryInput,
-  ) => LorebookEntryRecord | null;
+  ) => LoreEntryRecord | null;
   updateLorebookEntry: (
     lorebookId: string,
     entryId: string,
@@ -147,7 +147,7 @@ export interface NavLorebookActions {
   duplicateLorebookEntry: (
     lorebookId: string,
     entryId: string,
-  ) => LorebookEntryRecord | null;
+  ) => LoreEntryRecord | null;
   deleteLorebookEntry: (lorebookId: string, entryId: string) => void;
   createLorebook: (input: LorebookInput) => LorebookRecord;
   updateLorebook: (lorebookId: string, input: LorebookInput) => void;

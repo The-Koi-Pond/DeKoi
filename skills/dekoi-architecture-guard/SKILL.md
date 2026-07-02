@@ -106,6 +106,8 @@ Run the smallest matching check first, then broaden when shared paths changed:
   engine boundaries, runtime boundaries, or app composition boundaries.
 - `pnpm check:storage-contracts` for storage records, collection contracts,
   bundle import/export, or legacy import normalization.
+- `pnpm test` for fast engine, storage, parser, or pure TypeScript behavior
+  covered by co-located unit tests.
 - `pnpm check:provider-secret-safety` for provider connection records, bundle
   secret redaction, desktop provider secret lookup, or editor key handling.
 - `pnpm check:runtime-contracts` for remote-runtime command names or wrappers.

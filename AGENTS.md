@@ -49,9 +49,25 @@ then follow these repo rules and the matching local skill.
 - Add durable test files only when a maintainer asks, a known regression needs a
   focused guard, the behavior is risky and easy to break silently, or the touched
   area already has a narrow nearby test pattern.
+- Co-located `*.test.*` files are allowed when they are the narrowest durable
+  guard for pure logic or contracts. Prefer them when they prevent regression
+  more clearly than a broader harness; avoid them when they only add code
+  clutter.
 - Before adding a durable test artifact, state `Durable test rationale`: the
   risky invariant, why existing proof is insufficient, and why the test is
   narrow.
+- Meaningful tests must protect behavior from the outside-in. Expected values
+  should trace to the user request, implementation plan, docs, contract, or a
+  hand-written fixture, not to private implementation details.
+- Avoid circular validation: do not generate tests from the finished code path
+  and then treat passing tests as proof. Prefer spec-first tests, fail-first
+  tests, or a seeded bad variant/mutation that proves the test can fail.
+- For risky logic, include negative controls and edge cases, not only happy
+  paths. A reviewer should be able to name at least one plausible broken
+  implementation that the test would catch.
+- Coverage counts are secondary. Use line/branch coverage only as a gap finder;
+  do not use high test count or high coverage percentage as proof of semantic
+  depth.
 
 ## Validation
 
@@ -62,6 +78,7 @@ Run checks that match the change:
 - Provider secret safety: `pnpm check:provider-secret-safety`
 - Runtime command contracts: `pnpm check:runtime-contracts`
 - Frontend boundaries: `pnpm check:frontend-boundaries`
+- Unit tests: `pnpm test`
 - Bunny review workflow/docs: `pnpm check:bunny-review`
 - TypeScript build/bundling: `pnpm build`
 - Lint: `pnpm lint`

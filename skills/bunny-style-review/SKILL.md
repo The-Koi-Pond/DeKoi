@@ -186,6 +186,7 @@ git diff --name-only
 git diff <base>...HEAD -- <path>
 git diff -- <path>
 rg -n "console\\." src src-tauri
+pnpm test
 pnpm build
 pnpm lint
 pnpm check:desktop-contracts

@@ -1,21 +1,99 @@
 import type {
-  LorebookEntryRecord,
+  LoreCharacterFilter,
+  LorebookActivationSettings,
   LorebookRecord,
+  LoreEntryRecord,
+  LoreEntryRecursion,
+  LoreEntryRole,
+  LoreEntryStrategy,
+  LoreEntryTiming,
+  LoreEntryTriggers,
+  LoreInsertionPosition,
+  LoreMatchSources,
+  LoreSelectiveLogic,
 } from "../contracts/types/lorebook";
+import { DEFAULT_LOREBOOK_ACTIVATION } from "../contracts/types/lorebook";
 
 export interface LorebookEntryInput {
   title: string;
   body?: string;
   enabled?: boolean;
+  key?: string[] | null;
+  keySecondary?: string[] | null;
+  selectiveLogic?: LoreSelectiveLogic | null;
+  strategy?: LoreEntryStrategy;
+  probability?: number;
+  inclusionGroup?: string | null;
+  insertionPosition?: LoreInsertionPosition;
+  insertionOrder?: number;
+  depth?: number | null;
+  role?: LoreEntryRole | null;
+  recursion?: LoreEntryRecursion | null;
+  timing?: LoreEntryTiming | null;
+  triggers?: LoreEntryTriggers | null;
+  characterFilter?: LoreCharacterFilter | null;
+  matchSources?: LoreMatchSources | null;
 }
 
 export interface LorebookInput {
   title: string;
   summary?: string;
+  activation?: Partial<LorebookActivationSettings>;
 }
 
 function cleanText(value: string | undefined, fallback = "") {
   return value?.trim() || fallback;
+}
+
+function cleanNullableText(value: string | null | undefined) {
+  return value?.trim() || null;
+}
+
+function cleanStringList(value: string[] | null | undefined) {
+  if (!value) return null;
+  const cleaned = value.map((item) => item.trim()).filter(Boolean);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function definedOrFallback<T>(value: T | undefined, fallback: T) {
+  return value === undefined ? fallback : value;
+}
+
+function activationWithDefaults(
+  activation: Partial<LorebookActivationSettings> | undefined,
+  fallback: LorebookActivationSettings = DEFAULT_LOREBOOK_ACTIVATION,
+): LorebookActivationSettings {
+  return {
+    scanDepth: definedOrFallback(activation?.scanDepth, fallback.scanDepth),
+    includeNames: definedOrFallback(
+      activation?.includeNames,
+      fallback.includeNames,
+    ),
+    caseSensitiveKeys: definedOrFallback(
+      activation?.caseSensitiveKeys,
+      fallback.caseSensitiveKeys,
+    ),
+    matchWholeWords: definedOrFallback(
+      activation?.matchWholeWords,
+      fallback.matchWholeWords,
+    ),
+    recursiveScan: definedOrFallback(
+      activation?.recursiveScan,
+      fallback.recursiveScan,
+    ),
+    maxRecursionSteps: definedOrFallback(
+      activation?.maxRecursionSteps,
+      fallback.maxRecursionSteps,
+    ),
+    budgetTokens: definedOrFallback(
+      activation?.budgetTokens,
+      fallback.budgetTokens,
+    ),
+    budgetPercent: definedOrFallback(
+      activation?.budgetPercent,
+      fallback.budgetPercent,
+    ),
+  };
 }
 
 export function createLorebookRecord({
@@ -29,9 +107,10 @@ export function createLorebookRecord({
 }): LorebookRecord {
   return {
     id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     title: cleanText(input.title, "Untitled lorebook"),
     summary: cleanText(input.summary),
+    activation: activationWithDefaults(input.activation),
     entries: [],
     createdAt: now,
     updatedAt: now,
@@ -47,6 +126,7 @@ export function updateLorebookRecord(
     ...record,
     title: cleanText(input.title, record.title),
     summary: cleanText(input.summary),
+    activation: activationWithDefaults(input.activation, record.activation),
     updatedAt,
   };
 }
@@ -59,36 +139,80 @@ export function createLorebookEntryRecord({
   id: string;
   input: LorebookEntryInput;
   now: string;
-}): LorebookEntryRecord {
+}): LoreEntryRecord {
   return {
     id,
+    schemaVersion: 2,
     title: cleanText(input.title, "Untitled note"),
     body: cleanText(input.body),
     enabled: input.enabled ?? true,
+    key: cleanStringList(input.key),
+    keySecondary: cleanStringList(input.keySecondary),
+    selectiveLogic: input.selectiveLogic ?? null,
+    strategy: input.strategy ?? "constant",
+    probability: input.probability ?? 100,
+    inclusionGroup: cleanNullableText(input.inclusionGroup),
+    insertionPosition: input.insertionPosition ?? "after-character",
+    insertionOrder: input.insertionOrder ?? 100,
+    depth: input.depth ?? null,
+    role: input.role ?? null,
+    recursion: input.recursion ?? null,
+    timing: input.timing ?? null,
+    triggers: input.triggers ?? null,
+    characterFilter: input.characterFilter ?? null,
+    matchSources: input.matchSources ?? null,
     createdAt: now,
     updatedAt: now,
   };
 }
 
 export function updateLorebookEntryRecord(
-  record: LorebookEntryRecord,
+  record: LoreEntryRecord,
   input: LorebookEntryInput,
   updatedAt: string,
-): LorebookEntryRecord {
+): LoreEntryRecord {
   return {
     ...record,
     title: cleanText(input.title, record.title),
-    body: cleanText(input.body),
+    body: input.body === undefined ? record.body : cleanText(input.body),
     enabled: input.enabled ?? record.enabled,
+    key: input.key === undefined ? record.key : cleanStringList(input.key),
+    keySecondary:
+      input.keySecondary === undefined
+        ? record.keySecondary
+        : cleanStringList(input.keySecondary),
+    selectiveLogic:
+      input.selectiveLogic === undefined
+        ? record.selectiveLogic
+        : input.selectiveLogic,
+    strategy: input.strategy ?? record.strategy,
+    probability: input.probability ?? record.probability,
+    inclusionGroup:
+      input.inclusionGroup === undefined
+        ? record.inclusionGroup
+        : cleanNullableText(input.inclusionGroup),
+    insertionPosition: input.insertionPosition ?? record.insertionPosition,
+    insertionOrder: input.insertionOrder ?? record.insertionOrder,
+    depth: input.depth === undefined ? record.depth : input.depth,
+    role: input.role === undefined ? record.role : input.role,
+    recursion: input.recursion === undefined ? record.recursion : input.recursion,
+    timing: input.timing === undefined ? record.timing : input.timing,
+    triggers: input.triggers === undefined ? record.triggers : input.triggers,
+    characterFilter:
+      input.characterFilter === undefined
+        ? record.characterFilter
+        : input.characterFilter,
+    matchSources:
+      input.matchSources === undefined ? record.matchSources : input.matchSources,
     updatedAt,
   };
 }
 
 export function duplicateLorebookEntryRecord(
-  record: LorebookEntryRecord,
+  record: LoreEntryRecord,
   id: string,
   now: string,
-): LorebookEntryRecord {
+): LoreEntryRecord {
   return {
     ...record,
     id,
@@ -100,7 +224,7 @@ export function duplicateLorebookEntryRecord(
 
 export function upsertLorebookEntry(
   lorebook: LorebookRecord,
-  entry: LorebookEntryRecord,
+  entry: LoreEntryRecord,
   updatedAt: string,
 ): LorebookRecord {
   const exists = lorebook.entries.some(

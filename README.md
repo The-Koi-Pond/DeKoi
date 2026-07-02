@@ -38,6 +38,12 @@ Run the optional desktop host:
 pnpm tauri:dev
 ~~~
 
+Run fast unit tests:
+
+~~~sh
+pnpm test
+~~~
+
 Run the full local check:
 
 ~~~sh
