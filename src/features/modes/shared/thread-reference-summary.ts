@@ -1,4 +1,3 @@
-import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
@@ -48,15 +47,15 @@ function countSelectedIds(
 }
 
 export function getThreadReferenceSummary({
-  appSettings,
   characters,
+  fallbackProviderConnectionId,
   lorebooks,
   personas,
   providerConnections,
   thread,
 }: {
-  appSettings: AppSettings;
   characters: readonly CharacterRecord[];
+  fallbackProviderConnectionId?: string | null;
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
@@ -69,9 +68,9 @@ export function getThreadReferenceSummary({
     providerConnections.map((connection) => connection.id),
   );
   const explicitConnectionId = thread.providerConnectionId?.trim() ?? "";
-  const defaultConnectionId = appSettings.activeMessengerConnectionId.trim();
+  const fallbackConnectionId = fallbackProviderConnectionId?.trim() ?? "";
   const hasFallbackConnection =
-    (!!defaultConnectionId && connectionIds.has(defaultConnectionId)) ||
+    (!!fallbackConnectionId && connectionIds.has(fallbackConnectionId)) ||
     providerConnections.length > 0;
 
   return {

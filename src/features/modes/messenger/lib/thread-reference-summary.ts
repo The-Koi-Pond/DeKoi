@@ -37,8 +37,8 @@ export function getMessengerThreadReferenceSummary({
   thread: MessengerThread;
 }): MessengerThreadReferenceSummary {
   return getThreadReferenceSummary({
-    appSettings,
     characters,
+    fallbackProviderConnectionId: appSettings.activeMessengerConnectionId,
     lorebooks,
     personas,
     providerConnections,
