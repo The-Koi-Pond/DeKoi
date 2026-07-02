@@ -18,16 +18,16 @@ for exact fields or saved-file formats.
 
 ## First Product Areas
 
-The first DeKoi loop is **Messenger**.
+The first polished DeKoi loop is **Messenger**.
 
 A Messenger thread is a DM-style thread between the user and one or more
 characters. It should feel like a private or group message chat: compact turns,
 quick replies, clear speakers, and saved history.
 
-Roleplay now exists as the second native surface in early form. It reuses
-characters, personas, lorebooks, providers, generation contracts, split
-transcript storage, and Ripples where that makes sense, while keeping room for
-scene presentation and continuity needs that diverge from Messenger.
+Roleplay now exists as the second native surface. It reuses characters,
+personas, lorebooks, providers, generation contracts, split transcript storage,
+and Ripples where that makes sense, while keeping room for scene presentation
+and continuity needs that diverge from Messenger.
 
 Game/adventure-style play is intentionally out of scope for now.
 
@@ -225,11 +225,15 @@ Likely relationships:
 
 - Has one or more character participants.
 - May have one active persona.
+- May attach lorebooks and choose a provider connection.
 - Contains RoleplayEntries.
 - May reference scene media later.
 
 Important behavior:
 
+- Thread settings update Roleplay participants, persona, lorebooks, and
+  provider connection through Roleplay-owned actions instead of Messenger
+  records.
 - Durable storage keeps RoleplayEntries in a separate collection keyed by thread
   ID, while UI and generation receive assembled RoleplayThread objects.
 
@@ -299,16 +303,20 @@ proof. The current app proves:
 1. Create and edit Companions, Personas, Lorebooks, and provider connections.
 2. Create Messenger and Roleplay threads.
 3. Store MessengerMessages and RoleplayEntries in split transcript collections.
-4. Save and reload DeKoi-native records through desktop storage or a compatible
+4. Edit Messenger and Roleplay thread settings for connection, persona,
+   companions, and lorebooks; adjust shared generation parameters from the
+   settings rail; and see missing-reference notices before send.
+5. Save and reload DeKoi-native records through desktop storage or a compatible
    remote runtime.
-5. Export and import DeKoi-native bundles through the desktop host.
-6. Import legacy threads one way into native Messenger records.
-7. Generate provider-backed Messenger and Roleplay replies through the runtime
+6. Export and import DeKoi-native bundles through the desktop host.
+7. Import legacy threads one way into native Messenger records.
+8. Generate provider-backed Messenger and Roleplay replies through the runtime
    boundary.
 
-Messenger remains the first polish target. Roleplay, provider transport,
-desktop storage, bundle import/export, legacy import, and Ripples are present in
-early form and should keep deepening behind the same native record boundaries.
+Messenger remains the most mature path. Roleplay now has native settings and
+missing-reference guards, while provider transport, desktop storage, bundle
+import/export, legacy import, Ripples, and deeper Roleplay scene semantics
+should keep deepening behind the same native record boundaries.
 
 ## Later Boundaries
 

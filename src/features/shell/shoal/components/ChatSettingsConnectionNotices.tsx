@@ -10,6 +10,7 @@ interface ChatSettingsConnectionNoticesProps {
   connectionCount: number;
   hasMissingConnection: boolean;
   missingConnectionResolution: MissingConnectionResolution;
+  surfaceLabel?: string;
   onCreateConnection: () => void;
   onResolveMissingConnection: (connectionId: string | null) => void;
 }
@@ -19,6 +20,7 @@ export function ChatSettingsConnectionNotices({
   connectionCount,
   hasMissingConnection,
   missingConnectionResolution,
+  surfaceLabel = "Messenger",
   onCreateConnection,
   onResolveMissingConnection,
 }: ChatSettingsConnectionNoticesProps) {
@@ -42,7 +44,7 @@ export function ChatSettingsConnectionNotices({
             actionLabel="Create connection"
             onAction={onCreateConnection}
           >
-            Create a connection before Messenger can generate replies.
+            Create a connection before {surfaceLabel} can generate replies.
           </ChatSettingsNotice>
         )}
     </>

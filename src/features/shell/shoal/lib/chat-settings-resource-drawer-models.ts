@@ -26,7 +26,7 @@ export interface ChatSettingsLorebookResourceModel {
 }
 
 interface ChatSettingsResourceDrawerModelsInput {
-  activeMessengerThread: boolean;
+  activeThread: boolean;
   openDrawers: Pick<
     Record<ChatSettingsDrawerId, boolean>,
     "companions" | "lorebooks" | "prompt"
@@ -41,30 +41,30 @@ export interface ChatSettingsResourceDrawerModels {
 }
 
 export function getChatSettingsResourceDrawerModels({
-  activeMessengerThread,
+  activeThread,
   openDrawers,
   viewModel,
 }: ChatSettingsResourceDrawerModelsInput): ChatSettingsResourceDrawerModels {
   return {
     companion: {
-      activeMessengerThread,
+      activeMessengerThread: activeThread,
       missingCompanionCount: viewModel.missingCompanionCount,
-      open: activeMessengerThread && openDrawers.companions,
+      open: activeThread && openDrawers.companions,
       selectedCompanionCount: viewModel.selectedCompanionCount,
       selectedCompanionIds: viewModel.selectedCompanionIds,
       selectionLabel: viewModel.companionSelectionLabel,
       summary: viewModel.companionDrawerSummary,
     },
     lorebook: {
-      activeMessengerThread,
+      activeMessengerThread: activeThread,
       missingLorebookCount: viewModel.missingLorebookCount,
-      open: activeMessengerThread && openDrawers.lorebooks,
+      open: activeThread && openDrawers.lorebooks,
       selectedLorebookIds: viewModel.selectedLorebookIds,
       summary: viewModel.lorebookDrawerSummary,
     },
     prompt: {
-      activeMessengerThread,
-      open: activeMessengerThread && openDrawers.prompt,
+      activeMessengerThread: activeThread,
+      open: activeThread && openDrawers.prompt,
       systemPromptMode: viewModel.systemPromptMode,
     },
   };

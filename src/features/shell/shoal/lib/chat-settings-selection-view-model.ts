@@ -1,20 +1,22 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 
 export function getCompanionSettingsViewModel({
-  activeMessengerThread,
+  activeThread,
   characters,
+  threadLabel,
 }: {
-  activeMessengerThread: MessengerThread | null;
+  activeThread: ChatSettingsThreadRecord | null;
   characters: readonly CharacterRecord[];
+  threadLabel: string;
 }) {
   const settingsCharacterById = new Map(
     characters.map((character) => [character.id, character]),
   );
-  const selectedCompanionIds = activeMessengerThread?.characterIds ?? [];
-  const selectedCompanionNames = activeMessengerThread
-    ? activeMessengerThread.characterIds.flatMap((characterId) => {
+  const selectedCompanionIds = activeThread?.characterIds ?? [];
+  const selectedCompanionNames = activeThread
+    ? activeThread.characterIds.flatMap((characterId) => {
         const character = settingsCharacterById.get(characterId);
         return character ? [character.displayName] : [];
       })
@@ -24,8 +26,8 @@ export function getCompanionSettingsViewModel({
   );
   const selectedCompanionCount = selectedCompanionNames.length;
   const missingCompanionCount = missingCompanionIds.length;
-  const companionDrawerSummary = !activeMessengerThread
-    ? "No active Messenger thread"
+  const companionDrawerSummary = !activeThread
+    ? `No active ${threadLabel} thread`
     : missingCompanionCount > 0
       ? `${selectedCompanionNames.length} selected, ${missingCompanionCount} missing`
       : selectedCompanionCount === 0
@@ -49,18 +51,20 @@ export function getCompanionSettingsViewModel({
 }
 
 export function getLorebookSettingsViewModel({
-  activeMessengerThread,
+  activeThread,
   lorebooks,
+  threadLabel,
 }: {
-  activeMessengerThread: MessengerThread | null;
+  activeThread: ChatSettingsThreadRecord | null;
   lorebooks: readonly LorebookRecord[];
+  threadLabel: string;
 }) {
   const settingsLorebookById = new Map(
     lorebooks.map((lorebook) => [lorebook.id, lorebook]),
   );
-  const selectedLorebookIds = activeMessengerThread?.lorebookIds ?? [];
-  const selectedLorebookNames = activeMessengerThread
-    ? activeMessengerThread.lorebookIds.flatMap((lorebookId) => {
+  const selectedLorebookIds = activeThread?.lorebookIds ?? [];
+  const selectedLorebookNames = activeThread
+    ? activeThread.lorebookIds.flatMap((lorebookId) => {
         const lorebook = settingsLorebookById.get(lorebookId);
         return lorebook ? [lorebook.title] : [];
       })
@@ -70,8 +74,8 @@ export function getLorebookSettingsViewModel({
   );
   const selectedLorebookCount = selectedLorebookNames.length;
   const missingLorebookCount = missingLorebookIds.length;
-  const lorebookDrawerSummary = !activeMessengerThread
-    ? "No active Messenger thread"
+  const lorebookDrawerSummary = !activeThread
+    ? `No active ${threadLabel} thread`
     : missingLorebookCount > 0
       ? `${selectedLorebookNames.length} selected, ${missingLorebookCount} missing`
       : selectedLorebookCount === 0

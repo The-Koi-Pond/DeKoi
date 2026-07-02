@@ -25,11 +25,11 @@ export function ChatSettingsMessengerRailContent({
     <>
       <ChatSettingsNameControls
         key={settings.activeMessengerThreadId ?? "no-messenger-thread"}
-        activeMessengerThread={settings.activeMessengerThread}
-        activeMessengerThreadId={settings.activeMessengerThreadId}
+        activeThread={settings.activeMessengerThread}
+        activeThreadId={settings.activeMessengerThreadId}
         settingsLabel={settingsLabel}
         onCloseChatSettings={onCloseChatSettings}
-        onRenameMessengerThread={nav.renameMessengerThread}
+        onRenameThread={nav.renameMessengerThread}
       />
       <ChatSettingsMessengerDrawerHost
         actions={actions}

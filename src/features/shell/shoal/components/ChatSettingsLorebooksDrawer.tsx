@@ -10,6 +10,7 @@ interface ChatSettingsLorebooksDrawerProps {
   open: boolean;
   selectedLorebookIds: string[];
   summary: string;
+  surfaceLabel?: string;
   onClearMissingLorebooks: () => void;
   onCreateLorebook: () => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
@@ -23,6 +24,7 @@ export function ChatSettingsLorebooksDrawer({
   open,
   selectedLorebookIds,
   summary,
+  surfaceLabel = "Messenger",
   onClearMissingLorebooks,
   onCreateLorebook,
   onToggle,
@@ -41,6 +43,7 @@ export function ChatSettingsLorebooksDrawer({
         lorebooks={lorebooks}
         missingLorebookCount={missingLorebookCount}
         selectedLorebookIds={selectedLorebookIds}
+        surfaceLabel={surfaceLabel}
         onClearMissingLorebooks={onClearMissingLorebooks}
         onCreateLorebook={onCreateLorebook}
         onToggleLorebook={onToggleLorebook}

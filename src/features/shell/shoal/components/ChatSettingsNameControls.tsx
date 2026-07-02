@@ -1,22 +1,21 @@
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { useChatSettingsNameEditor } from "../hooks/use-chat-settings-name-editor";
-import type { ShoalNav } from "../types";
+import type { ChatSettingsThreadRecord } from "../lib/chat-settings-thread-record";
 import { ChatSettingsRailHead } from "./ChatSettingsRailHead";
 
 interface ChatSettingsNameControlsProps {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
+  activeThread: ChatSettingsThreadRecord | null;
+  activeThreadId: string | null;
   settingsLabel: string;
   onCloseChatSettings: () => void;
-  onRenameMessengerThread: ShoalNav["renameMessengerThread"];
+  onRenameThread: (threadId: string, title: string) => void;
 }
 
 export function ChatSettingsNameControls({
-  activeMessengerThread,
-  activeMessengerThreadId,
+  activeThread,
+  activeThreadId,
   settingsLabel,
   onCloseChatSettings,
-  onRenameMessengerThread,
+  onRenameThread,
 }: ChatSettingsNameControlsProps) {
   const {
     activeChatName,
@@ -26,15 +25,15 @@ export function ChatSettingsNameControls({
     startChatNameEdit,
     updateChatNameValue,
   } = useChatSettingsNameEditor({
-    activeMessengerThread,
-    activeMessengerThreadId,
-    onRenameMessengerThread,
+    activeThread,
+    activeThreadId,
+    onRenameThread,
   });
 
   return (
     <ChatSettingsRailHead
       activeChatName={activeChatName}
-      chatNameDisabled={!activeMessengerThread}
+      chatNameDisabled={!activeThread}
       chatNameEditing={activeChatNameEditor.editing}
       chatNameValue={activeChatNameEditor.value}
       settingsLabel={settingsLabel}

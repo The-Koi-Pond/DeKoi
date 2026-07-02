@@ -15,7 +15,10 @@ export type ShoalNav = Pick<
 > &
   Pick<
     NavRoleplayThreadActions,
-    "createRoleplayThread" | "deleteRoleplayThread" | "renameRoleplayThread"
+    | "createRoleplayThread"
+    | "deleteRoleplayThread"
+    | "renameRoleplayThread"
+    | "updateRoleplayThread"
   > &
   Pick<
     NavMessengerThreadActions,

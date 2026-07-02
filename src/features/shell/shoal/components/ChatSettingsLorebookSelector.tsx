@@ -6,6 +6,7 @@ interface ChatSettingsLorebookSelectorProps {
   lorebooks: LorebookRecord[];
   missingLorebookCount: number;
   selectedLorebookIds: string[];
+  surfaceLabel?: string;
   onClearMissingLorebooks: () => void;
   onCreateLorebook: () => void;
   onToggleLorebook: (lorebookId: string) => void;
@@ -16,6 +17,7 @@ export function ChatSettingsLorebookSelector({
   lorebooks,
   missingLorebookCount,
   selectedLorebookIds,
+  surfaceLabel = "Messenger",
   onClearMissingLorebooks,
   onCreateLorebook,
   onToggleLorebook,
@@ -30,7 +32,7 @@ export function ChatSettingsLorebookSelector({
         >
           {missingLorebookCount} selected lorebook
           {missingLorebookCount === 1 ? " is" : "s are"} no longer saved.
-          Missing lorebooks are skipped when Messenger builds a reply.
+          Missing lorebooks are skipped when {surfaceLabel} builds a reply.
         </ChatSettingsNotice>
       )}
       {lorebooks.length === 0 ? (
@@ -38,7 +40,7 @@ export function ChatSettingsLorebookSelector({
           actionLabel="Create lorebook"
           onAction={onCreateLorebook}
         >
-          No lorebooks yet. Messenger can start without lore, or you can create
+          No lorebooks yet. {surfaceLabel} can start without lore, or you can create
           one for reusable context.
         </ChatSettingsNotice>
       ) : (

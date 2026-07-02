@@ -1,9 +1,9 @@
 import type { AppSettings } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
+import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import {
   getThreadReferenceNotices,
   getThreadReferenceSummary,
@@ -12,16 +12,16 @@ import {
   type ThreadReferenceSummary,
 } from "../../shared/thread-reference-summary";
 
-const MESSENGER_REFERENCE_LABELS = {
-  surfaceLabel: "Messenger",
+const ROLEPLAY_REFERENCE_LABELS = {
+  surfaceLabel: "Roleplay",
   settingsLabel: "thread settings",
   threadNoun: "thread",
 };
 
-export type MessengerThreadReferenceSummary = ThreadReferenceSummary;
-export type MessengerThreadReferenceNotice = ThreadReferenceNotice;
+export type RoleplayThreadReferenceSummary = ThreadReferenceSummary;
+export type RoleplayThreadReferenceNotice = ThreadReferenceNotice;
 
-export function getMessengerThreadReferenceSummary({
+export function getRoleplayThreadReferenceSummary({
   appSettings,
   characters,
   lorebooks,
@@ -34,8 +34,8 @@ export function getMessengerThreadReferenceSummary({
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
-  thread: MessengerThread;
-}): MessengerThreadReferenceSummary {
+  thread: RoleplayThread;
+}): RoleplayThreadReferenceSummary {
   return getThreadReferenceSummary({
     characters,
     fallbackProviderConnectionId: appSettings.activeMessengerConnectionId,
@@ -46,14 +46,14 @@ export function getMessengerThreadReferenceSummary({
   });
 }
 
-export function getMessengerThreadReferenceNotices(
-  summary: MessengerThreadReferenceSummary,
-): MessengerThreadReferenceNotice[] {
-  return getThreadReferenceNotices(summary, MESSENGER_REFERENCE_LABELS);
+export function getRoleplayThreadReferenceNotices(
+  summary: RoleplayThreadReferenceSummary,
+): RoleplayThreadReferenceNotice[] {
+  return getThreadReferenceNotices(summary, ROLEPLAY_REFERENCE_LABELS);
 }
 
-export function getMessengerThreadSendBlocker(
-  summary: MessengerThreadReferenceSummary,
+export function getRoleplayThreadSendBlocker(
+  summary: RoleplayThreadReferenceSummary,
 ) {
-  return getThreadSendBlocker(summary, MESSENGER_REFERENCE_LABELS);
+  return getThreadSendBlocker(summary, ROLEPLAY_REFERENCE_LABELS);
 }

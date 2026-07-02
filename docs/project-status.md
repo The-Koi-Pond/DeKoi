@@ -19,10 +19,15 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider-backed generation notices in Messenger and Roleplay format common
   failures into actions for API keys, Base URL, selected model, provider support,
   and network reachability while preserving provider refusal/error detail.
-- Messenger settings surface no-active-thread, empty-catalog, and missing
-  connection/persona/companion/lorebook states with narrow recovery actions.
-- Messenger thread surface exposes thread settings, pre-send missing-reference
-  notices, and touch-friendly edit/delete message actions.
+- Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
+  missing connection/persona/companion/lorebook states with narrow recovery
+  actions through mode-native records.
+- Messenger and Roleplay thread surfaces expose thread settings, pre-send
+  missing-reference notices, and touch-friendly confirmation-aware edit/delete
+  message or entry actions.
+- Roleplay thread settings now update thread name, connection, persona,
+  companions, and lorebooks through Roleplay-native records, while exposing the
+  shared advanced generation drawer in the Roleplay settings rail.
 - Desktop collection metadata checks and explicit storage reload from Pond Care,
   with reload blocked while local saves are pending.
 - Pond Care storage repair for malformed desktop collections, using explicit
@@ -38,7 +43,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.
-- Roleplay is present as a native surface, but the first product loop is still centered on Messenger and shared catalog records.
+- Roleplay now has native thread settings and send guards, but deeper
+  scene-specific semantics, media, and visual-novel presentation remain early.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media and preset rails are placeholder-only.
@@ -51,8 +57,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 Build in this order unless the active task redirects:
 
 1. Harden provider connection UX and provider-backed generation errors.
-2. Polish Messenger thread settings, send/edit/delete, and missing-reference UX.
-3. Bring Roleplay closer to Messenger parity while keeping mode records separate.
+2. Polish Messenger and Roleplay thread settings, send/edit/delete, and
+   missing-reference UX.
+3. Deepen Roleplay-specific scene semantics while keeping mode records separate.
 4. Harden catalog validation, deletion cleanup, and empty states.
 5. Keep bundle import/export, legacy import, desktop storage repair, and runtime
    contracts reliable as storage changes.

@@ -135,7 +135,8 @@ For architecture or mode-sensitive work, load the matching repo-local skill:
 - `skills/dekoi-architecture-guard/SKILL.md` for source lanes, imports,
   runtime wrappers, storage boundaries, Rust commands, and shared-code placement.
 - `skills/dekoi-mode-separation/SKILL.md` for Messenger, Roleplay, shared
-  generation, shared mode UI, prompt routing, ripple state, or mode storage.
+  generation, shared mode UI/helpers, prompt routing, ripple state, or mode
+  storage.
 
 Architecture gate:
 

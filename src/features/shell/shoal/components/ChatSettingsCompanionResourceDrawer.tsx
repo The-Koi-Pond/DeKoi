@@ -7,6 +7,7 @@ interface ChatSettingsCompanionResourceDrawerProps {
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   model: ChatSettingsCompanionResourceModel;
+  surfaceLabel?: string;
   onClearMissingCompanions: () => void;
   onCreateCompanion: () => void;
   onSelectorOpenChange: (open: boolean) => void;
@@ -18,6 +19,7 @@ export function ChatSettingsCompanionResourceDrawer({
   characters,
   companionSelectorOpen,
   model,
+  surfaceLabel = "Messenger",
   onClearMissingCompanions,
   onCreateCompanion,
   onSelectorOpenChange,
@@ -35,6 +37,7 @@ export function ChatSettingsCompanionResourceDrawer({
       selectedCompanionIds={model.selectedCompanionIds}
       selectionLabel={model.selectionLabel}
       summary={model.summary}
+      surfaceLabel={surfaceLabel}
       onClearMissingCompanions={onClearMissingCompanions}
       onCreateCompanion={onCreateCompanion}
       onSelectorOpenChange={onSelectorOpenChange}

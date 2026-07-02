@@ -1,5 +1,6 @@
 import { ChatSettingsMessengerRailContent } from "./ChatSettingsMessengerRailContent";
 import { ChatSettingsRailShell } from "./ChatSettingsRailShell";
+import { ChatSettingsRoleplayRailContent } from "./ChatSettingsRoleplayRailContent";
 import { ChatSettingsUnavailableNotice } from "./ChatSettingsUnavailableNotice";
 import { useChatSettingsRailController } from "../hooks/use-chat-settings-rail-controller";
 import type { ShoalRailProps } from "../types";
@@ -14,8 +15,11 @@ export function ChatSettingsRail({
 }: ShoalRailProps) {
   const {
     isMessengerSettings,
+    isRoleplaySettings,
     messengerActions,
     messengerSettings,
+    roleplayActions,
+    roleplaySettings,
     settingsLabel,
   } = useChatSettingsRailController({ nav });
 
@@ -32,6 +36,14 @@ export function ChatSettingsRail({
         <ChatSettingsMessengerRailContent
           actions={messengerActions}
           settings={messengerSettings}
+          nav={nav}
+          settingsLabel={settingsLabel}
+          onCloseChatSettings={onCloseChatSettings}
+        />
+      ) : isRoleplaySettings ? (
+        <ChatSettingsRoleplayRailContent
+          actions={roleplayActions}
+          settings={roleplaySettings}
           nav={nav}
           settingsLabel={settingsLabel}
           onCloseChatSettings={onCloseChatSettings}

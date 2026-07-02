@@ -1,78 +1,78 @@
 import { useState } from "react";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { ChatSettingsThreadRecord } from "../lib/chat-settings-thread-record";
 
 interface UseChatSettingsNameEditorInput {
-  activeMessengerThread: MessengerThread | null;
-  activeMessengerThreadId: string | null;
-  onRenameMessengerThread: (threadId: string, title: string) => void;
+  activeThread: ChatSettingsThreadRecord | null;
+  activeThreadId: string | null;
+  onRenameThread: (threadId: string, title: string) => void;
 }
 
 export function useChatSettingsNameEditor({
-  activeMessengerThread,
-  activeMessengerThreadId,
-  onRenameMessengerThread,
+  activeThread,
+  activeThreadId,
+  onRenameThread,
 }: UseChatSettingsNameEditorInput) {
-  const activeMessengerThreadTitle = activeMessengerThread?.title ?? "";
+  const activeThreadTitle = activeThread?.title ?? "";
   const [chatNameEditor, setChatNameEditor] = useState<{
     editing: boolean;
     threadId: string | null;
     value: string;
   }>({
     editing: false,
-    threadId: activeMessengerThread?.id ?? null,
-    value: activeMessengerThread?.title ?? "",
+    threadId: activeThread?.id ?? null,
+    value: activeThread?.title ?? "",
   });
-  const activeChatName = activeMessengerThread?.title.trim() || "Untitled chat";
+  const activeChatName = activeThread?.title.trim() || "Untitled chat";
   const activeChatNameEditor =
-    chatNameEditor.threadId === activeMessengerThreadId
+    chatNameEditor.threadId === activeThreadId
       ? chatNameEditor
       : {
           editing: false,
-          threadId: activeMessengerThreadId,
-          value: activeMessengerThreadTitle,
+          threadId: activeThreadId,
+          value: activeThreadTitle,
         };
 
   function startChatNameEdit() {
-    if (!activeMessengerThread) return;
+    if (!activeThread) return;
     setChatNameEditor({
       editing: true,
-      threadId: activeMessengerThread.id,
-      value: activeMessengerThread.title,
+      threadId: activeThread.id,
+      value: activeThread.title,
     });
   }
 
   function saveChatName() {
     if (
-      !activeMessengerThread ||
-      activeChatNameEditor.threadId !== activeMessengerThreadId ||
-      activeChatNameEditor.threadId !== activeMessengerThread.id
+      !activeThread ||
+      activeChatNameEditor.threadId !== activeThreadId ||
+      activeChatNameEditor.threadId !== activeThread.id
     ) {
       cancelChatNameEdit();
       return;
     }
     const nextTitle = activeChatNameEditor.value.trim();
     if (nextTitle) {
-      onRenameMessengerThread(activeMessengerThread.id, nextTitle);
+      onRenameThread(activeThread.id, nextTitle);
     }
     setChatNameEditor({
       editing: false,
-      threadId: activeMessengerThread.id,
-      value: nextTitle || activeMessengerThread.title,
+      threadId: activeThread.id,
+      value: nextTitle || activeThread.title,
     });
   }
 
   function cancelChatNameEdit() {
     setChatNameEditor({
       editing: false,
-      threadId: activeMessengerThread?.id ?? null,
-      value: activeMessengerThread?.title ?? "",
+      threadId: activeThread?.id ?? null,
+      value: activeThread?.title ?? "",
     });
   }
 
   function updateChatNameValue(value: string) {
     setChatNameEditor({
       editing: true,
-      threadId: activeMessengerThread?.id ?? null,
+      threadId: activeThread?.id ?? null,
       value,
     });
   }

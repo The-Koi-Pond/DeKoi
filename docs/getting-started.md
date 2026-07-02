@@ -97,7 +97,9 @@ pnpm check:runtime-contracts
 
 ## First Launch Notes
 
-- Start with Messenger and catalog surfaces before expecting full provider behavior.
+- Start with catalog records, then Messenger or Roleplay threads. Roleplay has
+  native thread settings and send guards, but deeper scene-specific polish is
+  still early.
 - Use Pond Care > Deep Water to confirm the selected runtime path.
 - Use Pond Care > Stocking for DeKoi-native bundle import and export. Imports
   preview first, require confirmation, create a pre-import backup, and then

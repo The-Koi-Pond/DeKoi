@@ -22,7 +22,7 @@ export interface ChatSettingsPersonaDrawerModel {
 }
 
 interface ChatSettingsIdentityDrawerModelsInput {
-  activeMessengerThread: boolean;
+  activeThread: boolean;
   openDrawers: Pick<Record<ChatSettingsDrawerId, boolean>, "connection" | "persona">;
   viewModel: ChatSettingsViewModel;
 }
@@ -33,26 +33,26 @@ export interface ChatSettingsIdentityDrawerModels {
 }
 
 export function getChatSettingsIdentityDrawerModels({
-  activeMessengerThread,
+  activeThread,
   openDrawers,
   viewModel,
 }: ChatSettingsIdentityDrawerModelsInput): ChatSettingsIdentityDrawerModels {
   return {
     connection: {
-      activeMessengerThread,
+      activeMessengerThread: activeThread,
       connections: viewModel.sanitizedProviderConnections,
       fallbackConnection: viewModel.fallbackConnection,
       fallbackConnectionPrefix: viewModel.fallbackConnectionPrefix,
       hasMissingConnection: viewModel.hasMissingConnection,
       messengerConnectionValue: viewModel.messengerConnectionValue,
       missingConnectionResolution: viewModel.missingConnectionResolution,
-      open: activeMessengerThread && openDrawers.connection,
+      open: activeThread && openDrawers.connection,
       summary: viewModel.connectionSummary,
     },
     persona: {
-      activeMessengerThread,
+      activeMessengerThread: activeThread,
       hasMissingPersona: viewModel.hasMissingPersona,
-      open: activeMessengerThread && openDrawers.persona,
+      open: activeThread && openDrawers.persona,
       selectedPersonaId: viewModel.selectedPersonaId,
       summary: viewModel.personaSummary,
     },

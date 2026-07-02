@@ -26,7 +26,7 @@ src/features/catalog/
 
 src/features/modes/
   User mode surfaces and mode-specific UI: messenger, roleplay, and shared
-  mode UI such as ChatComposer.
+  mode-safe UI/helpers such as ChatComposer and reference summaries.
 
 src/features/runtime/
   React-free feature workflows for generation, ripples, and storage.

@@ -33,8 +33,8 @@ then follow these repo rules and the matching local skill.
   Rust capabilities, storage, providers, import/export, or cross-feature
   behavior.
 - Load `skills/dekoi-mode-separation/SKILL.md` before edits that affect
-  Messenger, Roleplay, shared generation, shared mode UI, prompt routing, ripple
-  state, or mode storage.
+  Messenger, Roleplay, shared generation, shared mode UI/helpers, prompt
+  routing, ripple state, or mode storage.
 - Load `skills/bugfix-discipline/SKILL.md` for nontrivial bug fixes,
   regressions, failing checks, storage/provider/import/generation/runtime
   issues, or fixes that could affect dependent modules.
@@ -80,9 +80,9 @@ otherwise needs the baseline.
   Roleplay, catalog records, provider connections, Ripples, and generation
   request assembly.
 - `src/features`: React surfaces. `features/modes` owns Messenger and Roleplay
-  screens; `features/catalog` owns catalog editors; `features/shell` owns Pond
-  care/settings/import/export surfaces; `features/runtime` owns runtime-facing
-  workflows.
+  screens plus shared mode-safe UI/helpers; `features/catalog` owns catalog
+  editors; `features/shell` owns Pond care/settings/import/export surfaces;
+  `features/runtime` owns runtime-facing workflows.
 - `src/runtime`: app snapshot orchestration, storage adapters, bundle
   import/export normalization, and legacy import into DeKoi-native records.
 - `src/shared`: generic UI primitives, styling tokens, browser helpers, and

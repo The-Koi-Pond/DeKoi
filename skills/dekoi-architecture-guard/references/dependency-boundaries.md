@@ -39,7 +39,7 @@ Forbidden:
 - `src/features/catalog/**` importing higher feature layers.
 - Concrete mode packages importing each other directly:
   `src/features/modes/messenger` and `src/features/modes/roleplay` compose only
-  through public mode entrypoints and shared mode UI.
+  through public mode entrypoints and shared mode-safe UI/helpers.
 - `src/features/modes/shared/**` importing concrete mode packages.
 - Feature code importing another package's private components, hooks, stores,
   state, lib, or API folders.
@@ -57,7 +57,8 @@ Ask these before adding a file:
    `src/features/shell`.
 3. Does it coordinate concrete mode UI? Put it in
    `src/features/modes/messenger` or `src/features/modes/roleplay`.
-4. Is it shared mode UI? Put it in `src/features/modes/shared`.
+4. Is it shared mode UI or a feature-level helper shared by Messenger and
+   Roleplay? Put it in `src/features/modes/shared`.
 5. Is it a React-free workflow used by modes or shell? Put it in
    `src/features/runtime`.
 6. Is it catalog data, record actions, or a library surface? Put it in
@@ -70,8 +71,9 @@ Ask these before adding a file:
    narrow command.
 10. Is it a runtime wrapper for embedded Tauri or remote-runtime HTTP? Put it in
    `src/shared/api`.
-11. Is it pure and reused by multiple modes? Put it in a mode-neutral engine
-   helper only if it does not encode mode orchestration.
+11. Is it pure product behavior reused by multiple modes? Put it in a
+   mode-neutral engine helper only if it does not encode mode orchestration or
+   feature-facing UI copy.
 
 ## File Splitting
 

@@ -15,46 +15,56 @@ import {
   getCompanionSettingsViewModel,
   getLorebookSettingsViewModel,
 } from "./chat-settings-selection-view-model";
+import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 
 interface ChatSettingsViewModelInput {
-  activeMessengerThread: MessengerThread | null;
+  activeMessengerThread?: MessengerThread | null;
+  activeThread?: ChatSettingsThreadRecord | null;
   appSettings: AppSettings;
   characters: readonly CharacterRecord[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
+  threadLabel?: string;
 }
 
 export function getChatSettingsViewModel({
-  activeMessengerThread,
+  activeMessengerThread = null,
+  activeThread: explicitActiveThread,
   appSettings,
   characters,
   lorebooks,
   personas,
   providerConnections,
+  threadLabel = "Messenger",
 }: ChatSettingsViewModelInput) {
+  const activeThread = explicitActiveThread ?? activeMessengerThread;
   const sanitizedProviderConnections = providerConnections.map((connection) =>
     sanitizeProviderConnectionRecord(connection),
   );
-  const systemPromptMode = activeMessengerThread?.systemPromptMode ?? "default";
+  const systemPromptMode = activeThread?.systemPromptMode ?? "default";
 
   return {
     ...getConnectionSettingsViewModel({
-      activeMessengerThread,
+      activeThread,
       appSettings,
       sanitizedProviderConnections,
+      threadLabel,
     }),
     ...getPersonaSettingsViewModel({
-      activeMessengerThread,
+      activeThread,
       personas,
+      threadLabel,
     }),
     ...getCompanionSettingsViewModel({
-      activeMessengerThread,
+      activeThread,
       characters,
+      threadLabel,
     }),
     ...getLorebookSettingsViewModel({
-      activeMessengerThread,
+      activeThread,
       lorebooks,
+      threadLabel,
     }),
     sanitizedProviderConnections,
     systemPromptMode,

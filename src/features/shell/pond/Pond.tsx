@@ -60,7 +60,7 @@ export function Pond({ nav, onOpenShoal }: PondProps) {
         {inMessenger ? (
           <MessengerThread nav={nav} onOpenSideRail={onOpenShoal} />
         ) : inRoleplay ? (
-          <RoleplayThread nav={nav} />
+          <RoleplayThread nav={nav} onOpenSideRail={onOpenShoal} />
         ) : (
           <PondHome nav={nav} />
         )}
