@@ -2,6 +2,10 @@ import {
   getProviderConnectionProviderOption,
   type ProviderConnectionRecord,
 } from "../../../../engine/contracts/types/provider-connection";
+import {
+  ChatSettingsDropdown,
+  type ChatSettingsDropdownOption,
+} from "./ChatSettingsDropdown";
 
 interface ChatSettingsConnectionSelectProps {
   activeMessengerThread: boolean;
@@ -25,56 +29,63 @@ export function ChatSettingsConnectionSelect({
   const fallbackConnectionProvider = fallbackConnection
     ? getProviderConnectionProviderOption(fallbackConnection.provider)
     : null;
+  const options: ChatSettingsDropdownOption[] =
+    connections.length === 0
+      ? [
+          hasMissingConnection
+            ? {
+                disabled: true,
+                label: "Missing connection",
+                value: messengerConnectionValue,
+              }
+            : { disabled: true, label: "No connections", value: "" },
+        ]
+      : [
+          ...(hasMissingConnection
+            ? [
+                {
+                  disabled: true,
+                  label: "Missing connection",
+                  value: messengerConnectionValue,
+                },
+              ]
+            : [
+                {
+                  label:
+                    fallbackConnection && fallbackConnectionProvider
+                      ? `${fallbackConnectionPrefix} · ${
+                          fallbackConnection.label
+                        } · ${fallbackConnectionProvider.label} · ${
+                          fallbackConnection.model || "No model"
+                        }`
+                      : `${fallbackConnectionPrefix} · No connection`,
+                  value: "",
+                },
+              ]),
+          ...connections.map((connection) => {
+            const provider = getProviderConnectionProviderOption(
+              connection.provider,
+            );
+            const model = connection.model || "No model";
+
+            return {
+              label: `${connection.label} · ${provider.label} · ${model}`,
+              value: connection.id,
+            };
+          }),
+        ];
 
   return (
-    <label className="chat-settings-field">
-      <span>Provider</span>
-      <select
-        className="pondsel"
+    <div className="chat-settings-field chat-settings-dropdown-field">
+      <span id="chat-settings-provider-label">Provider</span>
+      <ChatSettingsDropdown
         value={messengerConnectionValue}
+        labelledBy="chat-settings-provider-label"
+        menuId="chat-settings-provider-menu"
+        options={options}
         disabled={!activeMessengerThread || connections.length === 0}
-        onChange={(event) => onConnectionChange(event.currentTarget.value)}
-      >
-        {connections.length === 0 ? (
-          hasMissingConnection ? (
-            <option value={messengerConnectionValue} disabled>
-              Missing connection
-            </option>
-          ) : (
-            <option value="">No connections</option>
-          )
-        ) : (
-          <>
-            {hasMissingConnection && (
-              <option value={messengerConnectionValue} disabled>
-                Missing connection
-              </option>
-            )}
-            {!hasMissingConnection && (
-              <option value="">
-                {fallbackConnectionPrefix} ·{" "}
-                {fallbackConnection && fallbackConnectionProvider
-                  ? `${fallbackConnection.label} · ${
-                      fallbackConnectionProvider.label
-                    } · ${fallbackConnection.model || "No model"}`
-                  : "No connection"}
-              </option>
-            )}
-            {connections.map((connection) => {
-              const provider = getProviderConnectionProviderOption(
-                connection.provider,
-              );
-              const model = connection.model || "No model";
-
-              return (
-                <option value={connection.id} key={connection.id}>
-                  {connection.label} · {provider.label} · {model}
-                </option>
-              );
-            })}
-          </>
-        )}
-      </select>
-    </label>
+        onChange={onConnectionChange}
+      />
+    </div>
   );
 }

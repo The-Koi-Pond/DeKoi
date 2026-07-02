@@ -1,5 +1,6 @@
 import type { MessengerSystemPromptMode } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsDrawer } from "./ChatSettingsBlocks";
+import { ChatSettingsDropdown } from "./ChatSettingsDropdown";
 import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 
 interface ChatSettingsPromptDrawerProps {
@@ -31,22 +32,22 @@ export function ChatSettingsPromptDrawer({
       title="Messenger Prompt"
       onToggle={onToggle}
     >
-      <label className="chat-settings-field">
-        <span>Messenger system prompt</span>
+      <div className="chat-settings-field">
+        <span id="chat-settings-prompt-label">Messenger system prompt</span>
         <div className="chat-settings-prompt-select">
-          <select
-            className="pondsel"
+          <ChatSettingsDropdown
             value={systemPromptMode}
+            labelledBy="chat-settings-prompt-label"
+            menuId="chat-settings-prompt-menu"
+            options={[
+              { label: "Default", value: "default" },
+              { label: "Custom", value: "custom" },
+            ]}
             disabled={!activeMessengerThread}
-            onChange={(event) =>
-              onSystemPromptModeChange(
-                event.currentTarget.value as MessengerSystemPromptMode,
-              )
+            onChange={(value) =>
+              onSystemPromptModeChange(value as MessengerSystemPromptMode)
             }
-          >
-            <option value="default">Default</option>
-            <option value="custom">Custom</option>
-          </select>
+          />
           <button
             type="button"
             className="chat-settings-edit-button"
@@ -56,7 +57,7 @@ export function ChatSettingsPromptDrawer({
             Edit
           </button>
         </div>
-      </label>
+      </div>
     </ChatSettingsDrawer>
   );
 }
