@@ -1,8 +1,9 @@
 import type { LorebookActivationSettings } from "../contracts/types/lorebook";
-import type {
-  ActivatedLoreEntry,
-  LorebookActivationResult,
-  PrimaryMatchCountResult,
+import {
+  activatedLoreEntryKey,
+  type ActivatedLoreEntry,
+  type LorebookActivationResult,
+  type PrimaryMatchCountResult,
 } from "./lorebook-activation-types";
 
 interface FinalizeActivationResultOptions {
@@ -88,20 +89,51 @@ function chooseInclusionGroupWinner(
   return chooseWeightedGroupWinner(entries, rand);
 }
 
+function collectConnectedInclusionEntries({
+  entries,
+  entriesByGroup,
+  groupsByEntryKey,
+  startEntry,
+}: {
+  entries: ActivatedLoreEntry[];
+  entriesByGroup: Map<string, ActivatedLoreEntry[]>;
+  groupsByEntryKey: Map<string, string[]>;
+  startEntry: ActivatedLoreEntry;
+}) {
+  const componentEntryKeys = new Set<string>();
+  const visitedGroups = new Set<string>();
+  const queue: ActivatedLoreEntry[] = [startEntry];
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const entry = queue[index];
+    if (!entry) continue;
+    const entryKey = activatedLoreEntryKey(entry);
+    if (componentEntryKeys.has(entryKey)) continue;
+    componentEntryKeys.add(entryKey);
+
+    for (const group of groupsByEntryKey.get(entryKey) ?? []) {
+      if (visitedGroups.has(group)) continue;
+      visitedGroups.add(group);
+      queue.push(...(entriesByGroup.get(group) ?? []));
+    }
+  }
+
+  return entries.filter((entry) => componentEntryKeys.has(activatedLoreEntryKey(entry)));
+}
+
 function resolveInclusionGroups(
   entries: ActivatedLoreEntry[],
   activation: LorebookActivationSettings,
   rand: () => number,
   countPrimaryMatches?: (entry: ActivatedLoreEntry) => PrimaryMatchCountResult,
 ) {
-  const groupsByEntryId = new Map<string, string[]>();
+  const groupsByEntryKey = new Map<string, string[]>();
   const entriesByGroup = new Map<string, ActivatedLoreEntry[]>();
-  const countedEntriesById = new Map<string, ActivatedLoreEntry>();
-  const orderedGroupNames: string[] = [];
-  const seenGroupNames = new Set<string>();
+  const countedEntriesByKey = new Map<string, ActivatedLoreEntry>();
   const warnings: string[] = [];
   const entryWithPrimaryMatchCount = (entry: ActivatedLoreEntry) => {
-    const countedEntry = countedEntriesById.get(entry.entry.id);
+    const entryKey = activatedLoreEntryKey(entry);
+    const countedEntry = countedEntriesByKey.get(entryKey);
     if (countedEntry) return countedEntry;
     const countResult = countPrimaryMatches?.(entry) ?? {
       matchedKeyCount: entry.matchedKeyCount,
@@ -113,37 +145,41 @@ function resolveInclusionGroups(
       matchedKeyCount: countResult.matchedKeyCount,
       warnings: uniqueWarnings([...entry.warnings, ...countResult.warnings]),
     };
-    countedEntriesById.set(entry.entry.id, nextEntry);
+    countedEntriesByKey.set(entryKey, nextEntry);
     return nextEntry;
   };
 
   for (const entry of entries) {
     const groups = inclusionGroups(entry);
     if (groups.length === 0) continue;
-    groupsByEntryId.set(entry.entry.id, groups);
+    groupsByEntryKey.set(activatedLoreEntryKey(entry), groups);
     for (const group of groups) {
-      if (!seenGroupNames.has(group)) {
-        seenGroupNames.add(group);
-        orderedGroupNames.push(group);
-      }
       const groupEntries = entriesByGroup.get(group) ?? [];
       groupEntries.push(entry);
       entriesByGroup.set(group, groupEntries);
     }
   }
 
-  const suppressedEntryIds = new Set<string>();
-  const resolvedGroups = new Set<string>();
+  const suppressedEntryKeys = new Set<string>();
+  const resolvedEntryKeys = new Set<string>();
 
-  for (const group of orderedGroupNames) {
-    if (resolvedGroups.has(group)) continue;
-    const candidates = (entriesByGroup.get(group) ?? []).filter(
-      (entry) => !suppressedEntryIds.has(entry.entry.id),
-    );
-    if (candidates.length <= 1) {
-      resolvedGroups.add(group);
-      continue;
+  for (const entry of entries) {
+    const entryKey = activatedLoreEntryKey(entry);
+    if (resolvedEntryKeys.has(entryKey) || !groupsByEntryKey.has(entryKey)) continue;
+    const componentEntries = collectConnectedInclusionEntries({
+      entries,
+      entriesByGroup,
+      groupsByEntryKey,
+      startEntry: entry,
+    });
+    for (const componentEntry of componentEntries) {
+      resolvedEntryKeys.add(activatedLoreEntryKey(componentEntry));
     }
+
+    const candidates = componentEntries.filter(
+      (candidate) => !suppressedEntryKeys.has(activatedLoreEntryKey(candidate)),
+    );
+    if (candidates.length <= 1) continue;
 
     const winnerCandidates =
       activation.useGroupScoring && !candidates.some((entry) => entry.entry.prioritizeInclusion)
@@ -152,18 +188,17 @@ function resolveInclusionGroups(
     const winner = chooseInclusionGroupWinner(winnerCandidates, activation, rand);
     if (!winner) continue;
 
-    for (const winnerGroup of groupsByEntryId.get(winner.entry.id) ?? []) {
-      resolvedGroups.add(winnerGroup);
-      for (const member of entriesByGroup.get(winnerGroup) ?? []) {
-        if (member.entry.id !== winner.entry.id) suppressedEntryIds.add(member.entry.id);
-      }
+    const winnerKey = activatedLoreEntryKey(winner);
+    for (const candidate of candidates) {
+      const candidateKey = activatedLoreEntryKey(candidate);
+      if (candidateKey !== winnerKey) suppressedEntryKeys.add(candidateKey);
     }
   }
 
   return {
     entries: entries
-      .filter((entry) => !suppressedEntryIds.has(entry.entry.id))
-      .map((entry) => countedEntriesById.get(entry.entry.id) ?? entry),
+      .filter((entry) => !suppressedEntryKeys.has(activatedLoreEntryKey(entry)))
+      .map((entry) => countedEntriesByKey.get(activatedLoreEntryKey(entry)) ?? entry),
     warnings,
   };
 }

@@ -9,6 +9,8 @@ import {
   matchKey,
   sortActivatedEntries,
 } from "./lorebook-activation";
+import { finalizeActivationResult } from "./lorebook-activation-resolution";
+import type { ActivatedLoreEntry } from "./lorebook-activation-types";
 import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { CharacterRecord } from "../contracts/types/character";
@@ -40,6 +42,28 @@ function entry(input: Partial<Parameters<typeof createLorebookEntryRecord>[0]["i
     },
     now,
   });
+}
+
+function activatedEntry(
+  lorebookId: string,
+  loreEntry: LorebookRecord["entries"][number],
+  overrides: Partial<ActivatedLoreEntry> = {},
+): ActivatedLoreEntry {
+  return {
+    lorebookId,
+    lorebookTitle: lorebookId,
+    lorebookSummary: "",
+    entry: loreEntry,
+    matchReason: "constant",
+    activationSource: "direct",
+    matchedKey: null,
+    matchedKeyCount: 0,
+    warnings: [],
+    sourceOrder: 0,
+    entryIndex: 0,
+    recursionLevel: null,
+    ...overrides,
+  };
 }
 
 function character(input: Partial<CharacterRecord> = {}): CharacterRecord {
@@ -752,10 +776,176 @@ describe("lorebook activation", () => {
     const activated = activateLorebookEntries(
       lorebook([lowDirect, highSelective, midSelective]),
       "The gate opens.",
-      { rand: () => 0.49 },
+      { rand: () => 0.39 },
     );
 
     expect(activated.map((item) => item.entry.title)).toEqual(["High Selective"]);
+  });
+
+  it("collapses connected overlapping inclusion groups before weighted selection", () => {
+    const alphaOnly = entry({
+      title: "Alpha Only",
+      strategy: "constant",
+      inclusionGroup: "alpha",
+      insertionOrder: 100,
+      groupWeight: 100,
+    });
+    const bridge = entry({
+      title: "Bridge",
+      strategy: "constant",
+      inclusionGroup: "alpha, beta",
+      insertionOrder: 90,
+      groupWeight: 0,
+    });
+    const betaOnly = entry({
+      title: "Beta Only",
+      strategy: "constant",
+      inclusionGroup: "beta",
+      insertionOrder: 80,
+      groupWeight: 100,
+    });
+
+    const activated = activateLorebookEntries(lorebook([alphaOnly, bridge, betaOnly]), "", {
+      rand: () => 0.25,
+    });
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Alpha Only"]);
+  });
+
+  it("scores connected overlapping inclusion groups as one candidate set", () => {
+    const alphaOnly = entry({
+      title: "Alpha Only",
+      strategy: "selective",
+      key: ["gate", "moon"],
+      inclusionGroup: "alpha",
+      insertionOrder: 100,
+    });
+    const bridge = entry({
+      title: "Bridge",
+      strategy: "selective",
+      key: ["gate"],
+      inclusionGroup: "alpha, beta",
+      insertionOrder: 90,
+    });
+    const betaOnly = entry({
+      title: "Beta Only",
+      strategy: "selective",
+      key: ["gate", "star", "sun"],
+      inclusionGroup: "beta",
+      insertionOrder: 80,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([alphaOnly, bridge, betaOnly], { useGroupScoring: true }),
+      "The moon gate opens under a star-bright sun.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Beta Only"]);
+  });
+
+  it("applies insertion-order priority to connected overlapping inclusion groups", () => {
+    const alphaOnly = entry({
+      title: "Alpha Only",
+      strategy: "constant",
+      inclusionGroup: "alpha",
+      insertionOrder: 100,
+    });
+    const bridge = entry({
+      title: "Bridge",
+      strategy: "constant",
+      inclusionGroup: "alpha, beta",
+      insertionOrder: 10,
+      prioritizeInclusion: true,
+    });
+    const betaOnly = entry({
+      title: "Beta Only",
+      strategy: "constant",
+      inclusionGroup: "beta",
+      insertionOrder: 90,
+    });
+
+    const activated = activateLorebookEntries(lorebook([alphaOnly, bridge, betaOnly]), "");
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Alpha Only"]);
+  });
+
+  it("keys grouped entry suppression by lorebook and entry id", () => {
+    const winner = entry({
+      title: "Winner",
+      strategy: "constant",
+      inclusionGroup: "alpha",
+      insertionOrder: 100,
+      groupWeight: 100,
+    });
+    const alphaLoser = {
+      ...entry({
+        title: "Alpha Loser",
+        strategy: "constant",
+        inclusionGroup: "alpha",
+        insertionOrder: 10,
+        groupWeight: 0,
+      }),
+      id: "shared-entry",
+    };
+    const unrelatedSameId = {
+      ...entry({
+        title: "Unrelated Same Id",
+        strategy: "constant",
+        inclusionGroup: "beta",
+        insertionOrder: 90,
+      }),
+      id: "shared-entry",
+    };
+
+    const activation = finalizeActivationResult({
+      activation: lorebook([]).activation,
+      entries: [
+        activatedEntry("book-a", winner),
+        activatedEntry("book-a", alphaLoser),
+        activatedEntry("book-b", unrelatedSameId),
+      ],
+      rand: () => 0,
+      warnings: [],
+    });
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Winner",
+      "Unrelated Same Id",
+    ]);
+  });
+
+  it("keys group-scoring counts by lorebook and entry id", () => {
+    const first = {
+      ...entry({
+        title: "First Shared",
+        strategy: "selective",
+        inclusionGroup: "variant",
+        insertionOrder: 100,
+      }),
+      id: "shared-entry",
+    };
+    const second = {
+      ...entry({
+        title: "Second Shared",
+        strategy: "selective",
+        inclusionGroup: "variant",
+        insertionOrder: 10,
+      }),
+      id: "shared-entry",
+    };
+
+    const activation = finalizeActivationResult({
+      activation: lorebook([], { useGroupScoring: true }).activation,
+      countPrimaryMatches: (candidate) => ({
+        matchedKeyCount: candidate.lorebookId === "book-b" ? 2 : 1,
+        warnings: [],
+      }),
+      entries: [activatedEntry("book-a", first), activatedEntry("book-b", second)],
+      rand: () => 0,
+      warnings: [],
+    });
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual(["Second Shared"]);
   });
 
   it("stops primary matching after the first match when group scoring cannot use counts", () => {

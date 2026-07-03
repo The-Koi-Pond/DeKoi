@@ -26,3 +26,7 @@ export interface PrimaryMatchCountResult {
   matchedKeyCount: number;
   warnings: string[];
 }
+
+export function activatedLoreEntryKey(entry: Pick<ActivatedLoreEntry, "lorebookId" | "entry">) {
+  return `${entry.lorebookId}\u0000${entry.entry.id}`;
+}

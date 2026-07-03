@@ -1,6 +1,6 @@
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import {
-  readNonNegativeIntegerInput,
+  readNonNegativeFiniteNumberInput,
   readPercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
@@ -55,12 +55,12 @@ export function EntryInclusionControls({ draft, onDraftChange }: EntryInclusionC
               className="pondinput"
               type="number"
               min={0}
-              step={1}
+              step="any"
               value={draft.groupWeight}
               onBlur={() =>
                 onDraftChange({
                   ...draft,
-                  groupWeight: String(readNonNegativeIntegerInput(draft.groupWeight, 100)),
+                  groupWeight: String(readNonNegativeFiniteNumberInput(draft.groupWeight, 100)),
                 })
               }
               onChange={(event) => onDraftChange({ ...draft, groupWeight: event.target.value })}

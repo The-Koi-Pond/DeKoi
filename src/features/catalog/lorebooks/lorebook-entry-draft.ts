@@ -155,6 +155,13 @@ export function readNonNegativeIntegerInput(value: string, fallback: number) {
   return Math.max(0, Math.trunc(numericValue));
 }
 
+export function readNonNegativeFiniteNumberInput(value: string, fallback: number) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return fallback;
+  const numericValue = Number(trimmedValue);
+  return Number.isFinite(numericValue) && numericValue >= 0 ? numericValue : fallback;
+}
+
 export function readNullableNonNegativeIntegerInput(value: string, fallback: number | null) {
   const trimmedValue = value.trim();
   if (!trimmedValue) return null;
@@ -228,7 +235,7 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     selectiveLogic: keySecondary ? draft.selectiveLogic : null,
     probability: readPercentInput(draft.probability, 100),
     inclusionGroup: draft.inclusionGroup,
-    groupWeight: readNonNegativeIntegerInput(draft.groupWeight, 100),
+    groupWeight: readNonNegativeFiniteNumberInput(draft.groupWeight, 100),
     prioritizeInclusion: draft.prioritizeInclusion,
     insertionOrder: readFiniteNumberInput(draft.insertionOrder, 100),
     insertionPosition: draft.insertionPosition,

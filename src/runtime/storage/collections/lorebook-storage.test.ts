@@ -130,7 +130,7 @@ describe("normalizeLorebookRecord", () => {
         title: "Defaulted Entry",
         probability: 75,
         inclusionGroup: "variant",
-        groupWeight: 25,
+        groupWeight: 25.5,
         prioritizeInclusion: true,
         insertionOrder: 25,
         depth: 2,

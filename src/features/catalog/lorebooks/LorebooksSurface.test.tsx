@@ -14,6 +14,7 @@ import {
   lorebookEntryDraftToInput,
   normalizeLoreMatchSources,
   parseLorebookEntryKeys,
+  readNonNegativeFiniteNumberInput,
   readNullableNonNegativeIntegerInput,
   readNullablePercentInput,
   readPercentInput,
@@ -219,9 +220,13 @@ describe("lorebook entry draft helpers", () => {
     ).toMatchObject({
       probability: 49,
       inclusionGroup: " rivals , alternates ",
-      groupWeight: 25,
+      groupWeight: 25.9,
       prioritizeInclusion: true,
     });
+    expect(readNonNegativeFiniteNumberInput("0.5", 100)).toBe(0.5);
+    expect(readNonNegativeFiniteNumberInput("-1", 100)).toBe(100);
+    expect(readNonNegativeFiniteNumberInput("Infinity", 100)).toBe(100);
+    expect(lorebookEntryDraftToInput({ ...baseDraft, groupWeight: "-1" }).groupWeight).toBe(100);
   });
 
   it("serializes additional matching sources only when enabled", () => {

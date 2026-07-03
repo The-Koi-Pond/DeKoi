@@ -8,14 +8,15 @@ import {
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
 import {
+  activatedLoreEntryKey,
+  type ActivatedLoreEntry,
+  type LorebookActivationResult,
+  type PrimaryMatchCountResult,
+} from "./lorebook-activation-types";
+import {
   compareActivatedEntryOrder,
   finalizeActivationResult,
 } from "./lorebook-activation-resolution";
-import type {
-  ActivatedLoreEntry,
-  LorebookActivationResult,
-  PrimaryMatchCountResult,
-} from "./lorebook-activation-types";
 
 export type { ActivatedLoreEntry, LorebookActivationResult } from "./lorebook-activation-types";
 
@@ -834,7 +835,10 @@ function runDirectScan(
     if (activation.entry) {
       entries.push(activation.entry);
       if (activation.primaryMatchCounter) {
-        context.primaryMatchCounters.set(activation.entry.entry.id, activation.primaryMatchCounter);
+        context.primaryMatchCounters.set(
+          activatedLoreEntryKey(activation.entry),
+          activation.primaryMatchCounter,
+        );
       }
     }
   }
@@ -978,7 +982,10 @@ function runRecursionPasses({
       if (!activation.entry) continue;
       recursiveEntries.push(activation.entry);
       if (activation.primaryMatchCounter) {
-        context.primaryMatchCounters.set(activation.entry.entry.id, activation.primaryMatchCounter);
+        context.primaryMatchCounters.set(
+          activatedLoreEntryKey(activation.entry),
+          activation.primaryMatchCounter,
+        );
       }
       activeEntryIds.add(entry.id);
     }
@@ -1033,7 +1040,7 @@ export function activateLorebookEntriesWithWarnings(
     primaryMatchCounters: new Map(),
   };
   const countPrimaryMatches = (entry: ActivatedLoreEntry) =>
-    context.primaryMatchCounters.get(entry.entry.id)?.() ?? {
+    context.primaryMatchCounters.get(activatedLoreEntryKey(entry))?.() ?? {
       matchedKeyCount: entry.matchedKeyCount,
       warnings: [],
     };
