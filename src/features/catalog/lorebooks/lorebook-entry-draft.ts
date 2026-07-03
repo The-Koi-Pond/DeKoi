@@ -1,10 +1,12 @@
 import type { LorebookEntryInput } from "../../../engine/catalog/lorebook-actions";
-import type {
-  LoreEntryRole,
-  LoreEntryStrategy,
-  LoreInsertionPosition,
-  LoreMatchSources,
-  LoreSelectiveLogic,
+import {
+  DEFAULT_LORE_ENTRY_RECURSION,
+  type LoreEntryRecursion,
+  type LoreEntryRole,
+  type LoreEntryStrategy,
+  type LoreInsertionPosition,
+  type LoreMatchSources,
+  type LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
 
 const supportedRegexFlags = new Set(["d", "g", "i", "m", "s", "u", "v", "y"]);
@@ -21,6 +23,10 @@ export interface LorebookEntryDraft {
   insertionPosition: LoreInsertionPosition;
   depth: string;
   role: LoreEntryRole;
+  nonRecursable: boolean;
+  preventFurther: boolean;
+  delayUntilRecursion: boolean;
+  recursionLevel: string;
   matchSources: LoreMatchSources;
 }
 
@@ -171,6 +177,23 @@ function compactLoreMatchSources(value: LoreMatchSources) {
   return Object.values(value).some(Boolean) ? value : null;
 }
 
+function compactLoreEntryRecursion(draft: LorebookEntryDraft): LoreEntryRecursion | null {
+  const recursion: LoreEntryRecursion = {
+    nonRecursable: draft.nonRecursable,
+    preventFurther: draft.preventFurther,
+    delayUntilRecursion: draft.delayUntilRecursion,
+    recursionLevel: draft.delayUntilRecursion
+      ? readNonNegativeIntegerInput(
+          draft.recursionLevel,
+          DEFAULT_LORE_ENTRY_RECURSION.recursionLevel,
+        )
+      : DEFAULT_LORE_ENTRY_RECURSION.recursionLevel,
+  };
+  return recursion.nonRecursable || recursion.preventFurther || recursion.delayUntilRecursion
+    ? recursion
+    : null;
+}
+
 export function entryDraftDisablesBannerSave({
   draft,
   showEditor,
@@ -199,6 +222,7 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     insertionPosition: draft.insertionPosition,
     depth,
     role: draft.insertionPosition === "at-depth" ? draft.role : null,
+    recursion: compactLoreEntryRecursion(draft),
     matchSources: compactLoreMatchSources(draft.matchSources),
   };
 }

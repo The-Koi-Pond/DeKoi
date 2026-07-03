@@ -659,6 +659,345 @@ describe("lorebook activation", () => {
     ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);
   });
 
+  it("recursively activates entries from activated entry bodies without loops", () => {
+    const bessie = entry({
+      title: "Bessie",
+      strategy: "selective",
+      key: ["bessie"],
+      body: "Bessie knows Rufus.",
+    });
+    const rufus = entry({
+      title: "Rufus",
+      strategy: "selective",
+      key: ["rufus"],
+      body: "Rufus knows Bessie.",
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([bessie, rufus], { recursiveScan: true }),
+      "Bessie arrives.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Bessie", "Rufus"]);
+    expect(activated.map((item) => item.activationSource)).toEqual(["direct", "recursion"]);
+  });
+
+  it("skips recursive activation when recursive scan is disabled", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Hidden sigil.",
+    });
+    const hidden = entry({
+      title: "Hidden",
+      strategy: "selective",
+      key: ["hidden sigil"],
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, hidden], { recursiveScan: false }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter"]);
+  });
+
+  it("does not activate non-recursable entries from recursion scans", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Hidden sigil.",
+    });
+    const hidden = entry({
+      title: "Hidden",
+      strategy: "selective",
+      key: ["hidden sigil"],
+      recursion: {
+        nonRecursable: true,
+        preventFurther: false,
+        delayUntilRecursion: false,
+        recursionLevel: 0,
+      },
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, hidden], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter"]);
+    expect(
+      activateLorebookEntries(lorebook([hidden], { recursiveScan: true }), "Hidden sigil.").map(
+        (item) => item.entry.title,
+      ),
+    ).toEqual(["Hidden"]);
+  });
+
+  it("keeps prevent-further entry bodies out of later recursion scans", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Hidden sigil.",
+      recursion: {
+        nonRecursable: false,
+        preventFurther: true,
+        delayUntilRecursion: false,
+        recursionLevel: 0,
+      },
+    });
+    const hidden = entry({
+      title: "Hidden",
+      strategy: "selective",
+      key: ["hidden sigil"],
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, hidden], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter"]);
+  });
+
+  it("opens delayed recursion levels only after the current level is stable", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Bridge sigil.",
+    });
+    const bridge = entry({
+      title: "Bridge",
+      strategy: "selective",
+      key: ["bridge sigil"],
+      body: "Delayed sigil.",
+    });
+    const delayed = entry({
+      title: "Delayed",
+      strategy: "selective",
+      key: ["delayed sigil"],
+      recursion: {
+        nonRecursable: false,
+        preventFurther: false,
+        delayUntilRecursion: true,
+        recursionLevel: 1,
+      },
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, bridge, delayed], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter", "Bridge", "Delayed"]);
+    expect(activated[2]).toMatchObject({
+      activationSource: "recursion",
+      recursionLevel: 1,
+    });
+  });
+
+  it("lets delayed entries match the grown recursion scan surface", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Recursion has started.",
+    });
+    const delayed = entry({
+      title: "Delayed",
+      strategy: "selective",
+      key: ["sealed vault"],
+      recursion: {
+        nonRecursable: false,
+        preventFurther: false,
+        delayUntilRecursion: true,
+        recursionLevel: 1,
+      },
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, delayed], { recursiveScan: true }),
+      "Open the gate near the sealed vault.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter", "Delayed"]);
+  });
+
+  it("delays constant entries until their recursion level opens", () => {
+    const starter = entry({
+      title: "Starter",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Recursion has started.",
+    });
+    const delayedConstant = entry({
+      title: "Delayed Constant",
+      strategy: "constant",
+      recursion: {
+        nonRecursable: false,
+        preventFurther: false,
+        delayUntilRecursion: true,
+        recursionLevel: 1,
+      },
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([starter, delayedConstant], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Starter", "Delayed Constant"]);
+    expect(activated[1]).toMatchObject({
+      activationSource: "recursion",
+      matchReason: "constant",
+      recursionLevel: 1,
+    });
+  });
+
+  it("warns and stops runaway recursion at the hard pass cap", () => {
+    const chain = Array.from({ length: 66 }, (_, index) =>
+      entry({
+        title: `Chain ${index}`,
+        strategy: "selective",
+        key: [`chain-${index}`],
+        body: index < 65 ? `chain-${index + 1}` : "Done.",
+      }),
+    );
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook(chain, { recursiveScan: true, maxRecursionSteps: 0 }),
+      "chain-0",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toHaveLength(65);
+    expect(activation.entries.at(-1)?.entry.title).toBe("Chain 64");
+    expect(activation.warnings[0]).toContain("recursion stopped after 64 passes");
+  });
+
+  it("does not warn when the hard-cap pass activates the last eligible entry", () => {
+    const chain = Array.from({ length: 65 }, (_, index) =>
+      entry({
+        title: `Chain ${index}`,
+        strategy: "selective",
+        key: [`chain-${index}`],
+        body: index < 64 ? `chain-${index + 1}` : "Done.",
+      }),
+    );
+    const inactive = entry({
+      title: "Non-recursable",
+      strategy: "selective",
+      key: ["done"],
+      recursion: {
+        nonRecursable: true,
+        preventFurther: false,
+        delayUntilRecursion: false,
+        recursionLevel: 0,
+      },
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([...chain, inactive], { recursiveScan: true, maxRecursionSteps: 0 }),
+      "chain-0",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toHaveLength(65);
+    expect(activation.entries.at(-1)?.entry.title).toBe("Chain 64");
+    expect(activation.warnings).toEqual([]);
+  });
+
+  it("does not warn when hard-cap completion leaves only unmatched recursable entries", () => {
+    const chain = Array.from({ length: 65 }, (_, index) =>
+      entry({
+        title: `Chain ${index}`,
+        strategy: "selective",
+        key: [`chain-${index}`],
+        body: index < 64 ? `chain-${index + 1}` : "Done.",
+      }),
+    );
+    const unmatched = entry({
+      title: "Unmatched",
+      strategy: "selective",
+      key: ["missing sigil"],
+    });
+    const delayedUnmatched = entry({
+      title: "Delayed Unmatched",
+      strategy: "selective",
+      key: ["missing delayed sigil"],
+      recursion: {
+        nonRecursable: false,
+        preventFurther: false,
+        delayUntilRecursion: true,
+        recursionLevel: 1,
+      },
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([...chain, unmatched, delayedUnmatched], {
+        recursiveScan: true,
+        maxRecursionSteps: 0,
+      }),
+      "chain-0",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toHaveLength(65);
+    expect(activation.entries.at(-1)?.entry.title).toBe("Chain 64");
+    expect(activation.warnings).toEqual([]);
+  });
+
+  it("honors the configured max recursion steps before the hard cap", () => {
+    const chain = Array.from({ length: 6 }, (_, index) =>
+      entry({
+        title: `Chain ${index}`,
+        strategy: "selective",
+        key: [`chain-${index}`],
+        body: index < 5 ? `chain-${index + 1}` : "Done.",
+      }),
+    );
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook(chain, { recursiveScan: true, maxRecursionSteps: 3 }),
+      "chain-0",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Chain 0",
+      "Chain 1",
+      "Chain 2",
+      "Chain 3",
+    ]);
+    expect(activation.warnings).toEqual([]);
+  });
+
+  it("lets direct matches outrank recursive matches when applying token budgets", () => {
+    const direct = entry({
+      title: "Direct",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Recursive sigil.",
+      insertionOrder: 10,
+    });
+    const recursive = entry({
+      title: "Recursive",
+      strategy: "selective",
+      key: ["recursive sigil"],
+      insertionOrder: 100,
+    });
+    const activated = activateLorebookEntries(
+      lorebook([direct, recursive], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    const budgeted = applyTokenBudget(activated, {
+      budgetTokens: 1,
+      approxTokens: () => 1,
+    });
+
+    expect(budgeted.map((item) => item.entry.title)).toEqual(["Direct"]);
+  });
+
   it("lets constant entries outrank selective entries when applying token budgets", () => {
     const constant = entry({
       title: "Constant",

@@ -12,6 +12,13 @@ export interface LoreEntryRecursion {
   recursionLevel: number;
 }
 
+export const DEFAULT_LORE_ENTRY_RECURSION: LoreEntryRecursion = {
+  nonRecursable: false,
+  preventFurther: false,
+  delayUntilRecursion: false,
+  recursionLevel: 0,
+};
+
 export interface LoreEntryTiming {
   sticky: number;
   cooldown: number;
@@ -81,6 +88,15 @@ export interface LoreEntryRecord {
   matchSources: LoreMatchSources | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export function resolveEntryRecursion(
+  entry: Pick<LoreEntryRecord, "recursion">,
+): LoreEntryRecursion {
+  return {
+    ...DEFAULT_LORE_ENTRY_RECURSION,
+    ...(entry.recursion ?? {}),
+  };
 }
 
 export interface LorebookRecord {

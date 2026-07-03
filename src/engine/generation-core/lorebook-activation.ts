@@ -1,8 +1,9 @@
-import type {
-  LorebookActivationSettings,
-  LorebookRecord,
-  LoreEntryRecord,
-  LoreMatchSources,
+import {
+  resolveEntryRecursion,
+  type LorebookActivationSettings,
+  type LorebookRecord,
+  type LoreEntryRecord,
+  type LoreMatchSources,
 } from "../contracts/types/lorebook";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
@@ -33,10 +34,12 @@ export interface ActivatedLoreEntry {
   lorebookSummary: string;
   entry: LoreEntryRecord;
   matchReason: "constant" | "primary-key";
+  activationSource: "direct" | "recursion";
   matchedKey: string | null;
   warnings: string[];
   sourceOrder: number;
   entryIndex: number;
+  recursionLevel: number | null;
 }
 
 /** Activated lore entries plus warnings discovered while evaluating keys. */
@@ -73,6 +76,8 @@ interface EntryActivationResult {
   warnings: string[];
 }
 
+type ActivationSource = ActivatedLoreEntry["activationSource"];
+
 interface RegexGroupSafety {
   hasInnerVariableQuantifier: boolean;
   hasAlternation: boolean;
@@ -96,6 +101,7 @@ function emptyMatchSources(): LoreMatchSourceBuckets {
 }
 
 const EMPTY_MATCH_SOURCES = emptyMatchSources();
+const LOREBOOK_RECURSION_HARD_PASS_CAP = 64;
 
 const COMPANION_MATCH_SOURCE_FIELDS = {
   characterDescription: "description",
@@ -444,6 +450,31 @@ function entryHasBody(entry: LoreEntryRecord) {
   return entry.body.trim().length > 0;
 }
 
+function entryHasActivationPath(entry: LoreEntryRecord) {
+  return (
+    entry.strategy === "constant" || (entry.key?.some((key) => key.trim().length > 0) ?? false)
+  );
+}
+
+function entryCanPossiblyActivate(entry: LoreEntryRecord) {
+  return entry.enabled && entryHasBody(entry) && entryHasActivationPath(entry);
+}
+
+function entryCanPossiblyActivateFromRecursion(entry: LoreEntryRecord) {
+  return entryCanPossiblyActivate(entry) && !resolveEntryRecursion(entry).nonRecursable;
+}
+
+function entryCanActivateFromSource(
+  entry: LoreEntryRecord,
+  activationSource: ActivationSource,
+  recursionLevel: number,
+) {
+  const recursion = resolveEntryRecursion(entry);
+  if (activationSource === "direct") return !recursion.delayUntilRecursion;
+  if (recursion.nonRecursable) return false;
+  return !recursion.delayUntilRecursion || recursionLevel >= recursion.recursionLevel;
+}
+
 function activateEntry(
   lorebook: LorebookRecord,
   entry: LoreEntryRecord,
@@ -452,11 +483,17 @@ function activateEntry(
   scanBuffer: string,
   matchSources: LoreMatchSourceBuckets,
   matchContext: KeyMatchContext,
+  activationSource: ActivationSource,
+  recursionLevel: number,
 ): EntryActivationResult {
   if (!entry.enabled || !entryHasBody(entry)) {
     return { entry: null, warnings: [] };
   }
+  if (!entryCanActivateFromSource(entry, activationSource, recursionLevel)) {
+    return { entry: null, warnings: [] };
+  }
   if (entry.strategy === "constant") {
+    const entryRecursionLevel = activationSource === "recursion" ? recursionLevel : null;
     return {
       entry: {
         lorebookId: lorebook.id,
@@ -464,10 +501,12 @@ function activateEntry(
         lorebookSummary: lorebook.summary,
         entry,
         matchReason: "constant",
+        activationSource,
         matchedKey: null,
         warnings: [],
         sourceOrder,
         entryIndex,
+        recursionLevel: entryRecursionLevel,
       },
       warnings: [],
     };
@@ -513,6 +552,7 @@ function activateEntry(
   }
 
   const warnings = uniqueWarnings([...primaryMatch.warnings, ...secondaryMatch.warnings]);
+  const entryRecursionLevel = activationSource === "recursion" ? recursionLevel : null;
   return {
     entry: {
       lorebookId: lorebook.id,
@@ -520,10 +560,12 @@ function activateEntry(
       lorebookSummary: lorebook.summary,
       entry,
       matchReason: "primary-key",
+      activationSource,
       matchedKey: primaryMatch.matchedKey,
       warnings,
       sourceOrder,
       entryIndex,
+      recursionLevel: entryRecursionLevel,
     },
     warnings,
   };
@@ -590,21 +632,30 @@ function stableEntryTiebreaker(left: ActivatedLoreEntry, right: ActivatedLoreEnt
   return left.entryIndex - right.entryIndex;
 }
 
+function compareActivatedEntryOrder(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
+  const orderDelta = right.entry.insertionOrder - left.entry.insertionOrder;
+  return orderDelta || stableEntryTiebreaker(left, right);
+}
+
 /**
  * Sorts activated entries in prompt priority order. Higher insertion order wins;
  * equal order keeps lorebook/source order, then original entry order.
  */
 export function sortActivatedEntries(entries: ActivatedLoreEntry[]) {
-  return [...entries].sort((left, right) => {
-    const orderDelta = right.entry.insertionOrder - left.entry.insertionOrder;
-    return orderDelta || stableEntryTiebreaker(left, right);
-  });
+  return [...entries].sort(compareActivatedEntryOrder);
+}
+
+function budgetPriorityRank(entry: ActivatedLoreEntry) {
+  const sourceRank = entry.activationSource === "direct" ? 0 : 1;
+  const strategyRank = entry.entry.strategy === "constant" ? 0 : 1;
+  return sourceRank * 2 + strategyRank;
 }
 
 function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
-  const constants = entries.filter((entry) => entry.entry.strategy === "constant");
-  const selective = entries.filter((entry) => entry.entry.strategy !== "constant");
-  return [...sortActivatedEntries(constants), ...sortActivatedEntries(selective)];
+  return [...entries].sort((left, right) => {
+    const priorityDelta = budgetPriorityRank(left) - budgetPriorityRank(right);
+    return priorityDelta || compareActivatedEntryOrder(left, right);
+  });
 }
 
 function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
@@ -638,7 +689,9 @@ function resolveTokenBudget({
 /**
  * Applies a lore budget with a cheap token estimate. DeKoi currently has no
  * tokenizer dependency, so the default estimate is roughly chars / 4. Percent
- * budgets are only resolved when caller-provided context size is known.
+ * budgets are only resolved when caller-provided context size is known. Budget
+ * priority keeps direct activations before recursive activations, and constants
+ * before selective entries within each activation source.
  */
 export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTokenBudgetOptions) {
   const budget = resolveTokenBudget(options);
@@ -664,7 +717,9 @@ export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTo
 /**
  * Returns enabled, non-empty lore entries that activate against the provided
  * transcript scan text plus any supplied per-entry additional match sources,
- * including provenance for later prompt/debug surfaces.
+ * including provenance for later prompt/debug surfaces. When the lorebook
+ * enables recursive scans, activated entry bodies can activate further eligible
+ * entries until no candidates remain or a recursion pass cap is reached.
  */
 export function activateLorebookEntries(
   lorebook: LorebookRecord,
@@ -674,14 +729,17 @@ export function activateLorebookEntries(
   return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options).entries;
 }
 
-export function activateLorebookEntriesWithWarnings(
+interface ActivationEvaluationContext {
+  sourceOrder: number;
+  matchSources: LoreMatchSourceBuckets;
+  matchContext: KeyMatchContext;
+}
+
+function runDirectScan(
   lorebook: LorebookRecord,
   scanBuffer: string,
-  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
+  context: ActivationEvaluationContext,
 ): LorebookActivationResult {
-  const sourceOrder = options.sourceOrder ?? 0;
-  const matchSources = options.matchSources ?? EMPTY_MATCH_SOURCES;
-  const matchContext = createKeyMatchContext();
   const entries: ActivatedLoreEntry[] = [];
   const warnings: string[] = [];
 
@@ -689,15 +747,210 @@ export function activateLorebookEntriesWithWarnings(
     const activation = activateEntry(
       lorebook,
       entry,
-      sourceOrder,
+      context.sourceOrder,
       entryIndex,
       scanBuffer,
-      matchSources,
-      matchContext,
+      context.matchSources,
+      context.matchContext,
+      "direct",
+      0,
     );
     warnings.push(...activation.warnings);
     if (activation.entry) entries.push(activation.entry);
   }
 
+  return { entries, warnings };
+}
+
+function recursionScanBodies(entries: ActivatedLoreEntry[]) {
+  return entries
+    .filter((entry) => !resolveEntryRecursion(entry.entry).preventFurther)
+    .map((entry) => entry.entry.body.trim())
+    .filter(Boolean);
+}
+
+function entryWouldActivateFromRecursion(
+  lorebook: LorebookRecord,
+  entry: LoreEntryRecord,
+  entryIndex: number,
+  scanBuffer: string,
+  context: ActivationEvaluationContext,
+  recursionLevel: number,
+) {
+  if (!entryCanPossiblyActivateFromRecursion(entry)) return false;
+  return (
+    activateEntry(
+      lorebook,
+      entry,
+      context.sourceOrder,
+      entryIndex,
+      scanBuffer,
+      context.matchSources,
+      context.matchContext,
+      "recursion",
+      recursionLevel,
+    ).entry !== null
+  );
+}
+
+function nextDelayedRecursionLevel(
+  lorebook: LorebookRecord,
+  activeEntryIds: Set<string>,
+  currentLevel: number,
+  recursionScanBuffer: string,
+  context: ActivationEvaluationContext,
+) {
+  return lorebook.entries.reduce<number | null>((nextLevel, entry, entryIndex) => {
+    if (activeEntryIds.has(entry.id)) return nextLevel;
+    if (!entryCanPossiblyActivateFromRecursion(entry)) return nextLevel;
+    const recursion = resolveEntryRecursion(entry);
+    if (!recursion.delayUntilRecursion) return nextLevel;
+    if (recursion.recursionLevel <= currentLevel) return nextLevel;
+    if (
+      !entryWouldActivateFromRecursion(
+        lorebook,
+        entry,
+        entryIndex,
+        recursionScanBuffer,
+        context,
+        recursion.recursionLevel,
+      )
+    ) {
+      return nextLevel;
+    }
+    return nextLevel === null
+      ? recursion.recursionLevel
+      : Math.min(nextLevel, recursion.recursionLevel);
+  }, null);
+}
+
+function hasRemainingRecursionCandidate(
+  lorebook: LorebookRecord,
+  activeEntryIds: Set<string>,
+  recursionScanBuffer: string,
+  context: ActivationEvaluationContext,
+  recursionLevel: number,
+) {
+  return lorebook.entries.some(
+    (entry, entryIndex) =>
+      !activeEntryIds.has(entry.id) &&
+      entryWouldActivateFromRecursion(
+        lorebook,
+        entry,
+        entryIndex,
+        recursionScanBuffer,
+        context,
+        recursionLevel,
+      ),
+  );
+}
+
+function runRecursionPasses({
+  context,
+  entries,
+  lorebook,
+  scanBuffer,
+  warnings,
+}: {
+  context: ActivationEvaluationContext;
+  entries: ActivatedLoreEntry[];
+  lorebook: LorebookRecord;
+  scanBuffer: string;
+  warnings: string[];
+}): LorebookActivationResult {
+  const activeEntryIds = new Set(entries.map((entry) => entry.entry.id));
+  const recursionBodies = recursionScanBodies(entries);
+  if (recursionBodies.length === 0) {
+    return { entries, warnings: uniqueWarnings(warnings) };
+  }
+
+  let recursionScanBuffer = [scanBuffer.trim(), ...recursionBodies].filter(Boolean).join("\n");
+  let recursionLevel = 0;
+  let passCount = 0;
+  const maxRecursionSteps = lorebook.activation.maxRecursionSteps;
+
+  while (true) {
+    if (maxRecursionSteps > 0 && passCount >= maxRecursionSteps) break;
+    if (passCount >= LOREBOOK_RECURSION_HARD_PASS_CAP) {
+      warnings.push(
+        `Lorebook "${lorebook.title}" recursion stopped after ${LOREBOOK_RECURSION_HARD_PASS_CAP} passes.`,
+      );
+      break;
+    }
+
+    const recursiveEntries: ActivatedLoreEntry[] = [];
+
+    for (const [entryIndex, entry] of lorebook.entries.entries()) {
+      if (activeEntryIds.has(entry.id)) continue;
+      const activation = activateEntry(
+        lorebook,
+        entry,
+        context.sourceOrder,
+        entryIndex,
+        recursionScanBuffer,
+        context.matchSources,
+        context.matchContext,
+        "recursion",
+        recursionLevel,
+      );
+      warnings.push(...activation.warnings);
+      if (!activation.entry) continue;
+      recursiveEntries.push(activation.entry);
+      activeEntryIds.add(entry.id);
+    }
+
+    // This cap counts every recursion sweep, including sweeps that only open
+    // the next delayed level. That keeps delayed level ladders bounded too.
+    passCount += 1;
+
+    if (recursiveEntries.length > 0) {
+      entries.push(...recursiveEntries);
+      const newBodies = recursionScanBodies(recursiveEntries);
+      if (newBodies.length > 0) {
+        recursionScanBuffer = [recursionScanBuffer, ...newBodies].join("\n");
+        if (
+          hasRemainingRecursionCandidate(
+            lorebook,
+            activeEntryIds,
+            recursionScanBuffer,
+            context,
+            recursionLevel,
+          )
+        ) {
+          continue;
+        }
+      }
+    }
+
+    const nextRecursionLevel = nextDelayedRecursionLevel(
+      lorebook,
+      activeEntryIds,
+      recursionLevel,
+      recursionScanBuffer,
+      context,
+    );
+    if (nextRecursionLevel === null) break;
+    recursionLevel = nextRecursionLevel;
+  }
+
   return { entries, warnings: uniqueWarnings(warnings) };
+}
+
+export function activateLorebookEntriesWithWarnings(
+  lorebook: LorebookRecord,
+  scanBuffer: string,
+  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
+): LorebookActivationResult {
+  const context: ActivationEvaluationContext = {
+    sourceOrder: options.sourceOrder ?? 0,
+    matchSources: options.matchSources ?? EMPTY_MATCH_SOURCES,
+    matchContext: createKeyMatchContext(),
+  };
+  const { entries, warnings } = runDirectScan(lorebook, scanBuffer, context);
+
+  if (!lorebook.activation.recursiveScan || entries.length === 0) {
+    return { entries, warnings: uniqueWarnings(warnings) };
+  }
+
+  return runRecursionPasses({ context, entries, lorebook, scanBuffer, warnings });
 }

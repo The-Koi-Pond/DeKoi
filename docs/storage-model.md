@@ -81,16 +81,24 @@ lorebook or entry records instead of migrating them. Pre-v2 lorebook records
 were development-only; revisit this before DeKoi has supported user data that
 requires compatibility. Current generation applies lore activation before
 building prompt context: enabled constant entries with non-empty bodies
-activate automatically, while selective entries activate when any non-empty
-primary key matches the last `scanDepth` transcript items, optionally including
-speaker names. Entries can also opt into additional match sources from selected
-companion `description`, `personality`, `scenario`, and `characterNote` fields
-and the active persona `description`; these sources are not scanned by default.
-The same `includeNames` setting controls whether companion/persona display
-names and nicknames are included in those additional source blobs. Plaintext
-matching respects `caseSensitiveKeys` and `matchWholeWords`; `/pattern/flags`
-keys compile as regex, bypass whole-word wrapping, and fall back to plaintext
-with a warning when invalid or unsafe.
+activate automatically unless delayed until recursion, while selective entries
+activate when any non-empty primary key matches the last `scanDepth` transcript
+items, optionally including speaker names. Entries can also opt into additional
+match sources from selected companion `description`, `personality`, `scenario`,
+and `characterNote` fields and the active persona `description`; these sources
+are not scanned by default. The same `includeNames` setting controls whether
+companion/persona display names and nicknames are included in those additional
+source blobs. Plaintext matching respects `caseSensitiveKeys` and
+`matchWholeWords`; `/pattern/flags` keys compile as regex, bypass whole-word
+wrapping, and fall back to plaintext with a warning when invalid or unsafe.
+When `recursiveScan` is enabled and a direct entry activates, DeKoi appends
+activated entry bodies that do not set `preventFurther` to the scan buffer and
+repeatedly scans remaining eligible entries. `nonRecursable` entries can still
+activate directly but never from recursion. `delayUntilRecursion` blocks direct
+activation; `recursionLevel: 0` opens on the first recursion pass, and higher
+levels open after lower-level recursion stabilizes. `maxRecursionSteps` caps
+recursion passes; `0` means no configured cap, but DeKoi stops at 64 passes and
+surfaces a warning. Each entry activates at most once per generation request.
 Activated entries are sorted by descending `insertionOrder`, with selected
 lorebook order and original entry order as stable tiebreakers. Messenger and
 Roleplay prompt assembly places `before-character` entries before persona and
@@ -101,14 +109,16 @@ connections convert at-depth system lore to `user` because those providers
 hoist system messages. Lorebook budgets apply per lorebook, using
 `budgetTokens` first or `budgetPercent` against provider `maxContext` when
 known. Percent budgets are left unapplied when context size is unknown. Budget
-trimming spends budget on constant entries before selective entries, then uses
-descending `insertionOrder` plus the same stable tiebreakers within each
-strategy group. Estimates use roughly characters divided by 4 because DeKoi
-has no tokenizer dependency. Roleplay lorebook summaries count against budgets
-and are emitted at most once per generation request. Optional secondary keys
-and `selectiveLogic` are applied against the same per-entry scan buffer during
-activation. Probability, recursion, triggers, and character filters remain
-normalized storage fields but are not applied to prompt assembly yet.
+trimming spends budget on direct activations before recursive activations, then
+on constant entries before selective entries within each activation source,
+then uses descending `insertionOrder` plus the same stable tiebreakers within
+each priority group. Kept entries are re-sorted into prompt order afterward.
+Estimates use roughly characters divided by 4 because DeKoi has no tokenizer
+dependency. Roleplay lorebook summaries count against budgets and are emitted
+at most once per generation request. Optional secondary keys and
+`selectiveLogic` are applied against the same per-entry scan buffer during
+activation. Probability, triggers, and character filters remain normalized
+storage fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
