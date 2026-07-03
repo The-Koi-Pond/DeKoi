@@ -69,6 +69,7 @@ export interface NavStorageState {
   messengerStorageMode: MessengerStorageMode;
   messengerStorageStatus: MessengerStorageStatus;
   messengerStorageMessage: string;
+  storageReady: boolean;
   storageHasUnsavedChanges: boolean;
   importRecoveryState: NavStorageImportRecoveryState;
   remoteRuntimeUrl: string;

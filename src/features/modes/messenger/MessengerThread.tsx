@@ -4,6 +4,7 @@ import type {
   NavLoreRuntimeActions,
   NavMessengerThreadActions,
   NavSettingsState,
+  NavStorageState,
   NavThreadState,
   NavViewActions,
   NavViewState,
@@ -55,6 +56,7 @@ export type MessengerThreadNav = Pick<
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
+  Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
@@ -136,10 +138,16 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const threadReferenceNotices = threadReferenceSummary
     ? getMessengerThreadReferenceNotices(threadReferenceSummary)
     : [];
-  const sendBlocker = threadReferenceSummary
-    ? getMessengerThreadSendBlocker(threadReferenceSummary)
-    : "";
-  const canSend = draft.trim().length > 0 && !isGenerating && !sendBlocker;
+  const storageBlocker = nav.storageReady ? "" : "Storage is still loading.";
+  const sendBlocker =
+    storageBlocker ||
+    (threadReferenceSummary ? getMessengerThreadSendBlocker(threadReferenceSummary) : "");
+  const canSend =
+    !!messengerThread &&
+    nav.storageReady &&
+    draft.trim().length > 0 &&
+    !isGenerating &&
+    !sendBlocker;
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
@@ -297,6 +305,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
   async function sendDraft() {
     if (!messengerThread) return false;
+    if (!nav.storageReady) return false;
     if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
@@ -728,6 +737,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         disabled={!canSend}
         hint={
           generationNotice ||
+          storageBlocker ||
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||

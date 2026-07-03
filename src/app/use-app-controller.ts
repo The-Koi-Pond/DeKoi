@@ -251,6 +251,7 @@ export function useAppController(): NavContextType {
     messengerStorageMode,
     messengerStorageStatus,
     messengerStorageMessage,
+    storageReady,
     storageHasUnsavedChanges,
     importRecoveryState,
     rippleStates,

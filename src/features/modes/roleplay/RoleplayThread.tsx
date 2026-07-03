@@ -22,6 +22,7 @@ import type {
   NavLoreRuntimeActions,
   NavRoleplayThreadActions,
   NavSettingsState,
+  NavStorageState,
   NavThreadState,
   NavViewActions,
   NavViewState,
@@ -48,6 +49,7 @@ export type RoleplayThreadNav = Pick<
   Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
+  Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "roleplayThreads"> &
   Pick<NavViewActions, "setSelectedSurface" | "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
@@ -140,10 +142,12 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const threadReferenceNotices = threadReferenceSummary
     ? getRoleplayThreadReferenceNotices(threadReferenceSummary)
     : [];
-  const sendBlocker = threadReferenceSummary
-    ? getRoleplayThreadSendBlocker(threadReferenceSummary)
-    : "";
-  const canSend = !!thread && draft.trim().length > 0 && !isGenerating && !sendBlocker;
+  const storageBlocker = nav.storageReady ? "" : "Storage is still loading.";
+  const sendBlocker =
+    storageBlocker ||
+    (threadReferenceSummary ? getRoleplayThreadSendBlocker(threadReferenceSummary) : "");
+  const canSend =
+    !!thread && nav.storageReady && draft.trim().length > 0 && !isGenerating && !sendBlocker;
   const activeEditingEntry = editingEntry?.threadId === activeThreadId ? editingEntry : null;
   const activeDeleteRequest =
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
@@ -261,6 +265,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
 
   async function sendDraft() {
     if (!thread) return false;
+    if (!nav.storageReady) return false;
     if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
@@ -670,6 +675,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         disabled={!canSend}
         hint={
           generationNotice ||
+          storageBlocker ||
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||
