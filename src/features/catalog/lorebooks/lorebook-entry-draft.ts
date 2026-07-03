@@ -19,6 +19,10 @@ export interface LorebookEntryDraft {
   key: string;
   keySecondary: string;
   selectiveLogic: LoreSelectiveLogic;
+  probability: string;
+  inclusionGroup: string;
+  groupWeight: string;
+  prioritizeInclusion: boolean;
   insertionOrder: string;
   insertionPosition: LoreInsertionPosition;
   depth: string;
@@ -151,6 +155,13 @@ export function readNonNegativeIntegerInput(value: string, fallback: number) {
   return Math.max(0, Math.trunc(numericValue));
 }
 
+export function readNonNegativeFiniteNumberInput(value: string, fallback: number) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return fallback;
+  const numericValue = Number(trimmedValue);
+  return Number.isFinite(numericValue) && numericValue >= 0 ? numericValue : fallback;
+}
+
 export function readNullableNonNegativeIntegerInput(value: string, fallback: number | null) {
   const trimmedValue = value.trim();
   if (!trimmedValue) return null;
@@ -162,6 +173,10 @@ export function readNullableNonNegativeIntegerInput(value: string, fallback: num
 export function readNullablePercentInput(value: string, fallback: number | null) {
   const percent = readNullableNonNegativeIntegerInput(value, fallback);
   return typeof percent === "number" ? Math.min(100, percent) : percent;
+}
+
+export function readPercentInput(value: string, fallback: number) {
+  return Math.min(100, readNonNegativeIntegerInput(value, fallback));
 }
 
 export function normalizeLoreMatchSources(
@@ -218,6 +233,10 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     key: parseLorebookEntryKeys(draft.key),
     keySecondary,
     selectiveLogic: keySecondary ? draft.selectiveLogic : null,
+    probability: readPercentInput(draft.probability, 100),
+    inclusionGroup: draft.inclusionGroup,
+    groupWeight: readNonNegativeFiniteNumberInput(draft.groupWeight, 100),
+    prioritizeInclusion: draft.prioritizeInclusion,
     insertionOrder: readFiniteNumberInput(draft.insertionOrder, 100),
     insertionPosition: draft.insertionPosition,
     depth,

@@ -27,6 +27,8 @@ export interface LorebookEntryInput {
   strategy?: LoreEntryStrategy;
   probability?: number;
   inclusionGroup?: string | null;
+  groupWeight?: number;
+  prioritizeInclusion?: boolean;
   insertionPosition?: LoreInsertionPosition;
   insertionOrder?: number;
   depth?: number | null;
@@ -66,6 +68,10 @@ function readFiniteNumber(value: number | undefined, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function readNonNegativeFiniteNumber(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 function readNonNegativeInteger(value: number | undefined, fallback: number) {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
 }
@@ -100,6 +106,7 @@ function activationWithDefaults(
       activation?.maxRecursionSteps,
       fallback.maxRecursionSteps,
     ),
+    useGroupScoring: definedOrFallback(activation?.useGroupScoring, fallback.useGroupScoring),
     budgetTokens: readNullableNonNegativeInteger(activation?.budgetTokens, fallback.budgetTokens),
     budgetPercent: readNullablePercent(activation?.budgetPercent, fallback.budgetPercent),
   };
@@ -200,6 +207,8 @@ export function createLorebookEntryRecord({
     strategy: input.strategy ?? "constant",
     probability: readProbability(input.probability),
     inclusionGroup: cleanNullableText(input.inclusionGroup),
+    groupWeight: readNonNegativeFiniteNumber(input.groupWeight, 100),
+    prioritizeInclusion: input.prioritizeInclusion ?? false,
     insertionPosition: input.insertionPosition ?? "after-character",
     insertionOrder: readFiniteNumber(input.insertionOrder, 100),
     depth: readNullableNonNegativeInteger(input.depth, null),
@@ -238,6 +247,11 @@ export function updateLorebookEntryRecord(
       input.inclusionGroup === undefined
         ? record.inclusionGroup
         : cleanNullableText(input.inclusionGroup),
+    groupWeight:
+      input.groupWeight === undefined
+        ? record.groupWeight
+        : readNonNegativeFiniteNumber(input.groupWeight, record.groupWeight),
+    prioritizeInclusion: input.prioritizeInclusion ?? record.prioritizeInclusion,
     insertionPosition: input.insertionPosition ?? record.insertionPosition,
     insertionOrder: readFiniteNumber(input.insertionOrder, record.insertionOrder),
     depth:

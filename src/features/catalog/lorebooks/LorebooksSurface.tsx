@@ -35,7 +35,9 @@ import {
   readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
+import { EntryInclusionControls } from "./EntryInclusionControls";
 import { EntryRecursionControls } from "./EntryRecursionControls";
+import { LorebookGroupScoringActivationField } from "./LorebookGroupScoringActivationField";
 import { LorebookRecursionActivationFields } from "./LorebookRecursionActivationFields";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 import "../shared/CatalogSurface.css";
@@ -68,6 +70,7 @@ interface LorebookDraftState {
   matchWholeWords: boolean;
   recursiveScan: boolean;
   maxRecursionSteps: string;
+  useGroupScoring: boolean;
   budgetTokens: string;
   budgetPercent: string;
 }
@@ -80,6 +83,10 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   key: "",
   keySecondary: "",
   selectiveLogic: "and-any",
+  probability: "100",
+  inclusionGroup: "",
+  groupWeight: "100",
+  prioritizeInclusion: false,
   insertionOrder: "100",
   insertionPosition: "after-character",
   depth: "0",
@@ -99,6 +106,7 @@ const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   matchWholeWords: DEFAULT_LOREBOOK_ACTIVATION.matchWholeWords,
   recursiveScan: DEFAULT_LOREBOOK_ACTIVATION.recursiveScan,
   maxRecursionSteps: String(DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps),
+  useGroupScoring: DEFAULT_LOREBOOK_ACTIVATION.useGroupScoring,
   budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
   budgetPercent: DEFAULT_LOREBOOK_ACTIVATION.budgetPercent?.toString() ?? "",
 };
@@ -111,6 +119,10 @@ function draftFromEntry(entry: {
   key: string[] | null;
   keySecondary: string[] | null;
   selectiveLogic: LoreSelectiveLogic | null;
+  probability: number;
+  inclusionGroup: string | null;
+  groupWeight: number;
+  prioritizeInclusion: boolean;
   insertionOrder: number;
   insertionPosition: LoreInsertionPosition;
   depth: number | null;
@@ -127,6 +139,10 @@ function draftFromEntry(entry: {
     key: entry.key?.join(", ") ?? "",
     keySecondary: entry.keySecondary?.join(", ") ?? "",
     selectiveLogic: entry.selectiveLogic ?? "and-any",
+    probability: String(entry.probability),
+    inclusionGroup: entry.inclusionGroup ?? "",
+    groupWeight: String(entry.groupWeight),
+    prioritizeInclusion: entry.prioritizeInclusion,
     insertionOrder: String(entry.insertionOrder),
     insertionPosition: entry.insertionPosition,
     depth: String(entry.depth ?? 0),
@@ -272,6 +288,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           lorebookDraft.maxRecursionSteps,
           DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps,
         ),
+        useGroupScoring: lorebookDraft.useGroupScoring,
         budgetTokens,
         budgetPercent,
       },
@@ -459,6 +476,15 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 }),
               reader: readNonNegativeIntegerInput,
             }}
+          />
+          <LorebookGroupScoringActivationField
+            useGroupScoring={lorebookDraft.useGroupScoring}
+            onUseGroupScoringChange={(useGroupScoring) =>
+              setLorebookDraft({
+                ...lorebookDraft,
+                useGroupScoring,
+              })
+            }
           />
           <div className="catalog-editor-field">
             <label htmlFor="lorebook-budget-tokens">Budget (tokens)</label>
@@ -653,6 +679,12 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   reader: readNonNegativeIntegerInput,
                 }}
               />
+              <LorebookGroupScoringActivationField
+                useGroupScoring={activeLorebook.activation.useGroupScoring}
+                onUseGroupScoringChange={(useGroupScoring) =>
+                  patchActiveActivation({ useGroupScoring })
+                }
+              />
               <div className="catalog-editor-field">
                 <label htmlFor="active-lorebook-budget-tokens">Budget (tokens)</label>
                 <NullableActivationInput
@@ -840,6 +872,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     </select>
                   </div>
                 )}
+                <EntryInclusionControls draft={draft} onDraftChange={setDraft} />
                 <details className="catalog-editor-section">
                   <summary>Additional matching sources</summary>
                   <p className="catalog-field-hint">

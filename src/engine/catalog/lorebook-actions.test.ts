@@ -38,6 +38,7 @@ describe("lorebook actions", () => {
         activation: {
           scanDepth: 4,
           maxRecursionSteps: 8,
+          useGroupScoring: true,
           budgetTokens: 512,
           budgetPercent: 50,
         },
@@ -62,6 +63,7 @@ describe("lorebook actions", () => {
     expect(updated.activation).toMatchObject({
       scanDepth: 4,
       maxRecursionSteps: 8,
+      useGroupScoring: true,
       budgetTokens: 512,
       budgetPercent: 50,
     });
@@ -123,6 +125,8 @@ describe("lorebook entry actions", () => {
       input: {
         title: "Defaulted Entry",
         probability: Number.POSITIVE_INFINITY,
+        groupWeight: Number.NaN,
+        prioritizeInclusion: true,
         insertionOrder: Number.NaN,
         depth: -1,
         recursion: {
@@ -142,6 +146,8 @@ describe("lorebook entry actions", () => {
 
     expect(entry).toMatchObject({
       probability: 100,
+      groupWeight: 100,
+      prioritizeInclusion: true,
       insertionOrder: 100,
       depth: null,
       recursion: {
@@ -164,6 +170,8 @@ describe("lorebook entry actions", () => {
       input: {
         title: "Defaulted Entry",
         probability: 25,
+        groupWeight: 75,
+        prioritizeInclusion: true,
         insertionOrder: 50,
         depth: 2,
         recursion: {
@@ -186,6 +194,8 @@ describe("lorebook entry actions", () => {
       {
         title: entry.title,
         probability: Number.NaN,
+        groupWeight: Number.NEGATIVE_INFINITY,
+        prioritizeInclusion: false,
         insertionOrder: Number.POSITIVE_INFINITY,
         depth: -1,
         recursion: {
@@ -205,6 +215,8 @@ describe("lorebook entry actions", () => {
 
     expect(updated).toMatchObject({
       probability: 25,
+      groupWeight: 75,
+      prioritizeInclusion: false,
       insertionOrder: 50,
       depth: 2,
       recursion: {
