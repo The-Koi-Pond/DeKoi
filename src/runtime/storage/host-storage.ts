@@ -21,13 +21,11 @@ import type {
   StorageRecordsSnapshot,
   StorageRepositoryInput,
   StorageResult,
-  StorageStatus,
 } from "./storage-repository";
 
 export type HostStorageMode = StorageMode;
-export type HostStorageStatus = StorageStatus;
 
-export type HostStorageResult = StorageResult;
+type HostStorageResult = StorageResult;
 export type HostStorageMetadataError = {
   entity: StorageEntity;
   message: string;
@@ -42,7 +40,6 @@ type HostStorageReplaceResponse = {
   count: number;
   metadata?: unknown;
 };
-export { mergeStorageResults as mergeHostStorageResults } from "./storage-repository";
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
@@ -71,10 +68,6 @@ export function getHostStorageMode(rawUrl = readRemoteRuntimeUrl()): HostStorage
   return isDesktopHostAvailable() ? "desktop" : "unavailable";
 }
 
-export function hasHostStorage(rawUrl = readRemoteRuntimeUrl()) {
-  return getHostStorageMode(rawUrl) !== "unavailable";
-}
-
 async function invokeHostStorage<T>(
   command: StorageRuntimeCommand,
   args: Record<string, unknown>,
@@ -96,7 +89,7 @@ async function invokeHostStorage<T>(
   throw new Error(HOST_STORAGE_UNAVAILABLE_MESSAGE);
 }
 
-export async function loadHostRecords<T extends StorageRecord>(
+async function loadHostRecords<T extends StorageRecord>(
   entity: StorageEntity,
   normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
@@ -267,7 +260,7 @@ export async function loadHostStorageMetadata(
   }
 }
 
-export async function replaceHostRecords<T extends StorageRecord>(
+async function replaceHostRecords<T extends StorageRecord>(
   entity: StorageEntity,
   records: T[],
   normalizeRecord: StorageRecordNormalizer<T>,
@@ -330,16 +323,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
   }
 }
 
-export async function saveHostRecords<T extends StorageRecord>(
-  entity: StorageEntity,
-  records: T[],
-  normalizeRecord: StorageRecordNormalizer<T>,
-  rawUrl = readRemoteRuntimeUrl(),
-): Promise<HostStorageResult> {
-  return replaceHostRecords(entity, records, normalizeRecord, rawUrl);
-}
-
-export async function loadHostRecordsSnapshot<T extends StorageRecord>({
+async function loadHostRecordsSnapshot<T extends StorageRecord>({
   entity,
   normalizeRecord,
   rawUrl = readRemoteRuntimeUrl(),

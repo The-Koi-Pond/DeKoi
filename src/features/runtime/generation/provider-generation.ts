@@ -51,7 +51,7 @@ function normalizeWarnings(value: unknown): string[] {
   );
 }
 
-export function normalizeProviderResponse(
+function normalizeProviderResponse(
   value: unknown,
   request: ProviderGenerationRequest,
 ): GenerationResponse {
@@ -435,7 +435,7 @@ function systemPrompt(messages: GenerationPromptMessage[]) {
     .join("\n\n");
 }
 
-export async function generateWithBrowserProvider(
+async function generateWithBrowserProvider(
   request: ProviderGenerationRequest,
 ): Promise<GenerationResponse> {
   const connection = assertProviderConnection(request);

@@ -11,7 +11,7 @@ import {
   type DeKoiDesktopStorageBundleSnapshot,
 } from "./desktop-storage-bundle-normalizer";
 
-export type DeKoiDesktopStorageReadResult =
+type DeKoiDesktopStorageReadResult =
   Extract<DeKoiDesktopStorageBundleResult, { ok: true }> | { ok: false; error: string };
 
 export async function readDesktopStorageBundle(): Promise<DeKoiDesktopStorageReadResult> {

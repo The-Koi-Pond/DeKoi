@@ -18,7 +18,6 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
   getGenerationModeForConnection,
-  isGenerationRuntimeMode,
   selectGenerationRuntime,
   type GenerationRuntimeMode,
 } from "./generation-runtime";
@@ -59,12 +58,6 @@ export interface GenerateMessengerThreadReplyResult {
   warnings: string[];
 }
 
-export function isMessengerGenerationRuntimeMode(
-  value: unknown,
-): value is MessengerGenerationRuntimeMode {
-  return isGenerationRuntimeMode(value);
-}
-
 export function selectMessengerGenerationRuntime(
   mode: MessengerGenerationRuntimeMode = "remote-runtime",
 ): MessengerGenerationRuntimeSnapshot {
@@ -83,7 +76,7 @@ export function getMessengerGenerationModeForConnection(
   return getGenerationModeForConnection(connection);
 }
 
-export async function generateMessengerResponse(
+async function generateMessengerResponse(
   request: MessengerGenerationRequest,
   mode: MessengerGenerationRuntimeMode = "remote-runtime",
 ): Promise<MessengerGenerationResponse> {

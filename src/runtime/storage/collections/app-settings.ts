@@ -10,19 +10,7 @@ import { STORAGE_ENTITIES } from "../storage-entities";
 const APP_SETTINGS_RECORD_ID = "app-settings";
 
 type AppSettingsRecord = AppSettings & { id: typeof APP_SETTINGS_RECORD_ID };
-export {
-  DEFAULT_APP_SETTINGS,
-  isAccentId,
-  isDensityPref,
-  isMotionPref,
-  normalizeAppSettings,
-  normalizeSurfaceStatus,
-  type AccentId,
-  type AppSettings,
-  type DensityPref,
-  type MotionPref,
-  type ShoalSortMode,
-} from "../../../engine/contracts/types/app-settings";
+export { type AppSettings } from "../../../engine/contracts/types/app-settings";
 
 function normalizeAppSettingsRecord(value: unknown): AppSettingsRecord | null {
   if (!isRecord(value)) return null;

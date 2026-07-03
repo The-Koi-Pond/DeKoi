@@ -31,10 +31,3 @@ export function createNewThreadLabels({
 }
 
 export type NewThreadLabels = ReturnType<typeof createNewThreadLabels>;
-
-export {
-  getCompanionSelectionLabel,
-  getDraftCompanionName,
-  getDraftRoleplayName,
-  getLorebookSelectionLabel,
-};

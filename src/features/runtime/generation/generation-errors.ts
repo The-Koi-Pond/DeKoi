@@ -69,10 +69,6 @@ function isModelConfigurationError(normalized: string) {
   ].some((pattern) => pattern.test(normalized));
 }
 
-export function formatGenerationFailureNotice(error: unknown, fallback: string) {
-  return describeGenerationFailureNotice(error, fallback).message;
-}
-
 export function describeGenerationFailureNotice(
   error: unknown,
   fallback: string,

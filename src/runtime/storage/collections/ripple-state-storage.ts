@@ -6,11 +6,11 @@ import type {
 } from "../../../engine/contracts/types/ripples";
 import { createStorageRepository, type StorageMode } from "../storage-repository-factory";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
-import { isRecord, normalizeStorageRecordList, readString, readTimestamp } from "../storage-json";
+import { isRecord, readString, readTimestamp } from "../storage-json";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-export type RippleStateStorageMode = StorageMode;
-export type RippleStateStorageStatus = "ready" | "error";
+type RippleStateStorageMode = StorageMode;
+type RippleStateStorageStatus = "ready" | "error";
 
 export type RippleStateStorageSnapshot = {
   states: RippleState[];
@@ -75,10 +75,6 @@ export function normalizeRippleState(value: unknown): RippleState | null {
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
   };
-}
-
-export function normalizeRippleStates(value: unknown): RippleState[] {
-  return normalizeStorageRecordList(value, normalizeRippleState) ?? [];
 }
 
 export function loadRippleStates() {

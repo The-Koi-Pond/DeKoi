@@ -14,7 +14,7 @@ export interface ChatSettingsMessengerSettings {
   openDrawers: Record<ChatSettingsDrawerId, boolean>;
 }
 
-export interface ChatSettingsDrawerActions {
+interface ChatSettingsDrawerActions {
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
 }
 
@@ -31,19 +31,17 @@ export interface ChatSettingsThreadResourceActions {
   onToggleLorebook: (lorebookId: string) => void;
 }
 
-export interface ChatSettingsResourceActions extends ChatSettingsThreadResourceActions {
+interface ChatSettingsResourceActions extends ChatSettingsThreadResourceActions {
   onSelectorOpenChange: (open: boolean) => void;
 }
 
-export interface ChatSettingsPromptActions {
+interface ChatSettingsPromptActions {
   onSaveCustomPrompt: (threadId: string, prompt: string) => void;
   onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
 }
 
-export type ChatSettingsMessengerDrawerActions = ChatSettingsDrawerActions;
 export type ChatSettingsMessengerIdentityActions = ChatSettingsIdentityActions;
 export type ChatSettingsMessengerThreadResourceActions = ChatSettingsThreadResourceActions;
-export type ChatSettingsMessengerResourceActions = ChatSettingsResourceActions;
 export type ChatSettingsMessengerPromptActions = ChatSettingsPromptActions;
 
 export interface ChatSettingsMessengerActionGroup {

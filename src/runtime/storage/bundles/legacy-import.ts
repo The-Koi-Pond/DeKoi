@@ -23,7 +23,7 @@ export interface DeKoiLegacyImportData {
   sourceLabel: string;
 }
 
-export interface DeKoiLegacyImportCounts {
+interface DeKoiLegacyImportCounts {
   messengerThreads: number;
   messengerMessages: number;
 }
@@ -214,7 +214,7 @@ function collectCandidates(value: unknown) {
   return { candidates, sourceLabel };
 }
 
-export function getLegacyImportCounts(data: DeKoiLegacyImportData): DeKoiLegacyImportCounts {
+function getLegacyImportCounts(data: DeKoiLegacyImportData): DeKoiLegacyImportCounts {
   return {
     messengerThreads: data.messengerThreads.length,
     messengerMessages: data.messengerThreads.reduce(

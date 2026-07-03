@@ -13,26 +13,19 @@ import { readRemoteRuntimeUrl, writeRemoteRuntimeUrl } from "../../../shared/api
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
-  APP_STORAGE_COLLECTION_LABELS,
   appStorageCollectionCount,
   appStorageCollectionSignature,
   appStorageCollectionSource,
   changedAppStorageMetadataKeys,
-  appStorageMetadataSignature,
   loadAppStorageSnapshot,
   loadAppStorageMetadata,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
-  saveAppStorageSnapshot,
   type AppStorageCollectionKey,
-  type AppStorageCollectionReplaceResult,
   type AppStorageMetadata,
-  type AppStorageMetadataResult,
   type AppStorageRecords,
   type AppStorageReplaceResult,
-  type AppStorageSaveResult,
   type AppStorageSnapshot,
-  type StorageEntity,
 } from "../../../runtime";
 export { type MessengerStorageMode, type MessengerStorageStatus } from "../../../runtime";
 export {
@@ -40,8 +33,6 @@ export {
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
   type AppStorageRepairCollectionStatus,
-  type AppStorageRepairFinishResult,
-  type AppStorageRepairResult,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
 } from "../../../runtime";

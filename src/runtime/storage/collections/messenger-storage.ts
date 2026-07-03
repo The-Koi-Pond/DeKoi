@@ -71,7 +71,7 @@ export function normalizeMessengerMessageRecord(
   } as MessengerMessage;
 }
 
-export function normalizeMessengerThread(value: unknown): MessengerThread | null {
+function normalizeMessengerThread(value: unknown): MessengerThread | null {
   if (!value || typeof value !== "object") return null;
 
   const candidate = value as Partial<MessengerThread> & { kind?: unknown };

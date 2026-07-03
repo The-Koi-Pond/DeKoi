@@ -63,12 +63,12 @@ export type AppStorageMetadata = Partial<
 
 type AppStorageStatusResult = Omit<StorageResult, "metadata">;
 
-export type AppStorageMetadataResult = AppStorageStatusResult & {
+type AppStorageMetadataResult = AppStorageStatusResult & {
   metadataAvailable: boolean;
   storageMetadata: AppStorageMetadata;
 };
 
-export type AppStorageSaveResult = AppStorageStatusResult & {
+type AppStorageSaveResult = AppStorageStatusResult & {
   storageMetadata: AppStorageMetadata;
 };
 
@@ -78,7 +78,7 @@ export type AppStorageSnapshot = AppStorageRecords & {
   storageMetadata: AppStorageMetadata;
 };
 
-export type AppStorageMigrationCollectionKey =
+type AppStorageMigrationCollectionKey =
   "roleplayThreads" | "roleplayEntries" | "messengerThreads" | "messengerMessages";
 
 export const APP_STORAGE_COLLECTION_ENTITIES = {
@@ -94,7 +94,7 @@ export const APP_STORAGE_COLLECTION_ENTITIES = {
   rippleStates: STORAGE_ENTITIES.rippleStates,
 } as const satisfies Record<AppStorageCollectionKey, StorageEntity>;
 
-export type AppStorageCollectionReplaceResult = {
+type AppStorageCollectionReplaceResult = {
   collectionKey: AppStorageCollectionKey;
   count: number;
   mode: StorageResult["mode"];
@@ -162,9 +162,7 @@ function appStorageMetadataByCollectionKey(
   return storageMetadata;
 }
 
-export function appStorageMetadataSignature(
-  metadata: StorageCollectionMetadata | null | undefined,
-) {
+function appStorageMetadataSignature(metadata: StorageCollectionMetadata | null | undefined) {
   if (!metadata) return "";
 
   return JSON.stringify({
@@ -336,13 +334,6 @@ export async function saveAppStorageCollections(
     ),
     storageMetadata,
   };
-}
-
-export async function saveAppStorageSnapshot(
-  snapshot: AppStorageRecords,
-  rawUrl: string,
-): Promise<AppStorageSaveResult> {
-  return saveAppStorageCollections(snapshot, APP_STORAGE_COLLECTION_KEYS, rawUrl);
 }
 
 export async function replaceAppStorageSnapshot(

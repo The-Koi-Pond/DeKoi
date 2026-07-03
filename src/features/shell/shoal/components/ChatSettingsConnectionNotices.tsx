@@ -1,6 +1,6 @@
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 
-export interface MissingConnectionResolution {
+interface MissingConnectionResolution {
   actionLabel: string;
   connectionId: string | null;
 }

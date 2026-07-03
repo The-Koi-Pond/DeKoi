@@ -1,6 +1,6 @@
 import type { GenerationNoticeAction } from "./generation-notice-actions";
 
-export type GenerationNoticeStatus = "idle" | "generating" | "warning" | "error";
+type GenerationNoticeStatus = "idle" | "generating" | "warning" | "error";
 
 interface GenerationNoticeProps {
   action: GenerationNoticeAction | null;

@@ -1,6 +1,5 @@
-export { NavContext, useNav } from "./context/nav-context";
+export { NavContext } from "./context/nav-context";
 export type {
-  NavActions,
   NavCareActions,
   NavCareState,
   NavCatalogState,
@@ -13,16 +12,12 @@ export type {
   MessengerThreadCreateInput,
   NavPersonaActions,
   NavProviderConnectionActions,
-  NavRippleActions,
   NavRippleState,
   NavSettingsActions,
   NavSettingsState,
   NavStorageActions,
-  NavState,
   NavStorageBundleActions,
-  NavStorageReloadResult,
   NavStorageState,
-  NavStorageStaleCheckResult,
   NavThreadState,
   NavViewActions,
   NavViewState,

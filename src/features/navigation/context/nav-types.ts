@@ -75,7 +75,7 @@ export interface NavCareState {
   careTab: number;
 }
 
-export interface NavState
+interface NavState
   extends
     NavViewState,
     NavCatalogState,
@@ -166,7 +166,7 @@ export interface NavMessengerThreadActions {
   deleteMessengerThread: (threadId: string) => void;
 }
 
-export interface NavRippleActions {
+interface NavRippleActions {
   getRippleState: (ownerKind: RippleStateOwnerKind, ownerId: string) => RippleState | null;
   createRipple: (ownerKind: RippleStateOwnerKind, ownerId: string, input: RippleInput) => void;
   updateRipple: (
@@ -190,7 +190,7 @@ export interface NavStorageBundleActions {
   ) => Promise<AppStorageReplaceResult>;
 }
 
-export type NavStorageStaleCheckResult = {
+type NavStorageStaleCheckResult = {
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
@@ -200,7 +200,7 @@ export type NavStorageStaleCheckResult = {
   changedCollectionKeys: AppStorageCollectionKey[];
 };
 
-export type NavStorageReloadResult = {
+type NavStorageReloadResult = {
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
@@ -208,10 +208,9 @@ export type NavStorageReloadResult = {
   reloaded: boolean;
 };
 
-export type NavStorageFlushReason =
-  "backup" | "export" | "import" | "reload" | "shutdown" | "manual";
+type NavStorageFlushReason = "backup" | "export" | "import" | "reload" | "shutdown" | "manual";
 
-export type NavStorageFlushResult = {
+type NavStorageFlushResult = {
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
@@ -222,7 +221,7 @@ export type NavStorageFlushResult = {
   failedCollectionKeys: AppStorageCollectionKey[];
 };
 
-export type NavStorageImportRecoveryState = {
+type NavStorageImportRecoveryState = {
   available: boolean;
   createdAt: string | null;
   counts: Record<AppStorageCollectionKey, number> | null;
@@ -244,7 +243,7 @@ export interface NavCareActions {
   setCareTab: (tab: number) => void;
 }
 
-export interface NavActions
+interface NavActions
   extends
     NavViewActions,
     NavSettingsActions,

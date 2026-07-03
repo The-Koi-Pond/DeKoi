@@ -1,5 +1,3 @@
-export const COMPANION_SURFACE_LABEL = "Companions";
-
 export type CharacterNoteRole = "system" | "user" | "assistant";
 
 export interface CharacterRecord {

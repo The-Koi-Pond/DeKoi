@@ -37,7 +37,7 @@ import { normalizeRippleState } from "../collections/ripple-state-storage";
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
 
-export interface DeKoiStorageBundleData {
+interface DeKoiStorageBundleData {
   characters: CharacterRecord[];
   roleplayThreads: RoleplayThreadRecord[];
   roleplayEntries: RoleplayEntry[];

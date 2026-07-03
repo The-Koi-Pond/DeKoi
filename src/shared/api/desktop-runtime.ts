@@ -3,9 +3,6 @@ import { DESKTOP_COMMANDS } from "./desktop-commands";
 import { isDesktopHostAvailable } from "./desktop-host-common";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import type { RemoteRuntimeCommand } from "./runtime-commands";
-import { DESKTOP_RUNTIME_URL, isDesktopRuntimeUrl } from "./runtime-target";
-
-export { DESKTOP_RUNTIME_URL, isDesktopRuntimeUrl };
 
 const DESKTOP_RUNTIME_MARKER = "de-koi-desktop";
 

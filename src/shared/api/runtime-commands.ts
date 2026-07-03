@@ -22,12 +22,9 @@ export const REMOTE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.storageUpdate,
 ] as const satisfies readonly RemoteRuntimeCommand[];
 
-export const STORAGE_RUNTIME_COMMANDS = [
-  RUNTIME_COMMANDS.storageCreate,
-  RUNTIME_COMMANDS.storageDelete,
-  RUNTIME_COMMANDS.storageList,
-  RUNTIME_COMMANDS.storageReplace,
-  RUNTIME_COMMANDS.storageUpdate,
-] as const;
-
-export type StorageRuntimeCommand = (typeof STORAGE_RUNTIME_COMMANDS)[number];
+export type StorageRuntimeCommand =
+  | typeof RUNTIME_COMMANDS.storageCreate
+  | typeof RUNTIME_COMMANDS.storageDelete
+  | typeof RUNTIME_COMMANDS.storageList
+  | typeof RUNTIME_COMMANDS.storageReplace
+  | typeof RUNTIME_COMMANDS.storageUpdate;

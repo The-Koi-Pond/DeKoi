@@ -32,9 +32,3 @@ export const SURFACES: Record<SurfaceId, SurfaceMeta> = {
     lockedNote: "Deep water — not yet available",
   },
 };
-
-export const SURFACE_ORDER: SurfaceId[] = [MESSENGER, ROLEPLAY, RESERVED];
-
-export function isLockedSurface(surface: SurfaceId): boolean {
-  return SURFACES[surface].locked;
-}

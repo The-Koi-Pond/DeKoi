@@ -56,18 +56,6 @@ export function renameRoleplayThread(
   };
 }
 
-export function updateRoleplaySceneText(
-  thread: RoleplayThread,
-  sceneText: string,
-  updatedAt: string,
-): RoleplayThread {
-  return {
-    ...thread,
-    sceneText,
-    updatedAt,
-  };
-}
-
 export function appendRoleplayEntries(
   thread: RoleplayThread,
   entries: RoleplayEntry[],

@@ -1,20 +1,14 @@
 export {
   APP_STORAGE_COLLECTION_KEYS,
-  APP_STORAGE_COLLECTION_LABELS,
   changedAppStorageMetadataKeys,
-  appStorageMetadataSignature,
   loadAppStorageSnapshot,
   loadAppStorageMetadata,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
-  saveAppStorageSnapshot,
   type AppStorageCollectionKey,
-  type AppStorageCollectionReplaceResult,
   type AppStorageMetadata,
-  type AppStorageMetadataResult,
   type AppStorageRecords,
   type AppStorageReplaceResult,
-  type AppStorageSaveResult,
   type AppStorageSnapshot,
 } from "./storage/app-storage-snapshot";
 export {
@@ -22,8 +16,6 @@ export {
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
   type AppStorageRepairCollectionStatus,
-  type AppStorageRepairFinishResult,
-  type AppStorageRepairResult,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
 } from "./storage/desktop-storage-repair";
@@ -48,12 +40,10 @@ export {
 export {
   exportDesktopBundleFile,
   importDesktopBundleFile,
-  type DeKoiDesktopBundleFileImportResult,
 } from "./storage/bundles/desktop-bundle-file";
 export {
   readDesktopStorageBundle,
   writeDesktopStorageBundle,
-  type DeKoiDesktopStorageReadResult,
 } from "./storage/bundles/desktop-storage-bundle";
 export {
   normalizeLegacyImport,
@@ -74,7 +64,6 @@ export type { StorageEntity } from "./storage/storage-entities";
 export { mergeStorageResults } from "./storage/storage-repository";
 export type {
   StorageCollectionRepository,
-  StorageCollectionMetadata,
   StorageMode,
   StorageRecord,
   StorageRecordNormalizer,

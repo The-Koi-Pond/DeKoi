@@ -607,7 +607,7 @@ function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
   return [...sortActivatedEntries(constants), ...sortActivatedEntries(selective)];
 }
 
-export function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
+function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
   const promptText = `${entry.lorebookTitle} / ${entry.entry.title}: ${entry.entry.body.trim()}`;
   return Math.ceil(promptText.length / 4);
 }

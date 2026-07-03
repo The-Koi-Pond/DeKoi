@@ -4,7 +4,7 @@ import { requireTauriForDesktopHost } from "./desktop-host-common";
 
 export type DesktopStorageRepairStrategy = "restore-backup" | "replace-empty";
 
-export interface DesktopStorageRepairMetadata {
+interface DesktopStorageRepairMetadata {
   entity: string;
   exists: boolean;
   byteLength: number | null;

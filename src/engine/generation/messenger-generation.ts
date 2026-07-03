@@ -26,15 +26,12 @@ import {
 } from "./generation";
 import type {
   GenerationAdapter,
-  GeneratedMessageDraft,
   GenerationParameters,
   GenerationPromptMessage,
-  GenerationProviderKind,
   GenerationResponse,
 } from "./generation";
 
-export type MessengerGenerationProviderKind = GenerationProviderKind;
-export type MessengerGenerationPromptMessage = GenerationPromptMessage;
+type MessengerGenerationPromptMessage = GenerationPromptMessage;
 export type MessengerGenerationParameters = GenerationParameters;
 
 export interface MessengerGenerationRequest {
@@ -58,7 +55,6 @@ export interface MessengerGenerationRequest {
   warnings: string[];
 }
 
-export type MessengerGeneratedMessageDraft = GeneratedMessageDraft;
 export type MessengerGenerationResponse = GenerationResponse;
 
 export type MessengerGenerationAdapter = GenerationAdapter<MessengerGenerationRequest>;

@@ -1,7 +1,4 @@
-export const MESSENGER_SURFACE_LABEL = "Messenger";
-export const POND_SURFACE_LABEL = "Pond";
-
-export type MessengerThreadKind = "messenger";
+type MessengerThreadKind = "messenger";
 export type MessengerThreadMode = "direct" | "group";
 export type MessengerMessageOrigin = "manual" | "generated" | "imported" | "placeholder" | "sample";
 export type MessengerSystemPromptMode = "default" | "custom";

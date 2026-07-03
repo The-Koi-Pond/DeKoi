@@ -1,4 +1,4 @@
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import { extractRoleplayEntries } from "../../../engine/contracts/types/roleplay";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
@@ -16,12 +16,4 @@ export function loadRoleplayEntriesFromStorage(rawUrl?: string) {
 
 export function saveRoleplayEntriesToStorage(threads: RoleplayThread[], rawUrl?: string) {
   return roleplayEntryRepository.save(extractRoleplayEntries(threads), rawUrl);
-}
-
-export function normalizeRoleplayEntries(value: unknown): RoleplayEntry[] {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((entry) => normalizeRoleplayEntryRecord(entry))
-    .filter((entry): entry is RoleplayEntry => entry !== null);
 }

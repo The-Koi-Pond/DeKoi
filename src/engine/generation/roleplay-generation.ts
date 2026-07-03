@@ -21,15 +21,12 @@ import {
   resolveGenerationRecords,
 } from "./generation";
 import type {
-  GenerationAdapter,
-  GeneratedMessageDraft,
   GenerationParameters,
   GenerationPromptMessage,
-  GenerationProviderKind,
   GenerationResponse,
 } from "./generation";
 
-export const DEFAULT_ROLEPLAY_SYSTEM_PROMPT = `<role>
+const DEFAULT_ROLEPLAY_SYSTEM_PROMPT = `<role>
 You are {{charName}}, writing the next in-character turn in an ongoing fictional roleplay with {{userName}}.
 Treat the conversation as a continuous scene, not a chat with an assistant.
 </role>
@@ -46,10 +43,8 @@ Here are the rules for the interaction:
 - Your output must contain only {{charName}}'s natural next turn.
 </rules>`;
 
-export type RoleplayGenerationProviderKind = GenerationProviderKind;
-export type RoleplayGenerationPromptMessage = GenerationPromptMessage;
+type RoleplayGenerationPromptMessage = GenerationPromptMessage;
 export type RoleplayGenerationParameters = GenerationParameters;
-export type RoleplayGeneratedMessageDraft = GeneratedMessageDraft;
 export type RoleplayGenerationResponse = GenerationResponse;
 
 export interface RoleplayGenerationRequest {
@@ -71,8 +66,6 @@ export interface RoleplayGenerationRequest {
    */
   warnings: string[];
 }
-
-export type RoleplayGenerationAdapter = GenerationAdapter<RoleplayGenerationRequest>;
 
 export interface RoleplayGenerationContext {
   activePersona: PersonaRecord | null;
@@ -111,7 +104,7 @@ function roleplayLoreScanSources(thread: RoleplayThread): LorebookScanSource[] {
   }));
 }
 
-export function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterRecord[]) {
+function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterRecord[]) {
   const availableCompanions = companions.filter((companion) =>
     thread.characterIds.includes(companion.id),
   );

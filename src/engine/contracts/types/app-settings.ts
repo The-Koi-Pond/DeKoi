@@ -3,9 +3,9 @@ import { MESSENGER, type SurfaceId } from "../constants/surfaces";
 
 const MAX_SURFACE_STATUS_LENGTH = 80;
 
-export type AccentId = "koi" | "jade" | "amber";
-export type MotionPref = "auto" | "reduced" | "off";
-export type DensityPref = "comfortable" | "compact";
+type AccentId = "koi" | "jade" | "amber";
+type MotionPref = "auto" | "reduced" | "off";
+type DensityPref = "comfortable" | "compact";
 
 export interface AppSettings {
   sendOnEnterSurface: SurfaceId;
@@ -62,15 +62,15 @@ function isShoalSortMode(value: unknown): value is ShoalSortMode {
   return value === "freshest" || value === "oldest" || value === "title";
 }
 
-export function isAccentId(value: unknown): value is AccentId {
+function isAccentId(value: unknown): value is AccentId {
   return value === "koi" || value === "jade" || value === "amber";
 }
 
-export function isMotionPref(value: unknown): value is MotionPref {
+function isMotionPref(value: unknown): value is MotionPref {
   return value === "auto" || value === "reduced" || value === "off";
 }
 
-export function isDensityPref(value: unknown): value is DensityPref {
+function isDensityPref(value: unknown): value is DensityPref {
   return value === "comfortable" || value === "compact";
 }
 

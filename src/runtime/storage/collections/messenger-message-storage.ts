@@ -1,4 +1,3 @@
-import type { MessengerMessage } from "../../../engine/contracts/types/messenger";
 import {
   extractMessengerMessages,
   type MessengerThread,
@@ -19,12 +18,4 @@ export function loadMessengerMessagesFromStorage(rawUrl?: string) {
 
 export function saveMessengerMessagesToStorage(threads: MessengerThread[], rawUrl?: string) {
   return messengerMessageRepository.save(extractMessengerMessages(threads), rawUrl);
-}
-
-export function normalizeMessengerMessages(value: unknown): MessengerMessage[] {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((message) => normalizeMessengerMessageRecord(message))
-    .filter((message): message is MessengerMessage => message !== null);
 }

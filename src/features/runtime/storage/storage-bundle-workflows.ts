@@ -6,16 +6,8 @@ export {
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
 } from "../../../runtime";
-export {
-  exportDesktopBundleFile,
-  importDesktopBundleFile,
-  type DeKoiDesktopBundleFileImportResult,
-} from "../../../runtime";
-export {
-  readDesktopStorageBundle,
-  writeDesktopStorageBundle,
-  type DeKoiDesktopStorageReadResult,
-} from "../../../runtime";
+export { exportDesktopBundleFile, importDesktopBundleFile } from "../../../runtime";
+export { readDesktopStorageBundle, writeDesktopStorageBundle } from "../../../runtime";
 export {
   type DeKoiLegacyImportData,
   type DeKoiLegacyImportPreview,

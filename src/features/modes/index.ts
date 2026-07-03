@@ -1,7 +1,6 @@
 export {
   RoleplayThread,
   type RoleplayThreadNav,
-  getRoleplayThreadInitials,
   getRoleplayThreadPreview,
   sortRoleplayThreads,
   sortRoleplayThreadsByUpdatedAt,
@@ -17,4 +16,3 @@ export {
   sortMessengerThreadsByUpdatedAt,
   useMessengerThreadActions,
 } from "./messenger";
-export { ChatComposer } from "./shared";

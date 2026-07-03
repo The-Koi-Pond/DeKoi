@@ -1,5 +1,3 @@
-export const PERSONA_SURFACE_LABEL = "Personas";
-
 export type PersonaNoteRole = "system" | "user" | "assistant";
 
 export interface PersonaRecord {

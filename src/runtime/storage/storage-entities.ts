@@ -12,7 +12,6 @@ export const HOST_STORAGE_ENTITIES = [
 ] as const;
 
 export type StorageEntity = (typeof HOST_STORAGE_ENTITIES)[number];
-export type HostStorageEntity = StorageEntity;
 
 export const STORAGE_ENTITIES = {
   appSettings: "app-settings",

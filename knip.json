@@ -3,6 +3,7 @@
   "entry": [
     "index.html",
     "src/main.tsx",
+    "src/runtime/index.ts",
     "vite.config.ts",
     "playwright.config.ts",
     "scripts/**/*.mjs",
@@ -16,5 +17,8 @@
     "*.config.{js,ts}"
   ],
   "ignoreDependencies": ["@tauri-apps/cli"],
-  "ignoreBinaries": ["cargo"]
+  "ignoreBinaries": ["cargo"],
+  "ignoreIssues": {
+    "src/shared/api/desktop-commands.ts": ["exports"]
+  }
 }

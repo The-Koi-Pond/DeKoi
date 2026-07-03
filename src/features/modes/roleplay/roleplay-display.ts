@@ -32,18 +32,6 @@ export function sortRoleplayThreads(threads: RoleplayThread[], sortMode: ShoalSo
   );
 }
 
-export function getRoleplayThreadInitials(title: string) {
-  const initials = title
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return initials || "C";
-}
-
 export function getRoleplayThreadPreview(thread: RoleplayThread) {
   const lastEntry = thread.entries.at(-1);
   if (lastEntry) return `${lastEntry.label}: ${lastEntry.body}`;

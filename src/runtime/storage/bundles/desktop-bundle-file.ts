@@ -11,7 +11,7 @@ import {
   type DeKoiDesktopStorageBundleSnapshot,
 } from "./desktop-storage-bundle-normalizer";
 
-export type DeKoiDesktopBundleFileImportResult =
+type DeKoiDesktopBundleFileImportResult =
   | Extract<DeKoiDesktopStorageBundleResult, { ok: true }>
   | { ok: false; cancelled?: boolean; error: string };
 

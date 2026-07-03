@@ -84,11 +84,11 @@ export function cleanGenerationText(value: string | null | undefined) {
   return value?.trim() ?? "";
 }
 
-export function uniqueGenerationIds(ids: string[]) {
+function uniqueGenerationIds(ids: string[]) {
   return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
 }
 
-export function createGenerationWarning(prefix: string, kind: string, id: string) {
+function createGenerationWarning(prefix: string, kind: string, id: string) {
   return `${prefix} references a missing ${kind}: ${id}.`;
 }
 
@@ -210,14 +210,6 @@ export function activateLoreGenerationEntriesWithWarnings(
   };
 }
 
-/** Activates selected lorebooks, applies their budgets, and sorts the result. */
-export function activateLoreGenerationEntries(
-  lorebooks: LorebookRecord[],
-  options: LoreGenerationContextOptions = {},
-) {
-  return activateLoreGenerationEntriesWithWarnings(lorebooks, options).entries;
-}
-
 /** Formats activated entries, deduping optional lorebook summaries if needed. */
 export function formatLoreGenerationEntries(
   entries: ActivatedLoreEntry[],
@@ -237,10 +229,6 @@ export function formatLoreGenerationEntries(
       `${activatedEntry.lorebookTitle} / ${activatedEntry.entry.title}: ${activatedEntry.entry.body.trim()}`,
     ];
   });
-}
-
-export function activatedLoreGenerationWarnings(entries: ActivatedLoreEntry[]) {
-  return uniqueCleanWarnings(entries.flatMap((entry) => entry.warnings));
 }
 
 function atDepthInsertionIndex(messageCount: number, depth: number | null) {

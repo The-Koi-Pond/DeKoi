@@ -1,9 +1,7 @@
-export const ROLEPLAY_SURFACE_LABEL = "Roleplay";
-
-export type RoleplayThreadKind = "roleplay";
-export type RoleplayThreadMode = "scene";
-export type RoleplayEntryRole = "scene" | "persona" | "character" | "narration";
-export type RoleplayEntryOrigin = "manual" | "generated" | "imported" | "sample";
+type RoleplayThreadKind = "roleplay";
+type RoleplayThreadMode = "scene";
+type RoleplayEntryRole = "scene" | "persona" | "character" | "narration";
+type RoleplayEntryOrigin = "manual" | "generated" | "imported" | "sample";
 
 export interface RoleplayEntry {
   id: string;

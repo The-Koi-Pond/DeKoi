@@ -6,7 +6,7 @@ import { isDesktopRuntimeUrl, readRemoteRuntimeUrl, remoteRuntimeTarget } from "
 
 const REMOTE_RUNTIME_COMMAND_SET = new Set<RemoteRuntimeCommand>(REMOTE_RUNTIME_COMMANDS);
 
-export function isRemoteRuntimeCommand(command: string): command is RemoteRuntimeCommand {
+function isRemoteRuntimeCommand(command: string): command is RemoteRuntimeCommand {
   return REMOTE_RUNTIME_COMMAND_SET.has(command as RemoteRuntimeCommand);
 }
 

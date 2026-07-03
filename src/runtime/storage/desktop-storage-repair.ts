@@ -56,7 +56,7 @@ export type AppStorageRepairStatusResult = {
   collections: AppStorageRepairCollectionStatus[];
 };
 
-export type AppStorageRepairResult = {
+type AppStorageRepairResult = {
   mode: StorageMode;
   status: StorageStatus;
   message: string;
@@ -66,7 +66,7 @@ export type AppStorageRepairResult = {
   metadata: StorageCollectionMetadata | null;
 };
 
-export type AppStorageRepairFinishResult = {
+type AppStorageRepairFinishResult = {
   mode: StorageMode;
   status: StorageStatus;
   message: string;

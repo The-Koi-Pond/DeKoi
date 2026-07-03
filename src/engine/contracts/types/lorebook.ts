@@ -1,5 +1,3 @@
-export const LOREBOOK_SURFACE_LABEL = "Lorebooks";
-
 export type LoreEntryStrategy = "selective" | "constant";
 export type LoreSelectiveLogic = "and-any" | "and-all" | "not-any" | "not-all";
 export type LoreInsertionPosition = "before-character" | "after-character" | "at-depth";

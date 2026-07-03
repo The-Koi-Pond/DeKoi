@@ -192,7 +192,7 @@ export function getProviderConnectionProviderOption(
   );
 }
 
-export function isProviderConnectionProvider(value: unknown): value is ProviderConnectionProvider {
+function isProviderConnectionProvider(value: unknown): value is ProviderConnectionProvider {
   return (
     typeof value === "string" &&
     PROVIDER_CONNECTION_PROVIDER_VALUES.includes(value as ProviderConnectionProvider)
@@ -259,7 +259,7 @@ export function sanitizeProviderConnectionRecord(
   };
 }
 
-export const providerConnections: ProviderConnectionRecord[] = [];
+const providerConnections: ProviderConnectionRecord[] = [];
 
 export function isProviderConnectionId(value: unknown): value is ProviderConnectionId {
   return typeof value === "string" && value.trim().length > 0;
@@ -273,36 +273,4 @@ export function getProviderConnectionById(
     connections.find((connection) => connection.id === connectionId) ?? connections[0] ?? null;
 
   return connection ? sanitizeProviderConnectionRecord(connection) : null;
-}
-
-export function isProviderConnectionReady(
-  connection: ProviderConnectionRecord | null | undefined,
-): connection is ProviderConnectionRecord {
-  return (
-    connection?.status === "ready" &&
-    connection.baseUrl.trim().length > 0 &&
-    connection.model.trim().length > 0
-  );
-}
-
-export function getProviderConnectionGenerationBlocker(
-  connection: ProviderConnectionRecord | null | undefined,
-) {
-  if (!connection) {
-    return "Create or select a connection before generating.";
-  }
-  if (connection.status !== "ready") {
-    return "Add an API key to this connection before generating.";
-  }
-  if (!connection.baseUrl.trim()) {
-    return "Add a Base URL to this connection before generating.";
-  }
-  if (!connection.model.trim()) {
-    return "Select a model for this connection before generating.";
-  }
-  return null;
-}
-
-export function getProviderConnectionStatusLabel(status: ProviderConnectionStatus) {
-  return status === "ready" ? "Ready" : "Needs API key";
 }
