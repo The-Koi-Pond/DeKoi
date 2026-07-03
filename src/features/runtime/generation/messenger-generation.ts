@@ -5,7 +5,7 @@ import type {
 } from "../../../engine/generation/messenger-generation";
 import {
   createMessengerGenerationContext,
-  createMessengerGenerationRequest,
+  createMessengerGenerationRequestAssembly,
 } from "../../../engine/generation/messenger-generation";
 import {
   appendMessengerMessages,
@@ -13,6 +13,7 @@ import {
 } from "../../../engine/modes/messenger/messenger-actions";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
@@ -21,6 +22,10 @@ import {
   selectGenerationRuntime,
   type GenerationRuntimeMode,
 } from "./generation-runtime";
+import {
+  compactGenerationLoreRuntimeState,
+  createGenerationLoreRuntimeState,
+} from "./lore-runtime-state";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
 export type MessengerGenerationRuntimeMode = GenerationRuntimeMode;
@@ -37,6 +42,7 @@ export interface GenerateMessengerThreadReplyInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeState?: LoreRuntimeState | null;
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
@@ -53,6 +59,7 @@ export interface GenerateMessengerThreadReplyResult {
   thread: MessengerThread;
   response: MessengerGenerationResponse;
   generatedMessages: MessengerMessage[];
+  loreRuntimeState: LoreRuntimeState | null;
   runtimeMode: MessengerGenerationRuntimeMode;
   runtimeLabel: string;
   warnings: string[];
@@ -89,6 +96,7 @@ export async function generateMessengerThreadReply({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
+  loreRuntimeState,
   mode = "remote-runtime",
   now,
   parameters,
@@ -106,13 +114,22 @@ export async function generateMessengerThreadReply({
     providerConnections,
     thread,
   });
-  const request = createMessengerGenerationRequest({
+  const generationLoreRuntimeState = createGenerationLoreRuntimeState({
+    createId,
+    existingState: loreRuntimeState,
+    now,
+    ownerId: thread.id,
+    ownerKind: "messenger-thread",
+  });
+  const requestAssembly = createMessengerGenerationRequestAssembly({
     context,
     id: createId("messenger-generation-request"),
+    loreRuntimeState: generationLoreRuntimeState,
     now,
     parameters,
     userMessage,
   });
+  const request = requestAssembly.request;
   const response = await generateMessengerResponse(request, runtime.mode);
   const droppedDraftWarnings: string[] = [];
   const generatedMessages = response.messages.flatMap((messageDraft) => {
@@ -143,6 +160,10 @@ export async function generateMessengerThreadReply({
       generatedMessages.length > 0 ? appendMessengerMessages(thread, generatedMessages) : thread,
     response,
     generatedMessages,
+    loreRuntimeState: compactGenerationLoreRuntimeState(
+      requestAssembly.loreRuntimeState,
+      response.createdAt,
+    ),
     runtimeMode: runtime.mode,
     runtimeLabel: runtime.label,
     warnings,

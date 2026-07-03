@@ -8,10 +8,13 @@ import type {
 } from "../../navigation";
 import type { LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import {
+  DEFAULT_LORE_ENTRY_TIMING,
   DEFAULT_LORE_ENTRY_RECURSION,
   DEFAULT_LOREBOOK_ACTIVATION,
+  resolveEntryTiming,
   resolveEntryRecursion,
   type LorebookActivationSettings,
+  type LoreEntryTiming,
   type LoreEntryRecursion,
   type LoreEntryRole,
   type LoreEntryStrategy,
@@ -36,7 +39,9 @@ import {
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { EntryInclusionControls } from "./EntryInclusionControls";
+import { EntryMatchSourceControls } from "./EntryMatchSourceControls";
 import { EntryRecursionControls } from "./EntryRecursionControls";
+import { EntryTimingControls } from "./EntryTimingControls";
 import { LorebookGroupScoringActivationField } from "./LorebookGroupScoringActivationField";
 import { LorebookRecursionActivationFields } from "./LorebookRecursionActivationFields";
 import { readScanDepthInput } from "./lorebook-scan-depth";
@@ -95,6 +100,9 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   preventFurther: DEFAULT_LORE_ENTRY_RECURSION.preventFurther,
   delayUntilRecursion: DEFAULT_LORE_ENTRY_RECURSION.delayUntilRecursion,
   recursionLevel: String(DEFAULT_LORE_ENTRY_RECURSION.recursionLevel),
+  sticky: String(DEFAULT_LORE_ENTRY_TIMING.sticky),
+  cooldown: String(DEFAULT_LORE_ENTRY_TIMING.cooldown),
+  delay: String(DEFAULT_LORE_ENTRY_TIMING.delay),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
@@ -128,9 +136,11 @@ function draftFromEntry(entry: {
   depth: number | null;
   role: LoreEntryRole | null;
   recursion: LoreEntryRecursion | null;
+  timing: LoreEntryTiming | null;
   matchSources: LorebookEntryDraft["matchSources"] | null;
 }): LorebookEntryDraft {
   const recursion = resolveEntryRecursion(entry);
+  const timing = resolveEntryTiming(entry);
   return {
     title: entry.title,
     body: entry.body,
@@ -151,20 +161,12 @@ function draftFromEntry(entry: {
     preventFurther: recursion.preventFurther,
     delayUntilRecursion: recursion.delayUntilRecursion,
     recursionLevel: String(recursion.recursionLevel),
+    sticky: String(timing.sticky),
+    cooldown: String(timing.cooldown),
+    delay: String(timing.delay),
     matchSources: normalizeLoreMatchSources(entry.matchSources),
   };
 }
-
-const MATCH_SOURCE_OPTIONS: {
-  key: keyof LorebookEntryDraft["matchSources"];
-  label: string;
-}[] = [
-  { key: "characterDescription", label: "Character description" },
-  { key: "characterPersonality", label: "Character personality" },
-  { key: "scenario", label: "Scenario" },
-  { key: "characterNote", label: "Character note" },
-  { key: "personaDescription", label: "Persona description" },
-];
 
 function ScanDepthInput({
   fallback,
@@ -873,31 +875,9 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   </div>
                 )}
                 <EntryInclusionControls draft={draft} onDraftChange={setDraft} />
-                <details className="catalog-editor-section">
-                  <summary>Additional matching sources</summary>
-                  <p className="catalog-field-hint">
-                    Name matching follows the lorebook Include names setting.
-                  </p>
-                  {MATCH_SOURCE_OPTIONS.map((option) => (
-                    <div className="catalog-editor-field catalog-editor-toggle" key={option.key}>
-                      <span className="catalog-toggle-label">{option.label}</span>
-                      <Switch
-                        checked={draft.matchSources[option.key]}
-                        onChange={(checked) =>
-                          setDraft({
-                            ...draft,
-                            matchSources: {
-                              ...draft.matchSources,
-                              [option.key]: checked,
-                            },
-                          })
-                        }
-                        ariaLabel={option.label}
-                      />
-                    </div>
-                  ))}
-                </details>
+                <EntryMatchSourceControls draft={draft} onDraftChange={setDraft} />
                 <EntryRecursionControls draft={draft} onDraftChange={setDraft} />
+                <EntryTimingControls draft={draft} onDraftChange={setDraft} />
                 <div className="catalog-editor-field">
                   <label htmlFor="lore-insertion-order">Insertion Order</label>
                   <input

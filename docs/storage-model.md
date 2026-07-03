@@ -40,6 +40,7 @@ adapters.
 | `roleplay-threads`     | `src/engine/contracts/types/roleplay.ts`            | `RoleplayThreadRecord`     | `src/runtime/storage/collections/roleplay-storage.ts`            |
 | `roleplay-entries`     | `src/engine/contracts/types/roleplay.ts`            | `RoleplayEntry`            | `src/runtime/storage/collections/roleplay-entry-storage.ts`      |
 | `lorebooks`            | `src/engine/contracts/types/lorebook.ts`            | `LorebookRecord`           | `src/runtime/storage/collections/lorebook-storage.ts`            |
+| `lore-runtime-states`  | `src/engine/contracts/types/lore-runtime-state.ts`  | `LoreRuntimeState`         | `src/runtime/storage/collections/lore-runtime-state-storage.ts`  |
 | `messenger-threads`    | `src/engine/contracts/types/messenger.ts`           | `MessengerThreadRecord`    | `src/runtime/storage/collections/messenger-storage.ts`           |
 | `messenger-messages`   | `src/engine/contracts/types/messenger.ts`           | `MessengerMessage`         | `src/runtime/storage/collections/messenger-message-storage.ts`   |
 | `personas`             | `src/engine/contracts/types/persona.ts`             | `PersonaRecord`            | `src/runtime/storage/collections/persona-storage.ts`             |
@@ -83,9 +84,10 @@ records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility. Current generation applies lore activation before
 building prompt context: enabled constant entries with non-empty bodies activate
-automatically unless delayed until recursion, while selective entries activate
-when any non-empty primary key matches the last `scanDepth` transcript items,
-optionally including speaker names. Entries can also opt into additional match
+automatically unless blocked by timing delay or delayed until recursion, while
+selective entries activate when any non-empty primary key matches the last
+`scanDepth` transcript items, optionally including speaker names. Entries can
+also opt into additional match
 sources from selected companion `description`, `personality`, `scenario`, and
 `characterNote` fields and the active persona `description`; these sources are
 not scanned by default. The same `includeNames` setting controls whether
@@ -93,6 +95,10 @@ companion/persona display names and nicknames are included in those additional
 source blobs. Plaintext matching respects `caseSensitiveKeys` and
 `matchWholeWords`; `/pattern/flags` keys compile as regex, bypass whole-word
 wrapping, and fall back to plaintext with a warning when invalid or unsafe.
+Timing delay blocks direct and recursive activation until the thread's
+non-empty transcript count is at least the entry's `delay`; cooldown blocks
+reactivation while its timer remains. Sticky timers activate entries before
+normal matching while `stickyRemaining` is positive.
 When `recursiveScan` is enabled and a direct entry activates, DeKoi appends
 activated entry bodies that do not set `preventFurther` to the scan buffer and
 repeatedly scans remaining eligible entries. `nonRecursable` entries can still
@@ -110,10 +116,11 @@ resolution; the flagged entry does not automatically win. When
 `useGroupScoring` is enabled, groups use highest unique matched primary-key
 count; otherwise groups use weighted random selection by `groupWeight`. If all
 active candidates in a weighted group have zero weight, the first
-prompt-priority candidate wins. The surviving entries then pass through the
-per-entry `probability` gate. Activated entries are sorted by descending
-`insertionOrder`, with selected lorebook order and original entry order as
-stable tiebreakers. Messenger and
+prompt-priority candidate wins. Sticky activations bypass inclusion-group
+suppression and per-entry `probability`; other surviving entries pass through
+the probability gate. Activated entries are sorted by descending `insertionOrder`,
+with selected lorebook order and original entry order as stable tiebreakers.
+Messenger and
 Roleplay prompt assembly places `before-character` entries before persona and
 character context, `after-character` entries after character context, and
 `at-depth` entries into transcript messages by depth from the newest transcript
@@ -127,11 +134,21 @@ on constant entries before selective entries within each activation source,
 then uses descending `insertionOrder` plus the same stable tiebreakers within
 each priority group. Kept entries are re-sorted into prompt order afterward.
 Estimates use roughly characters divided by 4 because DeKoi has no tokenizer
-dependency. Roleplay lorebook summaries count against budgets and are emitted
-at most once per generation request. Optional secondary keys and
+dependency. Timers are started or preserved only for lore entries that survive
+budget trimming; when an active sticky entry is trimmed, DeKoi clears the sticky
+timer while preserving any remaining cooldown. Roleplay lorebook summaries count
+against budgets and are emitted at most once per generation request. Optional
+secondary keys and
 `selectiveLogic` are applied against the same per-entry scan buffer during
-activation. Triggers and character filters remain normalized storage fields but
-are not applied to prompt assembly yet.
+activation. Sticky, cooldown, and delay timing fields are normalized storage
+fields; prompt assembly applies them through per-thread `lore-runtime-states`,
+which record active entry timers by `(lorebookId, entryId)` and advance once per
+generation from the current non-empty transcript count. Lore runtime states are
+cleared when an owning Messenger or Roleplay thread is deleted or its transcript
+is cleared. Timer entries also reset on the next activation pass when their lore
+entry's `updatedAt` no longer matches, so editing an entry starts its
+sticky/cooldown state fresh. Triggers and character filters remain normalized
+storage fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
@@ -319,20 +336,21 @@ actions to clear only the missing thread references.
 
 Current relationships:
 
-| From                 | Field                  | Points to                                       | Cleanup expectation                                                                     |
-| -------------------- | ---------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `messenger-threads`  | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from thread participants.                                |
-| `messenger-threads`  | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                              |
-| `messenger-threads`  | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from thread context.                                      |
-| `messenger-threads`  | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                      |
-| `messenger-messages` | `threadId`             | `messenger-threads.id`                          | Deleting a Messenger thread removes its messages from the projected message collection. |
-| `roleplay-threads`   | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from scene participants.                                 |
-| `roleplay-threads`   | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                              |
-| `roleplay-threads`   | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from scene context.                                       |
-| `roleplay-threads`   | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                      |
-| `roleplay-entries`   | `threadId`             | `roleplay-threads.id`                           | Deleting a Roleplay thread removes its entries from the projected entry collection.     |
-| `characters`         | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from character context.                                   |
-| `ripple-states`      | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import.                                    |
+| From                  | Field                  | Points to                                       | Cleanup expectation                                                                      |
+| --------------------- | ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `messenger-threads`   | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from thread participants.                                 |
+| `messenger-threads`   | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                               |
+| `messenger-threads`   | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from thread context.                                       |
+| `messenger-threads`   | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                       |
+| `messenger-messages`  | `threadId`             | `messenger-threads.id`                          | Deleting a Messenger thread removes its messages from the projected message collection.  |
+| `roleplay-threads`    | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from scene participants.                                  |
+| `roleplay-threads`    | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                               |
+| `roleplay-threads`    | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from scene context.                                        |
+| `roleplay-threads`    | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                       |
+| `roleplay-entries`    | `threadId`             | `roleplay-threads.id`                           | Deleting a Roleplay thread removes its entries from the projected entry collection.      |
+| `characters`          | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from character context.                                    |
+| `lore-runtime-states` | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import. |
+| `ripple-states`       | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import.                                     |
 
 ## Import And Export
 
@@ -347,6 +365,8 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
 - Include `roleplay-entries` and `messenger-messages` as separate bundle arrays;
   imported legacy bundles with embedded transcript data are normalized into the
   split collections.
+- Include `lore-runtime-states` in native bundles, import missing older bundle
+  fields as empty, and skip runtime states whose owner thread is not imported.
 - Redact legacy or hand-edited provider secret fields during bundle import and
   warn that those fields were skipped.
 - Import required-key provider connections as `needs-key` unless a desktop

@@ -13,6 +13,7 @@ import {
 } from "../features/shell";
 import { useAppState } from "./use-app-state";
 import { useAppStorageSync } from "./use-app-storage-sync";
+import { useLoreRuntimeActions } from "./use-lore-runtime-actions";
 import { useRippleActions } from "./use-ripple-actions";
 import { useViewActions } from "./use-view-actions";
 
@@ -30,6 +31,8 @@ export function useAppController(): NavContextType {
     setPersonas,
     lorebooks,
     setLorebooks,
+    loreRuntimeStates,
+    setLoreRuntimeStates,
     providerConnections,
     setProviderConnections,
     roleplayThreads,
@@ -81,6 +84,7 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    loreRuntimeStates,
     providerConnections,
     roleplayThreads,
     messengerThreads,
@@ -90,6 +94,7 @@ export function useAppController(): NavContextType {
     setCharacters,
     setPersonas,
     setLorebooks,
+    setLoreRuntimeStates,
     setProviderConnections,
     setRoleplayThreads,
     setMessengerThreads,
@@ -122,6 +127,7 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    loreRuntimeStates,
     providerConnections,
     roleplayThreads,
     messengerThreads,
@@ -195,6 +201,7 @@ export function useAppController(): NavContextType {
     personas,
     providerConnections,
     setRoleplayThreads,
+    setLoreRuntimeStates,
     setRippleStates,
     setView: setNavView,
     view,
@@ -214,6 +221,7 @@ export function useAppController(): NavContextType {
     personas,
     providerConnections,
     setMessengerThreads,
+    setLoreRuntimeStates,
     setView: setNavView,
     view,
     openMessengerThread,
@@ -224,6 +232,11 @@ export function useAppController(): NavContextType {
     setRippleStates,
   });
 
+  const { getLoreRuntimeState, updateLoreRuntimeState } = useLoreRuntimeActions({
+    loreRuntimeStates,
+    setLoreRuntimeStates,
+  });
+
   return {
     view,
     sideRailView,
@@ -231,12 +244,14 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    loreRuntimeStates,
     providerConnections,
     roleplayThreads,
     messengerThreads,
     messengerStorageMode,
     messengerStorageStatus,
     messengerStorageMessage,
+    storageReady,
     storageHasUnsavedChanges,
     importRecoveryState,
     rippleStates,
@@ -282,6 +297,8 @@ export function useAppController(): NavContextType {
     createRipple,
     updateRipple,
     deleteRipple,
+    getLoreRuntimeState,
+    updateLoreRuntimeState,
     createStorageBundle,
     checkAppStorageStale,
     flushAppStorageSaves,

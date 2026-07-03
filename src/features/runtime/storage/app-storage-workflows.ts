@@ -43,6 +43,7 @@ export function loadInitialAppStorageRecords(): AppStorageRecords {
     characters: loadCharacterRecords(),
     personas: loadPersonaRecords(),
     lorebooks: loadLorebookRecords(),
+    loreRuntimeStates: [],
     providerConnections: loadProviderConnectionRecords(),
     roleplayThreads: loadRoleplayThreads(),
     messengerThreads: loadInitialMessengerThreads(),

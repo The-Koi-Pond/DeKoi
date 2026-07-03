@@ -60,6 +60,15 @@ export {
   selectGenerationRuntime,
   type GenerationFailureRecoveryTarget,
 } from "./generation";
+export {
+  deleteLoreRuntimeStateForOwner,
+  selectLoreRuntimeState,
+  upsertLoreRuntimeState,
+} from "../../engine/lore-runtime/lore-runtime-actions";
+export type {
+  LoreRuntimeState,
+  LoreRuntimeStateOwnerKind,
+} from "../../engine/contracts/types/lore-runtime-state";
 export { generateRoleplayThreadTurn } from "./generation";
 export {
   generateMessengerThreadReply,

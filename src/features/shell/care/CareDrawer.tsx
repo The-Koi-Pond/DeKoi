@@ -3,6 +3,7 @@ import type {
   NavCareActions,
   NavCareState,
   NavCatalogState,
+  NavLoreRuntimeState,
   NavRippleState,
   NavSettingsActions,
   NavSettingsState,
@@ -61,6 +62,7 @@ interface CareDrawerProps {
 export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavCareState, "careOpen" | "careTab"> &
   Pick<NavCatalogState, "characters" | "lorebooks" | "personas" | "providerConnections"> &
+  Pick<NavLoreRuntimeState, "loreRuntimeStates"> &
   Pick<NavRippleState, "rippleStates"> &
   Pick<
     NavSettingsActions,
@@ -164,6 +166,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     characters: nav.characters,
     roleplayThreads: nav.roleplayThreads,
     lorebooks: nav.lorebooks,
+    loreRuntimeStates: nav.loreRuntimeStates,
     messengerThreads: nav.messengerThreads,
     personas: nav.personas,
     providerConnections: nav.providerConnections,
@@ -995,6 +998,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         </span>
         <span>
           <b>{counts.lorebookEntries}</b> lore entries
+        </span>
+        <span>
+          <b>{counts.loreRuntimeStates}</b> lore runtime states
+        </span>
+        <span>
+          <b>{counts.loreRuntimeEntries}</b> lore runtime entries
         </span>
         <span>
           <b>{counts.providerConnections}</b> connections

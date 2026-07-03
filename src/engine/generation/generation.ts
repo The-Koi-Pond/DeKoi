@@ -1,13 +1,16 @@
 import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
+  advanceLoreRuntimeStateForEvaluation,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
   buildMatchSources,
   buildScanBuffer,
   sortActivatedEntries,
+  updateLoreRuntimeStateFromActivation,
   type ActivatedLoreEntry,
   type LorebookScanSource,
 } from "../generation-core/lorebook-activation";
@@ -118,10 +121,14 @@ export interface LoreGenerationContextOptions {
   /** Transcript sources scanned according to each lorebook's scan depth. */
   scanSources?: LorebookScanSource[];
   contextTokens?: number | null;
+  /** Already-loaded per-thread lore timer state for sticky and cooldown effects. */
+  runtimeState?: LoreRuntimeState | null;
 }
 
 export interface ActivatedLoreGenerationResult {
   entries: ActivatedLoreEntry[];
+  /** Updated lore timer state after activation and budget trimming. */
+  runtimeState: LoreRuntimeState | null;
   warnings: string[];
 }
 
@@ -181,12 +188,15 @@ export function activateLoreGenerationEntriesWithWarnings(
   options: LoreGenerationContextOptions = {},
 ): ActivatedLoreGenerationResult {
   const warnings: string[] = [];
+  const scanSources = options.scanSources ?? [];
+  const messageCount = scanSources.filter((source) => source.body?.trim()).length;
+  let runtimeState = advanceLoreRuntimeStateForEvaluation(options.runtimeState, messageCount);
   const matchSources = buildMatchSources({
     activePersona: options.activePersona ?? null,
     companions: options.companions ?? [],
   });
   const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
-    const scanBuffer = buildScanBuffer(options.scanSources ?? [], lorebook.activation);
+    const scanBuffer = buildScanBuffer(scanSources, lorebook.activation);
     const summary = lorebook.summary.trim();
     const reservedTokens =
       options.includeSummary && summary
@@ -194,18 +204,29 @@ export function activateLoreGenerationEntriesWithWarnings(
         : 0;
     const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
       matchSources,
+      messageCount,
+      runtimeState,
       sourceOrder,
     });
     warnings.push(...activation.warnings);
-    return applyTokenBudget(activation.entries, {
+    const keptEntries = applyTokenBudget(activation.entries, {
       budgetTokens: lorebook.activation.budgetTokens,
       budgetPercent: lorebook.activation.budgetPercent,
       contextTokens: options.contextTokens,
       reservedTokens,
     });
+    runtimeState = updateLoreRuntimeStateFromActivation({
+      activatedEntries: activation.entries,
+      keptEntries,
+      lorebook,
+      messageCount,
+      runtimeState,
+    });
+    return keptEntries;
   });
   return {
     entries: sortActivatedEntries(activatedEntries),
+    runtimeState,
     warnings: uniqueCleanWarnings(warnings),
   };
 }

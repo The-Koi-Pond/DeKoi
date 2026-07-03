@@ -20,6 +20,9 @@ export function useAppState() {
   const [characters, setCharacters] = useState(initialStorageRecords.characters);
   const [personas, setPersonas] = useState(initialStorageRecords.personas);
   const [lorebooks, setLorebooks] = useState(initialStorageRecords.lorebooks);
+  const [loreRuntimeStates, setLoreRuntimeStates] = useState(
+    initialStorageRecords.loreRuntimeStates,
+  );
   const [providerConnections, setProviderConnections] = useState(
     initialStorageRecords.providerConnections,
   );
@@ -54,6 +57,8 @@ export function useAppState() {
     setPersonas,
     lorebooks,
     setLorebooks,
+    loreRuntimeStates,
+    setLoreRuntimeStates,
     providerConnections,
     setProviderConnections,
     roleplayThreads,

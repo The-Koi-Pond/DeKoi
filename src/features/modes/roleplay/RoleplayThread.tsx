@@ -20,8 +20,10 @@ import {
 } from "../../runtime";
 import type {
   NavCatalogState,
+  NavLoreRuntimeActions,
   NavRoleplayThreadActions,
   NavSettingsState,
+  NavStorageState,
   NavThreadState,
   NavViewActions,
   NavViewState,
@@ -46,7 +48,9 @@ export type RoleplayThreadNav = Pick<
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
+  Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
+  Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "roleplayThreads"> &
   Pick<NavViewActions, "setSelectedSurface" | "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
@@ -154,10 +158,12 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const threadReferenceNotices = threadReferenceSummary
     ? getRoleplayThreadReferenceNotices(threadReferenceSummary)
     : [];
-  const sendBlocker = threadReferenceSummary
-    ? getRoleplayThreadSendBlocker(threadReferenceSummary)
-    : "";
-  const canSend = !!thread && draft.trim().length > 0 && !isGenerating && !sendBlocker;
+  const storageBlocker = nav.storageReady ? "" : "Storage is still loading.";
+  const sendBlocker =
+    storageBlocker ||
+    (threadReferenceSummary ? getRoleplayThreadSendBlocker(threadReferenceSummary) : "");
+  const canSend =
+    !!thread && nav.storageReady && draft.trim().length > 0 && !isGenerating && !sendBlocker;
   const activeEditingEntry = editingEntry?.threadId === activeThreadId ? editingEntry : null;
   const activeDeleteRequest =
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
@@ -281,6 +287,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
 
   async function sendDraft() {
     if (!thread) return false;
+    if (!nav.storageReady) return false;
     if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
@@ -362,6 +369,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
+        loreRuntimeState: nav.getLoreRuntimeState("roleplay-thread", threadWithUserEntry.id),
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -377,6 +385,11 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       if (result.generatedEntryCount > 0) {
         nav.updateRoleplayThread(result.thread);
       }
+      nav.updateLoreRuntimeState(
+        result.loreRuntimeState,
+        "roleplay-thread",
+        threadWithUserEntry.id,
+      );
 
       setGenerationState(
         result.generatedEntryCount > 0

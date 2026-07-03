@@ -14,6 +14,7 @@ const CHARACTERS_ENTITY: &str = "characters";
 const ROLEPLAY_THREADS_ENTITY: &str = "roleplay-threads";
 const ROLEPLAY_ENTRIES_ENTITY: &str = "roleplay-entries";
 const LOREBOOKS_ENTITY: &str = "lorebooks";
+const LORE_RUNTIME_STATES_ENTITY: &str = "lore-runtime-states";
 const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
 const MESSENGER_MESSAGES_ENTITY: &str = "messenger-messages";
 const PERSONAS_ENTITY: &str = "personas";
@@ -26,6 +27,7 @@ const COLLECTION_ENTITIES: &[&str] = &[
     ROLEPLAY_THREADS_ENTITY,
     ROLEPLAY_ENTRIES_ENTITY,
     LOREBOOKS_ENTITY,
+    LORE_RUNTIME_STATES_ENTITY,
     MESSENGER_THREADS_ENTITY,
     MESSENGER_MESSAGES_ENTITY,
     PERSONAS_ENTITY,

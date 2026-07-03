@@ -1,6 +1,8 @@
 import type { LorebookEntryInput } from "../../../engine/catalog/lorebook-actions";
 import {
+  DEFAULT_LORE_ENTRY_TIMING,
   DEFAULT_LORE_ENTRY_RECURSION,
+  type LoreEntryTiming,
   type LoreEntryRecursion,
   type LoreEntryRole,
   type LoreEntryStrategy,
@@ -31,6 +33,9 @@ export interface LorebookEntryDraft {
   preventFurther: boolean;
   delayUntilRecursion: boolean;
   recursionLevel: string;
+  sticky: string;
+  cooldown: string;
+  delay: string;
   matchSources: LoreMatchSources;
 }
 
@@ -209,6 +214,16 @@ function compactLoreEntryRecursion(draft: LorebookEntryDraft): LoreEntryRecursio
     : null;
 }
 
+function compactLoreEntryTiming(draft: LorebookEntryDraft): LoreEntryTiming | null {
+  const timing: LoreEntryTiming = {
+    sticky: readNonNegativeIntegerInput(draft.sticky, DEFAULT_LORE_ENTRY_TIMING.sticky),
+    cooldown: readNonNegativeIntegerInput(draft.cooldown, DEFAULT_LORE_ENTRY_TIMING.cooldown),
+    delay: readNonNegativeIntegerInput(draft.delay, DEFAULT_LORE_ENTRY_TIMING.delay),
+  };
+
+  return timing.sticky > 0 || timing.cooldown > 0 || timing.delay > 0 ? timing : null;
+}
+
 export function entryDraftDisablesBannerSave({
   draft,
   showEditor,
@@ -242,6 +257,7 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     depth,
     role: draft.insertionPosition === "at-depth" ? draft.role : null,
     recursion: compactLoreEntryRecursion(draft),
+    timing: compactLoreEntryTiming(draft),
     matchSources: compactLoreMatchSources(draft.matchSources),
   };
 }

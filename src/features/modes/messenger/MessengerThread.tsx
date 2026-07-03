@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type {
   NavCatalogState,
+  NavLoreRuntimeActions,
   NavMessengerThreadActions,
   NavSettingsState,
+  NavStorageState,
   NavThreadState,
   NavViewActions,
   NavViewState,
@@ -58,7 +60,9 @@ export type MessengerThreadNav = Pick<
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
+  Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
+  Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
@@ -158,10 +162,16 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const threadReferenceNotices = threadReferenceSummary
     ? getMessengerThreadReferenceNotices(threadReferenceSummary)
     : [];
-  const sendBlocker = threadReferenceSummary
-    ? getMessengerThreadSendBlocker(threadReferenceSummary)
-    : "";
-  const canSend = draft.trim().length > 0 && !isGenerating && !sendBlocker;
+  const storageBlocker = nav.storageReady ? "" : "Storage is still loading.";
+  const sendBlocker =
+    storageBlocker ||
+    (threadReferenceSummary ? getMessengerThreadSendBlocker(threadReferenceSummary) : "");
+  const canSend =
+    !!messengerThread &&
+    nav.storageReady &&
+    draft.trim().length > 0 &&
+    !isGenerating &&
+    !sendBlocker;
   const threadConnection = getProviderConnectionById(
     messengerThread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
@@ -319,6 +329,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
   async function sendDraft() {
     if (!messengerThread) return false;
+    if (!nav.storageReady) return false;
     if (isGenerating) return false;
 
     const trimmedDraft = draft.trim();
@@ -407,6 +418,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
+        loreRuntimeState: nav.getLoreRuntimeState("messenger-thread", threadWithUserMessage.id),
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -435,6 +447,11 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         );
         nav.updateMessengerThread(result.thread);
       }
+      nav.updateLoreRuntimeState(
+        result.loreRuntimeState,
+        "messenger-thread",
+        threadWithUserMessage.id,
+      );
 
       setGenerationState(
         result.generatedMessages.length > 0

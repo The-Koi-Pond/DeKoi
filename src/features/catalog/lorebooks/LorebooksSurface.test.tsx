@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import { createLorebookRecord } from "../../../engine/catalog/lorebook-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
+  DEFAULT_LORE_ENTRY_TIMING,
   DEFAULT_LORE_ENTRY_RECURSION,
+  resolveEntryTiming,
   resolveEntryRecursion,
 } from "../../../engine/contracts/types/lorebook";
 import {
@@ -58,6 +60,9 @@ const baseDraft: LorebookEntryDraft = {
   preventFurther: DEFAULT_LORE_ENTRY_RECURSION.preventFurther,
   delayUntilRecursion: DEFAULT_LORE_ENTRY_RECURSION.delayUntilRecursion,
   recursionLevel: String(DEFAULT_LORE_ENTRY_RECURSION.recursionLevel),
+  sticky: String(DEFAULT_LORE_ENTRY_TIMING.sticky),
+  cooldown: String(DEFAULT_LORE_ENTRY_TIMING.cooldown),
+  delay: String(DEFAULT_LORE_ENTRY_TIMING.delay),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 
@@ -263,6 +268,26 @@ describe("lorebook entry draft helpers", () => {
     });
   });
 
+  it("serializes timed effects only when enabled", () => {
+    expect(lorebookEntryDraftToInput(baseDraft).timing).toBeNull();
+    expect(lorebookEntryDraftToInput({ ...baseDraft, sticky: "4.9" }).timing).toEqual({
+      ...DEFAULT_LORE_ENTRY_TIMING,
+      sticky: 4,
+    });
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        sticky: "-1",
+        cooldown: "2.9",
+        delay: "3",
+      }).timing,
+    ).toEqual({
+      ...DEFAULT_LORE_ENTRY_TIMING,
+      cooldown: 2,
+      delay: 3,
+    });
+  });
+
   it("normalizes missing matching sources to default-off checkboxes", () => {
     expect(normalizeLoreMatchSources(null)).toEqual(EMPTY_LORE_MATCH_SOURCES);
     expect(
@@ -285,6 +310,14 @@ describe("lorebook entry draft helpers", () => {
     ).toEqual({
       ...DEFAULT_LORE_ENTRY_RECURSION,
       nonRecursable: true,
+    });
+  });
+
+  it("normalizes missing timed effects to default zero values", () => {
+    expect(resolveEntryTiming({ timing: null })).toEqual(DEFAULT_LORE_ENTRY_TIMING);
+    expect(resolveEntryTiming({ timing: { ...DEFAULT_LORE_ENTRY_TIMING, cooldown: 2 } })).toEqual({
+      ...DEFAULT_LORE_ENTRY_TIMING,
+      cooldown: 2,
     });
   });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  advanceLoreRuntimeStateForEvaluation,
   activateLorebookEntries,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
@@ -13,8 +14,10 @@ import { finalizeActivationResult } from "./lorebook-activation-resolution";
 import type { ActivatedLoreEntry } from "./lorebook-activation-types";
 import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
+import { activateLoreGenerationEntriesWithWarnings } from "../generation/generation";
 
 const now = "2026-07-02T00:00:00.000Z";
 
@@ -41,6 +44,34 @@ function entry(input: Partial<Parameters<typeof createLorebookEntryRecord>[0]["i
       ...input,
     },
     now,
+  });
+}
+
+function runtimeState(input: Partial<LoreRuntimeState> = {}): LoreRuntimeState {
+  return {
+    id: "lore-runtime-state-under-test",
+    schemaVersion: 1,
+    ownerKind: "messenger-thread",
+    ownerId: "messenger-thread-under-test",
+    lastEvaluatedMessageCount: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...input,
+    entries: input.entries ?? [],
+  };
+}
+
+function activateWithAdvancedRuntimeState(
+  book: LorebookRecord,
+  scanBuffer: string,
+  options: NonNullable<Parameters<typeof activateLorebookEntriesWithWarnings>[2]> & {
+    messageCount: number;
+    runtimeState: LoreRuntimeState;
+  },
+) {
+  return activateLorebookEntriesWithWarnings(book, scanBuffer, {
+    ...options,
+    runtimeState: advanceLoreRuntimeStateForEvaluation(options.runtimeState, options.messageCount),
   });
 }
 
@@ -171,6 +202,324 @@ describe("lorebook activation", () => {
       matchReason: "primary-key",
       matchedKey: "moon gate",
     });
+  });
+
+  it("delays entry activation until the thread reaches the configured message count", () => {
+    const delayed = entry({
+      title: "Delayed",
+      strategy: "selective",
+      key: ["moon gate"],
+      timing: { sticky: 0, cooldown: 0, delay: 2 },
+    });
+
+    expect(
+      activateLorebookEntries(lorebook([delayed]), "Open the moon gate.", { messageCount: 1 }),
+    ).toEqual([]);
+    expect(
+      activateLorebookEntries(lorebook([delayed]), "Open the moon gate.", { messageCount: 2 }).map(
+        (item) => item.entry.title,
+      ),
+    ).toEqual(["Delayed"]);
+  });
+
+  it("applies delayed sticky and cooldown timers across a message sequence", () => {
+    const timed = entry({
+      title: "Timed",
+      strategy: "selective",
+      key: ["moon gate"],
+      timing: { sticky: 3, cooldown: 2, delay: 2 },
+    });
+    const book = lorebook([timed]);
+    let state = runtimeState();
+
+    const first = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+      messageCount: 1,
+      runtimeState: state,
+    });
+    state = first.runtimeState ?? state;
+    expect(first.entries).toEqual([]);
+    expect(state.entries).toEqual([]);
+
+    const second = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+      messageCount: 2,
+      runtimeState: state,
+    });
+    state = second.runtimeState ?? state;
+    expect(second.entries.map((item) => item.entry.title)).toEqual(["Timed"]);
+    expect(state.entries).toMatchObject([
+      {
+        activatedAtMessageIndex: 2,
+        stickyRemaining: 3,
+        cooldownRemaining: 2,
+      },
+    ]);
+
+    const third = activateWithAdvancedRuntimeState(book, "", {
+      messageCount: 3,
+      runtimeState: state,
+    });
+    state = third.runtimeState ?? state;
+    expect(third.entries).toMatchObject([{ matchReason: "sticky" }]);
+    expect(state.entries).toMatchObject([{ stickyRemaining: 2, cooldownRemaining: 1 }]);
+
+    const fourth = activateWithAdvancedRuntimeState(book, "", {
+      messageCount: 4,
+      runtimeState: state,
+    });
+    state = fourth.runtimeState ?? state;
+    expect(fourth.entries).toMatchObject([{ matchReason: "sticky" }]);
+    expect(state.entries).toMatchObject([{ stickyRemaining: 1, cooldownRemaining: 0 }]);
+
+    const fifth = activateWithAdvancedRuntimeState(book, "", {
+      messageCount: 5,
+      runtimeState: state,
+    });
+    state = fifth.runtimeState ?? state;
+    expect(fifth.entries).toEqual([]);
+    expect(state.entries).toEqual([]);
+
+    const sixth = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+      messageCount: 6,
+      runtimeState: state,
+    });
+    expect(sixth.entries.map((item) => item.entry.title)).toEqual(["Timed"]);
+    expect(sixth.runtimeState?.entries).toMatchObject([
+      {
+        activatedAtMessageIndex: 6,
+        stickyRemaining: 3,
+        cooldownRemaining: 2,
+      },
+    ]);
+  });
+
+  it("lets sticky activations bypass probability", () => {
+    const sticky = entry({
+      title: "Sticky",
+      strategy: "selective",
+      key: ["moon gate"],
+      probability: 0,
+      timing: { sticky: 2, cooldown: 0, delay: 0 },
+    });
+
+    const result = activateWithAdvancedRuntimeState(lorebook([sticky]), "", {
+      messageCount: 2,
+      rand: () => 0.99,
+      runtimeState: runtimeState({
+        lastEvaluatedMessageCount: 1,
+        entries: [
+          {
+            lorebookId: "lorebook-under-test",
+            entryId: sticky.id,
+            entryUpdatedAt: sticky.updatedAt,
+            activatedAtMessageIndex: 1,
+            stickyRemaining: 2,
+            cooldownRemaining: 0,
+          },
+        ],
+      }),
+    });
+
+    expect(result.entries).toMatchObject([{ entry: sticky, matchReason: "sticky" }]);
+  });
+
+  it("lets sticky activations bypass inclusion-group suppression", () => {
+    const sticky = entry({
+      title: "Sticky",
+      strategy: "selective",
+      key: ["moon gate"],
+      inclusionGroup: "variants",
+      insertionOrder: 10,
+      timing: { sticky: 2, cooldown: 0, delay: 0 },
+    });
+    const groupMate = entry({
+      title: "Group Mate",
+      strategy: "selective",
+      key: ["rival gate"],
+      inclusionGroup: "variants",
+      insertionOrder: 100,
+      prioritizeInclusion: true,
+    });
+
+    const result = activateWithAdvancedRuntimeState(
+      lorebook([sticky, groupMate]),
+      "The rival gate opens.",
+      {
+        messageCount: 2,
+        runtimeState: runtimeState({
+          lastEvaluatedMessageCount: 1,
+          entries: [
+            {
+              lorebookId: "lorebook-under-test",
+              entryId: sticky.id,
+              entryUpdatedAt: sticky.updatedAt,
+              activatedAtMessageIndex: 1,
+              stickyRemaining: 2,
+              cooldownRemaining: 0,
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(
+      result.entries.map((item) => ({
+        title: item.entry.title,
+        matchReason: item.matchReason,
+      })),
+    ).toEqual([
+      { title: "Group Mate", matchReason: "primary-key" },
+      { title: "Sticky", matchReason: "sticky" },
+    ]);
+  });
+
+  it("does not start timers for generation entries trimmed by lore budget", () => {
+    const timed = entry({
+      title: "Timed",
+      strategy: "selective",
+      key: ["moon gate"],
+      body: "A long body that cannot fit in a zero-token lore budget.",
+      timing: { sticky: 4, cooldown: 3, delay: 0 },
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      [lorebook([timed], { budgetTokens: 0 })],
+      {
+        runtimeState: runtimeState(),
+        scanSources: [{ body: "Open the moon gate." }],
+      },
+    );
+
+    expect(result.entries).toEqual([]);
+    expect(result.runtimeState?.entries).toEqual([]);
+  });
+
+  it("clears sticky timers when generation budget trims sticky activations", () => {
+    const sticky = entry({
+      title: "Sticky",
+      strategy: "selective",
+      key: ["moon gate"],
+      body: "A long body that cannot fit in a zero-token lore budget.",
+      timing: { sticky: 4, cooldown: 0, delay: 0 },
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      [lorebook([sticky], { budgetTokens: 0 })],
+      {
+        runtimeState: runtimeState({
+          lastEvaluatedMessageCount: 1,
+          entries: [
+            {
+              lorebookId: "lorebook-under-test",
+              entryId: sticky.id,
+              entryUpdatedAt: sticky.updatedAt,
+              activatedAtMessageIndex: 1,
+              stickyRemaining: 3,
+              cooldownRemaining: 2,
+            },
+          ],
+        }),
+        scanSources: [{ body: "Previous message." }, { body: "Next message." }],
+      },
+    );
+
+    expect(result.entries).toEqual([]);
+    expect(result.runtimeState?.entries).toMatchObject([
+      {
+        stickyRemaining: 0,
+        cooldownRemaining: 1,
+      },
+    ]);
+  });
+
+  it("blocks reactivation while cooldown remains active", () => {
+    const cooling = entry({
+      title: "Cooling",
+      strategy: "selective",
+      key: ["moon gate"],
+      timing: { sticky: 0, cooldown: 3, delay: 0 },
+    });
+    const book = lorebook([cooling]);
+    let state = runtimeState();
+
+    const first = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+      messageCount: 1,
+      runtimeState: state,
+    });
+    state = first.runtimeState ?? state;
+    expect(first.entries.map((item) => item.entry.title)).toEqual(["Cooling"]);
+
+    for (const messageCount of [2, 3]) {
+      const blocked = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+        messageCount,
+        runtimeState: state,
+      });
+      state = blocked.runtimeState ?? state;
+      expect(blocked.entries).toEqual([]);
+    }
+
+    const reactivated = activateWithAdvancedRuntimeState(book, "Open the moon gate.", {
+      messageCount: 4,
+      runtimeState: state,
+    });
+    expect(reactivated.entries.map((item) => item.entry.title)).toEqual(["Cooling"]);
+  });
+
+  it("clears timed state when the thread does not advance", () => {
+    const sticky = entry({
+      title: "Sticky",
+      strategy: "selective",
+      key: ["moon gate"],
+      timing: { sticky: 3, cooldown: 0, delay: 0 },
+    });
+
+    const result = activateWithAdvancedRuntimeState(lorebook([sticky]), "", {
+      messageCount: 2,
+      runtimeState: runtimeState({
+        lastEvaluatedMessageCount: 2,
+        entries: [
+          {
+            lorebookId: "lorebook-under-test",
+            entryId: sticky.id,
+            entryUpdatedAt: sticky.updatedAt,
+            activatedAtMessageIndex: 1,
+            stickyRemaining: 3,
+            cooldownRemaining: 0,
+          },
+        ],
+      }),
+    });
+
+    expect(result.entries).toEqual([]);
+    expect(result.runtimeState?.entries).toEqual([]);
+  });
+
+  it("clears timed state when the entry definition changed", () => {
+    const sticky = entry({
+      title: "Sticky",
+      strategy: "selective",
+      key: ["moon gate"],
+      timing: { sticky: 3, cooldown: 0, delay: 0 },
+    });
+
+    const result = activateWithAdvancedRuntimeState(lorebook([sticky]), "", {
+      messageCount: 2,
+      runtimeState: runtimeState({
+        lastEvaluatedMessageCount: 1,
+        entries: [
+          {
+            lorebookId: "lorebook-under-test",
+            entryId: sticky.id,
+            entryUpdatedAt: "2026-07-01T00:00:00.000Z",
+            activatedAtMessageIndex: 1,
+            stickyRemaining: 3,
+            cooldownRemaining: 0,
+          },
+        ],
+      }),
+    });
+
+    expect(result.entries).toEqual([]);
+    expect(result.runtimeState?.entries).toEqual([]);
   });
 
   it("skips disabled entries", () => {

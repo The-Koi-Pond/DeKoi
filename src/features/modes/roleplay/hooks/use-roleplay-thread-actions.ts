@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
+import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import {
   appendRoleplayEntries,
@@ -16,6 +17,7 @@ import type {
   ProviderConnectionRecord,
 } from "../../../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../../../engine/contracts/types/ripples";
+import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/lore-runtime-actions";
 import { deleteRippleStateForOwner } from "../../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
@@ -30,6 +32,7 @@ type UseRoleplayThreadActionsInput = {
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
   setRoleplayThreads: StateSetter<RoleplayThread[]>;
+  setLoreRuntimeStates: StateSetter<LoreRuntimeState[]>;
   setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
@@ -44,6 +47,7 @@ export function useRoleplayThreadActions({
   personas,
   providerConnections,
   setRoleplayThreads,
+  setLoreRuntimeStates,
   setRippleStates,
   setView,
   view,
@@ -157,13 +161,19 @@ export function useRoleplayThreadActions({
           thread.id === threadId ? clearRoleplayEntries(thread) : thread,
         ),
       );
+      setLoreRuntimeStates((currentStates) =>
+        deleteLoreRuntimeStateForOwner(currentStates, "roleplay-thread", threadId),
+      );
     },
-    [setRoleplayThreads],
+    [setLoreRuntimeStates, setRoleplayThreads],
   );
 
   const deleteRoleplayThread = useCallback(
     (threadId: string) => {
       setRoleplayThreads((currentThreads) => deleteRoleplayThreadRecord(currentThreads, threadId));
+      setLoreRuntimeStates((currentStates) =>
+        deleteLoreRuntimeStateForOwner(currentStates, "roleplay-thread", threadId),
+      );
       setRippleStates((currentStates) =>
         deleteRippleStateForOwner(currentStates, "roleplay-thread", threadId),
       );
@@ -172,7 +182,7 @@ export function useRoleplayThreadActions({
         setView({ kind: "pond" });
       }
     },
-    [setRoleplayThreads, setRippleStates, setView, view],
+    [setLoreRuntimeStates, setRoleplayThreads, setRippleStates, setView, view],
   );
 
   return {

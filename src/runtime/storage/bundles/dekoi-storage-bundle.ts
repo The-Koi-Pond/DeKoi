@@ -7,6 +7,7 @@ import {
   type RoleplayThreadRecord,
 } from "../../../engine/contracts/types/roleplay";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import {
   extractMessengerMessages,
   toMessengerThreadRecord,
@@ -28,6 +29,7 @@ import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
 import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
+import { normalizeLoreRuntimeState } from "../collections/lore-runtime-state-storage";
 import { normalizeMessengerThreads } from "../collections/messenger-storage";
 import { normalizeMessengerMessageRecord } from "../collections/messenger-storage";
 import { normalizePersonaRecord } from "../collections/persona-storage";
@@ -43,6 +45,7 @@ interface DeKoiStorageBundleData {
   roleplayEntries: RoleplayEntry[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeStates: LoreRuntimeState[];
   providerConnections: ProviderConnectionRecord[];
   messengerThreads: MessengerThreadRecord[];
   messengerMessages: MessengerMessage[];
@@ -55,6 +58,7 @@ export interface DeKoiStorageBundleSourceData {
   roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeStates: LoreRuntimeState[];
   providerConnections: ProviderConnectionRecord[];
   messengerThreads: MessengerThread[];
   rippleStates: RippleState[];
@@ -75,6 +79,8 @@ export interface DeKoiStorageBundleCounts {
   personas: number;
   lorebooks: number;
   lorebookEntries: number;
+  loreRuntimeStates: number;
+  loreRuntimeEntries: number;
   providerConnections: number;
   messengerThreads: number;
   messengerMessages: number;
@@ -258,6 +264,11 @@ export function getDeKoiStorageBundleCounts(
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
     lorebookEntries: data.lorebooks.reduce((count, lorebook) => count + lorebook.entries.length, 0),
+    loreRuntimeStates: data.loreRuntimeStates.length,
+    loreRuntimeEntries: data.loreRuntimeStates.reduce(
+      (count, state) => count + state.entries.length,
+      0,
+    ),
     providerConnections: data.providerConnections.length,
     messengerThreads: data.messengerThreads.length,
     messengerMessages: messengerMessageCount,
@@ -271,6 +282,7 @@ export function createDeKoiStorageBundle({
   characters,
   roleplayThreads,
   lorebooks,
+  loreRuntimeStates,
   messengerThreads,
   personas,
   providerConnections,
@@ -287,6 +299,7 @@ export function createDeKoiStorageBundle({
       roleplayEntries: extractRoleplayEntries(roleplayThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
+      loreRuntimeStates: cloneRecords(loreRuntimeStates),
       providerConnections: redactProviderConnectionSecrets(providerConnections),
       messengerThreads: messengerThreads.map(toMessengerThreadRecord),
       messengerMessages: extractMessengerMessages(messengerThreads),
@@ -378,6 +391,12 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       warnings,
       2,
     ),
+    loreRuntimeStates: normalizeOptionalList(
+      value.data.loreRuntimeStates,
+      "Lore runtime states",
+      normalizeLoreRuntimeState,
+      warnings,
+    ),
     providerConnections: normalizeList(
       rawProviderConnections,
       "Provider connections",
@@ -420,6 +439,18 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       `Ripple states skipped ${data.rippleStates.length - validRippleStates.length} record(s) without an imported owner.`,
     );
     data.rippleStates = validRippleStates;
+  }
+
+  const validLoreRuntimeStates = data.loreRuntimeStates.filter((state) =>
+    state.ownerKind === "roleplay-thread"
+      ? roleplayThreadIds.has(state.ownerId)
+      : messengerThreadIds.has(state.ownerId),
+  );
+  if (validLoreRuntimeStates.length !== data.loreRuntimeStates.length) {
+    warnings.push(
+      `Lore runtime states skipped ${data.loreRuntimeStates.length - validLoreRuntimeStates.length} record(s) without an imported owner.`,
+    );
+    data.loreRuntimeStates = validLoreRuntimeStates;
   }
 
   const bundle: DeKoiStorageBundle = {

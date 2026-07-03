@@ -2,7 +2,6 @@ import type { LorebookActivationSettings } from "../contracts/types/lorebook";
 import {
   activatedLoreEntryKey,
   type ActivatedLoreEntry,
-  type LorebookActivationResult,
   type PrimaryMatchCountResult,
 } from "./lorebook-activation-types";
 
@@ -11,6 +10,11 @@ interface FinalizeActivationResultOptions {
   countPrimaryMatches?: (entry: ActivatedLoreEntry) => PrimaryMatchCountResult;
   entries: ActivatedLoreEntry[];
   rand: () => number;
+  warnings: string[];
+}
+
+interface FinalizedLorebookActivation {
+  entries: ActivatedLoreEntry[];
   warnings: string[];
 }
 
@@ -41,6 +45,10 @@ function inclusionGroups(entry: ActivatedLoreEntry) {
       .map((group) => group.trim())
       .filter(Boolean) ?? [];
   return [...new Set(groups)];
+}
+
+function bypassesInclusionGroups(entry: ActivatedLoreEntry) {
+  return entry.matchReason === "sticky";
 }
 
 function chooseWeightedGroupWinner(entries: ActivatedLoreEntry[], rand: () => number) {
@@ -150,6 +158,7 @@ function resolveInclusionGroups(
   };
 
   for (const entry of entries) {
+    if (bypassesInclusionGroups(entry)) continue;
     const groups = inclusionGroups(entry);
     if (groups.length === 0) continue;
     groupsByEntryKey.set(activatedLoreEntryKey(entry), groups);
@@ -205,7 +214,10 @@ function resolveInclusionGroups(
 
 function applyProbabilityGate(entries: ActivatedLoreEntry[], rand: () => number) {
   return entries.filter(
-    (entry) => entry.entry.probability >= 100 || rand() * 100 < entry.entry.probability,
+    (entry) =>
+      entry.matchReason === "sticky" ||
+      entry.entry.probability >= 100 ||
+      rand() * 100 < entry.entry.probability,
   );
 }
 
@@ -215,7 +227,7 @@ export function finalizeActivationResult({
   entries,
   rand,
   warnings,
-}: FinalizeActivationResultOptions): LorebookActivationResult {
+}: FinalizeActivationResultOptions): FinalizedLorebookActivation {
   const orderedEntries = sortActivationResolutionEntries(entries);
   const groupedEntries = resolveInclusionGroups(
     orderedEntries,
