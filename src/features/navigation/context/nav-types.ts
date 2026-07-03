@@ -1,14 +1,8 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
 import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import type {
-  LoreEntryRecord,
-  LorebookRecord,
-} from "../../../engine/contracts/types/lorebook";
-import type {
-  LorebookEntryInput,
-  LorebookInput,
-} from "../../../engine/catalog/lorebook-actions";
+import type { LoreEntryRecord, LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type { LorebookEntryInput, LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
@@ -20,20 +14,14 @@ import type { ProviderConnectionInput } from "../../../engine/catalog/provider-c
 import type { RippleState, RippleStateOwnerKind } from "../../../engine/contracts/types/ripples";
 import type { RippleInput } from "../../../engine/ripples/ripple-actions";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
-import type {
-  AppSettings,
-  ShoalSortMode,
-} from "../../../engine/contracts/types/app-settings";
+import type { AppSettings, ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 import type {
   AppStorageCollectionKey,
   AppStorageReplaceResult,
   DeKoiLegacyImportData,
   DeKoiStorageBundle,
 } from "../../runtime";
-import type {
-  MessengerStorageMode,
-  MessengerStorageStatus,
-} from "../../runtime";
+import type { MessengerStorageMode, MessengerStorageStatus } from "../../runtime";
 
 export type PondView =
   | { kind: "pond" }
@@ -45,13 +33,7 @@ export type PondView =
   | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" };
 
 export type SideRailView =
-  | "shoal"
-  | "chat-settings"
-  | "lorebooks"
-  | "people"
-  | "media"
-  | "presets"
-  | "connections";
+  "shoal" | "chat-settings" | "lorebooks" | "people" | "media" | "presets" | "connections";
 
 export interface NavViewState {
   view: PondView;
@@ -94,7 +76,8 @@ export interface NavCareState {
 }
 
 export interface NavState
-  extends NavViewState,
+  extends
+    NavViewState,
     NavCatalogState,
     NavThreadState,
     NavRippleState,
@@ -135,19 +118,9 @@ export interface NavPersonaActions {
 }
 
 export interface NavLorebookActions {
-  createLorebookEntry: (
-    lorebookId: string,
-    input: LorebookEntryInput,
-  ) => LoreEntryRecord | null;
-  updateLorebookEntry: (
-    lorebookId: string,
-    entryId: string,
-    input: LorebookEntryInput,
-  ) => void;
-  duplicateLorebookEntry: (
-    lorebookId: string,
-    entryId: string,
-  ) => LoreEntryRecord | null;
+  createLorebookEntry: (lorebookId: string, input: LorebookEntryInput) => LoreEntryRecord | null;
+  updateLorebookEntry: (lorebookId: string, entryId: string, input: LorebookEntryInput) => void;
+  duplicateLorebookEntry: (lorebookId: string, entryId: string) => LoreEntryRecord | null;
   deleteLorebookEntry: (lorebookId: string, entryId: string) => void;
   createLorebook: (input: LorebookInput) => LorebookRecord;
   updateLorebook: (lorebookId: string, input: LorebookInput) => void;
@@ -155,16 +128,9 @@ export interface NavLorebookActions {
 }
 
 export interface NavProviderConnectionActions {
-  createProviderConnection: (
-    input: ProviderConnectionInput,
-  ) => Promise<ProviderConnectionRecord>;
-  updateProviderConnection: (
-    connectionId: string,
-    input: ProviderConnectionInput,
-  ) => Promise<void>;
-  duplicateProviderConnection: (
-    connectionId: string,
-  ) => ProviderConnectionRecord | null;
+  createProviderConnection: (input: ProviderConnectionInput) => Promise<ProviderConnectionRecord>;
+  updateProviderConnection: (connectionId: string, input: ProviderConnectionInput) => Promise<void>;
+  duplicateProviderConnection: (connectionId: string) => ProviderConnectionRecord | null;
   deleteProviderConnection: (connectionId: string) => Promise<void>;
 }
 
@@ -201,26 +167,15 @@ export interface NavMessengerThreadActions {
 }
 
 export interface NavRippleActions {
-  getRippleState: (
-    ownerKind: RippleStateOwnerKind,
-    ownerId: string,
-  ) => RippleState | null;
-  createRipple: (
-    ownerKind: RippleStateOwnerKind,
-    ownerId: string,
-    input: RippleInput,
-  ) => void;
+  getRippleState: (ownerKind: RippleStateOwnerKind, ownerId: string) => RippleState | null;
+  createRipple: (ownerKind: RippleStateOwnerKind, ownerId: string, input: RippleInput) => void;
   updateRipple: (
     ownerKind: RippleStateOwnerKind,
     ownerId: string,
     rippleId: string,
     input: RippleInput,
   ) => void;
-  deleteRipple: (
-    ownerKind: RippleStateOwnerKind,
-    ownerId: string,
-    rippleId: string,
-  ) => void;
+  deleteRipple: (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string) => void;
 }
 
 export interface NavStorageBundleActions {
@@ -254,12 +209,7 @@ export type NavStorageReloadResult = {
 };
 
 export type NavStorageFlushReason =
-  | "backup"
-  | "export"
-  | "import"
-  | "reload"
-  | "shutdown"
-  | "manual";
+  "backup" | "export" | "import" | "reload" | "shutdown" | "manual";
 
 export type NavStorageFlushResult = {
   mode: MessengerStorageMode;
@@ -295,7 +245,8 @@ export interface NavCareActions {
 }
 
 export interface NavActions
-  extends NavViewActions,
+  extends
+    NavViewActions,
     NavSettingsActions,
     NavCharacterActions,
     NavPersonaActions,

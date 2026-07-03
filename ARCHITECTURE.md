@@ -1,17 +1,16 @@
 # Architecture Notes
 
-DeKoi should reuse the previous De-Koi architecture shape as a guardrail, not as
-a source-copy template. The useful part is the ownership skeleton: product
-meaning stays in a React-free engine, UI stays in feature owners, runtime and
-host capabilities sit behind narrow adapters, and storage grows from documented
-native records instead of accidental feature state.
+DeKoi reuses the ownership skeleton that proved out in the previous project
+line: product meaning stays in a React-free engine, UI stays in feature owners,
+runtime and host capabilities sit behind narrow adapters, and storage grows
+from documented native records instead of accidental feature state. That
+skeleton is portable engineering knowledge under
+[PROVENANCE.md](./PROVENANCE.md), not copied product code.
 
-This repo's current `src/` is the refactor source. The previous `C:\De-Koi`
-tree is only a reference for how mature owners are split. Follow the parts of
-that shape that match implemented DeKoi behavior; do not create old De-Koi
-product lanes such as game, agents, Deki, gallery, or trackers until DeKoi
-actually owns those products. Keep current DeKoi nouns such as Messenger,
-Roleplay, Pond, and Ripples instead of importing old names or UI copy.
+This repo's current `src/` is the refactor source. Grow lanes around
+implemented DeKoi behavior: do not pre-create old product lanes such as game,
+agents, gallery, or trackers until DeKoi actually owns those products, and keep
+DeKoi nouns such as Messenger, Roleplay, Pond, and Ripples.
 
 ## Architecture Decision
 
@@ -158,114 +157,44 @@ Higher engine layers may use lower ones. Lower layers do not import higher
 layers. Do not add capability ports until there is a concrete runtime, storage,
 provider, or host dependency to abstract.
 
-## Shape Trajectory
-
-Current DeKoi already has the top-level lanes. The refactor work is to deepen
-them in place:
-
-| Current owner | Current shape | Target trajectory |
-| --- | --- | --- |
-| Engine | Native records live under `src/engine/contracts`, generation request assembly under `src/engine/generation`, Messenger/Roleplay actions under `src/engine/modes`, catalog actions under `src/engine/catalog`, and Ripple actions under `src/engine/ripples`. | Move future generic primitives to `engine/core` and shared pure helpers to `engine/shared` when they have real consumers. |
-| Feature modes | `features/modes/messenger` and `features/modes/roleplay` own thread screens, mode-local `hooks`, mode-local `lib`, and shared mode-safe UI/helpers such as `ChatComposer` and reference-summary helpers. | Keep DeKoi mode names, then continue splitting packages into `components`, `hooks`, `lib`, and public `index.ts` as they grow. |
-| Feature catalog | Resource surfaces plus shared action hooks. | Keep resource-owned packages and move pure view-model helpers into local `lib` folders before extracting generic shared UI. |
-| Feature runtime | React-free generation, ripple, and storage workflows. | Keep it as the only feature layer that adapts lower `src/runtime` for shell, modes, catalog, and app composition. |
-| App | Provider/controller/storage sync hooks at app root. | Split app storage sync and app controller composition into app-owned subpackages after engine/feature public paths settle. |
-| Runtime | `src/runtime/storage` bridge with collections and bundles. | Keep storage/import/export here; deepen into repository, snapshots, repair, bundles, and legacy-import subpackages when those concerns change. |
-| Shared API | Focused desktop and remote wrappers. | Keep all raw Tauri and remote-runtime transport here; features call focused wrappers or feature-runtime workflows. |
-
 ## Storage Direction
 
-Durable storage should follow [docs/storage-model.md](./docs/storage-model.md).
-The short version:
+[docs/storage-model.md](./docs/storage-model.md) owns collection names, record
+shapes, defaults, repair behavior, and import/export mechanics. The
+architecture-level rules:
 
-- Collection names are a contract.
-- Each collection has one owner and one native record shape.
+- Collection names are a contract. Each collection has one owner and one native
+  record shape.
 - Relationships are stored as IDs and documented with cleanup expectations.
-- Import/export validates schema versions and never treats provider secrets as
-  ordinary records.
-- Lorebook records currently use a DeKoi-native `schemaVersion: 2` foundation;
-  pre-v2 lorebook rows were development-only and are rejected rather than
-  migrated.
-- Provider connection records store metadata only; desktop provider secrets are
-  scoped to the connection provider and base URL.
+- Provider secrets are never ordinary records and never enter exported bundles.
 - Collection adapters depend on `storage-repository-factory.ts`, keeping the
   current host-storage adapter behind one future database swap point.
 - Messenger and Roleplay transcripts are separate storage collections from
   thread metadata; runtime orchestration assembles them before feature UI or
   generation consumes thread objects.
-- App storage sync tracks dirty collections and serializes collection-level
-  replacements so the same collection does not have overlapping writes.
-- Desktop collection metadata is used only for explicit stale checks and manual
-  reloads; external file edits are not hot-loaded or merged into memory.
-- Bundle and legacy imports use an explicit backup-and-commit path that cancels
-  delayed autosave before replacing collections.
-- Desktop collection files report recoverable corruption/recovery-artifact
-  states and block autosave overwrite; Pond Care can perform explicit confirmed
-  single-collection desktop repair through dedicated Tauri commands.
 - Native DeKoi records come before legacy compatibility.
 
 ## Current Shape
 
-- `src/engine/contracts/types/messenger.ts` defines native Messenger thread and
-  message records. `src/engine/modes/messenger/messenger-actions.ts` owns
-  Messenger mutations.
-- `src/engine/contracts/types/roleplay.ts` defines native Roleplay thread and
-  entry records. `src/engine/modes/roleplay/roleplay-actions.ts` owns Roleplay
-  mutations.
-- `src/engine/contracts/types/character.ts`,
-  `src/engine/contracts/types/persona.ts`,
-  `src/engine/contracts/types/lorebook.ts`,
-  `src/engine/contracts/types/ripples.ts`,
-  `src/engine/contracts/types/app-settings.ts`, and
-  `src/engine/contracts/types/project-plan.ts` define the first catalog/context
-  and app-level record contracts. `src/engine/contracts/constants/surfaces.ts`
-  defines the surface IDs and metadata. `src/engine/contracts/types/provider-connection.ts`
-  still owns the provider connection record plus provider helpers until that
-  mixed module is split. The lorebook contract is the first catalog record at
-  `schemaVersion: 2`; it stores activation, placement, trigger, filter,
-  match-source, and budget fields.
-  `src/engine/generation-core/lorebook-activation.ts` owns lore activation,
-  optional companion/persona match-source activation, deterministic insertion
-  ordering, and approximate lore budget trimming.
-  `src/engine/generation/generation.ts` owns shared lore formatting and
-  at-depth insertion helpers used by Messenger and Roleplay. Recursion,
-  probability, triggers, and character filters remain future behavior.
-- `src/engine/catalog/character-actions.ts`,
-  `src/engine/catalog/persona-actions.ts`,
-  `src/engine/catalog/lorebook-actions.ts`, and
-  `src/engine/catalog/provider-connection-actions.ts` own deterministic catalog
-  record mutations.
-- `src/engine/ripples/ripple-actions.ts` owns deterministic shared per-thread
-  Ripple state mutations.
-- `src/engine/generation/generation.ts`,
-  `src/engine/generation/messenger-generation.ts`, and
-  `src/engine/generation/roleplay-generation.ts` build shared, Messenger, and
-  Roleplay provider-neutral generation requests, including activated lorebook
-  context for selected Messenger or Roleplay lorebooks.
-- `src/features/*` renders Pond, Messenger, Roleplay, shell, and catalog
-  surfaces. `src/app/use-app-controller.ts` assembles the top-level navigation
-  controller for the app provider, including top-level app state, storage sync,
-  and view actions. `src/features/navigation` owns only the navigation context
-  and nav contracts while the seed still uses a single top-level app state
-  provider.
-  Catalog owns catalog record action hooks, modes own thread action hooks under
-  their mode-local `hooks` folders, and
-  shell care owns settings/import/export action hooks. `src/features/runtime`
-  owns runtime-facing workflows grouped under `generation`, `ripples`, and
-  `storage`, including generation, ripple state operations, initial app-storage
-  record loading, explicit storage stale checks and reloads, and runtime target
-  URL changes.
-  Non-navigation feature modules receive navigation state/actions through narrow
-  feature-owned props built from exported navigation state/action groups rather
-  than reading navigation context directly, importing `NavContextType`, or
-  deriving feature props from the full navigation type.
+- `src/engine` owns native record contracts under `contracts/types`,
+  deterministic catalog/mode/ripple actions, and provider-neutral generation
+  assembly, including lorebook activation under `generation-core`.
+- `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
+  surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
+  `generation`, `ripples`, and `storage`. Non-navigation feature modules
+  receive navigation state/actions through narrow feature-owned props rather
+  than reading the navigation context directly.
+- `src/app/use-app-controller.ts` assembles top-level app state, storage sync,
+  and view actions for the app provider.
 - `src/runtime/index.ts` is the public runtime bridge. `src/runtime/storage/*`
   adapts native records to desktop or remote storage, DeKoi bundle
-  import/export, and legacy import while using shared API wrappers for host or
-  remote transport.
+  import/export, and legacy import through shared API wrappers.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
   status, desktop runtime dispatch, and provider transport.
+
+The file-level map lives in
+`skills/dekoi-architecture-guard/references/repo-layout.md`.
 
 ## Future Architecture Work
 
@@ -298,7 +227,7 @@ The short version:
 9. Put privileged local work in `src-tauri`.
 10. Put only generic helpers in `src/shared`.
 11. Update this document and `scripts/check-frontend-boundaries.mjs` when a new
-   architectural boundary becomes stable enough to enforce.
+    architectural boundary becomes stable enough to enforce.
 
 ## Related Checks
 

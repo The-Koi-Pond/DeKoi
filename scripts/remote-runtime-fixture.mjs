@@ -147,7 +147,9 @@ function countEnabledLoreEntries(request) {
 
   return request.lorebooks.reduce((count, lorebook) => {
     if (!isRecord(lorebook) || !Array.isArray(lorebook.entries)) return count;
-    return count + lorebook.entries.filter((entry) => isRecord(entry) && entry.enabled !== false).length;
+    return (
+      count + lorebook.entries.filter((entry) => isRecord(entry) && entry.enabled !== false).length
+    );
   }, 0);
 }
 
@@ -158,11 +160,13 @@ function selectCompanion(request) {
   );
   if (validCompanions.length === 0) return null;
 
-  const messages = isRecord(request.thread) && Array.isArray(request.thread.messages)
-    ? request.thread.messages
-    : [];
+  const messages =
+    isRecord(request.thread) && Array.isArray(request.thread.messages)
+      ? request.thread.messages
+      : [];
   const companionMessageCount = messages.filter(
-    (message) => isRecord(message) && isRecord(message.author) && message.author.kind === "character",
+    (message) =>
+      isRecord(message) && isRecord(message.author) && message.author.kind === "character",
   ).length;
   return validCompanions[companionMessageCount % validCompanions.length];
 }
@@ -225,7 +229,8 @@ function generateReply(args) {
     };
   }
 
-  const companionName = readString(companion.nickname) || readString(companion.displayName, "Companion");
+  const companionName =
+    readString(companion.nickname) || readString(companion.displayName, "Companion");
   const companionId = readString(companion.id).trim();
   const personaName = isRecord(request.activePersona)
     ? readString(request.activePersona.displayName, "the active persona")
@@ -327,7 +332,9 @@ function readCliOption(name, fallback) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const host = readCliOption("host", process.env.DEKOI_RUNTIME_FIXTURE_HOST || DEFAULT_HOST);
-  const port = Number(readCliOption("port", process.env.DEKOI_RUNTIME_FIXTURE_PORT || String(DEFAULT_PORT)));
+  const port = Number(
+    readCliOption("port", process.env.DEKOI_RUNTIME_FIXTURE_PORT || String(DEFAULT_PORT)),
+  );
   const server = createRemoteRuntimeFixtureServer();
 
   server.listen(port, host, () => {

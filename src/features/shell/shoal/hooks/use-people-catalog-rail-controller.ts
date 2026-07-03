@@ -29,16 +29,12 @@ interface UsePeopleCatalogRailControllerInput {
   nav: PeopleCatalogRailNav;
 }
 
-export function usePeopleCatalogRailController({
-  nav,
-}: UsePeopleCatalogRailControllerInput) {
+export function usePeopleCatalogRailController({ nav }: UsePeopleCatalogRailControllerInput) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PeopleCatalogTab>("companions");
   const normalizedQuery = query.trim().toLowerCase();
-  const activeCharacterId =
-    nav.view.kind === "companions" ? nav.view.characterId ?? null : null;
-  const activePersonaId =
-    nav.view.kind === "personas" ? nav.view.personaId ?? null : null;
+  const activeCharacterId = nav.view.kind === "companions" ? (nav.view.characterId ?? null) : null;
+  const activePersonaId = nav.view.kind === "personas" ? (nav.view.personaId ?? null) : null;
   const filteredCharacters = useMemo(
     () => filterPeopleCatalogCharacters(nav.characters, normalizedQuery),
     [nav.characters, normalizedQuery],

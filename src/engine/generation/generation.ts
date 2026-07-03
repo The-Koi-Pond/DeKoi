@@ -12,9 +12,7 @@ import {
   type LorebookScanSource,
 } from "../generation-core/lorebook-activation";
 
-export type GenerationProviderKind =
-  | "remote-runtime"
-  | "external-provider";
+export type GenerationProviderKind = "remote-runtime" | "external-provider";
 
 export interface GenerationPromptMessage {
   role: "system" | "user" | "assistant";
@@ -139,9 +137,7 @@ function approximatePromptTextTokens(value: string) {
 }
 
 function uniqueCleanWarnings(warnings: string[]) {
-  return [
-    ...new Set(warnings.map((warning) => warning.trim()).filter(Boolean)),
-  ];
+  return [...new Set(warnings.map((warning) => warning.trim()).filter(Boolean))];
 }
 
 export function characterGenerationContext(
@@ -157,9 +153,7 @@ export function characterGenerationContext(
     character.description ? `Description: ${character.description}` : "",
     character.personality ? `Personality: ${character.personality}` : "",
     character.scenario ? `Scenario: ${character.scenario}` : "",
-    character.systemPrompt
-      ? `${systemPromptLabel}: ${character.systemPrompt}`
-      : "",
+    character.systemPrompt ? `${systemPromptLabel}: ${character.systemPrompt}` : "",
     includeExamples && character.exampleMessages
       ? `Example messages: ${character.exampleMessages}`
       : "",
@@ -192,10 +186,7 @@ export function activateLoreGenerationEntriesWithWarnings(
     companions: options.companions ?? [],
   });
   const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
-    const scanBuffer = buildScanBuffer(
-      options.scanSources ?? [],
-      lorebook.activation,
-    );
+    const scanBuffer = buildScanBuffer(options.scanSources ?? [], lorebook.activation);
     const summary = lorebook.summary.trim();
     const reservedTokens =
       options.includeSummary && summary
@@ -206,15 +197,12 @@ export function activateLoreGenerationEntriesWithWarnings(
       sourceOrder,
     });
     warnings.push(...activation.warnings);
-    return applyTokenBudget(
-      activation.entries,
-      {
-        budgetTokens: lorebook.activation.budgetTokens,
-        budgetPercent: lorebook.activation.budgetPercent,
-        contextTokens: options.contextTokens,
-        reservedTokens,
-      },
-    );
+    return applyTokenBudget(activation.entries, {
+      budgetTokens: lorebook.activation.budgetTokens,
+      budgetPercent: lorebook.activation.budgetPercent,
+      contextTokens: options.contextTokens,
+      reservedTokens,
+    });
   });
   return {
     entries: sortActivatedEntries(activatedEntries),
@@ -235,14 +223,11 @@ export function formatLoreGenerationEntries(
   entries: ActivatedLoreEntry[],
   options: LoreGenerationFormatOptions = {},
 ) {
-  const summarizedLorebookIds =
-    options.summarizedLorebookIds ?? new Set<string>();
+  const summarizedLorebookIds = options.summarizedLorebookIds ?? new Set<string>();
   return entries.flatMap((activatedEntry) => {
     const summary = activatedEntry.lorebookSummary.trim();
     const summaryLine =
-      options.includeSummary &&
-      summary &&
-      !summarizedLorebookIds.has(activatedEntry.lorebookId)
+      options.includeSummary && summary && !summarizedLorebookIds.has(activatedEntry.lorebookId)
         ? `${activatedEntry.lorebookTitle}: ${summary}`
         : null;
     if (summaryLine) summarizedLorebookIds.add(activatedEntry.lorebookId);
@@ -260,19 +245,14 @@ export function activatedLoreGenerationWarnings(entries: ActivatedLoreEntry[]) {
 
 function atDepthInsertionIndex(messageCount: number, depth: number | null) {
   const safeDepth =
-    typeof depth === "number" && Number.isFinite(depth)
-      ? Math.max(0, Math.trunc(depth))
-      : 0;
+    typeof depth === "number" && Number.isFinite(depth) ? Math.max(0, Math.trunc(depth)) : 0;
   return Math.max(0, Math.min(messageCount, messageCount - safeDepth));
 }
 
 function providerHoistsSystemMessages(
   providerConnection: ProviderConnectionRecord | null | undefined,
 ) {
-  return (
-    providerConnection?.provider === "anthropic" ||
-    providerConnection?.provider === "google"
-  );
+  return providerConnection?.provider === "anthropic" || providerConnection?.provider === "google";
 }
 
 function atDepthLoreRole(
@@ -280,9 +260,7 @@ function atDepthLoreRole(
   providerConnection: ProviderConnectionRecord | null | undefined,
 ) {
   const role = entry.entry.role ?? "system";
-  return role === "system" && providerHoistsSystemMessages(providerConnection)
-    ? "user"
-    : role;
+  return role === "system" && providerHoistsSystemMessages(providerConnection) ? "user" : role;
 }
 
 function groupedAtDepthLoreMessages(
@@ -389,16 +367,10 @@ export function resolveGenerationRecords({
   providerConnections = [],
   warningPrefix,
 }: ResolveGenerationRecordsInput): GenerationRecordContext {
-  const characterById = new Map(
-    characters.map((character) => [character.id, character]),
-  );
+  const characterById = new Map(characters.map((character) => [character.id, character]));
   const personaById = new Map(personas.map((persona) => [persona.id, persona]));
-  const lorebookById = new Map(
-    lorebooks.map((lorebook) => [lorebook.id, lorebook]),
-  );
-  const connectionIds = new Set(
-    providerConnections.map((connection) => connection.id),
-  );
+  const lorebookById = new Map(lorebooks.map((lorebook) => [lorebook.id, lorebook]));
+  const connectionIds = new Set(providerConnections.map((connection) => connection.id));
   const warnings: string[] = [];
 
   const companions = uniqueGenerationIds(characterIds).flatMap((characterId) => {
@@ -408,39 +380,26 @@ export function resolveGenerationRecords({
     return [];
   });
 
-  const activePersona = activePersonaId
-    ? personaById.get(activePersonaId) ?? null
-    : null;
+  const activePersona = activePersonaId ? (personaById.get(activePersonaId) ?? null) : null;
   if (activePersonaId && !activePersona) {
     warnings.push(createGenerationWarning(warningPrefix, "persona", activePersonaId));
   }
 
-  const selectedLorebooks = uniqueGenerationIds(lorebookIds).flatMap(
-    (lorebookId) => {
-      const lorebook = lorebookById.get(lorebookId);
-      if (lorebook) return [lorebook];
-      warnings.push(createGenerationWarning(warningPrefix, "lorebook", lorebookId));
-      return [];
-    },
-  );
+  const selectedLorebooks = uniqueGenerationIds(lorebookIds).flatMap((lorebookId) => {
+    const lorebook = lorebookById.get(lorebookId);
+    if (lorebook) return [lorebook];
+    warnings.push(createGenerationWarning(warningPrefix, "lorebook", lorebookId));
+    return [];
+  });
 
   let selectedProviderConnectionId = providerConnectionId;
-  let providerConnection: ProviderConnectionRecord | null =
-    selectedProviderConnectionId
-      ? (providerConnections.find(
-          (connection) => connection.id === selectedProviderConnectionId,
-        ) ?? null)
-      : null;
-  if (
-    selectedProviderConnectionId &&
-    !connectionIds.has(selectedProviderConnectionId)
-  ) {
+  let providerConnection: ProviderConnectionRecord | null = selectedProviderConnectionId
+    ? (providerConnections.find((connection) => connection.id === selectedProviderConnectionId) ??
+      null)
+    : null;
+  if (selectedProviderConnectionId && !connectionIds.has(selectedProviderConnectionId)) {
     warnings.push(
-      createGenerationWarning(
-        warningPrefix,
-        "provider connection",
-        selectedProviderConnectionId,
-      ),
+      createGenerationWarning(warningPrefix, "provider connection", selectedProviderConnectionId),
     );
     selectedProviderConnectionId = null;
     providerConnection = null;
@@ -448,9 +407,8 @@ export function resolveGenerationRecords({
 
   if (!selectedProviderConnectionId && fallbackProviderConnectionId) {
     providerConnection =
-      providerConnections.find(
-        (connection) => connection.id === fallbackProviderConnectionId,
-      ) ?? null;
+      providerConnections.find((connection) => connection.id === fallbackProviderConnectionId) ??
+      null;
     selectedProviderConnectionId = providerConnection?.id ?? null;
   }
 

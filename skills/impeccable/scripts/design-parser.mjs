@@ -6,7 +6,14 @@
 // exposed on `model.frontmatter` alongside the prose-scraped sections;
 // consumers can prefer frontmatter values and fall back to prose.
 
-const CANONICAL_SECTIONS = ["Overview", "Colors", "Typography", "Elevation", "Components", "Do's and Don'ts"];
+const CANONICAL_SECTIONS = [
+  "Overview",
+  "Colors",
+  "Typography",
+  "Elevation",
+  "Components",
+  "Do's and Don'ts",
+];
 
 // ---------- Frontmatter (Stitch YAML subset) ----------
 
@@ -355,7 +362,8 @@ function extractColors(section) {
 
     // If every bullet starts with a role keyword (Primary/Secondary/...), promote
     // each bullet to its own group. Otherwise keep the subsection as the group.
-    const allRoleBullets = parsed.length > 0 && parsed.every((p) => p.name && ROLE_KEYWORDS.test(p.name));
+    const allRoleBullets =
+      parsed.length > 0 && parsed.every((p) => p.name && ROLE_KEYWORDS.test(p.name));
 
     if (allRoleBullets) {
       for (const p of parsed) {
@@ -530,7 +538,9 @@ function extractTypography(section) {
 
   // Character paragraph — either a **Character:** label, or fall back to the
   // first free paragraph under the section header (Stitch style).
-  const characterMatch = text.match(/\*\*Character:\*\*\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\n|\n###|\n##|$)/);
+  const characterMatch = text.match(
+    /\*\*Character:\*\*\s*([^\n]+(?:\n[^\n]+)*?)(?=\n\n|\n###|\n##|$)/,
+  );
   let character = characterMatch ? characterMatch[1].replace(/\n/g, " ").trim() : null;
   if (!character) {
     const paragraphs = collectParagraphs(section.lines).filter(
@@ -660,7 +670,8 @@ function parseShadowBullet(bullet) {
   const m = bullet.match(/^\*\*(.+?)\*\*\s*\(`?([^`]+?)`?\):\s*(.*)$/);
   if (!m) return null;
   const rawValue = m[2].replace(/^box-shadow:\s*/i, "").trim();
-  const looksLikeShadow = /box-shadow|rgba?\(|\bpx\b|\brem\b|^-?\d+\s/i.test(rawValue) && /\d/.test(rawValue);
+  const looksLikeShadow =
+    /box-shadow|rgba?\(|\bpx\b|\brem\b|^-?\d+\s/i.test(rawValue) && /\d/.test(rawValue);
   if (!looksLikeShadow) return null;
   const name = stripBold(m[1]).trim();
   return {

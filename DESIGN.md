@@ -4,7 +4,7 @@
 root design notes. The machine-readable companion contract is [`DESIGN.json`](./DESIGN.json); when
 the two disagree, fix the disagreement — do not pick a favorite.
 
-**North star:** *Keep a pond, not a platform.* DeKoi should feel like a small lantern-lit studio
+**North star:** _Keep a pond, not a platform._ DeKoi should feel like a small lantern-lit studio
 built over dark water: every story lives in the user's own files, every control feels shaped by
 hand, koi and ripples move only in open water, and dense creative work always happens on calm,
 opaque surfaces.
@@ -81,7 +81,7 @@ Every shell decision serves this loop, in this order:
 
 Night water under lantern light. The base is deep blue-green darkness with real tonal depth; the
 warmth comes from small, deliberate points of koi orange, jade, and amber — like fish and lanterns
-seen through the surface. The overall register is *calm, warm, kept*: closer to a private studio
+seen through the surface. The overall register is _calm, warm, kept_: closer to a private studio
 at dusk than to a dashboard, a game, or a chat app.
 
 ### The pond shell (material system)
@@ -89,12 +89,12 @@ at dusk than to a dashboard, a game, or a chat app.
 The shell is built from four opaque water materials, stacked from deep to shallow. Elevation is a
 step up the stack, not a drop shadow:
 
-| Material | Token | Use |
-| --- | --- | --- |
-| Deep water | `abyss` | App backdrop only. The radial pond-light gradients and sumi-e watermark live here. |
-| Water | `water` | Shell chrome: waterline, bank, tide, and other frame regions. |
-| Shallow | `shallow` | Secondary panels: shoal, thread headers, drawers' section chrome. |
-| Raise | `raise` | Primary work surfaces: the pond, thread bodies, cards, editors. |
+| Material   | Token     | Use                                                                                |
+| ---------- | --------- | ---------------------------------------------------------------------------------- |
+| Deep water | `abyss`   | App backdrop only. The radial pond-light gradients and sumi-e watermark live here. |
+| Water      | `water`   | Shell chrome: waterline, bank, tide, and other frame regions.                      |
+| Shallow    | `shallow` | Secondary panels: shoal, thread headers, drawers' section chrome.                  |
+| Raise      | `raise`   | Primary work surfaces: the pond, thread bodies, cards, editors.                    |
 
 `reed` and `reedSoft` are the hairline/border/scrollbar materials between layers. True drop
 shadows are reserved for genuinely floating layers (care drawer over content, menus, dialogs) and
@@ -127,7 +127,7 @@ pond-glow behind it, with the serif "DeKoi" wordmark beneath. Rules:
   orbit radii, in koi/jade/amber), and the composition stays legible at a glance: rings, fish,
   mark, name.
 - Refinement is welcome — better fish drawing, subtler wakes, more graceful ring spacing, gentler
-  glow — but the *idea* (logo at the center of a live pond) is settled. Do not replace it with a
+  glow — but the _idea_ (logo at the center of a live pond) is settled. Do not replace it with a
   static lockup, a video, or a mascot illustration.
 - Under reduced motion the hero becomes a still pond: koi freeze into a composed arrangement on
   their rings, pings stop, and the mark and wordmark remain. The still composition should be
@@ -138,8 +138,8 @@ pond-glow behind it, with the serif "DeKoi" wordmark beneath. Rules:
 The craft shows in small, consistent decisions rather than ornament: generous radii on touchable
 things, ink-dark text on warm accent fills, the serif face at thresholds, brush-drawn motifs used
 sparingly, motion that behaves like water (drift, ripple, glide — never bounce, spin, or flash).
-Every atmospheric choice must pass one test: *does long-session reading and real work get easier
-or harder?* If harder, the atmosphere loses.
+Every atmospheric choice must pass one test: _does long-session reading and real work get easier
+or harder?_ If harder, the atmosphere loses.
 
 ---
 
@@ -150,36 +150,36 @@ properties in `src/shared/ui/pond-tokens.css` must match.
 
 ### Water and surface tokens
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `abyss` | `#091317` | App backdrop; deepest layer; backdrop gradients resolve into it. |
-| `water` | `#0e1b21` | Shell chrome regions (waterline, bank, tide). |
-| `shallow` | `#13242b` | Secondary panels and headers. |
-| `raise` | `#172d35` | Primary work surfaces, cards, editors. |
-| `reed` | `#233b44` | Strong borders, scrollbar thumbs, control outlines. |
-| `reedSoft` | `#1b313a` | Quiet hairlines and section seams. |
+| Token      | Hex       | Role                                                             |
+| ---------- | --------- | ---------------------------------------------------------------- |
+| `abyss`    | `#091317` | App backdrop; deepest layer; backdrop gradients resolve into it. |
+| `water`    | `#0e1b21` | Shell chrome regions (waterline, bank, tide).                    |
+| `shallow`  | `#13242b` | Secondary panels and headers.                                    |
+| `raise`    | `#172d35` | Primary work surfaces, cards, editors.                           |
+| `reed`     | `#233b44` | Strong borders, scrollbar thumbs, control outlines.              |
+| `reedSoft` | `#1b313a` | Quiet hairlines and section seams.                               |
 
 ### Accent tokens
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `koi` | `#f47a35` | **Primary action and identity warmth.** The main CTA fill, the current creative state, character-side identity tinting, the brand's temperature. |
-| `koiHot` | `#ff9a4d` | Koi hover/active and gradient high end. |
-| `koiDeep` | `#d85f23` | Koi pressed state and gradient low end. |
-| `jade` | `#27b3aa` | **Runtime health and calm support.** Connected providers, healthy storage, focus outlines, secondary living motion (inner-orbit koi), persona/user-side tinting, presence. |
-| `jadeHot` | `#3ad0c6` | Jade hover/active. |
-| `amber` | `#e3a534` | **Warmth-with-attention.** Warnings, recency markers, unsaved/pending nudges, story warmth, temporary attention. Amber states should resolve — they are not a permanent decoration. |
-| `amberHot` | `#f3bd55` | Amber hover/active. |
+| Token      | Hex       | Role                                                                                                                                                                                |
+| ---------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `koi`      | `#f47a35` | **Primary action and identity warmth.** The main CTA fill, the current creative state, character-side identity tinting, the brand's temperature.                                    |
+| `koiHot`   | `#ff9a4d` | Koi hover/active and gradient high end.                                                                                                                                             |
+| `koiDeep`  | `#d85f23` | Koi pressed state and gradient low end.                                                                                                                                             |
+| `jade`     | `#27b3aa` | **Runtime health and calm support.** Connected providers, healthy storage, focus outlines, secondary living motion (inner-orbit koi), persona/user-side tinting, presence.          |
+| `jadeHot`  | `#3ad0c6` | Jade hover/active.                                                                                                                                                                  |
+| `amber`    | `#e3a534` | **Warmth-with-attention.** Warnings, recency markers, unsaved/pending nudges, story warmth, temporary attention. Amber states should resolve — they are not a permanent decoration. |
+| `amberHot` | `#f3bd55` | Amber hover/active.                                                                                                                                                                 |
 
 ### Foreground tokens
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `foam` | `#e9f1f2` | Primary readable text and strong icons. |
-| `mist` | `#86a0a8` | Secondary text and informative metadata (timestamps, hints, counts). |
-| `mistDim` | `#5c7882` | Tertiary, *non-essential* metadata and disabled text only — it sits near 3:1 on `raise` and must never carry information that exists nowhere else. |
-| `belly` | `#f5ece1` | Warm paper highlight: koi belly in artwork, rare warm emphasis on dark art surfaces. Not a general text color. |
-| `ink` | `#0c1216` | Text and glyphs **on** koi/jade/amber fills. Foam on accent fills fails contrast; ink passes. |
+| Token     | Hex       | Role                                                                                                                                               |
+| --------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foam`    | `#e9f1f2` | Primary readable text and strong icons.                                                                                                            |
+| `mist`    | `#86a0a8` | Secondary text and informative metadata (timestamps, hints, counts).                                                                               |
+| `mistDim` | `#5c7882` | Tertiary, _non-essential_ metadata and disabled text only — it sits near 3:1 on `raise` and must never carry information that exists nowhere else. |
+| `belly`   | `#f5ece1` | Warm paper highlight: koi belly in artwork, rare warm emphasis on dark art surfaces. Not a general text color.                                     |
+| `ink`     | `#0c1216` | Text and glyphs **on** koi/jade/amber fills. Foam on accent fills fails contrast; ink passes.                                                      |
 
 ### Where accent color is forbidden
 
@@ -193,7 +193,7 @@ properties in `src/shared/ui/pond-tokens.css` must match.
 - **One warm gradient family.** Gradient fills are limited to the koi ramp on primary CTAs (and
   the jade ramp for Roleplay's equivalent). No gradient text outside the hero wordmark, no
   multi-hue gradients.
-- The user-selectable accent (koi/jade/amber via `data-accent`) remaps *interactive* accent roles
+- The user-selectable accent (koi/jade/amber via `data-accent`) remaps _interactive_ accent roles
   only; semantic meanings (jade = health, amber = warning) keep their own tokens regardless.
 
 Ad-hoc colors are a defect. The one known stray — a green presence dot — should be re-cut to jade
@@ -203,10 +203,10 @@ during token sync (Stage 1). New hues require a new named token and a role writt
 
 ## 5. Typography
 
-| Role | Stack | Token |
-| --- | --- | --- |
-| Display | `"Shippori Mincho", "Songti SC", serif` | `display` |
-| UI | `"Inter", system-ui, -apple-system, sans-serif` | `ui` |
+| Role    | Stack                                           | Token     |
+| ------- | ----------------------------------------------- | --------- |
+| Display | `"Shippori Mincho", "Songti SC", serif`         | `display` |
+| UI      | `"Inter", system-ui, -apple-system, sans-serif` | `ui`      |
 
 The display serif is **identity at thresholds**: the hero wordmark, top-level surface titles,
 empty-state headings, and Roleplay scene headers. It never sets body copy, form labels, buttons,
@@ -214,16 +214,16 @@ metadata, or anything a user reads at length. Inter carries all dense work.
 
 Scale (at default `--font-scale: 1`; the whole scale multiplies by the user's font-scale setting):
 
-| Step | Size / line | Use |
-| --- | --- | --- |
-| `displayXl` | 36px / 1.15 | Hero wordmark only. |
-| `displayLg` | 24px / 1.2 | Surface titles, scene headers. |
-| `title` | 18px / 1.3 | Panel and dialog titles. |
-| `heading` | 15px / 1.35 | Section headings, card titles. |
-| `body` | 14px / 1.5 | Default UI text, forms, catalogs. |
-| `message` | 14px / 1.5–1.6 | Message body text (1.5 Messenger, 1.6 Roleplay). |
-| `meta` | 11.5px / 1.35 | Timestamps, counts, hints, badges. |
-| `caption` | 10.5px / 1.3 | Smallest legal text: role chips, date separators. Nothing smaller. |
+| Step        | Size / line    | Use                                                                |
+| ----------- | -------------- | ------------------------------------------------------------------ |
+| `displayXl` | 36px / 1.15    | Hero wordmark only.                                                |
+| `displayLg` | 24px / 1.2     | Surface titles, scene headers.                                     |
+| `title`     | 18px / 1.3     | Panel and dialog titles.                                           |
+| `heading`   | 15px / 1.35    | Section headings, card titles.                                     |
+| `body`      | 14px / 1.5     | Default UI text, forms, catalogs.                                  |
+| `message`   | 14px / 1.5–1.6 | Message body text (1.5 Messenger, 1.6 Roleplay).                   |
+| `meta`      | 11.5px / 1.35  | Timestamps, counts, hints, badges.                                 |
+| `caption`   | 10.5px / 1.3   | Smallest legal text: role chips, date separators. Nothing smaller. |
 
 Guidance by surface:
 
@@ -247,16 +247,16 @@ flashes, or zooms. Three registers:
 
 ### Motion tokens
 
-| Token | Value | Register |
-| --- | --- | --- |
-| `instant` | 80ms | Press feedback, toggle flips. |
-| `quick` | 140ms | Hover reveals, action-row fades, chip state. |
-| `settle` | 220ms | Panel content swaps, notice enter/leave. |
-| `glide` | 340ms, `cubic-bezier(0.3, 0.8, 0.3, 1)` | Shell layout: drawer open/close, shoal collapse. |
-| `ripple` | 4.5s ease-out loop | Hero ripple pings; single-shot ripple confirmations. |
-| `orbitInner` / `orbitOuter` / `orbitWide` | 18s / 26s / 34s linear | Hero koi orbits. |
-| `tail` | 0.7s ease-in-out loop | Koi tail wiggle within the hero. |
-| `driftA` / `driftB` | 26s / 38s alternate | Backdrop caustic drift. |
+| Token                                     | Value                                   | Register                                             |
+| ----------------------------------------- | --------------------------------------- | ---------------------------------------------------- |
+| `instant`                                 | 80ms                                    | Press feedback, toggle flips.                        |
+| `quick`                                   | 140ms                                   | Hover reveals, action-row fades, chip state.         |
+| `settle`                                  | 220ms                                   | Panel content swaps, notice enter/leave.             |
+| `glide`                                   | 340ms, `cubic-bezier(0.3, 0.8, 0.3, 1)` | Shell layout: drawer open/close, shoal collapse.     |
+| `ripple`                                  | 4.5s ease-out loop                      | Hero ripple pings; single-shot ripple confirmations. |
+| `orbitInner` / `orbitOuter` / `orbitWide` | 18s / 26s / 34s linear                  | Hero koi orbits.                                     |
+| `tail`                                    | 0.7s ease-in-out loop                   | Koi tail wiggle within the hero.                     |
+| `driftA` / `driftB`                       | 26s / 38s alternate                     | Backdrop caustic drift.                              |
 
 ### Registers
 
@@ -297,14 +297,14 @@ flashes, or zooms. Three registers:
 
 The shell is a fixed grid of named water regions:
 
-| Region | Concept | Material | Notes |
-| --- | --- | --- | --- |
-| **Waterline** | Top bar | `water` | Thin (≈38px): app identity, global search/actions, window controls. Never grows into a toolbar junk drawer. |
-| **Bank** | Navigation rail | `water` | Narrow icon rail (≈56px): the places (Pond home, Companions, Personas, Lorebooks, Currents, Keepers, Inlets, Net). Labels on tooltip/expansion; active place marked by accent + shape, not color alone. |
-| **Shoal** | Thread list | `shallow` | 264–300px: saved Messenger/Roleplay threads with kind, title, recency. Collapsible; collapsed state leaves a reopen affordance in the bank/pond. |
-| **Pond** | Main surface | `raise` | Everything primary: home, threads, catalogs, editors. Home content is center-column (≈920px max); threads manage their own text measure. |
-| **Tide** | Status strip | `water` | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging. |
-| **Care** | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (Deep Water, Stocking, Catalog, appearance). Floating layer — this is where a real drop shadow belongs. |
+| Region        | Concept         | Material          | Notes                                                                                                                                                                                                   |
+| ------------- | --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Waterline** | Top bar         | `water`           | Thin (≈38px): app identity, global search/actions, window controls. Never grows into a toolbar junk drawer.                                                                                             |
+| **Bank**      | Navigation rail | `water`           | Narrow icon rail (≈56px): the places (Pond home, Companions, Personas, Lorebooks, Currents, Keepers, Inlets, Net). Labels on tooltip/expansion; active place marked by accent + shape, not color alone. |
+| **Shoal**     | Thread list     | `shallow`         | 264–300px: saved Messenger/Roleplay threads with kind, title, recency. Collapsible; collapsed state leaves a reopen affordance in the bank/pond.                                                        |
+| **Pond**      | Main surface    | `raise`           | Everything primary: home, threads, catalogs, editors. Home content is center-column (≈920px max); threads manage their own text measure.                                                                |
+| **Tide**      | Status strip    | `water`           | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging.                                                       |
+| **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (Deep Water, Stocking, Catalog, appearance). Floating layer — this is where a real drop shadow belongs.                      |
 
 The **Ripple Dock** (per-thread state panel) docks inside the pond region alongside a thread, as a
 `shallow` sibling panel — not a second care drawer.
@@ -478,28 +478,28 @@ a well-typeset script.
 
 ## 10. Signature Motifs and Assets
 
-| Asset | Purpose | Allowed use | Overuse danger | Motion / a11y |
-| --- | --- | --- | --- | --- |
-| `/logo.png` | The lantern-koi core mark. | Center of the hero's living mark; app icon contexts. | Repeating it in chrome dilutes the hero moment — the wordmark or `koi-mark.svg` serves elsewhere. | Static image; hero glow via shadow only; `alt=""` inside the decorative hero (the adjacent wordmark names the app). |
-| `/koi-mark.svg` | Line-drawn koi glyph for small identity. | Favicons-adjacent chrome, waterline identity, about/empty accents. | Becoming a bullet point or list decoration. | Static; `aria-hidden` when adjacent to the app name. |
-| `/koi-bg.svg` | Sumi-e koi watermark. | Fixed full-viewport backdrop at ≤ 0.05 opacity, once. | Any second placement, any opacity raise, any use inside panels. | Static by definition; must remain invisible under text surfaces (which are opaque anyway). |
-| `/lotus-divider.svg` | Lotus seam ornament. | Section seams on home and designed empty states; at most one per view. | Wallpapering every section break — it marks thresholds, not paragraphs. | Static; `alt=""`/`aria-hidden`. |
-| `KoiSprite` (inline SVG defs) | Shared koi/fish symbols for the living mark. | Referenced via `<use>` by hero and designed empty states. | Scattering swimming koi across working surfaces. | Tail animation obeys reduced motion (freezes). |
-| `PondEye` (hero composition) | **The signature living mark**: logo, rings, ripple pings, orbiting koi. | Pond home hero only. | Reuse as spinner/loader/button — forbidden; miniaturization into chrome — forbidden. | Full reduced-motion still composition (§6); `aria-hidden` art with the heading carrying the name. |
-| Caustics (CSS layers) | Ambient light texture in the deep water. | Two fixed backdrop layers at ≤ 0.5 opacity. | Adding layers, raising opacity, or placing inside panels. | Drift stops entirely under reduced motion / motion=off. |
+| Asset                         | Purpose                                                                 | Allowed use                                                            | Overuse danger                                                                                    | Motion / a11y                                                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `/logo.png`                   | The lantern-koi core mark.                                              | Center of the hero's living mark; app icon contexts.                   | Repeating it in chrome dilutes the hero moment — the wordmark or `koi-mark.svg` serves elsewhere. | Static image; hero glow via shadow only; `alt=""` inside the decorative hero (the adjacent wordmark names the app). |
+| `/koi-mark.svg`               | Line-drawn koi glyph for small identity.                                | Favicons-adjacent chrome, waterline identity, about/empty accents.     | Becoming a bullet point or list decoration.                                                       | Static; `aria-hidden` when adjacent to the app name.                                                                |
+| `/koi-bg.svg`                 | Sumi-e koi watermark.                                                   | Fixed full-viewport backdrop at ≤ 0.05 opacity, once.                  | Any second placement, any opacity raise, any use inside panels.                                   | Static by definition; must remain invisible under text surfaces (which are opaque anyway).                          |
+| `/lotus-divider.svg`          | Lotus seam ornament.                                                    | Section seams on home and designed empty states; at most one per view. | Wallpapering every section break — it marks thresholds, not paragraphs.                           | Static; `alt=""`/`aria-hidden`.                                                                                     |
+| `KoiSprite` (inline SVG defs) | Shared koi/fish symbols for the living mark.                            | Referenced via `<use>` by hero and designed empty states.              | Scattering swimming koi across working surfaces.                                                  | Tail animation obeys reduced motion (freezes).                                                                      |
+| `PondEye` (hero composition)  | **The signature living mark**: logo, rings, ripple pings, orbiting koi. | Pond home hero only.                                                   | Reuse as spinner/loader/button — forbidden; miniaturization into chrome — forbidden.              | Full reduced-motion still composition (§6); `aria-hidden` art with the heading carrying the name.                   |
+| Caustics (CSS layers)         | Ambient light texture in the deep water.                                | Two fixed backdrop layers at ≤ 0.5 opacity.                            | Adding layers, raising opacity, or placing inside panels.                                         | Drift stops entirely under reduced motion / motion=off.                                                             |
 
 The living mark is an emotional identity moment — the one place DeKoi openly performs. Guard it
-by keeping it singular: because koi *don't* swim everywhere else, the pond feels alive where it
+by keeping it singular: because koi _don't_ swim everywhere else, the pond feels alive where it
 matters.
 
 ---
 
 ## 11. Naming and Voice
 
-- **Owned labels** come from `SURFACE_LABELS.md` and are used consistently: Messenger, Roleplay,
+- **Owned labels** come from `DOMAIN_MODEL.md` and are used consistently: Messenger, Roleplay,
   Pond, Companions, Personas, Lorebooks, Currents, Ripples / Ripple Dock, Keepers, Inlets, Net,
   and the Pond Care sections (Deep Water, Stocking, Catalog).
-- **Clarity beats cuteness.** Theme words name *places and records*; verbs stay plain. "New
+- **Clarity beats cuteness.** Theme words name _places and records_; verbs stay plain. "New
   thread", "Save", "Import bundle", "Check connection" — never "release a koi" for a save button.
 - **Voice:** calm, direct, first-person-free, lightly atmospheric only at thresholds (home
   greeting, empty states). Status and errors are concrete: what happened, where things stand,

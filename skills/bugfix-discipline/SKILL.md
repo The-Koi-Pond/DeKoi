@@ -32,7 +32,7 @@ Also read:
   or mode-owned storage behavior.
 - `ARCHITECTURE.md` if the fix changes imports, owners, adapters, runtime
   commands, Rust commands, storage boundaries, or file layout.
-- `SURFACE_LABELS.md` if the fix touches Messenger, Roleplay, catalog,
+- `DOMAIN_MODEL.md` if the fix touches Messenger, Roleplay, catalog,
   provider, prompt/generation, import compatibility, or product-language
   boundaries.
 - `PRODUCT.md` and `DESIGN.md` if the bug is user-visible UI, onboarding,

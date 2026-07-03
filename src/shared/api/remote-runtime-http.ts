@@ -1,9 +1,6 @@
 import type { RuntimeTarget } from "./runtime-target";
 
-export function remoteHeaders(
-  target: RuntimeTarget,
-  extra?: HeadersInit,
-): HeadersInit {
+export function remoteHeaders(target: RuntimeTarget, extra?: HeadersInit): HeadersInit {
   return {
     ...(target.authorization ? { Authorization: target.authorization } : {}),
     ...extra,
@@ -18,9 +15,7 @@ export function remoteFetchInit(init: RequestInit): RequestInit {
   };
 }
 
-export async function readRemoteRuntimeError(
-  response: Response,
-): Promise<Error> {
+export async function readRemoteRuntimeError(response: Response): Promise<Error> {
   try {
     const body = (await response.json()) as Record<string, unknown>;
     const message =

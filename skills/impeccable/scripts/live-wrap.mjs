@@ -154,7 +154,11 @@ The agent should insert variant HTML at insertLine.`);
     if (candidates.length === 0) {
       console.error(
         JSON.stringify({
-          error: "Found file but could not locate element in " + targetFile + ". Searched for: " + queries.join(", "),
+          error:
+            "Found file but could not locate element in " +
+            targetFile +
+            ". Searched for: " +
+            queries.join(", "),
         }),
       );
       process.exit(1);
@@ -198,7 +202,11 @@ The agent should insert variant HTML at insertLine.`);
     if (!match) {
       console.error(
         JSON.stringify({
-          error: "Found file but could not locate element in " + targetFile + ". Searched for: " + queries.join(", "),
+          error:
+            "Found file but could not locate element in " +
+            targetFile +
+            ". Searched for: " +
+            queries.join(", "),
         }),
       );
       process.exit(1);
@@ -220,7 +228,9 @@ The agent should insert variant HTML at insertLine.`);
   const originalLines = lines.slice(startLine, endLine + 1);
   const originalBaseIndent = minLeadingSpaces(originalLines);
   const reindentOriginal = (extra) =>
-    originalLines.map((l) => (l.trim() === "" ? "" : indent + extra + l.slice(originalBaseIndent))).join("\n");
+    originalLines
+      .map((l) => (l.trim() === "" ? "" : indent + extra + l.slice(originalBaseIndent)))
+      .join("\n");
   const originalIndented = reindentOriginal("    ");
 
   // Wrapper attributes differ by syntax. HTML allows plain string attrs;
@@ -250,17 +260,38 @@ The agent should insert variant HTML at insertLine.`);
           '" ' +
           styleContents +
           ">",
-        indent + "  " + commentSyntax.open + " impeccable-variants-start " + id + " " + commentSyntax.close,
+        indent +
+          "  " +
+          commentSyntax.open +
+          " impeccable-variants-start " +
+          id +
+          " " +
+          commentSyntax.close,
         indent + "  " + commentSyntax.open + " Original " + commentSyntax.close,
         indent + '  <div data-impeccable-variant="original">',
         reindentOriginal("    "),
         indent + "  </div>",
-        indent + "  " + commentSyntax.open + " Variants: insert below this line " + commentSyntax.close,
-        indent + "  " + commentSyntax.open + " impeccable-variants-end " + id + " " + commentSyntax.close,
+        indent +
+          "  " +
+          commentSyntax.open +
+          " Variants: insert below this line " +
+          commentSyntax.close,
+        indent +
+          "  " +
+          commentSyntax.open +
+          " impeccable-variants-end " +
+          id +
+          " " +
+          commentSyntax.close,
         indent + "</div>",
       ]
     : [
-        indent + commentSyntax.open + " impeccable-variants-start " + id + " " + commentSyntax.close,
+        indent +
+          commentSyntax.open +
+          " impeccable-variants-start " +
+          id +
+          " " +
+          commentSyntax.close,
         indent +
           '<div data-impeccable-variants="' +
           id +
@@ -273,7 +304,11 @@ The agent should insert variant HTML at insertLine.`);
         indent + '  <div data-impeccable-variant="original">',
         originalIndented,
         indent + "  </div>",
-        indent + "  " + commentSyntax.open + " Variants: insert below this line " + commentSyntax.close,
+        indent +
+          "  " +
+          commentSyntax.open +
+          " Variants: insert below this line " +
+          commentSyntax.close,
         indent + "</div>",
         indent + commentSyntax.open + " impeccable-variants-end " + id + " " + commentSyntax.close,
       ];
@@ -472,7 +507,8 @@ function findElement(lines, query, tag = null) {
     if (!lines[i].includes(query)) continue;
 
     const stripped = lines[i].trim();
-    if (stripped.startsWith("<!--") || stripped.startsWith("{/*") || stripped.startsWith("//")) continue;
+    if (stripped.startsWith("<!--") || stripped.startsWith("{/*") || stripped.startsWith("//"))
+      continue;
     // Skip lines already inside a variant wrapper
     if (lines[i].includes("data-impeccable-variant")) continue;
 
@@ -499,7 +535,8 @@ function findAllElements(lines, query, tag = null) {
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i].includes(query)) continue;
     const stripped = lines[i].trim();
-    if (stripped.startsWith("<!--") || stripped.startsWith("{/*") || stripped.startsWith("//")) continue;
+    if (stripped.startsWith("<!--") || stripped.startsWith("{/*") || stripped.startsWith("//"))
+      continue;
     if (lines[i].includes("data-impeccable-variant")) continue;
     const openerLine = findOpenerLine(lines, i, tag);
     if (openerLine === -1) continue;

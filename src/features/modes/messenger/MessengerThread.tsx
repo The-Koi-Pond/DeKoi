@@ -1,10 +1,4 @@
-import {
-  Fragment,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type {
   NavCatalogState,
   NavMessengerThreadActions,
@@ -103,9 +97,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   const threadCompanions = messengerThread
-    ? nav.characters.filter((companion) =>
-        messengerThread.characterIds.includes(companion.id),
-      )
+    ? nav.characters.filter((companion) => messengerThread.characterIds.includes(companion.id))
     : [];
   const primaryCompanion = threadCompanions[0] ?? null;
   const companionDisplayName =
@@ -114,8 +106,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     "No companion";
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const isGenerating =
-    generationState.threadId === activeThreadId &&
-    generationState.status === "generating";
+    generationState.threadId === activeThreadId && generationState.status === "generating";
   const visibleGenerationStatus =
     generationState.threadId === activeThreadId ? generationState.status : "idle";
   const generationNotice =
@@ -148,14 +139,12 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     : "";
   const canSend = draft.trim().length > 0 && !isGenerating && !sendBlocker;
   const threadConnection = getProviderConnectionById(
-    messengerThread?.providerConnectionId ??
-      nav.appSettings.activeMessengerConnectionId,
+    messengerThread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
   const generationMode = getMessengerGenerationModeForConnection(threadConnection);
   const generationRuntime = selectMessengerGenerationRuntime(generationMode);
-  const activeEditingMessage =
-    editingMessage?.threadId === activeThreadId ? editingMessage : null;
+  const activeEditingMessage = editingMessage?.threadId === activeThreadId ? editingMessage : null;
   const activeDeleteRequest =
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
       ? deleteRequest
@@ -169,10 +158,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     const { author } = message;
 
     if (author.kind === "persona") {
-      const persona =
-        nav.personas.find(
-          (candidate) => candidate.id === author.personaId,
-        ) ?? null;
+      const persona = nav.personas.find((candidate) => candidate.id === author.personaId) ?? null;
       return {
         avatarUrl: persona?.avatarUrl ?? null,
         initials: getInitials(persona?.displayName ?? author.label),
@@ -181,9 +167,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
     if (author.kind === "character") {
       const character =
-        nav.characters.find(
-          (candidate) => candidate.id === author.characterId,
-        ) ?? null;
+        nav.characters.find((candidate) => candidate.id === author.characterId) ?? null;
       return {
         avatarUrl: character?.avatarUrl ?? null,
         initials: getInitials(character?.displayName ?? author.label),
@@ -235,9 +219,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     const trimmedBody = activeEditingMessage.body.trim();
     if (!trimmedBody) return;
     const originalMessage =
-      messengerThread.messages.find(
-        (message) => message.id === activeEditingMessage.id,
-      ) ?? null;
+      messengerThread.messages.find((message) => message.id === activeEditingMessage.id) ?? null;
     if (!originalMessage) {
       setEditingMessage(null);
       return;
@@ -319,8 +301,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     if (!trimmedDraft) return false;
     const sentAt = new Date().toISOString();
     const commitThread =
-      nav.messengerThreads.find((thread) => thread.id === activeThreadId) ??
-      null;
+      nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;
     if (!commitThread) return false;
     const commitSendBlocker = getMessengerThreadSendBlocker(
       getMessengerThreadReferenceSummary({
@@ -343,22 +324,17 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     }
 
     const selectedConnection = getProviderConnectionById(
-      commitThread.providerConnectionId ??
-        nav.appSettings.activeMessengerConnectionId,
+      commitThread.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
-    const connectionReadiness =
-      getGenerationConnectionReadiness(selectedConnection);
+    const connectionReadiness = getGenerationConnectionReadiness(selectedConnection);
     if (!connectionReadiness.ready) {
       const notice = describeGenerationReadinessFailure(connectionReadiness.code);
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
         message: notice.message,
-        action: getGenerationNoticeAction(
-          notice.recoveryTarget,
-          selectedConnection?.id,
-        ),
+        action: getGenerationNoticeAction(notice.recoveryTarget, selectedConnection?.id),
       });
       return false;
     }
@@ -367,20 +343,14 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     const sendMode = getMessengerGenerationModeForConnection(commitConnection);
     const sendRuntime = selectMessengerGenerationRuntime(sendMode);
     const sendPersona = commitThread.activePersonaId
-      ? nav.personas.find(
-          (persona) => persona.id === commitThread.activePersonaId,
-        ) ?? null
+      ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
       : null;
     const hasConfiguredConnection =
       !!commitThread.providerConnectionId &&
       commitThread.providerConnectionId === commitConnection.id;
     const threadForSend = hasConfiguredConnection
       ? commitThread
-      : setMessengerThreadProviderConnection(
-          commitThread,
-          commitConnection.id,
-          sentAt,
-        );
+      : setMessengerThreadProviderConnection(commitThread, commitConnection.id, sentAt);
     const userMessage = sendPersona
       ? createPersonaMessengerMessage({
           body: trimmedDraft,
@@ -428,9 +398,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
       if (result.generatedMessages.length > 0) {
         const typingNames = [
-          ...new Set(
-            result.generatedMessages.map((message) => message.author.label),
-          ),
+          ...new Set(result.generatedMessages.map((message) => message.author.label)),
         ].join(" + ");
         setGenerationState({
           threadId: commitThread.id,
@@ -461,26 +429,17 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                 threadId: commitThread.id,
                 status: "error" as const,
                 message: notice.message,
-                action: getGenerationNoticeAction(
-                  notice.recoveryTarget,
-                  commitConnection.id,
-                ),
+                action: getGenerationNoticeAction(notice.recoveryTarget, commitConnection.id),
               };
             })(),
       );
     } catch (error) {
-      const notice = describeGenerationFailureNotice(
-        error,
-        "Messenger generation failed.",
-      );
+      const notice = describeGenerationFailureNotice(error, "Messenger generation failed.");
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
         message: notice.message,
-        action: getGenerationNoticeAction(
-          notice.recoveryTarget,
-          commitConnection.id,
-        ),
+        action: getGenerationNoticeAction(notice.recoveryTarget, commitConnection.id),
       });
     }
 
@@ -584,10 +543,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       </header>
 
       {threadReferenceNotices.length > 0 && (
-        <div
-          className="messenger-thread-notices"
-          aria-label="Messenger thread notices"
-        >
+        <div className="messenger-thread-notices" aria-label="Messenger thread notices">
           {threadReferenceNotices.map((notice) => (
             <div
               className={`messenger-thread-notice ${notice.tone}`}
@@ -607,11 +563,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         </div>
       )}
 
-      <div
-        className="message-list"
-        aria-label="Messenger messages"
-        ref={messageListRef}
-      >
+      <div className="message-list" aria-label="Messenger messages" ref={messageListRef}>
         {messengerThread.messages.length === 0 && (
           <p className="messenger-empty-note">No messages yet.</p>
         )}
@@ -619,14 +571,12 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           const authorAvatar = getMessageAuthorAvatar(message);
           const dateKey = getMessageDateKey(message.createdAt);
           const previousDateKey =
-            index > 0
-              ? getMessageDateKey(messengerThread.messages[index - 1].createdAt)
-              : "";
+            index > 0 ? getMessageDateKey(messengerThread.messages[index - 1].createdAt) : "";
           const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
           const isEditing = activeEditingMessage?.id === message.id;
           const isConfirmingDelete = activeDeleteRequest?.id === message.id;
           const deleteRequestLabel = isConfirmingDelete
-            ? activeDeleteRequest?.label ?? message.author.label
+            ? (activeDeleteRequest?.label ?? message.author.label)
             : message.author.label;
           const timeLabel = getMessageTimeLabel(message.createdAt);
 
@@ -634,9 +584,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
             <Fragment key={message.id}>
               {showDateSeparator && (
                 <div className="message-date-separator">
-                  <time dateTime={dateKey}>
-                    {getMessageDateSeparatorLabel(message.createdAt)}
-                  </time>
+                  <time dateTime={dateKey}>{getMessageDateSeparatorLabel(message.createdAt)}</time>
                 </div>
               )}
               <article
@@ -777,8 +725,8 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
             ? generationStatusMessage ||
               `${generationRuntime.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER
-            ? "Enter sends. Shift+Enter adds a new line."
-            : "Enter adds a new line. Use Send to release the message.")
+              ? "Enter sends. Shift+Enter adds a new line."
+              : "Enter adds a new line. Use Send to release the message.")
         }
         isSubmitting={isGenerating}
         onChange={(value) =>

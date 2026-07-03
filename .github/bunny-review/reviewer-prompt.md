@@ -233,7 +233,9 @@ Use this exact schema:
     }
   ],
   "open_questions": ["0-2 concise Wario-style questions or assumptions, if any."],
-  "what_i_checked": ["3-6 concise Wario-style notes covering commands, files, contracts, or guidance inspected."]
+  "what_i_checked": [
+    "3-6 concise Wario-style notes covering commands, files, contracts, or guidance inspected."
+  ]
 }
 ```
 

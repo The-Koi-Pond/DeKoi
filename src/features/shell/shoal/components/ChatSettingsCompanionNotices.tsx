@@ -22,32 +22,22 @@ export function ChatSettingsCompanionNotices({
   return (
     <>
       {missingCompanionCount > 0 && (
-        <ChatSettingsNotice
-          actionLabel="Clear missing"
-          onAction={onClearMissingCompanions}
-        >
+        <ChatSettingsNotice actionLabel="Clear missing" onAction={onClearMissingCompanions}>
           {missingCompanionCount} selected companion
-          {missingCompanionCount === 1 ? " is" : "s are"} no longer saved.
-          Missing companions are skipped when {surfaceLabel} builds a reply.
+          {missingCompanionCount === 1 ? " is" : "s are"} no longer saved. Missing companions are
+          skipped when {surfaceLabel} builds a reply.
         </ChatSettingsNotice>
       )}
-      {activeMessengerThread &&
-        characterCount === 0 &&
-        missingCompanionCount === 0 && (
-          <ChatSettingsNotice
-            actionLabel="Create companion"
-            onAction={onCreateCompanion}
-          >
-            Create a companion before {surfaceLabel} can generate replies.
-          </ChatSettingsNotice>
-        )}
-      {activeMessengerThread &&
-        characterCount > 0 &&
-        selectedCompanionCount === 0 && (
-          <p className="chat-settings-empty-line">
-            Choose at least one companion before generating replies.
-          </p>
-        )}
+      {activeMessengerThread && characterCount === 0 && missingCompanionCount === 0 && (
+        <ChatSettingsNotice actionLabel="Create companion" onAction={onCreateCompanion}>
+          Create a companion before {surfaceLabel} can generate replies.
+        </ChatSettingsNotice>
+      )}
+      {activeMessengerThread && characterCount > 0 && selectedCompanionCount === 0 && (
+        <p className="chat-settings-empty-line">
+          Choose at least one companion before generating replies.
+        </p>
+      )}
     </>
   );
 }

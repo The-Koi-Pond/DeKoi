@@ -9,10 +9,7 @@ import {
   loadRippleStates,
   type AppStorageRecords,
 } from "../../../runtime";
-import {
-  readRemoteRuntimeUrl,
-  writeRemoteRuntimeUrl,
-} from "../../../shared/api/runtime-target";
+import { readRemoteRuntimeUrl, writeRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
@@ -37,10 +34,7 @@ export {
   type AppStorageSnapshot,
   type StorageEntity,
 } from "../../../runtime";
-export {
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
-} from "../../../runtime";
+export { type MessengerStorageMode, type MessengerStorageStatus } from "../../../runtime";
 export {
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,

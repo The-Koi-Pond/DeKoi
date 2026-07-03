@@ -4,9 +4,7 @@ interface ConnectionsCatalogHeadProps {
   onCreateConnection: () => void;
 }
 
-export function ConnectionsCatalogHead({
-  onCreateConnection,
-}: ConnectionsCatalogHeadProps) {
+export function ConnectionsCatalogHead({ onCreateConnection }: ConnectionsCatalogHeadProps) {
   return (
     <div className="shoal-head">
       <div className="shoal-title">

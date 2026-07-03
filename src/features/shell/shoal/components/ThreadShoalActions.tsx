@@ -19,9 +19,7 @@ export function ThreadShoalActions({
         className={`pill ${isRoleplaySurface ? "roleplay" : "koi"} title-cast`}
         type="button"
         aria-controls={
-          isRoleplaySurface
-            ? "new-roleplay-thread-popover"
-            : "new-messenger-thread-popover"
+          isRoleplaySurface ? "new-roleplay-thread-popover" : "new-messenger-thread-popover"
         }
         aria-expanded={isRoleplaySurface ? newRoleplayOpen : newMessengerOpen}
         onClick={onCreateActiveThread}

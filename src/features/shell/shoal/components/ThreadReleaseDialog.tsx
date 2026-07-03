@@ -6,17 +6,9 @@ interface ThreadReleaseDialogProps {
   onConfirm: () => void;
 }
 
-export function ThreadReleaseDialog({
-  request,
-  onCancel,
-  onConfirm,
-}: ThreadReleaseDialogProps) {
+export function ThreadReleaseDialog({ request, onCancel, onConfirm }: ThreadReleaseDialogProps) {
   return (
-    <div
-      className="release-dialog-backdrop"
-      role="presentation"
-      onClick={onCancel}
-    >
+    <div className="release-dialog-backdrop" role="presentation" onClick={onCancel}>
       <section
         className="release-dialog"
         role="dialog"

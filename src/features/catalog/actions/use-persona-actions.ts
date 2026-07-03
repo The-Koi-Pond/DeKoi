@@ -47,9 +47,7 @@ export function usePersonaActions({
       const now = currentIsoTimestamp();
       setPersonas((currentPersonas) =>
         currentPersonas.map((persona) =>
-          persona.id === personaId
-            ? updatePersonaRecord(persona, input, now)
-            : persona,
+          persona.id === personaId ? updatePersonaRecord(persona, input, now) : persona,
         ),
       );
     },
@@ -58,17 +56,11 @@ export function usePersonaActions({
 
   const duplicatePersona = useCallback(
     (personaId: string) => {
-      const persona = personas.find(
-        (currentPersona) => currentPersona.id === personaId,
-      );
+      const persona = personas.find((currentPersona) => currentPersona.id === personaId);
       if (!persona) return null;
 
       const now = currentIsoTimestamp();
-      const duplicatedPersona = duplicatePersonaRecord(
-        persona,
-        createRecordId("persona"),
-        now,
-      );
+      const duplicatedPersona = duplicatePersonaRecord(persona, createRecordId("persona"), now);
       setPersonas((currentPersonas) => [duplicatedPersona, ...currentPersonas]);
       return duplicatedPersona;
     },
@@ -78,18 +70,12 @@ export function usePersonaActions({
   const deletePersona = useCallback(
     (personaId: string) => {
       const now = currentIsoTimestamp();
-      setPersonas((currentPersonas) =>
-        deletePersonaRecord(currentPersonas, personaId),
-      );
+      setPersonas((currentPersonas) => deletePersonaRecord(currentPersonas, personaId));
       setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          clearMessengerThreadPersona(thread, personaId, now),
-        ),
+        currentThreads.map((thread) => clearMessengerThreadPersona(thread, personaId, now)),
       );
       setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          clearRoleplayThreadPersona(thread, personaId, now),
-        ),
+        currentThreads.map((thread) => clearRoleplayThreadPersona(thread, personaId, now)),
       );
     },
     [setRoleplayThreads, setMessengerThreads, setPersonas],

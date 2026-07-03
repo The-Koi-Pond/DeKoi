@@ -16,11 +16,5 @@ export function ThreadReleaseDialogHost({
     return null;
   }
 
-  return (
-    <ThreadReleaseDialog
-      request={request}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    />
-  );
+  return <ThreadReleaseDialog request={request} onCancel={onCancel} onConfirm={onConfirm} />;
 }

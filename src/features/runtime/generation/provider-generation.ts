@@ -30,10 +30,7 @@ function readString(value: unknown, fallback = "") {
 }
 
 function isProviderKind(value: unknown): value is GenerationProviderKind {
-  return (
-    value === "remote-runtime" ||
-    value === "external-provider"
-  );
+  return value === "remote-runtime" || value === "external-provider";
 }
 
 function normalizeDraft(value: unknown): GeneratedMessageDraft | null {
@@ -50,8 +47,7 @@ function normalizeWarnings(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
 
   return value.filter(
-    (warning): warning is string =>
-      typeof warning === "string" && warning.trim().length > 0,
+    (warning): warning is string => typeof warning === "string" && warning.trim().length > 0,
   );
 }
 
@@ -198,9 +194,7 @@ async function postJson(url: string, headers: Record<string, string>, body: Prov
   if (!response.ok) {
     const message =
       payloadError ||
-      (isRecord(payload)
-          ? readString(payload.message) || readString(payload.error)
-          : "");
+      (isRecord(payload) ? readString(payload.message) || readString(payload.error) : "");
     throw new Error(message || `Provider returned HTTP ${response.status}.`);
   }
 
@@ -263,20 +257,10 @@ function firstRefusal(value: unknown): string {
 
   if (isRecord(value)) {
     const direct =
-      typeof value.refusal === "string"
-        ? value.refusal.trim()
-        : firstText(value.refusal).trim();
+      typeof value.refusal === "string" ? value.refusal.trim() : firstText(value.refusal).trim();
     if (direct) return direct;
 
-    for (const key of [
-      "content",
-      "parts",
-      "message",
-      "response",
-      "output",
-      "results",
-      "data",
-    ]) {
+    for (const key of ["content", "parts", "message", "response", "output", "results", "data"]) {
       const refusal = firstRefusal(value[key]);
       if (refusal) return refusal;
     }
@@ -368,12 +352,8 @@ function googleText(payload: unknown): ProviderTextResult {
     const text = genericProviderText(payload);
     if (text) return { text };
 
-    const promptFeedback = isRecord(payload.promptFeedback)
-      ? payload.promptFeedback
-      : null;
-    const blockReason = promptFeedback
-      ? readString(promptFeedback.blockReason).trim()
-      : "";
+    const promptFeedback = isRecord(payload.promptFeedback) ? payload.promptFeedback : null;
+    const blockReason = promptFeedback ? readString(promptFeedback.blockReason).trim() : "";
     return {
       text: "",
       warning: blockReason
@@ -389,9 +369,7 @@ function googleText(payload: unknown): ProviderTextResult {
   }
 
   const firstCandidate = payload.candidates.find(isRecord);
-  const finishReason = firstCandidate
-    ? readString(firstCandidate.finishReason).trim()
-    : "";
+  const finishReason = firstCandidate ? readString(firstCandidate.finishReason).trim() : "";
   return {
     text: "",
     warning: finishReason
@@ -484,18 +462,14 @@ export async function generateWithBrowserProvider(
   }
 
   if (connection.provider === "anthropic") {
-    const payload = await postJson(
-      appendEndpoint(connection.baseUrl, "/messages"),
-      headers,
-      {
-        model: connection.model,
-        system: systemPrompt(request.promptMessages),
-        messages: nonSystemMessages(request.promptMessages),
-        temperature,
-        top_p: topP,
-        max_tokens: maxTokens,
-      },
-    );
+    const payload = await postJson(appendEndpoint(connection.baseUrl, "/messages"), headers, {
+      model: connection.model,
+      system: systemPrompt(request.promptMessages),
+      messages: nonSystemMessages(request.promptMessages),
+      temperature,
+      top_p: topP,
+      max_tokens: maxTokens,
+    });
     return createProviderResponse(request, anthropicText(payload));
   }
 
@@ -538,10 +512,9 @@ export async function generateWithConfiguredProvider(
       throw new Error("Provider connection needs an API key before it can generate.");
     }
 
-    const response = await invokeDesktopRuntime<unknown>(
-      RUNTIME_COMMANDS.generationGenerate,
-      { request },
-    );
+    const response = await invokeDesktopRuntime<unknown>(RUNTIME_COMMANDS.generationGenerate, {
+      request,
+    });
     return normalizeProviderResponse(response, request);
   }
 

@@ -28,9 +28,7 @@ export type GenerationConnectionReadiness =
       code: GenerationConnectionReadinessFailureCode;
     };
 
-export function isGenerationRuntimeMode(
-  value: unknown,
-): value is GenerationRuntimeMode {
+export function isGenerationRuntimeMode(value: unknown): value is GenerationRuntimeMode {
   return value === "remote-runtime";
 }
 

@@ -1,7 +1,4 @@
-import type {
-  CharacterNoteRole,
-  CharacterRecord,
-} from "../contracts/types/character";
+import type { CharacterNoteRole, CharacterRecord } from "../contracts/types/character";
 
 export interface CharacterRecordInput {
   displayName: string;

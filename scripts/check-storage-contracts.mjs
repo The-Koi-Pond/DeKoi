@@ -3,13 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const tsRegistryPath = path.join(
-  root,
-  "src",
-  "runtime",
-  "storage",
-  "storage-entities.ts",
-);
+const tsRegistryPath = path.join(root, "src", "runtime", "storage", "storage-entities.ts");
 const runtimeIndexPath = path.join(root, "src", "runtime", "index.ts");
 const rustHostPath = path.join(root, "src-tauri", "src", "storage.rs");
 const storageDocsPath = path.join(root, "docs", "storage-model.md");
@@ -31,9 +25,7 @@ function readFile(filePath) {
 }
 
 function parseTypeScriptEntities(source) {
-  const match = source.match(
-    /export const HOST_STORAGE_ENTITIES = \[([\s\S]*?)\] as const;/,
-  );
+  const match = source.match(/export const HOST_STORAGE_ENTITIES = \[([\s\S]*?)\] as const;/);
   if (!match) {
     throw new Error("Could not find HOST_STORAGE_ENTITIES in storage-entities.ts.");
   }
@@ -49,56 +41,50 @@ function parseTypeScriptEntityAliases(source) {
     throw new Error("Could not find STORAGE_ENTITIES in storage-entities.ts.");
   }
 
-  return [...match[1].matchAll(/\b([a-z][A-Za-z0-9]*)\s*:\s*"([^"]+)"/g)].map(
-    (item) => ({
-      key: item[1],
-      entity: item[2],
-    }),
-  );
+  return [...match[1].matchAll(/\b([a-z][A-Za-z0-9]*)\s*:\s*"([^"]+)"/g)].map((item) => ({
+    key: item[1],
+    entity: item[2],
+  }));
 }
 
 function parseRustEntities(source) {
   const constants = new Map();
-  for (const match of source.matchAll(
-    /const\s+([A-Z_]+_ENTITY):\s*&str\s*=\s*"([^"]+)";/g,
-  )) {
+  for (const match of source.matchAll(/const\s+([A-Z_]+_ENTITY):\s*&str\s*=\s*"([^"]+)";/g)) {
     constants.set(match[1], match[2]);
   }
 
   const collectionMatch = source.match(
-    /const COLLECTION_ENTITIES:\s*&\[\&str\]\s*=\s*&\[([\s\S]*?)\];/,
+    /const COLLECTION_ENTITIES:\s*&\[&str\]\s*=\s*&\[([\s\S]*?)\];/,
   );
   if (!collectionMatch) {
     throw new Error("Could not find COLLECTION_ENTITIES in src-tauri/src/storage.rs.");
   }
 
-  return [...collectionMatch[1].matchAll(/\b[A-Z_]+_ENTITY\b/g)].map(
-    (match) => {
-      const value = constants.get(match[0]);
-      if (!value) {
-        throw new Error(`COLLECTION_ENTITIES references unknown ${match[0]}.`);
-      }
-      return value;
-    },
-  );
+  return [...collectionMatch[1].matchAll(/\b[A-Z_]+_ENTITY\b/g)].map((match) => {
+    const value = constants.get(match[0]);
+    if (!value) {
+      throw new Error(`COLLECTION_ENTITIES references unknown ${match[0]}.`);
+    }
+    return value;
+  });
 }
 
 function parseDocumentedCollections(source) {
-  const sectionMatch = source.match(
-    /## Current Collections\s+([\s\S]*?)\n## Source Of Truth/,
-  );
+  const sectionMatch = source.match(/## Current Collections\s+([\s\S]*?)\n## Source Of Truth/);
   if (!sectionMatch) {
     throw new Error("Could not find Current Collections table in docs/storage-model.md.");
   }
 
-  return [...sectionMatch[1].matchAll(/^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|$/gm)].map(
-    (match) => ({
-      entity: match[1],
-      ownerPath: match[2],
-      recordName: match[3],
-      adapterPath: match[4],
-    }),
-  );
+  return [
+    ...sectionMatch[1].matchAll(
+      /^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|$/gm,
+    ),
+  ].map((match) => ({
+    entity: match[1],
+    ownerPath: match[2],
+    recordName: match[3],
+    adapterPath: match[4],
+  }));
 }
 
 function parseRuntimeStorageRepositoryExports(source) {
@@ -106,9 +92,7 @@ function parseRuntimeStorageRepositoryExports(source) {
     ...source.matchAll(
       /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage\/storage-repository";$/gm,
     ),
-  ].flatMap((match) =>
-    [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
-  );
+  ].flatMap((match) => [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]));
 }
 
 function parseRuntimeStorageEntityExports(source) {
@@ -116,19 +100,13 @@ function parseRuntimeStorageEntityExports(source) {
     ...source.matchAll(
       /^export\s+type\s+\{([\s\S]*?)\}\s+from\s+"\.\/storage\/storage-entities";$/gm,
     ),
-  ].flatMap((match) =>
-    [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
-  );
+  ].flatMap((match) => [...match[1].matchAll(/\b[A-Z][A-Za-z0-9]+\b/g)].map((item) => item[0]));
 }
 
 function parseRuntimeStorageRepositoryValueExports(source) {
   return [
-    ...source.matchAll(
-      /^export\s+\{([^}]*)\}\s+from\s+"\.\/storage\/storage-repository";$/gm,
-    ),
-  ].flatMap((match) =>
-    [...match[1].matchAll(/\b[a-z][A-Za-z0-9]+\b/g)].map((item) => item[0]),
-  );
+    ...source.matchAll(/^export\s+\{([^}]*)\}\s+from\s+"\.\/storage\/storage-repository";$/gm),
+  ].flatMap((match) => [...match[1].matchAll(/\b[a-z][A-Za-z0-9]+\b/g)].map((item) => item[0]));
 }
 
 function unique(values) {
@@ -157,11 +135,10 @@ const documentedEntities = documentedCollections.map((collection) => collection.
 const runtimeStorageRepositoryExports = parseRuntimeStorageRepositoryExports(
   readFile(runtimeIndexPath),
 );
-const runtimeStorageEntityExports = parseRuntimeStorageEntityExports(
+const runtimeStorageEntityExports = parseRuntimeStorageEntityExports(readFile(runtimeIndexPath));
+const runtimeStorageRepositoryValueExports = parseRuntimeStorageRepositoryValueExports(
   readFile(runtimeIndexPath),
 );
-const runtimeStorageRepositoryValueExports =
-  parseRuntimeStorageRepositoryValueExports(readFile(runtimeIndexPath));
 const failures = [];
 
 if (tsEntities.length !== unique(tsEntities).length) {
@@ -198,10 +175,9 @@ if (duplicateRuntimeStorageRepositoryExports.length > 0) {
   );
 }
 
-const duplicateRuntimeStorageRepositoryValueExports =
-  runtimeStorageRepositoryValueExports.filter(
-    (exportName, index, exports) => exports.indexOf(exportName) !== index,
-  );
+const duplicateRuntimeStorageRepositoryValueExports = runtimeStorageRepositoryValueExports.filter(
+  (exportName, index, exports) => exports.indexOf(exportName) !== index,
+);
 if (duplicateRuntimeStorageRepositoryValueExports.length > 0) {
   failures.push(
     `Runtime public entrypoint contains duplicate storage repository value exports:\n${formatList(unique(duplicateRuntimeStorageRepositoryValueExports))}`,
@@ -310,7 +286,9 @@ if (
   extraInAliases.length === 0 &&
   tsEntities.join("\n") !== tsAliasEntities.join("\n")
 ) {
-  failures.push("TypeScript storage registry and STORAGE_ENTITIES match but are in different order.");
+  failures.push(
+    "TypeScript storage registry and STORAGE_ENTITIES match but are in different order.",
+  );
 }
 
 for (const collection of documentedCollections) {

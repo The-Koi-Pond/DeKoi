@@ -6,10 +6,7 @@ export function getDraftCompanionName(
   characterById: Map<string, CharacterRecord>,
   fallbackNumber: number,
 ) {
-  const { missingCount, names } = getCompanionLabelDetails(
-    characterIds,
-    characterById,
-  );
+  const { missingCount, names } = getCompanionLabelDetails(characterIds, characterById);
   if (missingCount > 0 && names.length === 0) return "Missing companion selection";
   if (missingCount > 0) {
     return `${names.join(" + ")} + ${missingCount} missing`;
@@ -22,10 +19,7 @@ export function getDraftRoleplayName(
   characterById: Map<string, CharacterRecord>,
   fallbackNumber: number,
 ) {
-  const { missingCount, names } = getCompanionLabelDetails(
-    characterIds,
-    characterById,
-  );
+  const { missingCount, names } = getCompanionLabelDetails(characterIds, characterById);
   if (missingCount > 0 && names.length === 0) return "Missing companion selection";
   if (missingCount > 0) {
     return `${names.join(" + ")} + ${missingCount} missing`;

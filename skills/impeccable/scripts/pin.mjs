@@ -90,7 +90,10 @@ function findProjectRoot(startDir = process.cwd()) {
 function findHarnessDirs(projectRoot) {
   const dirs = [];
   const repoSkillsDir = join(projectRoot, "skills");
-  if (existsSync(join(repoSkillsDir, "impeccable")) || existsSync(join(repoSkillsDir, "i-impeccable"))) {
+  if (
+    existsSync(join(repoSkillsDir, "impeccable")) ||
+    existsSync(join(repoSkillsDir, "i-impeccable"))
+  ) {
     dirs.push(repoSkillsDir);
   }
   for (const harness of HARNESS_DIRS) {

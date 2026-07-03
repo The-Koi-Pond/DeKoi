@@ -14,12 +14,7 @@ interface ChipProps<T extends string> {
   ariaLabel: string;
 }
 
-export function Chip<T extends string>({
-  options,
-  value,
-  onChange,
-  ariaLabel,
-}: ChipProps<T>) {
+export function Chip<T extends string>({ options, value, onChange, ariaLabel }: ChipProps<T>) {
   return (
     <div className="chips" role="radiogroup" aria-label={ariaLabel}>
       {options.map((opt) => {

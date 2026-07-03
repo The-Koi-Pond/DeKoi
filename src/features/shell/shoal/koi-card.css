@@ -1,172 +1,168 @@
 .koi-card {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 9px 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    position: relative;
-    transition: 0.16s;
-    margin-bottom: 3px;
-    border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: 0.16s;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
 }
 
 .koi-card:hover {
-    background: var(--shallow);
+  background: var(--shallow);
 }
 
 .koi-card.on {
-    background: linear-gradient(
-        90deg,
-        rgba(244, 122, 53, 0.14),
-        rgba(244, 122, 53, 0.03)
-    );
-    border-color: rgba(244, 122, 53, 0.3);
+  background: linear-gradient(90deg, rgba(244, 122, 53, 0.14), rgba(244, 122, 53, 0.03));
+  border-color: rgba(244, 122, 53, 0.3);
 }
 
 .koi-card.on::before {
-    content: "";
-    position: absolute;
-    left: -1px;
-    top: 14px;
-    bottom: 14px;
-    width: 3px;
-    border-radius: 3px;
-    background: var(--koi);
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--koi);
 }
 
 .ava {
-    width: 38px;
-    height: 38px;
-    border-radius: 13px;
-    flex: none;
-    display: grid;
-    place-items: center;
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--ink);
-    position: relative;
-    overflow: visible;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  position: relative;
+  overflow: visible;
 }
 
 .ava.k1 {
-    background: linear-gradient(140deg, #f6a15a, #e06a2b);
+  background: linear-gradient(140deg, #f6a15a, #e06a2b);
 }
 
 .ava.k2 {
-    background: linear-gradient(140deg, #54d2c8, #1f9c93);
+  background: linear-gradient(140deg, #54d2c8, #1f9c93);
 }
 
 .ava.k3 {
-    background: linear-gradient(140deg, #f0c659, #d39a26);
+  background: linear-gradient(140deg, #f0c659, #d39a26);
 }
 
 .ava-icon {
-    display: grid;
-    place-items: center;
+  display: grid;
+  place-items: center;
 }
 
 .ava > img {
-    width: 100%;
-    height: 100%;
-    border-radius: inherit;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .ava-icon svg {
-    width: 20px;
-    height: 20px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.8;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .ava .dot {
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    border: 2px solid var(--water);
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--water);
 }
 
 .ava .dot.live {
-    background: var(--jade);
+  background: var(--jade);
 }
 
 .ava .dot.idle {
-    background: var(--reed);
+  background: var(--reed);
 }
 
 .kc-body {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .koi-card.actionable .kc-body {
-    padding-right: 54px;
+  padding-right: 54px;
 }
 
 .kc-name {
-    font-size: 13px;
-    font-weight: 550;
-    color: var(--foam);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--foam);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kc-sub {
-    font-size: 11px;
-    color: var(--mist-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 1px;
+  font-size: 11px;
+  color: var(--mist-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
 }
 
 .kc-actions {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    display: flex;
-    gap: 3px;
-    opacity: 0;
-    transform: translateY(-50%);
-    transition: opacity 0.16s;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.16s;
 }
 
 .koi-card:hover .kc-actions,
 .koi-card:focus-within .kc-actions {
-    opacity: 1;
+  opacity: 1;
 }
 
 .kc-actions button {
-    width: 22px;
-    height: 22px;
-    border: 1px solid var(--reed-soft);
-    border-radius: 50%;
-    background: var(--abyss);
-    color: var(--mist);
-    cursor: pointer;
-    font-size: 12px;
-    line-height: 1;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 50%;
+  background: var(--abyss);
+  color: var(--mist);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .kc-actions button:hover {
-    border-color: var(--reed);
-    color: var(--foam);
+  border-color: var(--reed);
+  color: var(--foam);
 }
 
 /* Locked cards represent not-yet-navigable surfaces: dim and non-interactive. */
 .koi-card.locked {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .koi-card.locked:hover {
-    background: transparent;
+  background: transparent;
 }

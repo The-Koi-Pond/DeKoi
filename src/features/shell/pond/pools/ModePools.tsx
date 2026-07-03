@@ -12,26 +12,17 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../../engine/contracts/constants/surfaces";
-import {
-  sortRoleplayThreadsByUpdatedAt,
-  sortMessengerThreadsByUpdatedAt,
-} from "../../../modes";
+import { sortRoleplayThreadsByUpdatedAt, sortMessengerThreadsByUpdatedAt } from "../../../modes";
 import "./pools.css";
 
 interface ModePoolsProps {
   nav: ModePoolsNav;
 }
 
-export type ModePoolsNav = Pick<
-  NavRoleplayThreadActions,
-  "createRoleplayThread"
-> &
+export type ModePoolsNav = Pick<NavRoleplayThreadActions, "createRoleplayThread"> &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
-  Pick<
-    NavViewActions,
-    "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"
-  > &
+  Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"> &
   Pick<NavViewState, "selectedSurface">;
 
 const POOLS: {

@@ -6,14 +6,9 @@ import {
   extractRoleplayEntries,
   toRoleplayThreadRecord,
 } from "../../engine/contracts/types/roleplay";
-import type {
-  AppStorageCollectionKey,
-  AppStorageRecords,
-} from "./app-storage-snapshot";
+import type { AppStorageCollectionKey, AppStorageRecords } from "./app-storage-records";
 
-function assertNeverAppStorageCollectionKey(
-  collectionKey: never,
-): never {
+function assertNeverAppStorageCollectionKey(collectionKey: never): never {
   throw new Error(`Unhandled app storage collection: ${collectionKey}`);
 }
 
@@ -37,9 +32,7 @@ export function appStorageCollectionSignature(
     case "roleplayEntries":
       return JSON.stringify(extractRoleplayEntries(snapshot.roleplayThreads));
     case "messengerThreads":
-      return JSON.stringify(
-        snapshot.messengerThreads.map(toMessengerThreadRecord),
-      );
+      return JSON.stringify(snapshot.messengerThreads.map(toMessengerThreadRecord));
     case "messengerMessages":
       return JSON.stringify(extractMessengerMessages(snapshot.messengerThreads));
     case "rippleStates":

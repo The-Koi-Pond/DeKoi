@@ -9,10 +9,7 @@ import {
   matchKey,
   sortActivatedEntries,
 } from "./lorebook-activation";
-import {
-  createLorebookEntryRecord,
-  createLorebookRecord,
-} from "../catalog/lorebook-actions";
+import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
@@ -33,9 +30,7 @@ function lorebook(entries: LorebookRecord["entries"], activation = {}) {
   };
 }
 
-function entry(
-  input: Partial<Parameters<typeof createLorebookEntryRecord>[0]["input"]>,
-) {
+function entry(input: Partial<Parameters<typeof createLorebookEntryRecord>[0]["input"]>) {
   return createLorebookEntryRecord({
     id: input.title ?? "entry-under-test",
     input: {
@@ -130,9 +125,7 @@ describe("lorebook activation", () => {
       key: ["  "],
     });
 
-    expect(activateLorebookEntries(lorebook([noKey, emptyKey]), "No Key")).toEqual(
-      [],
-    );
+    expect(activateLorebookEntries(lorebook([noKey, emptyKey]), "No Key")).toEqual([]);
   });
 
   it("activates selective entries when any plaintext primary key is present", () => {
@@ -147,10 +140,7 @@ describe("lorebook activation", () => {
       key: ["sun gate"],
     });
 
-    const activated = activateLorebookEntries(
-      lorebook([present, absent]),
-      "Open the moon gate.",
-    );
+    const activated = activateLorebookEntries(lorebook([present, absent]), "Open the moon gate.");
 
     expect(activated.map((item) => item.entry)).toEqual([present]);
     expect(activated[0]).toMatchObject({
@@ -197,12 +187,10 @@ describe("lorebook activation", () => {
   it("includes or excludes names from the scan buffer", () => {
     const sources = [{ name: "SecretName", body: "ordinary body" }];
 
-    expect(
-      buildScanBuffer(sources, { scanDepth: 1, includeNames: true }),
-    ).toContain("SecretName");
-    expect(
-      buildScanBuffer(sources, { scanDepth: 1, includeNames: false }),
-    ).not.toContain("SecretName");
+    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: true })).toContain("SecretName");
+    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: false })).not.toContain(
+      "SecretName",
+    );
   });
 
   it("activates from opted-in companion and persona match sources only", () => {
@@ -283,18 +271,12 @@ describe("lorebook activation", () => {
     });
 
     expect(
-      activateLorebookEntries(
-        lorebook([nameMatch], { includeNames: true }),
-        "",
-        { matchSources },
-      ).map((item) => item.entry.title),
+      activateLorebookEntries(lorebook([nameMatch], { includeNames: true }), "", {
+        matchSources,
+      }).map((item) => item.entry.title),
     ).toEqual(["Name Match"]);
     expect(
-      activateLorebookEntries(
-        lorebook([nameMatch], { includeNames: false }),
-        "",
-        { matchSources },
-      ),
+      activateLorebookEntries(lorebook([nameMatch], { includeNames: false }), "", { matchSources }),
     ).toEqual([]);
   });
 
@@ -320,18 +302,14 @@ describe("lorebook activation", () => {
     });
 
     expect(
-      activateLorebookEntries(
-        lorebook([nicknameMatch], { includeNames: true }),
-        "",
-        { matchSources },
-      ).map((item) => item.entry.title),
+      activateLorebookEntries(lorebook([nicknameMatch], { includeNames: true }), "", {
+        matchSources,
+      }).map((item) => item.entry.title),
     ).toEqual(["Persona Nickname Match"]);
     expect(
-      activateLorebookEntries(
-        lorebook([nicknameMatch], { includeNames: false }),
-        "",
-        { matchSources },
-      ),
+      activateLorebookEntries(lorebook([nicknameMatch], { includeNames: false }), "", {
+        matchSources,
+      }),
     ).toEqual([]);
   });
 
@@ -412,27 +390,20 @@ describe("lorebook activation", () => {
       activeBuffer: "The gate opens near amber.",
       blockedBuffer: "The gate opens near amber and violet.",
     },
-  ])(
-    "applies $logic optional-filter selective logic",
-    ({ activeBuffer, blockedBuffer, logic }) => {
-      const filtered = entry({
-        title: "Filtered",
-        strategy: "selective",
-        key: ["gate"],
-        keySecondary: ["amber", "violet"],
-        selectiveLogic: logic,
-      });
+  ])("applies $logic optional-filter selective logic", ({ activeBuffer, blockedBuffer, logic }) => {
+    const filtered = entry({
+      title: "Filtered",
+      strategy: "selective",
+      key: ["gate"],
+      keySecondary: ["amber", "violet"],
+      selectiveLogic: logic,
+    });
 
-      expect(
-        activateLorebookEntries(lorebook([filtered]), activeBuffer).map(
-          (item) => item.entry.title,
-        ),
-      ).toEqual(["Filtered"]);
-      expect(activateLorebookEntries(lorebook([filtered]), blockedBuffer)).toEqual(
-        [],
-      );
-    },
-  );
+    expect(
+      activateLorebookEntries(lorebook([filtered]), activeBuffer).map((item) => item.entry.title),
+    ).toEqual(["Filtered"]);
+    expect(activateLorebookEntries(lorebook([filtered]), blockedBuffer)).toEqual([]);
+  });
 
   it("ignores selective logic when optional-filter keys are blank", () => {
     const filtered = entry({
@@ -469,10 +440,7 @@ describe("lorebook activation", () => {
       "The moon     gate opens beside the amber bell.",
     );
 
-    expect(activated.map((item) => item.entry.title)).toEqual([
-      "Primary Regex",
-      "Secondary Regex",
-    ]);
+    expect(activated.map((item) => item.entry.title)).toEqual(["Primary Regex", "Secondary Regex"]);
   });
 
   it("falls back to plaintext for invalid regex keys and surfaces a warning", () => {
@@ -487,12 +455,8 @@ describe("lorebook activation", () => {
       "Use literal /[bad/ text.",
     );
 
-    expect(activated.map((item) => item.entry.title)).toEqual([
-      "Invalid Regex",
-    ]);
-    expect(activated[0]?.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(activated.map((item) => item.entry.title)).toEqual(["Invalid Regex"]);
+    expect(activated[0]?.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("surfaces unsupported regex flags as invalid regex warnings", () => {
@@ -507,12 +471,8 @@ describe("lorebook activation", () => {
       "Use literal /[bad/q text.",
     );
 
-    expect(activated.map((item) => item.entry.title)).toEqual([
-      "Invalid Flag",
-    ]);
-    expect(activated[0]?.warnings[0]).toContain(
-      'Invalid regex key "/[bad/q" treated as plaintext',
-    );
+    expect(activated.map((item) => item.entry.title)).toEqual(["Invalid Flag"]);
+    expect(activated[0]?.warnings[0]).toContain('Invalid regex key "/[bad/q" treated as plaintext');
   });
 
   it("surfaces invalid regex warnings when primary keys do not activate", () => {
@@ -528,9 +488,7 @@ describe("lorebook activation", () => {
     );
 
     expect(activation.entries).toEqual([]);
-    expect(activation.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(activation.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("surfaces invalid regex warnings when optional filters block activation", () => {
@@ -548,9 +506,7 @@ describe("lorebook activation", () => {
     );
 
     expect(activation.entries).toEqual([]);
-    expect(activation.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(activation.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("rejects unsafe regex keys before matching and falls back to plaintext", () => {
@@ -565,15 +521,11 @@ describe("lorebook activation", () => {
       "The literal /(a+)+$/ appears.",
     );
 
-    expect(activation.entries.map((item) => item.entry.title)).toEqual([
-      "Unsafe Regex",
-    ]);
+    expect(activation.entries.map((item) => item.entry.title)).toEqual(["Unsafe Regex"]);
     expect(activation.entries[0]?.warnings[0]).toContain(
       'Unsafe regex key "/(a+)+$/" treated as plaintext',
     );
-    expect(activation.warnings[0]).toContain(
-      'Unsafe regex key "/(a+)+$/" treated as plaintext',
-    );
+    expect(activation.warnings[0]).toContain('Unsafe regex key "/(a+)+$/" treated as plaintext');
   });
 
   it("allows optional and exact-one group quantifiers in regex keys", () => {
@@ -696,17 +648,14 @@ describe("lorebook activation", () => {
       "",
       { sourceOrder: 0 },
     );
-    const secondLorebookEntries = activateLorebookEntries(
-      lorebook([highOtherSource]),
-      "",
-      { sourceOrder: 1 },
-    );
+    const secondLorebookEntries = activateLorebookEntries(lorebook([highOtherSource]), "", {
+      sourceOrder: 1,
+    });
 
     expect(
-      sortActivatedEntries([
-        ...firstLorebookEntries,
-        ...secondLorebookEntries,
-      ]).map((item) => item.entry.title),
+      sortActivatedEntries([...firstLorebookEntries, ...secondLorebookEntries]).map(
+        (item) => item.entry.title,
+      ),
     ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);
   });
 
@@ -750,11 +699,7 @@ describe("lorebook activation", () => {
       approxTokens: (item) => (item.entry.title === "Oversized" ? 4 : 1),
     });
 
-    expect(budgeted.map((item) => item.entry.title)).toEqual([
-      "High",
-      "Medium",
-      "Constant",
-    ]);
+    expect(budgeted.map((item) => item.entry.title)).toEqual(["High", "Medium", "Constant"]);
   });
 
   it("uses constant-first budget priority for percent budgets after context resolution", () => {
@@ -799,29 +744,19 @@ describe("lorebook activation", () => {
       strategy: "constant",
       insertionOrder: 10,
     });
-    const firstLorebookEntries = activateLorebookEntries(
-      lorebook([firstEntry, secondEntry]),
-      "",
-      { sourceOrder: 0 },
-    );
-    const secondLorebookEntries = activateLorebookEntries(
-      lorebook([secondSource]),
-      "",
-      { sourceOrder: 1 },
-    );
+    const firstLorebookEntries = activateLorebookEntries(lorebook([firstEntry, secondEntry]), "", {
+      sourceOrder: 0,
+    });
+    const secondLorebookEntries = activateLorebookEntries(lorebook([secondSource]), "", {
+      sourceOrder: 1,
+    });
 
-    const budgeted = applyTokenBudget(
-      [...secondLorebookEntries, ...firstLorebookEntries],
-      {
-        budgetTokens: 2,
-        approxTokens: () => 1,
-      },
-    );
+    const budgeted = applyTokenBudget([...secondLorebookEntries, ...firstLorebookEntries], {
+      budgetTokens: 2,
+      approxTokens: () => 1,
+    });
 
-    expect(budgeted.map((item) => item.entry.title)).toEqual([
-      "First Entry",
-      "Second Entry",
-    ]);
+    expect(budgeted.map((item) => item.entry.title)).toEqual(["First Entry", "Second Entry"]);
   });
 
   it("derives percent budgets from context tokens and leaves entries alone without context", () => {

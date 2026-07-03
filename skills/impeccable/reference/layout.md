@@ -126,7 +126,15 @@ When the rhythm and hierarchy land, hand off to `$impeccable polish` for the fin
 Each variant MUST declare a `density` param. Drive all spacing tokens in the variant's scoped CSS through `calc(var(--p-density, 1) * <base>)`: paddings, gaps, column widths. Users slide from airy to packed and see layout re-breathe with no regeneration.
 
 ```json
-{ "id": "density", "kind": "range", "min": 0.6, "max": 1.4, "step": 0.05, "default": 1, "label": "Density" }
+{
+  "id": "density",
+  "kind": "range",
+  "min": 0.6,
+  "max": 1.4,
+  "step": 0.05,
+  "default": 1,
+  "label": "Density"
+}
 ```
 
 For variants whose topology genuinely changes (stacked vs. side-by-side, grid vs. bento), use a `steps` param whose scoped CSS branches via `:scope[data-p-structure="X"]`. One structure param + one density param is a powerful combo; resist adding a third.

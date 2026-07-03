@@ -36,11 +36,7 @@ export function useChatSettingsRoleplayActions({
 
   function handleRoleplayConnectionChange(connectionId: string) {
     updateActiveRoleplayThread((thread, updatedAt) =>
-      setRoleplayThreadProviderConnection(
-        thread,
-        connectionId.trim() || null,
-        updatedAt,
-      ),
+      setRoleplayThreadProviderConnection(thread, connectionId.trim() || null, updatedAt),
     );
   }
 

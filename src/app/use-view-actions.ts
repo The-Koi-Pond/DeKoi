@@ -1,9 +1,5 @@
 import { useCallback } from "react";
-import type {
-  NavViewState,
-  PondView,
-  SideRailView,
-} from "../features/navigation";
+import type { NavViewState, PondView, SideRailView } from "../features/navigation";
 import type { StateSetter } from "../shared/react/state-setter";
 
 type SurfaceId = NavViewState["selectedSurface"];

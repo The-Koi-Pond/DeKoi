@@ -64,19 +64,12 @@ function readFiniteNumber(value: number | undefined, fallback: number) {
 }
 
 function readNonNegativeInteger(value: number | undefined, fallback: number) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : fallback;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
-function readNullableNonNegativeInteger(
-  value: number | null | undefined,
-  fallback: number | null,
-) {
+function readNullableNonNegativeInteger(value: number | null | undefined, fallback: number | null) {
   if (value === null) return null;
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : fallback;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
 function readProbability(value: number | undefined, fallback = 100) {
@@ -84,10 +77,7 @@ function readProbability(value: number | undefined, fallback = 100) {
   return Math.min(100, Math.max(0, probability));
 }
 
-function readNullablePercent(
-  value: number | null | undefined,
-  fallback: number | null,
-) {
+function readNullablePercent(value: number | null | undefined, fallback: number | null) {
   if (value === null) return null;
   const percent = readNullableNonNegativeInteger(value, fallback);
   return typeof percent === "number" ? Math.min(100, percent) : percent;
@@ -98,38 +88,17 @@ function activationWithDefaults(
   fallback: LorebookActivationSettings = DEFAULT_LOREBOOK_ACTIVATION,
 ): LorebookActivationSettings {
   return {
-    scanDepth: readNonNegativeInteger(
-      activation?.scanDepth,
-      fallback.scanDepth,
-    ),
-    includeNames: definedOrFallback(
-      activation?.includeNames,
-      fallback.includeNames,
-    ),
-    caseSensitiveKeys: definedOrFallback(
-      activation?.caseSensitiveKeys,
-      fallback.caseSensitiveKeys,
-    ),
-    matchWholeWords: definedOrFallback(
-      activation?.matchWholeWords,
-      fallback.matchWholeWords,
-    ),
-    recursiveScan: definedOrFallback(
-      activation?.recursiveScan,
-      fallback.recursiveScan,
-    ),
+    scanDepth: readNonNegativeInteger(activation?.scanDepth, fallback.scanDepth),
+    includeNames: definedOrFallback(activation?.includeNames, fallback.includeNames),
+    caseSensitiveKeys: definedOrFallback(activation?.caseSensitiveKeys, fallback.caseSensitiveKeys),
+    matchWholeWords: definedOrFallback(activation?.matchWholeWords, fallback.matchWholeWords),
+    recursiveScan: definedOrFallback(activation?.recursiveScan, fallback.recursiveScan),
     maxRecursionSteps: readNonNegativeInteger(
       activation?.maxRecursionSteps,
       fallback.maxRecursionSteps,
     ),
-    budgetTokens: readNullableNonNegativeInteger(
-      activation?.budgetTokens,
-      fallback.budgetTokens,
-    ),
-    budgetPercent: readNullablePercent(
-      activation?.budgetPercent,
-      fallback.budgetPercent,
-    ),
+    budgetTokens: readNullableNonNegativeInteger(activation?.budgetTokens, fallback.budgetTokens),
+    budgetPercent: readNullablePercent(activation?.budgetPercent, fallback.budgetPercent),
   };
 }
 
@@ -152,10 +121,7 @@ function normalizeEntryRecursion(
       typeof value.delayUntilRecursion === "boolean"
         ? value.delayUntilRecursion
         : (fallback?.delayUntilRecursion ?? false),
-    recursionLevel: readNonNegativeInteger(
-      value.recursionLevel,
-      fallback?.recursionLevel ?? 0,
-    ),
+    recursionLevel: readNonNegativeInteger(value.recursionLevel, fallback?.recursionLevel ?? 0),
   };
 }
 
@@ -254,13 +220,9 @@ export function updateLorebookEntryRecord(
     enabled: input.enabled ?? record.enabled,
     key: input.key === undefined ? record.key : cleanStringList(input.key),
     keySecondary:
-      input.keySecondary === undefined
-        ? record.keySecondary
-        : cleanStringList(input.keySecondary),
+      input.keySecondary === undefined ? record.keySecondary : cleanStringList(input.keySecondary),
     selectiveLogic:
-      input.selectiveLogic === undefined
-        ? record.selectiveLogic
-        : input.selectiveLogic,
+      input.selectiveLogic === undefined ? record.selectiveLogic : input.selectiveLogic,
     strategy: input.strategy ?? record.strategy,
     probability:
       input.probability === undefined
@@ -271,10 +233,7 @@ export function updateLorebookEntryRecord(
         ? record.inclusionGroup
         : cleanNullableText(input.inclusionGroup),
     insertionPosition: input.insertionPosition ?? record.insertionPosition,
-    insertionOrder: readFiniteNumber(
-      input.insertionOrder,
-      record.insertionOrder,
-    ),
+    insertionOrder: readFiniteNumber(input.insertionOrder, record.insertionOrder),
     depth:
       input.depth === undefined
         ? record.depth
@@ -284,11 +243,8 @@ export function updateLorebookEntryRecord(
     timing: normalizeEntryTiming(input.timing, record.timing),
     triggers: input.triggers === undefined ? record.triggers : input.triggers,
     characterFilter:
-      input.characterFilter === undefined
-        ? record.characterFilter
-        : input.characterFilter,
-    matchSources:
-      input.matchSources === undefined ? record.matchSources : input.matchSources,
+      input.characterFilter === undefined ? record.characterFilter : input.characterFilter,
+    matchSources: input.matchSources === undefined ? record.matchSources : input.matchSources,
     updatedAt,
   };
 }
@@ -312,9 +268,7 @@ export function upsertLorebookEntry(
   entry: LoreEntryRecord,
   updatedAt: string,
 ): LorebookRecord {
-  const exists = lorebook.entries.some(
-    (currentEntry) => currentEntry.id === entry.id,
-  );
+  const exists = lorebook.entries.some((currentEntry) => currentEntry.id === entry.id);
   return {
     ...lorebook,
     entries: exists

@@ -38,9 +38,7 @@ export async function previewDeKoiStorageBundleFile(
   }
 }
 
-export async function previewLegacyImportFile(
-  file: File,
-): Promise<DeKoiLegacyImportParseResult> {
+export async function previewLegacyImportFile(file: File): Promise<DeKoiLegacyImportParseResult> {
   try {
     return normalizeLegacyImport(JSON.parse(await file.text()) as unknown);
   } catch {

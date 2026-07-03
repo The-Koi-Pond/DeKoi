@@ -69,16 +69,10 @@ export function useLorebookActions({
         currentLorebooks.map((lorebook) => {
           if (lorebook.id !== lorebookId) return lorebook;
 
-          const entry = lorebook.entries.find(
-            (currentEntry) => currentEntry.id === entryId,
-          );
+          const entry = lorebook.entries.find((currentEntry) => currentEntry.id === entryId);
           if (!entry) return lorebook;
 
-          return upsertLorebookEntry(
-            lorebook,
-            updateLorebookEntryRecord(entry, input, now),
-            now,
-          );
+          return upsertLorebookEntry(lorebook, updateLorebookEntryRecord(entry, input, now), now);
         }),
       );
     },
@@ -87,12 +81,8 @@ export function useLorebookActions({
 
   const duplicateLorebookEntry = useCallback(
     (lorebookId: string, entryId: string) => {
-      const lorebook = lorebooks.find(
-        (currentLorebook) => currentLorebook.id === lorebookId,
-      );
-      const entry = lorebook?.entries.find(
-        (currentEntry) => currentEntry.id === entryId,
-      );
+      const lorebook = lorebooks.find((currentLorebook) => currentLorebook.id === lorebookId);
+      const entry = lorebook?.entries.find((currentEntry) => currentEntry.id === entryId);
       if (!entry) return null;
 
       const now = currentIsoTimestamp();
@@ -119,9 +109,7 @@ export function useLorebookActions({
       const now = currentIsoTimestamp();
       setLorebooks((currentLorebooks) =>
         currentLorebooks.map((lorebook) =>
-          lorebook.id === lorebookId
-            ? deleteLorebookEntryRecord(lorebook, entryId, now)
-            : lorebook,
+          lorebook.id === lorebookId ? deleteLorebookEntryRecord(lorebook, entryId, now) : lorebook,
         ),
       );
     },
@@ -147,9 +135,7 @@ export function useLorebookActions({
       const now = currentIsoTimestamp();
       setLorebooks((currentLorebooks) =>
         currentLorebooks.map((lorebook) =>
-          lorebook.id === lorebookId
-            ? updateLorebookRecord(lorebook, input, now)
-            : lorebook,
+          lorebook.id === lorebookId ? updateLorebookRecord(lorebook, input, now) : lorebook,
         ),
       );
     },
@@ -159,23 +145,15 @@ export function useLorebookActions({
   const deleteLorebook = useCallback(
     (lorebookId: string) => {
       const now = currentIsoTimestamp();
-      setLorebooks((currentLorebooks) =>
-        deleteLorebookRecord(currentLorebooks, lorebookId),
-      );
+      setLorebooks((currentLorebooks) => deleteLorebookRecord(currentLorebooks, lorebookId));
       setCharacters((currentCharacters) =>
-        currentCharacters.map((character) =>
-          removeCharacterLorebook(character, lorebookId, now),
-        ),
+        currentCharacters.map((character) => removeCharacterLorebook(character, lorebookId, now)),
       );
       setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          removeMessengerThreadLorebook(thread, lorebookId, now),
-        ),
+        currentThreads.map((thread) => removeMessengerThreadLorebook(thread, lorebookId, now)),
       );
       setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          removeRoleplayThreadLorebook(thread, lorebookId, now),
-        ),
+        currentThreads.map((thread) => removeRoleplayThreadLorebook(thread, lorebookId, now)),
       );
     },
     [setCharacters, setRoleplayThreads, setLorebooks, setMessengerThreads],

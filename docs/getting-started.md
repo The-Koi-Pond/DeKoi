@@ -14,23 +14,23 @@ Install these before running DeKoi:
 
 From the repository root:
 
-~~~sh
+```sh
 pnpm install
-~~~
+```
 
 ## Run The Browser Shell
 
-~~~sh
+```sh
 pnpm dev
-~~~
+```
 
 The Vite server opens the React app for browser-based development. This path is good for UI work and quick checks, but it is not the durable storage path for DeKoi records.
 
 ## Run The Desktop Host
 
-~~~sh
+```sh
 pnpm tauri:dev
-~~~
+```
 
 Use the desktop host when you need native capabilities:
 
@@ -42,9 +42,9 @@ Use the desktop host when you need native capabilities:
 
 Desktop collection records are stored under:
 
-~~~text
+```text
 <app-data>/collections/<entity>.json
-~~~
+```
 
 Desktop collection files must be JSON arrays. If a collection file is empty,
 invalid, non-array JSON, or missing while `.json.bak`, `.json.tmp`, or
@@ -61,15 +61,15 @@ A compatible runtime can provide storage and generation through the HTTP contrac
 
 For the development fixture:
 
-~~~sh
+```sh
 pnpm runtime:fixture
-~~~
+```
 
 The default fixture URL is:
 
-~~~text
+```text
 http://127.0.0.1:7341
-~~~
+```
 
 Use that URL in Pond Care > Deep Water > Remote Runtime URL. The fixture keeps storage in memory, so records disappear when the fixture process stops.
 
@@ -77,33 +77,24 @@ Use that URL in Pond Care > Deep Water > Remote Runtime URL. The fixture keeps s
 
 Run the full local gate before proposing changes:
 
-~~~sh
+```sh
 pnpm check
-~~~
+```
 
 For a frontend build only:
 
-~~~sh
+```sh
 pnpm build
-~~~
+```
 
 For fast engine and storage unit tests:
 
-~~~sh
+```sh
 pnpm test
-~~~
+```
 
-Focused checks are also available:
-
-~~~sh
-pnpm check:desktop-contracts
-pnpm check:storage-contracts
-pnpm check:provider-secret-safety
-pnpm check:runtime-contracts
-pnpm check:frontend-boundaries
-pnpm check:bunny-review
-pnpm check:rust
-~~~
+Focused checks for narrow changes are mapped to change types in
+[AGENTS.md](../AGENTS.md) under Validation.
 
 ## First Launch Notes
 

@@ -20,8 +20,7 @@ export function useNewMessengerThreadPopover({
   const [newMessengerOpen, setNewMessengerOpen] = useState(false);
   const [newMessengerConnectionId, setNewMessengerConnectionId] = useState("");
   const [newMessengerPersonaId, setNewMessengerPersonaId] = useState("");
-  const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] =
-    useState(false);
+  const [newMessengerCompanionMenuOpen, setNewMessengerCompanionMenuOpen] = useState(false);
   const characterDraft = useNewThreadCharacterDraft({
     getDraftName: labels.getDraftCompanionName,
   });

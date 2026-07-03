@@ -22,9 +22,7 @@ export interface DesktopStorageCollectionMetadataResult {
 }
 
 function requireTauriForDesktopStorageMetadata() {
-  requireTauriForDesktopHost(
-    "Desktop storage metadata is only available inside the Tauri app.",
-  );
+  requireTauriForDesktopHost("Desktop storage metadata is only available inside the Tauri app.");
 }
 
 export async function readDesktopStorageCollectionMetadata(

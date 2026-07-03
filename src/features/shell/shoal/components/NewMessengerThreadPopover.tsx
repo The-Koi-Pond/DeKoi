@@ -75,10 +75,7 @@ export function NewMessengerThreadPopover({
         onCompanionMenuOpenChange={onCompanionMenuOpenChange}
         onToggleCharacter={onToggleCharacter}
       />
-      <NewThreadActions
-        submitDisabled={characterIds.length === 0}
-        onClose={onClose}
-      />
+      <NewThreadActions submitDisabled={characterIds.length === 0} onClose={onClose} />
     </NewThreadPopoverFrame>
   );
 }

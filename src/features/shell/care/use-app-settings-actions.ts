@@ -6,10 +6,7 @@ import {
   type AppSettings,
   type ShoalSortMode,
 } from "../../../engine/contracts/types/app-settings";
-import {
-  type MessengerStorageStatus,
-  writeRuntimeTargetUrl,
-} from "../../runtime";
+import { type MessengerStorageStatus, writeRuntimeTargetUrl } from "../../runtime";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppSettingsActionsInput = {

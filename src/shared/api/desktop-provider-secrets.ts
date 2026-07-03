@@ -19,10 +19,11 @@ export async function getDesktopProviderSecretStatus(
 ): Promise<DeKoiDesktopProviderSecretStatus> {
   requireTauriForSecrets();
 
-  return await invoke<DeKoiDesktopProviderSecretStatus>(
-    DESKTOP_COMMANDS.providerSecretStatus,
-    { connectionId, provider: scope?.provider, baseUrl: scope?.baseUrl },
-  );
+  return await invoke<DeKoiDesktopProviderSecretStatus>(DESKTOP_COMMANDS.providerSecretStatus, {
+    connectionId,
+    provider: scope?.provider,
+    baseUrl: scope?.baseUrl,
+  });
 }
 
 export async function writeDesktopProviderSecret(
@@ -32,10 +33,12 @@ export async function writeDesktopProviderSecret(
 ): Promise<DeKoiDesktopProviderSecretStatus> {
   requireTauriForSecrets();
 
-  return await invoke<DeKoiDesktopProviderSecretStatus>(
-    DESKTOP_COMMANDS.providerSecretWrite,
-    { connectionId, secret, provider: scope?.provider, baseUrl: scope?.baseUrl },
-  );
+  return await invoke<DeKoiDesktopProviderSecretStatus>(DESKTOP_COMMANDS.providerSecretWrite, {
+    connectionId,
+    secret,
+    provider: scope?.provider,
+    baseUrl: scope?.baseUrl,
+  });
 }
 
 export async function deleteDesktopProviderSecret(
@@ -43,8 +46,7 @@ export async function deleteDesktopProviderSecret(
 ): Promise<DeKoiDesktopProviderSecretStatus> {
   requireTauriForSecrets();
 
-  return await invoke<DeKoiDesktopProviderSecretStatus>(
-    DESKTOP_COMMANDS.providerSecretDelete,
-    { connectionId },
-  );
+  return await invoke<DeKoiDesktopProviderSecretStatus>(DESKTOP_COMMANDS.providerSecretDelete, {
+    connectionId,
+  });
 }

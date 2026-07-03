@@ -32,11 +32,7 @@ export function GenerationNotice({
       {canDismiss && (
         <div className="thread-generation-actions">
           {action && (
-            <button
-              type="button"
-              className="thread-generation-action"
-              onClick={onAction}
-            >
+            <button type="button" className="thread-generation-action" onClick={onAction}>
               {action.label}
             </button>
           )}

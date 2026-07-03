@@ -55,7 +55,7 @@ For DeKoi reviews, use current repo sources as truth:
   repo docs in force.
 - Read `ARCHITECTURE.md` for imports, ownership, shared modules, adapters,
   Tauri/HTTP, Rust capabilities, or file layout.
-- Read `SURFACE_LABELS.md` for Messenger, Roleplay, catalog, provider,
+- Read `DOMAIN_MODEL.md` for Messenger, Roleplay, catalog, provider,
   prompt/generation, and product-language boundaries.
 - Read `PRODUCT.md` and `DESIGN.md` for UI, UX, visual design, onboarding,
   settings, mode surfaces, copy, or polish reviews.

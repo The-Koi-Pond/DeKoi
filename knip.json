@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "index.html",
+    "src/main.tsx",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "scripts/**/*.mjs",
+    ".github/bunny-review/**/*.mjs"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "tests/**/*.ts",
+    "scripts/**/*.mjs",
+    ".github/bunny-review/**/*.mjs",
+    "*.config.{js,ts}"
+  ],
+  "ignoreDependencies": ["@tauri-apps/cli"],
+  "ignoreBinaries": ["cargo"]
+}

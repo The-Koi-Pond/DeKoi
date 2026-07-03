@@ -18,11 +18,7 @@ export function ChatSettingsPromptEditor({
   if (!open) return null;
 
   return (
-    <div
-      className="prompt-editor-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
+    <div className="prompt-editor-backdrop" role="presentation" onClick={onClose}>
       <form
         className="prompt-editor-popover"
         role="dialog"
@@ -33,11 +29,7 @@ export function ChatSettingsPromptEditor({
       >
         <div className="prompt-editor-head">
           <b id="messenger-prompt-editor-title">Messenger System Prompt</b>
-          <button
-            type="button"
-            aria-label="Close system prompt editor"
-            onClick={onClose}
-          >
+          <button type="button" aria-label="Close system prompt editor" onClick={onClose}>
             ×
           </button>
         </div>

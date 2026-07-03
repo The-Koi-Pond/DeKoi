@@ -42,9 +42,7 @@ export function writeRemoteRuntimeUrl(url: string) {
   sessionRemoteRuntimeUrl = url.trim();
 }
 
-export function remoteRuntimeTarget(
-  rawUrl = readRemoteRuntimeUrl(),
-): RuntimeTarget | null {
+export function remoteRuntimeTarget(rawUrl = readRemoteRuntimeUrl()): RuntimeTarget | null {
   try {
     return normalizeRemoteRuntimeUrl(rawUrl);
   } catch {

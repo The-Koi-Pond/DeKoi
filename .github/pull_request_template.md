@@ -19,12 +19,12 @@ Closes #
 
 -
 
-## Clean-room boundary
+## Provenance boundary
 
-<!-- DeKoi may reuse Xel-authored workflow guidance. Product code still follows CLEAN_ROOM.md. -->
+<!-- See PROVENANCE.md: no AGPLv3/Marinara-derived material; team-authored engineering knowledge is portable with attribution. -->
 
 - [ ] Requirement and implementation are written in DeKoi-owned terms.
-- [ ] No old source code, assets, generated bindings, storage schemas, UI text, or component layouts were copied into product code.
+- [ ] No AGPLv3/Marinara-derived source code, assets, generated bindings, storage schemas, UI text, or component layouts were copied into product code.
 - [ ] Legacy compatibility, if touched, remains one-way import behavior into native DeKoi records.
 
 ## Architecture impact
@@ -88,10 +88,10 @@ Reason:
 - [ ] No docs changes needed
 - [ ] Updated `README.md`
 - [ ] Updated `CONTRIBUTING.md`
-- [ ] Updated `CLEAN_ROOM.md`
+- [ ] Updated `PROVENANCE.md`
 - [ ] Updated `docs/`
 - [ ] Updated repo workflow guidance or `.github/`
-- [ ] Confirmed this PR keeps DeKoi separate from the old dashed project line
+- [ ] Confirmed this PR stays inside the `PROVENANCE.md` boundary
 
 ## UI evidence
 

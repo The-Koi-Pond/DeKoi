@@ -21,12 +21,8 @@ export function ConnectionsCatalogRail({
   onToggleShoal,
   shoalClosed,
 }: ConnectionsCatalogRailProps) {
-  const {
-    activeConnectionId,
-    connections,
-    openConnection,
-    openNewConnection,
-  } = useConnectionsCatalogRailController({ nav });
+  const { activeConnectionId, connections, openConnection, openNewConnection } =
+    useConnectionsCatalogRailController({ nav });
 
   return (
     <aside className="shoal catalog-rail" aria-label="Catalog — connections">

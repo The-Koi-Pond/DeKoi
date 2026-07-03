@@ -22,11 +22,7 @@ export function PeopleCatalogHead({
 
   return (
     <div className="shoal-head">
-      <div
-        className="catalog-rail-tabs"
-        role="tablist"
-        aria-label="Character catalog"
-      >
+      <div className="catalog-rail-tabs" role="tablist" aria-label="Character catalog">
         <button
           type="button"
           className={isCompanionTab ? "on" : ""}
@@ -47,11 +43,7 @@ export function PeopleCatalogHead({
         </button>
       </div>
       <div className="shoal-search">
-        <label
-          className="glyph"
-          aria-hidden="true"
-          htmlFor="catalog-people-search-input"
-        >
+        <label className="glyph" aria-hidden="true" htmlFor="catalog-people-search-input">
           ⌕
         </label>
         <input

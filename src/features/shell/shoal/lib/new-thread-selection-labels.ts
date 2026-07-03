@@ -51,10 +51,7 @@ export function getCompanionSelectionLabel(
   characterIds: string[],
   characterById: Map<string, CharacterRecord>,
 ) {
-  const { missingCount, names } = getCompanionLabelDetails(
-    characterIds,
-    characterById,
-  );
+  const { missingCount, names } = getCompanionLabelDetails(characterIds, characterById);
   return formatSelectionLabel(
     names,
     missingCount,
@@ -63,13 +60,8 @@ export function getCompanionSelectionLabel(
   );
 }
 
-export function getLorebookSelectionLabel(
-  lorebookIds: string[],
-  lorebooks: LorebookRecord[],
-) {
-  const lorebookById = new Map(
-    lorebooks.map((lorebook) => [lorebook.id, lorebook.title]),
-  );
+export function getLorebookSelectionLabel(lorebookIds: string[], lorebooks: LorebookRecord[]) {
+  const lorebookById = new Map(lorebooks.map((lorebook) => [lorebook.id, lorebook.title]));
   const { missingCount, names } = lorebookIds.reduce<SelectionLabelDetails>(
     (details, lorebookId) => {
       const name = lorebookById.get(lorebookId)?.trim() ?? "";
@@ -83,10 +75,5 @@ export function getLorebookSelectionLabel(
     { missingCount: 0, names: [] },
   );
 
-  return formatSelectionLabel(
-    names,
-    missingCount,
-    "No lorebooks",
-    "Missing lorebook selection",
-  );
+  return formatSelectionLabel(names, missingCount, "No lorebooks", "Missing lorebook selection");
 }

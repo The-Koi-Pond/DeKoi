@@ -18,9 +18,7 @@ export type StorageResult = {
   metadata?: StorageCollectionMetadata | null;
 };
 
-export function mergeStorageResults<T extends StorageResult>(
-  results: readonly T[],
-): T {
+export function mergeStorageResults<T extends StorageResult>(results: readonly T[]): T {
   const fallback = results[0];
   if (!fallback) {
     throw new Error("Cannot merge an empty storage result list.");
@@ -35,9 +33,7 @@ export function mergeStorageResults<T extends StorageResult>(
 
 export type StorageRecord = { id: string };
 
-export type StorageRecordNormalizer<T extends StorageRecord> = (
-  value: unknown,
-) => T | null;
+export type StorageRecordNormalizer<T extends StorageRecord> = (value: unknown) => T | null;
 
 export type StorageRecordsSnapshot<T extends StorageRecord> = {
   records: T[];

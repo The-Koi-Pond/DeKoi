@@ -10,17 +10,12 @@ export function sortRoleplayThreadsByUpdatedAt(threads: RoleplayThread[]) {
   );
 }
 
-export function sortRoleplayThreads(
-  threads: RoleplayThread[],
-  sortMode: ShoalSortMode,
-) {
+export function sortRoleplayThreads(threads: RoleplayThread[], sortMode: ShoalSortMode) {
   const sortedThreads = [...threads];
 
   if (sortMode === "oldest") {
     return sortedThreads.sort((a, b) =>
-      getRoleplayThreadActivityAt(a).localeCompare(
-        getRoleplayThreadActivityAt(b),
-      ),
+      getRoleplayThreadActivityAt(a).localeCompare(getRoleplayThreadActivityAt(b)),
     );
   }
 
@@ -28,9 +23,7 @@ export function sortRoleplayThreads(
     return sortedThreads.sort(
       (a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-        getRoleplayThreadActivityAt(b).localeCompare(
-          getRoleplayThreadActivityAt(a),
-        ),
+        getRoleplayThreadActivityAt(b).localeCompare(getRoleplayThreadActivityAt(a)),
     );
   }
 

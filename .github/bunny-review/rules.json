@@ -31,7 +31,14 @@
   "path_instructions": [
     {
       "name": "Engine and source lanes",
-      "prefixes": ["src/app/", "src/engine/", "src/features/", "src/runtime/", "src/shared/", "src-tauri/"],
+      "prefixes": [
+        "src/app/",
+        "src/engine/",
+        "src/features/",
+        "src/runtime/",
+        "src/shared/",
+        "src-tauri/"
+      ],
       "guidance": ["ARCHITECTURE.md", "skills/dekoi-architecture-guard/SKILL.md"],
       "checks": [
         "App code stays composition and provider wiring, not product rules, storage adapters, or host I/O.",
@@ -42,7 +49,13 @@
     },
     {
       "name": "Mode separation",
-      "prefixes": ["src/engine/messenger", "src/engine/roleplay", "src/features/modes/", "src/features/runtime/generation", "src/features/runtime/ripples"],
+      "prefixes": [
+        "src/engine/messenger",
+        "src/engine/roleplay",
+        "src/features/modes/",
+        "src/features/runtime/generation",
+        "src/features/runtime/ripples"
+      ],
       "guidance": ["skills/dekoi-mode-separation/SKILL.md"],
       "checks": [
         "Messenger, Roleplay, shared generation, and shared ripple behavior remain in their owning lanes.",
@@ -52,8 +65,21 @@
     },
     {
       "name": "Storage, import, and runtime contracts",
-      "prefixes": ["src/app/use-app-storage-sync.ts", "src/features/runtime/storage/", "src/runtime/", "src/shared/api/", "src-tauri/src/", "scripts/check-storage-contracts.mjs", "scripts/check-runtime-contracts.mjs", "scripts/check-desktop-contracts.mjs"],
-      "guidance": ["docs/storage-model.md", "docs/remote-runtime-contract.md", "skills/bugfix-discipline/SKILL.md"],
+      "prefixes": [
+        "src/app/use-app-storage-sync.ts",
+        "src/features/runtime/storage/",
+        "src/runtime/",
+        "src/shared/api/",
+        "src-tauri/src/",
+        "scripts/check-storage-contracts.mjs",
+        "scripts/check-runtime-contracts.mjs",
+        "scripts/check-desktop-contracts.mjs"
+      ],
+      "guidance": [
+        "docs/storage-model.md",
+        "docs/remote-runtime-contract.md",
+        "skills/bugfix-discipline/SKILL.md"
+      ],
       "checks": [
         "TypeScript command/entity declarations stay aligned with Rust desktop and runtime command registrations.",
         "Collection names and native DeKoi record shapes remain the contract.",
@@ -65,7 +91,18 @@
     },
     {
       "name": "Docs and provenance",
-      "prefixes": ["AGENTS.md", "README.md", "CONTRIBUTING.md", "ARCHITECTURE.md", "DOMAIN_MODEL.md", "PRODUCT.md", "DESIGN.md", "SURFACE_LABELS.md", "docs/", "skills/", ".github/"],
+      "prefixes": [
+        "AGENTS.md",
+        "README.md",
+        "CONTRIBUTING.md",
+        "ARCHITECTURE.md",
+        "DOMAIN_MODEL.md",
+        "PRODUCT.md",
+        "DESIGN.md",
+        "docs/",
+        "skills/",
+        ".github/"
+      ],
       "guidance": ["AGENTS.md", "CONTRIBUTING.md", ".github/agents/dekoi-workflow.md"],
       "checks": [
         "Docs, prompts, config, and templates use DeKoi-owned terms unless an authored workflow document is intentionally being reused.",

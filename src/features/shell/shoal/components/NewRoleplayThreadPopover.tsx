@@ -94,10 +94,7 @@ export function NewRoleplayThreadPopover({
         onToggleCharacter={onToggleCharacter}
         onToggleLorebook={onToggleLorebook}
       />
-      <NewThreadActions
-        submitDisabled={characterIds.length === 0}
-        onClose={onClose}
-      />
+      <NewThreadActions submitDisabled={characterIds.length === 0} onClose={onClose} />
     </NewThreadPopoverFrame>
   );
 }

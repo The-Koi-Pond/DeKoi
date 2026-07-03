@@ -1,147 +1,144 @@
 .pools {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-    gap: 14px;
-    margin: 24px 0 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+  margin: 24px 0 8px;
 }
 
 .pool {
-    --c: var(--koi);
-    --c2: var(--koi-hot);
-    position: relative;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    padding: 18px 22px 20px;
-    min-height: 144px;
-    text-align: center;
-    border-radius: 26% 68% 64% 36% / 38% 40% 60% 62%;
-    background: radial-gradient(
-        120% 120% at 30% 12%,
-        color-mix(in srgb, var(--c) 16%, var(--shallow)) 0%,
-        var(--shallow) 62%
-    );
-    border: 1px solid color-mix(in srgb, var(--c) 26%, var(--reed-soft));
-    transition: 0.32s cubic-bezier(0.3, 0.8, 0.4, 1);
-    display: flex;
-    flex-direction: column;
-    isolation: isolate;
-    overflow: hidden;
+  --c: var(--koi);
+  --c2: var(--koi-hot);
+  position: relative;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 22px 20px;
+  min-height: 144px;
+  text-align: center;
+  border-radius: 26% 68% 64% 36% / 38% 40% 60% 62%;
+  background: radial-gradient(
+    120% 120% at 30% 12%,
+    color-mix(in srgb, var(--c) 16%, var(--shallow)) 0%,
+    var(--shallow) 62%
+  );
+  border: 1px solid color-mix(in srgb, var(--c) 26%, var(--reed-soft));
+  transition: 0.32s cubic-bezier(0.3, 0.8, 0.4, 1);
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .pool:nth-child(2) {
-    border-radius: 60% 36% 40% 64% / 56% 58% 42% 46%;
+  border-radius: 60% 36% 40% 64% / 56% 58% 42% 46%;
 }
 
 .pool:nth-child(3) {
-    border-radius: 42% 58% 68% 32% / 40% 52% 48% 62%;
+  border-radius: 42% 58% 68% 32% / 40% 52% 48% 62%;
 }
 
 .pool:hover {
-    transform: translateY(-5px);
-    border-radius: 999px;
-    box-shadow:
-        0 24px 50px -22px var(--c),
-        inset 0 0 40px -20px var(--c);
-    border-color: var(--c);
+  transform: translateY(-5px);
+  border-radius: 999px;
+  box-shadow:
+    0 24px 50px -22px var(--c),
+    inset 0 0 40px -20px var(--c);
+  border-color: var(--c);
 }
 
 .pool .shimmer {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: 0.4s;
-    pointer-events: none;
-    border-radius: inherit;
-    background: radial-gradient(
-        60% 40% at 70% 80%,
-        color-mix(in srgb, var(--c) 22%, transparent),
-        transparent 70%
-    );
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: 0.4s;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    60% 40% at 70% 80%,
+    color-mix(in srgb, var(--c) 22%, transparent),
+    transparent 70%
+  );
 }
 
 .pool:hover .shimmer {
-    opacity: 1;
+  opacity: 1;
 }
 
 .pool > :not(.shimmer) {
-    position: relative;
-    z-index: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .pool-ic {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    flex: none;
-    background: linear-gradient(140deg, var(--c2), var(--c));
-    color: var(--ink);
-    box-shadow: 0 10px 24px -10px var(--c);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: linear-gradient(140deg, var(--c2), var(--c));
+  color: var(--ink);
+  box-shadow: 0 10px 24px -10px var(--c);
 }
 
 .pool-ic svg {
-    width: 23px;
-    height: 23px;
+  width: 23px;
+  height: 23px;
 }
 
 .pool h3 {
-    font-family: var(--display);
-    font-size: 19px;
-    font-weight: 600;
-    margin-top: 10px;
-    color: var(--foam);
-    max-width: 100%;
-    overflow-wrap: anywhere;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  margin-top: 10px;
+  color: var(--foam);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .pool p {
-    font-size: 11.5px;
-    color: var(--mist);
-    margin-top: 4px;
-    line-height: 1.35;
-    max-width: 100%;
-    overflow-wrap: anywhere;
+  font-size: 11.5px;
+  color: var(--mist);
+  margin-top: 4px;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .pool::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(
-        transparent 50%,
-        color-mix(in srgb, var(--c) 10%, transparent)
-    );
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(transparent 50%, color-mix(in srgb, var(--c) 10%, transparent));
 }
 
 .pool.messenger {
-    --c: var(--koi);
-    --c2: var(--koi-hot);
+  --c: var(--koi);
+  --c2: var(--koi-hot);
 }
 .pool.roleplay {
-    --c: var(--jade);
-    --c2: var(--jade-hot);
+  --c: var(--jade);
+  --c2: var(--jade-hot);
 }
 .pool.reserved {
-    --c: var(--amber);
-    --c2: var(--amber-hot);
+  --c: var(--amber);
+  --c2: var(--amber-hot);
 }
 
 /* Locked pools: dim and drop the pointer lift so they don't read as clickable.
    Reset each blob's border-radius on hover so they keep their organic shape. */
 .pool.locked {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .pool.locked:hover {
-    transform: none;
-    border-radius: 999px;
-    box-shadow: none;
-    border-color: color-mix(in srgb, var(--c) 26%, var(--reed-soft));
+  transform: none;
+  border-radius: 999px;
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--c) 26%, var(--reed-soft));
 }
 .pool.locked:hover .shimmer {
-    opacity: 0;
+  opacity: 0;
 }

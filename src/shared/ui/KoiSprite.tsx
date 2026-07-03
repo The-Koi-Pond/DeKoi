@@ -2,7 +2,7 @@
 
 export function KoiSprite() {
   return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
       <defs>
         <g id="koi-mark">
           <path
@@ -52,5 +52,5 @@ export function KoiSprite() {
         </g>
       </defs>
     </svg>
-  )
+  );
 }

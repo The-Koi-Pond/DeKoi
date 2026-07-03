@@ -23,10 +23,7 @@ interface PondProps {
   onOpenShoal: () => void;
 }
 
-export type PondNav = Pick<
-  NavViewState,
-  "view"
-> &
+export type PondNav = Pick<NavViewState, "view"> &
   RoleplayThreadNav &
   CompanionsSurfaceNav &
   ConnectionsSurfaceNav &

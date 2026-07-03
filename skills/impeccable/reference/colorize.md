@@ -159,7 +159,15 @@ When the palette earns its place, hand off to `$impeccable polish` for the final
 When invoked from live mode, each variant MUST declare a `color-amount` param so the user can dial between a restrained accent and a drenched surface without regeneration. Author the variant's CSS against `var(--p-color-amount, 0.5)`, typically as the alpha multiplier on backgrounds, or as a scaling factor on the chroma axis in an OKLCH expression. 0 = neutral/monochrome, 1 = full saturation / dominant coverage.
 
 ```json
-{ "id": "color-amount", "kind": "range", "min": 0, "max": 1, "step": 0.05, "default": 0.5, "label": "Color amount" }
+{
+  "id": "color-amount",
+  "kind": "range",
+  "min": 0,
+  "max": 1,
+  "step": 0.05,
+  "default": 0.5,
+  "label": "Color amount"
+}
 ```
 
 Layer 1-2 variant-specific params on top: palette selection (`steps` with named options), temperature warmth, or tint vs. true color. See `reference/live.md` for the full params contract.

@@ -16,15 +16,9 @@ export function useCareDrawerActions({
   const closeCareDrawer = useCallback(() => setCareOpen(false), [setCareOpen]);
   useEscapeKey(careOpen, closeCareDrawer);
 
-  const setCareDrawerOpen = useCallback(
-    (open: boolean) => setCareOpen(open),
-    [setCareOpen],
-  );
+  const setCareDrawerOpen = useCallback((open: boolean) => setCareOpen(open), [setCareOpen]);
 
-  const setCareDrawerTab = useCallback(
-    (tab: number) => setCareTab(tab),
-    [setCareTab],
-  );
+  const setCareDrawerTab = useCallback((tab: number) => setCareTab(tab), [setCareTab]);
 
   return {
     setCareOpen: setCareDrawerOpen,

@@ -1,25 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  createLorebookEntryRecord,
-  createLorebookRecord,
-} from "../catalog/lorebook-actions";
+import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import { createProviderConnectionRecord } from "../catalog/provider-connection-actions";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type {
-  LorebookActivationSettings,
-  LorebookRecord,
-} from "../contracts/types/lorebook";
+import type { LorebookActivationSettings, LorebookRecord } from "../contracts/types/lorebook";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
-import type {
-  MessengerMessage,
-  MessengerThread,
-} from "../contracts/types/messenger";
-import type {
-  RoleplayEntry,
-  RoleplayThread,
-} from "../contracts/types/roleplay";
+import type { MessengerMessage, MessengerThread } from "../contracts/types/messenger";
+import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
 import { formatLoreGenerationEntries } from "./generation";
 import {
@@ -229,9 +217,7 @@ describe("generation lorebook activation wiring", () => {
     });
     const systemPrompt = request.promptMessages[0].content;
 
-    expect(systemPrompt).toContain(
-      "City Lore / Canal: The canals run under the old district.",
-    );
+    expect(systemPrompt).toContain("City Lore / Canal: The canals run under the old district.");
     expect(systemPrompt).not.toContain("The tower bell rings at dawn.");
   });
 
@@ -281,12 +267,8 @@ describe("generation lorebook activation wiring", () => {
       userMessage: thread.messages[0],
     });
 
-    expect(request.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
-    expect(request.promptMessages[0].content).toContain(
-      "This still activates as plaintext.",
-    );
+    expect(request.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
+    expect(request.promptMessages[0].content).toContain("This still activates as plaintext.");
   });
 
   it("activates Messenger lore from opted-in companion and persona sources", () => {
@@ -372,9 +354,7 @@ describe("generation lorebook activation wiring", () => {
 
     expect(systemPrompt).toContain("Character description source activated.");
     expect(systemPrompt).toContain("Persona description source activated.");
-    expect(systemPrompt).not.toContain(
-      "Should not activate from character personality.",
-    );
+    expect(systemPrompt).not.toContain("Should not activate from character personality.");
   });
 
   it("surfaces Messenger invalid regex warnings from inactive lore entries", () => {
@@ -423,9 +403,7 @@ describe("generation lorebook activation wiring", () => {
       userMessage: thread.messages[0],
     });
 
-    expect(request.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(request.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
     expect(request.promptMessages[0].content).not.toContain(
       "This entry should stay out of the prompt.",
     );
@@ -543,9 +521,7 @@ describe("generation lorebook activation wiring", () => {
     const systemPrompt = request.promptMessages[0].content;
 
     expect(systemPrompt).toContain("Forest Lore: Things known in the forest.");
-    expect(systemPrompt).toContain(
-      "Forest Lore / Grove: The hidden grove opens at sunset.",
-    );
+    expect(systemPrompt).toContain("Forest Lore / Grove: The hidden grove opens at sunset.");
     expect(systemPrompt).not.toContain("Lake Lore: Things known near the lake.");
     expect(systemPrompt).not.toContain("The lake freezes in summer.");
   });
@@ -593,12 +569,8 @@ describe("generation lorebook activation wiring", () => {
       now,
     });
 
-    expect(request.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
-    expect(request.promptMessages[0].content).toContain(
-      "This still activates as plaintext.",
-    );
+    expect(request.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
+    expect(request.promptMessages[0].content).toContain("This still activates as plaintext.");
   });
 
   it("activates Roleplay lore from opted-in companion and persona sources", () => {
@@ -677,9 +649,7 @@ describe("generation lorebook activation wiring", () => {
       id: "request-1",
       now,
     });
-    const promptText = request.promptMessages
-      .map((message) => message.content)
-      .join("\n\n");
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
 
     expect(promptText).toContain("Character note source activated.");
     expect(promptText).toContain("Persona description source activated.");
@@ -729,9 +699,7 @@ describe("generation lorebook activation wiring", () => {
       now,
     });
 
-    expect(request.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(request.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
     expect(request.promptMessages[0].content).not.toContain(
       "This entry should stay out of the prompt.",
     );
@@ -785,9 +753,7 @@ describe("generation lorebook activation wiring", () => {
     expect(systemPrompt).not.toContain(
       "Forest Lore: Long summary that must consume more than one token.",
     );
-    expect(systemPrompt).not.toContain(
-      "Forest Lore / Grove: The hidden grove opens at sunset.",
-    );
+    expect(systemPrompt).not.toContain("Forest Lore / Grove: The hidden grove opens at sunset.");
   });
 
   it("emits a Roleplay lorebook summary once when entries use multiple positions", () => {
@@ -840,13 +806,9 @@ describe("generation lorebook activation wiring", () => {
       id: "request-1",
       now,
     });
-    const promptText = request.promptMessages
-      .map((message) => message.content)
-      .join("\n\n");
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
 
-    expect(promptText.match(/Forest Lore: Shared forest summary\./g)).toHaveLength(
-      1,
-    );
+    expect(promptText.match(/Forest Lore: Shared forest summary\./g)).toHaveLength(1);
     expect(promptText).toContain("Before-position grove lore.");
     expect(promptText).toContain("After-position grove lore.");
   });
@@ -1212,9 +1174,7 @@ describe("generation lorebook activation wiring", () => {
         "Alex: Newest turn.",
       ]);
       expect(request.promptMessages[0].role).toBe("system");
-      expect(request.promptMessages[0].content).toContain(
-        "After character lore.",
-      );
+      expect(request.promptMessages[0].content).toContain("After character lore.");
       expect(request.promptMessages[2].role).toBe("user");
       expect(request.promptMessages[3].role).toBe("assistant");
     },
@@ -1232,10 +1192,7 @@ describe("generation lorebook activation wiring", () => {
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
       providerConnectionId: null,
-      entries: [
-        roleplayEntry("entry-1", "First turn."),
-        roleplayEntry("entry-2", "Newest turn."),
-      ],
+      entries: [roleplayEntry("entry-1", "First turn."), roleplayEntry("entry-2", "Newest turn.")],
       createdAt: now,
       updatedAt: now,
     };

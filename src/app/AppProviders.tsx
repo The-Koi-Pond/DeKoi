@@ -9,7 +9,5 @@ type AppProvidersProps = {
 export function AppProviders({ children }: AppProvidersProps) {
   const nav = useAppController();
 
-  return (
-    <NavContext.Provider value={nav}>{children(nav)}</NavContext.Provider>
-  );
+  return <NavContext.Provider value={nav}>{children(nav)}</NavContext.Provider>;
 }

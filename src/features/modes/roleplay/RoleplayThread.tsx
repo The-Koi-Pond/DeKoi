@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   appendRoleplayEntries,
   createNarrationRoleplayEntry,
@@ -12,9 +7,7 @@ import {
   updateRoleplayEntryBody,
 } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayEntry } from "../../../engine/contracts/types/roleplay";
-import {
-  getProviderConnectionById,
-} from "../../../engine/contracts/types/provider-connection";
+import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
 import {
   describeGenerationFailureNotice,
@@ -38,10 +31,7 @@ import {
   getGenerationNoticeAction,
   type GenerationNoticeAction,
 } from "../shared";
-import {
-  getMessageDateTimeTitle,
-  getMessageTimeLabel,
-} from "../shared/message-time";
+import { getMessageDateTimeTitle, getMessageTimeLabel } from "../shared/message-time";
 import { getInitials, isOwnRoleplayEntry } from "./lib/message-view";
 import {
   getRoleplayThreadReferenceNotices,
@@ -88,9 +78,7 @@ function RoleplayChatSettingsButton({ onClick }: { onClick: () => void }) {
 
 export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const activeThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
-  const thread =
-    nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ??
-    null;
+  const thread = nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ?? null;
   const [draftState, setDraftState] = useState<{
     threadId: string | null;
     body: string;
@@ -122,8 +110,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const generationMode = getGenerationModeForConnection(threadConnection);
   const generationRuntime = selectGenerationRuntime(generationMode);
   const isGenerating =
-    generationState.threadId === activeThreadId &&
-    generationState.status === "generating";
+    generationState.threadId === activeThreadId && generationState.status === "generating";
   const visibleGenerationStatus =
     generationState.threadId === activeThreadId ? generationState.status : "idle";
   const generationNotice =
@@ -155,8 +142,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     ? getRoleplayThreadSendBlocker(threadReferenceSummary)
     : "";
   const canSend = !!thread && draft.trim().length > 0 && !isGenerating && !sendBlocker;
-  const activeEditingEntry =
-    editingEntry?.threadId === activeThreadId ? editingEntry : null;
+  const activeEditingEntry = editingEntry?.threadId === activeThreadId ? editingEntry : null;
   const activeDeleteRequest =
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
       ? deleteRequest
@@ -213,12 +199,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     }
 
     nav.updateRoleplayThread(
-      updateRoleplayEntryBody(
-        thread,
-        activeEditingEntry.id,
-        trimmedBody,
-        new Date().toISOString(),
-      ),
+      updateRoleplayEntryBody(thread, activeEditingEntry.id, trimmedBody, new Date().toISOString()),
     );
     setEditingEntry(null);
   }
@@ -284,8 +265,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     if (!trimmedDraft) return false;
     const sentAt = new Date().toISOString();
     const commitThread =
-      nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ??
-      null;
+      nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ?? null;
     if (!commitThread) return false;
     const commitSendBlocker = getRoleplayThreadSendBlocker(
       getRoleplayThreadReferenceSummary({
@@ -308,22 +288,17 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     }
 
     const selectedConnection = getProviderConnectionById(
-      commitThread.providerConnectionId ??
-        nav.appSettings.activeMessengerConnectionId,
+      commitThread.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
-    const connectionReadiness =
-      getGenerationConnectionReadiness(selectedConnection);
+    const connectionReadiness = getGenerationConnectionReadiness(selectedConnection);
     if (!connectionReadiness.ready) {
       const notice = describeGenerationReadinessFailure(connectionReadiness.code);
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
         message: notice.message,
-        action: getGenerationNoticeAction(
-          notice.recoveryTarget,
-          selectedConnection?.id,
-        ),
+        action: getGenerationNoticeAction(notice.recoveryTarget, selectedConnection?.id),
       });
       return false;
     }
@@ -332,9 +307,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     const sendMode = getGenerationModeForConnection(commitConnection);
     const sendRuntime = selectGenerationRuntime(sendMode);
     const sendPersona = commitThread.activePersonaId
-      ? nav.personas.find(
-          (persona) => persona.id === commitThread.activePersonaId,
-        ) ?? null
+      ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
       : null;
     const userEntry = sendPersona
       ? createPersonaRoleplayEntry({
@@ -400,26 +373,17 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
                 threadId: commitThread.id,
                 status: "error" as const,
                 message: notice.message,
-                action: getGenerationNoticeAction(
-                  notice.recoveryTarget,
-                  commitConnection.id,
-                ),
+                action: getGenerationNoticeAction(notice.recoveryTarget, commitConnection.id),
               };
             })(),
       );
     } catch (error) {
-      const notice = describeGenerationFailureNotice(
-        error,
-        "Roleplay generation failed.",
-      );
+      const notice = describeGenerationFailureNotice(error, "Roleplay generation failed.");
       setGenerationState({
         threadId: commitThread.id,
         status: "error",
         message: notice.message,
-        action: getGenerationNoticeAction(
-          notice.recoveryTarget,
-          commitConnection.id,
-        ),
+        action: getGenerationNoticeAction(notice.recoveryTarget, commitConnection.id),
       });
     }
 
@@ -487,8 +451,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   function getEntryAuthorAvatar(entry: RoleplayEntry) {
     if (entry.role === "character" && entry.characterId) {
       const character =
-        nav.characters.find((candidate) => candidate.id === entry.characterId) ??
-        null;
+        nav.characters.find((candidate) => candidate.id === entry.characterId) ?? null;
       return {
         avatarUrl: character?.avatarUrl ?? null,
         initials: getInitials(character?.displayName ?? entry.label),
@@ -496,9 +459,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     }
 
     if (entry.role === "persona" && entry.personaId) {
-      const persona =
-        nav.personas.find((candidate) => candidate.id === entry.personaId) ??
-        null;
+      const persona = nav.personas.find((candidate) => candidate.id === entry.personaId) ?? null;
       return {
         avatarUrl: persona?.avatarUrl ?? null,
         initials: getInitials(persona?.displayName ?? entry.label),
@@ -537,10 +498,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       </header>
 
       {threadReferenceNotices.length > 0 && (
-        <div
-          className="roleplay-thread-notices"
-          aria-label="Roleplay thread notices"
-        >
+        <div className="roleplay-thread-notices" aria-label="Roleplay thread notices">
           {threadReferenceNotices.map((notice) => (
             <div
               className={`roleplay-thread-notice ${notice.tone}`}
@@ -560,16 +518,12 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         </div>
       )}
 
-      <div
-        className="roleplay-entries"
-        aria-label="Roleplay chat messages"
-        ref={entryListRef}
-      >
+      <div className="roleplay-entries" aria-label="Roleplay chat messages" ref={entryListRef}>
         {thread.entries.map((entry) => {
           const isEditing = activeEditingEntry?.id === entry.id;
           const isConfirmingDelete = activeDeleteRequest?.id === entry.id;
           const deleteRequestLabel = isConfirmingDelete
-            ? activeDeleteRequest?.label ?? entry.label
+            ? (activeDeleteRequest?.label ?? entry.label)
             : entry.label;
           const authorAvatar = getEntryAuthorAvatar(entry);
           const timeLabel = getMessageTimeLabel(entry.createdAt);
@@ -578,9 +532,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
             <article
               className={`roleplay-entry ${entry.role}${
                 isOwnRoleplayEntry(entry) ? " own" : ""
-              }${isEditing ? " editing" : ""}${
-                isConfirmingDelete ? " confirming-delete" : ""
-              }`}
+              }${isEditing ? " editing" : ""}${isConfirmingDelete ? " confirming-delete" : ""}`}
               key={entry.id}
             >
               <span className="roleplay-entry-avatar" aria-hidden="true">
@@ -692,9 +644,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
             </article>
           );
         })}
-        {thread.entries.length === 0 && (
-          <p className="roleplay-empty-note">No messages yet.</p>
-        )}
+        {thread.entries.length === 0 && <p className="roleplay-empty-note">No messages yet.</p>}
       </div>
 
       <GenerationNotice

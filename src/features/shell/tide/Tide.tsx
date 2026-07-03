@@ -1,12 +1,5 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FocusEvent,
-  type KeyboardEvent,
-} from 'react'
-import './Tide.css'
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
+import "./Tide.css";
 import type {
   NavRoleplayThreadActions,
   NavCatalogState,
@@ -16,188 +9,179 @@ import type {
   NavThreadState,
   NavViewActions,
   NavViewState,
-} from '../../navigation'
-import { setRoleplayThreadPersona } from '../../../engine/modes/roleplay/roleplay-actions'
-import { setMessengerThreadPersona } from '../../../engine/modes/messenger/messenger-actions'
+} from "../../navigation";
+import { setRoleplayThreadPersona } from "../../../engine/modes/roleplay/roleplay-actions";
+import { setMessengerThreadPersona } from "../../../engine/modes/messenger/messenger-actions";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
   sortMessengerThreadsByUpdatedAt,
-} from '../../modes'
+} from "../../modes";
 
 interface TideProps {
-  nav: TideNav
+  nav: TideNav;
 }
 
-export type TideNav = Pick<NavSettingsActions, 'setSurfaceStatus'> &
-  Pick<NavCatalogState, 'personas'> &
-  Pick<NavRoleplayThreadActions, 'updateRoleplayThread'> &
-  Pick<NavMessengerThreadActions, 'updateMessengerThread'> &
-  Pick<NavSettingsState, 'appSettings'> &
-  Pick<NavThreadState, 'roleplayThreads' | 'messengerThreads'> &
-  Pick<NavViewActions, 'openMessengerThread'> &
-  Pick<NavViewState, 'view'>
+export type TideNav = Pick<NavSettingsActions, "setSurfaceStatus"> &
+  Pick<NavCatalogState, "personas"> &
+  Pick<NavRoleplayThreadActions, "updateRoleplayThread"> &
+  Pick<NavMessengerThreadActions, "updateMessengerThread"> &
+  Pick<NavSettingsState, "appSettings"> &
+  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavViewActions, "openMessengerThread"> &
+  Pick<NavViewState, "view">;
 
-const ANONYMOUS_PERSONA_LABEL = 'Anonymous'
-const ANONYMOUS_PERSONA_INITIALS = 'AN'
+const ANONYMOUS_PERSONA_LABEL = "Anonymous";
+const ANONYMOUS_PERSONA_INITIALS = "AN";
 
 function getPersonaInitials(name: string) {
   const initials = name
-    .split(' ')
+    .split(" ")
     .map((part) => part[0])
-    .join('')
+    .join("")
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase();
 
-  return initials || ANONYMOUS_PERSONA_INITIALS
+  return initials || ANONYMOUS_PERSONA_INITIALS;
 }
 
 export function Tide({ nav }: TideProps) {
-  const surfaceStatus = nav.appSettings.surfaceStatus
-  const trimmedSurfaceStatus = surfaceStatus.trim()
-  const [personaMenuOpen, setPersonaMenuOpen] = useState(false)
-  const personaPickerRef = useRef<HTMLDivElement>(null)
-  let selectedPersonaId: string | null = null
+  const surfaceStatus = nav.appSettings.surfaceStatus;
+  const trimmedSurfaceStatus = surfaceStatus.trim();
+  const [personaMenuOpen, setPersonaMenuOpen] = useState(false);
+  const personaPickerRef = useRef<HTMLDivElement>(null);
+  let selectedPersonaId: string | null = null;
 
-  if (nav.view.kind === 'messenger') {
-    const threadId = nav.view.threadId
+  if (nav.view.kind === "messenger") {
+    const threadId = nav.view.threadId;
     selectedPersonaId =
-      nav.messengerThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
-      null
-  } else if (nav.view.kind === 'roleplay') {
-    const threadId = nav.view.threadId
+      nav.messengerThreads.find((thread) => thread.id === threadId)?.activePersonaId ?? null;
+  } else if (nav.view.kind === "roleplay") {
+    const threadId = nav.view.threadId;
     selectedPersonaId =
-      nav.roleplayThreads.find((thread) => thread.id === threadId)?.activePersonaId ??
-      null
-  } else if (nav.view.kind === 'personas') {
-    selectedPersonaId = nav.view.personaId ?? null
+      nav.roleplayThreads.find((thread) => thread.id === threadId)?.activePersonaId ?? null;
+  } else if (nav.view.kind === "personas") {
+    selectedPersonaId = nav.view.personaId ?? null;
   }
 
   const activePersona = selectedPersonaId
-    ? nav.personas.find((persona) => persona.id === selectedPersonaId) ?? null
-    : null
-  const personaName = activePersona?.displayName ?? ANONYMOUS_PERSONA_LABEL
+    ? (nav.personas.find((persona) => persona.id === selectedPersonaId) ?? null)
+    : null;
+  const personaName = activePersona?.displayName ?? ANONYMOUS_PERSONA_LABEL;
   const personaInitials = activePersona
     ? getPersonaInitials(activePersona.displayName)
-    : ANONYMOUS_PERSONA_INITIALS
-  const [query, setQuery] = useState('')
-  const [searchExpanded, setSearchExpanded] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const normalizedQuery = query.trim().toLowerCase()
+    : ANONYMOUS_PERSONA_INITIALS;
+  const [query, setQuery] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const normalizedQuery = query.trim().toLowerCase();
   const threadResults = useMemo(() => {
-    if (!normalizedQuery) return []
+    if (!normalizedQuery) return [];
 
     return sortMessengerThreadsByUpdatedAt(nav.messengerThreads)
       .filter((thread) => {
-        const preview = getMessengerThreadPreview(thread)
+        const preview = getMessengerThreadPreview(thread);
         return (
           thread.title.toLowerCase().includes(normalizedQuery) ||
           preview.toLowerCase().includes(normalizedQuery)
-        )
+        );
       })
-      .slice(0, 5)
-  }, [nav.messengerThreads, normalizedQuery])
-  const resultsOpen = searchExpanded && normalizedQuery.length > 0
+      .slice(0, 5);
+  }, [nav.messengerThreads, normalizedQuery]);
+  const resultsOpen = searchExpanded && normalizedQuery.length > 0;
 
   useEffect(() => {
-    if (searchExpanded) searchInputRef.current?.focus()
-  }, [searchExpanded])
+    if (searchExpanded) searchInputRef.current?.focus();
+  }, [searchExpanded]);
 
   useEffect(() => {
-    if (!personaMenuOpen) return
+    if (!personaMenuOpen) return;
 
     function handleDocumentPointerDown(event: PointerEvent) {
-      const target = event.target
-      if (
-        target instanceof Node &&
-        personaPickerRef.current?.contains(target)
-      ) {
-        return
+      const target = event.target;
+      if (target instanceof Node && personaPickerRef.current?.contains(target)) {
+        return;
       }
-      setPersonaMenuOpen(false)
+      setPersonaMenuOpen(false);
     }
 
     function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') setPersonaMenuOpen(false)
+      if (event.key === "Escape") setPersonaMenuOpen(false);
     }
 
-    document.addEventListener('pointerdown', handleDocumentPointerDown)
-    document.addEventListener('keydown', handleDocumentKeyDown)
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    document.addEventListener("keydown", handleDocumentKeyDown);
     return () => {
-      document.removeEventListener('pointerdown', handleDocumentPointerDown)
-      document.removeEventListener('keydown', handleDocumentKeyDown)
-    }
-  }, [personaMenuOpen])
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+      document.removeEventListener("keydown", handleDocumentKeyDown);
+    };
+  }, [personaMenuOpen]);
 
   function toggleSearch() {
     if (searchExpanded) {
-      setQuery('')
-      setSearchExpanded(false)
-      return
+      setQuery("");
+      setSearchExpanded(false);
+      return;
     }
 
-    setSearchExpanded(true)
+    setSearchExpanded(true);
   }
 
   function clearSearch() {
-    setQuery('')
-    searchInputRef.current?.focus()
+    setQuery("");
+    searchInputRef.current?.focus();
   }
 
   function openThread(threadId: string) {
-    nav.openMessengerThread(threadId)
-    setQuery('')
-    setSearchExpanded(false)
+    nav.openMessengerThread(threadId);
+    setQuery("");
+    setSearchExpanded(false);
   }
 
   function selectPersona(personaId: string | null) {
-    const now = new Date().toISOString()
+    const now = new Date().toISOString();
 
-    if (nav.view.kind === 'messenger') {
-      const threadId = nav.view.threadId
-      const thread =
-        nav.messengerThreads.find((candidate) => candidate.id === threadId) ?? null
+    if (nav.view.kind === "messenger") {
+      const threadId = nav.view.threadId;
+      const thread = nav.messengerThreads.find((candidate) => candidate.id === threadId) ?? null;
       if (thread) {
-        nav.updateMessengerThread(
-          setMessengerThreadPersona(thread, personaId, now),
-        )
+        nav.updateMessengerThread(setMessengerThreadPersona(thread, personaId, now));
       }
-    } else if (nav.view.kind === 'roleplay') {
-      const threadId = nav.view.threadId
-      const thread =
-        nav.roleplayThreads.find((candidate) => candidate.id === threadId) ?? null
+    } else if (nav.view.kind === "roleplay") {
+      const threadId = nav.view.threadId;
+      const thread = nav.roleplayThreads.find((candidate) => candidate.id === threadId) ?? null;
       if (thread) {
-        nav.updateRoleplayThread(setRoleplayThreadPersona(thread, personaId, now))
+        nav.updateRoleplayThread(setRoleplayThreadPersona(thread, personaId, now));
       }
     }
 
-    setPersonaMenuOpen(false)
+    setPersonaMenuOpen(false);
   }
 
   function togglePersonaMenu() {
-    setPersonaMenuOpen((currentOpen) => !currentOpen)
+    setPersonaMenuOpen((currentOpen) => !currentOpen);
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
+    if (event.key === "Escape") {
+      event.preventDefault();
       if (query) {
-        clearSearch()
-        return
+        clearSearch();
+        return;
       }
-      setSearchExpanded(false)
-      return
+      setSearchExpanded(false);
+      return;
     }
 
-    if (event.key === 'Enter' && threadResults[0]) {
-      event.preventDefault()
-      openThread(threadResults[0].id)
+    if (event.key === "Enter" && threadResults[0]) {
+      event.preventDefault();
+      openThread(threadResults[0].id);
     }
   }
 
   function handleSearchBlur(event: FocusEvent<HTMLDivElement>) {
-    if (event.currentTarget.contains(event.relatedTarget)) return
-    if (!normalizedQuery) setSearchExpanded(false)
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    if (!normalizedQuery) setSearchExpanded(false);
   }
 
   return (
@@ -242,7 +226,7 @@ export function Tide({ nav }: TideProps) {
           >
             <button
               type="button"
-              className={`persona-option${!activePersona ? ' selected' : ''}`}
+              className={`persona-option${!activePersona ? " selected" : ""}`}
               role="menuitemradio"
               aria-checked={!activePersona}
               onClick={() => selectPersona(null)}
@@ -258,9 +242,7 @@ export function Tide({ nav }: TideProps) {
             {nav.personas.map((persona) => (
               <button
                 type="button"
-                className={`persona-option${
-                  activePersona?.id === persona.id ? ' selected' : ''
-                }`}
+                className={`persona-option${activePersona?.id === persona.id ? " selected" : ""}`}
                 key={persona.id}
                 role="menuitemradio"
                 aria-checked={activePersona?.id === persona.id}
@@ -275,7 +257,7 @@ export function Tide({ nav }: TideProps) {
                 </span>
                 <span className="persona-option-copy">
                   <span>{persona.displayName}</span>
-                  <small>{persona.nickname || persona.personality || 'Persona'}</small>
+                  <small>{persona.nickname || persona.personality || "Persona"}</small>
                 </span>
               </button>
             ))}
@@ -295,14 +277,14 @@ export function Tide({ nav }: TideProps) {
             type="button"
             aria-label="Clear surface status"
             title="Clear"
-            onClick={() => nav.setSurfaceStatus('')}
+            onClick={() => nav.setSurfaceStatus("")}
           >
             ×
           </button>
         )}
       </div>
       <div
-        className={`thread-search${searchExpanded ? ' expanded' : ''}`}
+        className={`thread-search${searchExpanded ? " expanded" : ""}`}
         onBlur={handleSearchBlur}
       >
         <button
@@ -310,9 +292,7 @@ export function Tide({ nav }: TideProps) {
           className="thread-search-toggle"
           aria-controls="tide-thread-search"
           aria-expanded={searchExpanded}
-          aria-label={
-            searchExpanded ? 'Collapse Messenger search' : 'Search Messenger threads'
-          }
+          aria-label={searchExpanded ? "Collapse Messenger search" : "Search Messenger threads"}
           title="Search Messenger threads"
           onClick={toggleSearch}
         >
@@ -381,5 +361,5 @@ export function Tide({ nav }: TideProps) {
         )}
       </div>
     </footer>
-  )
+  );
 }

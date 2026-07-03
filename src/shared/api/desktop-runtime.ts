@@ -3,10 +3,7 @@ import { DESKTOP_COMMANDS } from "./desktop-commands";
 import { isDesktopHostAvailable } from "./desktop-host-common";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import type { RemoteRuntimeCommand } from "./runtime-commands";
-import {
-  DESKTOP_RUNTIME_URL,
-  isDesktopRuntimeUrl,
-} from "./runtime-target";
+import { DESKTOP_RUNTIME_URL, isDesktopRuntimeUrl } from "./runtime-target";
 
 export { DESKTOP_RUNTIME_URL, isDesktopRuntimeUrl };
 
@@ -31,11 +28,7 @@ export async function checkDesktopRuntimeHealth(): Promise<RemoteRuntimeHealthCh
 
   try {
     const body = await invoke<unknown>(DESKTOP_COMMANDS.runtimeHealth);
-    if (
-      !isRecord(body) ||
-      body.ok !== true ||
-      body.runtime !== DESKTOP_RUNTIME_MARKER
-    ) {
+    if (!isRecord(body) || body.ok !== true || body.runtime !== DESKTOP_RUNTIME_MARKER) {
       return {
         status: "unreachable",
         message: "Desktop runtime health response is not compatible.",

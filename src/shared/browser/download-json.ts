@@ -1,10 +1,4 @@
-export function downloadJsonFile({
-  data,
-  filename,
-}: {
-  data: unknown;
-  filename: string;
-}) {
+export function downloadJsonFile({ data, filename }: { data: unknown; filename: string }) {
   if (typeof document === "undefined") {
     throw new Error("JSON download requires a browser document.");
   }

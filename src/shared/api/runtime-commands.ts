@@ -9,8 +9,7 @@ export const RUNTIME_COMMANDS = {
   storageUpdate: "storage_update",
 } as const;
 
-export type RemoteRuntimeCommand =
-  (typeof RUNTIME_COMMANDS)[keyof typeof RUNTIME_COMMANDS];
+export type RemoteRuntimeCommand = (typeof RUNTIME_COMMANDS)[keyof typeof RUNTIME_COMMANDS];
 
 export const REMOTE_RUNTIME_COMMANDS = [
   RUNTIME_COMMANDS.generationGenerate,

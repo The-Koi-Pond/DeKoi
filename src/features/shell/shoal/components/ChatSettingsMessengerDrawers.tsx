@@ -63,12 +63,9 @@ export function ChatSettingsMessengerDrawers({
   return (
     <div className="shoal-list chat-settings-list">
       {!activeMessengerThread && (
-        <ChatSettingsNotice
-          actionLabel="New Messenger"
-          onAction={onCreateMessengerThread}
-        >
-          Open or create a Messenger thread to edit connection, persona,
-          companion, prompt, and lore settings.
+        <ChatSettingsNotice actionLabel="New Messenger" onAction={onCreateMessengerThread}>
+          Open or create a Messenger thread to edit connection, persona, companion, prompt, and lore
+          settings.
         </ChatSettingsNotice>
       )}
       <ChatSettingsIdentityDrawers

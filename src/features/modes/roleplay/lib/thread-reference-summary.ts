@@ -52,8 +52,6 @@ export function getRoleplayThreadReferenceNotices(
   return getThreadReferenceNotices(summary, ROLEPLAY_REFERENCE_LABELS);
 }
 
-export function getRoleplayThreadSendBlocker(
-  summary: RoleplayThreadReferenceSummary,
-) {
+export function getRoleplayThreadSendBlocker(summary: RoleplayThreadReferenceSummary) {
   return getThreadSendBlocker(summary, ROLEPLAY_REFERENCE_LABELS);
 }

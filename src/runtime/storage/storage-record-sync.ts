@@ -1,9 +1,7 @@
 import type { StorageRecord } from "./storage-repository";
 
 export type StorageRecordSyncOperation<T extends StorageRecord> =
-  | { type: "create"; record: T }
-  | { type: "update"; record: T }
-  | { type: "delete"; record: T };
+  { type: "create"; record: T } | { type: "update"; record: T } | { type: "delete"; record: T };
 
 function comparableRecord(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
@@ -24,9 +22,7 @@ export function planStorageRecordSync<T extends StorageRecord>({
   currentRecords: T[];
   nextRecords: T[];
 }): StorageRecordSyncOperation<T>[] {
-  const currentById = new Map(
-    currentRecords.map((record) => [record.id, record] as const),
-  );
+  const currentById = new Map(currentRecords.map((record) => [record.id, record] as const));
   const currentIds = new Set(currentById.keys());
   const nextIds = new Set(nextRecords.map((record) => record.id));
 

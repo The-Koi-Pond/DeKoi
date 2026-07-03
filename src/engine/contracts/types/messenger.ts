@@ -1,10 +1,10 @@
-export const MESSENGER_SURFACE_LABEL = 'Messenger'
-export const POND_SURFACE_LABEL = 'Pond'
+export const MESSENGER_SURFACE_LABEL = "Messenger";
+export const POND_SURFACE_LABEL = "Pond";
 
-export type MessengerThreadKind = 'messenger'
-export type MessengerThreadMode = 'direct' | 'group'
-export type MessengerMessageOrigin = 'manual' | 'generated' | 'imported' | 'placeholder' | 'sample'
-export type MessengerSystemPromptMode = 'default' | 'custom'
+export type MessengerThreadKind = "messenger";
+export type MessengerThreadMode = "direct" | "group";
+export type MessengerMessageOrigin = "manual" | "generated" | "imported" | "placeholder" | "sample";
+export type MessengerSystemPromptMode = "default" | "custom";
 
 export const DEFAULT_MESSENGER_SYSTEM_PROMPT = `<role>
 You are {{charName}}, texting privately with {{userName}} in a casual DM conversation.
@@ -27,124 +27,116 @@ Here are the rules for the interaction:
 - Adult topics are allowed when they fit the conversation and character. Treat them like part of a real private chat, not as a special mode shift.
 - Messages may include timestamps like [12:01] or dates like [18.03.2026]. Use them only to understand timing. Never include timestamps, dates, brackets, or metadata in your replies.
 - Your output must contain only {{charName}}'s natural message text.
-</rules>`
+</rules>`;
 
-export function normalizeMessengerSystemPromptMode(
-  value: unknown,
-): MessengerSystemPromptMode {
-  return value === 'custom' ? 'custom' : 'default'
+export function normalizeMessengerSystemPromptMode(value: unknown): MessengerSystemPromptMode {
+  return value === "custom" ? "custom" : "default";
 }
 
 export function resolveMessengerSystemPrompt(thread: MessengerThread) {
-  if (thread.systemPromptMode === 'custom' && thread.systemPrompt.trim()) {
-    return thread.systemPrompt.trim()
+  if (thread.systemPromptMode === "custom" && thread.systemPrompt.trim()) {
+    return thread.systemPrompt.trim();
   }
 
-  return DEFAULT_MESSENGER_SYSTEM_PROMPT
+  return DEFAULT_MESSENGER_SYSTEM_PROMPT;
 }
 
 export type MessengerMessageAuthor =
   | {
-      kind: 'persona'
-      personaId: string
-      label: string
+      kind: "persona";
+      personaId: string;
+      label: string;
     }
   | {
-      kind: 'character'
-      characterId: string
-      label: string
+      kind: "character";
+      characterId: string;
+      label: string;
     }
   | {
-      kind: 'system'
-      label: string
+      kind: "system";
+      label: string;
     }
   | {
-      kind: 'unknown'
-      label: string
-    }
+      kind: "unknown";
+      label: string;
+    };
 
 export interface MessengerMessage {
-  id: string
-  schemaVersion: 1
-  threadId: string
-  author: MessengerMessageAuthor
-  body: string
-  origin: MessengerMessageOrigin
-  createdAt: string
-  updatedAt: string
+  id: string;
+  schemaVersion: 1;
+  threadId: string;
+  author: MessengerMessageAuthor;
+  body: string;
+  origin: MessengerMessageOrigin;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MessengerThread {
-  id: string
-  schemaVersion: 1
-  kind: MessengerThreadKind
-  mode: MessengerThreadMode
-  title: string
-  characterIds: string[]
-  activePersonaId: string | null
-  lorebookIds: string[]
-  presetId: string | null
-  providerConnectionId: string | null
-  systemPromptMode: MessengerSystemPromptMode
-  systemPrompt: string
-  messages: MessengerMessage[]
-  createdAt: string
-  updatedAt: string
+  id: string;
+  schemaVersion: 1;
+  kind: MessengerThreadKind;
+  mode: MessengerThreadMode;
+  title: string;
+  characterIds: string[];
+  activePersonaId: string | null;
+  lorebookIds: string[];
+  presetId: string | null;
+  providerConnectionId: string | null;
+  systemPromptMode: MessengerSystemPromptMode;
+  systemPrompt: string;
+  messages: MessengerMessage[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type MessengerThreadRecord = Omit<MessengerThread, 'messages'>
+export type MessengerThreadRecord = Omit<MessengerThread, "messages">;
 
-export function toMessengerThreadRecord(
-  thread: MessengerThread,
-): MessengerThreadRecord {
-  const { messages, ...record } = thread
-  void messages
-  return record
+export function toMessengerThreadRecord(thread: MessengerThread): MessengerThreadRecord {
+  const { messages, ...record } = thread;
+  void messages;
+  return record;
 }
 
-export function extractMessengerMessages(
-  threads: readonly MessengerThread[],
-): MessengerMessage[] {
+export function extractMessengerMessages(threads: readonly MessengerThread[]): MessengerMessage[] {
   return threads.flatMap((thread) =>
     thread.messages.map((message) => ({
       ...message,
       schemaVersion: 1,
       threadId: thread.id,
     })),
-  )
+  );
 }
 
 function mergeMessengerMessages(
   embeddedMessages: readonly MessengerMessage[],
   storedMessages: readonly MessengerMessage[],
 ) {
-  if (storedMessages.length === 0) return [...embeddedMessages]
+  if (storedMessages.length === 0) return [...embeddedMessages];
 
-  const storedMessageIds = new Set(storedMessages.map((message) => message.id))
+  const storedMessageIds = new Set(storedMessages.map((message) => message.id));
   const embeddedOnlyMessages = embeddedMessages.filter(
     (message) => !storedMessageIds.has(message.id),
-  )
+  );
 
-  return [...embeddedOnlyMessages, ...storedMessages]
+  return [...embeddedOnlyMessages, ...storedMessages];
 }
 
 export function attachMessengerMessagesToThreads(
   threads: readonly (MessengerThread | MessengerThreadRecord)[],
   messages: readonly MessengerMessage[],
 ): MessengerThread[] {
-  const messagesByThreadId = new Map<string, MessengerMessage[]>()
+  const messagesByThreadId = new Map<string, MessengerMessage[]>();
   for (const message of messages) {
-    const threadMessages = messagesByThreadId.get(message.threadId) ?? []
-    threadMessages.push(message)
-    messagesByThreadId.set(message.threadId, threadMessages)
+    const threadMessages = messagesByThreadId.get(message.threadId) ?? [];
+    threadMessages.push(message);
+    messagesByThreadId.set(message.threadId, threadMessages);
   }
 
   return threads.map((thread) => {
     const embeddedMessages =
-      'messages' in thread && Array.isArray(thread.messages)
-        ? thread.messages
-        : []
-    const storedMessages = messagesByThreadId.get(thread.id) ?? []
+      "messages" in thread && Array.isArray(thread.messages) ? thread.messages : [];
+    const storedMessages = messagesByThreadId.get(thread.id) ?? [];
 
     return {
       ...toMessengerThreadRecord({
@@ -152,14 +144,13 @@ export function attachMessengerMessagesToThreads(
         messages: embeddedMessages,
       }),
       messages: mergeMessengerMessages(embeddedMessages, storedMessages),
-    }
-  })
+    };
+  });
 }
 
 export function getMessengerThreadActivityAt(thread: MessengerThread) {
   return thread.messages.reduce(
-    (latest, message) =>
-      message.updatedAt.localeCompare(latest) > 0 ? message.updatedAt : latest,
+    (latest, message) => (message.updatedAt.localeCompare(latest) > 0 ? message.updatedAt : latest),
     thread.updatedAt,
-  )
+  );
 }

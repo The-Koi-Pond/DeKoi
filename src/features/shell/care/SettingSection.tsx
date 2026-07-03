@@ -10,11 +10,7 @@ interface SettingSectionProps {
   children: ReactNode;
 }
 
-export function SettingSection({
-  title,
-  description,
-  children,
-}: SettingSectionProps) {
+export function SettingSection({ title, description, children }: SettingSectionProps) {
   return (
     <section className="setting-section" aria-labelledby={title}>
       <div className="setting-section-head">

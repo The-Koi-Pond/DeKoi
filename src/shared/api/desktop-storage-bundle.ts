@@ -8,25 +8,18 @@ export interface DeKoiDesktopStorageBundleInfo {
   updatedAtMs: number | null;
 }
 
-export interface DeKoiDesktopStorageBundleSnapshot
-  extends DeKoiDesktopStorageBundleInfo {
+export interface DeKoiDesktopStorageBundleSnapshot extends DeKoiDesktopStorageBundleInfo {
   bundle: unknown;
 }
 
 function requireTauriForDesktopStorage() {
-  requireTauriForDesktopHost(
-    "Desktop host storage is only available inside the Tauri app.",
-  );
+  requireTauriForDesktopHost("Desktop host storage is only available inside the Tauri app.");
 }
 
-export async function readDesktopStorageBundleSnapshot(): Promise<
-  DeKoiDesktopStorageBundleSnapshot | null
-> {
+export async function readDesktopStorageBundleSnapshot(): Promise<DeKoiDesktopStorageBundleSnapshot | null> {
   requireTauriForDesktopStorage();
 
-  return await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
-    DESKTOP_COMMANDS.storageReadBundle,
-  );
+  return await invoke<DeKoiDesktopStorageBundleSnapshot | null>(DESKTOP_COMMANDS.storageReadBundle);
 }
 
 export async function writeDesktopStorageBundle(
@@ -34,8 +27,7 @@ export async function writeDesktopStorageBundle(
 ): Promise<DeKoiDesktopStorageBundleInfo> {
   requireTauriForDesktopStorage();
 
-  return await invoke<DeKoiDesktopStorageBundleInfo>(
-    DESKTOP_COMMANDS.storageWriteBundle,
-    { bundle },
-  );
+  return await invoke<DeKoiDesktopStorageBundleInfo>(DESKTOP_COMMANDS.storageWriteBundle, {
+    bundle,
+  });
 }

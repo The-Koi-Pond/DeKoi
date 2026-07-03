@@ -30,9 +30,7 @@ export function PeopleCatalogList({
   onOpenPersona,
 }: PeopleCatalogListProps) {
   const isCompanionTab = activeTab === "companions";
-  const shownCount = isCompanionTab
-    ? filteredCharacters.length
-    : filteredPersonas.length;
+  const shownCount = isCompanionTab ? filteredCharacters.length : filteredPersonas.length;
 
   return (
     <div className="shoal-list">

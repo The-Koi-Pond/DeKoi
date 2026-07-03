@@ -52,8 +52,6 @@ export function getMessengerThreadReferenceNotices(
   return getThreadReferenceNotices(summary, MESSENGER_REFERENCE_LABELS);
 }
 
-export function getMessengerThreadSendBlocker(
-  summary: MessengerThreadReferenceSummary,
-) {
+export function getMessengerThreadSendBlocker(summary: MessengerThreadReferenceSummary) {
   return getThreadSendBlocker(summary, MESSENGER_REFERENCE_LABELS);
 }

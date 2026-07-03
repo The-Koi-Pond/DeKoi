@@ -49,9 +49,7 @@ export function NewThreadCharacterDropdown({
           />
         ))}
       </NewThreadDropdownField>
-      {characters.length === 0 && (
-        <p className="new-thread-empty">{emptyMessage}</p>
-      )}
+      {characters.length === 0 && <p className="new-thread-empty">{emptyMessage}</p>}
     </>
   );
 }

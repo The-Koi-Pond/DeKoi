@@ -108,10 +108,7 @@ export function updateRoleplayEntryBody(
   };
 }
 
-export function deleteRoleplayEntry(
-  thread: RoleplayThread,
-  entryId: string,
-): RoleplayThread {
+export function deleteRoleplayEntry(thread: RoleplayThread, entryId: string): RoleplayThread {
   if (!thread.entries.some((entry) => entry.id === entryId)) return thread;
 
   return {

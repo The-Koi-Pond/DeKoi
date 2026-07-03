@@ -1,7 +1,7 @@
 /**
  * DeKoi surface/pond-mode identifiers — the single source of truth.
  *
- * Per SURFACE_LABELS.md and DOMAIN_MODEL.md: the first-slice surfaces are
+ * Per DOMAIN_MODEL.md: the first-slice surfaces are
  * Messenger (DM-style chat) and Roleplay (visual novel). The third slot is Reserved —
  * a placeholder for a not-yet-decided surface (the mockup's amber "deep water"
  * lane). Reserved is intentionally out of scope for the first slice.

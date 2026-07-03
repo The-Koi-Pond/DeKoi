@@ -45,11 +45,7 @@ export function Shell({ nav }: ShellProps) {
   }, [nav.appSettings]);
 
   return (
-    <div
-      className={`app${nav.careOpen ? " care-open" : ""}${
-        shoalClosed ? " shoal-closed" : ""
-      }`}
-    >
+    <div className={`app${nav.careOpen ? " care-open" : ""}${shoalClosed ? " shoal-closed" : ""}`}>
       <KoiSprite />
       <div className="caustics" aria-hidden="true" />
       <div className="caustics b" aria-hidden="true" />

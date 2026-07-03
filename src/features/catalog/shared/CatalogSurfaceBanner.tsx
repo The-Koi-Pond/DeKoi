@@ -94,11 +94,7 @@ export function CatalogSurfaceBanner({
                 tabIndex={0}
                 onKeyDown={handleAvatarKeyDown}
               >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={avatarAlt ?? title} />
-                ) : (
-                  <PaintingIcon />
-                )}
+                {avatarUrl ? <img src={avatarUrl} alt={avatarAlt ?? title} /> : <PaintingIcon />}
               </label>
               <input
                 id={avatarInputId}
@@ -111,11 +107,7 @@ export function CatalogSurfaceBanner({
             </>
           ) : (
             <span className="catalog-banner-avatar">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={avatarAlt ?? title} />
-              ) : (
-                <PaintingIcon />
-              )}
+              {avatarUrl ? <img src={avatarUrl} alt={avatarAlt ?? title} /> : <PaintingIcon />}
             </span>
           )}
           <span className="catalog-banner-profile-copy">

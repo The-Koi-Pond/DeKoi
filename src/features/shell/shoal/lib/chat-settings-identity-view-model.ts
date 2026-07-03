@@ -20,11 +20,8 @@ export function getConnectionSettingsViewModel({
   const configuredDefaultConnection =
     settingsConnectionById.get(appSettings.activeMessengerConnectionId) ?? null;
   const firstAvailableConnection = sanitizedProviderConnections[0] ?? null;
-  const fallbackConnection =
-    configuredDefaultConnection ?? firstAvailableConnection;
-  const fallbackConnectionPrefix = configuredDefaultConnection
-    ? "App default"
-    : "First available";
+  const fallbackConnection = configuredDefaultConnection ?? firstAvailableConnection;
+  const fallbackConnectionPrefix = configuredDefaultConnection ? "App default" : "First available";
   const missingConnectionResolution = configuredDefaultConnection
     ? {
         actionLabel: `Use app default: ${configuredDefaultConnection.label}`,
@@ -41,7 +38,7 @@ export function getConnectionSettingsViewModel({
         };
   const threadConnectionValue = activeThread?.providerConnectionId ?? "";
   const selectedConnection = threadConnectionValue
-    ? settingsConnectionById.get(threadConnectionValue) ?? null
+    ? (settingsConnectionById.get(threadConnectionValue) ?? null)
     : null;
   const hasMissingConnection = !!threadConnectionValue && !selectedConnection;
   const connectionSummary = !activeThread
@@ -73,12 +70,10 @@ export function getPersonaSettingsViewModel({
   personas: readonly PersonaRecord[];
   threadLabel: string;
 }) {
-  const settingsPersonaById = new Map(
-    personas.map((persona) => [persona.id, persona]),
-  );
+  const settingsPersonaById = new Map(personas.map((persona) => [persona.id, persona]));
   const selectedPersonaId = activeThread?.activePersonaId ?? "";
   const selectedPersona = selectedPersonaId
-    ? settingsPersonaById.get(selectedPersonaId) ?? null
+    ? (settingsPersonaById.get(selectedPersonaId) ?? null)
     : null;
   const hasMissingPersona = !!selectedPersonaId && !selectedPersona;
   const personaSummary = !activeThread

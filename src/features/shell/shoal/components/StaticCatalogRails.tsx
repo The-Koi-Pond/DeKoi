@@ -1,9 +1,6 @@
 import { MediaCatalogRailBody } from "./MediaCatalogRailBody";
 import { PresetsCatalogRailBody } from "./PresetsCatalogRailBody";
-import {
-  StaticCatalogRailShell,
-  type StaticCatalogRailProps,
-} from "./StaticCatalogRailShell";
+import { StaticCatalogRailShell, type StaticCatalogRailProps } from "./StaticCatalogRailShell";
 
 export function MediaCatalogRail({
   chatSettingsOpen,

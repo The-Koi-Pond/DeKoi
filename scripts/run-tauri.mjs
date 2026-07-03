@@ -26,11 +26,7 @@ function hasCargoFeature(args, feature) {
     if (arg === "--") return false;
 
     if (arg === "--features" || arg === "-f") {
-      for (
-        let featureIndex = index + 1;
-        featureIndex < args.length;
-        featureIndex += 1
-      ) {
+      for (let featureIndex = index + 1; featureIndex < args.length; featureIndex += 1) {
         const value = args[featureIndex];
         if (!value || value.startsWith("-")) break;
         if (splitCargoFeatures(value).includes(feature)) return true;
@@ -62,8 +58,7 @@ if (cargoBin && existsSync(cargoBin)) {
 }
 
 if (isTauriDev) {
-  const autoDevtoolsRequested =
-    env[autoDevtoolsEnv] === "1" || env[legacyAutoDevtoolsEnv] === "1";
+  const autoDevtoolsRequested = env[autoDevtoolsEnv] === "1" || env[legacyAutoDevtoolsEnv] === "1";
 
   if (autoDevtoolsRequested) {
     env[autoDevtoolsEnv] = "1";

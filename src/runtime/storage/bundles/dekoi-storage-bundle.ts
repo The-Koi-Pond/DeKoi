@@ -90,8 +90,7 @@ export interface DeKoiStorageBundlePreview {
 }
 
 export type DeKoiStorageBundleParseResult =
-  | { ok: true; preview: DeKoiStorageBundlePreview }
-  | { ok: false; error: string };
+  { ok: true; preview: DeKoiStorageBundlePreview } | { ok: false; error: string };
 
 function cloneRecords<T>(records: T[]): T[] {
   return records.map((record) => ({ ...record }));
@@ -125,9 +124,7 @@ function fnv1a32(input: string) {
   return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
 }
 
-export function createDeKoiStorageBundleFingerprint(
-  bundle: DeKoiStorageBundle,
-): string {
+export function createDeKoiStorageBundleFingerprint(bundle: DeKoiStorageBundle): string {
   return fnv1a32(
     stableStringify({
       kind: bundle.kind,
@@ -221,9 +218,7 @@ function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
   label: string,
   warnings: string[],
 ) {
-  const validRecords = records.filter((record) =>
-    importedThreadIds.has(record.threadId),
-  );
+  const validRecords = records.filter((record) => importedThreadIds.has(record.threadId));
   if (validRecords.length !== records.length) {
     warnings.push(
       `${label} skipped ${records.length - validRecords.length} record(s) without an imported thread.`,
@@ -239,9 +234,7 @@ function mergeBundleTranscriptRows<T extends { id: string }>(
   if (storedRows.length === 0) return [...embeddedRows];
 
   const storedRowIds = new Set(storedRows.map((row) => row.id));
-  const embeddedOnlyRows = embeddedRows.filter(
-    (row) => !storedRowIds.has(row.id),
-  );
+  const embeddedOnlyRows = embeddedRows.filter((row) => !storedRowIds.has(row.id));
 
   return [...embeddedOnlyRows, ...storedRows];
 }
@@ -252,17 +245,11 @@ export function getDeKoiStorageBundleCounts(
   const roleplayEntryCount =
     "roleplayEntries" in data
       ? data.roleplayEntries.length
-      : data.roleplayThreads.reduce(
-          (count, thread) => count + thread.entries.length,
-          0,
-        );
+      : data.roleplayThreads.reduce((count, thread) => count + thread.entries.length, 0);
   const messengerMessageCount =
     "messengerMessages" in data
       ? data.messengerMessages.length
-      : data.messengerThreads.reduce(
-          (count, thread) => count + thread.messages.length,
-          0,
-        );
+      : data.messengerThreads.reduce((count, thread) => count + thread.messages.length, 0);
 
   return {
     characters: data.characters.length,
@@ -270,18 +257,12 @@ export function getDeKoiStorageBundleCounts(
     roleplayEntries: roleplayEntryCount,
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
-    lorebookEntries: data.lorebooks.reduce(
-      (count, lorebook) => count + lorebook.entries.length,
-      0,
-    ),
+    lorebookEntries: data.lorebooks.reduce((count, lorebook) => count + lorebook.entries.length, 0),
     providerConnections: data.providerConnections.length,
     messengerThreads: data.messengerThreads.length,
     messengerMessages: messengerMessageCount,
     rippleStates: data.rippleStates.length,
-    ripples: data.rippleStates.reduce(
-      (count, state) => count + state.ripples.length,
-      0,
-    ),
+    ripples: data.rippleStates.reduce((count, state) => count + state.ripples.length, 0),
   };
 }
 
@@ -314,9 +295,7 @@ export function createDeKoiStorageBundle({
   };
 }
 
-export function normalizeDeKoiStorageBundle(
-  value: unknown,
-): DeKoiStorageBundleParseResult {
+export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleParseResult {
   if (!isRecord(value)) {
     return { ok: false, error: "Bundle must be a JSON object." };
   }
@@ -344,18 +323,14 @@ export function normalizeDeKoiStorageBundle(
     normalizeRoleplayThread,
     warnings,
   );
-  const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(
-    toRoleplayThreadRecord,
-  );
+  const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(toRoleplayThreadRecord);
   const normalizedRoleplayEntries = normalizeOptionalList(
     value.data.roleplayEntries,
     "Roleplay entries",
     normalizeRoleplayEntryRecord,
     warnings,
   );
-  const roleplayThreadIdSet = new Set(
-    finalRoleplayThreadRecords.map((thread) => thread.id),
-  );
+  const roleplayThreadIdSet = new Set(finalRoleplayThreadRecords.map((thread) => thread.id));
   const validRoleplaySplitEntries = filterTranscriptRowsForImportedThreads(
     normalizedRoleplayEntries,
     roleplayThreadIdSet,
@@ -366,21 +341,15 @@ export function normalizeDeKoiStorageBundle(
     extractRoleplayEntries(normalizedRoleplayThreads),
     validRoleplaySplitEntries,
   );
-  const normalizedMessengerThreads = normalizeMessengerThreads(
-    value.data.messengerThreads,
-  );
-  const finalMessengerThreadRecords = normalizedMessengerThreads.map(
-    toMessengerThreadRecord,
-  );
+  const normalizedMessengerThreads = normalizeMessengerThreads(value.data.messengerThreads);
+  const finalMessengerThreadRecords = normalizedMessengerThreads.map(toMessengerThreadRecord);
   const normalizedMessengerMessages = normalizeOptionalList(
     value.data.messengerMessages,
     "Messenger messages",
     normalizeMessengerMessageRecord,
     warnings,
   );
-  const messengerThreadIdSet = new Set(
-    finalMessengerThreadRecords.map((thread) => thread.id),
-  );
+  const messengerThreadIdSet = new Set(finalMessengerThreadRecords.map((thread) => thread.id));
   const validMessengerSplitMessages = filterTranscriptRowsForImportedThreads(
     normalizedMessengerMessages,
     messengerThreadIdSet,
@@ -401,12 +370,7 @@ export function normalizeDeKoiStorageBundle(
     ),
     roleplayThreads: finalRoleplayThreadRecords,
     roleplayEntries: validRoleplayEntries,
-    personas: normalizeList(
-      value.data.personas,
-      "Personas",
-      normalizePersonaRecord,
-      warnings,
-    ),
+    personas: normalizeList(value.data.personas, "Personas", normalizePersonaRecord, warnings),
     lorebooks: normalizeList(
       value.data.lorebooks,
       "Lorebooks",
@@ -445,9 +409,7 @@ export function normalizeDeKoiStorageBundle(
   }
 
   const roleplayThreadIds = new Set(data.roleplayThreads.map((thread) => thread.id));
-  const messengerThreadIds = new Set(
-    data.messengerThreads.map((thread) => thread.id),
-  );
+  const messengerThreadIds = new Set(data.messengerThreads.map((thread) => thread.id));
   const validRippleStates = data.rippleStates.filter((state) =>
     state.ownerKind === "roleplay-thread"
       ? roleplayThreadIds.has(state.ownerId)

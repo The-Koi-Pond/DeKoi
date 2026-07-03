@@ -3,10 +3,7 @@ interface NewThreadActionsProps {
   onClose: () => void;
 }
 
-export function NewThreadActions({
-  submitDisabled,
-  onClose,
-}: NewThreadActionsProps) {
+export function NewThreadActions({ submitDisabled, onClose }: NewThreadActionsProps) {
   return (
     <div className="new-thread-actions">
       <button type="button" onClick={onClose}>

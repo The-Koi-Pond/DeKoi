@@ -85,17 +85,17 @@ Build in this order unless the active task redirects:
 
 ## Intentionally Out Of Scope For Now
 
-- Feature parity with the old dashed project line.
-- Copying old code, assets, docs, prompts, schemas, UI text, or layouts.
-- Treating legacy record names as native DeKoi concepts.
+- Feature parity with the older De-Koi line.
+- Anything barred by [PROVENANCE.md](../PROVENANCE.md): AGPLv3-derived
+  material and legacy record names as native DeKoi concepts.
 - Game/adventure-style play as a first product slice.
 - Browser storage as the durable app-record store.
 - Provider secrets inside exported DeKoi bundles.
 
 ## Near-Term Documentation Needs
 
-- Convert `DOMAIN_MODEL.md` fully into a stable product-language glossary, or
-  merge its durable record details into `docs/storage-model.md` and
-  `ARCHITECTURE.md`.
+- Keep `DOMAIN_MODEL.md` a stable product vocabulary and record glossary;
+  field-level storage and activation mechanics belong in
+  `docs/storage-model.md`.
 - Add screenshots or short walkthroughs once the first user loop is stable enough to document visually.
 - Keep README status current as provider transport and legacy import become real features.

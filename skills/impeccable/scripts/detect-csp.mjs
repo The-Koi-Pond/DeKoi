@@ -59,7 +59,11 @@ const SVELTEKIT_CSP_SIGNALS = [/\bkit\s*:/, /\bcsp\s*:/, /\bdirectives\s*:/];
 const NUXT_SECURITY_SIGNALS = [/['"]nuxt-security['"]/, /\bcontentSecurityPolicy\b/];
 
 // append-string signals: CSP written as a literal value string
-const INLINE_HEADER_SIGNALS = [/["']Content-Security-Policy["']/i, /\bscript-src\b/, /\bconnect-src\b/];
+const INLINE_HEADER_SIGNALS = [
+  /["']Content-Security-Policy["']/i,
+  /\bscript-src\b/,
+  /\bconnect-src\b/,
+];
 const NUXT_ROUTE_RULES_SIGNALS = [/\brouteRules\b/, /Content-Security-Policy/i, /\bscript-src\b/];
 
 const MIDDLEWARE_HINT = /headers\.set\(\s*["']Content-Security-Policy["']/i;
@@ -90,13 +94,21 @@ export function detectCsp(cwd = process.cwd()) {
     }
 
     // SvelteKit kit.csp.directives
-    if (SCAN_EXTS.has(ext) && isConfig("svelte") && SVELTEKIT_CSP_SIGNALS.every((re) => re.test(body))) {
+    if (
+      SCAN_EXTS.has(ext) &&
+      isConfig("svelte") &&
+      SVELTEKIT_CSP_SIGNALS.every((re) => re.test(body))
+    ) {
       hits.appendArrays.push(relPath);
       return;
     }
 
     // Nuxt nuxt-security module
-    if (SCAN_EXTS.has(ext) && isConfig("nuxt") && NUXT_SECURITY_SIGNALS.every((re) => re.test(body))) {
+    if (
+      SCAN_EXTS.has(ext) &&
+      isConfig("nuxt") &&
+      NUXT_SECURITY_SIGNALS.every((re) => re.test(body))
+    ) {
       hits.appendArrays.push(relPath);
       return;
     }

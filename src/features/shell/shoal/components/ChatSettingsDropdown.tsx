@@ -26,12 +26,8 @@ export function ChatSettingsDropdown({
   const fallbackId = useId();
   const resolvedMenuId = menuId ?? `${fallbackId}-menu`;
   const [open, setOpen] = useState(false);
-  const selectedOption =
-    options.find((option) => option.value === value) ?? options[0] ?? null;
-  const enabledOptions = useMemo(
-    () => options.filter((option) => !option.disabled),
-    [options],
-  );
+  const selectedOption = options.find((option) => option.value === value) ?? options[0] ?? null;
+  const enabledOptions = useMemo(() => options.filter((option) => !option.disabled), [options]);
 
   function close() {
     setOpen(false);
@@ -45,15 +41,12 @@ export function ChatSettingsDropdown({
   function stepSelection(direction: 1 | -1) {
     if (enabledOptions.length === 0) return;
 
-    const currentIndex = enabledOptions.findIndex(
-      (option) => option.value === value,
-    );
+    const currentIndex = enabledOptions.findIndex((option) => option.value === value);
     const fallbackIndex = direction === 1 ? 0 : enabledOptions.length - 1;
     const nextIndex =
       currentIndex === -1
         ? fallbackIndex
-        : (currentIndex + direction + enabledOptions.length) %
-          enabledOptions.length;
+        : (currentIndex + direction + enabledOptions.length) % enabledOptions.length;
 
     onChange(enabledOptions[nextIndex].value);
   }
@@ -108,9 +101,7 @@ export function ChatSettingsDropdown({
           {options.map((option) => (
             <button
               type="button"
-              className={`chat-settings-option${
-                option.value === value ? " on" : ""
-              }`}
+              className={`chat-settings-option${option.value === value ? " on" : ""}`}
               role="option"
               aria-selected={option.value === value}
               disabled={option.disabled}

@@ -47,27 +47,19 @@ export function ChatSettingsRoleplayDrawers({
     onCreateRoleplayThread,
     onUpdateAppSettings,
   } = navigation;
-  const {
-    activeRoleplayThread,
-    advanced,
-    companionSelectorOpen,
-    identity,
-    resources,
-  } = getChatSettingsRoleplayDrawerModels({
-    appSettings,
-    settings,
-    settingsLabel,
-  });
+  const { activeRoleplayThread, advanced, companionSelectorOpen, identity, resources } =
+    getChatSettingsRoleplayDrawerModels({
+      appSettings,
+      settings,
+      settingsLabel,
+    });
 
   return (
     <div className="shoal-list chat-settings-list">
       {!activeRoleplayThread && (
-        <ChatSettingsNotice
-          actionLabel="New Roleplay"
-          onAction={onCreateRoleplayThread}
-        >
-          Open or create a Roleplay thread to edit connection, persona,
-          companions, and lore settings.
+        <ChatSettingsNotice actionLabel="New Roleplay" onAction={onCreateRoleplayThread}>
+          Open or create a Roleplay thread to edit connection, persona, companions, and lore
+          settings.
         </ChatSettingsNotice>
       )}
       <ChatSettingsIdentityDrawers

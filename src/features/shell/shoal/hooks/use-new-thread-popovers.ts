@@ -41,8 +41,7 @@ export function useNewThreadPopovers({
     onCreateRoleplayThread,
     roleplayPersonaId,
   });
-  const { close: closeMessenger, open: openMessenger } =
-    messengerPopover.actions;
+  const { close: closeMessenger, open: openMessenger } = messengerPopover.actions;
   const { close: closeRoleplay, open: openRoleplay } = roleplayPopover.actions;
   const newMessengerOpen = messengerPopover.state.open;
   const newRoleplayOpen = roleplayPopover.state.open;

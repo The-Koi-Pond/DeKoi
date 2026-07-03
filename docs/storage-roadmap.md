@@ -61,7 +61,11 @@ These are intentionally not current contracts:
   a runtime-controlled asset root.
 - Database adapter: add only when collection JSON cannot satisfy a concrete
   product need such as pagination, indexed search, full-text search,
-  transactional multi-collection writes, or multi-process concurrency.
+  transactional multi-collection writes, or multi-process concurrency. It goes
+  behind `src/runtime/storage/storage-repository-factory.ts`.
+- Desktop storage split: move desktop storage into a dedicated capability
+  module or crate once record repair, cleanup, or profile import makes
+  `src-tauri/src/storage.rs` too broad.
 
 ## Guardrails
 

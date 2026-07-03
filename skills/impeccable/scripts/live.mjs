@@ -145,7 +145,9 @@ function scanForDrift(rootDir, resolvedFiles, config) {
 
   // Files matching the user's `exclude` globs are intentional omissions,
   // not drift. Compile them to regexes so the orphan list stays signal.
-  const userExcludeRegexes = (Array.isArray(config.exclude) ? config.exclude : []).map((p) => globToRegex(p));
+  const userExcludeRegexes = (Array.isArray(config.exclude) ? config.exclude : []).map((p) =>
+    globToRegex(p),
+  );
   const isUserExcluded = (rel) => userExcludeRegexes.some((re) => re.test(rel));
 
   const orphans = [];

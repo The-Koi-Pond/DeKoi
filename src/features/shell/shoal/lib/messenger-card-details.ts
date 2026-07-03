@@ -1,9 +1,6 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import {
-  getMessengerThreadInitials,
-  getMessengerThreadPreview,
-} from "../../../modes";
+import { getMessengerThreadInitials, getMessengerThreadPreview } from "../../../modes";
 
 export function getMessengerCardDetails(
   thread: MessengerThread,
@@ -18,8 +15,7 @@ export function getMessengerCardDetails(
     companions.map((companion) => companion.displayName).join(" + ") ||
     (missingCount > 0 ? "Missing companion" : "No companion");
   const threadTitle = thread.title.trim();
-  const displayName =
-    threadTitle && !/^New Messenger \d+$/i.test(threadTitle) ? threadTitle : name;
+  const displayName = threadTitle && !/^New Messenger \d+$/i.test(threadTitle) ? threadTitle : name;
   const preview = getMessengerThreadPreview(thread);
   const searchText = [
     displayName,

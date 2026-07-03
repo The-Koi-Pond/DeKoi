@@ -95,12 +95,8 @@ export function normalizeMessengerThread(value: unknown): MessengerThread | null
       kind: "messenger",
       title: migrateLegacyTitle(candidate.title),
       providerConnectionId:
-        typeof candidate.providerConnectionId === "string"
-          ? candidate.providerConnectionId
-          : null,
-      systemPromptMode: normalizeMessengerSystemPromptMode(
-        candidate.systemPromptMode,
-      ),
+        typeof candidate.providerConnectionId === "string" ? candidate.providerConnectionId : null,
+      systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
       systemPrompt:
         typeof candidate.systemPrompt === "string"
           ? candidate.systemPrompt
@@ -130,9 +126,7 @@ function normalizeMessengerThreadStorageRecord(
   if (!thread) return null;
 
   const record = toMessengerThreadRecord(thread);
-  return thread.messages.length > 0
-    ? { ...record, messages: thread.messages }
-    : record;
+  return thread.messages.length > 0 ? { ...record, messages: thread.messages } : record;
 }
 
 const messengerThreadRepository = createStorageRepository({
@@ -154,21 +148,15 @@ export async function loadMessengerThreadsFromStorage(
     hasLegacyEmbeddedMessages,
     mode: snapshot.mode,
     status: snapshot.status,
-    message:
-      snapshot.mode === "unavailable" ? HOST_STORAGE_UNAVAILABLE_MESSAGE : snapshot.message,
+    message: snapshot.mode === "unavailable" ? HOST_STORAGE_UNAVAILABLE_MESSAGE : snapshot.message,
   };
 }
 
 export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<
-  Omit<MessengerStorageSnapshot, "threads" | "hasLegacyEmbeddedMessages">
-> {
-  const result = await messengerThreadRepository.save(
-    threads.map(toMessengerThreadRecord),
-    rawUrl,
-  );
+): Promise<Omit<MessengerStorageSnapshot, "threads" | "hasLegacyEmbeddedMessages">> {
+  const result = await messengerThreadRepository.save(threads.map(toMessengerThreadRecord), rawUrl);
 
   return {
     mode: result.mode,

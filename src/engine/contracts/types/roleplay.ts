@@ -37,17 +37,13 @@ export interface RoleplayThread {
 
 export type RoleplayThreadRecord = Omit<RoleplayThread, "entries">;
 
-export function toRoleplayThreadRecord(
-  thread: RoleplayThread,
-): RoleplayThreadRecord {
+export function toRoleplayThreadRecord(thread: RoleplayThread): RoleplayThreadRecord {
   const { entries, ...record } = thread;
   void entries;
   return record;
 }
 
-export function extractRoleplayEntries(
-  threads: readonly RoleplayThread[],
-): RoleplayEntry[] {
+export function extractRoleplayEntries(threads: readonly RoleplayThread[]): RoleplayEntry[] {
   return threads.flatMap((thread) =>
     thread.entries.map((entry) => ({
       ...entry,
@@ -64,9 +60,7 @@ function mergeRoleplayEntries(
   if (storedEntries.length === 0) return [...embeddedEntries];
 
   const storedEntryIds = new Set(storedEntries.map((entry) => entry.id));
-  const embeddedOnlyEntries = embeddedEntries.filter(
-    (entry) => !storedEntryIds.has(entry.id),
-  );
+  const embeddedOnlyEntries = embeddedEntries.filter((entry) => !storedEntryIds.has(entry.id));
 
   return [...embeddedOnlyEntries, ...storedEntries];
 }
@@ -99,8 +93,7 @@ export function attachRoleplayEntriesToThreads(
 
 export function getRoleplayThreadActivityAt(thread: RoleplayThread) {
   return thread.entries.reduce(
-    (latest, entry) =>
-      entry.updatedAt.localeCompare(latest) > 0 ? entry.updatedAt : latest,
+    (latest, entry) => (entry.updatedAt.localeCompare(latest) > 0 ? entry.updatedAt : latest),
     thread.updatedAt,
   );
 }

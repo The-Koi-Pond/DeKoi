@@ -29,9 +29,7 @@ export interface DesktopStorageRepairFinishResult {
 }
 
 function requireTauriForDesktopStorageRepair() {
-  requireTauriForDesktopHost(
-    "Desktop storage repair is only available inside the Tauri app.",
-  );
+  requireTauriForDesktopHost("Desktop storage repair is only available inside the Tauri app.");
 }
 
 export async function repairDesktopStorageCollection({
@@ -45,10 +43,11 @@ export async function repairDesktopStorageCollection({
 }): Promise<DesktopStorageRepairResult> {
   requireTauriForDesktopStorageRepair();
 
-  return await invoke<DesktopStorageRepairResult>(
-    DESKTOP_COMMANDS.storageRepairCollection,
-    { entity, strategy, confirm },
-  );
+  return await invoke<DesktopStorageRepairResult>(DESKTOP_COMMANDS.storageRepairCollection, {
+    entity,
+    strategy,
+    confirm,
+  });
 }
 
 export async function finishDesktopStorageCollectionRepair({

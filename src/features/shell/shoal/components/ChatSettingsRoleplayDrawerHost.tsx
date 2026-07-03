@@ -28,12 +28,9 @@ export function ChatSettingsRoleplayDrawerHost({
         personas: nav.personas,
       }}
       navigation={{
-        onCreateCompanion: () =>
-          nav.setView({ kind: "companions", mode: "new" }),
-        onCreateConnection: () =>
-          nav.setView({ kind: "connections", mode: "new" }),
-        onCreateLorebook: () =>
-          nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
+        onCreateCompanion: () => nav.setView({ kind: "companions", mode: "new" }),
+        onCreateConnection: () => nav.setView({ kind: "connections", mode: "new" }),
+        onCreateLorebook: () => nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
         onCreateRoleplayThread: nav.createRoleplayThread,
         onUpdateAppSettings: nav.updateAppSettings,
       }}

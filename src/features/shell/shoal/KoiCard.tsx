@@ -77,9 +77,7 @@ export function KoiCard({
         ) : (
           initials
         )}
-        {showStatus && (
-          <span className={`dot${online !== false ? " live" : " idle"}`} />
-        )}
+        {showStatus && <span className={`dot${online !== false ? " live" : " idle"}`} />}
       </div>
       <div className="kc-body">
         <div className="kc-name">{name}</div>

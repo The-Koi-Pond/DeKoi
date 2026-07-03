@@ -33,6 +33,12 @@ security, or risky-work boundaries.
   user explicitly asked you to post, close, merge, tag, or release.
 - Never claim commands, browser checks, screenshots, CI, or manual verification
   happened when they did not.
+
+## Proof And Test Discipline
+
+This section is the canonical home for proof and test rules; `AGENTS.md`
+points here.
+
 - Proof is session evidence, not permission to add durable test artifacts by
   reflex.
 - Temporary tests and harnesses are allowed when they stay local and uncommitted.
@@ -142,7 +148,7 @@ matching repo-local skill:
 - `skills/tdd/SKILL.md` for deliberate red-green-refactor work, regression tests,
   or risky behavior that needs a committed proof guard.
 
-Keep `ARCHITECTURE.md` and `SURFACE_LABELS.md` in force for ownership and
+Keep `ARCHITECTURE.md` and `DOMAIN_MODEL.md` in force for ownership and
 product-language boundaries.
 
 For architecture or mode-sensitive work, load the matching repo-local skill:

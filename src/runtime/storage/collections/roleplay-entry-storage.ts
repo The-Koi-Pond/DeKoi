@@ -14,10 +14,7 @@ export function loadRoleplayEntriesFromStorage(rawUrl?: string) {
   return roleplayEntryRepository.loadSnapshot(rawUrl);
 }
 
-export function saveRoleplayEntriesToStorage(
-  threads: RoleplayThread[],
-  rawUrl?: string,
-) {
+export function saveRoleplayEntriesToStorage(threads: RoleplayThread[], rawUrl?: string) {
   return roleplayEntryRepository.save(extractRoleplayEntries(threads), rawUrl);
 }
 

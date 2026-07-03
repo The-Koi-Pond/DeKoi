@@ -22,10 +22,7 @@ export function getSortedShoalMessengerThreads(
     return (
       aDetails.name.localeCompare(bDetails.name, undefined, {
         sensitivity: "base",
-      }) ||
-      getMessengerThreadActivityAt(b).localeCompare(
-        getMessengerThreadActivityAt(a),
-      )
+      }) || getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a))
     );
   });
 }

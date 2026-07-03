@@ -18,11 +18,6 @@ export function filterLorebookCatalogRecords(
   );
 }
 
-export function countLorebookCatalogEntries(
-  lorebooks: readonly LorebookRecord[],
-) {
-  return lorebooks.reduce(
-    (count, lorebook) => count + lorebook.entries.length,
-    0,
-  );
+export function countLorebookCatalogEntries(lorebooks: readonly LorebookRecord[]) {
+  return lorebooks.reduce((count, lorebook) => count + lorebook.entries.length, 0);
 }

@@ -59,9 +59,7 @@ function createImportActionErrorResult(
   };
 }
 
-export function prepareLegacyImportData(
-  data: DeKoiLegacyImportData,
-): DeKoiLegacyImportData {
+export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegacyImportData {
   return {
     ...data,
     messengerThreads: data.messengerThreads.map((thread) => {
@@ -78,9 +76,7 @@ export function prepareLegacyImportData(
   };
 }
 
-export function createLegacyImportDataFingerprint(
-  data: DeKoiLegacyImportData,
-) {
+export function createLegacyImportDataFingerprint(data: DeKoiLegacyImportData) {
   return createDeKoiStorageBundleFingerprint(
     createDeKoiStorageBundle({
       appSettings: DEFAULT_APP_SETTINGS,
@@ -145,8 +141,7 @@ export function useAppImportExportActions({
       );
       const importedSettings = { ...bundle.data.appSettings };
       const hasActiveConnection = importedConnections.some(
-        (connection) =>
-          connection.id === importedSettings.activeMessengerConnectionId,
+        (connection) => connection.id === importedSettings.activeMessengerConnectionId,
       );
       const fallbackConnection = importedConnections[0] ?? null;
 
@@ -187,11 +182,7 @@ export function useAppImportExportActions({
       setView({ kind: "pond" });
       return storageResult;
     },
-    [
-      commitAppStorageImport,
-      setSelectedSurface,
-      setView,
-    ],
+    [commitAppStorageImport, setSelectedSurface, setView],
   );
 
   const importLegacyData = useCallback(

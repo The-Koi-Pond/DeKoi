@@ -1,10 +1,5 @@
 import type { PersonaNoteRole, PersonaRecord } from "../../../engine/contracts/types/persona";
-import {
-  isRecord,
-  readNullableString,
-  readString,
-  readTimestamp,
-} from "../storage-json";
+import { isRecord, readNullableString, readString, readTimestamp } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
@@ -77,9 +72,6 @@ export function loadPersonaRecordsFromStorage(rawUrl?: string) {
   return personaRepository.loadSnapshot(rawUrl);
 }
 
-export function savePersonaRecordsToStorage(
-  records: PersonaRecord[],
-  rawUrl?: string,
-) {
+export function savePersonaRecordsToStorage(records: PersonaRecord[], rawUrl?: string) {
   return personaRepository.save(records, rawUrl);
 }

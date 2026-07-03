@@ -16,9 +16,7 @@ export function readStringArray(value: unknown) {
 }
 
 export function readTimestamp(value: unknown, fallback: string) {
-  return typeof value === "string" && !Number.isNaN(Date.parse(value))
-    ? value
-    : fallback;
+  return typeof value === "string" && !Number.isNaN(Date.parse(value)) ? value : fallback;
 }
 
 export function normalizeStorageRecordList<T extends { id: string }>(

@@ -70,10 +70,10 @@ Ask these before adding a file:
 9. Does it perform privileged local work? Put it in `src-tauri` and expose a
    narrow command.
 10. Is it a runtime wrapper for embedded Tauri or remote-runtime HTTP? Put it in
-   `src/shared/api`.
+    `src/shared/api`.
 11. Is it pure product behavior reused by multiple modes? Put it in a
-   mode-neutral engine helper only if it does not encode mode orchestration or
-   feature-facing UI copy.
+    mode-neutral engine helper only if it does not encode mode orchestration or
+    feature-facing UI copy.
 
 ## File Splitting
 

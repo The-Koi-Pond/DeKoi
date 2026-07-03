@@ -1,435 +1,435 @@
 .tide {
-    grid-area: tide;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 16px;
-    border-top: 1px solid var(--reed-soft);
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--water) 82%, var(--abyss)),
-        var(--water)
-    );
-    backdrop-filter: blur(6px);
-    font-size: 12px;
+  grid-area: tide;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-top: 1px solid var(--reed-soft);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--water) 82%, var(--abyss)),
+    var(--water)
+  );
+  backdrop-filter: blur(6px);
+  font-size: 12px;
 }
 
 .user-presence {
-    position: relative;
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    flex: 0 1 auto;
-    min-width: 0;
-    color: var(--foam);
+  position: relative;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--foam);
 }
 
 .persona-avatar {
-    position: relative;
-    display: grid;
-    flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
-    place-items: center;
-    overflow: visible;
-    appearance: none;
-    border: 1px solid rgba(244, 122, 53, 0.42);
-    border-radius: 50%;
-    background: rgba(244, 122, 53, 0.12);
-    color: var(--koi-hot);
-    cursor: pointer;
-    font-family: var(--ui);
-    font-size: 11px;
-    font-weight: 750;
-    line-height: 1;
-    padding: 0;
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  overflow: visible;
+  appearance: none;
+  border: 1px solid rgba(244, 122, 53, 0.42);
+  border-radius: 50%;
+  background: rgba(244, 122, 53, 0.12);
+  color: var(--koi-hot);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  padding: 0;
 }
 
 .persona-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: inherit;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .persona-avatar:hover,
 .persona-avatar:focus-visible {
-    border-color: rgba(244, 122, 53, 0.72);
-    background: rgba(244, 122, 53, 0.2);
-    outline: none;
+  border-color: rgba(244, 122, 53, 0.72);
+  background: rgba(244, 122, 53, 0.2);
+  outline: none;
 }
 
 .presence-dot {
-    position: absolute;
-    right: -1px;
-    bottom: -1px;
-    width: 11px;
-    height: 11px;
-    border: 2px solid rgba(9, 19, 23, 0.92);
-    border-radius: 50%;
-    background: var(--jade);
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(9, 19, 23, 0.92);
+  border-radius: 50%;
+  background: var(--jade);
 }
 
 .presence-copy {
-    display: grid;
-    gap: 1px;
-    max-width: min(150px, 18vw);
-    min-width: 0;
+  display: grid;
+  gap: 1px;
+  max-width: min(150px, 18vw);
+  min-width: 0;
 }
 
 .persona-name,
 .presence-status {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .persona-name {
-    color: var(--foam);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.15;
+  color: var(--foam);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .presence-status {
-    color: var(--mist);
-    font-size: 11px;
-    line-height: 1.2;
+  color: var(--mist);
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .surface-status {
-    display: inline;
-    max-width: min(18vw, 180px);
-    overflow: hidden;
-    color: var(--mist);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: inline;
+  max-width: min(18vw, 180px);
+  overflow: hidden;
+  color: var(--mist);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .surface-status::before {
-    content: "·";
-    margin: 0 6px;
-    color: var(--mist-dim);
+  content: "·";
+  margin: 0 6px;
+  color: var(--mist-dim);
 }
 
 .persona-menu {
-    position: absolute;
-    left: 0;
-    bottom: calc(100% + 8px);
-    display: flex;
-    width: min(280px, 76vw);
-    max-height: min(360px, 66vh);
-    flex-direction: column;
-    gap: 4px;
-    overflow: auto;
-    padding: 8px;
-    border: 1px solid var(--reed-soft);
-    border-radius: var(--r-md);
-    background: rgba(9, 19, 23, 0.96);
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  width: min(280px, 76vw);
+  max-height: min(360px, 66vh);
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  background: rgba(9, 19, 23, 0.96);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
 }
 
 .persona-option {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr);
-    gap: 10px;
-    align-items: center;
-    min-height: 48px;
-    padding: 7px;
-    border: 1px solid transparent;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font-family: var(--ui);
-    text-align: left;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--ui);
+  text-align: left;
 }
 
 .persona-option:hover,
 .persona-option:focus-visible {
-    border-color: rgba(39, 179, 170, 0.34);
-    background: rgba(39, 179, 170, 0.08);
-    outline: none;
+  border-color: rgba(39, 179, 170, 0.34);
+  background: rgba(39, 179, 170, 0.08);
+  outline: none;
 }
 
 .persona-option.selected {
-    border-color: rgba(39, 179, 170, 0.44);
-    background: rgba(39, 179, 170, 0.12);
+  border-color: rgba(39, 179, 170, 0.44);
+  background: rgba(39, 179, 170, 0.12);
 }
 
 .persona-option-avatar {
-    display: grid;
-    width: 32px;
-    height: 32px;
-    place-items: center;
-    overflow: hidden;
-    border: 1px solid rgba(244, 122, 53, 0.45);
-    border-radius: 50%;
-    background: rgba(244, 122, 53, 0.12);
-    color: var(--koi-hot);
-    font-size: 10px;
-    font-weight: 750;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(244, 122, 53, 0.45);
+  border-radius: 50%;
+  background: rgba(244, 122, 53, 0.12);
+  color: var(--koi-hot);
+  font-size: 10px;
+  font-weight: 750;
 }
 
 .persona-option-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .persona-option-copy {
-    min-width: 0;
+  min-width: 0;
 }
 
 .persona-option-copy span,
 .persona-option-copy small {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .persona-option-copy span {
-    color: var(--foam);
-    font-size: 12.5px;
-    font-weight: 650;
+  color: var(--foam);
+  font-size: 12.5px;
+  font-weight: 650;
 }
 
 .persona-option-copy small {
-    margin-top: 3px;
-    color: var(--mist);
-    font-size: 11px;
+  margin-top: 3px;
+  color: var(--mist);
+  font-size: 11px;
 }
 
 .surface-input {
-    position: relative;
-    flex: 0 1 260px;
-    width: min(260px, 26vw);
+  position: relative;
+  flex: 0 1 260px;
+  width: min(260px, 26vw);
 }
 
 .surface-input input {
-    width: 100%;
-    height: 28px;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--reed-soft);
-    color: var(--foam);
-    font-size: 12px;
-    outline: none;
-    font-family: var(--ui);
-    padding: 0 24px 0 2px;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--reed-soft);
+  color: var(--foam);
+  font-size: 12px;
+  outline: none;
+  font-family: var(--ui);
+  padding: 0 24px 0 2px;
 }
 
 .surface-input input::placeholder {
-    color: var(--mist-dim);
+  color: var(--mist-dim);
 }
 
 .surface-input input:focus {
-    border-color: var(--jade);
+  border-color: var(--jade);
 }
 
 .surface-input button {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    display: grid;
-    width: 22px;
-    height: 22px;
-    place-items: center;
-    transform: translateY(-50%);
-    border: 1px solid transparent;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--mist-dim);
-    cursor: pointer;
-    font-family: var(--ui);
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mist-dim);
+  cursor: pointer;
+  font-family: var(--ui);
 }
 
 .surface-input button:hover,
 .surface-input button:focus-visible {
-    border-color: var(--reed-soft);
-    background: var(--shallow);
-    color: var(--foam);
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  color: var(--foam);
 }
 
 .thread-search {
-    position: relative;
-    z-index: 50;
-    display: flex;
-    flex: none;
-    align-items: center;
-    width: 34px;
-    height: 30px;
-    margin-left: auto;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    background: transparent;
-    transition:
-        width 180ms cubic-bezier(0.16, 1, 0.3, 1),
-        border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 50;
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: 34px;
+  height: 30px;
+  margin-left: auto;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    width 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .thread-search.expanded {
-    width: min(320px, 42vw);
-    border-color: var(--reed-soft);
-    background: var(--shallow);
-    box-shadow: 0 0 24px -12px rgba(39, 179, 170, 0.62);
+  width: min(320px, 42vw);
+  border-color: var(--reed-soft);
+  background: var(--shallow);
+  box-shadow: 0 0 24px -12px rgba(39, 179, 170, 0.62);
 }
 
 .thread-search-toggle {
-    display: grid;
-    flex: none;
-    width: 30px;
-    height: 30px;
-    place-items: center;
-    border: 1px solid transparent;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--mist);
-    cursor: pointer;
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
 }
 
 .thread-search-toggle:hover,
 .thread-search-toggle:focus-visible {
-    color: var(--jade-hot);
-    filter: drop-shadow(0 0 7px rgba(39, 179, 170, 0.72));
-    outline: none;
+  color: var(--jade-hot);
+  filter: drop-shadow(0 0 7px rgba(39, 179, 170, 0.72));
+  outline: none;
 }
 
 .thread-search-toggle svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.8;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .thread-search input {
-    min-width: 0;
-    height: 100%;
-    flex: 1;
-    padding: 0 30px 0 2px;
-    border: 0;
-    background: transparent;
-    color: var(--foam);
-    font-family: var(--ui);
-    font-size: 12px;
-    outline: none;
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  padding: 0 30px 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--foam);
+  font-family: var(--ui);
+  font-size: 12px;
+  outline: none;
 }
 
 .thread-search input::placeholder {
-    color: var(--mist-dim);
+  color: var(--mist-dim);
 }
 
 .thread-search-clear {
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    display: grid;
-    width: 22px;
-    height: 22px;
-    place-items: center;
-    transform: translateY(-50%);
-    border: 1px solid transparent;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--mist-dim);
-    cursor: pointer;
-    font-family: var(--ui);
-    font-size: 14px;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mist-dim);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 14px;
 }
 
 .thread-search-clear:hover,
 .thread-search-clear:focus-visible {
-    border-color: var(--reed-soft);
-    background: var(--raise);
-    color: var(--foam);
-    outline: none;
+  border-color: var(--reed-soft);
+  background: var(--raise);
+  color: var(--foam);
+  outline: none;
 }
 
 .thread-search-results {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    display: flex;
-    width: min(340px, 72vw);
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px;
-    border: 1px solid var(--reed-soft);
-    border-radius: var(--r-md);
-    background: rgba(9, 19, 23, 0.96);
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  width: min(340px, 72vw);
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--reed-soft);
+  border-radius: var(--r-md);
+  background: rgba(9, 19, 23, 0.96);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
 }
 
 .thread-search-result {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 10px;
-    align-items: center;
-    min-height: 50px;
-    padding: 8px;
-    border: 1px solid transparent;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font-family: var(--ui);
-    text-align: left;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 50px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--ui);
+  text-align: left;
 }
 
 .thread-search-result:hover,
 .thread-search-result:focus-visible {
-    border-color: rgba(39, 179, 170, 0.34);
-    background: rgba(39, 179, 170, 0.08);
-    outline: none;
+  border-color: rgba(39, 179, 170, 0.34);
+  background: rgba(39, 179, 170, 0.08);
+  outline: none;
 }
 
 .thread-search-avatar {
-    display: grid;
-    width: 34px;
-    height: 34px;
-    place-items: center;
-    border: 1px solid rgba(244, 122, 53, 0.45);
-    border-radius: 50%;
-    background: rgba(244, 122, 53, 0.12);
-    color: var(--koi-hot);
-    font-size: 11px;
-    font-weight: 700;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(244, 122, 53, 0.45);
+  border-radius: 50%;
+  background: rgba(244, 122, 53, 0.12);
+  color: var(--koi-hot);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .thread-search-copy {
-    min-width: 0;
+  min-width: 0;
 }
 
 .thread-search-copy span,
 .thread-search-copy small {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .thread-search-copy span {
-    color: var(--foam);
-    font-size: 12.5px;
-    font-weight: 600;
+  color: var(--foam);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .thread-search-copy small {
-    margin-top: 3px;
-    color: var(--mist);
-    font-size: 11px;
+  margin-top: 3px;
+  color: var(--mist);
+  font-size: 11px;
 }
 
 .thread-search-empty {
-    padding: 12px;
-    color: var(--mist);
-    font-size: 12px;
+  padding: 12px;
+  color: var(--mist);
+  font-size: 12px;
 }

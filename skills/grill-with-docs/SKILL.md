@@ -17,7 +17,7 @@ repo. It is safe to reuse here, with current DeKoi docs and skill names.
 - Current session instructions.
 - `.github/agents/dekoi-workflow.md`.
 - `PRODUCT.md` and `DESIGN.md` when product or UI intent matters.
-- `ARCHITECTURE.md` and `SURFACE_LABELS.md` when source ownership, naming, or
+- `ARCHITECTURE.md` and `DOMAIN_MODEL.md` when source ownership, naming, or
   source provenance boundaries matter.
 - `skills/dekoi-architecture-guard/SKILL.md` for ownership, imports, shared
   APIs, Tauri, Rust, storage, providers, or runtime behavior.
@@ -61,7 +61,7 @@ Use the narrowest durable home:
 
 - GitHub issue or PR body for active work ownership and acceptance criteria.
 - `skills/*/references/*` for reusable agent guidance.
-- `PRODUCT.md`, `DESIGN.md`, `ARCHITECTURE.md`, `SURFACE_LABELS.md`, or `docs/`
+- `PRODUCT.md`, `DESIGN.md`, `ARCHITECTURE.md`, `DOMAIN_MODEL.md`, or `docs/`
   for product or architecture guidance that belongs outside skills.
 
 Do not add AI/tool self-attribution to public text. Draft exact external text

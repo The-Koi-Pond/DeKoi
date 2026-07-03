@@ -25,10 +25,7 @@ export function ChatSettingsAdvancedDrawer({
       title="Advanced Parameters"
       onToggle={onToggle}
     >
-      <ChatSettingsAdvancedControls
-        model={model}
-        onUpdateAppSettings={onUpdateAppSettings}
-      />
+      <ChatSettingsAdvancedControls model={model} onUpdateAppSettings={onUpdateAppSettings} />
     </ChatSettingsDrawer>
   );
 }

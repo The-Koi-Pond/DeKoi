@@ -6,7 +6,13 @@ import {
   type MessengerThread,
   type MessengerThreadMode,
 } from "../../../engine/contracts/types/messenger";
-import { isRecord, readNullableString, readString, readStringArray, readTimestamp } from "../storage-json";
+import {
+  isRecord,
+  readNullableString,
+  readString,
+  readStringArray,
+  readTimestamp,
+} from "../storage-json";
 
 const LEGACY_BUBBLE_THREADS_STORAGE_KEY = "dekoi:bubble-threads:v1";
 const LEGACY_BUBBLE_THREAD_STORAGE_KEY = "dekoi:bubble-thread:first-pond";
@@ -29,8 +35,7 @@ export interface DeKoiLegacyImportPreview {
 }
 
 export type DeKoiLegacyImportParseResult =
-  | { ok: true; preview: DeKoiLegacyImportPreview }
-  | { ok: false; error: string };
+  { ok: true; preview: DeKoiLegacyImportPreview } | { ok: false; error: string };
 
 function migrateLegacyId(id: string) {
   return id
@@ -66,10 +71,7 @@ function normalizeAuthor(value: unknown): MessengerMessageAuthor {
     return { kind: "unknown", label: "Imported" };
   }
 
-  const label =
-    readString(value.label).trim() ||
-    readString(value.name).trim() ||
-    "Imported";
+  const label = readString(value.label).trim() || readString(value.name).trim() || "Imported";
 
   if (value.kind === "persona") {
     return {
@@ -106,8 +108,7 @@ function normalizeLegacyMessage(
 
   const now = new Date().toISOString();
   const id =
-    migrateLegacyId(readString(value.id).trim()) ||
-    `${threadId}-imported-message-${index + 1}`;
+    migrateLegacyId(readString(value.id).trim()) || `${threadId}-imported-message-${index + 1}`;
 
   return {
     id,
@@ -129,17 +130,13 @@ function normalizeLegacyThread(value: unknown, index: number): MessengerThread |
 
   const now = new Date().toISOString();
   const id =
-    migrateLegacyId(readString(value.id).trim()) ||
-    `messenger-thread-imported-${index + 1}`;
+    migrateLegacyId(readString(value.id).trim()) || `messenger-thread-imported-${index + 1}`;
   const title =
-    migrateLegacyTitle(readString(value.title).trim()) ||
-    `Imported Messenger ${index + 1}`;
+    migrateLegacyTitle(readString(value.title).trim()) || `Imported Messenger ${index + 1}`;
   const characterIds = readStringArray(value.characterIds);
   const messages = Array.isArray(value.messages)
     ? value.messages
-        .map((message, messageIndex) =>
-          normalizeLegacyMessage(message, id, messageIndex),
-        )
+        .map((message, messageIndex) => normalizeLegacyMessage(message, id, messageIndex))
         .filter((message): message is MessengerMessage => message !== null)
     : [];
 
@@ -211,17 +208,13 @@ function collectCandidates(value: unknown) {
   if (Array.isArray(messengerThreadList)) {
     candidates.push(...messengerThreadList);
     sourceLabel =
-      sourceLabel === "Legacy Bubbles export"
-        ? "Legacy Bubbles export"
-        : "Legacy Messenger export";
+      sourceLabel === "Legacy Bubbles export" ? "Legacy Bubbles export" : "Legacy Messenger export";
   }
 
   return { candidates, sourceLabel };
 }
 
-export function getLegacyImportCounts(
-  data: DeKoiLegacyImportData,
-): DeKoiLegacyImportCounts {
+export function getLegacyImportCounts(data: DeKoiLegacyImportData): DeKoiLegacyImportCounts {
   return {
     messengerThreads: data.messengerThreads.length,
     messengerMessages: data.messengerThreads.reduce(
@@ -231,9 +224,7 @@ export function getLegacyImportCounts(
   };
 }
 
-export function normalizeLegacyImport(
-  value: unknown,
-): DeKoiLegacyImportParseResult {
+export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseResult {
   const { candidates, sourceLabel } = collectCandidates(value);
   if (candidates.length === 0) {
     return {

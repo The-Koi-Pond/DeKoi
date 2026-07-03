@@ -17,11 +17,7 @@ function assertFile(relativePath) {
 
 function pythonCandidates() {
   return process.platform === "win32"
-    ? [
-        ["python"],
-        ["py", "-3"],
-        ["python3"],
-      ]
+    ? [["python"], ["py", "-3"], ["python3"]]
     : [["python3"], ["python"]];
 }
 
@@ -46,7 +42,9 @@ function runPythonCompile() {
     assert.equal(result.status, 0, `Python compile failed using ${candidate.join(" ")}`);
     return;
   }
-  throw new Error(`Unable to compile Bunny Python tooling; missing launchers: ${missing.join(", ")}`);
+  throw new Error(
+    `Unable to compile Bunny Python tooling; missing launchers: ${missing.join(", ")}`,
+  );
 }
 
 for (const file of [
@@ -71,7 +69,10 @@ assert.ok(Array.isArray(checks.expected_checks), "ci-checks.json expected_checks
 const fullWorkflow = read(".github/workflows/ci-full.yml");
 for (const check of checks.expected_checks) {
   assert.equal(typeof check.name, "string", "expected check name must be a string");
-  assert.match(fullWorkflow, new RegExp(`name:\\s*${check.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+  assert.match(
+    fullWorkflow,
+    new RegExp(`name:\\s*${check.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+  );
 }
 
 const rules = JSON.parse(read(".github/bunny-review/rules.json"));
@@ -97,7 +98,11 @@ for (const workflow of [
 ]) {
   const text = read(workflow);
   assert.doesNotMatch(text, /actions\/checkout/i, `${workflow} must not checkout PR code`);
-  assert.doesNotMatch(text, /pnpm install|pip install|cargo check/i, `${workflow} must not install or execute PR code`);
+  assert.doesNotMatch(
+    text,
+    /pnpm install|pip install|cargo check/i,
+    `${workflow} must not install or execute PR code`,
+  );
 }
 
 const reviewWorkflow = read(".github/workflows/bunny-review.yml");

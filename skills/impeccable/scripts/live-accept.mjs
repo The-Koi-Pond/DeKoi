@@ -69,7 +69,9 @@ Output (JSON):
   // Find the file containing this session's markers
   const found = findSessionFile(id, process.cwd());
   if (!found) {
-    console.log(JSON.stringify({ handled: false, error: "Session markers not found for id: " + id }));
+    console.log(
+      JSON.stringify({ handled: false, error: "Session markers not found for id: " + id }),
+    );
     process.exit(0);
   }
 
@@ -131,7 +133,11 @@ function handleDiscard(id, lines, targetFile) {
   const indent = lines[replaceRange.start].match(/^(\s*)/)[1];
   const restored = deindentContent(original, indent);
 
-  const newLines = [...lines.slice(0, replaceRange.start), ...restored, ...lines.slice(replaceRange.end + 1)];
+  const newLines = [
+    ...lines.slice(0, replaceRange.start),
+    ...restored,
+    ...lines.slice(replaceRange.end + 1),
+  ];
   fs.writeFileSync(targetFile, newLines.join("\n"), "utf-8");
   return {};
 }
@@ -172,7 +178,9 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
   const replacement = [];
 
   if (cssContent) {
-    replacement.push(indent + commentSyntax.open + " impeccable-carbonize-start " + id + " " + commentSyntax.close);
+    replacement.push(
+      indent + commentSyntax.open + " impeccable-carbonize-start " + id + " " + commentSyntax.close,
+    );
     // JSX targets need the CSS body wrapped in a template literal so that the
     // `{` and `}` in CSS rules don't get parsed as JSX expressions.
     replacement.push(indent + '<style data-impeccable-css="' + id + '">' + (isJsx ? "{`" : ""));
@@ -195,7 +203,9 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
           commentSyntax.close,
       );
     }
-    replacement.push(indent + commentSyntax.open + " impeccable-carbonize-end " + id + " " + commentSyntax.close);
+    replacement.push(
+      indent + commentSyntax.open + " impeccable-carbonize-end " + id + " " + commentSyntax.close,
+    );
   }
 
   // Keep the `@scope ([data-impeccable-variant="N"])` selectors in the
@@ -209,14 +219,20 @@ function handleAccept(id, variantNum, lines, targetFile, paramValues) {
   // property [0] on CSSStyleDeclaration" while parsing the string char-by-char.
   if (cssContent) {
     const styleAttr = isJsx ? "style={{ display: 'contents' }}" : 'style="display: contents"';
-    replacement.push(indent + '<div data-impeccable-variant="' + variantNum + '" ' + styleAttr + ">");
+    replacement.push(
+      indent + '<div data-impeccable-variant="' + variantNum + '" ' + styleAttr + ">",
+    );
     replacement.push(...restored);
     replacement.push(indent + "</div>");
   } else {
     replacement.push(...restored);
   }
 
-  const newLines = [...lines.slice(0, replaceRange.start), ...replacement, ...lines.slice(replaceRange.end + 1)];
+  const newLines = [
+    ...lines.slice(0, replaceRange.start),
+    ...replacement,
+    ...lines.slice(replaceRange.end + 1),
+  ];
   fs.writeFileSync(targetFile, newLines.join("\n"), "utf-8");
 
   return { carbonize: needsCarbonize };
@@ -331,7 +347,9 @@ function stripStyleAndJoin(lines, block) {
     if (!inStyle) {
       // Strip any complete <style> elements on this line (self-closed or
       // same-line-closed), including their body content.
-      line = line.replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/g, "").replace(/<style\b[^>]*\/\s*>/g, "");
+      line = line
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/g, "")
+        .replace(/<style\b[^>]*\/\s*>/g, "");
 
       // If a <style> opener remains (multi-line body starts here), strip from
       // the opener to end-of-line and flip into skip mode.
@@ -617,4 +635,11 @@ if (_running?.endsWith("live-accept.mjs") || _running?.endsWith("live-accept.mjs
   acceptCli();
 }
 
-export { findMarkerBlock, extractOriginal, extractVariant, extractCss, deindentContent, detectCommentSyntax };
+export {
+  findMarkerBlock,
+  extractOriginal,
+  extractVariant,
+  extractCss,
+  deindentContent,
+  detectCommentSyntax,
+};

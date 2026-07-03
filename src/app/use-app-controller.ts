@@ -4,10 +4,7 @@ import {
   usePersonaActions,
   useProviderConnectionActions,
 } from "../features/catalog";
-import {
-  useRoleplayThreadActions,
-  useMessengerThreadActions,
-} from "../features/modes";
+import { useRoleplayThreadActions, useMessengerThreadActions } from "../features/modes";
 import { type NavContextType } from "../features/navigation";
 import {
   useAppImportExportActions,
@@ -120,47 +117,40 @@ export function useAppController(): NavContextType {
     setMessengerStorageMessage,
   });
 
-  const { createStorageBundle, importStorageBundle, importLegacyData } =
-    useAppImportExportActions({
-      appSettings,
-      characters,
-      personas,
-      lorebooks,
-      providerConnections,
-      roleplayThreads,
-      messengerThreads,
-      rippleStates,
-      setSelectedSurface,
-      setView: setNavView,
-      commitAppStorageImport,
-    });
-
-  const { setCareOpen: setNavCareOpen, setCareTab: setNavCareTab } =
-    useCareDrawerActions({
-      careOpen,
-      setCareOpen,
-      setCareTab,
-    });
-
-  const {
-    createCharacter,
-    updateCharacter,
-    duplicateCharacter,
-    deleteCharacter,
-  } = useCharacterActions({
+  const { createStorageBundle, importStorageBundle, importLegacyData } = useAppImportExportActions({
+    appSettings,
     characters,
-    setCharacters,
-    setRoleplayThreads,
-    setMessengerThreads,
+    personas,
+    lorebooks,
+    providerConnections,
+    roleplayThreads,
+    messengerThreads,
+    rippleStates,
+    setSelectedSurface,
+    setView: setNavView,
+    commitAppStorageImport,
   });
 
-  const { createPersona, updatePersona, duplicatePersona, deletePersona } =
-    usePersonaActions({
-      personas,
-      setPersonas,
+  const { setCareOpen: setNavCareOpen, setCareTab: setNavCareTab } = useCareDrawerActions({
+    careOpen,
+    setCareOpen,
+    setCareTab,
+  });
+
+  const { createCharacter, updateCharacter, duplicateCharacter, deleteCharacter } =
+    useCharacterActions({
+      characters,
+      setCharacters,
       setRoleplayThreads,
       setMessengerThreads,
     });
+
+  const { createPersona, updatePersona, duplicatePersona, deletePersona } = usePersonaActions({
+    personas,
+    setPersonas,
+    setRoleplayThreads,
+    setMessengerThreads,
+  });
 
   const {
     createLorebookEntry,
@@ -229,11 +219,10 @@ export function useAppController(): NavContextType {
     openMessengerThread,
   });
 
-  const { getRippleState, createRipple, updateRipple, deleteRipple } =
-    useRippleActions({
-      rippleStates,
-      setRippleStates,
-    });
+  const { getRippleState, createRipple, updateRipple, deleteRipple } = useRippleActions({
+    rippleStates,
+    setRippleStates,
+  });
 
   return {
     view,

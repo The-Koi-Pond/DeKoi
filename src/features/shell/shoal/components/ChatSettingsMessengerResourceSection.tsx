@@ -7,10 +7,7 @@ import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-reso
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
-  actions: Pick<
-    ChatSettingsMessengerActionGroup,
-    "drawers" | "prompt" | "resources"
-  >;
+  actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "prompt" | "resources">;
   activeMessengerThreadId: string | null;
   activeMessengerThreadRecord: MessengerThread | null;
   characters: ShoalRailProps["nav"]["characters"];

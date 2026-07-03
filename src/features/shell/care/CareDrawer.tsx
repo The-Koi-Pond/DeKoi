@@ -60,17 +60,11 @@ interface CareDrawerProps {
 
 export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavCareState, "careOpen" | "careTab"> &
-  Pick<
-    NavCatalogState,
-    "characters" | "lorebooks" | "personas" | "providerConnections"
-  > &
+  Pick<NavCatalogState, "characters" | "lorebooks" | "personas" | "providerConnections"> &
   Pick<NavRippleState, "rippleStates"> &
   Pick<
     NavSettingsActions,
-    | "setConfirmRelease"
-    | "setRemoteRuntimeUrl"
-    | "setSendOnEnterSurface"
-    | "updateAppSettings"
+    "setConfirmRelease" | "setRemoteRuntimeUrl" | "setSendOnEnterSurface" | "updateAppSettings"
   > &
   Pick<NavSettingsState, "appSettings"> &
   Pick<
@@ -113,9 +107,7 @@ type ImportBackupResult =
   | { ok: false; message: string };
 
 type StorageImportFailureSource = "bundle" | "legacy";
-type StorageRepairConfirmationAction =
-  | AppStorageRepairStrategy
-  | "finish-repair";
+type StorageRepairConfirmationAction = AppStorageRepairStrategy | "finish-repair";
 type PreparedLegacyImportPreview = DeKoiLegacyImportPreview & {
   fingerprint: string;
 };
@@ -143,8 +135,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   } = nav.appSettings;
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
-  const [desktopHostStatus, setDesktopHostStatus] =
-    useState<DeKoiDesktopHostStatus | null>(null);
+  const [desktopHostStatus, setDesktopHostStatus] = useState<DeKoiDesktopHostStatus | null>(null);
   const [desktopHostBusy, setDesktopHostBusy] = useState(false);
   const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
@@ -152,25 +143,18 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [storageReloadStatus, setStorageReloadStatus] = useState("");
   const [storageRepairStatus, setStorageRepairStatus] =
     useState<AppStorageRepairStatusResult | null>(null);
-  const [storageRepairBusy, setStorageRepairBusy] = useState<string | null>(
-    null,
-  );
-  const [storageRepairConfirmation, setStorageRepairConfirmation] =
-    useState<string | null>(null);
-  const [bundlePreview, setBundlePreview] =
-    useState<DeKoiStorageBundlePreview | null>(null);
+  const [storageRepairBusy, setStorageRepairBusy] = useState<string | null>(null);
+  const [storageRepairConfirmation, setStorageRepairConfirmation] = useState<string | null>(null);
+  const [bundlePreview, setBundlePreview] = useState<DeKoiStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
   const [bundleStatus, setBundleStatus] = useState("");
   const [bundleImportBusy, setBundleImportBusy] = useState(false);
   const [desktopFileBusy, setDesktopFileBusy] = useState(false);
   const [storageImportFailureSource, setStorageImportFailureSource] =
     useState<StorageImportFailureSource | null>(null);
-  const [storageImportRestoreConfirmed, setStorageImportRestoreConfirmed] =
-    useState(false);
-  const [storageImportRestoreBusy, setStorageImportRestoreBusy] =
-    useState(false);
-  const [legacyPreview, setLegacyPreview] =
-    useState<PreparedLegacyImportPreview | null>(null);
+  const [storageImportRestoreConfirmed, setStorageImportRestoreConfirmed] = useState(false);
+  const [storageImportRestoreBusy, setStorageImportRestoreBusy] = useState(false);
+  const [legacyPreview, setLegacyPreview] = useState<PreparedLegacyImportPreview | null>(null);
   const [legacyImportConfirmed, setLegacyImportConfirmed] = useState(false);
   const [legacyImportBusy, setLegacyImportBusy] = useState(false);
   const [legacyStatus, setLegacyStatus] = useState("");
@@ -268,13 +252,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setDesktopStorageStatus("Saving desktop host bundle...");
       const info = await writeDesktopStorageBundle(bundleResult.bundle);
       await refreshDesktopHostStatus();
-      setDesktopStorageStatus(
-        `Saved desktop host bundle (${formatBytes(info.byteLength)}).`,
-      );
+      setDesktopStorageStatus(`Saved desktop host bundle (${formatBytes(info.byteLength)}).`);
     } catch (error) {
-      setDesktopStorageStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setDesktopStorageStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setDesktopStorageBusy(false);
     }
@@ -306,18 +286,13 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       );
       setBundleStatus("Confirm replacement to import the desktop host bundle.");
     } catch (error) {
-      setDesktopStorageStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setDesktopStorageStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setDesktopStorageBusy(false);
     }
   }
 
-  function storageRepairActionKey(
-    entity: string,
-    action: StorageRepairConfirmationAction,
-  ) {
+  function storageRepairActionKey(entity: string, action: StorageRepairConfirmationAction) {
     return `${entity}:${action}`;
   }
 
@@ -325,10 +300,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     collection: AppStorageRepairCollectionStatus,
     action: StorageRepairConfirmationAction,
   ) {
-    return (
-      storageRepairConfirmation ===
-      storageRepairActionKey(collection.entity, action)
-    );
+    return storageRepairConfirmation === storageRepairActionKey(collection.entity, action);
   }
 
   async function refreshStorageRepairStatus() {
@@ -341,9 +313,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     status: AppStorageRepairStatusResult,
     collection: AppStorageRepairCollectionStatus,
   ) {
-    return status.collections.find(
-      (item) => item.entity === collection.entity,
-    );
+    return status.collections.find((item) => item.entity === collection.entity);
   }
 
   function formatRepairConfirmationProblem(
@@ -353,9 +323,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     const current = findStorageRepairStatus(status, collection);
     if (!current) return "";
 
-    return current.error
-      ? ` ${current.error}`
-      : ` ${current.label} still has repair work pending.`;
+    return current.error ? ` ${current.error}` : ` ${current.label} still has repair work pending.`;
   }
 
   async function handleStorageStaleCheck() {
@@ -366,17 +334,14 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       const result = await nav.checkAppStorageStale();
       const repairStatus = await refreshStorageRepairStatus();
       const changedCount = result.changedCollectionKeys.length;
-      const repairMessage =
-        repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
+      const repairMessage = repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
       const statusMessage =
         result.stale && changedCount > 0
           ? `${result.message} ${changedCount} collection(s) changed.`
           : result.message;
       setStorageReloadStatus(`${statusMessage}${repairMessage}`);
     } catch (error) {
-      setStorageReloadStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setStorageReloadBusy(false);
     }
@@ -389,13 +354,10 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     try {
       const result = await nav.reloadAppStorage();
       const repairStatus = await refreshStorageRepairStatus();
-      const repairMessage =
-        repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
+      const repairMessage = repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
       setStorageReloadStatus(`${result.message}${repairMessage}`);
     } catch (error) {
-      setStorageReloadStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setStorageReloadBusy(false);
     }
@@ -406,9 +368,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     strategy: AppStorageRepairStrategy,
   ) {
     if (!collection.known) {
-      setStorageReloadStatus(
-        `${collection.label} cannot be repaired by this app version.`,
-      );
+      setStorageReloadStatus(`${collection.label} cannot be repaired by this app version.`);
       return;
     }
 
@@ -440,10 +400,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       }
 
       const repairStatus = await refreshStorageRepairStatus();
-      const postRepairStatus = findStorageRepairStatus(
-        repairStatus,
-        collection,
-      );
+      const postRepairStatus = findStorageRepairStatus(repairStatus, collection);
       if (postRepairStatus?.error) {
         setStorageReloadStatus(
           `Repair did not produce a readable ${collection.label}. ${postRepairStatus.error}`,
@@ -463,10 +420,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         return;
       }
 
-      const confirmedTargetStatus = findStorageRepairStatus(
-        confirmedRepairStatus,
-        collection,
-      );
+      const confirmedTargetStatus = findStorageRepairStatus(confirmedRepairStatus, collection);
       if (confirmedTargetStatus?.error) {
         setStorageReloadStatus(
           `Repair command completed, but metadata still reports a problem for ${collection.label}. ${confirmedTargetStatus.error}`,
@@ -478,32 +432,21 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       const finishMessage = needsFinish
         ? " Finish repair after you verify the reloaded records."
         : "";
-      setStorageReloadStatus(
-        `${result.message} ${reloadResult.message}${finishMessage}`,
-      );
+      setStorageReloadStatus(`${result.message} ${reloadResult.message}${finishMessage}`);
     } catch (error) {
-      setStorageReloadStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setStorageRepairBusy(null);
     }
   }
 
-  async function handleStorageRepairFinish(
-    collection: AppStorageRepairCollectionStatus,
-  ) {
+  async function handleStorageRepairFinish(collection: AppStorageRepairCollectionStatus) {
     if (!collection.known) {
-      setStorageReloadStatus(
-        `${collection.label} cannot be finished by this app version.`,
-      );
+      setStorageReloadStatus(`${collection.label} cannot be finished by this app version.`);
       return;
     }
 
-    const actionKey = storageRepairActionKey(
-      collection.entity,
-      "finish-repair",
-    );
+    const actionKey = storageRepairActionKey(collection.entity, "finish-repair");
     if (storageRepairConfirmation !== actionKey) {
       setStorageRepairConfirmation(actionKey);
       setStorageReloadStatus(
@@ -525,9 +468,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       const repairStatus = await refreshStorageRepairStatus();
       setStorageReloadStatus(`${result.message} ${repairStatus.message}`);
     } catch (error) {
-      setStorageReloadStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setStorageRepairBusy(null);
     }
@@ -538,9 +479,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   }
 
   function getImportBackupFilename() {
-    return `dekoi-pre-import-backup-${new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")}.json`;
+    return `dekoi-pre-import-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
   }
 
   function formatFlushFailureMessage(result: {
@@ -559,9 +498,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return `${result.message}${dirty}${failed}`;
   }
 
-  async function createStorageBundleAfterFlush(
-    reason: "backup" | "export" | "import",
-  ) {
+  async function createStorageBundleAfterFlush(reason: "backup" | "export" | "import") {
     const flushResult = await nav.flushAppStorageSaves({ reason });
     if (!flushResult.flushed) {
       return {
@@ -573,9 +510,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return { ok: true as const, bundle: nav.createStorageBundle() };
   }
 
-  async function createPreImportBackup(
-    backupFilename: string,
-  ): Promise<ImportBackupResult> {
+  async function createPreImportBackup(backupFilename: string): Promise<ImportBackupResult> {
     const backupBundleResult = await createStorageBundleAfterFlush("import");
     if (!backupBundleResult.ok) {
       return {
@@ -587,10 +522,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
     if (isDesktopHostAvailable()) {
       try {
-        const info = await exportDesktopBundleFile(
-          backupBundle,
-          backupFilename,
-        );
+        const info = await exportDesktopBundleFile(backupBundle, backupFilename);
         if (!info) {
           return {
             ok: false,
@@ -637,9 +569,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     }
   }
 
-  function formatImportBackupReference(
-    backup: Extract<ImportBackupResult, { ok: true }>,
-  ) {
+  function formatImportBackupReference(backup: Extract<ImportBackupResult, { ok: true }>) {
     if (backup.verified) {
       return backup.path
         ? `Pre-import backup saved: ${backup.path}.`
@@ -649,11 +579,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return `If your browser saved the pre-import backup, it is named: ${backup.filename}.`;
   }
 
-  function formatImportBackupCreatedStatus(
-    backup: Extract<ImportBackupResult, { ok: true }>,
-  ) {
-    const backupSize =
-      backup.byteLength === null ? "" : ` (${formatBytes(backup.byteLength)})`;
+  function formatImportBackupCreatedStatus(backup: Extract<ImportBackupResult, { ok: true }>) {
+    const backupSize = backup.byteLength === null ? "" : ` (${formatBytes(backup.byteLength)})`;
 
     return backup.verified
       ? `Created pre-import backup${backupSize}.`
@@ -668,8 +595,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     ).length;
     const failedCollection = result.failedCollectionKey
       ? result.collections.find(
-          (collection) =>
-            collection.collectionKey === result.failedCollectionKey,
+          (collection) => collection.collectionKey === result.failedCollectionKey,
         )
       : null;
     const failedDetail = failedCollection
@@ -711,10 +637,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       }
 
       setBundleStatus("Opening desktop save dialog...");
-      const info = await exportDesktopBundleFile(
-        bundleResult.bundle,
-        getBundleFilename(),
-      );
+      const info = await exportDesktopBundleFile(bundleResult.bundle, getBundleFilename());
       setBundleStatus(
         info
           ? `Exported desktop bundle (${formatBytes(info.byteLength)}).`
@@ -772,9 +695,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       }
 
       backup = backupResult;
-      setBundleStatus(
-        `${formatImportBackupCreatedStatus(backup)} Importing DeKoi bundle...`,
-      );
+      setBundleStatus(`${formatImportBackupCreatedStatus(backup)} Importing DeKoi bundle...`);
 
       const result = await nav.importStorageBundle(bundlePreview.bundle, {
         previewFingerprint: bundlePreview.fingerprint,
@@ -786,9 +707,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         setStorageImportFailureSource("bundle");
         setCareOpen(true);
         setCareTab(4);
-        setBundleStatus(
-          `Import failed. ${formatImportBackupReference(backup)} ${resultMessage}`,
-        );
+        setBundleStatus(`Import failed. ${formatImportBackupReference(backup)} ${resultMessage}`);
         return;
       }
 
@@ -804,9 +723,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setCareTab(4);
       setBundleStatus(
         `Import failed. ${
-          backup
-            ? formatImportBackupReference(backup)
-            : "Pre-import backup was not created."
+          backup ? formatImportBackupReference(backup) : "Pre-import backup was not created."
         } ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
@@ -825,9 +742,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     try {
       const result = await importDesktopBundleFile();
       if (!result.ok) {
-        setBundleStatus(
-          result.cancelled ? "Desktop import cancelled." : result.error,
-        );
+        setBundleStatus(result.cancelled ? "Desktop import cancelled." : result.error);
         return;
       }
 
@@ -837,9 +752,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         fingerprint: result.fingerprint,
         warnings: result.warnings,
       });
-      setBundleStatus(
-        `Previewing desktop bundle (${formatBytes(result.info.byteLength)}).`,
-      );
+      setBundleStatus(`Previewing desktop bundle (${formatBytes(result.info.byteLength)}).`);
     } catch (error) {
       setBundleStatus(error instanceof Error ? error.message : String(error));
     } finally {
@@ -897,9 +810,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       }
 
       backup = backupResult;
-      setLegacyStatus(
-        `${formatImportBackupCreatedStatus(backup)} Importing converted records...`,
-      );
+      setLegacyStatus(`${formatImportBackupCreatedStatus(backup)} Importing converted records...`);
 
       const result = await nav.importLegacyData(legacyPreview.data, {
         previewFingerprint: legacyPreview.fingerprint,
@@ -930,9 +841,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setCareTab(4);
       setLegacyStatus(
         `Legacy import failed. ${
-          backup
-            ? formatImportBackupReference(backup)
-            : "Pre-import backup was not created."
+          backup ? formatImportBackupReference(backup) : "Pre-import backup was not created."
         } ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
@@ -1014,9 +923,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     }
   }
 
-  function renderStorageImportFailureActions(
-    source: StorageImportFailureSource,
-  ) {
+  function renderStorageImportFailureActions(source: StorageImportFailureSource) {
     const restoreAvailable = nav.importRecoveryState.available;
     const backupPath = nav.importRecoveryState.desktopBackupPath;
     const fallback = backupPath
@@ -1054,12 +961,12 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       setCareOpen(true);
       setCareTab(4);
       if (storageImportFailureSource === "bundle") {
-        setBundleStatus((current) =>
-          current || "Acknowledge the import failure before closing Settings.",
+        setBundleStatus(
+          (current) => current || "Acknowledge the import failure before closing Settings.",
         );
       } else {
-        setLegacyStatus((current) =>
-          current || "Acknowledge the import failure before closing Settings.",
+        setLegacyStatus(
+          (current) => current || "Acknowledge the import failure before closing Settings.",
         );
       }
       return;
@@ -1154,26 +1061,14 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     return (
       <div className="storage-repair-list" aria-live="polite">
         {storageRepairStatus.collections.map((collection) => {
-          const restoreConfirmed = storageRepairConfirmationMatches(
-            collection,
-            "restore-backup",
-          );
-          const replaceConfirmed = storageRepairConfirmationMatches(
-            collection,
-            "replace-empty",
-          );
-          const finishConfirmed = storageRepairConfirmationMatches(
-            collection,
-            "finish-repair",
-          );
-          const busyForCollection =
-            storageRepairBusy?.startsWith(`${collection.entity}:`) ?? false;
+          const restoreConfirmed = storageRepairConfirmationMatches(collection, "restore-backup");
+          const replaceConfirmed = storageRepairConfirmationMatches(collection, "replace-empty");
+          const finishConfirmed = storageRepairConfirmationMatches(collection, "finish-repair");
+          const busyForCollection = storageRepairBusy?.startsWith(`${collection.entity}:`) ?? false;
 
           return (
             <article
-              className={`storage-repair-row${
-                collection.error ? " error" : ""
-              }`}
+              className={`storage-repair-row${collection.error ? " error" : ""}`}
               key={collection.entity}
             >
               <div className="storage-repair-copy">
@@ -1183,12 +1078,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   className="storage-repair-flags"
                   aria-label={`${collection.label} recovery artifacts`}
                 >
-                  <span className={collection.backupExists ? "on" : ""}>
-                    Backup
-                  </span>
-                  <span className={collection.preRepairExists ? "on" : ""}>
-                    Pre-repair
-                  </span>
+                  <span className={collection.backupExists ? "on" : ""}>Backup</span>
+                  <span className={collection.preRepairExists ? "on" : ""}>Pre-repair</span>
                   {collection.temporaryExists && <span className="on">Temp</span>}
                 </div>
               </div>
@@ -1198,12 +1089,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   <>
                     <button
                       type="button"
-                      disabled={
-                        storageActionBusy || !collection.canRestoreBackup
-                      }
-                      onClick={() =>
-                        handleStorageRepair(collection, "restore-backup")
-                      }
+                      disabled={storageActionBusy || !collection.canRestoreBackup}
+                      onClick={() => handleStorageRepair(collection, "restore-backup")}
                     >
                       {restoreConfirmed ? "Confirm restore" : "Restore backup"}
                     </button>
@@ -1212,9 +1099,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                         type="button"
                         className="care-btn danger"
                         disabled={storageActionBusy}
-                        onClick={() =>
-                          handleStorageRepair(collection, "replace-empty")
-                        }
+                        onClick={() => handleStorageRepair(collection, "replace-empty")}
                       >
                         {replaceConfirmed ? "Confirm empty" : "Replace empty"}
                       </button>
@@ -1234,34 +1119,27 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 )}
               </div>
 
-              {busyForCollection && (
-                <p className="bundle-note">Working on {collection.label}...</p>
-              )}
+              {busyForCollection && <p className="bundle-note">Working on {collection.label}...</p>}
               {!collection.known && (
                 <p className="bundle-note">
                   Update DeKoi before repairing this collection in the app.
                 </p>
               )}
-              {collection.known &&
-                collection.repairable &&
-                !collection.canRestoreBackup && (
-                  <p className="bundle-note">
-                    {collection.backupExists
-                      ? "Backup file exists but cannot be restored."
-                      : "No backup file is available for restore."}
-                  </p>
-                )}
-              {collection.known &&
-                collection.repairable &&
-                collection.canRestoreBackup && (
-                  <p className="bundle-note">
-                    Backup restore is available. Empty replacement is hidden.
-                  </p>
-                )}
+              {collection.known && collection.repairable && !collection.canRestoreBackup && (
+                <p className="bundle-note">
+                  {collection.backupExists
+                    ? "Backup file exists but cannot be restored."
+                    : "No backup file is available for restore."}
+                </p>
+              )}
+              {collection.known && collection.repairable && collection.canRestoreBackup && (
+                <p className="bundle-note">
+                  Backup restore is available. Empty replacement is hidden.
+                </p>
+              )}
               {collection.temporaryExists && (
                 <p className="bundle-note">
-                  Temp is a leftover write scratch file. Repair works from the
-                  live file and backup.
+                  Temp is a leftover write scratch file. Repair works from the live file and backup.
                 </p>
               )}
             </article>
@@ -1284,27 +1162,19 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               <h3 id="bundle-export">Export</h3>
               <span>current pond</span>
             </div>
-            <button
-              type="button"
-              className="care-btn primary"
-              onClick={handleBundleExport}
-            >
+            <button type="button" className="care-btn primary" onClick={handleBundleExport}>
               Export JSON
             </button>
           </div>
           {renderBundleCounts(currentBundleCounts)}
           <div className="runtime-actions">
-            <button
-              type="button"
-              disabled={desktopFileBusy}
-              onClick={handleDesktopBundleExport}
-            >
+            <button type="button" disabled={desktopFileBusy} onClick={handleDesktopBundleExport}>
               Export desktop file
             </button>
           </div>
           <p className="bundle-note">
-            Remote Runtime URL is not included. Saved connection fields,
-            excluding provider secrets, are included in exports.
+            Remote Runtime URL is not included. Saved connection fields, excluding provider secrets,
+            are included in exports.
           </p>
         </section>
 
@@ -1325,9 +1195,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               accept="application/json,.json"
               onChange={handleBundleFileChange}
             />
-            <div className="help">
-              Import previews counts before anything is changed.
-            </div>
+            <div className="help">Import previews counts before anything is changed.</div>
           </div>
 
           <div className="runtime-actions">
@@ -1355,9 +1223,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 <input
                   type="checkbox"
                   checked={bundleReplaceConfirmed}
-                  onChange={(event) =>
-                    setBundleReplaceConfirmed(event.target.checked)
-                  }
+                  onChange={(event) => setBundleReplaceConfirmed(event.target.checked)}
                 />
                 Replace current DeKoi records with this bundle
               </label>
@@ -1365,16 +1231,13 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           )}
 
           {bundleStatus && <p className="bundle-status">{bundleStatus}</p>}
-          {storageImportFailureSource === "bundle" &&
-            renderStorageImportFailureActions("bundle")}
+          {storageImportFailureSource === "bundle" && renderStorageImportFailureActions("bundle")}
 
           <div className="runtime-actions">
             <button
               type="button"
               className="care-btn primary"
-              disabled={
-                !bundlePreview || !bundleReplaceConfirmed || bundleImportBusy
-              }
+              disabled={!bundlePreview || !bundleReplaceConfirmed || bundleImportBusy}
               onClick={handleBundleImport}
             >
               {bundleImportBusy ? "Importing bundle" : "Import bundle"}
@@ -1400,28 +1263,23 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               onChange={handleLegacyFileChange}
             />
             <div className="help">
-              Supports previous thread export files. Converted records are added
-              as native Messenger threads.
+              Supports previous thread export files. Converted records are added as native Messenger
+              threads.
             </div>
           </div>
 
           {legacyPreview && renderLegacyPreview(legacyPreview)}
           {legacyStatus && <p className="bundle-status">{legacyStatus}</p>}
-          {storageImportFailureSource === "legacy" &&
-            renderStorageImportFailureActions("legacy")}
+          {storageImportFailureSource === "legacy" && renderStorageImportFailureActions("legacy")}
 
           <div className="runtime-actions">
             <button
               type="button"
               className="care-btn primary"
-              disabled={
-                !legacyPreview || !legacyImportConfirmed || legacyImportBusy
-              }
+              disabled={!legacyPreview || !legacyImportConfirmed || legacyImportBusy}
               onClick={handleLegacyImport}
             >
-              {legacyImportBusy
-                ? "Importing records"
-                : "Import converted records"}
+              {legacyImportBusy ? "Importing records" : "Import converted records"}
             </button>
           </div>
         </section>
@@ -1480,9 +1338,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
       <div className="care-body">
         {nav.careTab === 0 ? (
           <>
-            <p className="care-intro">
-              Language and regional preferences for the whole pond.
-            </p>
+            <p className="care-intro">Language and regional preferences for the whole pond.</p>
 
             <div className="field">
               <label htmlFor="care-language">Language</label>
@@ -1490,17 +1346,14 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 <option>English</option>
               </select>
               <div className="help">
-                English is the only bundled language for now. New languages will
-                surface here as they're stocked — without disturbing your
-                layout.
+                English is the only bundled language for now. New languages will surface here as
+                they're stocked — without disturbing your layout.
               </div>
             </div>
           </>
         ) : nav.careTab === 1 ? (
           <>
-            <p className="care-intro">
-              Change how the pond looks. Changes apply instantly.
-            </p>
+            <p className="care-intro">Change how the pond looks. Changes apply instantly.</p>
 
             <SettingSection title="Accent">
               <Chip
@@ -1684,14 +1537,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           </>
         ) : nav.careTab === 3 ? (
           <>
-            <p className="care-intro">
-              Default generation parameters for new threads.
-            </p>
+            <p className="care-intro">Default generation parameters for new threads.</p>
 
-            <SettingSection
-              title="Generation"
-              description="Global defaults for model output"
-            >
+            <SettingSection title="Generation" description="Global defaults for model output">
               <div className="slider-field">
                 <div className="sl-top">
                   <b>Temperature</b>
@@ -1699,9 +1547,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <Slider
                   value={defaultTemperature}
-                  onChange={(v) =>
-                    nav.updateAppSettings({ defaultTemperature: v })
-                  }
+                  onChange={(v) => nav.updateAppSettings({ defaultTemperature: v })}
                   min={0}
                   max={200}
                   step={5}
@@ -1720,9 +1566,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 </div>
                 <NumberField
                   value={defaultMaxTokens}
-                  onChange={(v) =>
-                    nav.updateAppSettings({ defaultMaxTokens: v })
-                  }
+                  onChange={(v) => nav.updateAppSettings({ defaultMaxTokens: v })}
                   min={64}
                   max={8192}
                   step={64}
@@ -1757,8 +1601,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 lineHeight: 1.45,
               }}
             >
-              These are global defaults. You can override them per thread in the
-              messenger.
+              These are global defaults. You can override them per thread in the messenger.
             </p>
           </>
         ) : (
@@ -1775,8 +1618,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   onChange={(event) => setRuntimeUrl(event.target.value)}
                 />
                 <div className="help">
-                  Later profile and save-data sync will use this host. Leave
-                  empty for desktop host storage inside Tauri.
+                  Later profile and save-data sync will use this host. Leave empty for desktop host
+                  storage inside Tauri.
                 </div>
               </div>
 
@@ -1792,11 +1635,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               </div>
 
               <div className="runtime-status">
-                <b>
-                  {desktopHostStatus?.hostKind === "tauri"
-                    ? "Desktop host"
-                    : "Browser host"}
-                </b>
+                <b>{desktopHostStatus?.hostKind === "tauri" ? "Desktop host" : "Browser host"}</b>
                 <span>
                   {desktopHostStatus?.message ??
                     "Check whether native host capabilities are available."}
@@ -1805,12 +1644,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
               {desktopHostStatus && (
                 <div className="host-flags" aria-label="Desktop host readiness">
-                  <span className={desktopHostStatus.storageReady ? "on" : ""}>
-                    Storage
-                  </span>
-                  <span className={desktopHostStatus.runtimeReady ? "on" : ""}>
-                    Runtime
-                  </span>
+                  <span className={desktopHostStatus.storageReady ? "on" : ""}>Storage</span>
+                  <span className={desktopHostStatus.runtimeReady ? "on" : ""}>Runtime</span>
                 </div>
               )}
 
@@ -1827,11 +1662,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                 <button type="button" onClick={handleUseDesktopRuntime}>
                   Use desktop
                 </button>
-                <button
-                  type="button"
-                  disabled={desktopHostBusy}
-                  onClick={handleDesktopHostCheck}
-                >
+                <button type="button" disabled={desktopHostBusy} onClick={handleDesktopHostCheck}>
                   {desktopHostBusy ? "Checking host" : "Check host"}
                 </button>
               </div>
@@ -1864,13 +1695,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               </div>
 
               {nav.storageHasUnsavedChanges && (
-                <p className="bundle-note">
-                  Storage has local changes or pending saves.
-                </p>
+                <p className="bundle-note">Storage has local changes or pending saves.</p>
               )}
-              {storageReloadStatus && (
-                <p className="bundle-status">{storageReloadStatus}</p>
-              )}
+              {storageReloadStatus && <p className="bundle-status">{storageReloadStatus}</p>}
               {renderStorageRepairCollections()}
             </section>
 
@@ -1895,9 +1722,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
               </button>
             </div>
 
-            {desktopStorageStatus && (
-              <p className="bundle-status">{desktopStorageStatus}</p>
-            )}
+            {desktopStorageStatus && <p className="bundle-status">{desktopStorageStatus}</p>}
           </>
         )}
       </div>

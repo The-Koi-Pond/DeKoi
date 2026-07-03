@@ -24,11 +24,7 @@ export function ChatSettingsPromptDrawer({
     <ChatSettingsDrawer
       drawerId="prompt"
       open={open}
-      summary={
-        systemPromptMode === "custom"
-          ? "Custom system prompt"
-          : "Default system prompt"
-      }
+      summary={systemPromptMode === "custom" ? "Custom system prompt" : "Default system prompt"}
       title="Messenger Prompt"
       onToggle={onToggle}
     >
@@ -44,9 +40,7 @@ export function ChatSettingsPromptDrawer({
               { label: "Custom", value: "custom" },
             ]}
             disabled={!activeMessengerThread}
-            onChange={(value) =>
-              onSystemPromptModeChange(value as MessengerSystemPromptMode)
-            }
+            onChange={(value) => onSystemPromptModeChange(value as MessengerSystemPromptMode)}
           />
           <button
             type="button"

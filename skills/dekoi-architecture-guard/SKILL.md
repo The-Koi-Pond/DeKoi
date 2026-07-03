@@ -28,7 +28,7 @@ Also keep these current repo files in force when relevant:
 - `.github/agents/dekoi-workflow.md` for proof and workflow gates.
 - `ARCHITECTURE.md` for source lanes, dependency direction, storage direction,
   and current seed owners.
-- `SURFACE_LABELS.md` for public/internal naming and legacy import boundaries.
+- `DOMAIN_MODEL.md` for public/internal naming and legacy import boundaries.
 
 ## Workflow
 

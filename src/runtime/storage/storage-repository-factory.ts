@@ -18,12 +18,7 @@ import type {
 export { getHostStorageMode } from "./host-storage";
 export { loadHostStorageMetadata };
 export { HOST_STORAGE_UNAVAILABLE_MESSAGE };
-export type {
-  StorageCollectionMetadata,
-  StorageMode,
-  StorageResult,
-  StorageStatus,
-};
+export type { StorageCollectionMetadata, StorageMode, StorageResult, StorageStatus };
 
 export function createStorageRepository<T extends StorageRecord>(
   input: StorageRepositoryInput<T>,

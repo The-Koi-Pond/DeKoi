@@ -57,13 +57,27 @@ Output (JSON):
     try {
       cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
     } catch (err) {
-      console.log(JSON.stringify({ ok: false, error: "config_invalid", message: err.message, path: CONFIG_PATH }));
+      console.log(
+        JSON.stringify({
+          ok: false,
+          error: "config_invalid",
+          message: err.message,
+          path: CONFIG_PATH,
+        }),
+      );
       return;
     }
     try {
       validateConfig(cfg);
     } catch (err) {
-      console.log(JSON.stringify({ ok: false, error: "config_invalid", message: err.message, path: CONFIG_PATH }));
+      console.log(
+        JSON.stringify({
+          ok: false,
+          error: "config_invalid",
+          message: err.message,
+          path: CONFIG_PATH,
+        }),
+      );
       return;
     }
     console.log(JSON.stringify({ ok: true, config: cfg, path: CONFIG_PATH }));
@@ -114,7 +128,11 @@ Output (JSON):
     const withoutOld = revertCspMeta(removeTag(content, config.commentSyntax));
     const withTag = insertTag(withoutOld, config, port);
     if (withTag === withoutOld) {
-      return { file: relFile, error: "insertion_point_not_found", anchor: config.insertBefore || config.insertAfter };
+      return {
+        file: relFile,
+        error: "insertion_point_not_found",
+        anchor: config.insertBefore || config.insertAfter,
+      };
     }
     const updated = patchCspMeta(withTag, port);
     fs.writeFileSync(absFile, updated, "utf-8");
@@ -294,7 +312,8 @@ function insertTag(content, config, port) {
   if (idx === -1) return content;
   const after = idx + config.insertAfter.length;
   // Preserve a single trailing newline if the anchor didn't end with one
-  const prefix = content[after] === "\n" ? content.slice(0, after + 1) : content.slice(0, after) + "\n";
+  const prefix =
+    content[after] === "\n" ? content.slice(0, after + 1) : content.slice(0, after) + "\n";
   return prefix + block + content.slice(prefix.length);
 }
 
@@ -410,7 +429,8 @@ export function patchCspMeta(content, port) {
     // `<meta … />` round-trips byte-for-byte.
     const trailingWs = (attrs.match(/[ \t]*$/) || [""])[0];
     const attrsBody = attrs.slice(0, attrs.length - trailingWs.length);
-    const newAttrs = attrsBody.replace(contentAttr.full, newContentAttr) + " " + marker + trailingWs;
+    const newAttrs =
+      attrsBody.replace(contentAttr.full, newContentAttr) + " " + marker + trailingWs;
     const newTag = tag.full.replace(attrs, newAttrs);
 
     result = result.slice(0, tag.start) + newTag + result.slice(tag.end);

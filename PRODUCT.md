@@ -21,8 +21,9 @@ room for deeper tools when users want them.
 
 Calm, intimate, handmade. DeKoi should feel like a small creative tool that
 respects local files and user ownership, not like a cloud dashboard or a cloned
-chat client. It can be atmospheric, but the app must stay readable, fast, and
-direct.
+chat client. It can use water, paper, ink, coral, and soft light as motifs and
+stay atmospheric, but the interface must remain readable, fast, and
+touch-friendly. The full visual system lives in [DESIGN.md](./DESIGN.md).
 
 ## First Product Slice
 
@@ -32,12 +33,6 @@ direct.
 4. Reopen the conversation without needing external services.
 5. Add provider support behind one focused runtime boundary.
 
-## Design Direction
-
-DeKoi should feel calm, intimate, and handmade. It can use water, paper, ink,
-coral, and soft light as motifs, but the interface still needs to be readable,
-fast, and touch-friendly.
-
 ## Design Principles
 
 - Keep the first creative loop obvious: make, talk, save, reopen.
@@ -45,8 +40,7 @@ fast, and touch-friendly.
   has to understand.
 - Preserve user ownership: local files, explicit provider connections, and
   reversible import/export flows should feel ordinary.
-- Make Messenger and Roleplay distinct without copying another product's mode
-  language, layouts, or voice.
+- Make Messenger and Roleplay distinct, each with its own DeKoi voice.
 - Use atmosphere to support creative play, not to hide controls or reduce
   legibility.
 
@@ -62,8 +56,6 @@ fast, and touch-friendly.
 
 - Sterile SaaS dashboards with gray card grids and generic enterprise spacing.
 - Discord-style clone surfaces where the product identity disappears.
-- Prior-project mode names, route names, mascot language, UI copy, or component
-  layouts.
 - Decorative glassmorphism, gradient text, hidden hover-only controls, and
   modal-first workflows.
 - Visual drama that makes long chat text, settings, storage flows, or provider

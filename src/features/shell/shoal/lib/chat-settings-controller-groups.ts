@@ -31,8 +31,7 @@ export interface ChatSettingsThreadResourceActions {
   onToggleLorebook: (lorebookId: string) => void;
 }
 
-export interface ChatSettingsResourceActions
-  extends ChatSettingsThreadResourceActions {
+export interface ChatSettingsResourceActions extends ChatSettingsThreadResourceActions {
   onSelectorOpenChange: (open: boolean) => void;
 }
 
@@ -43,8 +42,7 @@ export interface ChatSettingsPromptActions {
 
 export type ChatSettingsMessengerDrawerActions = ChatSettingsDrawerActions;
 export type ChatSettingsMessengerIdentityActions = ChatSettingsIdentityActions;
-export type ChatSettingsMessengerThreadResourceActions =
-  ChatSettingsThreadResourceActions;
+export type ChatSettingsMessengerThreadResourceActions = ChatSettingsThreadResourceActions;
 export type ChatSettingsMessengerResourceActions = ChatSettingsResourceActions;
 export type ChatSettingsMessengerPromptActions = ChatSettingsPromptActions;
 

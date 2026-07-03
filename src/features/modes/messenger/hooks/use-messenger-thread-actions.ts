@@ -39,54 +39,55 @@ export function useMessengerThreadActions({
   view,
   openMessengerThread,
 }: UseMessengerThreadActionsInput) {
-  const createMessengerThread = useCallback((input?: MessengerThreadCreateInput) => {
-    const now = currentIsoTimestamp();
-    const activePersonaId = input?.activePersonaId?.trim() || null;
-    const fallbackCharacterIds = characters[0] ? [characters[0].id] : [];
-    const cleanCharacterIds: string[] = [...new Set<string>(
-      (input?.characterIds ?? fallbackCharacterIds)
-        .map((id) => id.trim())
-        .filter(Boolean),
-    )];
-    const cleanLorebookIds: string[] = [...new Set<string>(
-      (input?.lorebookIds ?? [])
-        .map((id) => id.trim())
-        .filter(Boolean),
-    )];
-    const activeConnection =
-      providerConnections.find((connection) =>
-        input?.providerConnectionId
-          ? connection.id === input.providerConnectionId
-          : connection.id === activeMessengerConnectionId,
-      ) ??
-      providerConnections[0] ??
-      null;
-    const fallbackTitle =
-      characters
-        .filter((companion) => cleanCharacterIds.includes(companion.id))
-        .map((companion) => companion.displayName)
-        .join(" + ") || `New Messenger ${messengerThreads.length + 1}`;
-    const thread = buildMessengerThread({
-      activePersonaId,
-      characterIds: cleanCharacterIds,
-      id: createRecordId("messenger-thread"),
-      lorebookIds: cleanLorebookIds,
-      now,
-      providerConnectionId: activeConnection?.id ?? null,
-      title: input?.title?.trim() || fallbackTitle,
-    });
+  const createMessengerThread = useCallback(
+    (input?: MessengerThreadCreateInput) => {
+      const now = currentIsoTimestamp();
+      const activePersonaId = input?.activePersonaId?.trim() || null;
+      const fallbackCharacterIds = characters[0] ? [characters[0].id] : [];
+      const cleanCharacterIds: string[] = [
+        ...new Set<string>(
+          (input?.characterIds ?? fallbackCharacterIds).map((id) => id.trim()).filter(Boolean),
+        ),
+      ];
+      const cleanLorebookIds: string[] = [
+        ...new Set<string>((input?.lorebookIds ?? []).map((id) => id.trim()).filter(Boolean)),
+      ];
+      const activeConnection =
+        providerConnections.find((connection) =>
+          input?.providerConnectionId
+            ? connection.id === input.providerConnectionId
+            : connection.id === activeMessengerConnectionId,
+        ) ??
+        providerConnections[0] ??
+        null;
+      const fallbackTitle =
+        characters
+          .filter((companion) => cleanCharacterIds.includes(companion.id))
+          .map((companion) => companion.displayName)
+          .join(" + ") || `New Messenger ${messengerThreads.length + 1}`;
+      const thread = buildMessengerThread({
+        activePersonaId,
+        characterIds: cleanCharacterIds,
+        id: createRecordId("messenger-thread"),
+        lorebookIds: cleanLorebookIds,
+        now,
+        providerConnectionId: activeConnection?.id ?? null,
+        title: input?.title?.trim() || fallbackTitle,
+      });
 
-    setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
-    openMessengerThread(thread.id);
-    return thread;
-  }, [
-    activeMessengerConnectionId,
-    characters,
-    messengerThreads.length,
-    openMessengerThread,
-    providerConnections,
-    setMessengerThreads,
-  ]);
+      setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
+      openMessengerThread(thread.id);
+      return thread;
+    },
+    [
+      activeMessengerConnectionId,
+      characters,
+      messengerThreads.length,
+      openMessengerThread,
+      providerConnections,
+      setMessengerThreads,
+    ],
+  );
 
   const updateMessengerThread = useCallback(
     (thread: MessengerThread) => {
@@ -109,9 +110,7 @@ export function useMessengerThreadActions({
       const now = currentIsoTimestamp();
       setMessengerThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.id === threadId
-            ? renameMessengerThreadRecord(thread, trimmedTitle, now)
-            : thread,
+          thread.id === threadId ? renameMessengerThreadRecord(thread, trimmedTitle, now) : thread,
         ),
       );
     },

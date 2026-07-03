@@ -17,19 +17,15 @@ interface UseThreadShoalViewModelInput {
   nav: ShoalRailProps["nav"];
 }
 
-export function useThreadShoalViewModel({
-  nav,
-}: UseThreadShoalViewModelInput) {
+export function useThreadShoalViewModel({ nav }: UseThreadShoalViewModelInput) {
   const [query, setQuery] = useState("");
   const sortMode = nav.appSettings.shoalSortMode;
   const nextMessengerThreadNumber = nav.messengerThreads.length + 1;
   const nextRoleplayThreadNumber = nav.roleplayThreads.length + 1;
   const activeSurface = nav.selectedSurface === ROLEPLAY ? ROLEPLAY : MESSENGER;
   const isRoleplaySurface = activeSurface === ROLEPLAY;
-  const activeMessengerThreadId =
-    nav.view.kind === "messenger" ? nav.view.threadId : null;
-  const activeRoleplayThreadId =
-    nav.view.kind === "roleplay" ? nav.view.threadId : null;
+  const activeMessengerThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
+  const activeRoleplayThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
   const characterById = useMemo(
     () => new Map(nav.characters.map((character) => [character.id, character])),
     [nav.characters],
@@ -42,18 +38,10 @@ export function useThreadShoalViewModel({
         nextMessengerThreadNumber,
         nextRoleplayThreadNumber,
       }),
-    [
-      characterById,
-      nav.lorebooks,
-      nextMessengerThreadNumber,
-      nextRoleplayThreadNumber,
-    ],
+    [characterById, nav.lorebooks, nextMessengerThreadNumber, nextRoleplayThreadNumber],
   );
   const sanitizedProviderConnections = useMemo(
-    () =>
-      nav.providerConnections.map((connection) =>
-        sanitizeProviderConnectionRecord(connection),
-      ),
+    () => nav.providerConnections.map((connection) => sanitizeProviderConnectionRecord(connection)),
     [nav.providerConnections],
   );
   const defaultMessengerConnectionId =
@@ -76,8 +64,7 @@ export function useThreadShoalViewModel({
 
   function cycleSortMode() {
     const currentIndex = SHOAL_SORT_ORDER.indexOf(sortMode);
-    const nextIndex =
-      currentIndex === -1 ? 0 : (currentIndex + 1) % SHOAL_SORT_ORDER.length;
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % SHOAL_SORT_ORDER.length;
     nav.setShoalSortMode(SHOAL_SORT_ORDER[nextIndex]);
   }
 

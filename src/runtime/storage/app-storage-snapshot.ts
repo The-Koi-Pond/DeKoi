@@ -1,21 +1,6 @@
-import type { CharacterRecord } from "../../engine/contracts/types/character";
-import {
-  attachRoleplayEntriesToThreads,
-  type RoleplayThread,
-} from "../../engine/contracts/types/roleplay";
-import type { LorebookRecord } from "../../engine/contracts/types/lorebook";
-import {
-  attachMessengerMessagesToThreads,
-  type MessengerThread,
-} from "../../engine/contracts/types/messenger";
-import type { PersonaRecord } from "../../engine/contracts/types/persona";
-import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
-import type { RippleState } from "../../engine/contracts/types/ripples";
-import {
-  loadAppSettingsFromStorage,
-  saveAppSettingsToStorage,
-} from "./collections/app-settings";
-import type { AppSettings } from "../../engine/contracts/types/app-settings";
+import { attachRoleplayEntriesToThreads } from "../../engine/contracts/types/roleplay";
+import { attachMessengerMessagesToThreads } from "../../engine/contracts/types/messenger";
+import { loadAppSettingsFromStorage, saveAppSettingsToStorage } from "./collections/app-settings";
 import {
   loadCharacterRecordsFromStorage,
   saveCharacterRecordsToStorage,
@@ -58,37 +43,19 @@ import {
   type StorageResult,
 } from "./storage-repository";
 import { appStorageCollectionCount } from "./app-storage-collection-projection";
+import { getHostStorageMode, loadHostStorageMetadata } from "./storage-repository-factory";
+import { STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
 import {
-  getHostStorageMode,
-  loadHostStorageMetadata,
-} from "./storage-repository-factory";
-import {
-  STORAGE_ENTITIES,
-  type StorageEntity,
-} from "./storage-entities";
+  APP_STORAGE_COLLECTION_KEYS,
+  type AppStorageCollectionKey,
+  type AppStorageRecords,
+} from "./app-storage-records";
 
-export type AppStorageRecords = {
-  appSettings: AppSettings;
-  characters: CharacterRecord[];
-  personas: PersonaRecord[];
-  lorebooks: LorebookRecord[];
-  providerConnections: ProviderConnectionRecord[];
-  roleplayThreads: RoleplayThread[];
-  messengerThreads: MessengerThread[];
-  rippleStates: RippleState[];
-};
-
-export type AppStorageCollectionKey =
-  | "appSettings"
-  | "characters"
-  | "personas"
-  | "lorebooks"
-  | "providerConnections"
-  | "roleplayThreads"
-  | "roleplayEntries"
-  | "messengerThreads"
-  | "messengerMessages"
-  | "rippleStates";
+export {
+  APP_STORAGE_COLLECTION_KEYS,
+  type AppStorageCollectionKey,
+  type AppStorageRecords,
+} from "./app-storage-records";
 
 export type AppStorageMetadata = Partial<
   Record<AppStorageCollectionKey, StorageCollectionMetadata>
@@ -112,23 +79,7 @@ export type AppStorageSnapshot = AppStorageRecords & {
 };
 
 export type AppStorageMigrationCollectionKey =
-  | "roleplayThreads"
-  | "roleplayEntries"
-  | "messengerThreads"
-  | "messengerMessages";
-
-export const APP_STORAGE_COLLECTION_KEYS = [
-  "appSettings",
-  "characters",
-  "personas",
-  "lorebooks",
-  "providerConnections",
-  "roleplayThreads",
-  "roleplayEntries",
-  "messengerThreads",
-  "messengerMessages",
-  "rippleStates",
-] as const satisfies readonly AppStorageCollectionKey[];
+  "roleplayThreads" | "roleplayEntries" | "messengerThreads" | "messengerMessages";
 
 export const APP_STORAGE_COLLECTION_ENTITIES = {
   appSettings: STORAGE_ENTITIES.appSettings,
@@ -205,9 +156,7 @@ function appStorageMetadataByCollectionKey(
   );
   const storageMetadata: AppStorageMetadata = {};
   for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
-    const metadata = metadataByEntity.get(
-      APP_STORAGE_COLLECTION_ENTITIES[collectionKey],
-    );
+    const metadata = metadataByEntity.get(APP_STORAGE_COLLECTION_ENTITIES[collectionKey]);
     if (metadata) storageMetadata[collectionKey] = metadata;
   }
   return storageMetadata;
@@ -242,9 +191,7 @@ function asAppStorageErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
 }
 
-function storageResultWithoutCollectionMetadata(
-  result: StorageResult,
-): AppStorageStatusResult {
+function storageResultWithoutCollectionMetadata(result: StorageResult): AppStorageStatusResult {
   return {
     mode: result.mode,
     status: result.status,
@@ -252,30 +199,22 @@ function storageResultWithoutCollectionMetadata(
   };
 }
 
-function appStorageRequiresReload(
-  collections: readonly AppStorageCollectionReplaceResult[],
-) {
+function appStorageRequiresReload(collections: readonly AppStorageCollectionReplaceResult[]) {
   return collections.some((collection) => collection.status === "ready");
 }
 
-export async function loadAppStorageMetadata(
-  rawUrl: string,
-): Promise<AppStorageMetadataResult> {
+export async function loadAppStorageMetadata(rawUrl: string): Promise<AppStorageMetadataResult> {
   const metadataResult = await loadHostStorageMetadata(rawUrl);
   return {
     mode: metadataResult.mode,
     status: metadataResult.status,
     message: metadataResult.message,
     metadataAvailable: metadataResult.metadataAvailable,
-    storageMetadata: appStorageMetadataByCollectionKey(
-      metadataResult.collectionMetadata,
-    ),
+    storageMetadata: appStorageMetadataByCollectionKey(metadataResult.collectionMetadata),
   };
 }
 
-export async function loadAppStorageSnapshot(
-  rawUrl: string,
-): Promise<AppStorageSnapshot> {
+export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorageSnapshot> {
   const [
     appSettingsSnapshot,
     characterSnapshot,
@@ -359,10 +298,7 @@ async function saveAppStorageCollection(
     case "lorebooks":
       return saveLorebookRecordsToStorage(snapshot.lorebooks, rawUrl);
     case "providerConnections":
-      return saveProviderConnectionRecordsToStorage(
-        snapshot.providerConnections,
-        rawUrl,
-      );
+      return saveProviderConnectionRecordsToStorage(snapshot.providerConnections, rawUrl);
     case "roleplayThreads":
       return saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl);
     case "roleplayEntries":
@@ -406,11 +342,7 @@ export async function saveAppStorageSnapshot(
   snapshot: AppStorageRecords,
   rawUrl: string,
 ): Promise<AppStorageSaveResult> {
-  return saveAppStorageCollections(
-    snapshot,
-    APP_STORAGE_COLLECTION_KEYS,
-    rawUrl,
-  );
+  return saveAppStorageCollections(snapshot, APP_STORAGE_COLLECTION_KEYS, rawUrl);
 }
 
 export async function replaceAppStorageSnapshot(

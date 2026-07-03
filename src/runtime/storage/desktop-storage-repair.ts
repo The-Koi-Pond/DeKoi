@@ -14,15 +14,8 @@ import {
   APP_STORAGE_COLLECTION_LABELS,
   type AppStorageCollectionKey,
 } from "./app-storage-snapshot";
-import {
-  HOST_STORAGE_ENTITIES,
-  type StorageEntity,
-} from "./storage-entities";
-import type {
-  StorageCollectionMetadata,
-  StorageMode,
-  StorageStatus,
-} from "./storage-repository";
+import { HOST_STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
+import type { StorageCollectionMetadata, StorageMode, StorageStatus } from "./storage-repository";
 
 export type AppStorageRepairStrategy = DesktopStorageRepairStrategy;
 
@@ -54,8 +47,7 @@ type UnknownAppStorageRepairCollectionStatus = AppStorageRepairCollectionBase & 
 };
 
 export type AppStorageRepairCollectionStatus =
-  | KnownAppStorageRepairCollectionStatus
-  | UnknownAppStorageRepairCollectionStatus;
+  KnownAppStorageRepairCollectionStatus | UnknownAppStorageRepairCollectionStatus;
 
 export type AppStorageRepairStatusResult = {
   mode: StorageMode;
@@ -86,26 +78,19 @@ export type AppStorageRepairFinishResult = {
 
 const COLLECTION_KEY_BY_ENTITY = new Map<StorageEntity, AppStorageCollectionKey>(
   Object.entries(APP_STORAGE_COLLECTION_ENTITIES).map(
-    ([collectionKey, entity]) =>
-      [entity, collectionKey as AppStorageCollectionKey] as const,
+    ([collectionKey, entity]) => [entity, collectionKey as AppStorageCollectionKey] as const,
   ),
 );
 
 function asErrorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : String(error ?? "Unknown storage error.");
+  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
 }
 
 function normalizeStorageEntity(entity: string): StorageEntity | null {
-  return HOST_STORAGE_ENTITIES.includes(entity as StorageEntity)
-    ? (entity as StorageEntity)
-    : null;
+  return HOST_STORAGE_ENTITIES.includes(entity as StorageEntity) ? (entity as StorageEntity) : null;
 }
 
-function collectionKeyForEntity(
-  entity: StorageEntity,
-): AppStorageCollectionKey | null {
+function collectionKeyForEntity(entity: StorageEntity): AppStorageCollectionKey | null {
   return COLLECTION_KEY_BY_ENTITY.get(entity) ?? null;
 }
 
@@ -200,9 +185,7 @@ function repairUnavailableMessage(mode: StorageMode) {
     : "Desktop storage repair is only available inside the Tauri app.";
 }
 
-function repairUnavailableResult(
-  mode: StorageMode,
-): AppStorageRepairStatusResult {
+function repairUnavailableResult(mode: StorageMode): AppStorageRepairStatusResult {
   return {
     mode,
     status: mode === "unavailable" ? "error" : "ready",
@@ -223,11 +206,8 @@ export async function loadAppStorageRepairStatus(
       const normalized = normalizeRepairStatus(result);
       return normalized ? [normalized] : [];
     });
-    const blockedCount = collections.filter((collection) => collection.error)
-      .length;
-    const finishCount = collections.filter(
-      (collection) => collection.canFinishRepair,
-    ).length;
+    const blockedCount = collections.filter((collection) => collection.error).length;
+    const finishCount = collections.filter((collection) => collection.canFinishRepair).length;
 
     if (blockedCount > 0) {
       return {

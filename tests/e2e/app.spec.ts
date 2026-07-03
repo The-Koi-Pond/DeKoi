@@ -86,9 +86,7 @@ type RuntimeCall = {
 };
 type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
 
-function createChatSettingsViewModel(
-  activeMessengerThread: MessengerThread | null,
-) {
+function createChatSettingsViewModel(activeMessengerThread: MessengerThread | null) {
   return getChatSettingsViewModel({
     activeMessengerThread,
     appSettings: DEFAULT_APP_SETTINGS,
@@ -101,10 +99,7 @@ function createChatSettingsViewModel(
 
 function createOpenChatSettingsDrawers() {
   return Object.fromEntries(
-    Object.keys(CHAT_SETTINGS_DRAWER_DEFAULTS).map((drawerId) => [
-      drawerId,
-      true,
-    ]),
+    Object.keys(CHAT_SETTINGS_DRAWER_DEFAULTS).map((drawerId) => [drawerId, true]),
   ) as typeof CHAT_SETTINGS_DRAWER_DEFAULTS;
 }
 
@@ -124,10 +119,7 @@ function jsonFilePayload(name: string, value: unknown) {
   };
 }
 
-async function installRemoteRuntime(
-  page: Page,
-  initialRecords: RuntimeRecords = {},
-) {
+async function installRemoteRuntime(page: Page, initialRecords: RuntimeRecords = {}) {
   const calls: RuntimeCall[] = [];
   const records = new Map<StorageEntity, unknown[]>();
   for (const [entity, entityRecords] of Object.entries(initialRecords)) {
@@ -139,10 +131,7 @@ async function installRemoteRuntime(
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
     const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
     const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command =
-      isRecord(parsed) && typeof parsed.command === "string"
-        ? parsed.command
-        : "";
+    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
     const entity = isStorageEntity(args.entity) ? args.entity : null;
     calls.push({ command, entity });
 
@@ -184,10 +173,7 @@ async function installFailingRemoteRuntime(
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
     const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
     const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command =
-      isRecord(parsed) && typeof parsed.command === "string"
-        ? parsed.command
-        : "";
+    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
     const entity = isStorageEntity(args.entity) ? args.entity : null;
     calls.push({ command, entity });
 
@@ -244,10 +230,7 @@ async function installDeferredReplaceRemoteRuntime(
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
     const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
     const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command =
-      isRecord(parsed) && typeof parsed.command === "string"
-        ? parsed.command
-        : "";
+    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
     const entity = isStorageEntity(args.entity) ? args.entity : null;
     calls.push({ command, entity });
 
@@ -308,10 +291,7 @@ async function installDeferredListRemoteRuntime(
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
     const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
     const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command =
-      isRecord(parsed) && typeof parsed.command === "string"
-        ? parsed.command
-        : "";
+    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
     const entity = isStorageEntity(args.entity) ? args.entity : null;
     calls.push({ command, entity });
 
@@ -359,10 +339,7 @@ async function openDataAndBackupSettings(page: Page) {
 
 async function connectRemoteRuntime(page: Page) {
   await page.getByLabel("Remote Runtime URL").fill(TEST_RUNTIME_URL);
-  await page
-    .locator("form.runtime-panel")
-    .getByRole("button", { name: "Apply" })
-    .click();
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
   await expect(
     page.getByText(/Remote runtime storage is active\.|Saved through remote runtime\./),
   ).toBeVisible();
@@ -422,21 +399,13 @@ function createEmptyAppStorageRecords(): AppStorageRecords {
   };
 }
 
-function createTestStorageSignatures(
-  signature: string,
-): AppStorageCollectionSignatures {
+function createTestStorageSignatures(signature: string): AppStorageCollectionSignatures {
   return Object.fromEntries(
-    APP_STORAGE_COLLECTION_KEYS.map((collectionKey) => [
-      collectionKey,
-      signature,
-    ]),
+    APP_STORAGE_COLLECTION_KEYS.map((collectionKey) => [collectionKey, signature]),
   ) as AppStorageCollectionSignatures;
 }
 
-function expectReloadAfterPartialReplace(
-  calls: RuntimeCall[],
-  callsBeforeImport: number,
-) {
+function expectReloadAfterPartialReplace(calls: RuntimeCall[], callsBeforeImport: number) {
   const importCalls = calls.slice(callsBeforeImport);
   const replaceEntities = importCalls
     .filter((call) => call.command === "storage_replace")
@@ -448,9 +417,7 @@ function expectReloadAfterPartialReplace(
   );
   expect(failedReplaceIndex).toBeGreaterThanOrEqual(0);
   expect(
-    importCalls
-      .slice(failedReplaceIndex + 1)
-      .filter((call) => call.command === "storage_list"),
+    importCalls.slice(failedReplaceIndex + 1).filter((call) => call.command === "storage_list"),
   ).toHaveLength(STORAGE_ENTITIES.length);
 }
 
@@ -568,12 +535,8 @@ test("messenger thread reference summary flags missing settings before send", ()
       selectedCompanionCount: 0,
     }),
   );
-  expect(getMessengerThreadSendBlocker(summary)).toContain(
-    "Create a connection",
-  );
-  expect(
-    getMessengerThreadReferenceNotices(summary).map((notice) => notice.id),
-  ).toEqual([
+  expect(getMessengerThreadSendBlocker(summary)).toContain("Create a connection");
+  expect(getMessengerThreadReferenceNotices(summary).map((notice) => notice.id)).toEqual([
     "no-connection",
     "no-companion",
     "missing-persona",
@@ -642,12 +605,8 @@ test("roleplay thread reference summary flags missing settings before send", () 
       selectedCompanionCount: 0,
     }),
   );
-  expect(getRoleplayThreadSendBlocker(summary)).toContain(
-    "Create a connection",
-  );
-  expect(
-    getRoleplayThreadReferenceNotices(summary).map((notice) => notice.id),
-  ).toEqual([
+  expect(getRoleplayThreadSendBlocker(summary)).toContain("Create a connection");
+  expect(getRoleplayThreadReferenceNotices(summary).map((notice) => notice.id)).toEqual([
     "no-connection",
     "no-companion",
     "missing-persona",
@@ -742,9 +701,7 @@ test("storage metadata comparison reports changed collection files", () => {
     },
   } satisfies AppStorageMetadata;
 
-  expect(changedAppStorageMetadataKeys(loadedMetadata, currentMetadata)).toEqual([
-    "characters",
-  ]);
+  expect(changedAppStorageMetadataKeys(loadedMetadata, currentMetadata)).toEqual(["characters"]);
 });
 
 test("storage reload decision blocks active work and confirms dirty-only reload", () => {
@@ -969,15 +926,11 @@ test("transcript edits change transcript projection without changing thread reco
     now: messageAt,
     thread: messengerThread,
   });
-  const messengerWithMessage = appendMessengerMessages(messengerThread, [
-    messengerMessage,
-  ]);
+  const messengerWithMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
   expect(toMessengerThreadRecord(messengerWithMessage)).toEqual(
     toMessengerThreadRecord(messengerThread),
   );
-  expect(extractMessengerMessages([messengerWithMessage])).toEqual([
-    messengerMessage,
-  ]);
+  expect(extractMessengerMessages([messengerWithMessage])).toEqual([messengerMessage]);
 
   const roleplayThread = createRoleplayThread({
     activePersonaId: null,
@@ -992,12 +945,8 @@ test("transcript edits change transcript projection without changing thread reco
     now: messageAt,
     thread: roleplayThread,
   });
-  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [
-    roleplayEntry,
-  ]);
-  expect(toRoleplayThreadRecord(roleplayWithEntry)).toEqual(
-    toRoleplayThreadRecord(roleplayThread),
-  );
+  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
+  expect(toRoleplayThreadRecord(roleplayWithEntry)).toEqual(toRoleplayThreadRecord(roleplayThread));
   expect(extractRoleplayEntries([roleplayWithEntry])).toEqual([roleplayEntry]);
 });
 
@@ -1026,10 +975,7 @@ test("split transcript reassembly preserves persisted array order", () => {
     [toMessengerThreadRecord(messengerThread)],
     [messengerSecond, messengerFirst],
   );
-  expect(reassembledMessenger[0].messages).toEqual([
-    messengerSecond,
-    messengerFirst,
-  ]);
+  expect(reassembledMessenger[0].messages).toEqual([messengerSecond, messengerFirst]);
 
   const roleplayThread = createRoleplayThread({
     activePersonaId: null,
@@ -1054,15 +1000,10 @@ test("split transcript reassembly preserves persisted array order", () => {
     [toRoleplayThreadRecord(roleplayThread)],
     [roleplaySecond, roleplayFirst],
   );
-  expect(reassembledRoleplay[0].entries).toEqual([
-    roleplaySecond,
-    roleplayFirst,
-  ]);
+  expect(reassembledRoleplay[0].entries).toEqual([roleplaySecond, roleplayFirst]);
 });
 
-test("legacy embedded transcripts migrate into split collections on load", async ({
-  page,
-}) => {
+test("legacy embedded transcripts migrate into split collections on load", async ({ page }) => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const messageAt = "2026-06-28T00:01:00.000Z";
   const messengerThread = createMessengerThread({
@@ -1091,12 +1032,8 @@ test("legacy embedded transcripts migrate into split collections on load", async
     now: messageAt,
     thread: roleplayThread,
   });
-  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [
-    messengerMessage,
-  ]);
-  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [
-    roleplayEntry,
-  ]);
+  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
+  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
   const runtime = await installRemoteRuntime(page, {
     "messenger-threads": [messengerWithEmbeddedMessage],
     "roleplay-threads": [roleplayWithEmbeddedEntry],
@@ -1113,12 +1050,7 @@ test("legacy embedded transcripts migrate into split collections on load", async
           .map((call) => call.entity),
       { timeout: 8000 },
     )
-    .toEqual([
-      "roleplay-threads",
-      "roleplay-entries",
-      "messenger-threads",
-      "messenger-messages",
-    ]);
+    .toEqual(["roleplay-threads", "roleplay-entries", "messenger-threads", "messenger-messages"]);
   expect(runtime.records.get("messenger-threads")).toEqual([
     toMessengerThreadRecord(messengerWithEmbeddedMessage),
   ]);
@@ -1129,9 +1061,7 @@ test("legacy embedded transcripts migrate into split collections on load", async
   expect(runtime.records.get("roleplay-entries")).toEqual([roleplayEntry]);
 });
 
-test("failed legacy transcript migration remains dirty until retry succeeds", async ({
-  page,
-}) => {
+test("failed legacy transcript migration remains dirty until retry succeeds", async ({ page }) => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const messageAt = "2026-06-28T00:01:00.000Z";
   const messengerThread = createMessengerThread({
@@ -1160,12 +1090,8 @@ test("failed legacy transcript migration remains dirty until retry succeeds", as
     now: messageAt,
     thread: roleplayThread,
   });
-  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [
-    messengerMessage,
-  ]);
-  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [
-    roleplayEntry,
-  ]);
+  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
+  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
   const runtime = await installFailingRemoteRuntime(page, "roleplay-entries", {
     "messenger-threads": [messengerWithEmbeddedMessage],
     "roleplay-threads": [roleplayWithEmbeddedEntry],
@@ -1173,18 +1099,13 @@ test("failed legacy transcript migration remains dirty until retry succeeds", as
 
   await openDataAndBackupSettings(page);
   await page.getByLabel("Remote Runtime URL").fill(TEST_RUNTIME_URL);
-  await page
-    .locator("form.runtime-panel")
-    .getByRole("button", { name: "Apply" })
-    .click();
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
 
   await expect
     .poll(
       () =>
         runtime.calls.filter(
-          (call) =>
-            call.command === "storage_replace" &&
-            call.entity === "roleplay-entries",
+          (call) => call.command === "storage_replace" && call.entity === "roleplay-entries",
         ).length,
       { timeout: 8000 },
     )
@@ -1202,9 +1123,7 @@ test("failed legacy transcript migration remains dirty until retry succeeds", as
   ]);
 });
 
-test("legacy transcript migration success preserves edits made while saving", async ({
-  page,
-}) => {
+test("legacy transcript migration success preserves edits made while saving", async ({ page }) => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const messageAt = "2026-06-28T00:01:00.000Z";
   const messengerThread = createMessengerThread({
@@ -1233,27 +1152,16 @@ test("legacy transcript migration success preserves edits made while saving", as
     now: messageAt,
     thread: roleplayThread,
   });
-  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [
-    messengerMessage,
-  ]);
-  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [
-    roleplayEntry,
-  ]);
-  const runtime = await installDeferredReplaceRemoteRuntime(
-    page,
-    "roleplay-entries",
-    {
-      "messenger-threads": [messengerWithEmbeddedMessage],
-      "roleplay-threads": [roleplayWithEmbeddedEntry],
-    },
-  );
+  const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
+  const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
+  const runtime = await installDeferredReplaceRemoteRuntime(page, "roleplay-entries", {
+    "messenger-threads": [messengerWithEmbeddedMessage],
+    "roleplay-threads": [roleplayWithEmbeddedEntry],
+  });
 
   await openDataAndBackupSettings(page);
   await page.getByLabel("Remote Runtime URL").fill(TEST_RUNTIME_URL);
-  await page
-    .locator("form.runtime-panel")
-    .getByRole("button", { name: "Apply" })
-    .click();
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
   await runtime.waitForDeferredReplace;
 
   await page.getByRole("tab", { name: /Appearance/ }).click();
@@ -1287,9 +1195,7 @@ test("manual storage reload applies current runtime records", async ({ page }) =
     }),
   ).toBeVisible();
 
-  runtime.records.set("app-settings", [
-    { id: "app-settings", accent: "amber" },
-  ]);
+  runtime.records.set("app-settings", [{ id: "app-settings", accent: "amber" }]);
   await page.getByRole("button", { name: "Reload records" }).click();
   await expect(
     page.locator(".bundle-status").filter({
@@ -1301,16 +1207,10 @@ test("manual storage reload applies current runtime records", async ({ page }) =
   await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
 });
 
-test("manual storage reload is blocked while local changes are saving", async ({
-  page,
-}) => {
-  const runtime = await installDeferredReplaceRemoteRuntime(
-    page,
-    "app-settings",
-    {
-      "app-settings": [{ id: "app-settings", accent: "koi" }],
-    },
-  );
+test("manual storage reload is blocked while local changes are saving", async ({ page }) => {
+  const runtime = await installDeferredReplaceRemoteRuntime(page, "app-settings", {
+    "app-settings": [{ id: "app-settings", accent: "koi" }],
+  });
 
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
@@ -1318,9 +1218,7 @@ test("manual storage reload is blocked while local changes are saving", async ({
   await page.getByRole("radio", { name: "Amber" }).click();
   await runtime.waitForDeferredReplace;
 
-  runtime.records.set("app-settings", [
-    { id: "app-settings", accent: "jade" },
-  ]);
+  runtime.records.set("app-settings", [{ id: "app-settings", accent: "jade" }]);
   await page.getByRole("tab", { name: /Data & Backup/ }).click();
   await page.getByRole("button", { name: "Reload records" }).click();
 
@@ -1336,23 +1234,15 @@ test("manual storage reload is blocked while local changes are saving", async ({
     .toEqual(expect.objectContaining({ accent: "amber" }));
 });
 
-test("manual storage reload preserves edits made while reload is loading", async ({
-  page,
-}) => {
-  const runtime = await installDeferredListRemoteRuntime(
-    page,
-    "app-settings",
-    {
-      "app-settings": [{ id: "app-settings", accent: "koi" }],
-    },
-  );
+test("manual storage reload preserves edits made while reload is loading", async ({ page }) => {
+  const runtime = await installDeferredListRemoteRuntime(page, "app-settings", {
+    "app-settings": [{ id: "app-settings", accent: "koi" }],
+  });
 
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
 
-  runtime.records.set("app-settings", [
-    { id: "app-settings", accent: "jade" },
-  ]);
+  runtime.records.set("app-settings", [{ id: "app-settings", accent: "jade" }]);
   await page.getByRole("button", { name: "Reload records" }).click();
   await runtime.waitForDeferredList;
 
@@ -1395,12 +1285,8 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
     now: messageAt,
     thread: roleplayThread,
   });
-  const messengerWithMessage = appendMessengerMessages(messengerThread, [
-    messengerMessage,
-  ]);
-  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [
-    roleplayEntry,
-  ]);
+  const messengerWithMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
+  const roleplayWithEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
 
   const bundle = createDeKoiStorageBundle({
     appSettings: DEFAULT_APP_SETTINGS,
@@ -1430,16 +1316,10 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
   const migrated = normalizeDeKoiStorageBundle(legacyEmbeddedBundle);
   expect(migrated.ok).toBe(true);
   if (!migrated.ok) return;
-  expect(migrated.preview.bundle.data.messengerMessages).toEqual([
-    messengerMessage,
-  ]);
+  expect(migrated.preview.bundle.data.messengerMessages).toEqual([messengerMessage]);
   expect(migrated.preview.bundle.data.roleplayEntries).toEqual([roleplayEntry]);
-  expect("messages" in migrated.preview.bundle.data.messengerThreads[0]).toBe(
-    false,
-  );
-  expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(
-    false,
-  );
+  expect("messages" in migrated.preview.bundle.data.messengerThreads[0]).toBe(false);
+  expect("entries" in migrated.preview.bundle.data.roleplayThreads[0]).toBe(false);
 });
 
 test("storage bundle fingerprints track normalized data but ignore export time", () => {
@@ -1479,12 +1359,8 @@ test("storage bundle fingerprints track normalized data but ignore export time",
 
   expect(preview.preview.fingerprint).toMatch(/^fnv1a32:/);
   expect(laterExport.preview.fingerprint).toBe(preview.preview.fingerprint);
-  expect(undefinedFieldData.preview.fingerprint).toBe(
-    preview.preview.fingerprint,
-  );
-  expect(changedData.preview.fingerprint).not.toBe(
-    preview.preview.fingerprint,
-  );
+  expect(undefinedFieldData.preview.fingerprint).toBe(preview.preview.fingerprint);
+  expect(changedData.preview.fingerprint).not.toBe(preview.preview.fingerprint);
   expect(createDeKoiStorageBundleFingerprint(preview.preview.bundle)).toBe(
     preview.preview.fingerprint,
   );
@@ -1623,9 +1499,7 @@ test("provider generation readiness blocks desktop-key providers in browser mode
       code: "desktop-key-store-unavailable",
     });
     if (!blocked.ready) {
-      expect(formatGenerationReadinessFailure(blocked.code)).toContain(
-        "desktop app",
-      );
+      expect(formatGenerationReadinessFailure(blocked.code)).toContain("desktop app");
     }
   }
 
@@ -1743,10 +1617,10 @@ test("storage bundles merge split transcript rows against final thread records",
     threadId: "missing-messenger-thread",
     updatedAt: splitAt,
   };
-  const messengerWithEmbeddedMessages = appendMessengerMessages(
-    messengerThread,
-    [embeddedMessengerMessage, embeddedOnlyMessengerMessage],
-  );
+  const messengerWithEmbeddedMessages = appendMessengerMessages(messengerThread, [
+    embeddedMessengerMessage,
+    embeddedOnlyMessengerMessage,
+  ]);
 
   const roleplayThread = createRoleplayThread({
     activePersonaId: null,
@@ -1788,10 +1662,7 @@ test("storage bundles merge split transcript rows against final thread records",
     data: {
       ...createBundleFixture().data,
       messengerThreads: [messengerWithEmbeddedMessages],
-      messengerMessages: [
-        splitMessengerMessage,
-        orphanedSplitMessengerMessage,
-      ],
+      messengerMessages: [splitMessengerMessage, orphanedSplitMessengerMessage],
       roleplayThreads: [roleplayWithEmbeddedEntries],
       roleplayEntries: [splitRoleplayEntry, orphanedSplitRoleplayEntry],
     },
@@ -1879,14 +1750,12 @@ test("bundle import failure reloads partial storage and requires fresh confirmat
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
 
-  await page.locator("#dekoi-bundle-file").setInputFiles(
-    jsonFilePayload("bundle.json", createBundleFixture()),
-  );
+  await page
+    .locator("#dekoi-bundle-file")
+    .setInputFiles(jsonFilePayload("bundle.json", createBundleFixture()));
   await expect(page.getByText("Import preview", { exact: true })).toBeVisible();
   const importButton = page.getByRole("button", { name: "Import bundle" });
-  const confirmCheckbox = page.getByLabel(
-    "Replace current DeKoi records with this bundle",
-  );
+  const confirmCheckbox = page.getByLabel("Replace current DeKoi records with this bundle");
   await expect(importButton).toBeDisabled();
   await confirmCheckbox.check();
   await expect(importButton).toBeEnabled();
@@ -1911,9 +1780,7 @@ test("bundle import failure reloads partial storage and requires fresh confirmat
   await expect(importButton).toBeDisabled();
 });
 
-test("bundle import failure can restore the in-session pre-import backup", async ({
-  page,
-}) => {
+test("bundle import failure can restore the in-session pre-import backup", async ({ page }) => {
   const runtime = await installFailingRemoteRuntime(page, "characters");
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
@@ -1922,19 +1789,15 @@ test("bundle import failure can restore the in-session pre-import backup", async
   await page.getByRole("radio", { name: "Jade" }).click();
   await page.getByRole("tab", { name: /Data & Backup/ }).click();
 
-  await page.locator("#dekoi-bundle-file").setInputFiles(
-    jsonFilePayload("bundle.json", createBundleFixture()),
-  );
-  const importButton = page.getByRole("button", { name: "Import bundle" });
   await page
-    .getByLabel("Replace current DeKoi records with this bundle")
-    .check();
+    .locator("#dekoi-bundle-file")
+    .setInputFiles(jsonFilePayload("bundle.json", createBundleFixture()));
+  const importButton = page.getByRole("button", { name: "Import bundle" });
+  await page.getByLabel("Replace current DeKoi records with this bundle").check();
   await importButton.click();
 
   await expect(page.getByText(/Import failed\./)).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Restore pre-import backup" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Restore pre-import backup" })).toBeVisible();
   await page.getByRole("button", { name: "Restore pre-import backup" }).click();
   await expect(page.getByText(/Restore will replace current DeKoi records/)).toBeVisible();
   await page.getByRole("button", { name: "Confirm restore" }).click();
@@ -1945,53 +1808,39 @@ test("bundle import failure can restore the in-session pre-import backup", async
     .toEqual(expect.objectContaining({ accent: "jade" }));
 });
 
-test("import recovery is cleared when the storage target changes", async ({
-  page,
-}) => {
+test("import recovery is cleared when the storage target changes", async ({ page }) => {
   const runtime = await installFailingRemoteRuntime(page, "characters");
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
 
-  await page.locator("#dekoi-bundle-file").setInputFiles(
-    jsonFilePayload("bundle.json", createBundleFixture()),
-  );
-  const importButton = page.getByRole("button", { name: "Import bundle" });
   await page
-    .getByLabel("Replace current DeKoi records with this bundle")
-    .check();
+    .locator("#dekoi-bundle-file")
+    .setInputFiles(jsonFilePayload("bundle.json", createBundleFixture()));
+  const importButton = page.getByRole("button", { name: "Import bundle" });
+  await page.getByLabel("Replace current DeKoi records with this bundle").check();
   await importButton.click();
 
   await expect(page.getByText(/Import failed\./)).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Restore pre-import backup" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Restore pre-import backup" })).toBeVisible();
 
   await page.getByRole("button", { name: "Use host default" }).click();
-  await expect(
-    page.getByRole("button", { name: "Restore pre-import backup" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Restore pre-import backup" })).toHaveCount(0);
   const restoreReplaceCount = runtime.calls.filter(
     (call) => call.command === "storage_replace",
   ).length;
   await expect
-    .poll(
-      () =>
-        runtime.calls.filter((call) => call.command === "storage_replace")
-          .length,
-    )
+    .poll(() => runtime.calls.filter((call) => call.command === "storage_replace").length)
     .toBe(restoreReplaceCount);
 });
 
-test("legacy import failure can be acknowledged without arming retry", async ({
-  page,
-}) => {
+test("legacy import failure can be acknowledged without arming retry", async ({ page }) => {
   await installFailingRemoteRuntime(page, "characters");
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
 
-  await page.locator("#legacy-thread-file").setInputFiles(
-    jsonFilePayload("legacy.json", createLegacyImportFixture()),
-  );
+  await page
+    .locator("#legacy-thread-file")
+    .setInputFiles(jsonFilePayload("legacy.json", createLegacyImportFixture()));
   await expect(page.getByText("Legacy import preview")).toBeVisible();
   const importButton = page.getByRole("button", {
     name: "Import converted records",
@@ -2006,9 +1855,7 @@ test("legacy import failure can be acknowledged without arming retry", async ({
   await expect(page.getByText("Legacy import preview")).toHaveCount(0);
   await expect(importButton).toBeDisabled();
 
-  await page
-    .getByRole("button", { name: "Acknowledge legacy import failure" })
-    .click();
+  await page.getByRole("button", { name: "Acknowledge legacy import failure" }).click();
   await page.getByLabel("Close Settings").click();
   await expect(page.locator("aside.care")).not.toHaveClass(/open/);
   await page.locator(".settings-button").click();
@@ -2016,16 +1863,14 @@ test("legacy import failure can be acknowledged without arming retry", async ({
   await expect(importButton).toBeDisabled();
 });
 
-test("legacy import retry requires a fresh preview after partial persistence", async ({
-  page,
-}) => {
+test("legacy import retry requires a fresh preview after partial persistence", async ({ page }) => {
   await installFailingRemoteRuntime(page, "ripple-states");
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
 
-  await page.locator("#legacy-thread-file").setInputFiles(
-    jsonFilePayload("legacy.json", createLegacyImportFixture()),
-  );
+  await page
+    .locator("#legacy-thread-file")
+    .setInputFiles(jsonFilePayload("legacy.json", createLegacyImportFixture()));
   await expect(page.getByText("Legacy import preview")).toBeVisible();
   const importButton = page.getByRole("button", {
     name: "Import converted records",

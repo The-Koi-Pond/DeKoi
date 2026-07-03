@@ -16,8 +16,7 @@ export function getRoleplayCardAvatarDetails(
   const missingCharacterCount = uniqueCharacterCount - resolvedCharacterCount;
   const companion = resolvedCharacters[0] ?? null;
   const avatarLabel =
-    companion?.displayName ??
-    (missingCharacterCount > 0 ? "Missing companion" : fallbackName);
+    companion?.displayName ?? (missingCharacterCount > 0 ? "Missing companion" : fallbackName);
 
   return {
     avatarLabel,

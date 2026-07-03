@@ -5,9 +5,7 @@ interface UseNewThreadCharacterDraftInput {
   getDraftName: (characterIds: string[]) => string;
 }
 
-export function useNewThreadCharacterDraft({
-  getDraftName,
-}: UseNewThreadCharacterDraftInput) {
+export function useNewThreadCharacterDraft({ getDraftName }: UseNewThreadCharacterDraftInput) {
   const [characterIds, setCharacterIds] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);

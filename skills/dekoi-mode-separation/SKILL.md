@@ -20,7 +20,7 @@ to this repository.
 Read `references/mode-impact-map.md` when you need owner paths, allowed sharing,
 or impact checks.
 
-Also keep `SURFACE_LABELS.md` in force for public/internal naming and legacy
+Also keep `DOMAIN_MODEL.md` in force for public/internal naming and legacy
 import boundaries.
 
 ## Mode Owners

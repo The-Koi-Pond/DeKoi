@@ -18,7 +18,16 @@
  *   4. Removes the corresponding entries from skills-lock.json.
  */
 
-import { existsSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, lstatSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+  readdirSync,
+  statSync,
+  lstatSync,
+  unlinkSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -202,7 +211,9 @@ export function removeDeprecatedSkills(projectRoot, lock) {
         // Symlink: check the target if it's alive, otherwise treat
         // dangling symlinks to deprecated names as safe to remove.
         const targetAlive = existsSync(skillPath);
-        const isMatch = targetAlive ? isImpeccableSkill(skillPath, { skillName: name, lock }) : true;
+        const isMatch = targetAlive
+          ? isImpeccableSkill(skillPath, { skillName: name, lock })
+          : true;
         if (isMatch) {
           unlinkSync(skillPath);
           deleted.push(skillPath);
@@ -285,7 +296,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
       for (const p of result.deletedPaths) console.log(`  - ${p}`);
     }
     if (result.removedLockEntries.length > 0) {
-      console.log(`Cleaned ${result.removedLockEntries.length} entry/entries from skills-lock.json:`);
+      console.log(
+        `Cleaned ${result.removedLockEntries.length} entry/entries from skills-lock.json:`,
+      );
       for (const name of result.removedLockEntries) console.log(`  - ${name}`);
     }
   }

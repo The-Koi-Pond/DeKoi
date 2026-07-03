@@ -18,14 +18,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export function Slider({
-  value,
-  onChange,
-  ariaLabel,
-  min = 0,
-  max = 100,
-  step = 1,
-}: SliderProps) {
+export function Slider({ value, onChange, ariaLabel, min = 0, max = 100, step = 1 }: SliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
 
   const setFromClientX = useCallback(

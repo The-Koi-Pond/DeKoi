@@ -47,8 +47,7 @@ export function ChatComposer({
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hintId = `${ariaLabel.replace(/\s+/g, "-").toLowerCase()}-hint`;
-  const effectiveSubmitLabel =
-    isSubmitting && submitBusyLabel ? submitBusyLabel : submitLabel;
+  const effectiveSubmitLabel = isSubmitting && submitBusyLabel ? submitBusyLabel : submitLabel;
 
   function resizeTextarea(textarea: HTMLTextAreaElement) {
     textarea.style.height = "auto";

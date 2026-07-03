@@ -1,9 +1,6 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
-import {
-  getDraftCompanionName,
-  getDraftRoleplayName,
-} from "./new-thread-draft-names";
+import { getDraftCompanionName, getDraftRoleplayName } from "./new-thread-draft-names";
 import {
   getCompanionSelectionLabel,
   getLorebookSelectionLabel,
@@ -26,19 +23,10 @@ export function createNewThreadLabels({
     getCompanionLabel: (characterIds: string[]) =>
       getCompanionSelectionLabel(characterIds, characterById),
     getDraftCompanionName: (characterIds: string[]) =>
-      getDraftCompanionName(
-        characterIds,
-        characterById,
-        nextMessengerThreadNumber,
-      ),
+      getDraftCompanionName(characterIds, characterById, nextMessengerThreadNumber),
     getDraftRoleplayName: (characterIds: string[]) =>
-      getDraftRoleplayName(
-        characterIds,
-        characterById,
-        nextRoleplayThreadNumber,
-      ),
-    getLorebookLabel: (lorebookIds: string[]) =>
-      getLorebookSelectionLabel(lorebookIds, lorebooks),
+      getDraftRoleplayName(characterIds, characterById, nextRoleplayThreadNumber),
+    getLorebookLabel: (lorebookIds: string[]) => getLorebookSelectionLabel(lorebookIds, lorebooks),
   };
 }
 

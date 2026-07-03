@@ -79,9 +79,7 @@ interface RegexGroupSafety {
 }
 
 type RegexSafetyAtom =
-  | { kind: "group"; group: RegexGroupSafety }
-  | { kind: "atom" }
-  | { kind: "none" };
+  { kind: "group"; group: RegexGroupSafety } | { kind: "atom" } | { kind: "none" };
 
 function createKeyMatchContext(): KeyMatchContext {
   return { regexCache: new Map() };
@@ -104,7 +102,10 @@ const COMPANION_MATCH_SOURCE_FIELDS = {
   characterPersonality: "personality",
   scenario: "scenario",
   characterNote: "characterNote",
-} as const satisfies Record<Exclude<LoreMatchSourceKey, "personaDescription">, keyof CharacterRecord>;
+} as const satisfies Record<
+  Exclude<LoreMatchSourceKey, "personaDescription">,
+  keyof CharacterRecord
+>;
 
 function parseRegexKey(key: string) {
   const match = key.trim().match(/^\/(.+)\/([A-Za-z]*)$/);
@@ -135,12 +136,7 @@ function regexQuantifierAt(pattern: string, index: number) {
   if (!match) return null;
 
   const minimum = Number(match[1]);
-  const maximum =
-    match[2] === undefined
-      ? minimum
-      : match[2] === ""
-        ? Infinity
-        : Number(match[2]);
+  const maximum = match[2] === undefined ? minimum : match[2] === "" ? Infinity : Number(match[2]);
 
   return {
     endIndex: closeIndex,
@@ -197,8 +193,7 @@ function unsafeRegexPatternReason(pattern: string) {
       }
       const parentGroup = groups[groups.length - 1];
       if (parentGroup) {
-        parentGroup.hasInnerVariableQuantifier ||=
-          group.hasInnerVariableQuantifier;
+        parentGroup.hasInnerVariableQuantifier ||= group.hasInnerVariableQuantifier;
         parentGroup.hasAlternation ||= group.hasAlternation;
       }
       atom = { kind: "group", group };
@@ -309,9 +304,7 @@ export function buildScanBuffer(
     ];
   });
   const selectedSources =
-    scanDepth === 0
-      ? []
-      : filledSources.slice(Math.max(0, filledSources.length - scanDepth));
+    scanDepth === 0 ? [] : filledSources.slice(Math.max(0, filledSources.length - scanDepth));
 
   return selectedSources
     .map((source) => {
@@ -335,9 +328,7 @@ export function buildMatchSources({
     const name = cleanMatchSourceName(
       [companion.displayName, companion.nickname].filter(Boolean).join(" "),
     );
-    for (const [bucket, field] of Object.entries(
-      COMPANION_MATCH_SOURCE_FIELDS,
-    )) {
+    for (const [bucket, field] of Object.entries(COMPANION_MATCH_SOURCE_FIELDS)) {
       sources[bucket as keyof typeof COMPANION_MATCH_SOURCE_FIELDS].push({
         name,
         body: companion[field],
@@ -348,9 +339,7 @@ export function buildMatchSources({
   if (activePersona) {
     sources.personaDescription.push({
       name: cleanMatchSourceName(
-        [activePersona.displayName, activePersona.nickname]
-          .filter(Boolean)
-          .join(" "),
+        [activePersona.displayName, activePersona.nickname].filter(Boolean).join(" "),
       ),
       body: activePersona.description,
     });
@@ -392,20 +381,13 @@ function buildEntryScanBuffer({
 function matchPlaintextKey(
   key: string,
   scanBuffer: string,
-  activation: Pick<
-    LorebookActivationSettings,
-    "caseSensitiveKeys" | "matchWholeWords"
-  >,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys" | "matchWholeWords">,
 ) {
   const trimmedKey = key.trim();
   if (!trimmedKey) return false;
 
-  const haystack = activation.caseSensitiveKeys
-    ? scanBuffer
-    : scanBuffer.toLowerCase();
-  const needle = activation.caseSensitiveKeys
-    ? trimmedKey
-    : trimmedKey.toLowerCase();
+  const haystack = activation.caseSensitiveKeys ? scanBuffer : scanBuffer.toLowerCase();
+  const needle = activation.caseSensitiveKeys ? trimmedKey : trimmedKey.toLowerCase();
 
   // JavaScript word boundaries are ASCII-centric. For non-ASCII scripts such as
   // CJK, use substring matching instead of pretending whole-word detection is
@@ -428,10 +410,7 @@ function matchPlaintextKey(
 function matchKeyWithContext(
   key: string,
   scanBuffer: string,
-  activation: Pick<
-    LorebookActivationSettings,
-    "caseSensitiveKeys" | "matchWholeWords"
-  >,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys" | "matchWholeWords">,
   context: KeyMatchContext,
 ): KeyMatchResult {
   const trimmedKey = key.trim();
@@ -456,17 +435,9 @@ function matchKeyWithContext(
 export function matchKey(
   key: string,
   scanBuffer: string,
-  activation: Pick<
-    LorebookActivationSettings,
-    "caseSensitiveKeys" | "matchWholeWords"
-  >,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys" | "matchWholeWords">,
 ) {
-  return matchKeyWithContext(
-    key,
-    scanBuffer,
-    activation,
-    createKeyMatchContext(),
-  ).matched;
+  return matchKeyWithContext(key, scanBuffer, activation, createKeyMatchContext()).matched;
 }
 
 function entryHasBody(entry: LoreEntryRecord) {
@@ -521,16 +492,10 @@ function activateEntry(
     return { entry: null, warnings: uniqueWarnings(primaryMatch.warnings) };
   }
 
-  const secondaryKeys =
-    entry.keySecondary?.map((key) => key.trim()).filter(Boolean) ?? [];
+  const secondaryKeys = entry.keySecondary?.map((key) => key.trim()).filter(Boolean) ?? [];
   const secondaryMatch =
     secondaryKeys.length > 0
-      ? matchAllKeys(
-          secondaryKeys,
-          entryScanBuffer,
-          lorebook.activation,
-          matchContext,
-        )
+      ? matchAllKeys(secondaryKeys, entryScanBuffer, lorebook.activation, matchContext)
       : { matchedKeys: [], warnings: [] };
 
   if (
@@ -543,17 +508,11 @@ function activateEntry(
   ) {
     return {
       entry: null,
-      warnings: uniqueWarnings([
-        ...primaryMatch.warnings,
-        ...secondaryMatch.warnings,
-      ]),
+      warnings: uniqueWarnings([...primaryMatch.warnings, ...secondaryMatch.warnings]),
     };
   }
 
-  const warnings = uniqueWarnings([
-    ...primaryMatch.warnings,
-    ...secondaryMatch.warnings,
-  ]);
+  const warnings = uniqueWarnings([...primaryMatch.warnings, ...secondaryMatch.warnings]);
   return {
     entry: {
       lorebookId: lorebook.id,
@@ -624,10 +583,7 @@ function uniqueWarnings(warnings: string[]) {
   return [...new Set(warnings)];
 }
 
-function stableEntryTiebreaker(
-  left: ActivatedLoreEntry,
-  right: ActivatedLoreEntry,
-) {
+function stableEntryTiebreaker(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
   if (left.sourceOrder !== right.sourceOrder) {
     return left.sourceOrder - right.sourceOrder;
   }
@@ -652,8 +608,7 @@ function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
 }
 
 export function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
-  const promptText =
-    `${entry.lorebookTitle} / ${entry.entry.title}: ${entry.entry.body.trim()}`;
+  const promptText = `${entry.lorebookTitle} / ${entry.entry.title}: ${entry.entry.body.trim()}`;
   return Math.ceil(promptText.length / 4);
 }
 
@@ -662,11 +617,7 @@ function resolveTokenBudget({
   budgetTokens,
   contextTokens,
 }: ApplyTokenBudgetOptions) {
-  if (
-    typeof budgetTokens === "number" &&
-    Number.isFinite(budgetTokens) &&
-    budgetTokens >= 0
-  ) {
+  if (typeof budgetTokens === "number" && Number.isFinite(budgetTokens) && budgetTokens >= 0) {
     return Math.trunc(budgetTokens);
   }
 
@@ -689,18 +640,14 @@ function resolveTokenBudget({
  * tokenizer dependency, so the default estimate is roughly chars / 4. Percent
  * budgets are only resolved when caller-provided context size is known.
  */
-export function applyTokenBudget(
-  entries: ActivatedLoreEntry[],
-  options: ApplyTokenBudgetOptions,
-) {
+export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTokenBudgetOptions) {
   const budget = resolveTokenBudget(options);
   if (budget === null) return sortActivatedEntries(entries);
 
   const approxTokens = options.approxTokens ?? approximateLoreEntryTokens;
   const kept: ActivatedLoreEntry[] = [];
   let usedTokens =
-    typeof options.reservedTokens === "number" &&
-    Number.isFinite(options.reservedTokens)
+    typeof options.reservedTokens === "number" && Number.isFinite(options.reservedTokens)
       ? Math.max(0, Math.ceil(options.reservedTokens))
       : 0;
 
@@ -724,8 +671,7 @@ export function activateLorebookEntries(
   scanBuffer: string,
   options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
 ) {
-  return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options)
-    .entries;
+  return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options).entries;
 }
 
 export function activateLorebookEntriesWithWarnings(

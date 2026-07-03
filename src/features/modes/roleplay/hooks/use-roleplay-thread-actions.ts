@@ -49,57 +49,53 @@ export function useRoleplayThreadActions({
   view,
   openRoleplayThread,
 }: UseRoleplayThreadActionsInput) {
-  const createRoleplayThread = useCallback((input?: RoleplayThreadCreateInput) => {
-    const now = currentIsoTimestamp();
-    const activePersonaId =
-      input?.activePersonaId === undefined
-        ? personas[0]?.id ?? null
-        : input.activePersonaId?.trim() || null;
-    const characterIds = [
-      ...new Set(
-        (input?.characterIds ??
-          characters.slice(0, 1).map((companion) => companion.id))
-          .map((id) => id.trim())
-          .filter(Boolean),
-      ),
-    ];
-    const lorebookIds = [
-      ...new Set(
-        (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
-          .map((id) => id.trim())
-          .filter(Boolean),
-      ),
-    ];
-    const requestedConnectionId = input?.providerConnectionId?.trim() ?? "";
-    const activeConnection =
-      providerConnections.find(
-        (connection) =>
+  const createRoleplayThread = useCallback(
+    (input?: RoleplayThreadCreateInput) => {
+      const now = currentIsoTimestamp();
+      const activePersonaId =
+        input?.activePersonaId === undefined
+          ? (personas[0]?.id ?? null)
+          : input.activePersonaId?.trim() || null;
+      const characterIds = [
+        ...new Set(
+          (input?.characterIds ?? characters.slice(0, 1).map((companion) => companion.id))
+            .map((id) => id.trim())
+            .filter(Boolean),
+        ),
+      ];
+      const lorebookIds = [
+        ...new Set(
+          (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
+            .map((id) => id.trim())
+            .filter(Boolean),
+        ),
+      ];
+      const requestedConnectionId = input?.providerConnectionId?.trim() ?? "";
+      const activeConnection =
+        providerConnections.find((connection) =>
           requestedConnectionId
             ? connection.id === requestedConnectionId
             : connection.id === activeMessengerConnectionId,
-      ) ??
-      providerConnections[0] ??
-      null;
-    const thread = buildRoleplayThread({
-      activePersonaId,
-      characterIds,
-      id: createRecordId("roleplay-thread"),
-      lorebookIds,
-      now,
-      providerConnectionId: activeConnection?.id ?? null,
-      title: input?.title?.trim() || `New Roleplay ${roleplayThreads.length + 1}`,
-    });
-    const openingCompanion =
-      characterIds
-        .map(
-          (characterId) =>
-            characters.find((character) => character.id === characterId) ?? null,
-        )
-        .find((character) => !!character?.firstMessage.trim()) ?? null;
-    const threadWithOpeningEntry = openingCompanion
-      ? appendRoleplayEntries(
-          thread,
-          [
+        ) ??
+        providerConnections[0] ??
+        null;
+      const thread = buildRoleplayThread({
+        activePersonaId,
+        characterIds,
+        id: createRecordId("roleplay-thread"),
+        lorebookIds,
+        now,
+        providerConnectionId: activeConnection?.id ?? null,
+        title: input?.title?.trim() || `New Roleplay ${roleplayThreads.length + 1}`,
+      });
+      const openingCompanion =
+        characterIds
+          .map(
+            (characterId) => characters.find((character) => character.id === characterId) ?? null,
+          )
+          .find((character) => !!character?.firstMessage.trim()) ?? null;
+      const threadWithOpeningEntry = openingCompanion
+        ? appendRoleplayEntries(thread, [
             createCompanionRoleplayEntry({
               body: openingCompanion.firstMessage,
               companion: openingCompanion,
@@ -107,23 +103,24 @@ export function useRoleplayThreadActions({
               now,
               thread,
             }),
-          ],
-        )
-      : thread;
+          ])
+        : thread;
 
-    setRoleplayThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
-    openRoleplayThread(threadWithOpeningEntry.id);
-    return threadWithOpeningEntry;
-  }, [
-    activeMessengerConnectionId,
-    characters,
-    roleplayThreads.length,
-    lorebooks,
-    openRoleplayThread,
-    personas,
-    providerConnections,
-    setRoleplayThreads,
-  ]);
+      setRoleplayThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
+      openRoleplayThread(threadWithOpeningEntry.id);
+      return threadWithOpeningEntry;
+    },
+    [
+      activeMessengerConnectionId,
+      characters,
+      roleplayThreads.length,
+      lorebooks,
+      openRoleplayThread,
+      personas,
+      providerConnections,
+      setRoleplayThreads,
+    ],
+  );
 
   const updateRoleplayThread = useCallback(
     (thread: RoleplayThread) => {
@@ -146,9 +143,7 @@ export function useRoleplayThreadActions({
       const now = currentIsoTimestamp();
       setRoleplayThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          thread.id === threadId
-            ? renameRoleplayThreadRecord(thread, trimmedTitle, now)
-            : thread,
+          thread.id === threadId ? renameRoleplayThreadRecord(thread, trimmedTitle, now) : thread,
         ),
       );
     },
@@ -168,9 +163,7 @@ export function useRoleplayThreadActions({
 
   const deleteRoleplayThread = useCallback(
     (threadId: string) => {
-      setRoleplayThreads((currentThreads) =>
-        deleteRoleplayThreadRecord(currentThreads, threadId),
-      );
+      setRoleplayThreads((currentThreads) => deleteRoleplayThreadRecord(currentThreads, threadId));
       setRippleStates((currentStates) =>
         deleteRippleStateForOwner(currentStates, "roleplay-thread", threadId),
       );

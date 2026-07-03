@@ -162,10 +162,22 @@
         "displayLg": { "sizePx": 24, "lineHeight": 1.2, "use": "surface titles, scene headers" },
         "title": { "sizePx": 18, "lineHeight": 1.3, "use": "panel and dialog titles" },
         "heading": { "sizePx": 15, "lineHeight": 1.35, "use": "section headings, card titles" },
-        "body": { "sizePx": 14, "lineHeight": 1.5, "use": "default UI text, forms, catalogs, logs" },
-        "message": { "sizePx": 14, "lineHeight": 1.5, "use": "message body; 1.5 in Messenger, 1.6 in Roleplay; never below 13px at default scale" },
+        "body": {
+          "sizePx": 14,
+          "lineHeight": 1.5,
+          "use": "default UI text, forms, catalogs, logs"
+        },
+        "message": {
+          "sizePx": 14,
+          "lineHeight": 1.5,
+          "use": "message body; 1.5 in Messenger, 1.6 in Roleplay; never below 13px at default scale"
+        },
         "meta": { "sizePx": 11.5, "lineHeight": 1.35, "use": "timestamps, counts, hints, badges" },
-        "caption": { "sizePx": 10.5, "lineHeight": 1.3, "use": "role chips and date separators; smallest legal text" }
+        "caption": {
+          "sizePx": 10.5,
+          "lineHeight": 1.3,
+          "use": "role chips and date separators; smallest legal text"
+        }
       },
       "fontScaleVariable": "--font-scale",
       "measure": { "minCh": 60, "maxCh": 75 }
@@ -231,36 +243,57 @@
       "concept": "top bar",
       "material": "water",
       "heightPx": 38,
-      "rules": ["app identity, global actions, window controls", "never grows into a toolbar junk drawer"]
+      "rules": [
+        "app identity, global actions, window controls",
+        "never grows into a toolbar junk drawer"
+      ]
     },
     "bank": {
       "concept": "navigation rail",
       "material": "water",
       "widthPx": 56,
-      "rules": ["icon rail for places", "active place marked by accent plus shape, never color alone", "labels via tooltip or expansion"]
+      "rules": [
+        "icon rail for places",
+        "active place marked by accent plus shape, never color alone",
+        "labels via tooltip or expansion"
+      ]
     },
     "shoal": {
       "concept": "thread list",
       "material": "shallow",
       "widthPx": { "min": 264, "max": 300 },
-      "rules": ["saved Messenger and Roleplay threads with kind, title, recency", "collapsible with a visible reopen affordance"]
+      "rules": [
+        "saved Messenger and Roleplay threads with kind, title, recency",
+        "collapsible with a visible reopen affordance"
+      ]
     },
     "pond": {
       "concept": "main surface",
       "material": "raise",
-      "rules": ["hosts home, threads, catalogs, editors", "home content centered at max 920px", "threads manage their own text measure"]
+      "rules": [
+        "hosts home, threads, catalogs, editors",
+        "home content centered at max 920px",
+        "threads manage their own text measure"
+      ]
     },
     "tide": {
       "concept": "status strip",
       "material": "water",
       "heightPx": 46,
-      "rules": ["runtime and provider health, storage and save state, quiet background activity", "always current, never nagging"]
+      "rules": [
+        "runtime and provider health, storage and save state, quiet background activity",
+        "always current, never nagging"
+      ]
     },
     "care": {
       "concept": "settings drawer",
       "material": "shallow",
       "widthClamp": "clamp(360px, 30vw, 430px)",
-      "rules": ["Pond Care sections: Deep Water, Stocking, Catalog, appearance", "glides over the pond and carries the floating shadow", "becomes a scrimmed overlay below 1280px"]
+      "rules": [
+        "Pond Care sections: Deep Water, Stocking, Catalog, appearance",
+        "glides over the pond and carries the floating shadow",
+        "becomes a scrimmed overlay below 1280px"
+      ]
     },
     "rippleDock": {
       "concept": "per-thread state panel",
@@ -521,7 +554,11 @@
     "koiMarkSvg": {
       "path": "/koi-mark.svg",
       "purpose": "line-drawn koi glyph for small identity",
-      "allowedUse": ["waterline identity", "favicon-adjacent chrome", "about and empty-state accents"],
+      "allowedUse": [
+        "waterline identity",
+        "favicon-adjacent chrome",
+        "about and empty-state accents"
+      ],
       "overuseRisk": "becoming a bullet point or list decoration",
       "accessibility": "static; aria-hidden when adjacent to the app name"
     },
@@ -570,7 +607,12 @@
     "responsive": {
       "feedbackWithinMs": 140,
       "layoutEasing": "glide",
-      "hoverLimits": ["opacity or fade", "max 3px translate", "border and color shifts", "no scale pops on rows or messages"]
+      "hoverLimits": [
+        "opacity or fade",
+        "max 3px translate",
+        "border and color shifts",
+        "no scale pops on rows or messages"
+      ]
     },
     "celebratory": {
       "allowed": "single non-looping ripple ring confirming a meaningful save, import, or first-thread moment",

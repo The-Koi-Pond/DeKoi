@@ -83,9 +83,6 @@ export function loadCharacterRecordsFromStorage(rawUrl?: string) {
   return characterRepository.loadSnapshot(rawUrl);
 }
 
-export function saveCharacterRecordsToStorage(
-  records: CharacterRecord[],
-  rawUrl?: string,
-) {
+export function saveCharacterRecordsToStorage(records: CharacterRecord[], rawUrl?: string) {
   return characterRepository.save(records, rawUrl);
 }

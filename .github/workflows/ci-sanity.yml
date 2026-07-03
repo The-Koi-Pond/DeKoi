@@ -27,10 +27,14 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:line-endings
       - run: pnpm check:desktop-contracts
       - run: pnpm check:storage-contracts
+      - run: pnpm check:provider-secret-safety
       - run: pnpm check:runtime-contracts
       - run: pnpm check:frontend-boundaries
       - run: pnpm check:bunny-review
+      - run: pnpm test
       - run: pnpm build
       - run: pnpm lint
+      - run: pnpm format:check

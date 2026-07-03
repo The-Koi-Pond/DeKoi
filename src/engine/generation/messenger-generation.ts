@@ -174,18 +174,14 @@ function buildSystemPrompt({
     ),
     ...companions.flatMap((companion) =>
       namedGenerationBlock(
-        companion.id === targetCompanion?.id
-          ? "Replying companion"
-          : "Other companion",
+        companion.id === targetCompanion?.id ? "Replying companion" : "Other companion",
         characterGenerationContext(companion),
       ),
     ),
     ...namedGenerationBlock(
       "Selected lore",
       formatLoreGenerationEntries(
-        activatedLoreEntries.filter(
-          (entry) => entry.entry.insertionPosition === "after-character",
-        ),
+        activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "after-character"),
       ),
     ),
     ...(targetCompanion?.postHistoryInstructions
@@ -230,9 +226,7 @@ function createMessengerPromptAssembly({
     }));
   const transcriptWithDepthLore = injectAtDepth(
     transcript,
-    activatedLoreEntries.filter(
-      (entry) => entry.entry.insertionPosition === "at-depth",
-    ),
+    activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "at-depth"),
     { providerConnection },
   );
 
@@ -267,10 +261,7 @@ export function createMessengerGenerationRequest({
   parameters?: Partial<MessengerGenerationParameters>;
   userMessage: MessengerMessage;
 }): MessengerGenerationRequest {
-  const targetCompanion = getNextMessengerCompanion(
-    context.requestThread,
-    context.companions,
-  );
+  const targetCompanion = getNextMessengerCompanion(context.requestThread, context.companions);
   const promptAssembly = createMessengerPromptAssembly({
     activePersona: context.activePersona,
     companions: context.companions,

@@ -18,7 +18,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 const HEADER_SCAN_BYTES = 300;
-const HEADER_MARKERS = [/@generated\b/i, /\bGENERATED\s+FILE\b/, /\bAUTO-?GENERATED\b/i, /\bDO\s+NOT\s+EDIT\b/i];
+const HEADER_MARKERS = [
+  /@generated\b/i,
+  /\bGENERATED\s+FILE\b/,
+  /\bAUTO-?GENERATED\b/i,
+  /\bDO\s+NOT\s+EDIT\b/i,
+];
 
 /**
  * @param {string} filePath - absolute or cwd-relative path

@@ -14,10 +14,7 @@ interface PersonasSurfaceProps {
   nav: PersonasSurfaceNav;
 }
 
-export type PersonasSurfaceNav = Pick<
-  NavCatalogState,
-  "personas"
-> &
+export type PersonasSurfaceNav = Pick<NavCatalogState, "personas"> &
   Pick<NavPersonaActions, "createPersona" | "deletePersona" | "updatePersona"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
@@ -79,9 +76,7 @@ function asNoteRole(value: unknown): PersonaNoteRole {
 }
 
 function asNumberString(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? String(value)
-    : String(fallback);
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : String(fallback);
 }
 
 function joinTags(values: unknown) {
@@ -158,13 +153,7 @@ interface PersonaEditorProps {
   onSave: (input: PersonaRecordInput) => void;
 }
 
-function PersonaEditor({
-  editingId,
-  initialDraft,
-  onBack,
-  onDelete,
-  onSave,
-}: PersonaEditorProps) {
+function PersonaEditor({ editingId, initialDraft, onBack, onDelete, onSave }: PersonaEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
 
@@ -201,9 +190,7 @@ function PersonaEditor({
                   className="pondinput"
                   type="text"
                   value={draft.displayName}
-                  onChange={(e) =>
-                    setDraft({ ...draft, displayName: e.target.value })
-                  }
+                  onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
                   placeholder="e.g. Xel"
                 />
               </div>
@@ -264,9 +251,7 @@ function PersonaEditor({
                   className="pondinput pondtextarea"
                   rows={4}
                   value={draft.systemPrompt}
-                  onChange={(e) =>
-                    setDraft({ ...draft, systemPrompt: e.target.value })
-                  }
+                  onChange={(e) => setDraft({ ...draft, systemPrompt: e.target.value })}
                   placeholder="{{original}}"
                 />
               </div>
@@ -308,9 +293,7 @@ function PersonaEditor({
                   min="0"
                   max="99"
                   value={draft.characterNoteDepth}
-                  onChange={(e) =>
-                    setDraft({ ...draft, characterNoteDepth: e.target.value })
-                  }
+                  onChange={(e) => setDraft({ ...draft, characterNoteDepth: e.target.value })}
                 />
               </div>
               <div className="catalog-editor-field">
@@ -340,9 +323,7 @@ function PersonaEditor({
                   min="0"
                   max="100"
                   value={draft.talkativeness}
-                  onChange={(e) =>
-                    setDraft({ ...draft, talkativeness: e.target.value })
-                  }
+                  onChange={(e) => setDraft({ ...draft, talkativeness: e.target.value })}
                 />
               </div>
             </div>
@@ -369,9 +350,7 @@ function PersonaEditor({
                   className="pondinput"
                   type="text"
                   value={draft.characterVersion}
-                  onChange={(e) =>
-                    setDraft({ ...draft, characterVersion: e.target.value })
-                  }
+                  onChange={(e) => setDraft({ ...draft, characterVersion: e.target.value })}
                   placeholder="Version"
                 />
               </div>
@@ -406,10 +385,9 @@ function PersonaEditor({
 }
 
 export function PersonasSurface({ nav }: PersonasSurfaceProps) {
-  const activePersonaId =
-    nav.view.kind === "personas" ? nav.view.personaId : null;
+  const activePersonaId = nav.view.kind === "personas" ? nav.view.personaId : null;
   const activePersona = activePersonaId
-    ? nav.personas.find((persona) => persona.id === activePersonaId) ?? null
+    ? (nav.personas.find((persona) => persona.id === activePersonaId) ?? null)
     : null;
   const isCreating = nav.view.kind === "personas" && nav.view.mode === "new";
   const editingId = activePersona?.id ?? null;
@@ -452,9 +430,7 @@ export function PersonasSurface({ nav }: PersonasSurfaceProps) {
         <>
           <CatalogSurfaceBanner icon="◎" onBack={handleBack} title="Personas" />
           <div className="pond-inner catalog-inner catalog-editor-only">
-            <div className="catalog-empty">
-              Pick a persona from The Shoal or create a new one.
-            </div>
+            <div className="catalog-empty">Pick a persona from The Shoal or create a new one.</div>
           </div>
         </>
       )}

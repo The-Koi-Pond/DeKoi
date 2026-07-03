@@ -7,9 +7,7 @@ import type {
 } from "./desktop-storage-bundle";
 
 function requireTauriForDesktopBundleFile() {
-  requireTauriForDesktopHost(
-    "Desktop file import/export is only available inside the Tauri app.",
-  );
+  requireTauriForDesktopHost("Desktop file import/export is only available inside the Tauri app.");
 }
 
 export async function exportDesktopBundleFile(
@@ -18,18 +16,14 @@ export async function exportDesktopBundleFile(
 ): Promise<DeKoiDesktopStorageBundleInfo | null> {
   requireTauriForDesktopBundleFile();
 
-  return await invoke<DeKoiDesktopStorageBundleInfo | null>(
-    DESKTOP_COMMANDS.fileExportBundle,
-    { bundle, defaultFileName },
-  );
+  return await invoke<DeKoiDesktopStorageBundleInfo | null>(DESKTOP_COMMANDS.fileExportBundle, {
+    bundle,
+    defaultFileName,
+  });
 }
 
-export async function importDesktopBundleFileSnapshot(): Promise<
-  DeKoiDesktopStorageBundleSnapshot | null
-> {
+export async function importDesktopBundleFileSnapshot(): Promise<DeKoiDesktopStorageBundleSnapshot | null> {
   requireTauriForDesktopBundleFile();
 
-  return await invoke<DeKoiDesktopStorageBundleSnapshot | null>(
-    DESKTOP_COMMANDS.fileImportBundle,
-  );
+  return await invoke<DeKoiDesktopStorageBundleSnapshot | null>(DESKTOP_COMMANDS.fileImportBundle);
 }

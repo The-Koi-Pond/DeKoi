@@ -5,10 +5,7 @@ import {
   type DesktopStorageCollectionMetadataResult,
 } from "../../shared/api/desktop-storage-metadata";
 import { invokeRemote } from "../../shared/api/remote-runtime";
-import {
-  RUNTIME_COMMANDS,
-  type StorageRuntimeCommand,
-} from "../../shared/api/runtime-commands";
+import { RUNTIME_COMMANDS, type StorageRuntimeCommand } from "../../shared/api/runtime-commands";
 import {
   isDesktopRuntimeUrl,
   readRemoteRuntimeUrl,
@@ -113,9 +110,7 @@ export async function loadHostRecords<T extends StorageRecord>(
     rawUrl,
   );
 
-  return records
-    .map(normalizeRecord)
-    .filter((record): record is T => record !== null);
+  return records.map(normalizeRecord).filter((record): record is T => record !== null);
 }
 
 function normalizeOutgoingRecords<T extends StorageRecord>(
@@ -127,9 +122,7 @@ function normalizeOutgoingRecords<T extends StorageRecord>(
     const normalizedRecord = normalizeRecord(record);
     if (normalizedRecord) return normalizedRecord;
 
-    throw new Error(
-      `Cannot save invalid ${entity} record at index ${index}.`,
-    );
+    throw new Error(`Cannot save invalid ${entity} record at index ${index}.`);
   });
 }
 
@@ -140,31 +133,19 @@ function storageReplaceUnsupportedMessage(error: unknown) {
     : message;
 }
 
-function isHostStorageReplaceResponse(
-  response: unknown,
-): response is HostStorageReplaceResponse {
+function isHostStorageReplaceResponse(response: unknown): response is HostStorageReplaceResponse {
   if (!response || typeof response !== "object") return false;
 
   const candidate = response as Partial<HostStorageReplaceResponse>;
   const count = candidate.count;
-  return (
-    candidate.ok === true &&
-    Number.isSafeInteger(count) &&
-    count !== undefined &&
-    count >= 0
-  );
+  return candidate.ok === true && Number.isSafeInteger(count) && count !== undefined && count >= 0;
 }
 
-function normalizeStorageCollectionMetadata(
-  value: unknown,
-): StorageCollectionMetadata | null {
+function normalizeStorageCollectionMetadata(value: unknown): StorageCollectionMetadata | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const candidate = value as Partial<StorageCollectionMetadata>;
-  if (
-    typeof candidate.entity !== "string" ||
-    typeof candidate.exists !== "boolean"
-  ) {
+  if (typeof candidate.entity !== "string" || typeof candidate.exists !== "boolean") {
     return null;
   }
 
@@ -179,13 +160,9 @@ function normalizeStorageCollectionMetadata(
     entity: entity as StorageEntity,
     exists: candidate.exists,
     byteLength:
-      typeof byteLength === "number" && Number.isSafeInteger(byteLength)
-        ? byteLength
-        : null,
+      typeof byteLength === "number" && Number.isSafeInteger(byteLength) ? byteLength : null,
     updatedAtMs:
-      typeof updatedAtMs === "number" && Number.isSafeInteger(updatedAtMs)
-        ? updatedAtMs
-        : null,
+      typeof updatedAtMs === "number" && Number.isSafeInteger(updatedAtMs) ? updatedAtMs : null,
     contentHash: typeof contentHash === "string" ? contentHash : null,
   };
 }
@@ -203,9 +180,7 @@ function normalizeStorageCollectionMetadataError(
 }
 
 function formatStorageMetadataErrors(errors: readonly HostStorageMetadataError[]) {
-  return errors
-    .map((error) => `${error.entity}: ${error.message}`)
-    .join("; ");
+  return errors.map((error) => `${error.entity}: ${error.message}`).join("; ");
 }
 
 export function createHostStorageMetadataResult({
@@ -308,11 +283,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
   }
 
   try {
-    const normalizedRecords = normalizeOutgoingRecords(
-      entity,
-      records,
-      normalizeRecord,
-    );
+    const normalizedRecords = normalizeOutgoingRecords(entity, records, normalizeRecord);
     const response = await invokeHostStorage<HostStorageReplaceResponse>(
       RUNTIME_COMMANDS.storageReplace,
       {
@@ -322,9 +293,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
       rawUrl,
     );
     if (!isHostStorageReplaceResponse(response)) {
-      throw new Error(
-        `${RUNTIME_COMMANDS.storageReplace} returned an incompatible response.`,
-      );
+      throw new Error(`${RUNTIME_COMMANDS.storageReplace} returned an incompatible response.`);
     }
     if (response.count !== normalizedRecords.length) {
       throw new Error(
@@ -349,9 +318,7 @@ export async function replaceHostRecords<T extends StorageRecord>(
       mode,
       status: "ready",
       message:
-        mode === "remote"
-          ? "Saved through remote runtime."
-          : "Saved through desktop host storage.",
+        mode === "remote" ? "Saved through remote runtime." : "Saved through desktop host storage.",
       metadata,
     };
   } catch (error) {
@@ -400,9 +367,7 @@ export async function loadHostRecordsSnapshot<T extends StorageRecord>({
       mode,
       status: "ready",
       message:
-        mode === "remote"
-          ? "Remote runtime storage is active."
-          : "Desktop host storage is active.",
+        mode === "remote" ? "Remote runtime storage is active." : "Desktop host storage is active.",
     };
   } catch (error) {
     return {
@@ -428,9 +393,7 @@ export function createHostStorageRepository<T extends StorageRecord>({
         rawUrl,
         seedRecords,
       }),
-    replace: (records, rawUrl) =>
-      replaceHostRecords(entity, records, normalizeRecord, rawUrl),
-    save: (records, rawUrl) =>
-      replaceHostRecords(entity, records, normalizeRecord, rawUrl),
+    replace: (records, rawUrl) => replaceHostRecords(entity, records, normalizeRecord, rawUrl),
+    save: (records, rawUrl) => replaceHostRecords(entity, records, normalizeRecord, rawUrl),
   };
 }

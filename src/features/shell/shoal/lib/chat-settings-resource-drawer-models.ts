@@ -27,10 +27,7 @@ export interface ChatSettingsLorebookResourceModel {
 
 interface ChatSettingsResourceDrawerModelsInput {
   activeThread: boolean;
-  openDrawers: Pick<
-    Record<ChatSettingsDrawerId, boolean>,
-    "companions" | "lorebooks" | "prompt"
-  >;
+  openDrawers: Pick<Record<ChatSettingsDrawerId, boolean>, "companions" | "lorebooks" | "prompt">;
   viewModel: ChatSettingsViewModel;
 }
 

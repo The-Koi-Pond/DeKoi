@@ -14,8 +14,7 @@ export function useThreadReleaseActions({
   onDeleteRoleplayThread,
   onRenameRoleplayThread,
 }: UseThreadReleaseActionsInput) {
-  const [releaseRequest, setReleaseRequest] =
-    useState<ThreadReleaseRequest | null>(null);
+  const [releaseRequest, setReleaseRequest] = useState<ThreadReleaseRequest | null>(null);
 
   useEffect(() => {
     if (!releaseRequest) return;

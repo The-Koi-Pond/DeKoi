@@ -16,10 +16,7 @@ type UseRippleActionsInput = {
   setRippleStates: StateSetter<RippleState[]>;
 };
 
-export function useRippleActions({
-  rippleStates,
-  setRippleStates,
-}: UseRippleActionsInput) {
+export function useRippleActions({ rippleStates, setRippleStates }: UseRippleActionsInput) {
   const getRippleState = useCallback(
     (ownerKind: RippleStateOwnerKind, ownerId: string) =>
       selectRippleState({ rippleStates, ownerKind, ownerId }),
@@ -43,12 +40,7 @@ export function useRippleActions({
   );
 
   const updateRipple = useCallback(
-    (
-      ownerKind: RippleStateOwnerKind,
-      ownerId: string,
-      rippleId: string,
-      input: RippleInput,
-    ) => {
+    (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string, input: RippleInput) => {
       setRippleStates((currentStates) =>
         updateRippleInOwnerState({
           rippleStates: currentStates,

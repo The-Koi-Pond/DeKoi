@@ -19,10 +19,7 @@ import { checkProviderConnection } from "../../../shared/api/provider-connection
 import { fetchProviderConnectionModels } from "../../../shared/api/provider-connection-models";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
-import {
-  isDesktopRuntimeUrl,
-  readRemoteRuntimeUrl,
-} from "../../../shared/api/runtime-target";
+import { isDesktopRuntimeUrl, readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -30,10 +27,7 @@ interface ConnectionsSurfaceProps {
   nav: ConnectionsSurfaceNav;
 }
 
-export type ConnectionsSurfaceNav = Pick<
-  NavCatalogState,
-  "providerConnections"
-> &
+export type ConnectionsSurfaceNav = Pick<NavCatalogState, "providerConnections"> &
   Pick<
     NavProviderConnectionActions,
     "createProviderConnection" | "deleteProviderConnection" | "updateProviderConnection"
@@ -189,17 +183,14 @@ function ConnectionEditor({
     status: StoredSecretProbeStatus;
   }>({ scopeKey: "", status: "missing" });
   const selectedProvider = getProviderConnectionProviderOption(draft.provider);
-  const modelOptions = [
-    ...new Set([...fetchedModels, ...selectedProvider.models]),
-  ];
+  const modelOptions = [...new Set([...fetchedModels, ...selectedProvider.models])];
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
   const normalizedDraft = normalizeDraft(draft);
   const normalizedInitialDraft = normalizeDraft(initialDraft);
   const hasTypedKey = Boolean(normalizedDraft.apiKey);
   const remoteRuntimeUrl = readRemoteRuntimeUrl();
   const canUseDesktopRuntime =
-    isDesktopRuntimeUrl(remoteRuntimeUrl) ||
-    (!remoteRuntimeUrl.trim() && isDesktopHostAvailable());
+    isDesktopRuntimeUrl(remoteRuntimeUrl) || (!remoteRuntimeUrl.trim() && isDesktopHostAvailable());
   const canCheckStoredDesktopSecret =
     Boolean(editingId) &&
     Boolean(activeConnection) &&
@@ -264,12 +255,7 @@ function ConnectionEditor({
     return () => {
       cancelled = true;
     };
-  }, [
-    editingId,
-    normalizedDraft.provider,
-    normalizedDraft.baseUrl,
-    storedSecretScopeKey,
-  ]);
+  }, [editingId, normalizedDraft.provider, normalizedDraft.baseUrl, storedSecretScopeKey]);
 
   async function handleSave() {
     const input = draftToInput(draft);
@@ -305,8 +291,7 @@ function ConnectionEditor({
     const previousProvider = getProviderConnectionProviderOption(draft.provider);
     const shouldReplaceBaseUrl =
       !draft.baseUrl.trim() || draft.baseUrl === previousProvider.defaultBaseUrl;
-    const shouldReplaceModel =
-      !draft.model.trim() || draft.model === previousProvider.defaultModel;
+    const shouldReplaceModel = !draft.model.trim() || draft.model === previousProvider.defaultModel;
 
     setDraft({
       ...draft,
@@ -326,11 +311,7 @@ function ConnectionEditor({
       setModelFetchStatus("Base URL required.");
       return;
     }
-    if (
-      selectedProvider.apiKeyRequired &&
-      !hasTypedKey &&
-      !canUseStoredDesktopSecret
-    ) {
+    if (selectedProvider.apiKeyRequired && !hasTypedKey && !canUseStoredDesktopSecret) {
       setModelFetchStatus(missingSecretMessage("fetching models"));
       return;
     }
@@ -362,9 +343,7 @@ function ConnectionEditor({
       }
     } catch (error) {
       setFetchedModels([]);
-      setModelFetchStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setModelFetchStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setModelFetchBusy(false);
     }
@@ -380,11 +359,7 @@ function ConnectionEditor({
       setConnectionCheckStatus("Model required.");
       return;
     }
-    if (
-      selectedProvider.apiKeyRequired &&
-      !hasTypedKey &&
-      !canUseStoredDesktopSecret
-    ) {
+    if (selectedProvider.apiKeyRequired && !hasTypedKey && !canUseStoredDesktopSecret) {
       setConnectionCheckStatus(missingSecretMessage("checking"));
       return;
     }
@@ -403,9 +378,7 @@ function ConnectionEditor({
       );
       setConnectionCheckStatus(result.message || "API key is valid.");
     } catch (error) {
-      setConnectionCheckStatus(
-        error instanceof Error ? error.message : String(error),
-      );
+      setConnectionCheckStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setConnectionCheckBusy(false);
     }
@@ -430,9 +403,7 @@ function ConnectionEditor({
               type="text"
               autoComplete="off"
               value={draft.label}
-              onChange={(event) =>
-                setDraft({ ...draft, label: event.target.value })
-              }
+              onChange={(event) => setDraft({ ...draft, label: event.target.value })}
               placeholder="e.g. OpenAI Main"
             />
           </div>
@@ -444,9 +415,7 @@ function ConnectionEditor({
                 className="pondsel"
                 value={draft.provider}
                 onChange={(event) =>
-                  handleProviderChange(
-                    event.target.value as ProviderConnectionProvider,
-                  )
+                  handleProviderChange(event.target.value as ProviderConnectionProvider)
                 }
               >
                 {PROVIDER_CONNECTION_PROVIDER_OPTIONS.map((provider) => (
@@ -465,12 +434,8 @@ function ConnectionEditor({
                   type="text"
                   list="conn-model-options"
                   value={draft.model}
-                  onChange={(event) =>
-                    setDraft({ ...draft, model: event.target.value })
-                  }
-                  placeholder={
-                    selectedProvider.defaultModel || "Model id from the provider"
-                  }
+                  onChange={(event) => setDraft({ ...draft, model: event.target.value })}
+                  placeholder={selectedProvider.defaultModel || "Model id from the provider"}
                 />
                 <button
                   type="button"
@@ -548,21 +513,16 @@ function ConnectionEditor({
                 setConnectionCheckStatus("");
               }}
               placeholder={
-                selectedProvider.defaultBaseUrl ||
-                "http://localhost:11434/v1 or provider endpoint"
+                selectedProvider.defaultBaseUrl || "http://localhost:11434/v1 or provider endpoint"
               }
             />
           </div>
           <div className="catalog-editor-toggle">
-            <span className="catalog-toggle-label">
-              Keeper Default Connection
-            </span>
+            <span className="catalog-toggle-label">Keeper Default Connection</span>
             <input
               type="checkbox"
               checked={draft.keeperDefault}
-              onChange={(event) =>
-                setDraft({ ...draft, keeperDefault: event.target.checked })
-              }
+              onChange={(event) => setDraft({ ...draft, keeperDefault: event.target.checked })}
               aria-label="Keeper Default Connection"
             />
           </div>
@@ -573,12 +533,9 @@ function ConnectionEditor({
 }
 
 export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
-  const activeConnectionId =
-    nav.view.kind === "connections" ? nav.view.connectionId : null;
+  const activeConnectionId = nav.view.kind === "connections" ? nav.view.connectionId : null;
   const activeConnectionRecord = activeConnectionId
-    ? nav.providerConnections.find(
-        (connection) => connection.id === activeConnectionId,
-      ) ?? null
+    ? (nav.providerConnections.find((connection) => connection.id === activeConnectionId) ?? null)
     : null;
   const activeConnection = activeConnectionRecord
     ? sanitizeProviderConnectionRecord(activeConnectionRecord)
@@ -586,9 +543,7 @@ export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
   const isCreating = nav.view.kind === "connections" && nav.view.mode === "new";
   const editingId = activeConnection?.id ?? null;
   const showEditor = isCreating || activeConnection !== null;
-  const initialDraft = activeConnection
-    ? draftFromConnection(activeConnection)
-    : EMPTY_DRAFT;
+  const initialDraft = activeConnection ? draftFromConnection(activeConnection) : EMPTY_DRAFT;
 
   async function handleSave(input: ProviderConnectionInput) {
     if (editingId) {
@@ -627,9 +582,9 @@ export function ConnectionsSurface({ nav }: ConnectionsSurfaceProps) {
         <>
           <ConnectionsBanner onBack={handleBack} />
           <div className="pond-inner catalog-inner catalog-editor-only">
-          <div className="catalog-empty">
-            Pick a connection from The Shoal or create a new one.
-          </div>
+            <div className="catalog-empty">
+              Pick a connection from The Shoal or create a new one.
+            </div>
           </div>
         </>
       )}

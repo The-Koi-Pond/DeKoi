@@ -10,17 +10,12 @@ export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
   );
 }
 
-export function sortMessengerThreads(
-  threads: MessengerThread[],
-  sortMode: ShoalSortMode,
-) {
+export function sortMessengerThreads(threads: MessengerThread[], sortMode: ShoalSortMode) {
   const sortedThreads = [...threads];
 
   if (sortMode === "oldest") {
     return sortedThreads.sort((a, b) =>
-      getMessengerThreadActivityAt(a).localeCompare(
-        getMessengerThreadActivityAt(b),
-      ),
+      getMessengerThreadActivityAt(a).localeCompare(getMessengerThreadActivityAt(b)),
     );
   }
 
@@ -28,9 +23,7 @@ export function sortMessengerThreads(
     return sortedThreads.sort(
       (a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-        getMessengerThreadActivityAt(b).localeCompare(
-          getMessengerThreadActivityAt(a),
-        ),
+        getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
     );
   }
 
@@ -55,8 +48,7 @@ export function getMessengerThreadPreview(thread: MessengerThread) {
   const lastMessage = thread.messages.at(-1);
   if (!lastMessage) return "No messages yet";
 
-  const author =
-    lastMessage.author.kind === "persona" ? "You" : lastMessage.author.label;
+  const author = lastMessage.author.kind === "persona" ? "You" : lastMessage.author.label;
   return `${author}: ${lastMessage.body}`;
 }
 

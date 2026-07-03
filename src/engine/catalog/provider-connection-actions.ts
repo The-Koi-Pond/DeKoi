@@ -123,9 +123,6 @@ export function duplicateProviderConnectionRecord(
   };
 }
 
-export function deleteProviderConnectionRecord(
-  records: ProviderConnectionRecord[],
-  id: string,
-) {
+export function deleteProviderConnectionRecord(records: ProviderConnectionRecord[], id: string) {
   return records.filter((record) => record.id !== id);
 }

@@ -1,8 +1,5 @@
 import type { MessengerGenerationAdapter } from "../../../engine/generation/messenger-generation";
-import {
-  generateWithConfiguredProvider,
-  providerErrorMessage,
-} from "./provider-generation";
+import { generateWithConfiguredProvider, providerErrorMessage } from "./provider-generation";
 
 export const providerMessengerGenerationAdapter: MessengerGenerationAdapter = {
   providerKind: "external-provider",
@@ -10,10 +7,9 @@ export const providerMessengerGenerationAdapter: MessengerGenerationAdapter = {
     try {
       return await generateWithConfiguredProvider(request);
     } catch (error) {
-      throw new Error(
-        `Provider Messenger generation failed. ${providerErrorMessage(error)}`,
-        { cause: error },
-      );
+      throw new Error(`Provider Messenger generation failed. ${providerErrorMessage(error)}`, {
+        cause: error,
+      });
     }
   },
 };

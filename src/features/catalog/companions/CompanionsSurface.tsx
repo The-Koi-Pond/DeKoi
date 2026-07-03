@@ -14,10 +14,7 @@ interface CompanionsSurfaceProps {
   nav: CompanionsSurfaceNav;
 }
 
-export type CompanionsSurfaceNav = Pick<
-  NavCatalogState,
-  "characters"
-> &
+export type CompanionsSurfaceNav = Pick<NavCatalogState, "characters"> &
   Pick<NavCharacterActions, "createCharacter" | "deleteCharacter" | "updateCharacter"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
@@ -87,9 +84,7 @@ function asNoteRole(value: unknown): CharacterNoteRole {
 }
 
 function asNumberString(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? String(value)
-    : String(fallback);
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : String(fallback);
 }
 
 function joinBlocks(values: unknown) {
@@ -220,262 +215,248 @@ function CompanionEditor({
       <div className="pond-inner catalog-inner catalog-editor-only">
         <div className="catalog-editor character-card-editor">
           <section className="catalog-editor-section" aria-labelledby="comp-core-heading">
-        <h4 id="comp-core-heading">Card</h4>
-        <div className="catalog-editor-grid">
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-name">Name</label>
-            <input
-              id="comp-name"
-              className="pondinput"
-              type="text"
-              value={draft.displayName}
-              onChange={(e) =>
-                setDraft({ ...draft, displayName: e.target.value })
-              }
-              placeholder="e.g. Hikari"
-            />
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-nickname">Nickname</label>
-            <input
-              id="comp-nickname"
-              className="pondinput"
-              type="text"
-              value={draft.nickname}
-              onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
-              placeholder="Optional"
-            />
-          </div>
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-desc">Description</label>
-          <textarea
-            id="comp-desc"
-            className="pondinput pondtextarea"
-            rows={5}
-            value={draft.description}
-            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            placeholder="Character description"
-          />
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-personality">Personality Summary</label>
-          <textarea
-            id="comp-personality"
-            className="pondinput pondtextarea"
-            rows={3}
-            value={draft.personality}
-            onChange={(e) => setDraft({ ...draft, personality: e.target.value })}
-            placeholder="Brief personality"
-          />
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-scenario">Scenario</label>
-          <textarea
-            id="comp-scenario"
-            className="pondinput pondtextarea"
-            rows={3}
-            value={draft.scenario}
-            onChange={(e) => setDraft({ ...draft, scenario: e.target.value })}
-            placeholder="Dialogue context"
-          />
-        </div>
-      </section>
+            <h4 id="comp-core-heading">Card</h4>
+            <div className="catalog-editor-grid">
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-name">Name</label>
+                <input
+                  id="comp-name"
+                  className="pondinput"
+                  type="text"
+                  value={draft.displayName}
+                  onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                  placeholder="e.g. Hikari"
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-nickname">Nickname</label>
+                <input
+                  id="comp-nickname"
+                  className="pondinput"
+                  type="text"
+                  value={draft.nickname}
+                  onChange={(e) => setDraft({ ...draft, nickname: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-desc">Description</label>
+              <textarea
+                id="comp-desc"
+                className="pondinput pondtextarea"
+                rows={5}
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                placeholder="Character description"
+              />
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-personality">Personality Summary</label>
+              <textarea
+                id="comp-personality"
+                className="pondinput pondtextarea"
+                rows={3}
+                value={draft.personality}
+                onChange={(e) => setDraft({ ...draft, personality: e.target.value })}
+                placeholder="Brief personality"
+              />
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-scenario">Scenario</label>
+              <textarea
+                id="comp-scenario"
+                className="pondinput pondtextarea"
+                rows={3}
+                value={draft.scenario}
+                onChange={(e) => setDraft({ ...draft, scenario: e.target.value })}
+                placeholder="Dialogue context"
+              />
+            </div>
+          </section>
 
-      <section className="catalog-editor-section" aria-labelledby="comp-greetings-heading">
-        <h4 id="comp-greetings-heading">Messages</h4>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-first-message">First Message</label>
-          <textarea
-            id="comp-first-message"
-            className="pondinput pondtextarea"
-            rows={4}
-            value={draft.firstMessage}
-            onChange={(e) => setDraft({ ...draft, firstMessage: e.target.value })}
-            placeholder="Opening message"
-          />
-        </div>
-        <div className="catalog-editor-grid">
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-alt-greetings">Alternate Greetings</label>
-            <textarea
-              id="comp-alt-greetings"
-              className="pondinput pondtextarea"
-              rows={5}
-              value={draft.alternateGreetings}
-              onChange={(e) =>
-                setDraft({ ...draft, alternateGreetings: e.target.value })
-              }
-              placeholder="Separate greetings with blank lines"
-            />
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-group-greetings">Group-Only Greetings</label>
-            <textarea
-              id="comp-group-greetings"
-              className="pondinput pondtextarea"
-              rows={5}
-              value={draft.groupOnlyGreetings}
-              onChange={(e) =>
-                setDraft({ ...draft, groupOnlyGreetings: e.target.value })
-              }
-              placeholder="Separate greetings with blank lines"
-            />
-          </div>
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-examples">Examples of Dialogue</label>
-          <textarea
-            id="comp-examples"
-            className="pondinput pondtextarea"
-            rows={7}
-            value={draft.exampleMessages}
-            onChange={(e) => setDraft({ ...draft, exampleMessages: e.target.value })}
-            placeholder="<START>"
-          />
-        </div>
-      </section>
+          <section className="catalog-editor-section" aria-labelledby="comp-greetings-heading">
+            <h4 id="comp-greetings-heading">Messages</h4>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-first-message">First Message</label>
+              <textarea
+                id="comp-first-message"
+                className="pondinput pondtextarea"
+                rows={4}
+                value={draft.firstMessage}
+                onChange={(e) => setDraft({ ...draft, firstMessage: e.target.value })}
+                placeholder="Opening message"
+              />
+            </div>
+            <div className="catalog-editor-grid">
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-alt-greetings">Alternate Greetings</label>
+                <textarea
+                  id="comp-alt-greetings"
+                  className="pondinput pondtextarea"
+                  rows={5}
+                  value={draft.alternateGreetings}
+                  onChange={(e) => setDraft({ ...draft, alternateGreetings: e.target.value })}
+                  placeholder="Separate greetings with blank lines"
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-group-greetings">Group-Only Greetings</label>
+                <textarea
+                  id="comp-group-greetings"
+                  className="pondinput pondtextarea"
+                  rows={5}
+                  value={draft.groupOnlyGreetings}
+                  onChange={(e) => setDraft({ ...draft, groupOnlyGreetings: e.target.value })}
+                  placeholder="Separate greetings with blank lines"
+                />
+              </div>
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-examples">Examples of Dialogue</label>
+              <textarea
+                id="comp-examples"
+                className="pondinput pondtextarea"
+                rows={7}
+                value={draft.exampleMessages}
+                onChange={(e) => setDraft({ ...draft, exampleMessages: e.target.value })}
+                placeholder="<START>"
+              />
+            </div>
+          </section>
 
-      <section className="catalog-editor-section" aria-labelledby="comp-prompts-heading">
-        <h4 id="comp-prompts-heading">Advanced Definitions</h4>
-        <div className="catalog-editor-grid">
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-system-prompt">Main/System Prompt</label>
-            <textarea
-              id="comp-system-prompt"
-              className="pondinput pondtextarea"
-              rows={4}
-              value={draft.systemPrompt}
-              onChange={(e) => setDraft({ ...draft, systemPrompt: e.target.value })}
-              placeholder="{{original}}"
-            />
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-post-history">Post-History Instructions</label>
-            <textarea
-              id="comp-post-history"
-              className="pondinput pondtextarea"
-              rows={4}
-              value={draft.postHistoryInstructions}
-              onChange={(e) =>
-                setDraft({ ...draft, postHistoryInstructions: e.target.value })
-              }
-              placeholder="{{original}}"
-            />
-          </div>
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-note">Character's Note</label>
-          <textarea
-            id="comp-note"
-            className="pondinput pondtextarea"
-            rows={3}
-            value={draft.characterNote}
-            onChange={(e) => setDraft({ ...draft, characterNote: e.target.value })}
-            placeholder="Optional static note"
-          />
-        </div>
-        <div className="catalog-editor-grid compact">
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-note-depth">Depth</label>
-            <input
-              id="comp-note-depth"
-              className="pondinput"
-              type="number"
-              min="0"
-              max="99"
-              value={draft.characterNoteDepth}
-              onChange={(e) =>
-                setDraft({ ...draft, characterNoteDepth: e.target.value })
-              }
-            />
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-note-role">Role</label>
-            <select
-              id="comp-note-role"
-              className="pondinput"
-              value={draft.characterNoteRole}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  characterNoteRole: e.target.value as CharacterNoteRole,
-                })
-              }
-            >
-              <option value="system">System</option>
-              <option value="user">User</option>
-              <option value="assistant">Assistant</option>
-            </select>
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-talkativeness">Talkativeness</label>
-            <input
-              id="comp-talkativeness"
-              className="pondinput"
-              type="number"
-              min="0"
-              max="100"
-              value={draft.talkativeness}
-              onChange={(e) =>
-                setDraft({ ...draft, talkativeness: e.target.value })
-              }
-            />
-          </div>
-        </div>
-      </section>
+          <section className="catalog-editor-section" aria-labelledby="comp-prompts-heading">
+            <h4 id="comp-prompts-heading">Advanced Definitions</h4>
+            <div className="catalog-editor-grid">
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-system-prompt">Main/System Prompt</label>
+                <textarea
+                  id="comp-system-prompt"
+                  className="pondinput pondtextarea"
+                  rows={4}
+                  value={draft.systemPrompt}
+                  onChange={(e) => setDraft({ ...draft, systemPrompt: e.target.value })}
+                  placeholder="{{original}}"
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-post-history">Post-History Instructions</label>
+                <textarea
+                  id="comp-post-history"
+                  className="pondinput pondtextarea"
+                  rows={4}
+                  value={draft.postHistoryInstructions}
+                  onChange={(e) => setDraft({ ...draft, postHistoryInstructions: e.target.value })}
+                  placeholder="{{original}}"
+                />
+              </div>
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-note">Character's Note</label>
+              <textarea
+                id="comp-note"
+                className="pondinput pondtextarea"
+                rows={3}
+                value={draft.characterNote}
+                onChange={(e) => setDraft({ ...draft, characterNote: e.target.value })}
+                placeholder="Optional static note"
+              />
+            </div>
+            <div className="catalog-editor-grid compact">
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-note-depth">Depth</label>
+                <input
+                  id="comp-note-depth"
+                  className="pondinput"
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={draft.characterNoteDepth}
+                  onChange={(e) => setDraft({ ...draft, characterNoteDepth: e.target.value })}
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-note-role">Role</label>
+                <select
+                  id="comp-note-role"
+                  className="pondinput"
+                  value={draft.characterNoteRole}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      characterNoteRole: e.target.value as CharacterNoteRole,
+                    })
+                  }
+                >
+                  <option value="system">System</option>
+                  <option value="user">User</option>
+                  <option value="assistant">Assistant</option>
+                </select>
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-talkativeness">Talkativeness</label>
+                <input
+                  id="comp-talkativeness"
+                  className="pondinput"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.talkativeness}
+                  onChange={(e) => setDraft({ ...draft, talkativeness: e.target.value })}
+                />
+              </div>
+            </div>
+          </section>
 
-      <section className="catalog-editor-section" aria-labelledby="comp-meta-heading">
-        <h4 id="comp-meta-heading">Creator's Metadata</h4>
-        <div className="catalog-editor-grid">
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-creator">Created By</label>
-            <input
-              id="comp-creator"
-              className="pondinput"
-              type="text"
-              value={draft.creator}
-              onChange={(e) => setDraft({ ...draft, creator: e.target.value })}
-              placeholder="Creator"
-            />
-          </div>
-          <div className="catalog-editor-field">
-            <label htmlFor="comp-version">Character Version</label>
-            <input
-              id="comp-version"
-              className="pondinput"
-              type="text"
-              value={draft.characterVersion}
-              onChange={(e) =>
-                setDraft({ ...draft, characterVersion: e.target.value })
-              }
-              placeholder="Version"
-            />
-          </div>
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-notes">Creator's Notes</label>
-          <textarea
-            id="comp-notes"
-            className="pondinput pondtextarea"
-            rows={4}
-            value={draft.creatorNotes}
-            onChange={(e) => setDraft({ ...draft, creatorNotes: e.target.value })}
-            placeholder="Notes"
-          />
-        </div>
-        <div className="catalog-editor-field">
-          <label htmlFor="comp-tags">Tags to Embed</label>
-          <input
-            id="comp-tags"
-            className="pondinput"
-            type="text"
-            value={draft.tags}
-            onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
-            placeholder="tag, tag"
-          />
-        </div>
-      </section>
+          <section className="catalog-editor-section" aria-labelledby="comp-meta-heading">
+            <h4 id="comp-meta-heading">Creator's Metadata</h4>
+            <div className="catalog-editor-grid">
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-creator">Created By</label>
+                <input
+                  id="comp-creator"
+                  className="pondinput"
+                  type="text"
+                  value={draft.creator}
+                  onChange={(e) => setDraft({ ...draft, creator: e.target.value })}
+                  placeholder="Creator"
+                />
+              </div>
+              <div className="catalog-editor-field">
+                <label htmlFor="comp-version">Character Version</label>
+                <input
+                  id="comp-version"
+                  className="pondinput"
+                  type="text"
+                  value={draft.characterVersion}
+                  onChange={(e) => setDraft({ ...draft, characterVersion: e.target.value })}
+                  placeholder="Version"
+                />
+              </div>
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-notes">Creator's Notes</label>
+              <textarea
+                id="comp-notes"
+                className="pondinput pondtextarea"
+                rows={4}
+                value={draft.creatorNotes}
+                onChange={(e) => setDraft({ ...draft, creatorNotes: e.target.value })}
+                placeholder="Notes"
+              />
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="comp-tags">Tags to Embed</label>
+              <input
+                id="comp-tags"
+                className="pondinput"
+                type="text"
+                value={draft.tags}
+                onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
+                placeholder="tag, tag"
+              />
+            </div>
+          </section>
         </div>
       </div>
     </>
@@ -483,19 +464,14 @@ function CompanionEditor({
 }
 
 export function CompanionsSurface({ nav }: CompanionsSurfaceProps) {
-  const activeCharacterId =
-    nav.view.kind === "companions" ? nav.view.characterId : null;
+  const activeCharacterId = nav.view.kind === "companions" ? nav.view.characterId : null;
   const activeCharacter = activeCharacterId
-    ? nav.characters.find((character) => character.id === activeCharacterId) ??
-      null
+    ? (nav.characters.find((character) => character.id === activeCharacterId) ?? null)
     : null;
-  const isCreating =
-    nav.view.kind === "companions" && nav.view.mode === "new";
+  const isCreating = nav.view.kind === "companions" && nav.view.mode === "new";
   const editingId = activeCharacter?.id ?? null;
   const showEditor = isCreating || activeCharacter !== null;
-  const initialDraft = activeCharacter
-    ? draftFromCharacter(activeCharacter)
-    : EMPTY_DRAFT;
+  const initialDraft = activeCharacter ? draftFromCharacter(activeCharacter) : EMPTY_DRAFT;
 
   function handleSave(input: CharacterRecordInput) {
     if (editingId) {

@@ -52,11 +52,7 @@ interface ChatSettingsNoticeProps {
   onAction?: () => void;
 }
 
-export function ChatSettingsNotice({
-  actionLabel,
-  children,
-  onAction,
-}: ChatSettingsNoticeProps) {
+export function ChatSettingsNotice({ actionLabel, children, onAction }: ChatSettingsNoticeProps) {
   return (
     <div className="chat-settings-notice">
       <p>{children}</p>

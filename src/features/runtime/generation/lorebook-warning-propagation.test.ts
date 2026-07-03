@@ -6,28 +6,17 @@ import {
   createLorebookRecord,
 } from "../../../engine/catalog/lorebook-actions";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
-import type {
-  MessengerMessage,
-  MessengerThread,
-} from "../../../engine/contracts/types/messenger";
-import type {
-  RoleplayEntry,
-  RoleplayThread,
-} from "../../../engine/contracts/types/roleplay";
-import {
-  generateMessengerThreadReply,
-} from "./messenger-generation";
-import {
-  generateRoleplayThreadTurn,
-} from "./roleplay-generation";
+import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
+import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import { generateMessengerThreadReply } from "./messenger-generation";
+import { generateRoleplayThreadTurn } from "./roleplay-generation";
 import {
   generateWithConfiguredProvider,
   type ProviderGenerationRequest,
 } from "./provider-generation";
 
 vi.mock("./provider-generation", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("./provider-generation")>();
+  const actual = await importOriginal<typeof import("./provider-generation")>();
   return {
     ...actual,
     generateWithConfiguredProvider: vi.fn(),
@@ -170,9 +159,7 @@ describe("lorebook warning propagation", () => {
       userMessage: message,
     });
 
-    expect(result.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(result.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("puts Messenger no-output warnings before activation warnings", async () => {
@@ -267,9 +254,7 @@ describe("lorebook warning propagation", () => {
     expect(result.warnings[0]).toBe(
       "Generation response referenced an unavailable companion: missing-character.",
     );
-    expect(result.warnings[1]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(result.warnings[1]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("includes Roleplay activation warnings in runtime results", async () => {
@@ -284,9 +269,7 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(result.warnings[0]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(result.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 
   it("puts Roleplay no-output warnings before activation warnings", async () => {
@@ -378,8 +361,6 @@ describe("lorebook warning propagation", () => {
     expect(result.warnings[0]).toBe(
       "Generation response referenced an unavailable companion: missing-character.",
     );
-    expect(result.warnings[1]).toContain(
-      'Invalid regex key "/[bad/" treated as plaintext',
-    );
+    expect(result.warnings[1]).toContain('Invalid regex key "/[bad/" treated as plaintext');
   });
 });

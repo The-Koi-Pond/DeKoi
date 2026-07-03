@@ -4,17 +4,9 @@ import type {
   RippleStateOwnerKind,
   RippleTone,
 } from "../../../engine/contracts/types/ripples";
-import {
-  createStorageRepository,
-  type StorageMode,
-} from "../storage-repository-factory";
+import { createStorageRepository, type StorageMode } from "../storage-repository-factory";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
-import {
-  isRecord,
-  normalizeStorageRecordList,
-  readString,
-  readTimestamp,
-} from "../storage-json";
+import { isRecord, normalizeStorageRecordList, readString, readTimestamp } from "../storage-json";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 export type RippleStateStorageMode = StorageMode;
@@ -66,15 +58,12 @@ export function normalizeRippleState(value: unknown): RippleState | null {
   const legacyThreadId = readString(value.threadId).trim();
   const ownerId = readString(value.ownerId, legacyThreadId).trim();
   const ownerKind =
-    normalizeOwnerKind(value.ownerKind) ??
-    (legacyThreadId ? "messenger-thread" : null);
+    normalizeOwnerKind(value.ownerKind) ?? (legacyThreadId ? "messenger-thread" : null);
   if (!id || !ownerId || !ownerKind) return null;
 
   const now = new Date().toISOString();
   const ripples = Array.isArray(value.ripples)
-    ? value.ripples
-        .map(normalizeRipple)
-        .filter((ripple): ripple is Ripple => ripple !== null)
+    ? value.ripples.map(normalizeRipple).filter((ripple): ripple is Ripple => ripple !== null)
     : [];
 
   return {

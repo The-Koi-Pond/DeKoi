@@ -15,9 +15,9 @@ then follow these repo rules and the matching local skill.
   of raw Tauri `invoke` calls or raw remote-runtime `fetch`.
 - Storage, generation, provider transport, secrets, file access, import/export,
   and runtime health checks stay separated by owner.
-- Compatibility is one-way: legacy source records may be imported into DeKoi
-  native records, but old names, schemas, UI copy, prompts, and layouts do not
-  become DeKoi product concepts.
+- Follow `PROVENANCE.md`: no AGPLv3/Marinara-derived material; legacy
+  compatibility is one-way import into DeKoi-native records; porting
+  team-authored engineering knowledge with attribution is legitimate.
 - Fix root causes. Do not add fake success, silent catches, broad fallbacks, or
   UI-only guards over broken contracts.
 - Do not self-name AI/tool/provider authorship in branch names, commit subjects,
@@ -43,31 +43,12 @@ then follow these repo rules and the matching local skill.
 
 ## Proof And Tests
 
-- Use the cheapest proof that actually proves the claim.
-- Temporary tests and harnesses are allowed when they stay local and uncommitted.
-  Report the observation instead of committing the scratch artifact.
-- Add durable test files only when a maintainer asks, a known regression needs a
-  focused guard, the behavior is risky and easy to break silently, or the touched
-  area already has a narrow nearby test pattern.
-- Co-located `*.test.*` files are allowed when they are the narrowest durable
-  guard for pure logic or contracts. Prefer them when they prevent regression
-  more clearly than a broader harness; avoid them when they only add code
-  clutter.
-- Before adding a durable test artifact, state `Durable test rationale`: the
-  risky invariant, why existing proof is insufficient, and why the test is
-  narrow.
-- Meaningful tests must protect behavior from the outside-in. Expected values
-  should trace to the user request, implementation plan, docs, contract, or a
-  hand-written fixture, not to private implementation details.
-- Avoid circular validation: do not generate tests from the finished code path
-  and then treat passing tests as proof. Prefer spec-first tests, fail-first
-  tests, or a seeded bad variant/mutation that proves the test can fail.
-- For risky logic, include negative controls and edge cases, not only happy
-  paths. A reviewer should be able to name at least one plausible broken
-  implementation that the test would catch.
-- Coverage counts are secondary. Use line/branch coverage only as a gap finder;
-  do not use high test count or high coverage percentage as proof of semantic
-  depth.
+`.github/agents/dekoi-workflow.md` is the single home for proof, test, PR,
+issue, review, and risky-work discipline; see its Proof And Test Discipline
+section. The short version: use the cheapest proof that actually proves the
+claim, keep scratch tests local and uncommitted, and add durable test artifacts
+only with a stated `Durable test rationale`. Co-located `*.test.*` files are
+allowed when they are the narrowest durable guard for pure logic or contracts.
 
 ## Validation
 
@@ -82,7 +63,13 @@ Run checks that match the change:
 - Bunny review workflow/docs: `pnpm check:bunny-review`
 - TypeScript build/bundling: `pnpm build`
 - Lint: `pnpm lint`
+- Formatting: `pnpm format:check`
+- Line endings: `pnpm check:line-endings`
+- Browser UI tests: `pnpm test:ui`
 - Rust desktop capability layer: `pnpm check:rust`
+- TypeScript unused-code/dependency report: `pnpm check:unused`
+- Rust dependency policy report: `pnpm check:rust:deny`
+- Rust unused-dependency report: `pnpm check:rust:deps`
 - Full local gate before shipping or ready-for-review handoff: `pnpm check`
 
 Ordinary local bugfixes should run the focused proof and matching lane check.
@@ -109,11 +96,8 @@ otherwise needs the baseline.
 - `.github/bunny-review` and `.github/workflows/bunny-review*.yml`: GitHub
   Actions Bunny Review automation. This is separate from the local
   `skills/bunny-style-review` review lens.
-- `skills/frontend-design`, `skills/impeccable`, and `skills/webapp-testing`:
-  UI design, polish, and browser/native proof workflows.
-- `skills/tdd`, `skills/prototype`, `skills/improve-codebase-architecture`, and
-  `skills/grill-with-docs`: optional focused workflows for higher-risk or
-  planning-heavy work.
+- `skills/`: repo-local skills. `.github/agents/dekoi-workflow.md` maps when to
+  load each one.
 
 ## Shipping
 

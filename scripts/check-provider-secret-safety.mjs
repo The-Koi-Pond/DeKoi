@@ -14,9 +14,7 @@ function fail(message) {
 }
 
 function interfaceBody(source, name) {
-  const match = source.match(
-    new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`),
-  );
+  const match = source.match(new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`));
   if (!match) fail(`Could not find ${name}.`);
   return match[1];
 }
@@ -50,9 +48,7 @@ function exportedObjectKeys(source, name) {
     ),
   );
   if (!match) fail(`Could not find ${name}.`);
-  return [...match[1].matchAll(/^\s+([A-Za-z]\w*):\s*true,/gm)].map(
-    (field) => field[1],
-  );
+  return [...match[1].matchAll(/^\s+([A-Za-z]\w*):\s*true,/gm)].map((field) => field[1]);
 }
 
 function exportedFunctionBody(source, name) {
@@ -85,9 +81,7 @@ function firstReturnedObjectKeys(source, name) {
     if (char === "}") depth -= 1;
     if (depth === 0) {
       const objectBody = body.slice(objectStart + 1, index);
-      return [...objectBody.matchAll(/^\s{4}([A-Za-z]\w*)(?=\s*[:,])/gm)].map(
-        (match) => match[1],
-      );
+      return [...objectBody.matchAll(/^\s{4}([A-Za-z]\w*)(?=\s*[:,])/gm)].map((match) => match[1]);
     }
   }
 
@@ -101,9 +95,7 @@ const providerConnectionActionsSource = readFile(
 const providerConnectionStorageSource = readFile(
   "src/runtime/storage/collections/provider-connection-storage.ts",
 );
-const bundleSource = readFile(
-  "src/runtime/storage/bundles/dekoi-storage-bundle.ts",
-);
+const bundleSource = readFile("src/runtime/storage/bundles/dekoi-storage-bundle.ts");
 
 const providerConnectionRecordBody = interfaceBody(
   providerConnectionSource,
@@ -131,7 +123,9 @@ if (/\bapiKey\s*:/.test(providerConnectionRecordBody)) {
   fail("ProviderConnectionRecord must not include durable apiKey.");
 }
 
-if (!/\bapiKey\?\s*:/.test(interfaceBody(providerConnectionActionsSource, "ProviderConnectionInput"))) {
+if (
+  !/\bapiKey\?\s*:/.test(interfaceBody(providerConnectionActionsSource, "ProviderConnectionInput"))
+) {
   fail("ProviderConnectionInput should remain the explicit typed-secret boundary.");
 }
 
@@ -155,23 +149,15 @@ if (
   !/verificationErrors\.push/.test(providerConnectionStorageSource) ||
   !/secretVerification/.test(providerConnectionStorageSource) ||
   !/persistedStatus: record\.status/.test(providerConnectionStorageSource) ||
-  /catch \(error\)[\s\S]{0,600}status: "needs-key"/.test(
-    providerConnectionStorageSource,
-  ) ||
+  /catch \(error\)[\s\S]{0,600}status: "needs-key"/.test(providerConnectionStorageSource) ||
   !/PROVIDER_CONNECTION_DURABLE_FIELDS/.test(providerConnectionStorageSource) ||
-  !/PROVIDER_CONNECTION_DURABLE_FIELD_SET/.test(
-    providerConnectionStorageSource,
-  ) ||
+  !/PROVIDER_CONNECTION_DURABLE_FIELD_SET/.test(providerConnectionStorageSource) ||
   !/assertProviderConnectionDurableShape/.test(providerConnectionStorageSource) ||
   !/assertProviderConnectionDurableRecord/.test(providerConnectionStorageSource) ||
-  !/normalizeDurableProviderConnectionRecord/.test(
-    providerConnectionStorageSource,
-  ) ||
+  !/normalizeDurableProviderConnectionRecord/.test(providerConnectionStorageSource) ||
   !/Object\.keys\(record\)\.sort\(\)/.test(providerConnectionStorageSource) ||
-  !/missing\.length > 0 \|\| extra\.length > 0/.test(
-    providerConnectionStorageSource,
-  ) ||
-  !/normalizeProviderConnectionRecord\(record, \{\s*preserveReadyStatus: true,/m.test(
+  !/missing\.length > 0 \|\| extra\.length > 0/.test(providerConnectionStorageSource) ||
+  !/normalizeProviderConnectionRecord\(record,\s*\{\s*preserveReadyStatus:\s*true,?\s*\}\)/m.test(
     providerConnectionStorageSource,
   ) ||
   !/const normalizedRecord = normalizeDurableProviderConnectionRecord\(record\)/.test(
@@ -180,24 +166,22 @@ if (
   !/const normalizedSanitizedRecord = normalizeDurableProviderConnectionRecord\(\s*sanitizeProviderConnectionRecord\(record\),\s*\)/.test(
     providerConnectionStorageSource,
   ) ||
-  !/Object\.is\(record\[field\], expectedRecord\[field\]\)/.test(
+  !/Object\.is\(\s*record\[field\],\s*expectedRecord\[field\]\s*\)/.test(
     providerConnectionStorageSource,
   ) ||
-  !/assertProviderConnectionDurableRecord\(\s*normalizedSanitizedRecord,\s*normalizedRecord,\s*\)/.test(
+  !/assertProviderConnectionDurableRecord\(\s*normalizedSanitizedRecord,\s*normalizedRecord\s*\)/.test(
     providerConnectionStorageSource,
   ) ||
-  !/sanitizeProviderConnectionRecord\(record\)/.test(
-    providerConnectionStorageSource,
-  ) ||
+  !/sanitizeProviderConnectionRecord\(record\)/.test(providerConnectionStorageSource) ||
   !/Object\.defineProperty\(verifiedRecord, "secretVerification"/.test(
     providerConnectionStorageSource,
   ) ||
   !/enumerable: false/.test(providerConnectionStorageSource) ||
-  !/records\.map\(durableProviderConnectionRecord\)/.test(
-    providerConnectionStorageSource,
-  )
+  !/records\.map\(durableProviderConnectionRecord\)/.test(providerConnectionStorageSource)
 ) {
-  fail("Desktop provider connection readiness must keep verification overlays non-durable and assert the exact durable save record.");
+  fail(
+    "Desktop provider connection readiness must keep verification overlays non-durable and assert the exact durable save record.",
+  );
 }
 
 if (!/redactProviderConnectionSecrets\(providerConnections\)/.test(bundleSource)) {
@@ -231,9 +215,7 @@ if (
 
 if (
   !/provider_connection_requires_api_key\(provider\)/.test(desktopRuntimeSource) ||
-  !/Some\(secret\) if !secret\.trim\(\)\.is_empty\(\) => Ok\(secret\)/.test(
-    desktopRuntimeSource,
-  ) ||
+  !/Some\(secret\) if !secret\.trim\(\)\.is_empty\(\) => Ok\(secret\)/.test(desktopRuntimeSource) ||
   !/Provider connection needs an API key before it can make provider requests/.test(
     desktopRuntimeSource,
   )
@@ -245,12 +227,8 @@ const providerConnectionActionSource = readFile(
   "src/features/catalog/actions/use-provider-connection-actions.ts",
 );
 if (
-  !/existingConnection\?\.provider === input\.provider/.test(
-    providerConnectionActionSource,
-  ) ||
-  !/existingConnection\.baseUrl\.trim\(\)\.replace/.test(
-    providerConnectionActionSource,
-  )
+  !/existingConnection\?\.provider === input\.provider/.test(providerConnectionActionSource) ||
+  !/existingConnection\.baseUrl\.trim\(\)\.replace/.test(providerConnectionActionSource)
 ) {
   fail("Provider secret reuse must be scoped to the same provider and base URL.");
 }
@@ -270,19 +248,17 @@ if (
     providerConnectionSurfaceSource,
   )
 ) {
-  fail("Provider connection check must scope saved desktop secret reuse to unchanged ready records.");
+  fail(
+    "Provider connection check must scope saved desktop secret reuse to unchanged ready records.",
+  );
 }
 
-const providerGenerationSource = readFile(
-  "src/features/runtime/generation/provider-generation.ts",
-);
+const providerGenerationSource = readFile("src/features/runtime/generation/provider-generation.ts");
 if (
   !/providerOption\.apiKeyRequired && connection\.status !== "ready"/.test(
     providerGenerationSource,
   ) ||
-  !/Provider connection needs an API key before it can generate/.test(
-    providerGenerationSource,
-  )
+  !/Provider connection needs an API key before it can generate/.test(providerGenerationSource)
 ) {
   fail("Desktop provider generation must fail locally for non-ready required-key connections.");
 }

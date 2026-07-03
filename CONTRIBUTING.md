@@ -3,33 +3,19 @@
 Thanks for helping with DeKoi. This repository is a from-scratch project, so
 contribution hygiene matters as much as code quality.
 
-## Project Provenance
+## Provenance
 
-Do not copy from the prior fork-derived line:
-
-- Source code.
-- Assets.
-- Documentation wording.
-- Prompts.
-- UI text.
-- Storage schemas.
-- Component layouts.
-- Generated bindings.
-- Config files beyond generic tool defaults.
+[PROVENANCE.md](./PROVENANCE.md) is the authoritative boundary. The short
+version: no AGPLv3/Marinara-derived code, assets, prompts, schemas, UI text,
+layouts, or generated bindings; team-authored engineering knowledge and
+original team code are portable with attribution; legacy compatibility is
+one-way import into DeKoi-native records.
 
 Allowed inputs include DeKoi-owned requirements, general engineering knowledge, public framework documentation, original code written for this repository, and compatibility notes expressed as behavior instead of implementation.
 
 ## Before Substantial Changes
 
 Write the DeKoi requirement first. The requirement should explain what the app needs in DeKoi terms without referencing how another project implemented it.
-
-For compatibility work, keep the direction one-way:
-
-~~~text
-legacy source record -> DeKoi native record
-~~~
-
-Import adapters may understand old source shapes. Core DeKoi records, collection names, UI labels, and provider requests should stay DeKoi-native.
 
 ## Source Lanes
 
@@ -45,28 +31,14 @@ Stop and redesign if engine code needs React, feature internals, runtime adapter
 
 ## Checks
 
-Run focused checks while developing and the full gate before shipping or handing
-off a ready PR:
+Run the full gate before shipping or handing off a ready PR:
 
-~~~sh
+```sh
 pnpm check
-~~~
+```
 
-Use focused checks when changing a narrow contract or pure behavior:
-
-~~~sh
-pnpm test
-pnpm check:storage-contracts
-pnpm check:provider-secret-safety
-pnpm check:runtime-contracts
-pnpm check:desktop-contracts
-pnpm check:frontend-boundaries
-pnpm check:bunny-review
-pnpm check:rust
-~~~
-
-See [AGENTS.md](./AGENTS.md) for the agent-facing workflow map and validation
-lane list.
+While developing, run the focused check that matches the change. The
+change-to-command map lives in [AGENTS.md](./AGENTS.md) under Validation.
 
 ## License
 

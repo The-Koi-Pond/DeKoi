@@ -61,7 +61,9 @@ Options:
     const fileIdx = args.indexOf("--file");
     const filePath = fileIdx !== -1 && fileIdx + 1 < args.length ? args[fileIdx + 1] : undefined;
     // Message is any remaining positional arg that isn't a flag
-    const message = args.find((a, i) => i > replyIdx + 2 && !a.startsWith("--") && i !== fileIdx + 1) || undefined;
+    const message =
+      args.find((a, i) => i > replyIdx + 2 && !a.startsWith("--") && i !== fileIdx + 1) ||
+      undefined;
 
     if (!id) {
       console.error("Usage: npx impeccable poll --reply <id> <status> [--file path] [message]");
@@ -143,8 +145,14 @@ Options:
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const acceptScript = path.join(__dirname, "live-accept.mjs");
       const scriptArgs =
-        event.type === "discard" ? ["--id", event.id, "--discard"] : ["--id", event.id, "--variant", event.variantId];
-      if (event.type === "accept" && event.paramValues && Object.keys(event.paramValues).length > 0) {
+        event.type === "discard"
+          ? ["--id", event.id, "--discard"]
+          : ["--id", event.id, "--variant", event.variantId];
+      if (
+        event.type === "accept" &&
+        event.paramValues &&
+        Object.keys(event.paramValues).length > 0
+      ) {
         scriptArgs.push("--param-values", JSON.stringify(event.paramValues));
       }
       try {

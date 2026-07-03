@@ -2,10 +2,7 @@ import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
-import type {
-  RoleplayEntry,
-  RoleplayThread,
-} from "../contracts/types/roleplay";
+import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import type {
   ActivatedLoreEntry,
   LorebookScanSource,
@@ -114,10 +111,7 @@ function roleplayLoreScanSources(thread: RoleplayThread): LorebookScanSource[] {
   }));
 }
 
-export function getNextRoleplayCompanion(
-  thread: RoleplayThread,
-  companions: CharacterRecord[],
-) {
+export function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterRecord[]) {
   const availableCompanions = companions.filter((companion) =>
     thread.characterIds.includes(companion.id),
   );
@@ -216,9 +210,7 @@ function buildRoleplaySystemPrompt({
     ),
     ...companions.flatMap((companion) =>
       namedGenerationBlock(
-        companion.id === targetCompanion?.id
-          ? "Replying character"
-          : "Other character",
+        companion.id === targetCompanion?.id ? "Replying character" : "Other character",
         characterGenerationContext(companion, {
           includeExamples: false,
           systemPromptLabel: "Character instructions",
@@ -228,16 +220,11 @@ function buildRoleplaySystemPrompt({
     ...namedGenerationBlock(
       "Selected lore",
       formatLoreGenerationEntries(
-        activatedLoreEntries.filter(
-          (entry) => entry.entry.insertionPosition === "after-character",
-        ),
+        activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "after-character"),
         { includeSummary: true, summarizedLorebookIds },
       ),
     ),
-    ...namedGenerationBlock(
-      "Example dialogue",
-      exampleDialogueGenerationContext(companions),
-    ),
+    ...namedGenerationBlock("Example dialogue", exampleDialogueGenerationContext(companions)),
   ].join("\n\n");
 }
 
@@ -308,9 +295,7 @@ function createRoleplayPromptAssembly({
   });
   const transcriptWithDepthLore = injectAtDepth(
     transcript,
-    activatedLoreEntries.filter(
-      (entry) => entry.entry.insertionPosition === "at-depth",
-    ),
+    activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "at-depth"),
     { includeSummary: true, providerConnection, summarizedLorebookIds },
   );
 
@@ -341,10 +326,7 @@ export function createRoleplayGenerationRequest({
   now: string;
   parameters?: Partial<RoleplayGenerationParameters>;
 }): RoleplayGenerationRequest {
-  const targetCompanion = getNextRoleplayCompanion(
-    context.requestThread,
-    context.companions,
-  );
+  const targetCompanion = getNextRoleplayCompanion(context.requestThread, context.companions);
   const promptAssembly = createRoleplayPromptAssembly({
     activePersona: context.activePersona,
     companions: context.companions,

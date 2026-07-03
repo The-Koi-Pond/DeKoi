@@ -11,9 +11,7 @@ export function getCompanionSettingsViewModel({
   characters: readonly CharacterRecord[];
   threadLabel: string;
 }) {
-  const settingsCharacterById = new Map(
-    characters.map((character) => [character.id, character]),
-  );
+  const settingsCharacterById = new Map(characters.map((character) => [character.id, character]));
   const selectedCompanionIds = activeThread?.characterIds ?? [];
   const selectedCompanionNames = activeThread
     ? activeThread.characterIds.flatMap((characterId) => {
@@ -36,9 +34,7 @@ export function getCompanionSettingsViewModel({
   const companionSelectionLabel =
     selectedCompanionNames.join(", ") ||
     (missingCompanionCount > 0
-      ? `${missingCompanionCount} missing companion${
-          missingCompanionCount === 1 ? "" : "s"
-        }`
+      ? `${missingCompanionCount} missing companion${missingCompanionCount === 1 ? "" : "s"}`
       : "Choose companions");
 
   return {
@@ -59,9 +55,7 @@ export function getLorebookSettingsViewModel({
   lorebooks: readonly LorebookRecord[];
   threadLabel: string;
 }) {
-  const settingsLorebookById = new Map(
-    lorebooks.map((lorebook) => [lorebook.id, lorebook]),
-  );
+  const settingsLorebookById = new Map(lorebooks.map((lorebook) => [lorebook.id, lorebook]));
   const selectedLorebookIds = activeThread?.lorebookIds ?? [];
   const selectedLorebookNames = activeThread
     ? activeThread.lorebookIds.flatMap((lorebookId) => {
@@ -80,9 +74,7 @@ export function getLorebookSettingsViewModel({
       ? `${selectedLorebookNames.length} selected, ${missingLorebookCount} missing`
       : selectedLorebookCount === 0
         ? "No lorebooks selected"
-        : `${selectedLorebookCount} lorebook${
-            selectedLorebookCount === 1 ? "" : "s"
-          }`;
+        : `${selectedLorebookCount} lorebook${selectedLorebookCount === 1 ? "" : "s"}`;
 
   return {
     lorebookDrawerSummary,

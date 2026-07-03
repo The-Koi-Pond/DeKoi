@@ -107,19 +107,19 @@ jobs:
           rust=false
           docs=false
 
-          if matches '^(package.json|pnpm-lock.yaml|tsconfig(\.[^/]+)?\.json|vite\.config\.ts|eslint\.config\.js|\.github/workflows/[^/]+\.yml|\.github/bunny-review/|src-tauri/Cargo\.(toml|lock)|scripts/check-[^/]+\.mjs)$'; then
+          if matches '^(\.gitattributes$|\.prettier(ignore|rc\.json)$|deny\.toml$|knip\.json$|package.json|pnpm-lock.yaml|tsconfig(\.[^/]+)?\.json|vite\.config\.ts|eslint\.config\.js|\.github/workflows/[^/]+\.yml|\.github/bunny-review/|src-tauri/Cargo\.(toml|lock)|scripts/check-[^/]+\.mjs)$'; then
             broad=true
           fi
 
-          if matches '^(src/|public/|scripts/|index\.html$|package.json$|pnpm-lock.yaml$|tsconfig(\.[^/]+)?\.json$|vite\.config\.ts$|eslint\.config\.js$)'; then
+          if matches '^(\.gitattributes$|\.prettier(ignore|rc\.json)$|knip\.json$|src/|public/|scripts/|index\.html$|package.json$|pnpm-lock.yaml$|tsconfig(\.[^/]+)?\.json$|vite\.config\.ts$|eslint\.config\.js$)'; then
             frontend=true
           fi
 
-          if matches '^(src-tauri/|src/shared/api/|src/runtime/|package.json$|pnpm-lock.yaml$)'; then
+          if matches '^(deny\.toml$|src-tauri/|src/shared/api/|src/runtime/|package.json$|pnpm-lock.yaml$)'; then
             rust=true
           fi
 
-          if matches '^(AGENTS\.md$|README\.md$|CONTRIBUTING\.md$|ARCHITECTURE\.md$|DOMAIN_MODEL\.md$|PRODUCT\.md$|DESIGN\.md$|SURFACE_LABELS\.md$|UI_HANDOFF\.md$|docs/|skills/|\.github/)'; then
+          if matches '^(AGENTS\.md$|README\.md$|CONTRIBUTING\.md$|ARCHITECTURE\.md$|DOMAIN_MODEL\.md$|PRODUCT\.md$|DESIGN\.md$|UI_HANDOFF\.md$|docs/|skills/|\.github/)'; then
             docs=true
           fi
 
@@ -155,19 +155,39 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:line-endings
       - run: pnpm check:bunny-review
       - if: needs.classify.outputs.frontend == 'true'
         run: pnpm check:desktop-contracts
       - if: needs.classify.outputs.frontend == 'true'
         run: pnpm check:storage-contracts
       - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:provider-secret-safety
+      - if: needs.classify.outputs.frontend == 'true'
         run: pnpm check:runtime-contracts
       - if: needs.classify.outputs.frontend == 'true'
         run: pnpm check:frontend-boundaries
       - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm test
+      - if: needs.classify.outputs.frontend == 'true'
         run: pnpm build
       - if: needs.classify.outputs.frontend == 'true'
         run: pnpm lint
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm format:check
+      - name: Unused TypeScript dependency report
+        if: needs.classify.outputs.frontend == 'true'
+        run: pnpm check:unused
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: needs.classify.outputs.frontend == 'true'
+        run: pnpm test:ui:run
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
 
   rust:
     name: Rust Desktop Capability Layer
@@ -181,9 +201,14 @@ jobs:
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-machete
       - name: Install Tauri Linux dependencies
         run: |
           sudo apt-get update
@@ -197,4 +222,12 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
-      - run: cargo check --manifest-path src-tauri/Cargo.toml
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Rust dependency policy report
+        run: pnpm check:rust:deny
+        continue-on-error: true
+      - name: Unused Rust dependency report
+        run: pnpm check:rust:deps
+        continue-on-error: true

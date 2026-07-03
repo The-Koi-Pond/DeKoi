@@ -14,10 +14,7 @@ import {
   readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
-import {
-  LorebooksSurface,
-  type LorebooksSurfaceNav,
-} from "./LorebooksSurface";
+import { LorebooksSurface, type LorebooksSurfaceNav } from "./LorebooksSurface";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 
 const now = "2026-07-02T00:00:00.000Z";
@@ -50,9 +47,7 @@ const baseDraft: LorebookEntryDraft = {
   matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 
-function surfaceNav(
-  overrides: Partial<LorebooksSurfaceNav> = {},
-): LorebooksSurfaceNav {
+function surfaceNav(overrides: Partial<LorebooksSurfaceNav> = {}): LorebooksSurfaceNav {
   const lorebook = createLorebookRecord({
     id: "lorebook-1",
     input: { title: "World Notes" },
@@ -110,32 +105,16 @@ describe("lorebook entry draft helpers", () => {
   });
 
   it("parses comma-separated keys before persistence", () => {
-    expect(parseLorebookEntryKeys(" canal,  tower ,, ")).toEqual([
-      "canal",
-      "tower",
-    ]);
-    expect(parseLorebookEntryKeys(" /wolf{2,3}/i, canal ")).toEqual([
-      "/wolf{2,3}/i",
-      "canal",
-    ]);
-    expect(parseLorebookEntryKeys(" /amber,bell/, tower ")).toEqual([
-      "/amber,bell/",
-      "tower",
-    ]);
-    expect(parseLorebookEntryKeys(" /route, canal ")).toEqual([
-      "/route",
-      "canal",
-    ]);
+    expect(parseLorebookEntryKeys(" canal,  tower ,, ")).toEqual(["canal", "tower"]);
+    expect(parseLorebookEntryKeys(" /wolf{2,3}/i, canal ")).toEqual(["/wolf{2,3}/i", "canal"]);
+    expect(parseLorebookEntryKeys(" /amber,bell/, tower ")).toEqual(["/amber,bell/", "tower"]);
+    expect(parseLorebookEntryKeys(" /route, canal ")).toEqual(["/route", "canal"]);
     expect(parseLorebookEntryKeys(" /route, canal, /wolf/ ")).toEqual([
       "/route",
       "canal",
       "/wolf/",
     ]);
-    expect(parseLorebookEntryKeys(" /route, canal, /wolf ")).toEqual([
-      "/route",
-      "canal",
-      "/wolf",
-    ]);
+    expect(parseLorebookEntryKeys(" /route, canal, /wolf ")).toEqual(["/route", "canal", "/wolf"]);
     expect(parseLorebookEntryKeys(" /route, canal, /wolf/q ")).toEqual([
       "/route",
       "canal",
@@ -276,9 +255,7 @@ describe("lorebook entry draft helpers", () => {
 
 describe("LorebooksSurface", () => {
   it("renders Include names in existing lorebook activation settings", () => {
-    const markup = renderToStaticMarkup(
-      <LorebooksSurface nav={surfaceNav()} />,
-    );
+    const markup = renderToStaticMarkup(<LorebooksSurface nav={surfaceNav()} />);
 
     expect(markup).toContain("Include names");
     expect(markup).toContain('aria-label="Include names"');

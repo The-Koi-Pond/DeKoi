@@ -1,9 +1,6 @@
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
-import {
-  ChatSettingsDropdown,
-  type ChatSettingsDropdownOption,
-} from "./ChatSettingsDropdown";
+import { ChatSettingsDropdown, type ChatSettingsDropdownOption } from "./ChatSettingsDropdown";
 import type { ChatSettingsPersonaDrawerModel } from "../lib/chat-settings-identity-drawer-models";
 
 interface ChatSettingsPersonaControlsProps {
@@ -48,21 +45,16 @@ export function ChatSettingsPersonaControls({
         />
       </div>
       {model.hasMissingPersona && (
-        <ChatSettingsNotice
-          actionLabel="Use Anonymous"
-          onAction={() => onPersonaChange("")}
-        >
-          The selected persona is no longer saved. Choose Anonymous or another
-          persona before sending as that identity.
+        <ChatSettingsNotice actionLabel="Use Anonymous" onAction={() => onPersonaChange("")}>
+          The selected persona is no longer saved. Choose Anonymous or another persona before
+          sending as that identity.
         </ChatSettingsNotice>
       )}
-      {model.activeMessengerThread &&
-        personas.length === 0 &&
-        !model.hasMissingPersona && (
-          <p className="chat-settings-empty-line">
-            No personas yet. Messages can still send as Anonymous.
-          </p>
-        )}
+      {model.activeMessengerThread && personas.length === 0 && !model.hasMissingPersona && (
+        <p className="chat-settings-empty-line">
+          No personas yet. Messages can still send as Anonymous.
+        </p>
+      )}
     </>
   );
 }

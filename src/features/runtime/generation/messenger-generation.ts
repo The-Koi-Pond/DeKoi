@@ -143,17 +143,11 @@ export async function generateMessengerThreadReply({
       }),
     ];
   });
-  const warnings = [
-    ...response.warnings,
-    ...droppedDraftWarnings,
-    ...request.warnings,
-  ];
+  const warnings = [...response.warnings, ...droppedDraftWarnings, ...request.warnings];
 
   return {
     thread:
-      generatedMessages.length > 0
-        ? appendMessengerMessages(thread, generatedMessages)
-        : thread,
+      generatedMessages.length > 0 ? appendMessengerMessages(thread, generatedMessages) : thread,
     response,
     generatedMessages,
     runtimeMode: runtime.mode,

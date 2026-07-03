@@ -3,7 +3,8 @@
     ? v(exports)
     : typeof define == "function" && define.amd
       ? define(["exports"], v)
-      : ((y = typeof globalThis != "undefined" ? globalThis : y || self), v((y.modernScreenshot = {})));
+      : ((y = typeof globalThis != "undefined" ? globalThis : y || self),
+        v((y.modernScreenshot = {})));
 })(this, function (y) {
   "use strict";
   var rr = Object.defineProperty,
@@ -13,7 +14,8 @@
   var xe = Object.prototype.hasOwnProperty,
     Me = Object.prototype.propertyIsEnumerable;
   var Oe = Math.pow,
-    Le = (y, v, N) => (v in y ? rr(y, v, { enumerable: !0, configurable: !0, writable: !0, value: N }) : (y[v] = N)),
+    Le = (y, v, N) =>
+      v in y ? rr(y, v, { enumerable: !0, configurable: !0, writable: !0, value: N }) : (y[v] = N),
     D = (y, v) => {
       for (var N in v || (v = {})) xe.call(v, N) && Le(y, N, v[N]);
       if (Z) for (var N of Z(v)) Me.call(v, N) && Le(y, N, v[N]);
@@ -47,7 +49,14 @@
     });
   var Be;
   function v(e, t) {
-    return ((e[13] = 1), (e[14] = t >> 8), (e[15] = t & 255), (e[16] = t >> 8), (e[17] = t & 255), e);
+    return (
+      (e[13] = 1),
+      (e[14] = t >> 8),
+      (e[15] = t & 255),
+      (e[16] = t >> 8),
+      (e[17] = t & 255),
+      e
+    );
   }
   const N = 112,
     R = 72,
@@ -72,7 +81,8 @@
   function W(e) {
     const t = e.length - 1;
     for (let r = t; r >= 4; r--)
-      if (e[r - 4] === 9 && e[r - 3] === N && e[r - 2] === R && e[r - 1] === O && e[r] === X) return r - 3;
+      if (e[r - 4] === 9 && e[r - 3] === N && e[r - 2] === R && e[r - 1] === O && e[r] === X)
+        return r - 3;
     return 0;
   }
   function ae(e, t, r = !1) {
@@ -161,7 +171,9 @@
   }
   function J(e) {
     var t;
-    return (t = e && I(e) ? (e == null ? void 0 : e.ownerDocument) : e) != null ? t : window.document;
+    return (t = e && I(e) ? (e == null ? void 0 : e.ownerDocument) : e) != null
+      ? t
+      : window.document;
   }
   const K = "http://www.w3.org/2000/svg";
   function fe(e, t, r) {
@@ -254,7 +266,12 @@
                 try {
                   yield o.decode();
                 } catch (h) {
-                  s == null || s("Failed to decode image, trying to render anyway", o.dataset.originalSrc || d, h);
+                  s == null ||
+                    s(
+                      "Failed to decode image, trying to render anyway",
+                      o.dataset.originalSrc || d,
+                      h,
+                    );
                 }
               l();
             }),
@@ -275,7 +292,11 @@
       V(e) &&
         ($(e) || Y(e)
           ? yield L(e, t)
-          : yield Promise.all(["img", "video"].flatMap((r) => Array.from(e.querySelectorAll(r)).map((n) => L(n, t)))));
+          : yield Promise.all(
+              ["img", "video"].flatMap((r) =>
+                Array.from(e.querySelectorAll(r)).map((n) => L(n, t)),
+              ),
+            ));
     });
   }
   const he = (function () {
@@ -318,7 +339,12 @@
         a = !!(t != null && t.debug),
         s = (f = t == null ? void 0 : t.features) != null ? f : !0,
         o = (h = e.ownerDocument) != null ? h : U ? window.document : void 0,
-        c = (p = (g = e.ownerDocument) == null ? void 0 : g.defaultView) != null ? p : U ? window : void 0,
+        c =
+          (p = (g = e.ownerDocument) == null ? void 0 : g.defaultView) != null
+            ? p
+            : U
+              ? window
+              : void 0,
         u = new Map(),
         l = M(
           D(
@@ -337,8 +363,11 @@
               debug: a,
               fetch: D(
                 {
-                  requestInit: wt((E = t == null ? void 0 : t.fetch) == null ? void 0 : E.bypassingCache),
-                  placeholderImage: "data:image/png;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                  requestInit: wt(
+                    (E = t == null ? void 0 : t.fetch) == null ? void 0 : E.bypassingCache,
+                  ),
+                  placeholderImage:
+                    "data:image/png;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
                   bypassingCache: !1,
                 },
                 t == null ? void 0 : t.fetch,
@@ -378,7 +407,8 @@
                         var A, F, B, $e;
                         const { url: S, result: T } = w.data;
                         T
-                          ? (F = (A = u.get(S)) == null ? void 0 : A.resolve) == null || F.call(A, T)
+                          ? (F = (A = u.get(S)) == null ? void 0 : A.resolve) == null ||
+                            F.call(A, T)
                           : ($e = (B = u.get(S)) == null ? void 0 : B.reject) == null ||
                             $e.call(B, new Error(`Error receiving message from worker: ${S}`));
                       })),
@@ -486,7 +516,10 @@
             ? ((o.height *= s / o.width), (o.width = s))
             : ((o.width *= s / o.height), (o.height = s))));
     const c = o.getContext("2d");
-    return (c && a && ((c.fillStyle = a), c.fillRect(0, 0, o.width, o.height)), { canvas: o, context2d: c });
+    return (
+      c && a && ((c.fillStyle = a), c.fillRect(0, 0, o.width, o.height)),
+      { canvas: o, context2d: c }
+    );
   }
   function Se(e, t) {
     if (e.ownerDocument)
@@ -528,7 +561,8 @@
     return C(this, null, function* () {
       if (e.ownerDocument && !e.currentSrc && e.poster) return _(e.poster, e.ownerDocument);
       const r = e.cloneNode(!1);
-      ((r.crossOrigin = "anonymous"), e.currentSrc && e.currentSrc !== e.src && (r.src = e.currentSrc));
+      ((r.crossOrigin = "anonymous"),
+        e.currentSrc && e.currentSrc !== e.src && (r.src = e.currentSrc));
       const n = r.ownerDocument;
       if (n) {
         let i = !0;
@@ -544,7 +578,10 @@
           const s = a.getContext("2d");
           s && s.drawImage(r, 0, 0, a.width, a.height);
         } catch (s) {
-          return (t.log.warn("Failed to clone video", s), e.poster ? _(e.poster, e.ownerDocument) : r);
+          return (
+            t.log.warn("Failed to clone video", s),
+            e.poster ? _(e.poster, e.ownerDocument) : r
+          );
         }
         return Se(a, t);
       }
@@ -618,7 +655,8 @@
         const l = e.item(u);
         s(l);
       }
-    for (let c = i.length, u = 0; u < c; u++) (o = a.get(i[u])) == null || o.forEach((l, d) => n.set(d, l));
+    for (let c = i.length, u = 0; u < c; u++)
+      (o = a.get(i[u])) == null || o.forEach((l, d) => n.set(d, l));
     function s(c) {
       const u = e.getPropertyValue(c),
         l = e.getPropertyPriority(c),
@@ -746,7 +784,8 @@
       let i = e.firstChild;
       I(e) &&
         e.shadowRoot &&
-        ((i = (a = e.shadowRoot) == null ? void 0 : a.firstChild), r.shadowRoots.push(e.shadowRoot));
+        ((i = (a = e.shadowRoot) == null ? void 0 : a.firstChild),
+        r.shadowRoots.push(e.shadowRoot));
       for (let s = i; s; s = s.nextSibling)
         if (!Ze(s))
           if (I(s) && it(s) && typeof s.assignedNodes == "function") {
@@ -827,7 +866,13 @@
                   }));
               }
             : void 0;
-        return (Pt(e, f, g, t, b), It(e, f), Y(e) || (yield Ae(e, f, t, b)), yield o == null ? void 0 : o(f), f);
+        return (
+          Pt(e, f, g, t, b),
+          It(e, f),
+          Y(e) || (yield Ae(e, f, t, b)),
+          yield o == null ? void 0 : o(f),
+          f
+        );
       }
       const c = e.cloneNode(!1);
       return (yield Ae(e, c, t), yield o == null ? void 0 : o(c), c);
@@ -894,7 +939,10 @@
     n === "image" && (G || te) && e.drawImageCount++;
     let E = u.get(r);
     if (!E) {
-      m && m instanceof RegExp && m.test(s) && (s += (/\?/.test(s) ? "&" : "?") + new Date().getTime());
+      m &&
+        m instanceof RegExp &&
+        m.test(s) &&
+        (s += (/\?/.test(s) ? "&" : "?") + new Date().getTime());
       const b = n.startsWith("font") && h && h.minify,
         w = new Set();
       b &&
@@ -906,7 +954,12 @@
           });
       const S = b && w.size,
         T = D(
-          { url: s, timeout: o, responseType: S ? "arrayBuffer" : i, headers: n === "image" ? { accept: c } : void 0 },
+          {
+            url: s,
+            timeout: o,
+            responseType: S ? "arrayBuffer" : i,
+            headers: n === "image" ? { accept: c } : void 0,
+          },
           d,
         );
       ((E = { type: n, resolve: void 0, reject: void 0, response: null }),
@@ -917,7 +970,9 @@
           }
           return !G && r.startsWith("http") && g.length
             ? new Promise((A, F) => {
-                (g[u.size & (g.length - 1)].postMessage(D({ rawUrl: r }, T)), (E.resolve = A), (E.reject = F));
+                (g[u.size & (g.length - 1)].postMessage(D({ rawUrl: r }, T)),
+                  (E.resolve = A),
+                  (E.reject = F));
               })
             : Bt(T);
         }).catch((A) => {
@@ -937,7 +992,11 @@
       if (!Ie(e)) return e;
       for (const [i, a] of $t(e, t))
         try {
-          const s = yield z(r, { url: a, requestType: n ? "image" : "text", responseType: "dataUrl" });
+          const s = yield z(r, {
+            url: a,
+            requestType: n ? "image" : "text",
+            responseType: "dataUrl",
+          });
           e = e.replace(Lt(i), `$1${s}$3`);
         } catch (s) {
           r.log.warn("Failed to fetch css data url", i, s);
@@ -1030,7 +1089,14 @@
   }
   function qt(e, t) {
     return C(this, null, function* () {
-      const { ownerDocument: r, svgStyleElement: n, fontFamilies: i, fontCssTexts: a, tasks: s, font: o } = t;
+      const {
+        ownerDocument: r,
+        svgStyleElement: n,
+        fontFamilies: i,
+        fontCssTexts: a,
+        tasks: s,
+        font: o,
+      } = t;
       if (!(!r || !n || !i.size))
         if (o && o.cssText) {
           const c = Ue(o.cssText, t);
@@ -1067,7 +1133,10 @@
                       try {
                         d.insertRule(b, d.cssRules.length);
                       } catch (w) {
-                        t.log.warn("Error inserting rule from remote css import", { rule: b, error: w });
+                        t.log.warn("Error inserting rule from remote css import", {
+                          rule: b,
+                          error: w,
+                        });
                       }
                   }
                 }),
@@ -1085,7 +1154,9 @@
                 return (
                   Ye(f) &&
                   Ie(f.style.getPropertyValue("src")) &&
-                  ((h = we(f.style.getPropertyValue("font-family"))) == null ? void 0 : h.some((g) => i.has(g)))
+                  ((h = we(f.style.getPropertyValue("font-family"))) == null
+                    ? void 0
+                    : h.some((g) => i.has(g)))
                 );
               })
               .forEach((f) => {
@@ -1097,14 +1168,16 @@
 `),
                     )
                   : s.push(
-                      Re(h.cssText, h.parentStyleSheet ? h.parentStyleSheet.href : null, t).then((p) => {
-                        ((p = Ue(p, t)),
-                          a.set(h.cssText, p),
-                          n.appendChild(
-                            r.createTextNode(`${p}
+                      Re(h.cssText, h.parentStyleSheet ? h.parentStyleSheet.href : null, t).then(
+                        (p) => {
+                          ((p = Ue(p, t)),
+                            a.set(h.cssText, p),
+                            n.appendChild(
+                              r.createTextNode(`${p}
 `),
-                          ));
-                      }),
+                            ));
+                        },
+                      ),
                     );
               }));
         }
@@ -1152,7 +1225,8 @@
       : e;
   }
   function oe(e, t = []) {
-    for (const r of Array.from(e)) Ke(r) ? t.push(...oe(r.cssRules)) : "cssRules" in r ? oe(r.cssRules, t) : t.push(r);
+    for (const r of Array.from(e))
+      Ke(r) ? t.push(...oe(r.cssRules)) : "cssRules" in r ? oe(r.cssRules, t) : t.push(r);
     return t;
   }
   const Xt = /\bx?link:?href\s*=\s*["'](?!data:)[^"']+["']/i;

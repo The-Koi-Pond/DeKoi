@@ -37,18 +37,12 @@ export function useChatSettingsMessengerActions({
     updater: (thread: MessengerThread, updatedAt: string) => MessengerThread,
   ) {
     if (!activeMessengerThread) return;
-    onUpdateMessengerThread(
-      updater(activeMessengerThread, new Date().toISOString()),
-    );
+    onUpdateMessengerThread(updater(activeMessengerThread, new Date().toISOString()));
   }
 
   function handleMessengerConnectionChange(connectionId: string) {
     updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadProviderConnection(
-        thread,
-        connectionId.trim() || null,
-        updatedAt,
-      ),
+      setMessengerThreadProviderConnection(thread, connectionId.trim() || null, updatedAt),
     );
   }
 
@@ -109,9 +103,7 @@ export function useChatSettingsMessengerActions({
     );
   }
 
-  function handleMessengerSystemPromptModeChange(
-    systemPromptMode: MessengerSystemPromptMode,
-  ) {
+  function handleMessengerSystemPromptModeChange(systemPromptMode: MessengerSystemPromptMode) {
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadSystemPrompt(
         thread,

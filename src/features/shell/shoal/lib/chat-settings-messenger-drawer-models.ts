@@ -1,7 +1,5 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type {
-  ChatSettingsMessengerSettings,
-} from "./chat-settings-controller-groups";
+import type { ChatSettingsMessengerSettings } from "./chat-settings-controller-groups";
 import {
   getChatSettingsAdvancedDrawerModel,
   type AdvancedChatSettings,

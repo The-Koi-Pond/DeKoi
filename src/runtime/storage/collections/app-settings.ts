@@ -61,9 +61,6 @@ export async function loadAppSettingsFromStorage(rawUrl?: string) {
   };
 }
 
-export function saveAppSettingsToStorage(
-  settings: AppSettings,
-  rawUrl?: string,
-) {
+export function saveAppSettingsToStorage(settings: AppSettings, rawUrl?: string) {
   return appSettingsRepository.save([appSettingsToRecord(settings)], rawUrl);
 }

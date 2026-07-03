@@ -14,8 +14,7 @@ export const DESKTOP_COMMANDS = {
   storageCollectionMetadata: "dekoi_storage_collection_metadata",
 } as const;
 
-export type DesktopCommand =
-  (typeof DESKTOP_COMMANDS)[keyof typeof DESKTOP_COMMANDS];
+export type DesktopCommand = (typeof DESKTOP_COMMANDS)[keyof typeof DESKTOP_COMMANDS];
 
 export const DESKTOP_COMMAND_ALLOWLIST = [
   DESKTOP_COMMANDS.hostStatus,

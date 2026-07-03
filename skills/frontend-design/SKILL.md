@@ -13,7 +13,7 @@ Use this as DeKoi's creative frontend builder lens. It helps choose the visual d
 2. Load `PRODUCT.md` and `DESIGN.md` before choosing visual direction.
 3. Load `skills/impeccable/SKILL.md` after the first design pass when critique, accessibility, responsive behavior, hardening, polish, or live iteration matters.
 4. Load `ARCHITECTURE.md` for ownership/import/shared API questions.
-5. Load `SURFACE_LABELS.md` for Messenger, Roleplay, catalog, provider, prompt, generation, or shared surface naming.
+5. Load `DOMAIN_MODEL.md` for Messenger, Roleplay, catalog, provider, prompt, generation, or shared surface naming.
 
 ## Role Split
 

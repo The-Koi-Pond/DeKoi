@@ -17,11 +17,7 @@ interface DeleteButtonProps {
   confirmRelease: boolean;
 }
 
-export function DeleteButton({
-  onConfirm,
-  ariaLabel,
-  confirmRelease,
-}: DeleteButtonProps) {
+export function DeleteButton({ onConfirm, ariaLabel, confirmRelease }: DeleteButtonProps) {
   const [pending, setPending] = useState(false);
   const [lastConfirmRelease, setLastConfirmRelease] = useState(confirmRelease);
 
@@ -47,11 +43,7 @@ export function DeleteButton({
 
   if (pending) {
     return (
-      <span
-        className="confirm-inline"
-        role="group"
-        aria-label={`Confirm ${ariaLabel}`}
-      >
+      <span className="confirm-inline" role="group" aria-label={`Confirm ${ariaLabel}`}>
         <button
           type="button"
           className="catalog-action confirm-yes"

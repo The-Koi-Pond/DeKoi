@@ -1,6 +1,4 @@
-import type {
-  LorebookEntryInput,
-} from "../../../engine/catalog/lorebook-actions";
+import type { LorebookEntryInput } from "../../../engine/catalog/lorebook-actions";
 import type {
   LoreEntryRole,
   LoreEntryStrategy,
@@ -108,8 +106,8 @@ function splitLorebookEntryKeys(value: string) {
     if (
       !supportedRegexFlags.has(char) ||
       regexFlags.includes(char) ||
-      ((char === "u" && regexFlags.includes("v")) ||
-        (char === "v" && regexFlags.includes("u")))
+      (char === "u" && regexFlags.includes("v")) ||
+      (char === "v" && regexFlags.includes("u"))
     ) {
       regexFlagsAreWellFormed = false;
     } else {
@@ -132,9 +130,7 @@ export function parseLorebookEntryKeys(value: string) {
 }
 
 export function canSaveLorebookEntryDraft(draft: LorebookEntryDraft) {
-  return (
-    draft.strategy !== "selective" || parseLorebookEntryKeys(draft.key) !== null
-  );
+  return draft.strategy !== "selective" || parseLorebookEntryKeys(draft.key) !== null;
 }
 
 export function readFiniteNumberInput(value: string, fallback: number) {
@@ -149,10 +145,7 @@ export function readNonNegativeIntegerInput(value: string, fallback: number) {
   return Math.max(0, Math.trunc(numericValue));
 }
 
-export function readNullableNonNegativeIntegerInput(
-  value: string,
-  fallback: number | null,
-) {
+export function readNullableNonNegativeIntegerInput(value: string, fallback: number | null) {
   const trimmedValue = value.trim();
   if (!trimmedValue) return null;
   const numericValue = Number(trimmedValue);
@@ -160,10 +153,7 @@ export function readNullableNonNegativeIntegerInput(
   return Math.max(0, Math.trunc(numericValue));
 }
 
-export function readNullablePercentInput(
-  value: string,
-  fallback: number | null,
-) {
+export function readNullablePercentInput(value: string, fallback: number | null) {
   const percent = readNullableNonNegativeIntegerInput(value, fallback);
   return typeof percent === "number" ? Math.min(100, percent) : percent;
 }
@@ -190,21 +180,13 @@ export function entryDraftDisablesBannerSave({
   showEditor: boolean;
   showLorebookEditor: boolean;
 }) {
-  return (
-    showEditor &&
-    !showLorebookEditor &&
-    !canSaveLorebookEntryDraft(draft)
-  );
+  return showEditor && !showLorebookEditor && !canSaveLorebookEntryDraft(draft);
 }
 
-export function lorebookEntryDraftToInput(
-  draft: LorebookEntryDraft,
-): LorebookEntryInput {
+export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEntryInput {
   const keySecondary = parseLorebookEntryKeys(draft.keySecondary);
   const depth =
-    draft.insertionPosition === "at-depth"
-      ? readNonNegativeIntegerInput(draft.depth, 0)
-      : null;
+    draft.insertionPosition === "at-depth" ? readNonNegativeIntegerInput(draft.depth, 0) : null;
   return {
     title: draft.title.trim() || "Untitled note",
     body: draft.body.trim(),

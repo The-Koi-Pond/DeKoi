@@ -19,10 +19,7 @@ export async function getDesktopWindowState(): Promise<DesktopWindowState> {
   const window = currentWindow();
   if (!window) return { minimized: false, maximized: false };
 
-  const [minimized, maximized] = await Promise.all([
-    window.isMinimized(),
-    window.isMaximized(),
-  ]);
+  const [minimized, maximized] = await Promise.all([window.isMinimized(), window.isMaximized()]);
 
   return { minimized, maximized };
 }

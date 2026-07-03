@@ -1,24 +1,12 @@
 import { checkDesktopRuntimeHealth } from "./desktop-runtime";
-import {
-  remoteFetchInit,
-  remoteHeaders,
-} from "./remote-runtime-http";
+import { remoteFetchInit, remoteHeaders } from "./remote-runtime-http";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
-import {
-  isDesktopRuntimeUrl,
-  readRemoteRuntimeUrl,
-  remoteRuntimeTarget,
-} from "./runtime-target";
+import { isDesktopRuntimeUrl, readRemoteRuntimeUrl, remoteRuntimeTarget } from "./runtime-target";
 
-const SUPPORTED_REMOTE_RUNTIME_MARKERS = new Set([
-  "de-koi-server",
-  "de-koi-desktop",
-]);
+const SUPPORTED_REMOTE_RUNTIME_MARKERS = new Set(["de-koi-server", "de-koi-desktop"]);
 
 function isSupportedRemoteRuntime(value: unknown): boolean {
-  return (
-    typeof value === "string" && SUPPORTED_REMOTE_RUNTIME_MARKERS.has(value)
-  );
+  return typeof value === "string" && SUPPORTED_REMOTE_RUNTIME_MARKERS.has(value);
 }
 
 export async function checkRemoteRuntimeHealth(
@@ -59,10 +47,7 @@ export async function checkRemoteRuntimeHealth(
       };
     }
 
-    const body = (await response.json().catch(() => null)) as Record<
-      string,
-      unknown
-    > | null;
+    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body || body.ok !== true || !isSupportedRemoteRuntime(body.runtime)) {
       return {
         status: "unreachable",

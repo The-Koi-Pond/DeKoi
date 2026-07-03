@@ -1750,10 +1750,7 @@ mod tests {
             backup_state,
             |_temporary_path, target_path, _backup_state| {
                 fs::remove_file(target_path)?;
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "simulated install failure",
-                ))
+                Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated repair install failure should be reported");
@@ -1820,10 +1817,7 @@ mod tests {
             backup_state,
             |_temporary_path, target_path, _backup_state| {
                 fs::remove_file(target_path)?;
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "simulated install failure",
-                ))
+                Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated repair install failure should be reported");
@@ -2055,10 +2049,7 @@ mod tests {
             |_temporary_path, target_path, backup_state| {
                 assert!(backup_state.created());
                 fs::remove_file(target_path)?;
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "simulated install failure",
-                ))
+                Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated install failure should be reported");
@@ -2091,10 +2082,7 @@ mod tests {
                 };
                 fs::remove_file(backup_path)?;
                 fs::remove_file(target_path)?;
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "simulated missing backup failure",
-                ))
+                Err(io::Error::other("simulated missing backup failure"))
             },
         )
         .expect_err("simulated missing backup failure should be reported");

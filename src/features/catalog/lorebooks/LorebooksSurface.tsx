@@ -37,10 +37,7 @@ interface LorebooksSurfaceProps {
   nav: LorebooksSurfaceNav;
 }
 
-export type LorebooksSurfaceNav = Pick<
-  NavCatalogState,
-  "lorebooks"
-> &
+export type LorebooksSurfaceNav = Pick<NavCatalogState, "lorebooks"> &
   Pick<
     NavLorebookActions,
     | "createLorebook"
@@ -161,9 +158,7 @@ function ScanDepthInput({
       value={draft}
       onBlur={commitDraft}
       onChange={(e) => setDraft(e.target.value)}
-      onKeyDown={(e) =>
-        e.key === "Enter" ? e.currentTarget.blur() : undefined
-      }
+      onKeyDown={(e) => (e.key === "Enter" ? e.currentTarget.blur() : undefined)}
     />
   );
 }
@@ -200,36 +195,27 @@ function NullableActivationInput({
       value={draft}
       onBlur={commitDraft}
       onChange={(e) => setDraft(e.target.value)}
-      onKeyDown={(e) =>
-        e.key === "Enter" ? e.currentTarget.blur() : undefined
-      }
+      onKeyDown={(e) => (e.key === "Enter" ? e.currentTarget.blur() : undefined)}
     />
   );
 }
 
 export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
-  const routedLorebookId =
-    nav.view.kind === "lorebooks" ? nav.view.lorebookId : null;
+  const routedLorebookId = nav.view.kind === "lorebooks" ? nav.view.lorebookId : null;
   const initialLorebookId =
-    routedLorebookId &&
-    nav.lorebooks.some((lorebook) => lorebook.id === routedLorebookId)
+    routedLorebookId && nav.lorebooks.some((lorebook) => lorebook.id === routedLorebookId)
       ? routedLorebookId
-      : nav.lorebooks[0]?.id ?? null;
-  const [selectedLorebookId, setSelectedLorebookId] = useState<string | null>(
-    initialLorebookId,
-  );
+      : (nav.lorebooks[0]?.id ?? null);
+  const [selectedLorebookId, setSelectedLorebookId] = useState<string | null>(initialLorebookId);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [draft, setDraft] = useState<LorebookEntryDraft>(EMPTY_DRAFT);
   const [showEditor, setShowEditor] = useState(false);
   const [showLorebookEditor, setShowLorebookEditor] = useState(
     nav.view.kind === "lorebooks" && nav.view.mode === "new-lorebook",
   );
-  const [lorebookDraft, setLorebookDraft] =
-    useState<LorebookDraftState>(EMPTY_LOREBOOK_DRAFT);
+  const [lorebookDraft, setLorebookDraft] = useState<LorebookDraftState>(EMPTY_LOREBOOK_DRAFT);
 
-  const activeLorebook = nav.lorebooks.find(
-    (lb) => lb.id === selectedLorebookId,
-  );
+  const activeLorebook = nav.lorebooks.find((lb) => lb.id === selectedLorebookId);
 
   function openNew() {
     setDraft(EMPTY_DRAFT);
@@ -283,14 +269,9 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   }
 
   function handleLorebookSave() {
-    const budgetTokens = readNullableNonNegativeIntegerInput(
-      lorebookDraft.budgetTokens,
-      null,
-    );
+    const budgetTokens = readNullableNonNegativeIntegerInput(lorebookDraft.budgetTokens, null);
     const budgetPercent =
-      budgetTokens === null
-        ? readNullablePercentInput(lorebookDraft.budgetPercent, null)
-        : null;
+      budgetTokens === null ? readNullablePercentInput(lorebookDraft.budgetPercent, null) : null;
     const input: LorebookInput = {
       title: lorebookDraft.title.trim(),
       summary: lorebookDraft.summary.trim(),
@@ -344,8 +325,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       activation: {
         ...activeLorebook.activation,
         budgetTokens,
-        budgetPercent:
-          budgetTokens === null ? activeLorebook.activation.budgetPercent : null,
+        budgetPercent: budgetTokens === null ? activeLorebook.activation.budgetPercent : null,
       },
     });
   }
@@ -359,8 +339,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       summary: activeLorebook.summary,
       activation: {
         ...activeLorebook.activation,
-        budgetTokens:
-          budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
+        budgetTokens: budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
         budgetPercent,
       },
     });
@@ -425,9 +404,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       showLorebookEditor,
     });
     const deleteAction =
-      showEditor && editingEntryId
-        ? () => handleDelete(editingEntryId)
-        : undefined;
+      showEditor && editingEntryId ? () => handleDelete(editingEntryId) : undefined;
 
     return (
       <CatalogSurfaceBanner
@@ -443,11 +420,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     );
   }
 
-  function renderLorebookEditor({
-    heading,
-  }: {
-    heading: string;
-  }) {
+  function renderLorebookEditor({ heading }: { heading: string }) {
     return (
       <div className="catalog-editor">
         <h3 className="catalog-editor-heading">{heading}</h3>
@@ -458,9 +431,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
             className="pondinput"
             type="text"
             value={lorebookDraft.title}
-            onChange={(e) =>
-              setLorebookDraft({ ...lorebookDraft, title: e.target.value })
-            }
+            onChange={(e) => setLorebookDraft({ ...lorebookDraft, title: e.target.value })}
             placeholder="e.g. World Notes"
           />
         </div>
@@ -471,9 +442,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
             className="pondinput"
             type="text"
             value={lorebookDraft.summary}
-            onChange={(e) =>
-              setLorebookDraft({ ...lorebookDraft, summary: e.target.value })
-            }
+            onChange={(e) => setLorebookDraft({ ...lorebookDraft, summary: e.target.value })}
             placeholder="Optional description"
           />
         </div>
@@ -569,17 +538,13 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 setLorebookDraft({
                   ...lorebookDraft,
                   budgetTokens: e.target.value,
-                  budgetPercent: e.target.value.trim()
-                    ? ""
-                    : lorebookDraft.budgetPercent,
+                  budgetPercent: e.target.value.trim() ? "" : lorebookDraft.budgetPercent,
                 })
               }
             />
           </div>
           <div className="catalog-editor-field">
-            <label htmlFor="lorebook-budget-percent">
-              Budget (% of context)
-            </label>
+            <label htmlFor="lorebook-budget-percent">Budget (% of context)</label>
             <input
               id="lorebook-budget-percent"
               className="pondinput"
@@ -592,18 +557,13 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 setLorebookDraft({
                   ...lorebookDraft,
                   budgetPercent:
-                    readNullablePercentInput(
-                      lorebookDraft.budgetPercent,
-                      null,
-                    )?.toString() ?? "",
+                    readNullablePercentInput(lorebookDraft.budgetPercent, null)?.toString() ?? "",
                 })
               }
               onChange={(e) =>
                 setLorebookDraft({
                   ...lorebookDraft,
-                  budgetTokens: e.target.value.trim()
-                    ? ""
-                    : lorebookDraft.budgetTokens,
+                  budgetTokens: e.target.value.trim() ? "" : lorebookDraft.budgetTokens,
                   budgetPercent: e.target.value,
                 })
               }
@@ -622,14 +582,9 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           {!showLorebookEditor && (
             <>
               <p className="catalog-empty">
-                No lorebooks yet. Create one to start collecting notes and
-                continuity material.
+                No lorebooks yet. Create one to start collecting notes and continuity material.
               </p>
-              <button
-                type="button"
-                className="catalog-new-btn"
-                onClick={openNewLorebook}
-              >
+              <button type="button" className="catalog-new-btn" onClick={openNewLorebook}>
                 + New Lorebook
               </button>
             </>
@@ -702,14 +657,8 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           })}
 
         {activeLorebook && (
-          <div
-            className="lorebook-panel"
-            role="tabpanel"
-            aria-label={activeLorebook.title}
-          >
-            {activeLorebook.summary && (
-              <p className="lorebook-summary">{activeLorebook.summary}</p>
-            )}
+          <div className="lorebook-panel" role="tabpanel" aria-label={activeLorebook.title}>
+            {activeLorebook.summary && <p className="lorebook-summary">{activeLorebook.summary}</p>}
 
             <details className="catalog-editor-section lorebook-activation" open>
               <summary>Activation</summary>
@@ -748,9 +697,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 />
               </div>
               <div className="catalog-editor-field">
-                <label htmlFor="active-lorebook-budget-tokens">
-                  Budget (tokens)
-                </label>
+                <label htmlFor="active-lorebook-budget-tokens">Budget (tokens)</label>
                 <NullableActivationInput
                   key={`${activeLorebook.id}:tokens:${activeLorebook.activation.budgetTokens ?? "none"}`}
                   id="active-lorebook-budget-tokens"
@@ -760,9 +707,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 />
               </div>
               <div className="catalog-editor-field">
-                <label htmlFor="active-lorebook-budget-percent">
-                  Budget (% of context)
-                </label>
+                <label htmlFor="active-lorebook-budget-percent">Budget (% of context)</label>
                 <NullableActivationInput
                   key={`${activeLorebook.id}:percent:${activeLorebook.activation.budgetPercent ?? "none"}`}
                   id="active-lorebook-budget-percent"
@@ -776,11 +721,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
 
             <div className="catalog-toolbar">
               <span className="catalog-count">{entries.length} entries</span>
-              <button
-                type="button"
-                className="catalog-new-btn"
-                onClick={openNew}
-              >
+              <button type="button" className="catalog-new-btn" onClick={openNew}>
                 + New Entry
               </button>
             </div>
@@ -840,9 +781,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     className="pondinput"
                     type="text"
                     value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                     placeholder="Entry title"
                   />
                 </div>
@@ -853,9 +792,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     className="pondinput pondtextarea"
                     rows={4}
                     value={draft.body}
-                    onChange={(e) =>
-                      setDraft({ ...draft, body: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                     placeholder="Entry content…"
                   />
                 </div>
@@ -887,17 +824,14 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     className="pondinput"
                     type="text"
                     value={draft.key}
-                    onChange={(e) =>
-                      setDraft({ ...draft, key: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, key: e.target.value })}
                     placeholder="keyword, another keyword"
                   />
-                  {draft.strategy === "selective" &&
-                    !parseLorebookEntryKeys(draft.key) && (
-                      <p className="catalog-field-hint">
-                        Selective entries need at least one key to activate.
-                      </p>
-                    )}
+                  {draft.strategy === "selective" && !parseLorebookEntryKeys(draft.key) && (
+                    <p className="catalog-field-hint">
+                      Selective entries need at least one key to activate.
+                    </p>
+                  )}
                   <p className="catalog-field-hint">
                     Regex keys use /pattern/flags and activate during generation.
                   </p>
@@ -909,9 +843,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     className="pondinput"
                     type="text"
                     value={draft.keySecondary}
-                    onChange={(e) =>
-                      setDraft({ ...draft, keySecondary: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, keySecondary: e.target.value })}
                     placeholder="secondary keyword, another filter"
                   />
                   <p className="catalog-field-hint">
@@ -920,9 +852,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 </div>
                 {parseLorebookEntryKeys(draft.keySecondary) && (
                   <div className="catalog-editor-field">
-                    <label htmlFor="lore-selective-logic">
-                      Selective Logic
-                    </label>
+                    <label htmlFor="lore-selective-logic">Selective Logic</label>
                     <select
                       id="lore-selective-logic"
                       className="pondinput"
@@ -947,13 +877,8 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     Name matching follows the lorebook Include names setting.
                   </p>
                   {MATCH_SOURCE_OPTIONS.map((option) => (
-                    <div
-                      className="catalog-editor-field catalog-editor-toggle"
-                      key={option.key}
-                    >
-                      <span className="catalog-toggle-label">
-                        {option.label}
-                      </span>
+                    <div className="catalog-editor-field catalog-editor-toggle" key={option.key}>
+                      <span className="catalog-toggle-label">{option.label}</span>
                       <Switch
                         checked={draft.matchSources[option.key]}
                         onChange={(checked) =>
@@ -981,20 +906,14 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     onBlur={() =>
                       setDraft({
                         ...draft,
-                        insertionOrder: String(
-                          readFiniteNumberInput(draft.insertionOrder, 100),
-                        ),
+                        insertionOrder: String(readFiniteNumberInput(draft.insertionOrder, 100)),
                       })
                     }
-                    onChange={(e) =>
-                      setDraft({ ...draft, insertionOrder: e.target.value })
-                    }
+                    onChange={(e) => setDraft({ ...draft, insertionOrder: e.target.value })}
                   />
                 </div>
                 <div className="catalog-editor-field">
-                  <label htmlFor="lore-insertion-position">
-                    Insertion Position
-                  </label>
+                  <label htmlFor="lore-insertion-position">Insertion Position</label>
                   <select
                     id="lore-insertion-position"
                     className="pondinput"
@@ -1025,14 +944,10 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                         onBlur={() =>
                           setDraft({
                             ...draft,
-                            depth: String(
-                              readNonNegativeIntegerInput(draft.depth, 0),
-                            ),
+                            depth: String(readNonNegativeIntegerInput(draft.depth, 0)),
                           })
                         }
-                        onChange={(e) =>
-                          setDraft({ ...draft, depth: e.target.value })
-                        }
+                        onChange={(e) => setDraft({ ...draft, depth: e.target.value })}
                       />
                     </div>
                     <div className="catalog-editor-field">

@@ -260,7 +260,13 @@ t("items", { count }); // Handles complex plural rules
 
 ```html
 <!-- Set clear constraints -->
-<input type="text" maxlength="100" pattern="[A-Za-z0-9]+" required aria-describedby="username-hint" />
+<input
+  type="text"
+  maxlength="100"
+  pattern="[A-Za-z0-9]+"
+  required
+  aria-describedby="username-hint"
+/>
 <small id="username-hint"> Letters and numbers only, up to 100 characters </small>
 ```
 

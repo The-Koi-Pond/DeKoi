@@ -40,8 +40,7 @@ export function ThreadShoal({
     onCreateRoleplayThread: nav.createRoleplayThread,
     roleplayPersonaId: nav.personas[0]?.id ?? "",
   });
-  const { handleCreateActiveThread, newMessengerOpen, newRoleplayOpen } =
-    newThreadPopovers;
+  const { handleCreateActiveThread, newMessengerOpen, newRoleplayOpen } = newThreadPopovers;
   const {
     clearReleaseRequest,
     confirmReleaseThread,

@@ -14,19 +14,11 @@ import type {
   LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
 import { DEFAULT_LOREBOOK_ACTIVATION } from "../../../engine/contracts/types/lorebook";
-import {
-  isRecord,
-  readString,
-  readStringArray,
-  readTimestamp,
-} from "../storage-json";
+import { isRecord, readString, readStringArray, readTimestamp } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-const LORE_ENTRY_STRATEGIES = new Set<LoreEntryStrategy>([
-  "selective",
-  "constant",
-]);
+const LORE_ENTRY_STRATEGIES = new Set<LoreEntryStrategy>(["selective", "constant"]);
 const LORE_SELECTIVE_LOGIC = new Set<LoreSelectiveLogic>([
   "and-any",
   "and-all",
@@ -38,11 +30,7 @@ const LORE_INSERTION_POSITIONS = new Set<LoreInsertionPosition>([
   "after-character",
   "at-depth",
 ]);
-const LORE_ENTRY_ROLES = new Set<LoreEntryRole>([
-  "system",
-  "user",
-  "assistant",
-]);
+const LORE_ENTRY_ROLES = new Set<LoreEntryRole>(["system", "user", "assistant"]);
 const LORE_GENERATION_TRIGGER_TYPES = new Set<LoreGenerationTriggerType>([
   "normal",
   "continue",
@@ -56,20 +44,13 @@ function readFiniteNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function readNullableNonNegativeInteger(
-  value: unknown,
-  fallback: number | null,
-) {
+function readNullableNonNegativeInteger(value: unknown, fallback: number | null) {
   if (value === null) return null;
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : fallback;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
 function readNonNegativeInteger(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : fallback;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
 function readProbability(value: unknown) {
@@ -95,34 +76,18 @@ function readNullableTrimmedString(value: unknown) {
   return text || null;
 }
 
-function readEnumValue<T extends string>(
-  value: unknown,
-  allowed: Set<T>,
-  fallback: T,
-) {
-  return typeof value === "string" && allowed.has(value as T)
-    ? (value as T)
-    : fallback;
+function readEnumValue<T extends string>(value: unknown, allowed: Set<T>, fallback: T) {
+  return typeof value === "string" && allowed.has(value as T) ? (value as T) : fallback;
 }
 
-function readNullableEnumValue<T extends string>(
-  value: unknown,
-  allowed: Set<T>,
-) {
-  return typeof value === "string" && allowed.has(value as T)
-    ? (value as T)
-    : null;
+function readNullableEnumValue<T extends string>(value: unknown, allowed: Set<T>) {
+  return typeof value === "string" && allowed.has(value as T) ? (value as T) : null;
 }
 
-function normalizeActivationSettings(
-  value: unknown,
-): LorebookActivationSettings {
+function normalizeActivationSettings(value: unknown): LorebookActivationSettings {
   const source = isRecord(value) ? value : {};
   return {
-    scanDepth: readNonNegativeInteger(
-      source.scanDepth,
-      DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
-    ),
+    scanDepth: readNonNegativeInteger(source.scanDepth, DEFAULT_LOREBOOK_ACTIVATION.scanDepth),
     includeNames:
       typeof source.includeNames === "boolean"
         ? source.includeNames
@@ -157,14 +122,10 @@ function normalizeActivationSettings(
 function normalizeEntryRecursion(value: unknown): LoreEntryRecursion | null {
   if (!isRecord(value)) return null;
   return {
-    nonRecursable:
-      typeof value.nonRecursable === "boolean" ? value.nonRecursable : false,
-    preventFurther:
-      typeof value.preventFurther === "boolean" ? value.preventFurther : false,
+    nonRecursable: typeof value.nonRecursable === "boolean" ? value.nonRecursable : false,
+    preventFurther: typeof value.preventFurther === "boolean" ? value.preventFurther : false,
     delayUntilRecursion:
-      typeof value.delayUntilRecursion === "boolean"
-        ? value.delayUntilRecursion
-        : false,
+      typeof value.delayUntilRecursion === "boolean" ? value.delayUntilRecursion : false,
     recursionLevel: readNonNegativeInteger(value.recursionLevel, 0),
   };
 }
@@ -228,10 +189,7 @@ function normalizeLorebookEntryRecord(value: unknown): LoreEntryRecord | null {
     enabled: typeof value.enabled === "boolean" ? value.enabled : true,
     key: readStringListOrNull(value.key),
     keySecondary: readStringListOrNull(value.keySecondary),
-    selectiveLogic: readNullableEnumValue(
-      value.selectiveLogic,
-      LORE_SELECTIVE_LOGIC,
-    ),
+    selectiveLogic: readNullableEnumValue(value.selectiveLogic, LORE_SELECTIVE_LOGIC),
     strategy: readEnumValue(value.strategy, LORE_ENTRY_STRATEGIES, "constant"),
     probability: readProbability(value.probability),
     inclusionGroup: readNullableTrimmedString(value.inclusionGroup),
@@ -294,9 +252,6 @@ export function loadLorebookRecordsFromStorage(rawUrl?: string) {
   return lorebookRepository.loadSnapshot(rawUrl);
 }
 
-export function saveLorebookRecordsToStorage(
-  records: LorebookRecord[],
-  rawUrl?: string,
-) {
+export function saveLorebookRecordsToStorage(records: LorebookRecord[], rawUrl?: string) {
   return lorebookRepository.save(records, rawUrl);
 }

@@ -7,10 +7,7 @@ import type {
   NavThreadState,
   NavViewActions,
 } from "../../../navigation";
-import {
-  sortRoleplayThreadsByUpdatedAt,
-  sortMessengerThreadsByUpdatedAt,
-} from "../../../modes";
+import { sortRoleplayThreadsByUpdatedAt, sortMessengerThreadsByUpdatedAt } from "../../../modes";
 import "./depths.css";
 
 type FeatureDepth = "Shallows" | "Deep" | "Murky" | "Surfacing soon";
@@ -37,17 +34,11 @@ interface DepthsProps {
   nav: DepthsNav;
 }
 
-export type DepthsNav = Pick<
-  NavCareActions,
-  "setCareOpen" | "setCareTab"
-> &
+export type DepthsNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavRoleplayThreadActions, "createRoleplayThread"> &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
-  Pick<
-    NavViewActions,
-    "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"
-  >;
+  Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface">;
 
 const surfaceChips: Array<"All surfaces" | FeatureSurface> = [
   "All surfaces",
@@ -146,7 +137,8 @@ const featureResults: FeatureResult[] = [
 
 function matchesQuery(result: FeatureResult, query: string) {
   if (!query) return true;
-  const haystack = `${result.label} ${result.description} ${result.surface} ${result.depth}`.toLowerCase();
+  const haystack =
+    `${result.label} ${result.description} ${result.surface} ${result.depth}`.toLowerCase();
   return haystack.includes(query);
 }
 

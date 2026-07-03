@@ -32,17 +32,11 @@ export interface ThreadReferenceNoticeLabels {
   threadNoun?: string;
 }
 
-function countMissingIds(
-  ids: readonly string[],
-  availableIds: ReadonlySet<string>,
-) {
+function countMissingIds(ids: readonly string[], availableIds: ReadonlySet<string>) {
   return ids.filter((id) => id.trim() && !availableIds.has(id)).length;
 }
 
-function countSelectedIds(
-  ids: readonly string[],
-  availableIds: ReadonlySet<string>,
-) {
+function countSelectedIds(ids: readonly string[], availableIds: ReadonlySet<string>) {
   return ids.filter((id) => availableIds.has(id)).length;
 }
 
@@ -64,9 +58,7 @@ export function getThreadReferenceSummary({
   const characterIds = new Set(characters.map((character) => character.id));
   const lorebookIds = new Set(lorebooks.map((lorebook) => lorebook.id));
   const personaIds = new Set(personas.map((persona) => persona.id));
-  const connectionIds = new Set(
-    providerConnections.map((connection) => connection.id),
-  );
+  const connectionIds = new Set(providerConnections.map((connection) => connection.id));
   const explicitConnectionId = thread.providerConnectionId?.trim() ?? "";
   const fallbackConnectionId = fallbackProviderConnectionId?.trim() ?? "";
   const hasFallbackConnection =
@@ -77,8 +69,7 @@ export function getThreadReferenceSummary({
     availableCompanionCount: characters.length,
     hasMissingConnection:
       explicitConnectionId.length > 0 && !connectionIds.has(explicitConnectionId),
-    hasMissingPersona:
-      !!thread.activePersonaId && !personaIds.has(thread.activePersonaId),
+    hasMissingPersona: !!thread.activePersonaId && !personaIds.has(thread.activePersonaId),
     hasNoConnectionAvailable: !hasFallbackConnection,
     missingCompanionCount: countMissingIds(thread.characterIds, characterIds),
     missingLorebookCount: countMissingIds(thread.lorebookIds, lorebookIds),

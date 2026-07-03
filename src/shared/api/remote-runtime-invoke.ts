@@ -1,27 +1,12 @@
 import { invokeDesktopRuntime } from "./desktop-runtime";
 import { isDesktopHostAvailable } from "./desktop-host-common";
-import {
-  readRemoteRuntimeError,
-  remoteFetchInit,
-  remoteHeaders,
-} from "./remote-runtime-http";
-import {
-  REMOTE_RUNTIME_COMMANDS,
-  type RemoteRuntimeCommand,
-} from "./runtime-commands";
-import {
-  isDesktopRuntimeUrl,
-  readRemoteRuntimeUrl,
-  remoteRuntimeTarget,
-} from "./runtime-target";
+import { readRemoteRuntimeError, remoteFetchInit, remoteHeaders } from "./remote-runtime-http";
+import { REMOTE_RUNTIME_COMMANDS, type RemoteRuntimeCommand } from "./runtime-commands";
+import { isDesktopRuntimeUrl, readRemoteRuntimeUrl, remoteRuntimeTarget } from "./runtime-target";
 
-const REMOTE_RUNTIME_COMMAND_SET = new Set<RemoteRuntimeCommand>(
-  REMOTE_RUNTIME_COMMANDS,
-);
+const REMOTE_RUNTIME_COMMAND_SET = new Set<RemoteRuntimeCommand>(REMOTE_RUNTIME_COMMANDS);
 
-export function isRemoteRuntimeCommand(
-  command: string,
-): command is RemoteRuntimeCommand {
+export function isRemoteRuntimeCommand(command: string): command is RemoteRuntimeCommand {
   return REMOTE_RUNTIME_COMMAND_SET.has(command as RemoteRuntimeCommand);
 }
 

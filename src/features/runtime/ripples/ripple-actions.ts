@@ -24,9 +24,7 @@ export function selectRippleState({
   ownerId: string;
 }) {
   return (
-    rippleStates.find(
-      (state) => state.ownerKind === ownerKind && state.ownerId === ownerId,
-    ) ?? null
+    rippleStates.find((state) => state.ownerKind === ownerKind && state.ownerId === ownerId) ?? null
   );
 }
 
@@ -96,9 +94,7 @@ export function updateRippleInOwnerState({
       ? {
           ...state,
           ripples: state.ripples.map((ripple) =>
-            ripple.id === rippleId
-              ? updateRippleRecord(ripple, input, now)
-              : ripple,
+            ripple.id === rippleId ? updateRippleRecord(ripple, input, now) : ripple,
           ),
           updatedAt: now,
         }

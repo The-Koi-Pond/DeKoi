@@ -63,11 +63,7 @@ export function createRippleRecord({
   };
 }
 
-export function updateRippleRecord(
-  ripple: Ripple,
-  input: RippleInput,
-  updatedAt: string,
-): Ripple {
+export function updateRippleRecord(ripple: Ripple, input: RippleInput, updatedAt: string): Ripple {
   return {
     ...ripple,
     tone: cleanTone(input.tone),
@@ -82,7 +78,5 @@ export function deleteRippleStateForOwner(
   ownerKind: RippleStateOwnerKind,
   ownerId: string,
 ) {
-  return states.filter(
-    (state) => state.ownerKind !== ownerKind || state.ownerId !== ownerId,
-  );
+  return states.filter((state) => state.ownerKind !== ownerKind || state.ownerId !== ownerId);
 }

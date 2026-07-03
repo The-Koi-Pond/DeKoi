@@ -2,18 +2,11 @@ import { ChatSettingsRail } from "./ChatSettingsRail";
 import { ConnectionsCatalogRail } from "./ConnectionsCatalogRail";
 import { LorebookCatalogRail } from "./LorebookCatalogRail";
 import { PeopleCatalogRail } from "./PeopleCatalogRail";
-import {
-  MediaCatalogRail,
-  PresetsCatalogRail,
-} from "./StaticCatalogRails";
+import { MediaCatalogRail, PresetsCatalogRail } from "./StaticCatalogRails";
 import { ThreadShoal } from "./ThreadShoal";
 import type { ShoalProps, ShoalRailProps } from "../types";
 
-export function ShoalRailRouter({
-  nav,
-  onToggleShoal,
-  shoalClosed,
-}: ShoalProps) {
+export function ShoalRailRouter({ nav, onToggleShoal, shoalClosed }: ShoalProps) {
   const chatSettingsOpen = nav.sideRailView === "chat-settings";
 
   const railProps: ShoalRailProps = {

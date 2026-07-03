@@ -3,10 +3,7 @@ import type { CharacterRecord } from "../../../../engine/contracts/types/charact
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import { sortRoleplayThreads } from "../../../modes";
-import {
-  filterShoalMessengerThreads,
-  filterShoalRoleplayThreads,
-} from "./thread-shoal-filtering";
+import { filterShoalMessengerThreads, filterShoalRoleplayThreads } from "./thread-shoal-filtering";
 import { getSortedShoalMessengerThreads } from "./thread-shoal-sorting";
 
 interface ThreadShoalListsInput {
@@ -43,9 +40,6 @@ export function getThreadShoalLists({
       normalizedQuery,
       characterById,
     ),
-    roleplayThreads: filterShoalRoleplayThreads(
-      sortedRoleplayThreads,
-      normalizedQuery,
-    ),
+    roleplayThreads: filterShoalRoleplayThreads(sortedRoleplayThreads, normalizedQuery),
   };
 }

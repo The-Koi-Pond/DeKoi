@@ -12,17 +12,11 @@ interface RecentCurrentsProps {
   nav: RecentCurrentsNav;
 }
 
-export type RecentCurrentsNav = Pick<
-  NavThreadState,
-  "messengerThreads"
-> &
+export type RecentCurrentsNav = Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "openMessengerThread">;
 
 export function RecentCurrents({ nav }: RecentCurrentsProps) {
-  const recentThreads = sortMessengerThreadsByUpdatedAt(nav.messengerThreads).slice(
-    0,
-    3,
-  );
+  const recentThreads = sortMessengerThreadsByUpdatedAt(nav.messengerThreads).slice(0, 3);
 
   return (
     <>
@@ -59,9 +53,7 @@ export function RecentCurrents({ nav }: RecentCurrentsProps) {
               </div>
               <div className="dm">
                 <span className="dtime">
-                  {getMessengerThreadTimeLabel(
-                    getMessengerThreadActivityAt(thread),
-                  )}
+                  {getMessengerThreadTimeLabel(getMessengerThreadActivityAt(thread))}
                 </span>
               </div>
               <div className="dmsg">{getMessengerThreadPreview(thread)}</div>

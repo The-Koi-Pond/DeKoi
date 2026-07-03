@@ -22,10 +22,7 @@ export function ChatSettingsRailShell({
   onToggleShoal,
 }: ChatSettingsRailShellProps) {
   return (
-    <aside
-      className="shoal chat-settings-shoal"
-      aria-label={`The Shoal - ${settingsLabel}`}
-    >
+    <aside className="shoal chat-settings-shoal" aria-label={`The Shoal - ${settingsLabel}`}>
       <ShoalTopBar
         chatSettingsOpen={chatSettingsOpen}
         nav={nav}

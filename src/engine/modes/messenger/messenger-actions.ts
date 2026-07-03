@@ -3,9 +3,9 @@ import {
   type MessengerMessage,
   type MessengerSystemPromptMode,
   type MessengerThread,
-} from '../../contracts/types/messenger'
-import type { CharacterRecord } from '../../contracts/types/character'
-import type { PersonaRecord } from '../../contracts/types/persona'
+} from "../../contracts/types/messenger";
+import type { CharacterRecord } from "../../contracts/types/character";
+import type { PersonaRecord } from "../../contracts/types/persona";
 
 export function createMessengerThread({
   activePersonaId,
@@ -16,31 +16,31 @@ export function createMessengerThread({
   providerConnectionId = null,
   title,
 }: {
-  activePersonaId: string | null
-  characterIds: string[]
-  id: string
-  lorebookIds?: string[]
-  now: string
-  providerConnectionId?: string | null
-  title: string
+  activePersonaId: string | null;
+  characterIds: string[];
+  id: string;
+  lorebookIds?: string[];
+  now: string;
+  providerConnectionId?: string | null;
+  title: string;
 }): MessengerThread {
   return {
     id,
     schemaVersion: 1,
-    kind: 'messenger',
-    mode: characterIds.length > 1 ? 'group' : 'direct',
+    kind: "messenger",
+    mode: characterIds.length > 1 ? "group" : "direct",
     title,
     characterIds,
     activePersonaId,
     lorebookIds,
     presetId: null,
     providerConnectionId,
-    systemPromptMode: 'default',
+    systemPromptMode: "default",
     systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages: [],
     createdAt: now,
     updatedAt: now,
-  }
+  };
 }
 
 export function appendMessengerMessages(
@@ -50,14 +50,14 @@ export function appendMessengerMessages(
   return {
     ...thread,
     messages: [...thread.messages, ...messages],
-  }
+  };
 }
 
 export function clearMessengerMessages(thread: MessengerThread): MessengerThread {
   return {
     ...thread,
     messages: [],
-  }
+  };
 }
 
 export function updateMessengerMessageBody(
@@ -66,8 +66,8 @@ export function updateMessengerMessageBody(
   body: string,
   updatedAt: string,
 ): MessengerThread {
-  const cleanBody = body.trim()
-  if (!cleanBody) return thread
+  const cleanBody = body.trim();
+  if (!cleanBody) return thread;
 
   return {
     ...thread,
@@ -80,35 +80,39 @@ export function updateMessengerMessageBody(
           }
         : message,
     ),
-  }
+  };
 }
 
 export function deleteMessengerMessage(
   thread: MessengerThread,
   messageId: string,
 ): MessengerThread {
-  if (!thread.messages.some((message) => message.id === messageId)) return thread
+  if (!thread.messages.some((message) => message.id === messageId)) return thread;
 
   return {
     ...thread,
     messages: thread.messages.filter((message) => message.id !== messageId),
-  }
+  };
 }
 
-export function renameMessengerThread(thread: MessengerThread, title: string, updatedAt: string): MessengerThread {
+export function renameMessengerThread(
+  thread: MessengerThread,
+  title: string,
+  updatedAt: string,
+): MessengerThread {
   return {
     ...thread,
     title,
     updatedAt,
-  }
+  };
 }
 
 export function deleteMessengerThread(records: MessengerThread[], id: string) {
-  return records.filter((record) => record.id !== id)
+  return records.filter((record) => record.id !== id);
 }
 
 function cleanThreadIds(ids: string[]) {
-  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))]
+  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
 }
 
 export function setMessengerThreadParticipants(
@@ -116,13 +120,13 @@ export function setMessengerThreadParticipants(
   characterIds: string[],
   updatedAt: string,
 ): MessengerThread {
-  const cleanCharacterIds = cleanThreadIds(characterIds)
+  const cleanCharacterIds = cleanThreadIds(characterIds);
   return {
     ...thread,
     characterIds: cleanCharacterIds,
-    mode: cleanCharacterIds.length > 1 ? 'group' : 'direct',
+    mode: cleanCharacterIds.length > 1 ? "group" : "direct",
     updatedAt,
-  }
+  };
 }
 
 export function setMessengerThreadPersona(
@@ -134,7 +138,7 @@ export function setMessengerThreadPersona(
     ...thread,
     activePersonaId: activePersonaId?.trim() || null,
     updatedAt,
-  }
+  };
 }
 
 export function setMessengerThreadLorebooks(
@@ -146,7 +150,7 @@ export function setMessengerThreadLorebooks(
     ...thread,
     lorebookIds: cleanThreadIds(lorebookIds),
     updatedAt,
-  }
+  };
 }
 
 export function setMessengerThreadProviderConnection(
@@ -158,7 +162,7 @@ export function setMessengerThreadProviderConnection(
     ...thread,
     providerConnectionId,
     updatedAt,
-  }
+  };
 }
 
 export function setMessengerThreadSystemPrompt(
@@ -172,7 +176,7 @@ export function setMessengerThreadSystemPrompt(
     systemPromptMode,
     systemPrompt,
     updatedAt,
-  }
+  };
 }
 
 export function removeMessengerThreadCharacter(
@@ -180,12 +184,12 @@ export function removeMessengerThreadCharacter(
   characterId: string,
   updatedAt: string,
 ): MessengerThread {
-  if (!thread.characterIds.includes(characterId)) return thread
+  if (!thread.characterIds.includes(characterId)) return thread;
   return setMessengerThreadParticipants(
     thread,
     thread.characterIds.filter((id) => id !== characterId),
     updatedAt,
-  )
+  );
 }
 
 export function clearMessengerThreadPersona(
@@ -193,8 +197,8 @@ export function clearMessengerThreadPersona(
   personaId: string,
   updatedAt: string,
 ): MessengerThread {
-  if (thread.activePersonaId !== personaId) return thread
-  return setMessengerThreadPersona(thread, null, updatedAt)
+  if (thread.activePersonaId !== personaId) return thread;
+  return setMessengerThreadPersona(thread, null, updatedAt);
 }
 
 export function removeMessengerThreadLorebook(
@@ -202,12 +206,12 @@ export function removeMessengerThreadLorebook(
   lorebookId: string,
   updatedAt: string,
 ): MessengerThread {
-  if (!thread.lorebookIds.includes(lorebookId)) return thread
+  if (!thread.lorebookIds.includes(lorebookId)) return thread;
   return setMessengerThreadLorebooks(
     thread,
     thread.lorebookIds.filter((id) => id !== lorebookId),
     updatedAt,
-  )
+  );
 }
 
 export function replaceMessengerThreadProviderConnection(
@@ -216,8 +220,8 @@ export function replaceMessengerThreadProviderConnection(
   fallbackConnectionId: string | null,
   updatedAt: string,
 ): MessengerThread {
-  if (thread.providerConnectionId !== deletedConnectionId) return thread
-  return setMessengerThreadProviderConnection(thread, fallbackConnectionId, updatedAt)
+  if (thread.providerConnectionId !== deletedConnectionId) return thread;
+  return setMessengerThreadProviderConnection(thread, fallbackConnectionId, updatedAt);
 }
 
 export function createPersonaMessengerMessage({
@@ -227,26 +231,26 @@ export function createPersonaMessengerMessage({
   persona,
   thread,
 }: {
-  body: string
-  id: string
-  now: string
-  persona: PersonaRecord
-  thread: MessengerThread
+  body: string;
+  id: string;
+  now: string;
+  persona: PersonaRecord;
+  thread: MessengerThread;
 }): MessengerMessage {
   return {
     id,
     schemaVersion: 1,
     threadId: thread.id,
     author: {
-      kind: 'persona',
+      kind: "persona",
       personaId: persona.id,
       label: persona.displayName,
     },
     body,
-    origin: 'manual',
+    origin: "manual",
     createdAt: now,
     updatedAt: now,
-  }
+  };
 }
 
 export function createAnonymousMessengerMessage({
@@ -255,24 +259,24 @@ export function createAnonymousMessengerMessage({
   now,
   thread,
 }: {
-  body: string
-  id: string
-  now: string
-  thread: MessengerThread
+  body: string;
+  id: string;
+  now: string;
+  thread: MessengerThread;
 }): MessengerMessage {
   return {
     id,
     schemaVersion: 1,
     threadId: thread.id,
     author: {
-      kind: 'unknown',
-      label: 'Anonymous',
+      kind: "unknown",
+      label: "Anonymous",
     },
     body,
-    origin: 'manual',
+    origin: "manual",
     createdAt: now,
     updatedAt: now,
-  }
+  };
 }
 
 export function createGeneratedCompanionMessage({
@@ -282,32 +286,36 @@ export function createGeneratedCompanionMessage({
   now,
   thread,
 }: {
-  body: string
-  companion: CharacterRecord
-  id: string
-  now: string
-  thread: MessengerThread
+  body: string;
+  companion: CharacterRecord;
+  id: string;
+  now: string;
+  thread: MessengerThread;
 }): MessengerMessage {
   return {
     id,
     schemaVersion: 1,
     threadId: thread.id,
     author: {
-      kind: 'character',
+      kind: "character",
       characterId: companion.id,
       label: companion.displayName,
     },
     body,
-    origin: 'generated',
+    origin: "generated",
     createdAt: now,
     updatedAt: now,
-  }
+  };
 }
 
 export function getNextMessengerCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
-  const availableCompanions = companions.filter((companion) => thread.characterIds.includes(companion.id))
-  if (availableCompanions.length === 0) return null
+  const availableCompanions = companions.filter((companion) =>
+    thread.characterIds.includes(companion.id),
+  );
+  if (availableCompanions.length === 0) return null;
 
-  const companionMessageCount = thread.messages.filter((message) => message.author.kind === 'character').length
-  return availableCompanions[companionMessageCount % availableCompanions.length]
+  const companionMessageCount = thread.messages.filter(
+    (message) => message.author.kind === "character",
+  ).length;
+  return availableCompanions[companionMessageCount % availableCompanions.length];
 }

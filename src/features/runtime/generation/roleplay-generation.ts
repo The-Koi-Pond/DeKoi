@@ -42,9 +42,7 @@ export interface GenerateRoleplayThreadTurnResult {
 }
 
 function providerErrorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : String(error ?? "Unknown provider error.");
+  return error instanceof Error ? error.message : String(error ?? "Unknown provider error.");
 }
 
 async function generateRoleplayResponse(
@@ -55,10 +53,9 @@ async function generateRoleplayResponse(
   try {
     return await generateWithConfiguredProvider(request);
   } catch (error) {
-    throw new Error(
-      `Provider Roleplay generation failed. ${providerErrorMessage(error)}`,
-      { cause: error },
-    );
+    throw new Error(`Provider Roleplay generation failed. ${providerErrorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
 
@@ -111,17 +108,10 @@ export async function generateRoleplayThreadTurn({
       }),
     ];
   });
-  const warnings = [
-    ...response.warnings,
-    ...droppedDraftWarnings,
-    ...request.warnings,
-  ];
+  const warnings = [...response.warnings, ...droppedDraftWarnings, ...request.warnings];
 
   return {
-    thread:
-      entries.length > 0
-        ? appendRoleplayEntries(thread, entries)
-        : thread,
+    thread: entries.length > 0 ? appendRoleplayEntries(thread, entries) : thread,
     warnings,
     generatedEntryCount: entries.length,
   };

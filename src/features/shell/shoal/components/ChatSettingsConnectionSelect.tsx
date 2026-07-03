@@ -2,10 +2,7 @@ import {
   getProviderConnectionProviderOption,
   type ProviderConnectionRecord,
 } from "../../../../engine/contracts/types/provider-connection";
-import {
-  ChatSettingsDropdown,
-  type ChatSettingsDropdownOption,
-} from "./ChatSettingsDropdown";
+import { ChatSettingsDropdown, type ChatSettingsDropdownOption } from "./ChatSettingsDropdown";
 
 interface ChatSettingsConnectionSelectProps {
   activeMessengerThread: boolean;
@@ -63,9 +60,7 @@ export function ChatSettingsConnectionSelect({
                 },
               ]),
           ...connections.map((connection) => {
-            const provider = getProviderConnectionProviderOption(
-              connection.provider,
-            );
+            const provider = getProviderConnectionProviderOption(connection.provider);
             const model = connection.model || "No model";
 
             return {

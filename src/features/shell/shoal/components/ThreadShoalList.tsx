@@ -34,9 +34,7 @@ export function ThreadShoalList({
   onOpenRoleplayThread,
   onRenameRoleplayThread,
 }: ThreadShoalListProps) {
-  const visibleCount = isRoleplaySurface
-    ? roleplayThreads.length
-    : messengerThreads.length;
+  const visibleCount = isRoleplaySurface ? roleplayThreads.length : messengerThreads.length;
 
   return (
     <div className="shoal-list">

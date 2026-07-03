@@ -47,9 +47,7 @@ export function useCharacterActions({
       const now = currentIsoTimestamp();
       setCharacters((currentCharacters) =>
         currentCharacters.map((character) =>
-          character.id === characterId
-            ? updateCharacterRecord(character, input, now)
-            : character,
+          character.id === characterId ? updateCharacterRecord(character, input, now) : character,
         ),
       );
     },
@@ -58,9 +56,7 @@ export function useCharacterActions({
 
   const duplicateCharacter = useCallback(
     (characterId: string) => {
-      const character = characters.find(
-        (currentCharacter) => currentCharacter.id === characterId,
-      );
+      const character = characters.find((currentCharacter) => currentCharacter.id === characterId);
       if (!character) return null;
 
       const now = currentIsoTimestamp();
@@ -69,10 +65,7 @@ export function useCharacterActions({
         createRecordId("character"),
         now,
       );
-      setCharacters((currentCharacters) => [
-        duplicatedCharacter,
-        ...currentCharacters,
-      ]);
+      setCharacters((currentCharacters) => [duplicatedCharacter, ...currentCharacters]);
       return duplicatedCharacter;
     },
     [characters, setCharacters],
@@ -81,18 +74,12 @@ export function useCharacterActions({
   const deleteCharacter = useCallback(
     (characterId: string) => {
       const now = currentIsoTimestamp();
-      setCharacters((currentCharacters) =>
-        deleteCharacterRecord(currentCharacters, characterId),
-      );
+      setCharacters((currentCharacters) => deleteCharacterRecord(currentCharacters, characterId));
       setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          removeMessengerThreadCharacter(thread, characterId, now),
-        ),
+        currentThreads.map((thread) => removeMessengerThreadCharacter(thread, characterId, now)),
       );
       setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          removeRoleplayThreadCharacter(thread, characterId, now),
-        ),
+        currentThreads.map((thread) => removeRoleplayThreadCharacter(thread, characterId, now)),
       );
     },
     [setCharacters, setRoleplayThreads, setMessengerThreads],

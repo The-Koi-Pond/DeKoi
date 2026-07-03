@@ -44,11 +44,7 @@ export function RoleplayThreadShoalList({
             icon={avatarDetails.hasCharacter ? undefined : <RoleplayCardIcon />}
             initials={avatarDetails.initials}
             name={thread.title}
-            sub={
-              avatarDetails.missingCharacterCount > 0
-                ? missingCompanionLabel
-                : preview
-            }
+            sub={avatarDetails.missingCharacterCount > 0 ? missingCompanionLabel : preview}
             mode="roleplay"
             active={thread.id === activeRoleplayThreadId}
             showStatus={false}

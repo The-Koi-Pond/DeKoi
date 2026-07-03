@@ -29,24 +29,17 @@ export function ChatSettingsConnectionNotices({
       {hasMissingConnection && (
         <ChatSettingsNotice
           actionLabel={missingConnectionResolution.actionLabel}
-          onAction={() =>
-            onResolveMissingConnection(missingConnectionResolution.connectionId)
-          }
+          onAction={() => onResolveMissingConnection(missingConnectionResolution.connectionId)}
         >
-          This thread points to a connection that is no longer saved. Choose
-          another connection or clear the missing reference.
+          This thread points to a connection that is no longer saved. Choose another connection or
+          clear the missing reference.
         </ChatSettingsNotice>
       )}
-      {activeMessengerThread &&
-        connectionCount === 0 &&
-        !hasMissingConnection && (
-          <ChatSettingsNotice
-            actionLabel="Create connection"
-            onAction={onCreateConnection}
-          >
-            Create a connection before {surfaceLabel} can generate replies.
-          </ChatSettingsNotice>
-        )}
+      {activeMessengerThread && connectionCount === 0 && !hasMissingConnection && (
+        <ChatSettingsNotice actionLabel="Create connection" onAction={onCreateConnection}>
+          Create a connection before {surfaceLabel} can generate replies.
+        </ChatSettingsNotice>
+      )}
     </>
   );
 }

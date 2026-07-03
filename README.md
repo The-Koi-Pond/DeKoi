@@ -2,7 +2,7 @@
 
 DeKoi is a fresh, local-first story and character engine for private character conversations, scenes, and small story worlds.
 
-This repository starts the no-dash DeKoi identity from a blank implementation. It is not a fork checkout, not a continuation repository, and not a place to copy code, assets, docs, prompts, schemas, UI text, or component layouts from the prior fork-derived line. Architecture lessons can be re-decided here only when they are written in DeKoi-owned terms.
+This repository starts the no-dash DeKoi identity from a blank implementation under Apache-2.0. What may and may not be carried over from the older De-Koi line is defined once in [PROVENANCE.md](./PROVENANCE.md).
 
 ## Status
 
@@ -14,7 +14,7 @@ Current highlights:
 - Native Messenger, Roleplay, catalog, provider connection, and Ripple record concepts.
 - Collection-backed storage contracts for desktop and compatible remote runtimes.
 - Optional Tauri desktop host for app-data storage, bundle file dialogs, provider-key secrets, and a desktop runtime bridge.
-- DeKoi-owned docs and naming rules that keep DeKoi separate from the old dashed project line.
+- DeKoi-owned docs and naming rules.
 
 See [docs/project-status.md](./docs/project-status.md) for what works now, what is experimental, and what is intentionally out of scope.
 
@@ -22,33 +22,33 @@ See [docs/project-status.md](./docs/project-status.md) for what works now, what 
 
 Install dependencies:
 
-~~~sh
+```sh
 pnpm install
-~~~
+```
 
 Run the browser development shell:
 
-~~~sh
+```sh
 pnpm dev
-~~~
+```
 
 Run the optional desktop host:
 
-~~~sh
+```sh
 pnpm tauri:dev
-~~~
+```
 
 Run fast unit tests:
 
-~~~sh
+```sh
 pnpm test
-~~~
+```
 
 Run the full local check:
 
-~~~sh
+```sh
 pnpm check
-~~~
+```
 
 For a guided setup path, see [docs/getting-started.md](./docs/getting-started.md).
 
@@ -58,61 +58,38 @@ The browser development shell is useful for UI and runtime work, but it does not
 
 Desktop records are stored under:
 
-~~~text
+```text
 <app-data>/collections/<entity>.json
-~~~
+```
 
 Desktop collection files are JSON arrays with explicit recovery behavior for
 malformed files, backup sidecars, pre-repair sidecars, manual repair, stale
 checks, and reloads. See [Storage Model](./docs/storage-model.md) for the full
 durable storage policy.
 
-Pond Care > Deep Water can check host readiness, save and load DeKoi-native
-bundles through the desktop app-data directory, check desktop collection files
-for outside edits or repair needs, explicitly repair or reload stored
-collections, and select `desktop://runtime` for durable desktop storage and
-desktop runtime health checks. When the Tauri host is available, provider-backed
-generation can also route through the desktop runtime bridge. Reload is blocked
-while local storage saves are still pending. Pond Care > Stocking can export and
-import bundle files through desktop dialogs; imports preview first, create a
-pre-import backup, then replace collections through the storage commit path.
-Pond Care > Catalog can save, check, and clear provider keys without exporting
-secret values.
+In-app storage, repair, bundle import/export, and provider-key tools live under
+Pond Care; [docs/getting-started.md](./docs/getting-started.md) walks through
+them.
 
-## DeKoi And De-Koi
+## Provenance
 
-DeKoi is the no-dash, from-scratch project. De-Koi is the older dashed fork-derived line. Keep their identities separate when writing docs, code, issue text, and compatibility notes.
+DeKoi (no dash) is this from-scratch Apache-2.0 project. De-Koi (dashed) is the older AGPLv3 fork-derived line. [PROVENANCE.md](./PROVENANCE.md) is the one authoritative statement of what crosses that boundary: AGPLv3-derived material and legacy product naming stay out, while team-authored engineering knowledge is portable with attribution, and legacy compatibility is built as explicit one-way import adapters.
 
-Compatibility work should be explicit one-way import work after DeKoi has native records:
-
-~~~text
-legacy source record -> DeKoi native record
-~~~
-
-Legacy names and old storage shapes should not become DeKoi core concepts.
-
-## Repository Rules
-
-- DeKoi-owned code starts here.
-- Write the DeKoi requirement before adding substantial code.
-- Build legacy compatibility as explicit import adapters.
-- Do not copy the old repository as a source template.
-- Do not copy old source code, assets, documentation wording, prompts, schemas, generated bindings, component layouts, or UI text.
-- Keep public labels, internal domain nouns, and legacy import aliases separate.
+Write the DeKoi requirement before adding substantial code, and keep public labels, internal domain nouns, and legacy import aliases separate.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules and [AGENTS.md](./AGENTS.md) for agent workflow guidance.
 
 ## Project Docs
 
+- [Provenance](./PROVENANCE.md): the licensing and porting boundary between DeKoi and the older De-Koi line.
 - [Product Notes](./PRODUCT.md): purpose, intended users, first slice, and non-goals.
 - [Design System](./DESIGN.md): active visual tokens, component guidance, and UI do/don'ts.
 - [Agent Guidance](./AGENTS.md): source lanes, proof expectations, and shipping workflow.
-- [Surface Labels](./SURFACE_LABELS.md): DeKoi-owned naming map.
-- [Domain Model](./DOMAIN_MODEL.md): product-record glossary and naming guardrails.
+- [Domain Model](./DOMAIN_MODEL.md): product vocabulary, naming map, record glossary, and naming guardrails.
 - [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
 - [Storage Model](./docs/storage-model.md): collection-backed durable data guardrails.
 - [Remote Runtime Contract](./docs/remote-runtime-contract.md): compatible runtime health, invoke, generation, and storage commands.
 
 ## License
 
-DeKoi is licensed under the [Apache License 2.0](./LICENSE). This license applies to this DeKoi repository; it does not change the license or provenance of the older dashed project line.
+DeKoi is licensed under the [Apache License 2.0](./LICENSE). See [PROVENANCE.md](./PROVENANCE.md) for how this relates to the older De-Koi line.

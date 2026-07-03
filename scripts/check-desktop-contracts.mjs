@@ -28,15 +28,13 @@ function parseTypeScriptCommands(source) {
     throw new Error("Could not find DESKTOP_COMMAND_ALLOWLIST in desktop-commands.ts.");
   }
 
-  return [...allowlistMatch[1].matchAll(/DESKTOP_COMMANDS\.(\w+)/g)].map(
-    (match) => {
-      const value = valuesByKey.get(match[1]);
-      if (!value) {
-        throw new Error(`DESKTOP_COMMAND_ALLOWLIST references unknown ${match[1]}.`);
-      }
-      return value;
-    },
-  );
+  return [...allowlistMatch[1].matchAll(/DESKTOP_COMMANDS\.(\w+)/g)].map((match) => {
+    const value = valuesByKey.get(match[1]);
+    if (!value) {
+      throw new Error(`DESKTOP_COMMAND_ALLOWLIST references unknown ${match[1]}.`);
+    }
+    return value;
+  });
 }
 
 function parseRustCommands(source) {
@@ -45,9 +43,7 @@ function parseRustCommands(source) {
     throw new Error("Could not find generate_handler! command list in src-tauri/src/lib.rs.");
   }
 
-  return [...match[1].matchAll(/(?:\w+::)?(dekoi_[a-z_]+)/g)].map(
-    (item) => item[1],
-  );
+  return [...match[1].matchAll(/(?:\w+::)?(dekoi_[a-z_]+)/g)].map((item) => item[1]);
 }
 
 function unique(values) {
@@ -79,7 +75,9 @@ const missingInRust = listDifference(tsCommands, rustCommands);
 const missingInTypeScript = listDifference(rustCommands, tsCommands);
 
 if (missingInRust.length > 0) {
-  failures.push(`Commands present in TypeScript but missing from Rust:\n${formatList(missingInRust)}`);
+  failures.push(
+    `Commands present in TypeScript but missing from Rust:\n${formatList(missingInRust)}`,
+  );
 }
 
 if (missingInTypeScript.length > 0) {

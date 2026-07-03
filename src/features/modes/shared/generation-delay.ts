@@ -9,9 +9,7 @@ export function estimateGeneratedTypingDelay(text: string) {
   const typedWords = trimmedText ? trimmedText.split(/\s+/).length : 0;
   return Math.min(
     MAX_TYPING_DELAY_MS,
-    MIN_TYPING_DELAY_MS +
-      typedCharacters * MS_PER_CHARACTER +
-      typedWords * MS_PER_WORD,
+    MIN_TYPING_DELAY_MS + typedCharacters * MS_PER_CHARACTER + typedWords * MS_PER_WORD,
   );
 }
 

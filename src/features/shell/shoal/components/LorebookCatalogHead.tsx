@@ -25,11 +25,7 @@ export function LorebookCatalogHead({
         <span className="count">{entryCount} entries</span>
       </div>
       <div className="shoal-search">
-        <label
-          className="glyph"
-          aria-hidden="true"
-          htmlFor="catalog-lorebook-search-input"
-        >
+        <label className="glyph" aria-hidden="true" htmlFor="catalog-lorebook-search-input">
           ⌕
         </label>
         <input

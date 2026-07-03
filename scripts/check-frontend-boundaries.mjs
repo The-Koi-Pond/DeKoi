@@ -12,29 +12,11 @@ const featureLayerRank = new Map([
   ["modes", 2],
   ["shell", 3],
 ]);
-const catalogResourcePackageNames = new Set([
-  "companions",
-  "lorebooks",
-  "personas",
-]);
-const shellPackageNames = new Set([
-  "bank",
-  "care",
-  "pond",
-  "shoal",
-  "tide",
-  "waterline",
-]);
+const catalogResourcePackageNames = new Set(["companions", "lorebooks", "personas"]);
+const shellPackageNames = new Set(["bank", "care", "pond", "shoal", "tide", "waterline"]);
 const modePackageNames = new Set(["roleplay", "messenger"]);
-const featureRuntimeOwnerPackageNames = new Set([
-  "generation",
-  "ripples",
-  "storage",
-]);
-const allowedFeatureRoots = new Set([
-  ...featureLayerRank.keys(),
-  "navigation",
-]);
+const featureRuntimeOwnerPackageNames = new Set(["generation", "ripples", "storage"]);
+const allowedFeatureRoots = new Set([...featureLayerRank.keys(), "navigation"]);
 
 function isCatalogRootSourceFile(filePath) {
   return /^src\/features\/catalog\/[^/]+\.[jt]sx?$/.test(filePath);
@@ -172,6 +154,26 @@ function resolveRelativeImport(sourceFile, specifier) {
   return toPosix(path.relative(root, absoluteTarget));
 }
 
+function resolveSourceImportTarget(sourceFile, specifier, sourceFileSet) {
+  if (!specifier.startsWith(".")) return null;
+
+  const absoluteTarget = path.resolve(root, path.dirname(sourceFile), specifier);
+  const targetPath = toPosix(path.relative(root, absoluteTarget));
+  const targetExtension = path.extname(targetPath);
+  const candidates = [];
+
+  if (sourceExtensions.has(targetExtension)) {
+    candidates.push(targetPath);
+  } else if (targetExtension === "") {
+    for (const extension of sourceExtensions) {
+      candidates.push(`${targetPath}${extension}`);
+      candidates.push(`${targetPath}/index${extension}`);
+    }
+  }
+
+  return candidates.find((candidate) => sourceFileSet.has(candidate)) ?? null;
+}
+
 function isReactPackage(specifier) {
   return specifier === "react" || specifier.startsWith("react/");
 }
@@ -198,8 +200,7 @@ function checkImport(sourceFile, specifier, targetFile) {
   const sourceIsNonNavigationFeature = sourceIsFeature && !sourceIsNavigation;
   const sourceAppPackageRoot = getAppPackageRoot(sourceFile);
   const sourceFeatureLayer = getFeatureLayer(sourceFile);
-  const sourceCatalogResourcePackageRoot =
-    getCatalogResourcePackageRoot(sourceFile);
+  const sourceCatalogResourcePackageRoot = getCatalogResourcePackageRoot(sourceFile);
 
   if (sourceIsEngine && (isReactPackage(specifier) || isTauriPackage(specifier))) {
     failures.push("Engine modules must stay React-free and host-free.");
@@ -226,13 +227,12 @@ function checkImport(sourceFile, specifier, targetFile) {
       isUnder(targetFile, "src/features") ||
       isUnder(targetFile, "src/shared"))
   ) {
-    failures.push("Engine modules must not import app, runtime, feature, or shared frontend modules.");
+    failures.push(
+      "Engine modules must not import app, runtime, feature, or shared frontend modules.",
+    );
   }
 
-  if (
-    sourceIsApp &&
-    (isUnder(targetFile, "src/runtime") || isUnder(targetFile, "src/engine"))
-  ) {
+  if (sourceIsApp && (isUnder(targetFile, "src/runtime") || isUnder(targetFile, "src/engine"))) {
     failures.push("App composition must not import runtime adapters or engine modules directly.");
   }
 
@@ -241,7 +241,9 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   if (sourceIsRuntime && targetFile === "src/shared/api/desktop-commands") {
-    failures.push("Runtime adapters must use shared API wrappers instead of the desktop command catalog.");
+    failures.push(
+      "Runtime adapters must use shared API wrappers instead of the desktop command catalog.",
+    );
   }
 
   if (
@@ -260,7 +262,9 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   if (sourceIsNavigation && isUnder(targetFile, "src/shared/api")) {
-    failures.push("Navigation orchestration must route host and runtime API wrappers through features/runtime.");
+    failures.push(
+      "Navigation orchestration must route host and runtime API wrappers through features/runtime.",
+    );
   }
 
   if (
@@ -276,18 +280,15 @@ function checkImport(sourceFile, specifier, targetFile) {
   const targetRuntimeBridgeRoot = getRuntimeBridgeRoot(targetFile);
   const sourceCatalogRoot = getCatalogRoot(sourceFile);
   const targetCatalogRoot = getCatalogRoot(targetFile);
-  const targetCatalogResourcePackageRoot =
-    getCatalogResourcePackageRoot(targetFile);
+  const targetCatalogResourcePackageRoot = getCatalogResourcePackageRoot(targetFile);
   const sourceModesRoot = getModesRoot(sourceFile);
   const targetModesRoot = getModesRoot(targetFile);
   const sourceModePackageRoot = getModePackageRoot(sourceFile);
   const targetModePackageRoot = getModePackageRoot(targetFile);
   const sourceNavigationPackageRoot = getNavigationPackageRoot(sourceFile);
   const targetNavigationPackageRoot = getNavigationPackageRoot(targetFile);
-  const sourceFeatureRuntimePackageRoot =
-    getFeatureRuntimePackageRoot(sourceFile);
-  const targetFeatureRuntimePackageRoot =
-    getFeatureRuntimePackageRoot(targetFile);
+  const sourceFeatureRuntimePackageRoot = getFeatureRuntimePackageRoot(sourceFile);
+  const targetFeatureRuntimePackageRoot = getFeatureRuntimePackageRoot(targetFile);
   const sourceShellRoot = getShellRoot(sourceFile);
   const targetShellRoot = getShellRoot(targetFile);
   const sourceShellPackageRoot = getShellPackageRoot(sourceFile);
@@ -338,11 +339,7 @@ function checkImport(sourceFile, specifier, targetFile) {
     failures.push("Catalog resource packages must be imported through their public entrypoints.");
   }
 
-  if (
-    targetModesRoot &&
-    targetFile !== targetModesRoot &&
-    sourceModesRoot !== targetModesRoot
-  ) {
+  if (targetModesRoot && targetFile !== targetModesRoot && sourceModesRoot !== targetModesRoot) {
     failures.push("Modes must be imported through their public entrypoint.");
   }
 
@@ -396,7 +393,9 @@ function checkImport(sourceFile, specifier, targetFile) {
   }
 
   if (sourceIsNavigation && isUnder(targetFile, "src/runtime")) {
-    failures.push("Navigation orchestration must route runtime bridge imports through features/runtime.");
+    failures.push(
+      "Navigation orchestration must route runtime bridge imports through features/runtime.",
+    );
   }
 
   if (
@@ -404,15 +403,71 @@ function checkImport(sourceFile, specifier, targetFile) {
     sourceFeatureLayer !== "runtime" &&
     isUnder(targetFile, "src/runtime")
   ) {
-    failures.push("Shell, mode, and catalog features must route runtime bridge imports through features/runtime.");
+    failures.push(
+      "Shell, mode, and catalog features must route runtime bridge imports through features/runtime.",
+    );
   }
 
   return failures;
 }
 
+function normalizeCycle(cycle) {
+  const nodes = cycle.slice(0, -1);
+  const rotations = nodes.map((_, index) => [...nodes.slice(index), ...nodes.slice(0, index)]);
+  const normalizedNodes = rotations
+    .map((rotation) => [...rotation, rotation[0]])
+    .sort((left, right) => left.join("\0").localeCompare(right.join("\0")))[0];
+  return normalizedNodes.join(" -> ");
+}
+
+function findImportCycles(importGraph) {
+  const state = new Map();
+  const stack = [];
+  const cycleKeys = new Set();
+  const cycles = [];
+
+  function visit(sourceFile) {
+    state.set(sourceFile, "visiting");
+    stack.push(sourceFile);
+
+    for (const targetFile of importGraph.get(sourceFile) ?? []) {
+      if (!importGraph.has(targetFile)) continue;
+
+      const targetState = state.get(targetFile);
+      if (targetState === "visiting") {
+        const cycleStart = stack.indexOf(targetFile);
+        const cycle = [...stack.slice(cycleStart), targetFile];
+        const key = normalizeCycle(cycle);
+        if (!cycleKeys.has(key)) {
+          cycleKeys.add(key);
+          cycles.push(cycle);
+        }
+        continue;
+      }
+
+      if (targetState !== "visited") {
+        visit(targetFile);
+      }
+    }
+
+    stack.pop();
+    state.set(sourceFile, "visited");
+  }
+
+  for (const sourceFile of [...importGraph.keys()].sort()) {
+    if (!state.has(sourceFile)) {
+      visit(sourceFile);
+    }
+  }
+
+  return cycles;
+}
+
 const sourceFiles = listSourceFiles(srcRoot).map((filePath) =>
   toPosix(path.relative(root, filePath)),
 );
+const sourceFileSet = new Set(sourceFiles);
+const importGraph = new Map();
 const failures = [];
 const unknownFeatureRoots = new Set();
 
@@ -429,9 +484,7 @@ for (const sourceFile of sourceFiles) {
   }
 
   if (isRuntimeRootSourceFile(sourceFile) && sourceFile !== "src/runtime/index.ts") {
-    failures.push(
-      `Runtime implementation files must live in owner packages.\n  - ${sourceFile}`,
-    );
+    failures.push(`Runtime implementation files must live in owner packages.\n  - ${sourceFile}`);
   }
 
   if (
@@ -443,8 +496,7 @@ for (const sourceFile of sourceFiles) {
     );
   }
 
-  const featureRuntimeOwnerPackageName =
-    getFeatureRuntimeOwnerPackageName(sourceFile);
+  const featureRuntimeOwnerPackageName = getFeatureRuntimeOwnerPackageName(sourceFile);
   if (
     featureRuntimeOwnerPackageName &&
     !featureRuntimeOwnerPackageNames.has(featureRuntimeOwnerPackageName)
@@ -454,10 +506,7 @@ for (const sourceFile of sourceFiles) {
     );
   }
 
-  if (
-    isNavigationRootSourceFile(sourceFile) &&
-    sourceFile !== "src/features/navigation/index.ts"
-  ) {
+  if (isNavigationRootSourceFile(sourceFile) && sourceFile !== "src/features/navigation/index.ts") {
     failures.push(
       `Navigation bridge implementation files must live in context; only the entrypoint may stay at the navigation root.\n  - ${sourceFile}`,
     );
@@ -517,12 +566,18 @@ for (const sourceFile of sourceFiles) {
   }
 
   if (isFeatureEntryPoint(sourceFile) && /\bexport\s+\*\s+from\b/.test(source)) {
-    failures.push(
-      `Feature package entrypoints must use explicit exports.\n  - ${sourceFile}`,
-    );
+    failures.push(`Feature package entrypoints must use explicit exports.\n  - ${sourceFile}`);
   }
 
-  for (const specifier of collectModuleSpecifiers(source)) {
+  const specifiers = collectModuleSpecifiers(source);
+  const sourceImportTargets = new Set();
+
+  for (const specifier of specifiers) {
+    const sourceImportTarget = resolveSourceImportTarget(sourceFile, specifier, sourceFileSet);
+    if (sourceImportTarget) {
+      sourceImportTargets.add(sourceImportTarget);
+    }
+
     const targetFile = resolveRelativeImport(sourceFile, specifier);
     const importFailures = checkImport(sourceFile, specifier, targetFile);
 
@@ -530,6 +585,8 @@ for (const sourceFile of sourceFiles) {
       failures.push(`${failure}\n  - ${describeImport(sourceFile, specifier, targetFile)}`);
     }
   }
+
+  importGraph.set(sourceFile, sourceImportTargets);
 }
 
 if (unknownFeatureRoots.size > 0) {
@@ -537,6 +594,19 @@ if (unknownFeatureRoots.size > 0) {
     [
       "Top-level feature folders must be catalog, runtime, modes, navigation, or shell.",
       ...[...unknownFeatureRoots].sort().map((featureRoot) => `  - src/features/${featureRoot}`),
+    ].join("\n"),
+  );
+}
+
+const importCycles = findImportCycles(importGraph);
+if (importCycles.length > 0) {
+  failures.push(
+    [
+      "Circular source imports are not allowed.",
+      ...importCycles.slice(0, 20).map((cycle) => `  - ${cycle.join(" -> ")}`),
+      ...(importCycles.length > 20
+        ? [`  - ...and ${importCycles.length - 20} more cycle(s).`]
+        : []),
     ].join("\n"),
   );
 }

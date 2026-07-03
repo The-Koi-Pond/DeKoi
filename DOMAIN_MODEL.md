@@ -1,20 +1,154 @@
 # Domain Model
 
-This document is DeKoi's plain-language product-record glossary. Exact
-TypeScript contracts now live under `src/engine/contracts/types`, and durable
-collection rules live in [docs/storage-model.md](./docs/storage-model.md). Use
-this file for names, ownership, and relationships, not as the source of truth
-for exact fields or saved-file formats.
+This document is DeKoi's plain-language product vocabulary and product-record
+glossary. Exact TypeScript contracts now live under
+`src/engine/contracts/types`, and durable collection rules live in
+[docs/storage-model.md](./docs/storage-model.md). Use this file for public
+labels, internal nouns, legacy import aliases, ownership, and relationships,
+not as the source of truth for exact fields or saved-file formats.
 
 ## Model Rules
 
 - DeKoi records are native records, not renamed legacy records.
-- Public labels, internal nouns, and import-source aliases stay separate.
-- Generic ecosystem terms such as `persona`, `lorebook`, `character card`, and
-  `preset` are allowed when used as broad AI-character-chat vocabulary.
 - Cute or themed labels should not hide what a record actually does.
 - Persisted records should keep IDs, timestamps, and schema versions in their
   typed contracts where the current storage model requires them.
+- Keep the public label, internal type name, and legacy import alias separate.
+- Prefer clear common nouns over cute names for core workflows.
+- Generic ecosystem terms are fine when they come from broader SillyTavern-style
+  conventions rather than product language specific to previous projects.
+- Avoid reusing legacy mode IDs, route names, prompt labels, UI copy, or feature
+  descriptions.
+- Write the DeKoi requirement first, then name the surface from that behavior.
+- Keep compatibility code one-way: legacy source shape -> DeKoi native shape
+  (see [PROVENANCE.md](./PROVENANCE.md)).
+
+Candidate labels and alternates considered live in
+[docs/naming-decisions.md](./docs/naming-decisions.md); this file records the
+rules and the current decisions.
+
+## Surface Map
+
+| Legacy source concept         | DeKoi public label | DeKoi internal noun | Purpose                                                                       |
+| ----------------------------- | ------------------ | ------------------- | ----------------------------------------------------------------------------- |
+| Conversation-style mode       | Messenger          | messenger thread    | Direct and group DM-style chats with compact message turns.                   |
+| Roleplay-style mode           | Roleplay           | roleplay thread     | Visual-novel-style character scenes with cast, continuity, and world context. |
+| Chat list/sidebar             | Pond               | thread list         | Saved Messenger and Roleplay records.                                         |
+| Character catalog             | Companions         | character record    | People/entities the user can talk with or place into Roleplay threads.        |
+| Persona catalog               | Personas           | persona record      | User-facing identities for participation in Messenger and Roleplay threads.   |
+| Lorebook/knowledge catalog    | Lorebooks          | lorebook record     | Reusable facts, setting notes, references, and continuity material.           |
+| Presets/chat presets          | Currents           | prompt recipe       | Reusable generation settings and prompt structure.                            |
+| Game-state/tracker-style data | Ripples            | ripple state        | Dynamic per-thread state, counters, summaries, and continuity changes.        |
+| Tracker sidebar panel         | Ripple Dock        | ripple dock         | Sidebar surface for viewing and editing Ripples.                              |
+| Automation/helper catalog     | Keepers            | helper module       | Optional automated reviewers, trackers, or generators.                        |
+| Connections/providers         | Inlets             | provider connection | Model, local runtime, and service configuration.                              |
+| Gallery/sprites/assets        | Net                | media asset         | User-owned images, sprites, audio, and generated visual assets.               |
+
+## Product Naming Decisions
+
+Use **Messenger** for DM-style chat.
+
+Why:
+
+- It is immediately understandable to nontechnical users.
+- It works for both one-on-one and group chats.
+- It avoids over-theming the core workflow.
+- It lets the saved object still be a **thread**, which is a useful internal
+  noun.
+
+Suggested Messenger language:
+
+- Public navigation: `Messenger`
+- Primary action: `New thread`
+- One-on-one subtype: `Direct Messenger`
+- Multi-participant subtype: `Group Messenger`
+- Internal kind: `messenger`
+- Core record: `MessengerThread`
+- Import adapter alias only: `legacy conversation source`
+
+Avoid using `Conversation Mode` as public text or `conversation` as a native
+DeKoi mode ID.
+
+Use **Roleplay** as the public surface label for visual-novel-style character
+scenes.
+
+Suggested Roleplay language:
+
+- Public navigation: `Roleplay`
+- Primary action: `New Roleplay`
+- Internal kind: `roleplay`
+- Core record: `RoleplayThread`
+- Import adapter alias only: `legacy roleplay source`
+
+Avoid using `Roleplay Mode` as public text. Use `roleplay` only as the native
+surface ID, not as a legacy mode label.
+
+Use **Ripples** as the public label for dynamic per-thread state.
+
+This covers things that may eventually include:
+
+- character presence or mood
+- relationship notes
+- counters or meters
+- continuity changes
+- compact summaries of what shifted in a thread
+
+Suggested Ripple language:
+
+- Public surface: `Ripples`
+- Sidebar/panel surface: `Ripple Dock`
+- Internal noun: `RippleState`
+- UI component noun: `RippleDock`
+- Single change/event: `Ripple`
+- Import adapter alias only: `legacy game-state source` or
+  `legacy tracker source`
+
+Avoid using `Game State` as a native DeKoi label. Ripples should not imply that
+game/adventure-style play is in scope right now.
+
+## Generic Ecosystem Terms
+
+DeKoi can keep common AI-character-chat terms when they are user-familiar,
+generic, and not treated as previous project product language.
+
+Safe examples:
+
+- `persona`
+- `lorebook`
+- `character card`
+- `preset`
+
+The provenance risk is not the generic term by itself. The risk is copying
+previous project wording, data shape, prompt text, UI layout, or behavior
+without rewriting the DeKoi requirement first.
+
+## Notes From Legacy Stocktake
+
+The old app groups behavior into three large mode surfaces, a content catalog,
+shell/settings surfaces, runtime/provider generation, and native/Tauri storage.
+For DeKoi, those should become independent product concepts rather than direct
+renames of folders or routes.
+
+High-risk inherited labels to avoid as native concepts:
+
+- `conversation`
+- `game mode`
+- `game state`
+- `chat mode`
+- prior-project automation labels
+
+Acceptable as generic implementation words only when they are not product
+surface names:
+
+- `message`
+- `thread`
+- `character`
+- `persona`
+- `lorebook`
+- `preset`
+- `scene`
+- `provider`
+- `connection`
 
 ## First Product Areas
 
@@ -96,39 +230,16 @@ Likely relationships:
 
 Current implementation:
 
-- Lorebooks are saved as `schemaVersion: 2` records with activation defaults
-  for scan depth, name inclusion, key matching, recursion, and budget caps.
-- Lore entries are `schemaVersion: 2` records; newly created entries default to
-  enabled constant notes placed after character context, with optional keys,
-  filters, triggers, timing, recursion, role, and match-source blocks unset.
+- Lorebooks and lore entries are `schemaVersion: 2` records with activation,
+  placement, trigger, filter, match-source, and budget fields.
 - Messenger and Roleplay prompt assembly activates selected lorebooks before
-  provider requests. Enabled constant entries with body text always activate;
-  selective entries activate from primary keys found in recent transcript text.
-  Entries can also opt into additional matching sources for selected companion
-  description, personality, scenario, character note, and active persona
-  description; those fields are not scanned by default, and name/nickname
-  matching in those source blobs follows the lorebook `includeNames` setting.
-  Transcript matching uses scan depth and speaker-name inclusion; plaintext key
-  matching uses case sensitivity and whole-word settings. Slash-delimited
-  `/pattern/flags` keys activate as regex; invalid or unsafe regex keys fall
-  back to plaintext matching with warnings. Optional filter keys use each
-  entry's selective logic after the primary-key match.
-- Activated entries are sorted by descending insertion order with selected
-  lorebook order and original entry order as stable tiebreakers. Entries can be
-  placed before character context, after character context, or at a transcript
-  depth counted from the newest turn.
-- Lorebook budgets can use an absolute token cap or a percent of the provider
-  max context when known. Budgeting uses a cheap text-length estimate because
-  DeKoi has no tokenizer dependency; percent budgets are left unapplied when
-  provider context size is unknown. Budget trimming gives constant entries
-  first claim on the cap, then selective entries; each strategy group still
-  uses descending insertion order and stable lorebook/entry tiebreakers.
-  Roleplay lorebook summaries count against budgets and emit at most once per
-  generation request.
-- Catalog UI exposes entry Strategy, comma-separated Key, Optional Filter,
-  Selective Logic, Additional matching sources, insertion order, insertion
-  position, at-depth depth/role, regex-key hints, and lorebook Scan depth,
-  Include names, case-sensitive matching, whole-word matching, and budget fields.
+  provider requests: constant entries always activate, selective entries match
+  keys against recent transcript text and opted-in companion/persona fields,
+  and activated entries are ordered, placed, and budget-trimmed
+  deterministically. The catalog UI exposes the matching lorebook and entry
+  controls.
+- Exact activation, ordering, and budgeting mechanics live in
+  [docs/storage-model.md](./docs/storage-model.md).
 
 Not fully settled yet:
 
@@ -288,7 +399,6 @@ The current public sidebar/panel label for this state is **Ripple Dock**.
 
 Purpose:
 
-- Replace game-state/tracker-style wording with a DeKoi-owned concept.
 - Track changing conditions without making game/adventure-style play part of the
   first product slice.
 - Give Messenger and Roleplay a future place for continuity changes, counters, moods,
@@ -311,7 +421,6 @@ RippleDock is the reserved UI surface name for viewing and editing Ripples.
 
 Purpose:
 
-- Replace tracker-sidebar-panel-style wording with a DeKoi-owned surface name.
 - Keep the visible panel name separate from the underlying RippleState record.
 - Allow a sidebar-style implementation without making `sidebar` part of the
   product identity.
@@ -334,26 +443,10 @@ Current implementation:
 
 ## Implemented Slice
 
-The first useful implementation has moved past the original Messenger-only
-proof. The current app proves:
-
-1. Create and edit Companions, Personas, Lorebooks, and provider connections.
-2. Create Messenger and Roleplay threads.
-3. Store MessengerMessages and RoleplayEntries in split transcript collections.
-4. Edit Messenger and Roleplay thread settings for connection, persona,
-   companions, and lorebooks; adjust shared generation parameters from the
-   settings rail; and see missing-reference notices before send.
-5. Save and reload DeKoi-native records through desktop storage or a compatible
-   remote runtime.
-6. Export and import DeKoi-native bundles through the desktop host.
-7. Import legacy threads one way into native Messenger records.
-8. Generate provider-backed Messenger and Roleplay replies through the runtime
-   boundary.
-
-Messenger remains the most mature path. Roleplay now has native settings and
-missing-reference guards, while provider transport, desktop storage, bundle
-import/export, legacy import, Ripples, and deeper Roleplay scene semantics
-should keep deepening behind the same native record boundaries.
+Messenger is the most mature loop; Roleplay is the second native surface with
+thread settings and send guards. What works now, what is experimental, and
+what is out of scope live in
+[docs/project-status.md](./docs/project-status.md).
 
 ## Later Boundaries
 
@@ -366,12 +459,9 @@ every field-level storage edit.
 
 ### Legacy Import
 
-Legacy import should be a one-way adapter:
-
-`legacy source record -> DeKoi native record`
-
-Import code may know old source shapes. Core DeKoi records should not expose
-legacy names as their native model.
+Legacy import is a one-way adapter into DeKoi-native records; see
+[PROVENANCE.md](./PROVENANCE.md). Import code may know old source shapes, but
+core DeKoi records do not expose legacy names as their native model.
 
 ### Provider Runtime
 

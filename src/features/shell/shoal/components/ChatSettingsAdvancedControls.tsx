@@ -25,9 +25,7 @@ export function ChatSettingsAdvancedControls({
         </div>
         <Slider
           value={settings.defaultTemperature}
-          onChange={(value) =>
-            onUpdateAppSettings({ defaultTemperature: value })
-          }
+          onChange={(value) => onUpdateAppSettings({ defaultTemperature: value })}
           min={0}
           max={200}
           step={5}
@@ -46,9 +44,7 @@ export function ChatSettingsAdvancedControls({
         </div>
         <NumberField
           value={settings.defaultMaxTokens}
-          onChange={(value) =>
-            onUpdateAppSettings({ defaultMaxTokens: value })
-          }
+          onChange={(value) => onUpdateAppSettings({ defaultMaxTokens: value })}
           min={64}
           max={8192}
           step={64}

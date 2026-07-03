@@ -10,16 +10,8 @@ import {
   type ProviderConnectionStatus,
 } from "../../../engine/contracts/types/provider-connection";
 import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
-import {
-  isRecord,
-  readNullableString,
-  readString,
-  readTimestamp,
-} from "../storage-json";
-import {
-  createStorageRepository,
-  getHostStorageMode,
-} from "../storage-repository-factory";
+import { isRecord, readNullableString, readString, readTimestamp } from "../storage-json";
+import { createStorageRepository, getHostStorageMode } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordsSnapshot } from "../storage-repository";
 
@@ -36,10 +28,7 @@ function normalizeConnectionKind(value: unknown): ProviderConnectionKind | null 
 }
 
 function normalizeConnectionProvider(value: unknown) {
-  return normalizeProviderConnectionProvider(
-    value,
-    "openai",
-  );
+  return normalizeProviderConnectionProvider(value, "openai");
 }
 
 function normalizeConnectionStatus(
@@ -95,9 +84,7 @@ export function normalizeProviderConnectionRecord(
   if (!id || !label) return null;
 
   const baseUrl = readString(value.baseUrl, readString(value.url)).trim();
-  const model = normalizeLegacyModel(
-    readString(value.model, readString(value.modelLabel)).trim(),
-  );
+  const model = normalizeLegacyModel(readString(value.model, readString(value.modelLabel)).trim());
   const summary = normalizeLegacySummary(readString(value.summary).trim(), label);
   const now = new Date().toISOString();
   return {
@@ -152,11 +139,7 @@ function assertProviderConnectionDurableShape(
     (field) => !Object.prototype.hasOwnProperty.call(record, field),
   );
   const extra = keys.filter(
-    (field) =>
-      !Object.prototype.hasOwnProperty.call(
-        PROVIDER_CONNECTION_DURABLE_FIELD_SET,
-        field,
-      ),
+    (field) => !Object.prototype.hasOwnProperty.call(PROVIDER_CONNECTION_DURABLE_FIELD_SET, field),
   );
 
   if (missing.length > 0 || extra.length > 0) {
@@ -175,9 +158,7 @@ function normalizeDurableProviderConnectionRecord(
     preserveReadyStatus: true,
   });
   if (!normalized) {
-    throw new Error(
-      "Provider connection storage record failed durable normalization.",
-    );
+    throw new Error("Provider connection storage record failed durable normalization.");
   }
 
   return assertProviderConnectionDurableShape(normalized);
@@ -207,17 +188,12 @@ function durableProviderConnectionRecord(
     sanitizeProviderConnectionRecord(record),
   );
 
-  return assertProviderConnectionDurableRecord(
-    normalizedSanitizedRecord,
-    normalizedRecord,
-  );
+  return assertProviderConnectionDurableRecord(normalizedSanitizedRecord, normalizedRecord);
 }
 
 function withProviderConnectionSecretVerification(
   record: ProviderConnectionRecord,
-  secretVerification: NonNullable<
-    ProviderConnectionSecretVerification["secretVerification"]
-  >,
+  secretVerification: NonNullable<ProviderConnectionSecretVerification["secretVerification"]>,
 ): ProviderConnectionRecord & ProviderConnectionSecretVerification {
   const verifiedRecord = { ...record };
   Object.defineProperty(verifiedRecord, "secretVerification", {
@@ -225,8 +201,7 @@ function withProviderConnectionSecretVerification(
     enumerable: false,
     configurable: true,
   });
-  return verifiedRecord as ProviderConnectionRecord &
-    ProviderConnectionSecretVerification;
+  return verifiedRecord as ProviderConnectionRecord & ProviderConnectionSecretVerification;
 }
 
 async function hydrateDesktopProviderConnectionStatuses(
@@ -272,9 +247,7 @@ async function hydrateDesktopProviderConnectionStatuses(
     ...snapshot,
     records,
     status: verificationErrors.length > 0 ? "error" : snapshot.status,
-    message: verificationMessage
-      ? `${snapshot.message}${verificationMessage}`
-      : snapshot.message,
+    message: verificationMessage ? `${snapshot.message}${verificationMessage}` : snapshot.message,
   };
 }
 

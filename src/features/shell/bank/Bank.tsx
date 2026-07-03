@@ -7,11 +7,7 @@ import {
   SURFACES,
   type SurfaceId,
 } from "../../../engine/contracts/constants/surfaces";
-import type {
-  NavViewActions,
-  NavViewState,
-  SideRailView,
-} from "../../navigation";
+import type { NavViewActions, NavViewState, SideRailView } from "../../navigation";
 
 interface BankProps {
   nav: BankNav;
@@ -226,9 +222,7 @@ export function Bank({ nav, onOpenShoal }: BankProps) {
 
       <button
         type="button"
-        className={`rail-tool connections${
-          nav.sideRailView === "connections" ? " on" : ""
-        }`}
+        className={`rail-tool connections${nav.sideRailView === "connections" ? " on" : ""}`}
         aria-label="Connections"
         aria-pressed={nav.sideRailView === "connections"}
         onClick={() => {

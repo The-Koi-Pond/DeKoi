@@ -1,7 +1,4 @@
-import {
-  isProviderConnectionId,
-  type ProviderConnectionId,
-} from "./provider-connection";
+import { isProviderConnectionId, type ProviderConnectionId } from "./provider-connection";
 import { MESSENGER, type SurfaceId } from "../constants/surfaces";
 
 const MAX_SURFACE_STATUS_LENGTH = 80;
@@ -77,12 +74,7 @@ export function isDensityPref(value: unknown): value is DensityPref {
   return value === "comfortable" || value === "compact";
 }
 
-function clampNumber(
-  value: unknown,
-  min: number,
-  max: number,
-  fallback: number,
-): number {
+function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
   if (typeof value !== "number" || Number.isNaN(value)) return fallback;
   return Math.max(min, Math.min(max, Math.round(value)));
 }
@@ -125,12 +117,7 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       typeof parsed.streamReplies === "boolean"
         ? parsed.streamReplies
         : DEFAULT_APP_SETTINGS.streamReplies,
-    rippleSpeed: clampNumber(
-      parsed.rippleSpeed,
-      0,
-      100,
-      DEFAULT_APP_SETTINGS.rippleSpeed,
-    ),
+    rippleSpeed: clampNumber(parsed.rippleSpeed, 0, 100, DEFAULT_APP_SETTINGS.rippleSpeed),
     surfaceAllText:
       typeof parsed.surfaceAllText === "boolean"
         ? parsed.surfaceAllText
@@ -139,33 +126,12 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       typeof parsed.wheelNavigate === "boolean"
         ? parsed.wheelNavigate
         : DEFAULT_APP_SETTINGS.wheelNavigate,
-    narrationDrift: clampNumber(
-      parsed.narrationDrift,
-      0,
-      100,
-      DEFAULT_APP_SETTINGS.narrationDrift,
-    ),
-    autoplayPause: clampNumber(
-      parsed.autoplayPause,
-      0,
-      100,
-      DEFAULT_APP_SETTINGS.autoplayPause,
-    ),
-    accent: isAccentId(parsed.accent)
-      ? parsed.accent
-      : DEFAULT_APP_SETTINGS.accent,
-    motion: isMotionPref(parsed.motion)
-      ? parsed.motion
-      : DEFAULT_APP_SETTINGS.motion,
-    density: isDensityPref(parsed.density)
-      ? parsed.density
-      : DEFAULT_APP_SETTINGS.density,
-    fontScale: clampNumber(
-      parsed.fontScale,
-      90,
-      120,
-      DEFAULT_APP_SETTINGS.fontScale,
-    ),
+    narrationDrift: clampNumber(parsed.narrationDrift, 0, 100, DEFAULT_APP_SETTINGS.narrationDrift),
+    autoplayPause: clampNumber(parsed.autoplayPause, 0, 100, DEFAULT_APP_SETTINGS.autoplayPause),
+    accent: isAccentId(parsed.accent) ? parsed.accent : DEFAULT_APP_SETTINGS.accent,
+    motion: isMotionPref(parsed.motion) ? parsed.motion : DEFAULT_APP_SETTINGS.motion,
+    density: isDensityPref(parsed.density) ? parsed.density : DEFAULT_APP_SETTINGS.density,
+    fontScale: clampNumber(parsed.fontScale, 90, 120, DEFAULT_APP_SETTINGS.fontScale),
     defaultTemperature: clampNumber(
       parsed.defaultTemperature,
       0,
@@ -178,11 +144,6 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       8192,
       DEFAULT_APP_SETTINGS.defaultMaxTokens,
     ),
-    defaultTopP: clampNumber(
-      parsed.defaultTopP,
-      0,
-      100,
-      DEFAULT_APP_SETTINGS.defaultTopP,
-    ),
+    defaultTopP: clampNumber(parsed.defaultTopP, 0, 100, DEFAULT_APP_SETTINGS.defaultTopP),
   };
 }

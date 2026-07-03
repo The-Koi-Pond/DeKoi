@@ -7,7 +7,11 @@
   gap: 10px;
   padding: 2px 8px;
   border-bottom: 1px solid var(--reed-soft);
-  background: linear-gradient(180deg, var(--water), color-mix(in srgb, var(--water) 82%, var(--abyss)));
+  background: linear-gradient(
+    180deg,
+    var(--water),
+    color-mix(in srgb, var(--water) 82%, var(--abyss))
+  );
   backdrop-filter: blur(8px);
   user-select: none;
 }
@@ -38,8 +42,7 @@
 
 .brand:hover .mark,
 .brand:focus-visible .mark {
-  filter:
-    drop-shadow(0 0 8px rgba(244, 122, 53, 0.72))
+  filter: drop-shadow(0 0 8px rgba(244, 122, 53, 0.72))
     drop-shadow(0 0 18px rgba(39, 179, 170, 0.26));
   transform: scale(1.04);
 }
@@ -140,9 +143,7 @@
 .window-control:focus-visible {
   background: transparent;
   color: var(--window-control-fg);
-  filter:
-    drop-shadow(0 2px 3px rgba(9, 19, 23, 0.36))
-    drop-shadow(0 0 7px currentColor);
+  filter: drop-shadow(0 2px 3px rgba(9, 19, 23, 0.36)) drop-shadow(0 0 7px currentColor);
   outline: none;
   transform: translateY(-1px) rotate(-8deg) scale(1.16);
 }

@@ -22,10 +22,7 @@ type ChatSettingsRailHeadProps =
     });
 
 export function ChatSettingsRailHead(props: ChatSettingsRailHeadProps) {
-  const {
-    settingsLabel,
-    onCloseChatSettings,
-  } = props;
+  const { settingsLabel, onCloseChatSettings } = props;
 
   return (
     <div className="shoal-head chat-settings-head">

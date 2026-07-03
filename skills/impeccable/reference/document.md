@@ -315,7 +315,9 @@ Regenerate the sidecar whenever you regenerate DESIGN.md. If the user only asks 
     "northStar": "The Editorial Sanctuary",
     "overview": "2-3 paragraphs of the philosophy, pulled from DESIGN.md Overview section.",
     "keyCharacteristics": ["...", "..."],
-    "rules": [{ "name": "The One Voice Rule", "body": "...", "section": "colors|typography|elevation" }],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "...", "section": "colors|typography|elevation" }
+    ],
     "dos": ["Do use ..."],
     "donts": ["Don't use ..."]
   }

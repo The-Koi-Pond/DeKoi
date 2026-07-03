@@ -36,9 +36,7 @@ export function describeGenerationReadinessFailure(
   };
 }
 
-export function formatGenerationReadinessFailure(
-  code: GenerationConnectionReadinessFailureCode,
-) {
+export function formatGenerationReadinessFailure(code: GenerationConnectionReadinessFailureCode) {
   return describeGenerationReadinessFailure(code).message;
 }
 
@@ -71,10 +69,7 @@ function isModelConfigurationError(normalized: string) {
   ].some((pattern) => pattern.test(normalized));
 }
 
-export function formatGenerationFailureNotice(
-  error: unknown,
-  fallback: string,
-) {
+export function formatGenerationFailureNotice(error: unknown, fallback: string) {
   return describeGenerationFailureNotice(error, fallback).message;
 }
 
@@ -121,9 +116,7 @@ export function describeGenerationFailureNotice(
     normalized.includes("forbidden")
   ) {
     const keyDetail =
-      normalized.includes("invalid_api_key") || /http\s+(401|403)/i.test(detail)
-        ? detail
-        : "";
+      normalized.includes("invalid_api_key") || /http\s+(401|403)/i.test(detail) ? detail : "";
     return {
       message: withDetail(
         "Provider API key is missing or was rejected. Open the connection, re-enter the key, then try again.",
@@ -221,10 +214,7 @@ export function describeGenerationFailureNotice(
 
   if (/http\s+\d{3}/i.test(detail)) {
     return {
-      message: withDetail(
-        "Provider request failed. Check the connection, then try again.",
-        detail,
-      ),
+      message: withDetail("Provider request failed. Check the connection, then try again.", detail),
       recoveryTarget: "connections",
     };
   }

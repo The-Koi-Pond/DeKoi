@@ -18,11 +18,7 @@ export function NewThreadSelectField({
   return (
     <label className="new-thread-field">
       <span>{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-      >
+      <select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
         {children}
       </select>
     </label>

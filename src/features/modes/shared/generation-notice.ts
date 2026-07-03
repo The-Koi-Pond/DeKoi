@@ -1,7 +1,4 @@
-export {
-  GenerationNotice,
-  type GenerationNoticeStatus,
-} from "./GenerationNotice";
+export { GenerationNotice, type GenerationNoticeStatus } from "./GenerationNotice";
 export {
   getGenerationNoticeAction,
   type GenerationNoticeAction,

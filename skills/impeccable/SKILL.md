@@ -7,20 +7,20 @@ Designs and iterates production-grade frontend interfaces. Real working code, co
 
 ## DeKoi Adaptation
 
-In DeKoi, this skill adds UI critique, hardening, polish, and product-fit judgment; it does not replace repo workflow or architecture rules. Use `skills/frontend-design` first when a task needs initial visual direction or first-pass UI implementation. Keep root instructions, `.github/agents/dekoi-workflow.md`, `ARCHITECTURE.md`, `SURFACE_LABELS.md`, and native Tauri proof requirements in force when they apply. Product behavior still belongs in `src/engine`, React UI in `src/features`, runtime wrappers in `src/shared/api`, and privileged capabilities in `src-tauri`.
+In DeKoi, this skill adds UI critique, hardening, polish, and product-fit judgment; it does not replace repo workflow or architecture rules. Use `skills/frontend-design` first when a task needs initial visual direction or first-pass UI implementation. Keep root instructions, `.github/agents/dekoi-workflow.md`, `ARCHITECTURE.md`, `DOMAIN_MODEL.md`, and native Tauri proof requirements in force when they apply. Product behavior still belongs in `src/engine`, React UI in `src/features`, runtime wrappers in `src/shared/api`, and privileged capabilities in `src-tauri`.
 
 ## Setup (non-optional)
 
 Before any design work or file edits, pass these gates. Skipping them produces generic output that ignores the project.
 
-| Gate     | Required check                                                                                                    | If fail                                                                                                                   |
-| -------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Context  | The PRODUCT.md / DESIGN.md loader result is known from `node skills/impeccable/scripts/load-context.mjs`. | Run the loader before continuing.                                                                                         |
-| Product  | PRODUCT.md exists and is not empty or placeholder (`[TODO]` markers, <200 chars).                                 | Run `$impeccable teach`, refresh context, then resume. Never synthesize PRODUCT.md from the user's original prompt alone. |
-| Command  | The matching command reference is loaded when a sub-command is used.                                              | Load the reference before continuing.                                                                                     |
-| Craft    | `$impeccable craft` has a user-confirmed shape brief for this task. `teach` / PRODUCT.md never counts as shape.   | Run `$impeccable shape` and wait for explicit brief confirmation.                                                         |
-| Image    | Required visual probes / mocks are generated or skipped with a reason.                                            | Resolve the image-generation gate in `shape.md` or `craft.md` before code.                                                |
-| Mutation | All active gates above pass.                                                                                      | Do not edit project files yet.                                                                                            |
+| Gate     | Required check                                                                                                  | If fail                                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Context  | The PRODUCT.md / DESIGN.md loader result is known from `node skills/impeccable/scripts/load-context.mjs`.       | Run the loader before continuing.                                                                                         |
+| Product  | PRODUCT.md exists and is not empty or placeholder (`[TODO]` markers, <200 chars).                               | Run `$impeccable teach`, refresh context, then resume. Never synthesize PRODUCT.md from the user's original prompt alone. |
+| Command  | The matching command reference is loaded when a sub-command is used.                                            | Load the reference before continuing.                                                                                     |
+| Craft    | `$impeccable craft` has a user-confirmed shape brief for this task. `teach` / PRODUCT.md never counts as shape. | Run `$impeccable shape` and wait for explicit brief confirmation.                                                         |
+| Image    | Required visual probes / mocks are generated or skipped with a reason.                                          | Resolve the image-generation gate in `shape.md` or `craft.md` before code.                                                |
+| Mutation | All active gates above pass.                                                                                    | Do not edit project files yet.                                                                                            |
 
 Codex-style agents must state this before editing files:
 

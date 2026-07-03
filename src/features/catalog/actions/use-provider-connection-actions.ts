@@ -38,17 +38,12 @@ function normalizedConnectionEndpoint(input: ProviderConnectionInput) {
   return input.baseUrl?.trim().replace(/\/+$/, "") ?? "";
 }
 
-async function writeProviderSecretIfNeeded(
-  connectionId: string,
-  input: ProviderConnectionInput,
-) {
+async function writeProviderSecretIfNeeded(connectionId: string, input: ProviderConnectionInput) {
   const secret = providerSecretInput(input);
   if (!secret) return false;
 
   if (!isDesktopHostAvailable()) {
-    throw new Error(
-      "Provider keys can only be saved by the desktop app in this version.",
-    );
+    throw new Error("Provider keys can only be saved by the desktop app in this version.");
   }
 
   await writeDesktopProviderSecret(connectionId, secret, {
@@ -75,10 +70,7 @@ export function useProviderConnectionActions({
         input: { ...input, hasSecret },
         now,
       });
-      setProviderConnections((currentConnections) => [
-        connection,
-        ...currentConnections,
-      ]);
+      setProviderConnections((currentConnections) => [connection, ...currentConnections]);
       return connection;
     },
     [setProviderConnections],
@@ -90,17 +82,12 @@ export function useProviderConnectionActions({
       const existingConnection = providerConnections.find(
         (connection) => connection.id === connectionId,
       );
-      const existingProvider = getProviderConnectionProviderOption(
-        existingConnection?.provider,
-      );
+      const existingProvider = getProviderConnectionProviderOption(existingConnection?.provider);
       const keepsExistingSecretScope =
         existingConnection?.provider === input.provider &&
         existingConnection.baseUrl.trim().replace(/\/+$/, "") ===
           normalizedConnectionEndpoint(input);
-      const hasNewSecret = await writeProviderSecretIfNeeded(
-        connectionId,
-        input,
-      );
+      const hasNewSecret = await writeProviderSecretIfNeeded(connectionId, input);
       const hasSecret =
         hasNewSecret ||
         (keepsExistingSecretScope &&
@@ -118,11 +105,7 @@ export function useProviderConnectionActions({
       setProviderConnections((currentConnections) =>
         currentConnections.map((connection) =>
           connection.id === connectionId
-            ? updateProviderConnectionRecord(
-                connection,
-                { ...input, hasSecret },
-                now,
-              )
+            ? updateProviderConnectionRecord(connection, { ...input, hasSecret }, now)
             : connection,
         ),
       );
@@ -143,10 +126,7 @@ export function useProviderConnectionActions({
         createRecordId("connection"),
         now,
       );
-      setProviderConnections((currentConnections) => [
-        duplicatedConnection,
-        ...currentConnections,
-      ]);
+      setProviderConnections((currentConnections) => [duplicatedConnection, ...currentConnections]);
       return duplicatedConnection;
     },
     [providerConnections, setProviderConnections],
@@ -158,10 +138,7 @@ export function useProviderConnectionActions({
         await deleteDesktopProviderSecret(connectionId);
       }
 
-      const nextConnections = deleteProviderConnectionRecord(
-        providerConnections,
-        connectionId,
-      );
+      const nextConnections = deleteProviderConnectionRecord(providerConnections, connectionId);
       if (nextConnections.length === providerConnections.length) return;
 
       const fallbackConnection = nextConnections[0];

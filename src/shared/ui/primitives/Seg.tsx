@@ -14,12 +14,7 @@ interface SegProps<T extends string> {
   ariaLabel: string;
 }
 
-export function Seg<T extends string>({
-  options,
-  value,
-  onChange,
-  ariaLabel,
-}: SegProps<T>) {
+export function Seg<T extends string>({ options, value, onChange, ariaLabel }: SegProps<T>) {
   return (
     <div className="seg" role="radiogroup" aria-label={ariaLabel}>
       {options.map((opt) => {

@@ -26,13 +26,9 @@ export function useNewRoleplayThreadPopover({
   const [newRoleplayOpen, setNewRoleplayOpen] = useState(false);
   const [newRoleplayConnectionId, setNewRoleplayConnectionId] = useState("");
   const [newRoleplayPersonaId, setNewRoleplayPersonaId] = useState("");
-  const [newRoleplayLorebookIds, setNewRoleplayLorebookIds] = useState<string[]>(
-    [],
-  );
-  const [newRoleplayCompanionMenuOpen, setNewRoleplayCompanionMenuOpen] =
-    useState(false);
-  const [newRoleplayLorebookMenuOpen, setNewRoleplayLorebookMenuOpen] =
-    useState(false);
+  const [newRoleplayLorebookIds, setNewRoleplayLorebookIds] = useState<string[]>([]);
+  const [newRoleplayCompanionMenuOpen, setNewRoleplayCompanionMenuOpen] = useState(false);
+  const [newRoleplayLorebookMenuOpen, setNewRoleplayLorebookMenuOpen] = useState(false);
   const liveLorebookIds = new Set(lorebooks.map((lorebook) => lorebook.id));
   const selectedRoleplayLorebookIds = newRoleplayLorebookIds.filter((id) =>
     liveLorebookIds.has(id),
@@ -68,9 +64,7 @@ export function useNewRoleplayThreadPopover({
   }
 
   function toggleNewRoleplayLorebook(lorebookId: string) {
-    setNewRoleplayLorebookIds((currentIds) =>
-      toggleSelectedId(currentIds, lorebookId),
-    );
+    setNewRoleplayLorebookIds((currentIds) => toggleSelectedId(currentIds, lorebookId));
   }
 
   function handleCreateRoleplayThread(event: FormEvent<HTMLFormElement>) {

@@ -181,19 +181,26 @@ function validateEvent(msg) {
     case "generate":
       if (!isValidId(msg.id)) return "generate: missing or malformed id";
       if (!msg.action || !VISUAL_ACTIONS.includes(msg.action)) return "generate: invalid action";
-      if (!Number.isInteger(msg.count) || msg.count < 1 || msg.count > 8) return "generate: count must be 1-8";
+      if (!Number.isInteger(msg.count) || msg.count < 1 || msg.count > 8)
+        return "generate: count must be 1-8";
       if (!msg.element || !msg.element.outerHTML) return "generate: missing element context";
       // Optional annotation fields (all-or-nothing: if any present, all must be well-formed).
       if (msg.screenshotPath !== undefined && typeof msg.screenshotPath !== "string")
         return "generate: screenshotPath must be string";
-      if (msg.comments !== undefined && !Array.isArray(msg.comments)) return "generate: comments must be array";
-      if (msg.strokes !== undefined && !Array.isArray(msg.strokes)) return "generate: strokes must be array";
+      if (msg.comments !== undefined && !Array.isArray(msg.comments))
+        return "generate: comments must be array";
+      if (msg.strokes !== undefined && !Array.isArray(msg.strokes))
+        return "generate: strokes must be array";
       return null;
     case "accept":
       if (!isValidId(msg.id)) return "accept: missing or malformed id";
       if (!isValidVariantId(msg.variantId)) return "accept: missing or malformed variantId";
       if (msg.paramValues !== undefined) {
-        if (typeof msg.paramValues !== "object" || msg.paramValues === null || Array.isArray(msg.paramValues)) {
+        if (
+          typeof msg.paramValues !== "object" ||
+          msg.paramValues === null ||
+          Array.isArray(msg.paramValues)
+        ) {
           return "accept: paramValues must be an object";
         }
       }
@@ -629,7 +636,13 @@ function handlePollPost(req, res) {
       return;
     }
     // Forward the reply to the browser via SSE
-    broadcast({ type: msg.type || "done", id: msg.id, message: msg.message, file: msg.file, data: msg.data });
+    broadcast({
+      type: msg.type || "done",
+      id: msg.id,
+      message: msg.message,
+      file: msg.file,
+      data: msg.data,
+    });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
   });
@@ -725,7 +738,10 @@ if (args.includes("stop")) {
       }
     } catch (err) {
       const detail =
-        err.stderr?.toString?.().trim?.() || err.stdout?.toString?.().trim?.() || err.message || String(err);
+        err.stderr?.toString?.().trim?.() ||
+        err.stdout?.toString?.().trim?.() ||
+        err.message ||
+        String(err);
       console.warn(`Note: could not remove live script tag (${detail.split("\n")[0]})`);
     }
   }
@@ -769,7 +785,9 @@ try {
   try {
     process.kill(existing.pid, 0);
     console.error(`Live server already running on port ${existing.port} (pid ${existing.pid}).`);
-    console.error("Stop it first with: node " + path.basename(fileURLToPath(import.meta.url)) + " stop");
+    console.error(
+      "Stop it first with: node " + path.basename(fileURLToPath(import.meta.url)) + " stop",
+    );
     process.exit(1);
   } catch {
     fs.unlinkSync(LIVE_PID_FILE);
@@ -790,7 +808,10 @@ const { detectScript, livePath } = loadBrowserScripts();
 httpServer = http.createServer(createRequestHandler({ detectScript, livePath }));
 
 httpServer.listen(state.port, "127.0.0.1", () => {
-  fs.writeFileSync(LIVE_PID_FILE, JSON.stringify({ pid: process.pid, port: state.port, token: state.token }));
+  fs.writeFileSync(
+    LIVE_PID_FILE,
+    JSON.stringify({ pid: process.pid, port: state.port, token: state.token }),
+  );
   const url = `http://localhost:${state.port}`;
   console.log(`\nImpeccable live server running on ${url}`);
   console.log(`Token: ${state.token}\n`);

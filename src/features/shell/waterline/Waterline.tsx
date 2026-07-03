@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
+import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { NavCareActions, NavViewActions } from "../../navigation";
 import {
   closeDesktopWindow,
@@ -27,8 +22,7 @@ interface WaterlineProps {
   nav: WaterlineNav;
 }
 
-export type WaterlineNav = Pick<NavCareActions, "setCareOpen"> &
-  Pick<NavViewActions, "setView">;
+export type WaterlineNav = Pick<NavCareActions, "setCareOpen"> & Pick<NavViewActions, "setView">;
 
 export function Waterline({ nav }: WaterlineProps) {
   const [windowState, setWindowState] = useState(defaultWindowState);

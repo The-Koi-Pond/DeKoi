@@ -29,12 +29,7 @@ export type RoleplayStorageSnapshot = {
 };
 
 function normalizeRoleplayEntryRole(value: unknown): RoleplayEntry["role"] {
-  if (
-    value === "scene" ||
-    value === "persona" ||
-    value === "character" ||
-    value === "narration"
-  ) {
+  if (value === "scene" || value === "persona" || value === "character" || value === "narration") {
     return value;
   }
 
@@ -42,12 +37,7 @@ function normalizeRoleplayEntryRole(value: unknown): RoleplayEntry["role"] {
 }
 
 function normalizeRoleplayEntryOrigin(value: unknown): RoleplayEntry["origin"] {
-  if (
-    value === "manual" ||
-    value === "generated" ||
-    value === "imported" ||
-    value === "sample"
-  ) {
+  if (value === "manual" || value === "generated" || value === "imported" || value === "sample") {
     return value;
   }
 
@@ -117,16 +107,12 @@ export function loadRoleplayThreads() {
   return [];
 }
 
-function normalizeRoleplayThreadStorageRecord(
-  value: unknown,
-): RoleplayThreadStorageRecord | null {
+function normalizeRoleplayThreadStorageRecord(value: unknown): RoleplayThreadStorageRecord | null {
   const thread = normalizeRoleplayThread(value);
   if (!thread) return null;
 
   const record = toRoleplayThreadRecord(thread);
-  return thread.entries.length > 0
-    ? { ...record, entries: thread.entries }
-    : record;
+  return thread.entries.length > 0 ? { ...record, entries: thread.entries } : record;
 }
 
 const roleplayThreadRepository = createStorageRepository({
@@ -149,12 +135,6 @@ export async function loadRoleplayThreadsFromStorage(
   };
 }
 
-export function saveRoleplayThreadsToStorage(
-  records: RoleplayThread[],
-  rawUrl?: string,
-) {
-  return roleplayThreadRepository.save(
-    records.map(toRoleplayThreadRecord),
-    rawUrl,
-  );
+export function saveRoleplayThreadsToStorage(records: RoleplayThread[], rawUrl?: string) {
+  return roleplayThreadRepository.save(records.map(toRoleplayThreadRecord), rawUrl);
 }
