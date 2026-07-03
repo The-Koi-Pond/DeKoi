@@ -376,6 +376,13 @@
   white-space: pre-wrap;
 }
 
+.roleplay-narration-timestamp {
+  display: block;
+  color: var(--mist-dim);
+  font-size: var(--fs-caption);
+  margin-top: 4px;
+}
+
 .roleplay-narration .roleplay-entry-actions {
   margin-top: 6px;
 }

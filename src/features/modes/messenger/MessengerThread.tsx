@@ -40,7 +40,12 @@ import {
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
-import { getInitials, getMessageAuthorKey, getMessageClassName } from "./lib/message-view";
+import {
+  getCopyableMessageBody,
+  getInitials,
+  getMessageAuthorKey,
+  getMessageClassName,
+} from "./lib/message-view";
 import {
   getMessengerThreadReferenceNotices,
   getMessengerThreadReferenceSummary,
@@ -501,7 +506,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   }
 
   function handleCopyMessage(message: MessengerMessage) {
-    const body = message.body.trim();
+    const body = getCopyableMessageBody(message);
     if (!body) return;
     void copyTextToClipboard(body);
   }

@@ -18,3 +18,7 @@ export function getInitials(name: string) {
 export function isOwnRoleplayEntry(entry: RoleplayEntry) {
   return entry.role === "persona";
 }
+
+export function getCopyableRoleplayEntryBody(entry: RoleplayEntry) {
+  return entry.body.trim() ? entry.body : null;
+}

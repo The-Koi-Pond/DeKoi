@@ -33,7 +33,7 @@ import {
   type GenerationNoticeAction,
 } from "../shared";
 import { getMessageDateTimeTitle, getMessageTimeLabel } from "../shared/message-time";
-import { getInitials, isOwnRoleplayEntry } from "./lib/message-view";
+import { getCopyableRoleplayEntryBody, getInitials, isOwnRoleplayEntry } from "./lib/message-view";
 import {
   getRoleplayThreadReferenceNotices,
   getRoleplayThreadReferenceSummary,
@@ -448,7 +448,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   }
 
   function handleCopyEntry(entry: RoleplayEntry) {
-    const body = entry.body.trim();
+    const body = getCopyableRoleplayEntryBody(entry);
     if (!body) return;
     void copyTextToClipboard(body);
   }
@@ -655,6 +655,15 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
                   ) : (
                     <>
                       <p className="roleplay-narration-body">{entry.body}</p>
+                      {timeLabel && (
+                        <time
+                          className="roleplay-narration-timestamp"
+                          dateTime={entry.createdAt}
+                          title={getMessageDateTimeTitle(entry.createdAt)}
+                        >
+                          {timeLabel}
+                        </time>
+                      )}
                       <div className="roleplay-entry-actions" aria-label="Narration actions">
                         {isConfirmingDelete ? (
                           <div

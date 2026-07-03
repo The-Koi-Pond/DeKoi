@@ -29,3 +29,7 @@ export function getMessageAuthorKey(message: MessengerMessage) {
   if (author.kind === "system") return `system:${author.label}`;
   return `unknown:${author.label}`;
 }
+
+export function getCopyableMessageBody(message: MessengerMessage) {
+  return message.body.trim() ? message.body : null;
+}
