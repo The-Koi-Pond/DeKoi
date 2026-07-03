@@ -382,8 +382,9 @@ drops unknown companion drafts and surfaces a warning.
 
 `request.warnings` contains non-fatal DeKoi-side context and lore activation
 warnings discovered before the runtime call, such as invalid or unsafe regex
-keys that fell back to plaintext. Runtimes do not need to echo these warnings;
-DeKoi surfaces them alongside runtime response warnings after generation.
+keys that fell back to plaintext or recursive lore activation stopped by the
+hard pass cap. Runtimes do not need to echo these warnings; DeKoi surfaces them
+alongside runtime response warnings after generation.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
@@ -426,9 +427,10 @@ accepted on load or bundle import, but normal writes use the split collections.
 lorebook `activation` block and each entry's activation, placement, trigger,
 filter, timing, recursion, role, and match-source fields when listing or
 replacing storage. New DeKoi records default activation to scan depth 2,
-include names, whole-word matching, no recursive scan, no token cap, and a 25
-percent budget cap; new entries default to enabled `constant` notes placed
-`after-character` with insertion order 100 and probability 100. Pre-v2
+include names, whole-word matching, no recursive scan, unlimited configured
+recursion steps, no absolute token cap, and a 25 percent budget cap; new
+entries default to enabled `constant` notes placed `after-character` with
+insertion order 100 and probability 100. Pre-v2
 lorebook rows were development-only and are rejected by DeKoi normalization
 rather than migrated.
 
@@ -436,30 +438,35 @@ When `generation_generate` includes selected lorebooks, they use the same v2
 shape. Current DeKoi prompt assembly resolves selected lorebooks into
 `promptMessages` before sending the request. Compatible runtimes should use
 `promptMessages` for provider calls and do not need to re-run lorebook
-activation. Activation includes enabled non-empty constant entries and
-selective entries whose primary keys match recent transcript text or
-entry-opted additional match sources from selected companion `description`,
-`personality`, `scenario`, and `characterNote` fields and the active persona
-`description`. Additional match sources are off by default, and the lorebook
-`includeNames` setting controls whether display names and nicknames are
-included in their match blobs. Transcript matching uses `scanDepth` and
-`includeNames`; plaintext key matching uses `caseSensitiveKeys` and
-`matchWholeWords`. Slash-delimited regex keys fall back to plaintext with
-warnings when invalid or unsafe, and optional filter keys must satisfy the
-entry's selective logic. DeKoi sorts activated entries by descending insertion
-order, places them before character context, after character context, or at
-transcript depth, and applies lorebook budget caps before the runtime receives
-`promptMessages`. Budget estimates use roughly characters divided by 4. Budget
-trimming gives constant entries first claim on the cap, then selective entries;
-each strategy group still uses descending insertion order and stable
-lorebook/entry tiebreakers. Percent budgets apply only when the selected provider
-connection has `maxContext`; otherwise DeKoi leaves the activated lore in place
-instead of silently dropping it. Runtimes should preserve the provided
-`promptMessages` roles and content, including at-depth system lore that DeKoi
-has already converted to `user` for Anthropic or Google provider connections.
-Secondary-key logic is already applied before the runtime receives
-`promptMessages`. Character filters, recursion, probability, and triggers are
-still not applied by DeKoi prompt assembly.
+activation. Activation includes enabled non-empty constant entries unless
+delayed until recursion, plus selective entries whose primary keys match recent
+transcript text or entry-opted additional match sources from selected companion
+`description`, `personality`, `scenario`, and `characterNote` fields and the
+active persona `description`. Additional match sources are off by default, and
+the lorebook `includeNames` setting controls whether display names and
+nicknames are included in their match blobs. Transcript matching uses
+`scanDepth` and `includeNames`; plaintext key matching uses
+`caseSensitiveKeys` and `matchWholeWords`. Slash-delimited regex keys fall back
+to plaintext with warnings when invalid or unsafe, and optional filter keys must
+satisfy the entry's selective logic. When `recursiveScan` is enabled, activated
+entry bodies can activate further entries unless blocked by `nonRecursable`,
+`preventFurther`, or `delayUntilRecursion`/`recursionLevel`; `maxRecursionSteps`
+caps recursion passes, and `0` means unlimited until DeKoi's 64-pass hard cap.
+DeKoi sorts activated entries by descending insertion order, places them before
+character context, after character context, or at transcript depth, and applies
+lorebook budget caps before the runtime receives `promptMessages`. Budget
+estimates use roughly characters divided by 4. Budget trimming gives direct
+activations first claim on the cap before recursive activations, then constant
+entries before selective entries within each activation source; each priority
+group still uses descending insertion order and stable lorebook/entry
+tiebreakers. Percent budgets apply only when the selected provider connection
+has `maxContext`; otherwise DeKoi leaves the activated lore in place instead of
+silently dropping it. Runtimes should preserve the provided `promptMessages`
+roles and content, including at-depth system lore that DeKoi has already
+converted to `user` for Anthropic or Google provider connections. Secondary-key
+logic is already applied before the runtime receives `promptMessages`.
+Character filters, probability, and triggers are still not applied by DeKoi
+prompt assembly.
 
 `storage_list`:
 

@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import { createLorebookRecord } from "../../../engine/catalog/lorebook-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
+  DEFAULT_LORE_ENTRY_RECURSION,
+  resolveEntryRecursion,
+} from "../../../engine/contracts/types/lorebook";
+import {
   canSaveLorebookEntryDraft,
   EMPTY_LORE_MATCH_SOURCES,
   entryDraftDisablesBannerSave,
@@ -44,6 +48,10 @@ const baseDraft: LorebookEntryDraft = {
   insertionPosition: "after-character",
   depth: "0",
   role: "system",
+  nonRecursable: DEFAULT_LORE_ENTRY_RECURSION.nonRecursable,
+  preventFurther: DEFAULT_LORE_ENTRY_RECURSION.preventFurther,
+  delayUntilRecursion: DEFAULT_LORE_ENTRY_RECURSION.delayUntilRecursion,
+  recursionLevel: String(DEFAULT_LORE_ENTRY_RECURSION.recursionLevel),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 
@@ -209,6 +217,24 @@ describe("lorebook entry draft helpers", () => {
     });
   });
 
+  it("serializes recursion controls only when enabled", () => {
+    expect(lorebookEntryDraftToInput(baseDraft).recursion).toBeNull();
+    expect(lorebookEntryDraftToInput({ ...baseDraft, recursionLevel: "4" }).recursion).toBeNull();
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        preventFurther: true,
+        delayUntilRecursion: true,
+        recursionLevel: "2.9",
+      }).recursion,
+    ).toEqual({
+      ...DEFAULT_LORE_ENTRY_RECURSION,
+      preventFurther: true,
+      delayUntilRecursion: true,
+      recursionLevel: 2,
+    });
+  });
+
   it("normalizes missing matching sources to default-off checkboxes", () => {
     expect(normalizeLoreMatchSources(null)).toEqual(EMPTY_LORE_MATCH_SOURCES);
     expect(
@@ -219,6 +245,18 @@ describe("lorebook entry draft helpers", () => {
     ).toEqual({
       ...EMPTY_LORE_MATCH_SOURCES,
       scenario: true,
+    });
+  });
+
+  it("normalizes missing recursion controls to default-off checkboxes", () => {
+    expect(resolveEntryRecursion({ recursion: null })).toEqual(DEFAULT_LORE_ENTRY_RECURSION);
+    expect(
+      resolveEntryRecursion({
+        recursion: { ...DEFAULT_LORE_ENTRY_RECURSION, nonRecursable: true },
+      }),
+    ).toEqual({
+      ...DEFAULT_LORE_ENTRY_RECURSION,
+      nonRecursable: true,
     });
   });
 
@@ -259,6 +297,8 @@ describe("LorebooksSurface", () => {
 
     expect(markup).toContain("Include names");
     expect(markup).toContain('aria-label="Include names"');
+    expect(markup).toContain("Recursive scan");
+    expect(markup).toContain("Max recursion steps");
   });
 
   it("renders Include names in new lorebook activation settings", () => {
@@ -273,5 +313,7 @@ describe("LorebooksSurface", () => {
 
     expect(markup).toContain("Include names");
     expect(markup).toContain('aria-label="Include names"');
+    expect(markup).toContain("Recursive scan");
+    expect(markup).toContain("Max recursion steps");
   });
 });

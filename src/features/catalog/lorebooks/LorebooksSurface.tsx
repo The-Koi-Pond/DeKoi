@@ -8,13 +8,18 @@ import type {
 } from "../../navigation";
 import type { LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import {
+  DEFAULT_LORE_ENTRY_RECURSION,
   DEFAULT_LOREBOOK_ACTIVATION,
+  resolveEntryRecursion,
+  type LorebookActivationSettings,
+  type LoreEntryRecursion,
   type LoreEntryRole,
   type LoreEntryStrategy,
   type LoreInsertionPosition,
   type LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
 import { Switch } from "../../../shared/ui/primitives/Switch";
+import { NullableActivationInput } from "../shared/ActivationInputs";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
 import {
@@ -30,6 +35,8 @@ import {
   readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
+import { EntryRecursionControls } from "./EntryRecursionControls";
+import { LorebookRecursionActivationFields } from "./LorebookRecursionActivationFields";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 import "../shared/CatalogSurface.css";
 
@@ -59,6 +66,8 @@ interface LorebookDraftState {
   includeNames: boolean;
   caseSensitiveKeys: boolean;
   matchWholeWords: boolean;
+  recursiveScan: boolean;
+  maxRecursionSteps: string;
   budgetTokens: string;
   budgetPercent: string;
 }
@@ -75,6 +84,10 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   insertionPosition: "after-character",
   depth: "0",
   role: "system",
+  nonRecursable: DEFAULT_LORE_ENTRY_RECURSION.nonRecursable,
+  preventFurther: DEFAULT_LORE_ENTRY_RECURSION.preventFurther,
+  delayUntilRecursion: DEFAULT_LORE_ENTRY_RECURSION.delayUntilRecursion,
+  recursionLevel: String(DEFAULT_LORE_ENTRY_RECURSION.recursionLevel),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
@@ -84,6 +97,8 @@ const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   includeNames: DEFAULT_LOREBOOK_ACTIVATION.includeNames,
   caseSensitiveKeys: DEFAULT_LOREBOOK_ACTIVATION.caseSensitiveKeys,
   matchWholeWords: DEFAULT_LOREBOOK_ACTIVATION.matchWholeWords,
+  recursiveScan: DEFAULT_LOREBOOK_ACTIVATION.recursiveScan,
+  maxRecursionSteps: String(DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps),
   budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
   budgetPercent: DEFAULT_LOREBOOK_ACTIVATION.budgetPercent?.toString() ?? "",
 };
@@ -100,8 +115,10 @@ function draftFromEntry(entry: {
   insertionPosition: LoreInsertionPosition;
   depth: number | null;
   role: LoreEntryRole | null;
+  recursion: LoreEntryRecursion | null;
   matchSources: LorebookEntryDraft["matchSources"] | null;
 }): LorebookEntryDraft {
+  const recursion = resolveEntryRecursion(entry);
   return {
     title: entry.title,
     body: entry.body,
@@ -114,6 +131,10 @@ function draftFromEntry(entry: {
     insertionPosition: entry.insertionPosition,
     depth: String(entry.depth ?? 0),
     role: entry.role ?? "system",
+    nonRecursable: recursion.nonRecursable,
+    preventFurther: recursion.preventFurther,
+    delayUntilRecursion: recursion.delayUntilRecursion,
+    recursionLevel: String(recursion.recursionLevel),
     matchSources: normalizeLoreMatchSources(entry.matchSources),
   };
 }
@@ -154,43 +175,6 @@ function ScanDepthInput({
       className="pondinput"
       type="number"
       min={0}
-      step={1}
-      value={draft}
-      onBlur={commitDraft}
-      onChange={(e) => setDraft(e.target.value)}
-      onKeyDown={(e) => (e.key === "Enter" ? e.currentTarget.blur() : undefined)}
-    />
-  );
-}
-
-function NullableActivationInput({
-  id,
-  initialValue,
-  max,
-  onCommit,
-  reader,
-}: {
-  id: string;
-  initialValue: number | null;
-  max?: number;
-  onCommit: (value: number | null) => void;
-  reader: (value: string, fallback: number | null) => number | null;
-}) {
-  const [draft, setDraft] = useState(initialValue?.toString() ?? "");
-
-  function commitDraft() {
-    const parsedValue = reader(draft, initialValue);
-    setDraft(parsedValue?.toString() ?? "");
-    onCommit(parsedValue);
-  }
-
-  return (
-    <input
-      id={id}
-      className="pondinput"
-      type="number"
-      min={0}
-      max={max}
       step={1}
       value={draft}
       onBlur={commitDraft}
@@ -283,6 +267,11 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
         includeNames: lorebookDraft.includeNames,
         caseSensitiveKeys: lorebookDraft.caseSensitiveKeys,
         matchWholeWords: lorebookDraft.matchWholeWords,
+        recursiveScan: lorebookDraft.recursiveScan,
+        maxRecursionSteps: readNonNegativeIntegerInput(
+          lorebookDraft.maxRecursionSteps,
+          DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps,
+        ),
         budgetTokens,
         budgetPercent,
       },
@@ -301,88 +290,19 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
     }
   }
 
-  function commitActiveScanDepth(scanDepth: number) {
+  function patchActiveActivation(patch: Partial<LorebookActivationSettings>) {
     if (!activeLorebook) return;
-    if (scanDepth === activeLorebook.activation.scanDepth) return;
+    const changed = (Object.keys(patch) as (keyof LorebookActivationSettings)[]).some(
+      (key) => activeLorebook.activation[key] !== patch[key],
+    );
+    if (!changed) return;
 
     nav.updateLorebook(activeLorebook.id, {
       title: activeLorebook.title,
       summary: activeLorebook.summary,
       activation: {
         ...activeLorebook.activation,
-        scanDepth,
-      },
-    });
-  }
-
-  function commitActiveBudgetTokens(budgetTokens: number | null) {
-    if (!activeLorebook) return;
-    if (budgetTokens === activeLorebook.activation.budgetTokens) return;
-
-    nav.updateLorebook(activeLorebook.id, {
-      title: activeLorebook.title,
-      summary: activeLorebook.summary,
-      activation: {
-        ...activeLorebook.activation,
-        budgetTokens,
-        budgetPercent: budgetTokens === null ? activeLorebook.activation.budgetPercent : null,
-      },
-    });
-  }
-
-  function commitActiveBudgetPercent(budgetPercent: number | null) {
-    if (!activeLorebook) return;
-    if (budgetPercent === activeLorebook.activation.budgetPercent) return;
-
-    nav.updateLorebook(activeLorebook.id, {
-      title: activeLorebook.title,
-      summary: activeLorebook.summary,
-      activation: {
-        ...activeLorebook.activation,
-        budgetTokens: budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
-        budgetPercent,
-      },
-    });
-  }
-
-  function commitActiveCaseSensitiveKeys(caseSensitiveKeys: boolean) {
-    if (!activeLorebook) return;
-    if (caseSensitiveKeys === activeLorebook.activation.caseSensitiveKeys) return;
-
-    nav.updateLorebook(activeLorebook.id, {
-      title: activeLorebook.title,
-      summary: activeLorebook.summary,
-      activation: {
-        ...activeLorebook.activation,
-        caseSensitiveKeys,
-      },
-    });
-  }
-
-  function commitActiveIncludeNames(includeNames: boolean) {
-    if (!activeLorebook) return;
-    if (includeNames === activeLorebook.activation.includeNames) return;
-
-    nav.updateLorebook(activeLorebook.id, {
-      title: activeLorebook.title,
-      summary: activeLorebook.summary,
-      activation: {
-        ...activeLorebook.activation,
-        includeNames,
-      },
-    });
-  }
-
-  function commitActiveMatchWholeWords(matchWholeWords: boolean) {
-    if (!activeLorebook) return;
-    if (matchWholeWords === activeLorebook.activation.matchWholeWords) return;
-
-    nav.updateLorebook(activeLorebook.id, {
-      title: activeLorebook.title,
-      summary: activeLorebook.summary,
-      activation: {
-        ...activeLorebook.activation,
-        matchWholeWords,
+        ...patch,
       },
     });
   }
@@ -515,6 +435,31 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
               ariaLabel="Match whole words"
             />
           </div>
+          <LorebookRecursionActivationFields
+            recursiveScan={lorebookDraft.recursiveScan}
+            onRecursiveScanChange={(recursiveScan) =>
+              setLorebookDraft({
+                ...lorebookDraft,
+                recursiveScan,
+              })
+            }
+            maxRecursionStepsInput={{
+              id: "lorebook-max-recursion-steps",
+              value: lorebookDraft.maxRecursionSteps,
+              onChange: (maxRecursionSteps) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  maxRecursionSteps,
+                }),
+              fallback: DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps,
+              onCommit: (maxRecursionSteps) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  maxRecursionSteps: String(maxRecursionSteps),
+                }),
+              reader: readNonNegativeIntegerInput,
+            }}
+          />
           <div className="catalog-editor-field">
             <label htmlFor="lorebook-budget-tokens">Budget (tokens)</label>
             <input
@@ -669,14 +614,14 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   id="active-lorebook-scan-depth"
                   initialValue={activeLorebook.activation.scanDepth}
                   fallback={activeLorebook.activation.scanDepth}
-                  onCommit={commitActiveScanDepth}
+                  onCommit={(scanDepth) => patchActiveActivation({ scanDepth })}
                 />
               </div>
               <div className="catalog-editor-field catalog-editor-toggle">
                 <span className="catalog-toggle-label">Include names</span>
                 <Switch
                   checked={activeLorebook.activation.includeNames}
-                  onChange={commitActiveIncludeNames}
+                  onChange={(includeNames) => patchActiveActivation({ includeNames })}
                   ariaLabel="Include names"
                 />
               </div>
@@ -684,7 +629,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 <span className="catalog-toggle-label">Case-sensitive keys</span>
                 <Switch
                   checked={activeLorebook.activation.caseSensitiveKeys}
-                  onChange={commitActiveCaseSensitiveKeys}
+                  onChange={(caseSensitiveKeys) => patchActiveActivation({ caseSensitiveKeys })}
                   ariaLabel="Case-sensitive keys"
                 />
               </div>
@@ -692,17 +637,35 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 <span className="catalog-toggle-label">Match whole words</span>
                 <Switch
                   checked={activeLorebook.activation.matchWholeWords}
-                  onChange={commitActiveMatchWholeWords}
+                  onChange={(matchWholeWords) => patchActiveActivation({ matchWholeWords })}
                   ariaLabel="Match whole words"
                 />
               </div>
+              <LorebookRecursionActivationFields
+                key={`${activeLorebook.id}:recursion:${activeLorebook.activation.maxRecursionSteps}`}
+                recursiveScan={activeLorebook.activation.recursiveScan}
+                onRecursiveScanChange={(recursiveScan) => patchActiveActivation({ recursiveScan })}
+                maxRecursionStepsInput={{
+                  id: "active-lorebook-max-recursion-steps",
+                  initialValue: activeLorebook.activation.maxRecursionSteps,
+                  fallback: activeLorebook.activation.maxRecursionSteps,
+                  onCommit: (maxRecursionSteps) => patchActiveActivation({ maxRecursionSteps }),
+                  reader: readNonNegativeIntegerInput,
+                }}
+              />
               <div className="catalog-editor-field">
                 <label htmlFor="active-lorebook-budget-tokens">Budget (tokens)</label>
                 <NullableActivationInput
                   key={`${activeLorebook.id}:tokens:${activeLorebook.activation.budgetTokens ?? "none"}`}
                   id="active-lorebook-budget-tokens"
                   initialValue={activeLorebook.activation.budgetTokens}
-                  onCommit={commitActiveBudgetTokens}
+                  onCommit={(budgetTokens) =>
+                    patchActiveActivation({
+                      budgetTokens,
+                      budgetPercent:
+                        budgetTokens === null ? activeLorebook.activation.budgetPercent : null,
+                    })
+                  }
                   reader={readNullableNonNegativeIntegerInput}
                 />
               </div>
@@ -713,7 +676,13 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   id="active-lorebook-budget-percent"
                   initialValue={activeLorebook.activation.budgetPercent}
                   max={100}
-                  onCommit={commitActiveBudgetPercent}
+                  onCommit={(budgetPercent) =>
+                    patchActiveActivation({
+                      budgetTokens:
+                        budgetPercent === null ? activeLorebook.activation.budgetTokens : null,
+                      budgetPercent,
+                    })
+                  }
                   reader={readNullablePercentInput}
                 />
               </div>
@@ -895,6 +864,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     </div>
                   ))}
                 </details>
+                <EntryRecursionControls draft={draft} onDraftChange={setDraft} />
                 <div className="catalog-editor-field">
                   <label htmlFor="lore-insertion-order">Insertion Order</label>
                   <input

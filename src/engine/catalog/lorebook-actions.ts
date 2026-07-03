@@ -12,7 +12,10 @@ import type {
   LoreMatchSources,
   LoreSelectiveLogic,
 } from "../contracts/types/lorebook";
-import { DEFAULT_LOREBOOK_ACTIVATION } from "../contracts/types/lorebook";
+import {
+  DEFAULT_LOREBOOK_ACTIVATION,
+  DEFAULT_LORE_ENTRY_RECURSION,
+} from "../contracts/types/lorebook";
 
 export interface LorebookEntryInput {
   title: string;
@@ -112,16 +115,19 @@ function normalizeEntryRecursion(
     nonRecursable:
       typeof value.nonRecursable === "boolean"
         ? value.nonRecursable
-        : (fallback?.nonRecursable ?? false),
+        : (fallback?.nonRecursable ?? DEFAULT_LORE_ENTRY_RECURSION.nonRecursable),
     preventFurther:
       typeof value.preventFurther === "boolean"
         ? value.preventFurther
-        : (fallback?.preventFurther ?? false),
+        : (fallback?.preventFurther ?? DEFAULT_LORE_ENTRY_RECURSION.preventFurther),
     delayUntilRecursion:
       typeof value.delayUntilRecursion === "boolean"
         ? value.delayUntilRecursion
-        : (fallback?.delayUntilRecursion ?? false),
-    recursionLevel: readNonNegativeInteger(value.recursionLevel, fallback?.recursionLevel ?? 0),
+        : (fallback?.delayUntilRecursion ?? DEFAULT_LORE_ENTRY_RECURSION.delayUntilRecursion),
+    recursionLevel: readNonNegativeInteger(
+      value.recursionLevel,
+      fallback?.recursionLevel ?? DEFAULT_LORE_ENTRY_RECURSION.recursionLevel,
+    ),
   };
 }
 
