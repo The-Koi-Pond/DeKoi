@@ -7,7 +7,7 @@
   gap: 10px;
   padding: 2px 8px;
   border-bottom: 1px solid var(--reed-soft);
-  background: linear-gradient(180deg, rgba(19, 36, 43, 0.9), rgba(14, 27, 33, 0.7));
+  background: linear-gradient(180deg, var(--water), color-mix(in srgb, var(--water) 82%, var(--abyss)));
   backdrop-filter: blur(8px);
   user-select: none;
 }

@@ -63,6 +63,13 @@ export function Shell({ nav }: ShellProps) {
       />
       <Pond nav={nav} onOpenShoal={() => setShoalClosed(false)} />
       <Tide nav={nav} />
+      <button
+        className="care-scrim"
+        type="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        onClick={() => nav.setCareOpen(false)}
+      />
       <CareDrawer nav={nav} />
     </div>
   );

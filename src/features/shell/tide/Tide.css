@@ -5,7 +5,11 @@
     gap: 10px;
     padding: 0 16px;
     border-top: 1px solid var(--reed-soft);
-    background: rgba(9, 19, 23, 0.7);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--water) 82%, var(--abyss)),
+        var(--water)
+    );
     backdrop-filter: blur(6px);
     font-size: 12px;
 }

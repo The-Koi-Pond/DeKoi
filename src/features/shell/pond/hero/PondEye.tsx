@@ -12,7 +12,7 @@ export function PondEye() {
 
       {/* outer orbit: 3 orange koi, clockwise */}
       <div className="orbit" style={{ '--T': '26s' } as React.CSSProperties}>
-        <div className="koi-wrap" style={{ '--R': '78px', animationDelay: '0s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '78px', '--still-angle': '30deg', animationDelay: '0s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="30" height="17" viewBox="0 0 32 18" style={{ color: 'var(--koi)' }}>
               <use href="#koi-swimmer" />
@@ -20,7 +20,7 @@ export function PondEye() {
             <span className="wake" />
           </div>
         </div>
-        <div className="koi-wrap" style={{ '--R': '78px', animationDelay: '-8.6s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '78px', '--still-angle': '150deg', animationDelay: '-8.6s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="26" height="15" viewBox="0 0 32 18" style={{ color: 'var(--koi)' }}>
               <use href="#koi-swimmer" />
@@ -28,7 +28,7 @@ export function PondEye() {
             <span className="wake" />
           </div>
         </div>
-        <div className="koi-wrap" style={{ '--R': '78px', animationDelay: '-17.3s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '78px', '--still-angle': '270deg', animationDelay: '-17.3s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="28" height="16" viewBox="0 0 32 18" style={{ color: 'var(--koi)' }}>
               <use href="#koi-swimmer" />
@@ -40,7 +40,7 @@ export function PondEye() {
 
       {/* inner orbit: 2 jade koi, counterclockwise */}
       <div className="orbit ccw" style={{ '--T': '18s' } as React.CSSProperties}>
-        <div className="koi-wrap" style={{ '--R': '48px', animationDelay: '0s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '48px', '--still-angle': '70deg', animationDelay: '0s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="24" height="14" viewBox="0 0 32 18" style={{ color: 'var(--jade)' }}>
               <use href="#koi-swimmer" />
@@ -48,7 +48,7 @@ export function PondEye() {
             <span className="wake" />
           </div>
         </div>
-        <div className="koi-wrap" style={{ '--R': '48px', animationDelay: '-9s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '48px', '--still-angle': '250deg', animationDelay: '-9s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="22" height="13" viewBox="0 0 32 18" style={{ color: 'var(--jade)' }}>
               <use href="#koi-swimmer" />
@@ -60,7 +60,7 @@ export function PondEye() {
 
       {/* wide orbit: 1 amber koi */}
       <div className="orbit" style={{ '--T': '34s' } as React.CSSProperties}>
-        <div className="koi-wrap" style={{ '--R': '80px', animationDelay: '-4s' } as React.CSSProperties}>
+        <div className="koi-wrap" style={{ '--R': '80px', '--still-angle': '180deg', animationDelay: '-4s' } as React.CSSProperties}>
           <div className="koi">
             <svg className="koi-swimmer" width="25" height="14" viewBox="0 0 32 18" style={{ color: 'var(--amber)' }}>
               <use href="#koi-swimmer" />

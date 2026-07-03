@@ -2,7 +2,7 @@
     grid-area: shoal;
     overflow: hidden;
     border-right: 1px solid var(--reed-soft);
-    background: rgba(11, 22, 27, 0.55);
+    background: var(--shallow);
     display: flex;
     flex-direction: column;
     transition:

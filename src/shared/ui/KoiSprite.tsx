@@ -20,11 +20,16 @@ export function KoiSprite() {
         <symbol id="koi-swimmer" viewBox="0 0 32 18">
           <g className="tail">
             <path
-              d="M7 9 L0 2.5 L3.5 9 L0 15.5 Z"
+              d="M8 9 C 5.5 6, 3 3.5, 0.5 2.5 C 2.5 5.5, 3.5 7.6, 4 9 C 3.5 10.4, 2.5 12.5, 0.5 15.5 C 3 14.5, 5.5 12, 8 9 Z"
               fill="currentColor"
-              opacity="0.92"
+              opacity="0.9"
             />
           </g>
+          <path
+            d="M13 3.4 Q17 1.4 21 3.6 Q18 3.2 16 4.6 Q14.5 4.4 13 3.4 Z"
+            fill="currentColor"
+            opacity="0.7"
+          />
           <path d="M10 4.2 Q15 0 19 4.2 Z" fill="currentColor" opacity="0.9" />
           <path
             d="M7 9 C 9 3, 20 2.2, 26 6 C 30 8.4, 30 9.6, 26 12 C 20 15, 9 14, 7 9 Z"

@@ -11,25 +11,25 @@
   inset: 6px;
   border-radius: 50%;
   z-index: -1;
-  background: radial-gradient(circle at 50% 40%, rgba(39, 179, 170, 0.1), rgba(14, 27, 33, 0.6) 70%);
+  background: radial-gradient(circle at 50% 42%, rgba(39, 179, 170, 0.12), rgba(14, 27, 33, 0.6) 70%);
   box-shadow: inset 0 0 30px -10px rgba(0, 0, 0, 0.6);
 }
 
 .pond-eye .ring {
   position: absolute;
-  inset: 0;
+  inset: 6px;
   border-radius: 50%;
-  border: 1px solid rgba(39, 179, 170, 0.18);
+  border: 1px solid rgba(39, 179, 170, 0.2);
 }
 
 .pond-eye .ring.r2 {
-  inset: 18px;
-  border-color: rgba(244, 122, 53, 0.12);
+  inset: 24px;
+  border-color: rgba(244, 122, 53, 0.14);
 }
 
 .pond-eye .ring.r3 {
-  inset: 38px;
-  border-color: rgba(39, 179, 170, 0.1);
+  inset: 46px;
+  border-color: rgba(39, 179, 170, 0.12);
 }
 
 .ripple-ping {
@@ -37,7 +37,7 @@
   inset: 0;
   border-radius: 50%;
   border: 1.5px solid rgba(39, 179, 170, 0.4);
-  animation: ping 4.5s ease-out infinite;
+  animation: ping var(--dur-ripple) ease-out infinite;
   opacity: 0;
 }
 
@@ -66,11 +66,15 @@
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 0;
+  height: 0;
 }
 
 .koi-wrap .koi {
+  position: absolute;
+  left: 0;
+  top: 0;
   transform: translate(-50%, -50%) translateY(calc(-1 * var(--R, 70px)));
-  position: relative;
 }
 
 .orbit.ccw .koi-wrap .koi {
@@ -86,13 +90,13 @@
   position: absolute;
   right: 100%;
   top: 50%;
-  width: 14px;
-  height: 6px;
+  width: 18px;
+  height: 5px;
   transform: translateY(-50%);
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(233, 241, 242, 0.5), transparent);
-  filter: blur(2px);
-  opacity: 0.5;
+  background: radial-gradient(closest-side, rgba(233, 241, 242, 0.45), transparent);
+  filter: blur(3px);
+  opacity: 0.35;
   pointer-events: none;
 }
 
@@ -104,7 +108,7 @@
 .koi-swimmer .tail {
   transform-box: fill-box;
   transform-origin: 100% 50%;
-  animation: wiggle 0.7s ease-in-out infinite;
+  animation: wiggle var(--dur-tail) ease-in-out infinite;
 }
 
 .core-mark {
@@ -118,6 +122,27 @@
   width: 86px;
   height: 86px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 14px rgba(244, 122, 53, 0.35));
+  filter: drop-shadow(0 4px 16px rgba(244, 122, 53, 0.28));
   user-select: none;
+}
+
+/* ---- reduced motion: a designed still pond, not a paused animation ----
+   DESIGN.md section 6: orbits/pings/tails stop and the koi freeze into a composed
+   arrangement on their rings; the mark and wordmark remain. Each koi takes
+   its --still-angle so the school reads as deliberately placed. */
+:root[data-motion="off"] .pond-eye .orbit,
+:root[data-motion="off"] .pond-eye .ripple-ping,
+:root[data-motion="reduced"] .pond-eye .orbit,
+:root[data-motion="reduced"] .pond-eye .ripple-ping {
+  animation: none;
+}
+
+:root[data-motion="off"] .pond-eye .koi-wrap,
+:root[data-motion="reduced"] .pond-eye .koi-wrap {
+  transform: rotate(var(--still-angle, 0deg));
+}
+
+:root[data-motion="off"] .pond-eye .koi-wrap .wake,
+:root[data-motion="reduced"] .pond-eye .koi-wrap .wake {
+  opacity: 0.18;
 }
