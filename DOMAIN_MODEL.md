@@ -37,12 +37,12 @@ rules and the current decisions.
 | Character catalog             | Companions         | character record    | People/entities the user can talk with or place into Roleplay threads.        |
 | Persona catalog               | Personas           | persona record      | User-facing identities for participation in Messenger and Roleplay threads.   |
 | Lorebook/knowledge catalog    | Lorebooks          | lorebook record     | Reusable facts, setting notes, references, and continuity material.           |
-| Presets/chat presets          | Currents           | prompt recipe       | Reusable generation settings and prompt structure.                            |
+| Prompt presets                | Presets            | prompt preset       | Reusable generation settings and prompt structure.                            |
 | Game-state/tracker-style data | Ripples            | ripple state        | Dynamic per-thread state, counters, summaries, and continuity changes.        |
 | Tracker sidebar panel         | Ripple Dock        | ripple dock         | Sidebar surface for viewing and editing Ripples.                              |
-| Automation/helper catalog     | Keepers            | helper module       | Optional automated reviewers, trackers, or generators.                        |
-| Connections/providers         | Inlets             | provider connection | Model, local runtime, and service configuration.                              |
-| Gallery/sprites/assets        | Net                | media asset         | User-owned images, sprites, audio, and generated visual assets.               |
+| Automation/helper catalog     | Agents             | agent               | Optional automated reviewers, trackers, or generators.                        |
+| Connections/providers         | Connections        | provider connection | Model, local runtime, and service configuration.                              |
+| Gallery/sprites/assets        | Media              | media asset         | User-owned images, sprites, audio, and generated visual assets.               |
 
 ## Product Naming Decisions
 
@@ -249,9 +249,9 @@ Not fully settled yet:
 - UI for probability, triggers, and character filters.
 - Import format.
 
-### Preset
+### Prompt Preset
 
-A preset is reusable generation configuration.
+A prompt preset is reusable generation configuration.
 
 Purpose:
 
@@ -261,15 +261,18 @@ Purpose:
 
 Likely relationships:
 
-- A Messenger thread may use one active preset.
-- A Roleplay thread may use one active preset.
-- Presets may be global or copied into a thread later if needed.
+- A Messenger thread may use one active prompt preset.
+- A Roleplay thread may use one active prompt preset.
+- Prompt presets may be global or copied into a thread later if needed.
+- A Thread Preset may later hold chat-specific settings that should travel
+  with one saved thread instead of with reusable generation defaults.
 
 Not fully settled yet:
 
 - Exact parameters.
 - Prompt-template format.
-- Whether presets are simple at first or split into advanced recipe parts.
+- Whether prompt presets stay simple at first or split into advanced template
+  parts.
 
 ### Provider Connection
 

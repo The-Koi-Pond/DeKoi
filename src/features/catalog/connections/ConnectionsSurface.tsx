@@ -41,7 +41,7 @@ interface DraftState {
   apiKey: string;
   baseUrl: string;
   model: string;
-  keeperDefault: boolean;
+  agentDefault: boolean;
 }
 
 const EMPTY_DRAFT: DraftState = {
@@ -50,7 +50,7 @@ const EMPTY_DRAFT: DraftState = {
   apiKey: "",
   baseUrl: "https://api.openai.com/v1",
   model: "gpt-4o-mini",
-  keeperDefault: false,
+  agentDefault: false,
 };
 
 function draftFromConnection(record: ProviderConnectionRecord): DraftState {
@@ -60,7 +60,7 @@ function draftFromConnection(record: ProviderConnectionRecord): DraftState {
     apiKey: "",
     baseUrl: record.baseUrl,
     model: record.model,
-    keeperDefault: record.keeperDefault,
+    agentDefault: record.agentDefault,
   };
 }
 
@@ -73,7 +73,7 @@ function draftToInput(draft: DraftState): ProviderConnectionInput {
     model: draft.model.trim(),
     summary: "",
     modelLabel: draft.model.trim() || null,
-    keeperDefault: draft.keeperDefault,
+    agentDefault: draft.agentDefault,
   };
 }
 
@@ -84,7 +84,7 @@ function normalizeDraft(draft: DraftState) {
     apiKey: draft.apiKey.trim(),
     baseUrl: draft.baseUrl.trim(),
     model: draft.model.trim(),
-    keeperDefault: draft.keeperDefault,
+    agentDefault: draft.agentDefault,
   };
 }
 
@@ -98,7 +98,7 @@ function draftsMatch(left: DraftState, right: DraftState) {
     leftDraft.apiKey === rightDraft.apiKey &&
     leftDraft.baseUrl === rightDraft.baseUrl &&
     leftDraft.model === rightDraft.model &&
-    leftDraft.keeperDefault === rightDraft.keeperDefault
+    leftDraft.agentDefault === rightDraft.agentDefault
   );
 }
 
@@ -518,12 +518,12 @@ function ConnectionEditor({
             />
           </div>
           <div className="catalog-editor-toggle">
-            <span className="catalog-toggle-label">Keeper Default Connection</span>
+            <span className="catalog-toggle-label">Agent Default Connection</span>
             <input
               type="checkbox"
-              checked={draft.keeperDefault}
-              onChange={(event) => setDraft({ ...draft, keeperDefault: event.target.checked })}
-              aria-label="Keeper Default Connection"
+              checked={draft.agentDefault}
+              onChange={(event) => setDraft({ ...draft, agentDefault: event.target.checked })}
+              aria-label="Agent Default Connection"
             />
           </div>
         </div>

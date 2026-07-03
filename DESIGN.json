@@ -10,12 +10,12 @@
       "Companions",
       "Personas",
       "Lorebooks",
-      "Currents",
+      "Presets",
       "Ripples",
       "Ripple Dock",
-      "Keepers",
-      "Inlets",
-      "Net",
+      "Agents",
+      "Connections",
+      "Media",
       "Pond Care"
     ],
     "audience": [
@@ -29,7 +29,7 @@
       "start a Messenger thread or Roleplay scene",
       "save into DeKoi-owned local records visibly",
       "reopen without external services",
-      "configure an Inlet only when needed"
+      "configure a Connection only when needed"
     ]
   },
   "northStar": "Keep a pond, not a platform: a lantern-lit studio over dark water where every story lives in the user's own files, every control feels shaped by hand, koi and ripples move only in open water, and dense creative work happens on calm opaque surfaces.",
@@ -352,8 +352,8 @@
         "generated": "visually ordinary once complete; provenance in disclosure"
       },
       "providerRuntimeRules": [
-        "active Inlet, runtime health, and save state visible in tide strip and thread header dot",
-        "plain product wording such as Saved to desktop, Generating, Inlet disconnected",
+        "active Connection, runtime health, and save state visible in tide strip and thread header dot",
+        "plain product wording such as Saved to desktop, Generating, Connection disconnected",
         "no transport or plumbing language in default UI"
       ],
       "accessibilityRules": [
@@ -668,12 +668,12 @@
       "Companions",
       "Personas",
       "Lorebooks",
-      "Currents",
+      "Presets",
       "Ripples",
       "Ripple Dock",
-      "Keepers",
-      "Inlets",
-      "Net",
+      "Agents",
+      "Connections",
+      "Media",
       "Pond Care",
       "Deep Water",
       "Stocking",
@@ -690,7 +690,7 @@
     "keep dense text on calm opaque surfaces with atmosphere in the water around them",
     "make provider, runtime, and save state visible in tide and header language without exposing machinery",
     "use the material stack abyss to water to shallow to raise for depth instead of shadows and blur",
-    "give Inlets, Deep Water, and Stocking the same craft as the hero",
+    "give Connections, Deep Water, and Stocking the same craft as the hero",
     "pair every color-coded state with an icon or label"
   ],
   "donts": [
@@ -739,8 +739,8 @@
       "stage": 4,
       "name": "catalog, settings, storage, and provider polish",
       "items": [
-        "apply density rules to Companions, Personas, Lorebooks, Currents, Keepers, and Net catalogs",
-        "rebuild Inlets forms to labeled-field standards with secret-safe affordances",
+        "apply density rules to Companions, Personas, Lorebooks, Presets, Agents, and Media catalogs",
+        "rebuild Connections forms to labeled-field standards with secret-safe affordances",
         "bring Deep Water and Stocking logs to readable-row and inline-action standards with honest destructive confirms"
       ]
     },

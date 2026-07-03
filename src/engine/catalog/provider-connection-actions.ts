@@ -14,7 +14,7 @@ export interface ProviderConnectionInput {
   model?: string;
   summary?: string;
   modelLabel?: string | null;
-  keeperDefault?: boolean;
+  agentDefault?: boolean;
   maxContext?: number | null;
   maxOutput?: number | null;
 }
@@ -63,7 +63,7 @@ export function createProviderConnectionRecord({
     summary: cleanText(input.summary),
     status: statusForInput(input),
     modelLabel: cleanNullableText(input.modelLabel) ?? cleanNullableText(model),
-    keeperDefault: input.keeperDefault ?? false,
+    agentDefault: input.agentDefault ?? false,
     maxContext: cleanNullableNumber(input.maxContext),
     maxOutput: cleanNullableNumber(input.maxOutput),
     createdAt: now,
@@ -89,7 +89,7 @@ export function updateProviderConnectionRecord(
     summary: cleanText(input.summary),
     status: statusForInput(input),
     modelLabel: cleanNullableText(input.modelLabel) ?? cleanNullableText(model),
-    keeperDefault: input.keeperDefault ?? record.keeperDefault,
+    agentDefault: input.agentDefault ?? record.agentDefault,
     maxContext: cleanNullableNumber(input.maxContext),
     maxOutput: cleanNullableNumber(input.maxOutput),
     createdAt: record.createdAt,
@@ -115,7 +115,7 @@ export function duplicateProviderConnectionRecord(
     summary: record.summary,
     status: provider.apiKeyRequired ? "needs-key" : "ready",
     modelLabel: record.modelLabel,
-    keeperDefault: record.keeperDefault,
+    agentDefault: record.agentDefault,
     maxContext: record.maxContext,
     maxOutput: record.maxOutput,
     createdAt: now,

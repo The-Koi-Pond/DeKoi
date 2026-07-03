@@ -15,8 +15,8 @@ opaque surfaces.
 
 DeKoi is a local-first story and character engine. Its surfaces are Messenger threads (fast
 DM-style character chat), Roleplay threads (staged character scenes), and the catalogs and care
-tools that feed them: Companions, Personas, Lorebooks, Currents (prompt recipes), Ripples (dynamic
-thread state), Keepers (helper modules), Inlets (provider connections), and Net (media). The Pond
+tools that feed them: Companions, Personas, Lorebooks, Presets (prompt presets), Ripples (dynamic
+thread state), Agents (helper modules), Connections (provider connections), and Media. The Pond
 Care drawer holds storage, import/export, and provider-key work.
 
 Design-wise that means DeKoi is two things at once, and must be both without apology:
@@ -45,7 +45,7 @@ Every shell decision serves this loop, in this order:
 2. **Talk or play** — start a Messenger thread or a Roleplay scene.
 3. **Save** — into DeKoi-owned local records, visibly.
 4. **Reopen** — the thread is there next time, no service required.
-5. **Configure an Inlet only when needed** — provider setup is a door you open, not a wall you hit.
+5. **Configure a Connection only when needed** — provider setup is a door you open, not a wall you hit.
 
 ---
 
@@ -69,7 +69,7 @@ Every shell decision serves this loop, in this order:
 6. **Siblings, not twins.** Messenger and Roleplay share a pond, a palette, and a composer — but
    Messenger is the quick surface (rows, speed, scan) and Roleplay is the staged surface (bubbles,
    cast, scene). Neither borrows the other's costume, and neither clones another product.
-7. **The deep tools are kept, not hidden.** Inlets, Deep Water, Stocking, and Catalog are tended
+7. **The deep tools are kept, not hidden.** Connections, Deep Water, Stocking, and Catalog are tended
    surfaces: aligned forms, readable logs, explicit dangerous actions, plain-language recovery.
    Advanced never means ugly, and ugly never hides behind "advanced."
 
@@ -297,14 +297,14 @@ flashes, or zooms. Three registers:
 
 The shell is a fixed grid of named water regions:
 
-| Region        | Concept         | Material          | Notes                                                                                                                                                                                                   |
-| ------------- | --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Waterline** | Top bar         | `water`           | Thin (≈38px): app identity, global search/actions, window controls. Never grows into a toolbar junk drawer.                                                                                             |
-| **Bank**      | Navigation rail | `water`           | Narrow icon rail (≈56px): the places (Pond home, Companions, Personas, Lorebooks, Currents, Keepers, Inlets, Net). Labels on tooltip/expansion; active place marked by accent + shape, not color alone. |
-| **Shoal**     | Thread list     | `shallow`         | 264–300px: saved Messenger/Roleplay threads with kind, title, recency. Collapsible; collapsed state leaves a reopen affordance in the bank/pond.                                                        |
-| **Pond**      | Main surface    | `raise`           | Everything primary: home, threads, catalogs, editors. Home content is center-column (≈920px max); threads manage their own text measure.                                                                |
-| **Tide**      | Status strip    | `water`           | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging.                                                       |
-| **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (Deep Water, Stocking, Catalog, appearance). Floating layer — this is where a real drop shadow belongs.                      |
+| Region        | Concept         | Material          | Notes                                                                                                                                                                                                        |
+| ------------- | --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Waterline** | Top bar         | `water`           | Thin (≈38px): app identity, global search/actions, window controls. Never grows into a toolbar junk drawer.                                                                                                  |
+| **Bank**      | Navigation rail | `water`           | Narrow icon rail (≈56px): the places (Pond home, Companions, Personas, Lorebooks, Presets, Agents, Connections, Media). Labels on tooltip/expansion; active place marked by accent + shape, not color alone. |
+| **Shoal**     | Thread list     | `shallow`         | 264–300px: saved Messenger/Roleplay threads with kind, title, recency. Collapsible; collapsed state leaves a reopen affordance in the bank/pond.                                                             |
+| **Pond**      | Main surface    | `raise`           | Everything primary: home, threads, catalogs, editors. Home content is center-column (≈920px max); threads manage their own text measure.                                                                     |
+| **Tide**      | Status strip    | `water`           | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging.                                                            |
+| **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (Deep Water, Stocking, Catalog, appearance). Floating layer — this is where a real drop shadow belongs.                           |
 
 The **Ripple Dock** (per-thread state panel) docks inside the pond region alongside a thread, as a
 `shallow` sibling panel — not a second care drawer.
@@ -324,12 +324,12 @@ The **Ripple Dock** (per-thread state panel) docks inside the pond region alongs
 Comfortable is the default; a compact setting tightens padding on care/settings surfaces. Per
 surface:
 
-- **Catalogs** (Companions, Personas, Lorebooks, Currents, Keepers, Net): scannable card grids or
+- **Catalogs** (Companions, Personas, Lorebooks, Presets, Agents, Media): scannable card grids or
   rows, one line of name + one line of metadata; comfortable spacing — catalogs are browsing
   surfaces, not spreadsheets.
 - **Settings / Pond Care**: single-column labeled fields, grouped in bordered sections with plain
   headings; generous by default, honest compact mode.
-- **Provider forms (Inlets)**: the densest allowed form surface, but every field keeps a visible
+- **Provider forms (Connections)**: the densest allowed form surface, but every field keeps a visible
   label, inline validation, and a plain-language description. Secrets are write-only with
   save/check/clear affordances; never echo secret values.
 - **Storage logs / Deep Water**: table-like rows at `body` size with status chips; repair and
@@ -371,7 +371,7 @@ iconography, spacing signature, or interaction copy.
   layout); pending turns show a quiet jade shimmer-dot row; errors are an amber/koi-bordered
   inline notice on the failed turn with retry adjacent; system notices are centered `meta` pills.
 - **Provider/runtime/save state:** visible in the tide strip and the thread header dot, worded
-  plainly ("Saved to desktop", "Generating…", "Inlet disconnected") — status without plumbing.
+  plainly ("Saved to desktop", "Generating…", "Connection disconnected") — status without plumbing.
 - **Avoid:** decorative bubbles, mood art behind text, novelty layouts, per-message gradients,
   and anything that slows scanning a 500-turn thread.
 
@@ -409,7 +409,7 @@ a well-typeset script.
 
 ### Shared conversation rules
 
-- **Status without plumbing:** generation state, active Inlet/runtime, save state, and errors are
+- **Status without plumbing:** generation state, active Connection/runtime, save state, and errors are
   always discoverable (tide + thread header) and worded in product language, not transport
   language. Errors say what happened and what to do next.
 - **Errors:** inline, adjacent to the failed turn, dismissible where safe, `role="alert"`;
@@ -497,7 +497,7 @@ matters.
 ## 11. Naming and Voice
 
 - **Owned labels** come from `DOMAIN_MODEL.md` and are used consistently: Messenger, Roleplay,
-  Pond, Companions, Personas, Lorebooks, Currents, Ripples / Ripple Dock, Keepers, Inlets, Net,
+  Pond, Companions, Personas, Lorebooks, Presets, Ripples / Ripple Dock, Agents, Connections, Media,
   and the Pond Care sections (Deep Water, Stocking, Catalog).
 - **Clarity beats cuteness.** Theme words name _places and records_; verbs stay plain. "New
   thread", "Save", "Import bundle", "Check connection" — never "release a koi" for a save button.
@@ -556,7 +556,7 @@ matters.
   machinery.
 - Do use the material stack (abyss → water → shallow → raise) for depth instead of shadows and
   blur.
-- Do give Inlets, Deep Water, and Stocking the same craft as the hero — kept tools, not a
+- Do give Connections, Deep Water, and Stocking the same craft as the hero — kept tools, not a
   basement.
 - Do pair every color-coded state with an icon or label.
 
@@ -591,7 +591,7 @@ matters.
    variants, staged avatars; raise message body type to the §5 scale; unify pending/error turn
    treatments.
 4. **Stage 4 — Catalog, settings, storage, provider polish.** Apply density rules to Companions/
-   Personas/Lorebooks/Currents/Keepers/Net catalogs; rebuild Inlets forms to labeled-field
+   Personas/Lorebooks/Presets/Agents/Media catalogs; rebuild Connections forms to labeled-field
    standards with secret-safe affordances; bring Deep Water/Stocking logs to readable-row +
    inline-action standards with honest destructive confirms.
 5. **Stage 5 — Accessibility & motion audit.** Contrast pass on every token pairing in use;

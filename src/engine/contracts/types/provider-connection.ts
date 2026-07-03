@@ -51,7 +51,7 @@ export interface ProviderConnectionRecord {
   summary: string;
   status: ProviderConnectionStatus;
   modelLabel: string | null;
-  keeperDefault: boolean;
+  agentDefault: boolean;
   maxContext: number | null;
   maxOutput: number | null;
   createdAt: string;
@@ -69,7 +69,7 @@ export const PROVIDER_CONNECTION_DURABLE_FIELD_SET = {
   summary: true,
   status: true,
   modelLabel: true,
-  keeperDefault: true,
+  agentDefault: true,
   maxContext: true,
   maxOutput: true,
   createdAt: true,
@@ -245,7 +245,7 @@ export function sanitizeProviderConnectionRecord(
       typeof record.modelLabel === "string" && record.modelLabel.trim()
         ? record.modelLabel.trim()
         : model || providerOption.defaultModel || null,
-    keeperDefault: record.keeperDefault === true,
+    agentDefault: record.agentDefault === true,
     maxContext:
       typeof record.maxContext === "number" && Number.isFinite(record.maxContext)
         ? Math.round(record.maxContext)

@@ -330,7 +330,7 @@ Request:
         "summary": "",
         "status": "ready",
         "modelLabel": null,
-        "keeperDefault": false,
+        "agentDefault": false,
         "maxContext": null,
         "maxOutput": 1024,
         "createdAt": "2026-06-24T07:00:00.000Z",

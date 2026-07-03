@@ -160,7 +160,7 @@ function redactProviderConnectionSecrets(
       summary: sanitized.summary,
       status: providerOption.apiKeyRequired ? "needs-key" : sanitized.status,
       modelLabel: sanitized.modelLabel,
-      keeperDefault: sanitized.keeperDefault,
+      agentDefault: sanitized.agentDefault,
       maxContext: sanitized.maxContext,
       maxOutput: sanitized.maxOutput,
       createdAt: sanitized.createdAt,

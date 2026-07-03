@@ -100,7 +100,7 @@ export function normalizeProviderConnectionRecord(
     modelLabel:
       readNullableString(value.modelLabel) ??
       readNullableString(model || providerOption.defaultModel),
-    keeperDefault: value.keeperDefault === true,
+    agentDefault: value.agentDefault === true,
     maxContext:
       typeof value.maxContext === "number" && Number.isFinite(value.maxContext)
         ? Math.round(value.maxContext)
