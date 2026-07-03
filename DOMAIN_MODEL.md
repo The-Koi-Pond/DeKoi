@@ -231,22 +231,22 @@ Likely relationships:
 Current implementation:
 
 - Lorebooks and lore entries are `schemaVersion: 2` records with activation,
-  placement, trigger, filter, match-source, and budget fields.
+  inclusion, placement, trigger, filter, match-source, and budget fields.
 - Messenger and Roleplay prompt assembly activates selected lorebooks before
   provider requests: constant entries activate unless delayed until recursion,
   selective entries match keys against recent transcript text and opted-in
   companion/persona fields, recursive scan can let activated entry bodies
-  unlock further entries, and activated entries are ordered, placed, and
-  budget-trimmed deterministically. The catalog UI exposes the matching
-  lorebook and entry controls.
+  unlock further entries, inclusion groups collapse to one winner before
+  per-entry probability runs, and activated entries are ordered, placed, and
+  budget-trimmed deterministically. The catalog UI exposes the matching,
+  inclusion, probability, placement, recursion, and budget controls.
 - Exact activation, ordering, and budgeting mechanics live in
   [docs/storage-model.md](./docs/storage-model.md).
 
 Not fully settled yet:
 
-- Probability, triggers, character filters, and exact tokenizer-backed
-  budgeting.
-- UI for probability, triggers, and character filters.
+- Triggers, character filters, and exact tokenizer-backed budgeting.
+- UI for triggers and character filters.
 - Import format.
 
 ### Preset

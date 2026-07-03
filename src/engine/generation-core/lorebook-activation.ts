@@ -7,6 +7,17 @@ import {
 } from "../contracts/types/lorebook";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
+import {
+  compareActivatedEntryOrder,
+  finalizeActivationResult,
+} from "./lorebook-activation-resolution";
+import type {
+  ActivatedLoreEntry,
+  LorebookActivationResult,
+  PrimaryMatchCountResult,
+} from "./lorebook-activation-types";
+
+export type { ActivatedLoreEntry, LorebookActivationResult } from "./lorebook-activation-types";
 
 // Pure lorebook activation helpers for generation prompt assembly. This module
 // does not know about Messenger, Roleplay, React, storage, or runtime transport.
@@ -27,27 +38,6 @@ type LoreMatchSourceKey = keyof LoreMatchSources;
 
 type LoreMatchSourceBuckets = Record<LoreMatchSourceKey, LorebookScanSource[]>;
 
-/** Activated entry plus match provenance, ordering, and summary metadata. */
-export interface ActivatedLoreEntry {
-  lorebookId: string;
-  lorebookTitle: string;
-  lorebookSummary: string;
-  entry: LoreEntryRecord;
-  matchReason: "constant" | "primary-key";
-  activationSource: "direct" | "recursion";
-  matchedKey: string | null;
-  warnings: string[];
-  sourceOrder: number;
-  entryIndex: number;
-  recursionLevel: number | null;
-}
-
-/** Activated lore entries plus warnings discovered while evaluating keys. */
-export interface LorebookActivationResult {
-  entries: ActivatedLoreEntry[];
-  warnings: string[];
-}
-
 /** Options for trimming activated lore with absolute or context-percent caps. */
 export interface ApplyTokenBudgetOptions {
   budgetTokens?: number | null;
@@ -55,6 +45,16 @@ export interface ApplyTokenBudgetOptions {
   contextTokens?: number | null;
   approxTokens?: (entry: ActivatedLoreEntry) => number;
   reservedTokens?: number;
+}
+
+/** Options for lore activation and deterministic test-time random gates. */
+export interface LorebookActivationOptions {
+  /** Selected-lorebook order used as a stable tiebreaker across multiple lorebooks. */
+  sourceOrder?: number;
+  /** Prebuilt companion/persona source buckets for entries that opt into extra matching. */
+  matchSources?: LoreMatchSourceBuckets;
+  /** Random source used by weighted inclusion groups and probability gates. */
+  rand?: () => number;
 }
 
 interface CompiledRegexKey {
@@ -68,15 +68,23 @@ interface KeyMatchContext {
 
 interface KeyMatchResult {
   matched: boolean;
+  dedupeKey: string;
   warnings: string[];
 }
 
 interface EntryActivationResult {
   entry: ActivatedLoreEntry | null;
+  primaryMatchCounter?: () => PrimaryMatchCountResult;
   warnings: string[];
 }
 
 type ActivationSource = ActivatedLoreEntry["activationSource"];
+type EntryActivationMode = "activate" | "probe";
+type PrimaryMatchCounter = () => PrimaryMatchCountResult;
+
+interface ActivateEntryOptions {
+  mode?: EntryActivationMode;
+}
 
 interface RegexGroupSafety {
   hasInnerVariableQuantifier: boolean;
@@ -246,10 +254,7 @@ function compileRegexKey(
   const parsedKey = parseRegexKey(key);
   if (!parsedKey) return null;
 
-  const flags =
-    activation.caseSensitiveKeys || parsedKey.flags.includes("i")
-      ? parsedKey.flags
-      : `${parsedKey.flags}i`;
+  const flags = regexEffectiveFlags(parsedKey.flags, activation);
   const cacheKey = `${parsedKey.pattern}/${flags}`;
   const cached = context.regexCache.get(cacheKey);
   if (cached) return cached;
@@ -280,6 +285,24 @@ function compileRegexKey(
     context.regexCache.set(cacheKey, compiled);
     return compiled;
   }
+}
+
+function regexEffectiveFlags(
+  flags: string,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys">,
+) {
+  return activation.caseSensitiveKeys || flags.includes("i") ? flags : `${flags}i`;
+}
+
+function matchedRegexDedupeKey(regex: RegExp) {
+  return `regex:${regex.source}/${regex.flags}`;
+}
+
+function plaintextDedupeKey(
+  key: string,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys">,
+) {
+  return `plain:${activation.caseSensitiveKeys ? key : key.toLowerCase()}`;
 }
 
 function isWordCharacter(value: string | undefined) {
@@ -420,13 +443,14 @@ function matchKeyWithContext(
   context: KeyMatchContext,
 ): KeyMatchResult {
   const trimmedKey = key.trim();
-  if (!trimmedKey) return { matched: false, warnings: [] };
+  if (!trimmedKey) return { matched: false, dedupeKey: "", warnings: [] };
 
   const compiledRegex = compileRegexKey(trimmedKey, activation, context);
   if (compiledRegex?.regex) {
     compiledRegex.regex.lastIndex = 0;
     return {
       matched: compiledRegex.regex.test(scanBuffer),
+      dedupeKey: matchedRegexDedupeKey(compiledRegex.regex),
       warnings: [],
     };
   }
@@ -434,6 +458,7 @@ function matchKeyWithContext(
   const matched = matchPlaintextKey(trimmedKey, scanBuffer, activation);
   return {
     matched,
+    dedupeKey: plaintextDedupeKey(trimmedKey, activation),
     warnings: compiledRegex?.warning ? [compiledRegex.warning] : [],
   };
 }
@@ -475,6 +500,35 @@ function entryCanActivateFromSource(
   return !recursion.delayUntilRecursion || recursionLevel >= recursion.recursionLevel;
 }
 
+function cleanUniqueKeys(
+  keys: string[] | null | undefined,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys">,
+) {
+  const uniqueKeys: string[] = [];
+  const seenKeys = new Set<string>();
+  for (const key of keys ?? []) {
+    const trimmedKey = key.trim();
+    if (!trimmedKey) continue;
+    const dedupeKey = keyDedupeKey(trimmedKey, activation);
+    if (seenKeys.has(dedupeKey)) continue;
+    seenKeys.add(dedupeKey);
+    uniqueKeys.push(trimmedKey);
+  }
+  return uniqueKeys;
+}
+
+function keyDedupeKey(
+  key: string,
+  activation: Pick<LorebookActivationSettings, "caseSensitiveKeys">,
+) {
+  if (parseRegexKey(key)) return `regex:${key}`;
+  return `plain:${activation.caseSensitiveKeys ? key : key.toLowerCase()}`;
+}
+
+function entryBelongsToInclusionGroup(entry: LoreEntryRecord) {
+  return entry.inclusionGroup?.split(",").some((group) => group.trim().length > 0) ?? false;
+}
+
 function activateEntry(
   lorebook: LorebookRecord,
   entry: LoreEntryRecord,
@@ -485,6 +539,7 @@ function activateEntry(
   matchContext: KeyMatchContext,
   activationSource: ActivationSource,
   recursionLevel: number,
+  options: ActivateEntryOptions = {},
 ): EntryActivationResult {
   if (!entry.enabled || !entryHasBody(entry)) {
     return { entry: null, warnings: [] };
@@ -503,6 +558,7 @@ function activateEntry(
         matchReason: "constant",
         activationSource,
         matchedKey: null,
+        matchedKeyCount: 0,
         warnings: [],
         sourceOrder,
         entryIndex,
@@ -518,7 +574,7 @@ function activateEntry(
     entry,
     activation: lorebook.activation,
   });
-  const primaryKeys = entry.key?.map((key) => key.trim()).filter(Boolean) ?? [];
+  const primaryKeys = cleanUniqueKeys(entry.key, lorebook.activation);
   if (primaryKeys.length === 0) return { entry: null, warnings: [] };
 
   const primaryMatch = matchFirstKey(
@@ -527,11 +583,11 @@ function activateEntry(
     lorebook.activation,
     matchContext,
   );
-  if (!primaryMatch.matchedKey) {
+  if (primaryMatch.matchedKeys.length === 0) {
     return { entry: null, warnings: uniqueWarnings(primaryMatch.warnings) };
   }
 
-  const secondaryKeys = entry.keySecondary?.map((key) => key.trim()).filter(Boolean) ?? [];
+  const secondaryKeys = cleanUniqueKeys(entry.keySecondary, lorebook.activation);
   const secondaryMatch =
     secondaryKeys.length > 0
       ? matchAllKeys(secondaryKeys, entryScanBuffer, lorebook.activation, matchContext)
@@ -551,22 +607,45 @@ function activateEntry(
     };
   }
 
+  const primaryMatchCounter =
+    options.mode !== "probe" &&
+    lorebook.activation.useGroupScoring &&
+    entryBelongsToInclusionGroup(entry)
+      ? () => {
+          const countedPrimaryMatch = matchAllKeys(
+            primaryKeys,
+            entryScanBuffer,
+            lorebook.activation,
+            matchContext,
+            {
+              dedupeMatchedKeys: true,
+            },
+          );
+          return {
+            matchedKeyCount: countedPrimaryMatch.matchedKeys.length,
+            warnings: uniqueWarnings(countedPrimaryMatch.warnings),
+          };
+        }
+      : undefined;
   const warnings = uniqueWarnings([...primaryMatch.warnings, ...secondaryMatch.warnings]);
   const entryRecursionLevel = activationSource === "recursion" ? recursionLevel : null;
+  const activatedEntry: ActivatedLoreEntry = {
+    lorebookId: lorebook.id,
+    lorebookTitle: lorebook.title,
+    lorebookSummary: lorebook.summary,
+    entry,
+    matchReason: "primary-key",
+    activationSource,
+    matchedKey: primaryMatch.matchedKeys[0] ?? null,
+    matchedKeyCount: 1,
+    warnings,
+    sourceOrder,
+    entryIndex,
+    recursionLevel: entryRecursionLevel,
+  };
   return {
-    entry: {
-      lorebookId: lorebook.id,
-      lorebookTitle: lorebook.title,
-      lorebookSummary: lorebook.summary,
-      entry,
-      matchReason: "primary-key",
-      activationSource,
-      matchedKey: primaryMatch.matchedKey,
-      warnings,
-      sourceOrder,
-      entryIndex,
-      recursionLevel: entryRecursionLevel,
-    },
+    ...(primaryMatchCounter ? { primaryMatchCounter } : {}),
+    entry: activatedEntry,
     warnings,
   };
 }
@@ -581,11 +660,9 @@ function matchFirstKey(
   for (const key of keys) {
     const result = matchKeyWithContext(key, scanBuffer, activation, context);
     warnings.push(...result.warnings);
-    if (result.matched) {
-      return { matchedKey: key, warnings };
-    }
+    if (result.matched) return { matchedKeys: [key], warnings };
   }
-  return { matchedKey: null, warnings };
+  return { matchedKeys: [], warnings };
 }
 
 function matchAllKeys(
@@ -593,13 +670,20 @@ function matchAllKeys(
   scanBuffer: string,
   activation: LorebookActivationSettings,
   context: KeyMatchContext,
+  options: { dedupeMatchedKeys?: boolean } = {},
 ) {
   const matchedKeys: string[] = [];
+  const matchedDedupeKeys = new Set<string>();
   const warnings: string[] = [];
   for (const key of keys) {
     const result = matchKeyWithContext(key, scanBuffer, activation, context);
     warnings.push(...result.warnings);
-    if (result.matched) matchedKeys.push(key);
+    if (!result.matched) continue;
+    if (options.dedupeMatchedKeys) {
+      if (matchedDedupeKeys.has(result.dedupeKey)) continue;
+      matchedDedupeKeys.add(result.dedupeKey);
+    }
+    matchedKeys.push(key);
   }
   return { matchedKeys, warnings };
 }
@@ -623,18 +707,6 @@ function secondaryMatchSatisfiesLogic(
 
 function uniqueWarnings(warnings: string[]) {
   return [...new Set(warnings)];
-}
-
-function stableEntryTiebreaker(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
-  if (left.sourceOrder !== right.sourceOrder) {
-    return left.sourceOrder - right.sourceOrder;
-  }
-  return left.entryIndex - right.entryIndex;
-}
-
-function compareActivatedEntryOrder(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
-  const orderDelta = right.entry.insertionOrder - left.entry.insertionOrder;
-  return orderDelta || stableEntryTiebreaker(left, right);
 }
 
 /**
@@ -719,12 +791,14 @@ export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTo
  * transcript scan text plus any supplied per-entry additional match sources,
  * including provenance for later prompt/debug surfaces. When the lorebook
  * enables recursive scans, activated entry bodies can activate further eligible
- * entries until no candidates remain or a recursion pass cap is reached.
+ * entries until no candidates remain or a recursion pass cap is reached. The
+ * final activation result then resolves inclusion groups and applies per-entry
+ * probability before callers apply budget trimming.
  */
 export function activateLorebookEntries(
   lorebook: LorebookRecord,
   scanBuffer: string,
-  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
+  options: LorebookActivationOptions = {},
 ) {
   return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options).entries;
 }
@@ -733,6 +807,7 @@ interface ActivationEvaluationContext {
   sourceOrder: number;
   matchSources: LoreMatchSourceBuckets;
   matchContext: KeyMatchContext;
+  primaryMatchCounters: Map<string, PrimaryMatchCounter>;
 }
 
 function runDirectScan(
@@ -756,7 +831,12 @@ function runDirectScan(
       0,
     );
     warnings.push(...activation.warnings);
-    if (activation.entry) entries.push(activation.entry);
+    if (activation.entry) {
+      entries.push(activation.entry);
+      if (activation.primaryMatchCounter) {
+        context.primaryMatchCounters.set(activation.entry.entry.id, activation.primaryMatchCounter);
+      }
+    }
   }
 
   return { entries, warnings };
@@ -789,6 +869,7 @@ function entryWouldActivateFromRecursion(
       context.matchContext,
       "recursion",
       recursionLevel,
+      { mode: "probe" },
     ).entry !== null
   );
 }
@@ -861,7 +942,7 @@ function runRecursionPasses({
   const activeEntryIds = new Set(entries.map((entry) => entry.entry.id));
   const recursionBodies = recursionScanBodies(entries);
   if (recursionBodies.length === 0) {
-    return { entries, warnings: uniqueWarnings(warnings) };
+    return { entries, warnings };
   }
 
   let recursionScanBuffer = [scanBuffer.trim(), ...recursionBodies].filter(Boolean).join("\n");
@@ -896,6 +977,9 @@ function runRecursionPasses({
       warnings.push(...activation.warnings);
       if (!activation.entry) continue;
       recursiveEntries.push(activation.entry);
+      if (activation.primaryMatchCounter) {
+        context.primaryMatchCounters.set(activation.entry.entry.id, activation.primaryMatchCounter);
+      }
       activeEntryIds.add(entry.id);
     }
 
@@ -933,24 +1017,44 @@ function runRecursionPasses({
     recursionLevel = nextRecursionLevel;
   }
 
-  return { entries, warnings: uniqueWarnings(warnings) };
+  return { entries, warnings };
 }
 
 export function activateLorebookEntriesWithWarnings(
   lorebook: LorebookRecord,
   scanBuffer: string,
-  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
+  options: LorebookActivationOptions = {},
 ): LorebookActivationResult {
+  const rand = options.rand ?? Math.random;
   const context: ActivationEvaluationContext = {
     sourceOrder: options.sourceOrder ?? 0,
     matchSources: options.matchSources ?? EMPTY_MATCH_SOURCES,
     matchContext: createKeyMatchContext(),
+    primaryMatchCounters: new Map(),
   };
+  const countPrimaryMatches = (entry: ActivatedLoreEntry) =>
+    context.primaryMatchCounters.get(entry.entry.id)?.() ?? {
+      matchedKeyCount: entry.matchedKeyCount,
+      warnings: [],
+    };
   const { entries, warnings } = runDirectScan(lorebook, scanBuffer, context);
 
   if (!lorebook.activation.recursiveScan || entries.length === 0) {
-    return { entries, warnings: uniqueWarnings(warnings) };
+    return finalizeActivationResult({
+      activation: lorebook.activation,
+      countPrimaryMatches,
+      entries,
+      rand,
+      warnings,
+    });
   }
 
-  return runRecursionPasses({ context, entries, lorebook, scanBuffer, warnings });
+  const activation = runRecursionPasses({ context, entries, lorebook, scanBuffer, warnings });
+  return finalizeActivationResult({
+    activation: lorebook.activation,
+    countPrimaryMatches,
+    entries: activation.entries,
+    rand,
+    warnings: activation.warnings,
+  });
 }

@@ -425,12 +425,13 @@ accepted on load or bundle import, but normal writes use the split collections.
 
 `lorebooks` records use `schemaVersion: 2`. Remote runtimes should preserve the
 lorebook `activation` block and each entry's activation, placement, trigger,
-filter, timing, recursion, role, and match-source fields when listing or
-replacing storage. New DeKoi records default activation to scan depth 2,
+filter, timing, recursion, inclusion, role, and match-source fields when
+listing or replacing storage. New DeKoi records default activation to scan depth 2,
 include names, whole-word matching, no recursive scan, unlimited configured
-recursion steps, no absolute token cap, and a 25 percent budget cap; new
-entries default to enabled `constant` notes placed `after-character` with
-insertion order 100 and probability 100. Pre-v2
+recursion steps, group scoring off, no absolute token cap, and a 25 percent
+budget cap; new entries default to enabled `constant` notes placed
+`after-character` with insertion order 100, probability 100, group weight 100,
+and no insertion-order group-resolution flag. Pre-v2
 lorebook rows were development-only and are rejected by DeKoi normalization
 rather than migrated.
 
@@ -452,7 +453,15 @@ satisfy the entry's selective logic. When `recursiveScan` is enabled, activated
 entry bodies can activate further entries unless blocked by `nonRecursable`,
 `preventFurther`, or `delayUntilRecursion`/`recursionLevel`; `maxRecursionSteps`
 caps recursion passes, and `0` means unlimited until DeKoi's 64-pass hard cap.
-DeKoi sorts activated entries by descending insertion order, places them before
+DeKoi resolves comma-separated inclusion groups after direct and recursive
+activation. Active entries are sorted by descending `insertionOrder` before
+group resolution, so overlapping groups are discovered in prompt-priority order.
+When any candidate in a group has `prioritizeInclusion`, that flag switches the
+whole group to highest-`insertionOrder` resolution; the flagged entry does not
+automatically win. Otherwise, `useGroupScoring` keeps the candidate with the
+highest unique matched primary-key count, and the default path uses weighted
+random selection by `groupWeight`. DeKoi then applies per-entry probability,
+sorts activated entries by descending insertion order, places them before
 character context, after character context, or at transcript depth, and applies
 lorebook budget caps before the runtime receives `promptMessages`. Budget
 estimates use roughly characters divided by 4. Budget trimming gives direct
@@ -465,8 +474,7 @@ silently dropping it. Runtimes should preserve the provided `promptMessages`
 roles and content, including at-depth system lore that DeKoi has already
 converted to `user` for Anthropic or Google provider connections. Secondary-key
 logic is already applied before the runtime receives `promptMessages`.
-Character filters, probability, and triggers are still not applied by DeKoi
-prompt assembly.
+Character filters and triggers are still not applied by DeKoi prompt assembly.
 
 `storage_list`:
 

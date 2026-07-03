@@ -50,6 +50,8 @@ export interface LorebookActivationSettings {
   matchWholeWords: boolean;
   recursiveScan: boolean;
   maxRecursionSteps: number;
+  /** Resolve inclusion groups by unique matched primary-key count unless a group uses priority. */
+  useGroupScoring: boolean;
   budgetTokens: number | null;
   budgetPercent: number | null;
 }
@@ -61,6 +63,7 @@ export const DEFAULT_LOREBOOK_ACTIVATION: LorebookActivationSettings = {
   matchWholeWords: true,
   recursiveScan: false,
   maxRecursionSteps: 0,
+  useGroupScoring: false,
   budgetTokens: null,
   budgetPercent: 25,
 };
@@ -75,8 +78,17 @@ export interface LoreEntryRecord {
   keySecondary: string[] | null;
   selectiveLogic: LoreSelectiveLogic | null;
   strategy: LoreEntryStrategy;
+  /** Percent gate applied after inclusion-group resolution and before budget trimming. */
   probability: number;
+  /** Comma-separated group names resolved after direct and recursive activation. */
   inclusionGroup: string | null;
+  /** Weight used for random inclusion-group selection when priority and scoring are off. */
+  groupWeight: number;
+  /**
+   * Switches every active inclusion group this entry belongs to into
+   * insertion-order resolution. The flag does not guarantee this entry wins.
+   */
+  prioritizeInclusion: boolean;
   insertionPosition: LoreInsertionPosition;
   insertionOrder: number;
   depth: number | null;

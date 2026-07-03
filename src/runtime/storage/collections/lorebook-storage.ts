@@ -44,6 +44,10 @@ function readFiniteNumber(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function readNonNegativeFiniteNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 function readNullableNonNegativeInteger(value: unknown, fallback: number | null) {
   if (value === null) return null;
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
@@ -108,6 +112,10 @@ function normalizeActivationSettings(value: unknown): LorebookActivationSettings
       source.maxRecursionSteps,
       DEFAULT_LOREBOOK_ACTIVATION.maxRecursionSteps,
     ),
+    useGroupScoring:
+      typeof source.useGroupScoring === "boolean"
+        ? source.useGroupScoring
+        : DEFAULT_LOREBOOK_ACTIVATION.useGroupScoring,
     budgetTokens: readNullableNonNegativeInteger(
       source.budgetTokens,
       DEFAULT_LOREBOOK_ACTIVATION.budgetTokens,
@@ -193,6 +201,9 @@ function normalizeLorebookEntryRecord(value: unknown): LoreEntryRecord | null {
     strategy: readEnumValue(value.strategy, LORE_ENTRY_STRATEGIES, "constant"),
     probability: readProbability(value.probability),
     inclusionGroup: readNullableTrimmedString(value.inclusionGroup),
+    groupWeight: readNonNegativeFiniteNumber(value.groupWeight, 100),
+    prioritizeInclusion:
+      typeof value.prioritizeInclusion === "boolean" ? value.prioritizeInclusion : false,
     insertionPosition: readEnumValue(
       value.insertionPosition,
       LORE_INSERTION_POSITIONS,

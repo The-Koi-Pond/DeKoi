@@ -16,6 +16,7 @@ import {
   parseLorebookEntryKeys,
   readNullableNonNegativeIntegerInput,
   readNullablePercentInput,
+  readPercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { LorebooksSurface, type LorebooksSurfaceNav } from "./LorebooksSurface";
@@ -44,6 +45,10 @@ const baseDraft: LorebookEntryDraft = {
   key: "",
   keySecondary: "",
   selectiveLogic: "and-any",
+  probability: "100",
+  inclusionGroup: "",
+  groupWeight: "100",
+  prioritizeInclusion: false,
   insertionOrder: "100",
   insertionPosition: "after-character",
   depth: "0",
@@ -201,6 +206,24 @@ describe("lorebook entry draft helpers", () => {
     });
   });
 
+  it("serializes probability and inclusion-group controls", () => {
+    expect(readPercentInput("150", 100)).toBe(100);
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        probability: "49.9",
+        inclusionGroup: " rivals , alternates ",
+        groupWeight: "25.9",
+        prioritizeInclusion: true,
+      }),
+    ).toMatchObject({
+      probability: 49,
+      inclusionGroup: " rivals , alternates ",
+      groupWeight: 25,
+      prioritizeInclusion: true,
+    });
+  });
+
   it("serializes additional matching sources only when enabled", () => {
     expect(lorebookEntryDraftToInput(baseDraft).matchSources).toBeNull();
     expect(
@@ -299,6 +322,7 @@ describe("LorebooksSurface", () => {
     expect(markup).toContain('aria-label="Include names"');
     expect(markup).toContain("Recursive scan");
     expect(markup).toContain("Max recursion steps");
+    expect(markup).toContain("Use group scoring");
   });
 
   it("renders Include names in new lorebook activation settings", () => {
@@ -315,5 +339,6 @@ describe("LorebooksSurface", () => {
     expect(markup).toContain('aria-label="Include names"');
     expect(markup).toContain("Recursive scan");
     expect(markup).toContain("Max recursion steps");
+    expect(markup).toContain("Use group scoring");
   });
 });

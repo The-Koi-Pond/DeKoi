@@ -41,6 +41,7 @@ describe("normalizeLorebookRecord", () => {
         matchWholeWords: true,
         recursiveScan: false,
         maxRecursionSteps: 0,
+        useGroupScoring: false,
         budgetTokens: null,
         budgetPercent: 100,
       },
@@ -50,6 +51,8 @@ describe("normalizeLorebookRecord", () => {
           strategy: "constant",
           probability: 100,
           inclusionGroup: null,
+          groupWeight: 100,
+          prioritizeInclusion: false,
           insertionPosition: "after-character",
           insertionOrder: 100,
           depth: null,
@@ -114,6 +117,7 @@ describe("normalizeLorebookRecord", () => {
         activation: {
           scanDepth: 4,
           maxRecursionSteps: 8,
+          useGroupScoring: true,
           budgetTokens: 512,
           budgetPercent: 50,
         },
@@ -125,6 +129,9 @@ describe("normalizeLorebookRecord", () => {
       input: {
         title: "Defaulted Entry",
         probability: 75,
+        inclusionGroup: "variant",
+        groupWeight: 25,
+        prioritizeInclusion: true,
         insertionOrder: 25,
         depth: 2,
         recursion: {

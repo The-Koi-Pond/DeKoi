@@ -659,6 +659,464 @@ describe("lorebook activation", () => {
     ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);
   });
 
+  it("collapses inclusion groups with weighted random selection", () => {
+    const light = entry({
+      title: "Light",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      groupWeight: 10,
+    });
+    const heavy = entry({
+      title: "Heavy",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      groupWeight: 90,
+    });
+
+    const activated = activateLorebookEntries(lorebook([light, heavy]), "", {
+      rand: () => 0.2,
+    });
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Heavy"]);
+  });
+
+  it("uses prioritize inclusion to pick the highest insertion order in a group", () => {
+    const lowPriorityToggle = entry({
+      title: "Priority Toggle",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+      prioritizeInclusion: true,
+    });
+    const highOrder = entry({
+      title: "High Order",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+
+    const activated = activateLorebookEntries(lorebook([lowPriorityToggle, highOrder]), "");
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["High Order"]);
+  });
+
+  it("uses group scoring to pick the entry with the most matched primary keys", () => {
+    const higherOrderSingleMatch = entry({
+      title: "Single Match",
+      strategy: "selective",
+      key: ["gate"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+    const lowerOrderMultiMatch = entry({
+      title: "Multi Match",
+      strategy: "selective",
+      key: ["gate", "moon", "star"],
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([higherOrderSingleMatch, lowerOrderMultiMatch], { useGroupScoring: true }),
+      "The moon gate opens under a star.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Multi Match"]);
+  });
+
+  it("discovers overlapping inclusion groups by insertion order", () => {
+    const lowDirect = entry({
+      title: "Low Direct",
+      strategy: "constant",
+      inclusionGroup: "alpha",
+      insertionOrder: 10,
+      groupWeight: 70,
+    });
+    const highSelective = entry({
+      title: "High Selective",
+      strategy: "selective",
+      key: ["gate"],
+      inclusionGroup: "beta, alpha",
+      insertionOrder: 100,
+      groupWeight: 70,
+    });
+    const midSelective = entry({
+      title: "Mid Selective",
+      strategy: "selective",
+      key: ["gate"],
+      inclusionGroup: "beta",
+      insertionOrder: 90,
+      groupWeight: 30,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([lowDirect, highSelective, midSelective]),
+      "The gate opens.",
+      { rand: () => 0.49 },
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["High Selective"]);
+  });
+
+  it("stops primary matching after the first match when group scoring cannot use counts", () => {
+    const ungrouped = entry({
+      title: "Ungrouped",
+      strategy: "selective",
+      key: ["gate", "/[bad/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([ungrouped], { matchWholeWords: false, useGroupScoring: true }),
+      "The gate opens.",
+    );
+
+    expect(activation.entries[0]).toMatchObject({
+      entry: ungrouped,
+      matchedKey: "gate",
+      matchedKeyCount: 1,
+    });
+    expect(activation.warnings).toEqual([]);
+  });
+
+  it("counts all matched primary keys for competing group-scored inclusion entries", () => {
+    const grouped = entry({
+      title: "Grouped",
+      strategy: "selective",
+      key: ["gate", "moon"],
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+    });
+    const competitor = entry({
+      title: "Competitor",
+      strategy: "selective",
+      key: ["gate"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([grouped, competitor], { useGroupScoring: true }),
+      "The moon gate opens.",
+    );
+
+    expect(activation.entries[0]).toMatchObject({
+      entry: grouped,
+      matchedKey: "gate",
+      matchedKeyCount: 2,
+    });
+  });
+
+  it("keeps primary matching first-match for unopposed group-scored entries", () => {
+    const RealRegExp = RegExp;
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const grouped = entry({
+        title: "Grouped",
+        strategy: "selective",
+        key: ["/gate/", "/expensive primary/"],
+        inclusionGroup: "variant",
+      });
+
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook([grouped], { useGroupScoring: true }),
+        "The gate opens.",
+      );
+
+      expect(activation.entries[0]).toMatchObject({
+        entry: grouped,
+        matchedKey: "/gate/",
+        matchedKeyCount: 1,
+      });
+      expect(regexpSpy.mock.calls.some(([pattern]) => pattern === "expensive primary")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps primary matching first-match when priority disables group scoring", () => {
+    const RealRegExp = RegExp;
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const priorityToggle = entry({
+        title: "Priority Toggle",
+        strategy: "selective",
+        key: ["gate"],
+        inclusionGroup: "variant",
+        insertionOrder: 10,
+        prioritizeInclusion: true,
+      });
+      const highOrder = entry({
+        title: "High Order",
+        strategy: "selective",
+        key: ["/gate/", "/expensive primary/"],
+        inclusionGroup: "variant",
+        insertionOrder: 100,
+      });
+
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook([priorityToggle, highOrder], { useGroupScoring: true }),
+        "The gate opens.",
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual(["High Order"]);
+      expect(activation.entries[0]?.matchedKeyCount).toBe(1);
+      expect(regexpSpy.mock.calls.some(([pattern]) => pattern === "expensive primary")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps primary matching first-match when secondary filters block group-scored entries", () => {
+    const RealRegExp = RegExp;
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const filtered = entry({
+        title: "Filtered",
+        strategy: "selective",
+        key: ["/gate/", "/expensive primary/"],
+        keySecondary: ["missing filter"],
+        selectiveLogic: "and-any",
+        inclusionGroup: "variant",
+      });
+
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook([filtered], { useGroupScoring: true }),
+        "The gate opens.",
+      );
+
+      expect(activation.entries).toEqual([]);
+      expect(regexpSpy.mock.calls.some(([pattern]) => pattern === "expensive primary")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not inflate group scoring with duplicate primary keys", () => {
+    const duplicateHighOrder = entry({
+      title: "Duplicate High Order",
+      strategy: "selective",
+      key: ["gate", "gate"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+    const uniqueLowOrder = entry({
+      title: "Unique Low Order",
+      strategy: "selective",
+      key: ["gate", "moon"],
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([duplicateHighOrder, uniqueLowOrder], { useGroupScoring: true }),
+      "The moon gate opens.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Unique Low Order"]);
+  });
+
+  it("does not inflate group scoring with case-insensitive duplicate primary keys", () => {
+    const duplicateCaseHighOrder = entry({
+      title: "Duplicate Case High Order",
+      strategy: "selective",
+      key: ["gate", "Gate"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+    const uniqueLowOrder = entry({
+      title: "Unique Low Order",
+      strategy: "selective",
+      key: ["gate", "moon"],
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([duplicateCaseHighOrder, uniqueLowOrder], { useGroupScoring: true }),
+      "The moon gate opens.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Unique Low Order"]);
+  });
+
+  it("does not inflate group scoring with equivalent regex primary keys", () => {
+    const duplicateRegexHighOrder = entry({
+      title: "Duplicate Regex High Order",
+      strategy: "selective",
+      key: ["/gate/", "/gate/i"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+    const uniqueLowOrder = entry({
+      title: "Unique Low Order",
+      strategy: "selective",
+      key: ["/gate/", "moon"],
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([duplicateRegexHighOrder, uniqueLowOrder], { useGroupScoring: true }),
+      "The moon gate opens.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Unique Low Order"]);
+  });
+
+  it("preserves the first matching regex key while deduping matched primary counts", () => {
+    const grouped = entry({
+      title: "Grouped Regex",
+      strategy: "selective",
+      key: ["/gate/i", "/gate/"],
+      inclusionGroup: "variant",
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([grouped], { useGroupScoring: true }),
+      "The gate opens.",
+    );
+
+    expect(activation.entries[0]).toMatchObject({
+      matchedKey: "/gate/i",
+      matchedKeyCount: 1,
+    });
+  });
+
+  it("suppresses entries in any group owned by the winning inclusion member", () => {
+    const bridge = entry({
+      title: "Bridge",
+      strategy: "constant",
+      inclusionGroup: "alpha, beta",
+      insertionOrder: 100,
+      prioritizeInclusion: true,
+    });
+    const alphaOnly = entry({
+      title: "Alpha Only",
+      strategy: "constant",
+      inclusionGroup: "alpha",
+      insertionOrder: 10,
+    });
+    const betaOnly = entry({
+      title: "Beta Only",
+      strategy: "constant",
+      inclusionGroup: "beta",
+      insertionOrder: 10,
+    });
+    const outside = entry({
+      title: "Outside",
+      strategy: "constant",
+      insertionOrder: 5,
+    });
+
+    const activated = activateLorebookEntries(lorebook([alphaOnly, betaOnly, outside, bridge]), "");
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Bridge", "Outside"]);
+  });
+
+  it("applies probability as a final threshold gate after group resolution", () => {
+    const doomedWinner = entry({
+      title: "Doomed Winner",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      probability: 0,
+      insertionOrder: 100,
+      prioritizeInclusion: true,
+    });
+    const suppressedLoser = entry({
+      title: "Suppressed Loser",
+      strategy: "constant",
+      inclusionGroup: "variant",
+      probability: 100,
+      insertionOrder: 10,
+    });
+    const thresholdKeep = entry({
+      title: "Threshold Keep",
+      strategy: "constant",
+      probability: 50,
+      insertionOrder: 5,
+    });
+    const thresholdDrop = entry({
+      title: "Threshold Drop",
+      strategy: "constant",
+      probability: 50,
+      insertionOrder: 0,
+    });
+    const rolls = [0.9, 0.49, 0.5];
+
+    const activated = activateLorebookEntries(
+      lorebook([suppressedLoser, doomedWinner, thresholdKeep, thresholdDrop]),
+      "",
+      { rand: () => rolls.shift() ?? 0 },
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Threshold Keep"]);
+  });
+
+  it("includes recursive matches when resolving inclusion groups", () => {
+    const direct = entry({
+      title: "Direct",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Hidden sigil.",
+      inclusionGroup: "variant",
+      insertionOrder: 10,
+      prioritizeInclusion: true,
+    });
+    const recursive = entry({
+      title: "Recursive",
+      strategy: "selective",
+      key: ["hidden sigil"],
+      inclusionGroup: "variant",
+      insertionOrder: 100,
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([direct, recursive], { recursiveScan: true }),
+      "Open the gate.",
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Recursive"]);
+    expect(activated[0]?.activationSource).toBe("recursion");
+  });
+
+  it("lets entries seed recursion before probability filters them out", () => {
+    const parent = entry({
+      title: "Parent",
+      strategy: "selective",
+      key: ["gate"],
+      body: "Hidden sigil.",
+      probability: 0,
+    });
+    const child = entry({
+      title: "Child",
+      strategy: "selective",
+      key: ["hidden sigil"],
+      probability: 100,
+    });
+    const rolls = [0.9, 0];
+
+    const activated = activateLorebookEntries(
+      lorebook([parent, child], { recursiveScan: true }),
+      "Open the gate.",
+      { rand: () => rolls.shift() ?? 0 },
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual(["Child"]);
+    expect(activated[0]?.activationSource).toBe("recursion");
+  });
+
   it("recursively activates entries from activated entry bodies without loops", () => {
     const bessie = entry({
       title: "Bessie",
@@ -824,6 +1282,54 @@ describe("lorebook activation", () => {
     );
 
     expect(activated.map((item) => item.entry.title)).toEqual(["Starter", "Delayed"]);
+  });
+
+  it("keeps delayed recursion probes on first-match primary matching", () => {
+    const RealRegExp = RegExp;
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const starter = entry({
+        title: "Starter",
+        strategy: "constant",
+        body: "Seed sigil.",
+      });
+      const bridge = entry({
+        title: "Bridge",
+        strategy: "selective",
+        key: ["seed sigil"],
+        body: "Next sigil.",
+      });
+      const delayed = entry({
+        title: "Delayed",
+        strategy: "selective",
+        key: ["/next sigil/", "/expensive probe/"],
+        inclusionGroup: "variant",
+        recursion: {
+          nonRecursable: false,
+          preventFurther: false,
+          delayUntilRecursion: true,
+          recursionLevel: 1,
+        },
+      });
+
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook([starter, bridge, delayed], {
+          recursiveScan: true,
+          maxRecursionSteps: 1,
+          useGroupScoring: true,
+        }),
+        "",
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual(["Starter", "Bridge"]);
+      expect(regexpSpy.mock.calls.some(([pattern]) => pattern === "expensive probe")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("delays constant entries until their recursion level opens", () => {

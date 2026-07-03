@@ -7,23 +7,26 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - React and TypeScript app shell built with Vite.
 - Native product records for Messenger, Roleplay, companions, personas, lorebooks, provider connections, and Ripples.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
-  activation settings and entry-level activation, placement, trigger, filter,
-  match-source, and budget fields.
+  activation settings and entry-level activation, inclusion, placement,
+  trigger, filter, match-source, and budget fields.
 - Lorebook prompt assembly activates enabled constant entries unless delayed
   until recursion, selective primary-key entries from recent Messenger or
   Roleplay transcript text, per-entry opted-in companion/persona match sources,
   optional filter logic, and regex keys, recursively scans activated entry
   bodies when enabled, surfaces invalid or unsafe regex and runaway recursion
-  warnings, orders activated entries by insertion order, places them before
-  character context, after character context, or at transcript depth, and
+  warnings, resolves inclusion groups, applies probability gates after group
+  winners are selected, orders activated entries by insertion order, places them
+  before character context, after character context, or at transcript depth, and
   applies lorebook budget caps with direct activations prioritized before
   recursive activations, constants before selective entries within each source,
   and a cheap text-length estimate.
 - Lorebook catalog controls expose scan depth, budget tokens or percent, entry
   Strategy/Key, Optional Filter, Selective Logic, Additional matching sources,
   Include names, case-sensitive and whole-word matching, insertion order,
-  insertion position, recursive scan, max recursion steps, per-entry recursion
-  controls, regex-key hints, and at-depth depth/role.
+  insertion position, recursive scan, max recursion steps, group scoring,
+  per-entry probability, inclusion groups, group weight, insertion-order group
+  resolution, per-entry recursion controls, regex-key hints, and at-depth
+  depth/role.
 - Collection-backed storage entity registry and Rust allowlist checks, including
   split Messenger message and Roleplay entry collections.
 - DeKoi-native bundle import and export paths through the desktop host, with
@@ -63,9 +66,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   fallback and remote-runtime command paths for storage/check/model commands.
 - Roleplay now has native thread settings and send guards, but deeper
   scene-specific semantics, media, and visual-novel presentation remain early.
-- Lorebook probability, triggers, and character filters are normalized and
-  stored, but activation behavior and advanced UI for those fields are not
-  implemented yet.
+- Lorebook triggers and character filters are normalized and stored, but
+  activation behavior and advanced UI for those fields are not implemented yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media and preset rails are placeholder-only.

@@ -19,6 +19,10 @@ export interface LorebookEntryDraft {
   key: string;
   keySecondary: string;
   selectiveLogic: LoreSelectiveLogic;
+  probability: string;
+  inclusionGroup: string;
+  groupWeight: string;
+  prioritizeInclusion: boolean;
   insertionOrder: string;
   insertionPosition: LoreInsertionPosition;
   depth: string;
@@ -164,6 +168,10 @@ export function readNullablePercentInput(value: string, fallback: number | null)
   return typeof percent === "number" ? Math.min(100, percent) : percent;
 }
 
+export function readPercentInput(value: string, fallback: number) {
+  return Math.min(100, readNonNegativeIntegerInput(value, fallback));
+}
+
 export function normalizeLoreMatchSources(
   value: LoreMatchSources | null | undefined,
 ): LoreMatchSources {
@@ -218,6 +226,10 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     key: parseLorebookEntryKeys(draft.key),
     keySecondary,
     selectiveLogic: keySecondary ? draft.selectiveLogic : null,
+    probability: readPercentInput(draft.probability, 100),
+    inclusionGroup: draft.inclusionGroup,
+    groupWeight: readNonNegativeIntegerInput(draft.groupWeight, 100),
+    prioritizeInclusion: draft.prioritizeInclusion,
     insertionOrder: readFiniteNumberInput(draft.insertionOrder, 100),
     insertionPosition: draft.insertionPosition,
     depth,
