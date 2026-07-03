@@ -737,7 +737,6 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         disabled={!canSend}
         hint={
           generationNotice ||
-          storageBlocker ||
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||

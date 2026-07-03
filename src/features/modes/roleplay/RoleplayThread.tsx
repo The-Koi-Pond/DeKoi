@@ -675,7 +675,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         disabled={!canSend}
         hint={
           generationNotice ||
-          storageBlocker ||
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||
