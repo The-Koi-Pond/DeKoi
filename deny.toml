@@ -4,10 +4,42 @@ all-features = true
 [advisories]
 version = 2
 yanked = "warn"
-ignore = []
+ignore = [
+  # quick-xml 0.39.4 is pulled through plist 1.9.0 -> tauri 2.11.5.
+  # plist currently requires quick-xml ^0.39.2, so cargo cannot select the
+  # fixed quick-xml >=0.41.0 release. Remove these when plist/Tauri allows it.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+  # These unmaintained unic-* crates are pulled through urlpattern 0.3.0 ->
+  # tauri-utils 2.9.3. There is no direct DeKoi use and no safe upstream
+  # upgrade path yet. Remove these when Tauri drops or updates urlpattern.
+  "RUSTSEC-2025-0075",
+  "RUSTSEC-2025-0080",
+  "RUSTSEC-2025-0081",
+  "RUSTSEC-2025-0098",
+  "RUSTSEC-2025-0100",
+  # GTK3 gtk-rs bindings and proc-macro-error are pulled through Tauri's
+  # Linux webview stack (wry/tao/webkit2gtk/glib). There is no direct DeKoi
+  # use and no safe upstream upgrade path in the current Tauri 2 dependency
+  # graph. Remove these when Tauri moves off the unmaintained GTK3 stack.
+  "RUSTSEC-2024-0370",
+  "RUSTSEC-2024-0411",
+  "RUSTSEC-2024-0412",
+  "RUSTSEC-2024-0413",
+  "RUSTSEC-2024-0414",
+  "RUSTSEC-2024-0415",
+  "RUSTSEC-2024-0416",
+  "RUSTSEC-2024-0417",
+  "RUSTSEC-2024-0418",
+  "RUSTSEC-2024-0419",
+  "RUSTSEC-2024-0420",
+]
 
 [bans]
-multiple-versions = "warn"
+# Tauri's cross-platform graph intentionally carries many duplicate platform,
+# parser, and proc-macro crates. The warning output is too noisy for CI, while
+# advisories/licenses/sources remain enforced above.
+multiple-versions = "allow"
 wildcards = "allow"
 highlight = "all"
 
