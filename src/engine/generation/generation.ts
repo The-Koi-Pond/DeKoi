@@ -5,6 +5,7 @@ import type { ProviderConnectionRecord } from "../contracts/types/provider-conne
 import {
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
+  buildMatchSources,
   buildScanBuffer,
   sortActivatedEntries,
   type ActivatedLoreEntry,
@@ -111,7 +112,12 @@ export function replaceGenerationPromptMacros(
 }
 
 export interface LoreGenerationContextOptions {
+  /** Active persona used by entries that opt into persona-description matching. */
+  activePersona?: PersonaRecord | null;
+  /** Selected companions used by entries that opt into companion match sources. */
+  companions?: CharacterRecord[];
   includeSummary?: boolean;
+  /** Transcript sources scanned according to each lorebook's scan depth. */
   scanSources?: LorebookScanSource[];
   contextTokens?: number | null;
 }
@@ -181,6 +187,10 @@ export function activateLoreGenerationEntriesWithWarnings(
   options: LoreGenerationContextOptions = {},
 ): ActivatedLoreGenerationResult {
   const warnings: string[] = [];
+  const matchSources = buildMatchSources({
+    activePersona: options.activePersona ?? null,
+    companions: options.companions ?? [],
+  });
   const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
     const scanBuffer = buildScanBuffer(
       options.scanSources ?? [],
@@ -192,6 +202,7 @@ export function activateLoreGenerationEntriesWithWarnings(
         ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
         : 0;
     const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
+      matchSources,
       sourceOrder,
     });
     warnings.push(...activation.warnings);

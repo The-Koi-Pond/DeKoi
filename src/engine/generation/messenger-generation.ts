@@ -216,6 +216,8 @@ function createMessengerPromptAssembly({
   warnings: string[];
 } {
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
+    activePersona,
+    companions,
     contextTokens: providerConnection?.maxContext ?? null,
     scanSources: messengerLoreScanSources(thread),
   });

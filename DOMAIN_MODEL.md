@@ -103,11 +103,16 @@ Current implementation:
   filters, triggers, timing, recursion, role, and match-source blocks unset.
 - Messenger and Roleplay prompt assembly activates selected lorebooks before
   provider requests. Enabled constant entries with body text always activate;
-  selective entries activate from primary keys found in recent transcript text
-  using scan depth, speaker-name inclusion, case sensitivity, and whole-word
-  settings. Slash-delimited `/pattern/flags` keys activate as regex; invalid or
-  unsafe regex keys fall back to plaintext matching with warnings. Optional
-  filter keys use each entry's selective logic after the primary-key match.
+  selective entries activate from primary keys found in recent transcript text.
+  Entries can also opt into additional matching sources for selected companion
+  description, personality, scenario, character note, and active persona
+  description; those fields are not scanned by default, and name/nickname
+  matching in those source blobs follows the lorebook `includeNames` setting.
+  Transcript matching uses scan depth and speaker-name inclusion; plaintext key
+  matching uses case sensitivity and whole-word settings. Slash-delimited
+  `/pattern/flags` keys activate as regex; invalid or unsafe regex keys fall
+  back to plaintext matching with warnings. Optional filter keys use each
+  entry's selective logic after the primary-key match.
 - Activated entries are sorted by descending insertion order with selected
   lorebook order and original entry order as stable tiebreakers. Entries can be
   placed before character context, after character context, or at a transcript
@@ -121,13 +126,13 @@ Current implementation:
   Roleplay lorebook summaries count against budgets and emit at most once per
   generation request.
 - Catalog UI exposes entry Strategy, comma-separated Key, Optional Filter,
-  Selective Logic, insertion order, insertion position, at-depth depth/role,
-  regex-key hints, and lorebook Scan depth, case-sensitive matching, whole-word
-  matching, and budget fields.
+  Selective Logic, Additional matching sources, insertion order, insertion
+  position, at-depth depth/role, regex-key hints, and lorebook Scan depth,
+  Include names, case-sensitive matching, whole-word matching, and budget fields.
 
 Not fully settled yet:
 
-- Probability, recursion, triggers, character/match-source filters, and exact
+- Probability, recursion, triggers, character filters, and exact
   tokenizer-backed budgeting.
 - UI for the remaining advanced activation fields.
 - Import format.

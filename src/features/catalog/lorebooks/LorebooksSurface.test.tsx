@@ -1,15 +1,26 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { createLorebookRecord } from "../../../engine/catalog/lorebook-actions";
+import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
   canSaveLorebookEntryDraft,
+  EMPTY_LORE_MATCH_SOURCES,
   entryDraftDisablesBannerSave,
   lorebookEntryDraftToInput,
+  normalizeLoreMatchSources,
   parseLorebookEntryKeys,
   readNullableNonNegativeIntegerInput,
   readNullablePercentInput,
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
+import {
+  LorebooksSurface,
+  type LorebooksSurfaceNav,
+} from "./LorebooksSurface";
 import { readScanDepthInput } from "./lorebook-scan-depth";
+
+const now = "2026-07-02T00:00:00.000Z";
 
 describe("readScanDepthInput", () => {
   it("treats blank scan-depth drafts as invalid", () => {
@@ -36,7 +47,38 @@ const baseDraft: LorebookEntryDraft = {
   insertionPosition: "after-character",
   depth: "0",
   role: "system",
+  matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
+
+function surfaceNav(
+  overrides: Partial<LorebooksSurfaceNav> = {},
+): LorebooksSurfaceNav {
+  const lorebook = createLorebookRecord({
+    id: "lorebook-1",
+    input: { title: "World Notes" },
+    now,
+  });
+
+  return {
+    lorebooks: [lorebook],
+    appSettings: DEFAULT_APP_SETTINGS,
+    view: { kind: "lorebooks", lorebookId: lorebook.id },
+    createLorebook: (input) =>
+      createLorebookRecord({
+        id: "created-lorebook",
+        input,
+        now,
+      }),
+    createLorebookEntry: () => null,
+    deleteLorebook: () => {},
+    deleteLorebookEntry: () => {},
+    duplicateLorebookEntry: () => null,
+    setView: () => {},
+    updateLorebook: () => {},
+    updateLorebookEntry: () => {},
+    ...overrides,
+  };
+}
 
 describe("lorebook entry draft helpers", () => {
   it("rejects selective drafts without parsed keys", () => {
@@ -172,6 +214,35 @@ describe("lorebook entry draft helpers", () => {
     });
   });
 
+  it("serializes additional matching sources only when enabled", () => {
+    expect(lorebookEntryDraftToInput(baseDraft).matchSources).toBeNull();
+    expect(
+      lorebookEntryDraftToInput({
+        ...baseDraft,
+        matchSources: {
+          ...EMPTY_LORE_MATCH_SOURCES,
+          characterDescription: true,
+        },
+      }).matchSources,
+    ).toEqual({
+      ...EMPTY_LORE_MATCH_SOURCES,
+      characterDescription: true,
+    });
+  });
+
+  it("normalizes missing matching sources to default-off checkboxes", () => {
+    expect(normalizeLoreMatchSources(null)).toEqual(EMPTY_LORE_MATCH_SOURCES);
+    expect(
+      normalizeLoreMatchSources({
+        ...EMPTY_LORE_MATCH_SOURCES,
+        scenario: true,
+      }),
+    ).toEqual({
+      ...EMPTY_LORE_MATCH_SOURCES,
+      scenario: true,
+    });
+  });
+
   it("normalizes nullable budget inputs", () => {
     expect(readNullableNonNegativeIntegerInput("", 7)).toBeNull();
     expect(readNullableNonNegativeIntegerInput("3.9", null)).toBe(3);
@@ -200,5 +271,30 @@ describe("lorebook entry draft helpers", () => {
         showLorebookEditor: true,
       }),
     ).toBe(false);
+  });
+});
+
+describe("LorebooksSurface", () => {
+  it("renders Include names in existing lorebook activation settings", () => {
+    const markup = renderToStaticMarkup(
+      <LorebooksSurface nav={surfaceNav()} />,
+    );
+
+    expect(markup).toContain("Include names");
+    expect(markup).toContain('aria-label="Include names"');
+  });
+
+  it("renders Include names in new lorebook activation settings", () => {
+    const markup = renderToStaticMarkup(
+      <LorebooksSurface
+        nav={surfaceNav({
+          lorebooks: [],
+          view: { kind: "lorebooks", mode: "new-lorebook" },
+        })}
+      />,
+    );
+
+    expect(markup).toContain("Include names");
+    expect(markup).toContain('aria-label="Include names"');
   });
 });
