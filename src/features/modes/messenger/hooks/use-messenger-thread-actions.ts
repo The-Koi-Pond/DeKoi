@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
+import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import {
   clearMessengerMessages,
@@ -16,6 +17,7 @@ import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
 import type { MessengerThreadCreateInput, PondView } from "../../../navigation";
 import type { StateSetter } from "../../../../shared/react/state-setter";
+import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/lore-runtime-actions";
 
 type UseMessengerThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
@@ -24,6 +26,7 @@ type UseMessengerThreadActionsInput = {
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
   setMessengerThreads: StateSetter<MessengerThread[]>;
+  setLoreRuntimeStates: StateSetter<LoreRuntimeState[]>;
   setView: (view: PondView) => void;
   view: PondView;
   openMessengerThread: (threadId: string) => void;
@@ -35,6 +38,7 @@ export function useMessengerThreadActions({
   messengerThreads,
   providerConnections,
   setMessengerThreads,
+  setLoreRuntimeStates,
   setView,
   view,
   openMessengerThread,
@@ -124,8 +128,11 @@ export function useMessengerThreadActions({
           thread.id === threadId ? clearMessengerMessages(thread) : thread,
         ),
       );
+      setLoreRuntimeStates((currentStates) =>
+        deleteLoreRuntimeStateForOwner(currentStates, "messenger-thread", threadId),
+      );
     },
-    [setMessengerThreads],
+    [setLoreRuntimeStates, setMessengerThreads],
   );
 
   const deleteMessengerThread = useCallback(
@@ -133,12 +140,15 @@ export function useMessengerThreadActions({
       setMessengerThreads((currentThreads) =>
         deleteMessengerThreadRecord(currentThreads, threadId),
       );
+      setLoreRuntimeStates((currentStates) =>
+        deleteLoreRuntimeStateForOwner(currentStates, "messenger-thread", threadId),
+      );
 
       if (view.kind === "messenger" && view.threadId === threadId) {
         setView({ kind: "pond" });
       }
     },
-    [setMessengerThreads, setView, view],
+    [setLoreRuntimeStates, setMessengerThreads, setView, view],
   );
 
   return {

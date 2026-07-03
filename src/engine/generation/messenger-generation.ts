@@ -1,5 +1,6 @@
 import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import {
   resolveMessengerSystemPrompt,
   type MessengerMessage,
@@ -58,6 +59,11 @@ export interface MessengerGenerationRequest {
 export type MessengerGenerationResponse = GenerationResponse;
 
 export type MessengerGenerationAdapter = GenerationAdapter<MessengerGenerationRequest>;
+
+export interface MessengerGenerationRequestAssembly {
+  request: MessengerGenerationRequest;
+  loreRuntimeState: LoreRuntimeState | null;
+}
 
 export interface MessengerGenerationContext {
   activePersona: PersonaRecord | null;
@@ -193,6 +199,7 @@ function createMessengerPromptAssembly({
   activePersona,
   companions,
   lorebooks,
+  loreRuntimeState,
   providerConnection,
   thread,
   targetCompanion,
@@ -200,10 +207,12 @@ function createMessengerPromptAssembly({
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeState?: LoreRuntimeState | null;
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
 }): {
+  loreRuntimeState: LoreRuntimeState | null;
   promptMessages: MessengerGenerationPromptMessage[];
   warnings: string[];
 } {
@@ -211,6 +220,7 @@ function createMessengerPromptAssembly({
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
+    runtimeState: loreRuntimeState,
     scanSources: messengerLoreScanSources(thread),
   });
   const activatedLoreEntries = loreActivation.entries;
@@ -227,6 +237,7 @@ function createMessengerPromptAssembly({
   );
 
   return {
+    loreRuntimeState: loreActivation.runtimeState,
     promptMessages: [
       {
         role: "system",
@@ -247,41 +258,72 @@ function createMessengerPromptAssembly({
 export function createMessengerGenerationRequest({
   context,
   id,
+  loreRuntimeState,
   now,
   parameters,
   userMessage,
 }: {
   context: MessengerGenerationContext;
   id: string;
+  loreRuntimeState?: LoreRuntimeState | null;
   now: string;
   parameters?: Partial<MessengerGenerationParameters>;
   userMessage: MessengerMessage;
 }): MessengerGenerationRequest {
+  return createMessengerGenerationRequestAssembly({
+    context,
+    id,
+    loreRuntimeState,
+    now,
+    parameters,
+    userMessage,
+  }).request;
+}
+
+export function createMessengerGenerationRequestAssembly({
+  context,
+  id,
+  loreRuntimeState,
+  now,
+  parameters,
+  userMessage,
+}: {
+  context: MessengerGenerationContext;
+  id: string;
+  loreRuntimeState?: LoreRuntimeState | null;
+  now: string;
+  parameters?: Partial<MessengerGenerationParameters>;
+  userMessage: MessengerMessage;
+}): MessengerGenerationRequestAssembly {
   const targetCompanion = getNextMessengerCompanion(context.requestThread, context.companions);
   const promptAssembly = createMessengerPromptAssembly({
     activePersona: context.activePersona,
     companions: context.companions,
     lorebooks: context.lorebooks,
+    loreRuntimeState,
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,
   });
 
   return {
-    schemaVersion: 1,
-    id,
-    createdAt: now,
-    thread: context.requestThread,
-    userMessage,
-    companions: context.companions,
-    activePersona: context.activePersona,
-    lorebooks: context.lorebooks,
-    providerConnectionId: context.providerConnectionId,
-    providerConnection: context.providerConnection,
-    targetCharacterId: targetCompanion?.id ?? null,
-    targetCharacterName: targetCompanion?.displayName ?? null,
-    promptMessages: promptAssembly.promptMessages,
-    parameters: createGenerationParameters(parameters, context.providerConnection),
-    warnings: [...context.warnings, ...promptAssembly.warnings],
+    request: {
+      schemaVersion: 1,
+      id,
+      createdAt: now,
+      thread: context.requestThread,
+      userMessage,
+      companions: context.companions,
+      activePersona: context.activePersona,
+      lorebooks: context.lorebooks,
+      providerConnectionId: context.providerConnectionId,
+      providerConnection: context.providerConnection,
+      targetCharacterId: targetCompanion?.id ?? null,
+      targetCharacterName: targetCompanion?.displayName ?? null,
+      promptMessages: promptAssembly.promptMessages,
+      parameters: createGenerationParameters(parameters, context.providerConnection),
+      warnings: [...context.warnings, ...promptAssembly.warnings],
+    },
+    loreRuntimeState: promptAssembly.loreRuntimeState,
   };
 }

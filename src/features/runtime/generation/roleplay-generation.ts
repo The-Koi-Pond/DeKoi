@@ -1,5 +1,6 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
@@ -9,10 +10,14 @@ import {
 import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import {
   createRoleplayGenerationContext,
-  createRoleplayGenerationRequest,
+  createRoleplayGenerationRequestAssembly,
   type RoleplayGenerationResponse,
 } from "../../../engine/generation/roleplay-generation";
 import type { GenerationRuntimeMode } from "./generation-runtime";
+import {
+  compactGenerationLoreRuntimeState,
+  createGenerationLoreRuntimeState,
+} from "./lore-runtime-state";
 import {
   generateWithConfiguredProvider,
   type ProviderGenerationRequest,
@@ -23,6 +28,7 @@ export interface GenerateRoleplayThreadTurnInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeState?: LoreRuntimeState | null;
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
@@ -37,6 +43,7 @@ export interface GenerateRoleplayThreadTurnInput {
 
 export interface GenerateRoleplayThreadTurnResult {
   thread: RoleplayThread;
+  loreRuntimeState: LoreRuntimeState | null;
   warnings: string[];
   generatedEntryCount: number;
 }
@@ -64,6 +71,7 @@ export async function generateRoleplayThreadTurn({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
+  loreRuntimeState,
   mode = "remote-runtime",
   now,
   parameters,
@@ -79,12 +87,21 @@ export async function generateRoleplayThreadTurn({
     providerConnections,
     thread,
   });
-  const request = createRoleplayGenerationRequest({
+  const generationLoreRuntimeState = createGenerationLoreRuntimeState({
+    createId,
+    existingState: loreRuntimeState,
+    now,
+    ownerId: thread.id,
+    ownerKind: "roleplay-thread",
+  });
+  const requestAssembly = createRoleplayGenerationRequestAssembly({
     context,
     id: createId("roleplay-generation-request"),
+    loreRuntimeState: generationLoreRuntimeState,
     now,
     parameters,
   });
+  const request = requestAssembly.request;
   const response = await generateRoleplayResponse(request, mode);
   const droppedDraftWarnings: string[] = [];
   const entries = response.messages.flatMap((messageDraft) => {
@@ -112,6 +129,10 @@ export async function generateRoleplayThreadTurn({
 
   return {
     thread: entries.length > 0 ? appendRoleplayEntries(thread, entries) : thread,
+    loreRuntimeState: compactGenerationLoreRuntimeState(
+      requestAssembly.loreRuntimeState,
+      response.createdAt,
+    ),
     warnings,
     generatedEntryCount: entries.length,
   };

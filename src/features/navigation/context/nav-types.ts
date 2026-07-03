@@ -2,6 +2,10 @@ import type { CharacterRecord } from "../../../engine/contracts/types/character"
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
 import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import type { LoreEntryRecord, LorebookRecord } from "../../../engine/contracts/types/lorebook";
+import type {
+  LoreRuntimeState,
+  LoreRuntimeStateOwnerKind,
+} from "../../../engine/contracts/types/lore-runtime-state";
 import type { LorebookEntryInput, LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
@@ -57,6 +61,10 @@ export interface NavRippleState {
   rippleStates: RippleState[];
 }
 
+export interface NavLoreRuntimeState {
+  loreRuntimeStates: LoreRuntimeState[];
+}
+
 export interface NavStorageState {
   messengerStorageMode: MessengerStorageMode;
   messengerStorageStatus: MessengerStorageStatus;
@@ -81,6 +89,7 @@ interface NavState
     NavCatalogState,
     NavThreadState,
     NavRippleState,
+    NavLoreRuntimeState,
     NavStorageState,
     NavSettingsState,
     NavCareState {}
@@ -178,6 +187,18 @@ interface NavRippleActions {
   deleteRipple: (ownerKind: RippleStateOwnerKind, ownerId: string, rippleId: string) => void;
 }
 
+export interface NavLoreRuntimeActions {
+  getLoreRuntimeState: (
+    ownerKind: LoreRuntimeStateOwnerKind,
+    ownerId: string,
+  ) => LoreRuntimeState | null;
+  updateLoreRuntimeState: (
+    runtimeState: LoreRuntimeState | null,
+    ownerKind: LoreRuntimeStateOwnerKind,
+    ownerId: string,
+  ) => void;
+}
+
 export interface NavStorageBundleActions {
   createStorageBundle: () => DeKoiStorageBundle;
   importStorageBundle: (
@@ -254,6 +275,7 @@ interface NavActions
     NavRoleplayThreadActions,
     NavMessengerThreadActions,
     NavRippleActions,
+    NavLoreRuntimeActions,
     NavStorageBundleActions,
     NavStorageActions,
     NavCareActions {}

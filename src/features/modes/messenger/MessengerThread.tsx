@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type {
   NavCatalogState,
+  NavLoreRuntimeActions,
   NavMessengerThreadActions,
   NavSettingsState,
   NavThreadState,
@@ -52,6 +53,7 @@ export type MessengerThreadNav = Pick<
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
+  Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "messengerThreads"> &
   Pick<NavViewActions, "setSideRailView" | "setView"> &
@@ -383,6 +385,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
+        loreRuntimeState: nav.getLoreRuntimeState("messenger-thread", threadWithUserMessage.id),
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -411,6 +414,11 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         );
         nav.updateMessengerThread(result.thread);
       }
+      nav.updateLoreRuntimeState(
+        result.loreRuntimeState,
+        "messenger-thread",
+        threadWithUserMessage.id,
+      );
 
       setGenerationState(
         result.generatedMessages.length > 0

@@ -406,6 +406,7 @@ Supported storage entities:
 - `roleplay-threads`
 - `roleplay-entries`
 - `lorebooks`
+- `lore-runtime-states`
 - `messenger-threads`
 - `messenger-messages`
 - `personas`
@@ -435,24 +436,38 @@ and no insertion-order group-resolution flag. Pre-v2
 lorebook rows were development-only and are rejected by DeKoi normalization
 rather than migrated.
 
+`lore-runtime-states` records use `schemaVersion: 1` and belong to either a
+Messenger or Roleplay thread through `ownerKind` and `ownerId`. They store
+mutable per-entry sticky and cooldown timers for lorebook timing effects. Each
+entry state is keyed by `lorebookId` and `entryId`, records the entry's
+`entryUpdatedAt`, and stores non-negative `activatedAtMessageIndex`,
+`stickyRemaining`, and `cooldownRemaining` values. Deleting a thread or clearing
+its transcript removes its matching lore runtime state; bundle import skips
+orphaned lore runtime states and treats missing older bundle fields as empty.
+
 When `generation_generate` includes selected lorebooks, they use the same v2
 shape. Current DeKoi prompt assembly resolves selected lorebooks into
 `promptMessages` before sending the request. Compatible runtimes should use
 `promptMessages` for provider calls and do not need to re-run lorebook
 activation. Activation includes enabled non-empty constant entries unless
-delayed until recursion, plus selective entries whose primary keys match recent
-transcript text or entry-opted additional match sources from selected companion
-`description`, `personality`, `scenario`, and `characterNote` fields and the
-active persona `description`. Additional match sources are off by default, and
-the lorebook `includeNames` setting controls whether display names and
-nicknames are included in their match blobs. Transcript matching uses
+blocked by timing delay or delayed until recursion, plus selective entries
+whose primary keys match recent transcript text or entry-opted additional match
+sources from selected companion `description`, `personality`, `scenario`, and
+`characterNote` fields and the active persona `description`. Additional match
+sources are off by default, and the lorebook `includeNames` setting controls
+whether display names and nicknames are included in their match blobs.
+Transcript matching uses
 `scanDepth` and `includeNames`; plaintext key matching uses
 `caseSensitiveKeys` and `matchWholeWords`. Slash-delimited regex keys fall back
 to plaintext with warnings when invalid or unsafe, and optional filter keys must
-satisfy the entry's selective logic. When `recursiveScan` is enabled, activated
-entry bodies can activate further entries unless blocked by `nonRecursable`,
-`preventFurther`, or `delayUntilRecursion`/`recursionLevel`; `maxRecursionSteps`
-caps recursion passes, and `0` means unlimited until DeKoi's 64-pass hard cap.
+satisfy the entry's selective logic. Timing delay blocks direct and recursive
+activation until the thread's non-empty transcript count reaches the entry's
+`delay`; cooldown blocks reactivation while its timer remains, and sticky timers
+activate entries before normal matching. When `recursiveScan` is enabled,
+activated entry bodies can activate further entries unless blocked by
+`nonRecursable`, `preventFurther`, or `delayUntilRecursion`/`recursionLevel`;
+`maxRecursionSteps` caps recursion passes, and `0` means unlimited until DeKoi's
+64-pass hard cap.
 DeKoi resolves comma-separated inclusion groups after direct and recursive
 activation. Active entries are sorted by descending `insertionOrder` before
 group resolution, so overlapping groups are discovered in prompt-priority order.
@@ -460,16 +475,19 @@ When any candidate in a group has `prioritizeInclusion`, that flag switches the
 whole group to highest-`insertionOrder` resolution; the flagged entry does not
 automatically win. Otherwise, `useGroupScoring` keeps the candidate with the
 highest unique matched primary-key count, and the default path uses weighted
-random selection by `groupWeight`. DeKoi then applies per-entry probability,
-sorts activated entries by descending insertion order, places them before
-character context, after character context, or at transcript depth, and applies
-lorebook budget caps before the runtime receives `promptMessages`. Budget
-estimates use roughly characters divided by 4. Budget trimming gives direct
-activations first claim on the cap before recursive activations, then constant
-entries before selective entries within each activation source; each priority
-group still uses descending insertion order and stable lorebook/entry
-tiebreakers. Percent budgets apply only when the selected provider connection
-has `maxContext`; otherwise DeKoi leaves the activated lore in place instead of
+random selection by `groupWeight`. Sticky activations bypass inclusion-group
+suppression and per-entry probability; DeKoi then sorts activated entries by
+descending insertion order, places them before character context, after
+character context, or at transcript depth, and applies lorebook budget caps
+before the runtime receives `promptMessages`. Budget estimates use roughly
+characters divided by 4. Budget trimming gives direct activations first claim on
+the cap before recursive activations, then constant entries before selective
+entries within each activation source; each priority group still uses
+descending insertion order and stable lorebook/entry tiebreakers. Timers are
+started or preserved only for entries that survive budget trimming; trimming a
+sticky activation clears the sticky timer while preserving any remaining
+cooldown. Percent budgets apply only when the selected provider connection has
+`maxContext`; otherwise DeKoi leaves the activated lore in place instead of
 silently dropping it. Runtimes should preserve the provided `promptMessages`
 roles and content, including at-depth system lore that DeKoi has already
 converted to `user` for Anthropic or Google provider connections. Secondary-key

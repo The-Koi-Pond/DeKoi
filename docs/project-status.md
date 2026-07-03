@@ -5,33 +5,38 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 ## Works Now
 
 - React and TypeScript app shell built with Vite.
-- Native product records for Messenger, Roleplay, companions, personas, lorebooks, provider connections, and Ripples.
+- Native product records for Messenger, Roleplay, companions, personas,
+  lorebooks, lore runtime states, provider connections, and Ripples.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
-  trigger, filter, match-source, and budget fields.
-- Lorebook prompt assembly activates enabled constant entries unless delayed
-  until recursion, selective primary-key entries from recent Messenger or
-  Roleplay transcript text, per-entry opted-in companion/persona match sources,
-  optional filter logic, and regex keys, recursively scans activated entry
-  bodies when enabled, surfaces invalid or unsafe regex and runaway recursion
-  warnings, resolves inclusion groups, applies probability gates after group
-  winners are selected, orders activated entries by insertion order, places them
-  before character context, after character context, or at transcript depth, and
-  applies lorebook budget caps with direct activations prioritized before
-  recursive activations, constants before selective entries within each source,
-  and a cheap text-length estimate.
+  trigger, filter, timing, match-source, and budget fields.
+- Lorebook prompt assembly activates enabled constant entries unless blocked by
+  timing delay or delayed until recursion, selective primary-key entries from
+  recent Messenger or Roleplay transcript text, per-entry opted-in
+  companion/persona match sources, optional filter logic, and regex keys,
+  recursively scans activated entry bodies when enabled, surfaces invalid or
+  unsafe regex and runaway recursion warnings, applies timed
+  delay/cooldown/sticky effects through per-thread lore runtime state, resolves
+  inclusion groups, applies probability gates after group winners are selected
+  while sticky activations bypass inclusion-group suppression and probability,
+  orders activated entries by insertion order, places them before character
+  context, after character context, or at transcript depth, and applies lorebook
+  budget caps with direct activations prioritized before recursive activations,
+  constants before selective entries within each source, and a cheap text-length
+  estimate.
 - Lorebook catalog controls expose scan depth, budget tokens or percent, entry
   Strategy/Key, Optional Filter, Selective Logic, Additional matching sources,
   Include names, case-sensitive and whole-word matching, insertion order,
   insertion position, recursive scan, max recursion steps, group scoring,
   per-entry probability, inclusion groups, group weight, insertion-order group
-  resolution, per-entry recursion controls, regex-key hints, and at-depth
-  depth/role.
+  resolution, per-entry recursion and timed-effect controls, regex-key hints,
+  and at-depth depth/role.
 - Collection-backed storage entity registry and Rust allowlist checks, including
-  split Messenger message and Roleplay entry collections.
+  split Messenger message and Roleplay entry collections and per-thread lore
+  runtime states.
 - DeKoi-native bundle import and export paths through the desktop host, with
   preview, explicit confirmation, pre-import backup, and commit-path collection
-  replacement.
+  replacement, including lore runtime state cleanup for missing owner threads.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage, provider checks,
   model listing, and generation commands.

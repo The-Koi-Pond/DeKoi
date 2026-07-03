@@ -20,10 +20,19 @@ export const DEFAULT_LORE_ENTRY_RECURSION: LoreEntryRecursion = {
 };
 
 export interface LoreEntryTiming {
+  /** Number of future transcript advances to keep an activated entry in context. */
   sticky: number;
+  /** Number of future transcript advances to block reactivation after an entry fires. */
   cooldown: number;
+  /** Minimum non-empty transcript count before the entry can activate. */
   delay: number;
 }
+
+export const DEFAULT_LORE_ENTRY_TIMING: LoreEntryTiming = {
+  sticky: 0,
+  cooldown: 0,
+  delay: 0,
+};
 
 export interface LoreEntryTriggers {
   types: LoreGenerationTriggerType[] | null;
@@ -94,6 +103,7 @@ export interface LoreEntryRecord {
   depth: number | null;
   role: LoreEntryRole | null;
   recursion: LoreEntryRecursion | null;
+  /** Optional sticky, cooldown, and message-count delay controls. */
   timing: LoreEntryTiming | null;
   triggers: LoreEntryTriggers | null;
   characterFilter: LoreCharacterFilter | null;
@@ -108,6 +118,13 @@ export function resolveEntryRecursion(
   return {
     ...DEFAULT_LORE_ENTRY_RECURSION,
     ...(entry.recursion ?? {}),
+  };
+}
+
+export function resolveEntryTiming(entry: Pick<LoreEntryRecord, "timing">): LoreEntryTiming {
+  return {
+    ...DEFAULT_LORE_ENTRY_TIMING,
+    ...(entry.timing ?? {}),
   };
 }
 

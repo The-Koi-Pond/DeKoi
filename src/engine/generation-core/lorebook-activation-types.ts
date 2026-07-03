@@ -1,4 +1,5 @@
 import type { LoreEntryRecord } from "../contracts/types/lorebook";
+import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 
 /** Activated entry plus match provenance, ordering, and summary metadata. */
 export interface ActivatedLoreEntry {
@@ -6,7 +7,7 @@ export interface ActivatedLoreEntry {
   lorebookTitle: string;
   lorebookSummary: string;
   entry: LoreEntryRecord;
-  matchReason: "constant" | "primary-key";
+  matchReason: "constant" | "primary-key" | "sticky";
   activationSource: "direct" | "recursion";
   matchedKey: string | null;
   matchedKeyCount: number;
@@ -20,6 +21,7 @@ export interface ActivatedLoreEntry {
 export interface LorebookActivationResult {
   entries: ActivatedLoreEntry[];
   warnings: string[];
+  runtimeState: LoreRuntimeState | null;
 }
 
 export interface PrimaryMatchCountResult {

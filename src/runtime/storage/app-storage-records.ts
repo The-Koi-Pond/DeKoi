@@ -1,6 +1,7 @@
 import type { AppSettings } from "../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../engine/contracts/types/lorebook";
+import type { LoreRuntimeState } from "../../engine/contracts/types/lore-runtime-state";
 import type { MessengerThread } from "../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
@@ -12,6 +13,7 @@ export type AppStorageRecords = {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  loreRuntimeStates: LoreRuntimeState[];
   providerConnections: ProviderConnectionRecord[];
   roleplayThreads: RoleplayThread[];
   messengerThreads: MessengerThread[];
@@ -23,6 +25,7 @@ export type AppStorageCollectionKey =
   | "characters"
   | "personas"
   | "lorebooks"
+  | "loreRuntimeStates"
   | "providerConnections"
   | "roleplayThreads"
   | "roleplayEntries"
@@ -35,6 +38,7 @@ export const APP_STORAGE_COLLECTION_KEYS = [
   "characters",
   "personas",
   "lorebooks",
+  "loreRuntimeStates",
   "providerConnections",
   "roleplayThreads",
   "roleplayEntries",

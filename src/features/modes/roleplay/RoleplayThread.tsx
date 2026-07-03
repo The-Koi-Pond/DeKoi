@@ -19,6 +19,7 @@ import {
 } from "../../runtime";
 import type {
   NavCatalogState,
+  NavLoreRuntimeActions,
   NavRoleplayThreadActions,
   NavSettingsState,
   NavThreadState,
@@ -45,6 +46,7 @@ export type RoleplayThreadNav = Pick<
   "characters" | "lorebooks" | "personas" | "providerConnections"
 > &
   Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
+  Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavThreadState, "roleplayThreads"> &
   Pick<NavViewActions, "setSelectedSurface" | "setSideRailView" | "setView"> &
@@ -340,6 +342,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
+        loreRuntimeState: nav.getLoreRuntimeState("roleplay-thread", threadWithUserEntry.id),
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -355,6 +358,11 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       if (result.generatedEntryCount > 0) {
         nav.updateRoleplayThread(result.thread);
       }
+      nav.updateLoreRuntimeState(
+        result.loreRuntimeState,
+        "roleplay-thread",
+        threadWithUserEntry.id,
+      );
 
       setGenerationState(
         result.generatedEntryCount > 0

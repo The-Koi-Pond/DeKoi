@@ -231,15 +231,18 @@ Likely relationships:
 Current implementation:
 
 - Lorebooks and lore entries are `schemaVersion: 2` records with activation,
-  inclusion, placement, trigger, filter, match-source, and budget fields.
+  inclusion, placement, trigger, filter, timing, match-source, and budget
+  fields.
 - Messenger and Roleplay prompt assembly activates selected lorebooks before
-  provider requests: constant entries activate unless delayed until recursion,
-  selective entries match keys against recent transcript text and opted-in
-  companion/persona fields, recursive scan can let activated entry bodies
-  unlock further entries, inclusion groups collapse to one winner before
-  per-entry probability runs, and activated entries are ordered, placed, and
-  budget-trimmed deterministically. The catalog UI exposes the matching,
-  inclusion, probability, placement, recursion, and budget controls.
+  provider requests: constant entries activate unless blocked by timing delay or
+  delayed until recursion, selective entries match keys against recent
+  transcript text and opted-in companion/persona fields, recursive scan can let
+  activated entry bodies unlock further entries, per-thread lore runtime state
+  applies sticky and cooldown timers, inclusion groups collapse to one winner
+  before per-entry probability runs except for sticky activations, and activated
+  entries are ordered, placed, and budget-trimmed deterministically. The catalog
+  UI exposes the matching, inclusion, probability, placement, recursion, timed
+  effect, and budget controls.
 - Exact activation, ordering, and budgeting mechanics live in
   [docs/storage-model.md](./docs/storage-model.md).
 
@@ -395,6 +398,26 @@ Still evolving:
 - Sprite/background ownership.
 
 ## Shared State Records
+
+### LoreRuntimeState
+
+LoreRuntimeState is internal per-thread state for timed lorebook effects.
+
+Purpose:
+
+- Keep sticky and cooldown timers durable without putting mutable counters on
+  reusable lorebook entries.
+- Scope lore timing to one MessengerThread or RoleplayThread.
+- Let prompt assembly reset timers when a lore entry changes or when a thread is
+  deleted or cleared.
+
+Current implementation:
+
+- LoreRuntimeState belongs to one MessengerThread or RoleplayThread.
+- It stores active timers by lorebook entry, using the lore entry's `updatedAt`
+  to discard stale timers after edits.
+- It is saved locally and included in DeKoi storage bundles, with orphaned
+  states skipped on bundle import.
 
 ### RippleState
 

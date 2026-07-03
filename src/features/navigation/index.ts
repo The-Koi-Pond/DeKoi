@@ -7,6 +7,8 @@ export type {
   NavRoleplayThreadActions,
   RoleplayThreadCreateInput,
   NavContextType,
+  NavLoreRuntimeActions,
+  NavLoreRuntimeState,
   NavLorebookActions,
   NavMessengerThreadActions,
   MessengerThreadCreateInput,

@@ -1,10 +1,16 @@
 import {
+  resolveEntryTiming,
   resolveEntryRecursion,
   type LorebookActivationSettings,
   type LorebookRecord,
   type LoreEntryRecord,
   type LoreMatchSources,
 } from "../contracts/types/lorebook";
+import type {
+  LoreRuntimeEntryState,
+  LoreRuntimeState,
+} from "../contracts/types/lore-runtime-state";
+import { hasActiveLoreRuntimeEntryTimers } from "../lore-runtime/lore-runtime-actions";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
 import {
@@ -48,14 +54,26 @@ export interface ApplyTokenBudgetOptions {
   reservedTokens?: number;
 }
 
+export interface LoreRuntimeStateActivationUpdateOptions {
+  lorebook: LorebookRecord;
+  runtimeState: LoreRuntimeState | null;
+  messageCount?: number | null;
+  activatedEntries: ActivatedLoreEntry[];
+  keptEntries?: ActivatedLoreEntry[];
+}
+
 /** Options for lore activation and deterministic test-time random gates. */
 export interface LorebookActivationOptions {
   /** Selected-lorebook order used as a stable tiebreaker across multiple lorebooks. */
   sourceOrder?: number;
   /** Prebuilt companion/persona source buckets for entries that opt into extra matching. */
   matchSources?: LoreMatchSourceBuckets;
+  /** Current thread transcript message count, after any just-submitted user message. */
+  messageCount?: number | null;
   /** Random source used by weighted inclusion groups and probability gates. */
   rand?: () => number;
+  /** Already-advanced per-thread mutable lore timer state. Engine treats this as pure input. */
+  runtimeState?: LoreRuntimeState | null;
 }
 
 interface CompiledRegexKey {
@@ -111,6 +129,7 @@ function emptyMatchSources(): LoreMatchSourceBuckets {
 
 const EMPTY_MATCH_SOURCES = emptyMatchSources();
 const LOREBOOK_RECURSION_HARD_PASS_CAP = 64;
+const LORE_RUNTIME_STATE_ENTRY_SEPARATOR = "\u0000";
 
 const COMPANION_MATCH_SOURCE_FIELDS = {
   characterDescription: "description",
@@ -121,6 +140,98 @@ const COMPANION_MATCH_SOURCE_FIELDS = {
   Exclude<LoreMatchSourceKey, "personaDescription">,
   keyof CharacterRecord
 >;
+
+function cleanMessageCount(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+}
+
+function loreRuntimeEntryKey(lorebookId: string, entryId: string) {
+  return `${lorebookId}${LORE_RUNTIME_STATE_ENTRY_SEPARATOR}${entryId}`;
+}
+
+function entryStateKey(entryState: Pick<LoreRuntimeEntryState, "lorebookId" | "entryId">) {
+  return loreRuntimeEntryKey(entryState.lorebookId, entryState.entryId);
+}
+
+function decrementRuntimeEntryState(
+  entryState: LoreRuntimeEntryState,
+  messageDelta: number,
+): LoreRuntimeEntryState {
+  if (messageDelta <= 0) return entryState;
+
+  return {
+    ...entryState,
+    stickyRemaining: Math.max(0, entryState.stickyRemaining - messageDelta),
+    cooldownRemaining: Math.max(0, entryState.cooldownRemaining - messageDelta),
+  };
+}
+
+export function advanceLoreRuntimeStateForEvaluation(
+  runtimeState: LoreRuntimeState | null | undefined,
+  messageCount: number,
+) {
+  if (!runtimeState) return null;
+
+  const previousMessageCount = cleanMessageCount(runtimeState.lastEvaluatedMessageCount);
+  const chatAdvanced = messageCount > previousMessageCount;
+  const messageDelta = chatAdvanced ? messageCount - previousMessageCount : 0;
+  const entries =
+    !chatAdvanced && previousMessageCount > 0
+      ? []
+      : runtimeState.entries
+          .map((entryState) => decrementRuntimeEntryState(entryState, messageDelta))
+          .filter(hasActiveLoreRuntimeEntryTimers);
+
+  return {
+    ...runtimeState,
+    lastEvaluatedMessageCount: messageCount,
+    entries,
+  };
+}
+
+function runtimeEntryStateMatchesEntry(entryState: LoreRuntimeEntryState, entry: LoreEntryRecord) {
+  return entryState.entryUpdatedAt === entry.updatedAt && entry.enabled && entryHasBody(entry);
+}
+
+function buildRuntimeEntryStateMap(
+  runtimeState: LoreRuntimeState | null,
+  lorebook: LorebookRecord,
+) {
+  const entryById = new Map(lorebook.entries.map((entry) => [entry.id, entry]));
+  const statesByKey = new Map<string, LoreRuntimeEntryState>();
+
+  for (const entryState of runtimeState?.entries ?? []) {
+    if (entryState.lorebookId !== lorebook.id) continue;
+    const entry = entryById.get(entryState.entryId);
+    if (!entry || !runtimeEntryStateMatchesEntry(entryState, entry)) continue;
+    statesByKey.set(entryStateKey(entryState), entryState);
+  }
+
+  return statesByKey;
+}
+
+function timedActivationIsDelayed(entry: LoreEntryRecord, messageCount: number) {
+  const timing = resolveEntryTiming(entry);
+  return timing.delay > 0 && messageCount < timing.delay;
+}
+
+function runtimeStateForEntry(
+  lorebook: LorebookRecord,
+  entry: LoreEntryRecord,
+  context: ActivationEvaluationContext,
+) {
+  return context.runtimeEntryStates.get(loreRuntimeEntryKey(lorebook.id, entry.id)) ?? null;
+}
+
+function entryPassesTimedActivationGate(
+  lorebook: LorebookRecord,
+  entry: LoreEntryRecord,
+  context: ActivationEvaluationContext,
+) {
+  const entryState = runtimeStateForEntry(lorebook, entry, context);
+  if (entryState?.cooldownRemaining && entryState.cooldownRemaining > 0) return false;
+  return !timedActivationIsDelayed(entry, context.messageCount);
+}
 
 function parseRegexKey(key: string) {
   const match = key.trim().match(/^\/(.+)\/([A-Za-z]*)$/);
@@ -805,10 +916,35 @@ export function activateLorebookEntries(
 }
 
 interface ActivationEvaluationContext {
+  messageCount: number;
   sourceOrder: number;
   matchSources: LoreMatchSourceBuckets;
   matchContext: KeyMatchContext;
   primaryMatchCounters: Map<string, PrimaryMatchCounter>;
+  runtimeEntryStates: Map<string, LoreRuntimeEntryState>;
+  runtimeState: LoreRuntimeState | null;
+}
+
+function createStickyActivatedEntry(
+  lorebook: LorebookRecord,
+  entry: LoreEntryRecord,
+  sourceOrder: number,
+  entryIndex: number,
+): ActivatedLoreEntry {
+  return {
+    lorebookId: lorebook.id,
+    lorebookTitle: lorebook.title,
+    lorebookSummary: lorebook.summary,
+    entry,
+    matchReason: "sticky",
+    activationSource: "direct",
+    matchedKey: null,
+    matchedKeyCount: 0,
+    warnings: [],
+    sourceOrder,
+    entryIndex,
+    recursionLevel: null,
+  };
 }
 
 function runDirectScan(
@@ -820,6 +956,22 @@ function runDirectScan(
   const warnings: string[] = [];
 
   for (const [entryIndex, entry] of lorebook.entries.entries()) {
+    const entryState = runtimeStateForEntry(lorebook, entry, context);
+    if (entryState?.stickyRemaining && entryState.stickyRemaining > 0) {
+      const stickyEntry = createStickyActivatedEntry(
+        lorebook,
+        entry,
+        context.sourceOrder,
+        entryIndex,
+      );
+      entries.push(stickyEntry);
+      continue;
+    }
+
+    if (!entryPassesTimedActivationGate(lorebook, entry, context)) {
+      continue;
+    }
+
     const activation = activateEntry(
       lorebook,
       entry,
@@ -843,7 +995,7 @@ function runDirectScan(
     }
   }
 
-  return { entries, warnings };
+  return { entries, warnings, runtimeState: context.runtimeState };
 }
 
 function recursionScanBodies(entries: ActivatedLoreEntry[]) {
@@ -862,6 +1014,7 @@ function entryWouldActivateFromRecursion(
   recursionLevel: number,
 ) {
   if (!entryCanPossiblyActivateFromRecursion(entry)) return false;
+  if (!entryPassesTimedActivationGate(lorebook, entry, context)) return false;
   return (
     activateEntry(
       lorebook,
@@ -946,7 +1099,7 @@ function runRecursionPasses({
   const activeEntryIds = new Set(entries.map((entry) => entry.entry.id));
   const recursionBodies = recursionScanBodies(entries);
   if (recursionBodies.length === 0) {
-    return { entries, warnings };
+    return { entries, warnings, runtimeState: context.runtimeState };
   }
 
   let recursionScanBuffer = [scanBuffer.trim(), ...recursionBodies].filter(Boolean).join("\n");
@@ -967,6 +1120,7 @@ function runRecursionPasses({
 
     for (const [entryIndex, entry] of lorebook.entries.entries()) {
       if (activeEntryIds.has(entry.id)) continue;
+      if (!entryPassesTimedActivationGate(lorebook, entry, context)) continue;
       const activation = activateEntry(
         lorebook,
         entry,
@@ -1024,7 +1178,92 @@ function runRecursionPasses({
     recursionLevel = nextRecursionLevel;
   }
 
-  return { entries, warnings };
+  return { entries, warnings, runtimeState: context.runtimeState };
+}
+
+export function updateLoreRuntimeStateFromActivation({
+  activatedEntries,
+  keptEntries = activatedEntries,
+  lorebook,
+  messageCount,
+  runtimeState,
+}: LoreRuntimeStateActivationUpdateOptions) {
+  if (!runtimeState) return null;
+
+  const runtimeEntryStates = buildRuntimeEntryStateMap(runtimeState, lorebook);
+  const keptEntriesByKey = new Map(
+    keptEntries.map((activatedEntry) => [activatedLoreEntryKey(activatedEntry), activatedEntry]),
+  );
+  const keptEntryKeys = new Set(keptEntriesByKey.keys());
+  const trimmedEntryKeys = new Set(
+    activatedEntries
+      .map((activatedEntry) => activatedLoreEntryKey(activatedEntry))
+      .filter((entryKey) => !keptEntryKeys.has(entryKey)),
+  );
+  const nextEntries = runtimeState.entries.filter(
+    (entryState) => entryState.lorebookId !== lorebook.id,
+  );
+
+  for (const entry of lorebook.entries) {
+    const key = loreRuntimeEntryKey(lorebook.id, entry.id);
+    const activatedEntry = keptEntriesByKey.get(key);
+    const existingState = runtimeEntryStates.get(key);
+
+    if (!activatedEntry) {
+      if (trimmedEntryKeys.has(key) && existingState) {
+        const cooldownOnlyState = { ...existingState, stickyRemaining: 0 };
+        if (hasActiveLoreRuntimeEntryTimers(cooldownOnlyState)) {
+          nextEntries.push(cooldownOnlyState);
+        }
+        continue;
+      }
+      if (existingState && hasActiveLoreRuntimeEntryTimers(existingState)) {
+        nextEntries.push(existingState);
+      }
+      continue;
+    }
+
+    if (activatedEntry.matchReason === "sticky" && existingState) {
+      if (hasActiveLoreRuntimeEntryTimers(existingState)) {
+        nextEntries.push(existingState);
+      }
+      continue;
+    }
+
+    const timing = resolveEntryTiming(entry);
+    if (timing.sticky <= 0 && timing.cooldown <= 0) continue;
+
+    nextEntries.push({
+      lorebookId: lorebook.id,
+      entryId: entry.id,
+      entryUpdatedAt: entry.updatedAt,
+      activatedAtMessageIndex: cleanMessageCount(messageCount),
+      stickyRemaining: timing.sticky,
+      cooldownRemaining: timing.cooldown,
+    });
+  }
+
+  return {
+    ...runtimeState,
+    entries: nextEntries.filter(hasActiveLoreRuntimeEntryTimers),
+    lastEvaluatedMessageCount: cleanMessageCount(messageCount),
+  };
+}
+
+function withLoreRuntimeState(
+  result: Pick<LorebookActivationResult, "entries" | "warnings">,
+  context: ActivationEvaluationContext,
+  lorebook: LorebookRecord,
+): LorebookActivationResult {
+  return {
+    ...result,
+    runtimeState: updateLoreRuntimeStateFromActivation({
+      activatedEntries: result.entries,
+      lorebook,
+      messageCount: context.messageCount,
+      runtimeState: context.runtimeState,
+    }),
+  };
 }
 
 export function activateLorebookEntriesWithWarnings(
@@ -1033,11 +1272,16 @@ export function activateLorebookEntriesWithWarnings(
   options: LorebookActivationOptions = {},
 ): LorebookActivationResult {
   const rand = options.rand ?? Math.random;
+  const messageCount = cleanMessageCount(options.messageCount);
+  const runtimeState = options.runtimeState ?? null;
   const context: ActivationEvaluationContext = {
+    messageCount,
     sourceOrder: options.sourceOrder ?? 0,
     matchSources: options.matchSources ?? EMPTY_MATCH_SOURCES,
     matchContext: createKeyMatchContext(),
     primaryMatchCounters: new Map(),
+    runtimeEntryStates: buildRuntimeEntryStateMap(runtimeState, lorebook),
+    runtimeState,
   };
   const countPrimaryMatches = (entry: ActivatedLoreEntry) =>
     context.primaryMatchCounters.get(activatedLoreEntryKey(entry))?.() ?? {
@@ -1047,21 +1291,29 @@ export function activateLorebookEntriesWithWarnings(
   const { entries, warnings } = runDirectScan(lorebook, scanBuffer, context);
 
   if (!lorebook.activation.recursiveScan || entries.length === 0) {
-    return finalizeActivationResult({
-      activation: lorebook.activation,
-      countPrimaryMatches,
-      entries,
-      rand,
-      warnings,
-    });
+    return withLoreRuntimeState(
+      finalizeActivationResult({
+        activation: lorebook.activation,
+        countPrimaryMatches,
+        entries,
+        rand,
+        warnings,
+      }),
+      context,
+      lorebook,
+    );
   }
 
   const activation = runRecursionPasses({ context, entries, lorebook, scanBuffer, warnings });
-  return finalizeActivationResult({
-    activation: lorebook.activation,
-    countPrimaryMatches,
-    entries: activation.entries,
-    rand,
-    warnings: activation.warnings,
-  });
+  return withLoreRuntimeState(
+    finalizeActivationResult({
+      activation: lorebook.activation,
+      countPrimaryMatches,
+      entries: activation.entries,
+      rand,
+      warnings: activation.warnings,
+    }),
+    context,
+    lorebook,
+  );
 }

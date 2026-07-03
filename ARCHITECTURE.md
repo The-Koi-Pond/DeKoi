@@ -149,6 +149,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/lore-runtime    Pure per-thread lore timer state actions.
 src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports for storage, secrets, providers, files.
 ```
@@ -177,8 +178,8 @@ architecture-level rules:
 ## Current Shape
 
 - `src/engine` owns native record contracts under `contracts/types`,
-  deterministic catalog/mode/ripple actions, and provider-neutral generation
-  assembly, including lorebook activation under `generation-core`.
+  deterministic catalog/mode/lore-runtime/ripple actions, and provider-neutral
+  generation assembly, including lorebook activation under `generation-core`.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules
