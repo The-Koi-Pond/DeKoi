@@ -37,6 +37,7 @@ export interface LoreCharacterFilter {
   characterIds: string[]
 }
 
+/** Per-entry optional fields scanned in addition to recent transcript text. */
 export interface LoreMatchSources {
   characterDescription: boolean
   characterPersonality: boolean

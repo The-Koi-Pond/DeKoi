@@ -4,6 +4,7 @@ import {
   activateLorebookEntries,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
+  buildMatchSources,
   buildScanBuffer,
   matchKey,
   sortActivatedEntries,
@@ -13,6 +14,8 @@ import {
   createLorebookRecord,
 } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { CharacterRecord } from "../contracts/types/character";
+import type { PersonaRecord } from "../contracts/types/persona";
 
 const now = "2026-07-02T00:00:00.000Z";
 
@@ -42,6 +45,63 @@ function entry(
     },
     now,
   });
+}
+
+function character(input: Partial<CharacterRecord> = {}): CharacterRecord {
+  return {
+    id: "character-1",
+    schemaVersion: 1,
+    displayName: "Mara",
+    nickname: null,
+    description: "",
+    personality: "",
+    scenario: "",
+    firstMessage: "",
+    alternateGreetings: [],
+    groupOnlyGreetings: [],
+    exampleMessages: "",
+    systemPrompt: "",
+    postHistoryInstructions: "",
+    creator: "",
+    characterVersion: "",
+    creatorNotes: "",
+    tags: [],
+    characterNote: "",
+    characterNoteDepth: 0,
+    characterNoteRole: "system",
+    talkativeness: 0.5,
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+    ...input,
+    lorebookIds: input.lorebookIds ?? [],
+  };
+}
+
+function persona(input: Partial<PersonaRecord> = {}): PersonaRecord {
+  return {
+    id: "persona-1",
+    schemaVersion: 1,
+    displayName: "Alex",
+    nickname: null,
+    description: "",
+    personality: "",
+    scenario: "",
+    systemPrompt: "",
+    postHistoryInstructions: "",
+    creator: "",
+    characterVersion: "",
+    creatorNotes: "",
+    tags: [],
+    characterNote: "",
+    characterNoteDepth: 0,
+    characterNoteRole: "system",
+    talkativeness: 0.5,
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+    ...input,
+  };
 }
 
 describe("lorebook activation", () => {
@@ -143,6 +203,136 @@ describe("lorebook activation", () => {
     expect(
       buildScanBuffer(sources, { scanDepth: 1, includeNames: false }),
     ).not.toContain("SecretName");
+  });
+
+  it("activates from opted-in companion and persona match sources only", () => {
+    const fromDescription = entry({
+      title: "Description Match",
+      strategy: "selective",
+      key: ["moonlit archive"],
+      matchSources: {
+        characterDescription: true,
+        characterPersonality: false,
+        scenario: false,
+        characterNote: false,
+        personaDescription: false,
+      },
+    });
+    const defaultOff = entry({
+      title: "Default Off",
+      strategy: "selective",
+      key: ["glass harbor"],
+    });
+    const fromPersona = entry({
+      title: "Persona Match",
+      strategy: "selective",
+      key: ["violet cartographer"],
+      matchSources: {
+        characterDescription: false,
+        characterPersonality: false,
+        scenario: false,
+        characterNote: false,
+        personaDescription: true,
+      },
+    });
+    const matchSources = buildMatchSources({
+      companions: [
+        character({
+          description: "Keeps maps of the moonlit archive.",
+          personality: "Knows the glass harbor.",
+        }),
+      ],
+      activePersona: persona({
+        description: "A violet cartographer from upriver.",
+      }),
+    });
+
+    const activated = activateLorebookEntries(
+      lorebook([fromDescription, defaultOff, fromPersona]),
+      "",
+      { matchSources },
+    );
+
+    expect(activated.map((item) => item.entry.title)).toEqual([
+      "Description Match",
+      "Persona Match",
+    ]);
+  });
+
+  it("applies includeNames to additional match-source names", () => {
+    const nameMatch = entry({
+      title: "Name Match",
+      strategy: "selective",
+      key: ["Rook"],
+      matchSources: {
+        characterDescription: true,
+        characterPersonality: false,
+        scenario: false,
+        characterNote: false,
+        personaDescription: false,
+      },
+    });
+    const matchSources = buildMatchSources({
+      companions: [
+        character({
+          displayName: "Mara",
+          nickname: "Rook",
+          description: "No key here.",
+        }),
+      ],
+    });
+
+    expect(
+      activateLorebookEntries(
+        lorebook([nameMatch], { includeNames: true }),
+        "",
+        { matchSources },
+      ).map((item) => item.entry.title),
+    ).toEqual(["Name Match"]);
+    expect(
+      activateLorebookEntries(
+        lorebook([nameMatch], { includeNames: false }),
+        "",
+        { matchSources },
+      ),
+    ).toEqual([]);
+  });
+
+  it("applies includeNames to active persona nickname match-source names", () => {
+    const nicknameMatch = entry({
+      title: "Persona Nickname Match",
+      strategy: "selective",
+      key: ["Spark"],
+      matchSources: {
+        characterDescription: false,
+        characterPersonality: false,
+        scenario: false,
+        characterNote: false,
+        personaDescription: true,
+      },
+    });
+    const matchSources = buildMatchSources({
+      activePersona: persona({
+        displayName: "Alex",
+        nickname: "Spark",
+        description: "No key here.",
+      }),
+    });
+
+    expect(
+      activateLorebookEntries(
+        lorebook([nicknameMatch], { includeNames: true }),
+        "",
+        { matchSources },
+      ).map((item) => item.entry.title),
+    ).toEqual(["Persona Nickname Match"]);
+    expect(
+      activateLorebookEntries(
+        lorebook([nicknameMatch], { includeNames: false }),
+        "",
+        { matchSources },
+      ),
+    ).toEqual([]);
   });
 
   it("matches whole words separately from substrings", () => {

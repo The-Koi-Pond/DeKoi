@@ -284,6 +284,8 @@ function createRoleplayPromptAssembly({
   warnings: string[];
 } {
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
+    activePersona,
+    companions,
     contextTokens: providerConnection?.maxContext ?? null,
     includeSummary: true,
     scanSources: roleplayLoreScanSources(thread),

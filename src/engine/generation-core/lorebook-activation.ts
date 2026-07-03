@@ -2,7 +2,10 @@ import type {
   LorebookActivationSettings,
   LorebookRecord,
   LoreEntryRecord,
+  LoreMatchSources,
 } from "../contracts/types/lorebook";
+import type { CharacterRecord } from "../contracts/types/character";
+import type { PersonaRecord } from "../contracts/types/persona";
 
 // Pure lorebook activation helpers for generation prompt assembly. This module
 // does not know about Messenger, Roleplay, React, storage, or runtime transport.
@@ -12,6 +15,16 @@ export interface LorebookScanSource {
   name?: string | null;
   body: string | null | undefined;
 }
+
+/** Catalog records used to build optional companion/persona match sources. */
+export interface LorebookMatchSourceContext {
+  companions?: CharacterRecord[];
+  activePersona?: PersonaRecord | null;
+}
+
+type LoreMatchSourceKey = keyof LoreMatchSources;
+
+type LoreMatchSourceBuckets = Record<LoreMatchSourceKey, LorebookScanSource[]>;
 
 /** Activated entry plus match provenance, ordering, and summary metadata. */
 export interface ActivatedLoreEntry {
@@ -73,6 +86,25 @@ type RegexSafetyAtom =
 function createKeyMatchContext(): KeyMatchContext {
   return { regexCache: new Map() };
 }
+
+function emptyMatchSources(): LoreMatchSourceBuckets {
+  return {
+    characterDescription: [],
+    characterPersonality: [],
+    scenario: [],
+    characterNote: [],
+    personaDescription: [],
+  };
+}
+
+const EMPTY_MATCH_SOURCES = emptyMatchSources();
+
+const COMPANION_MATCH_SOURCE_FIELDS = {
+  characterDescription: "description",
+  characterPersonality: "personality",
+  scenario: "scenario",
+  characterNote: "characterNote",
+} as const satisfies Record<Exclude<LoreMatchSourceKey, "personaDescription">, keyof CharacterRecord>;
 
 function parseRegexKey(key: string) {
   const match = key.trim().match(/^\/(.+)\/([A-Za-z]*)$/);
@@ -289,6 +321,74 @@ export function buildScanBuffer(
     .join("\n");
 }
 
+/**
+ * Builds source buckets for entries that opt into companion/persona matching.
+ * Entry `matchSources` flags decide which buckets join the transcript scan.
+ */
+export function buildMatchSources({
+  activePersona = null,
+  companions = [],
+}: LorebookMatchSourceContext): LoreMatchSourceBuckets {
+  const sources = emptyMatchSources();
+
+  for (const companion of companions) {
+    const name = cleanMatchSourceName(
+      [companion.displayName, companion.nickname].filter(Boolean).join(" "),
+    );
+    for (const [bucket, field] of Object.entries(
+      COMPANION_MATCH_SOURCE_FIELDS,
+    )) {
+      sources[bucket as keyof typeof COMPANION_MATCH_SOURCE_FIELDS].push({
+        name,
+        body: companion[field],
+      });
+    }
+  }
+
+  if (activePersona) {
+    sources.personaDescription.push({
+      name: cleanMatchSourceName(
+        [activePersona.displayName, activePersona.nickname]
+          .filter(Boolean)
+          .join(" "),
+      ),
+      body: activePersona.description,
+    });
+  }
+
+  return sources;
+}
+
+function cleanMatchSourceName(value: string | null | undefined) {
+  return value?.trim() || null;
+}
+
+function buildEntryScanBuffer({
+  baseScanBuffer,
+  matchSources,
+  entry,
+  activation,
+}: {
+  baseScanBuffer: string;
+  matchSources: LoreMatchSourceBuckets;
+  entry: LoreEntryRecord;
+  activation: Pick<LorebookActivationSettings, "includeNames">;
+}) {
+  const enabledSources = entry.matchSources;
+  if (!enabledSources) return baseScanBuffer;
+
+  const sourceBlobs = (Object.keys(enabledSources) as LoreMatchSourceKey[])
+    .filter((key) => enabledSources[key])
+    .flatMap((key) => matchSources[key] ?? []);
+  if (sourceBlobs.length === 0) return baseScanBuffer;
+
+  const sourceBuffer = buildScanBuffer(sourceBlobs, {
+    scanDepth: sourceBlobs.length,
+    includeNames: activation.includeNames,
+  });
+  return [baseScanBuffer, sourceBuffer].filter(Boolean).join("\n");
+}
+
 function matchPlaintextKey(
   key: string,
   scanBuffer: string,
@@ -379,6 +479,7 @@ function activateEntry(
   sourceOrder: number,
   entryIndex: number,
   scanBuffer: string,
+  matchSources: LoreMatchSourceBuckets,
   matchContext: KeyMatchContext,
 ): EntryActivationResult {
   if (!entry.enabled || !entryHasBody(entry)) {
@@ -401,12 +502,18 @@ function activateEntry(
     };
   }
 
+  const entryScanBuffer = buildEntryScanBuffer({
+    baseScanBuffer: scanBuffer,
+    matchSources,
+    entry,
+    activation: lorebook.activation,
+  });
   const primaryKeys = entry.key?.map((key) => key.trim()).filter(Boolean) ?? [];
   if (primaryKeys.length === 0) return { entry: null, warnings: [] };
 
   const primaryMatch = matchFirstKey(
     primaryKeys,
-    scanBuffer,
+    entryScanBuffer,
     lorebook.activation,
     matchContext,
   );
@@ -418,7 +525,12 @@ function activateEntry(
     entry.keySecondary?.map((key) => key.trim()).filter(Boolean) ?? [];
   const secondaryMatch =
     secondaryKeys.length > 0
-      ? matchAllKeys(secondaryKeys, scanBuffer, lorebook.activation, matchContext)
+      ? matchAllKeys(
+          secondaryKeys,
+          entryScanBuffer,
+          lorebook.activation,
+          matchContext,
+        )
       : { matchedKeys: [], warnings: [] };
 
   if (
@@ -604,12 +716,13 @@ export function applyTokenBudget(
 
 /**
  * Returns enabled, non-empty lore entries that activate against the provided
- * scan text, including provenance for later prompt/debug surfaces.
+ * transcript scan text plus any supplied per-entry additional match sources,
+ * including provenance for later prompt/debug surfaces.
  */
 export function activateLorebookEntries(
   lorebook: LorebookRecord,
   scanBuffer: string,
-  options: { sourceOrder?: number } = {},
+  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
 ) {
   return activateLorebookEntriesWithWarnings(lorebook, scanBuffer, options)
     .entries;
@@ -618,9 +731,10 @@ export function activateLorebookEntries(
 export function activateLorebookEntriesWithWarnings(
   lorebook: LorebookRecord,
   scanBuffer: string,
-  options: { sourceOrder?: number } = {},
+  options: { sourceOrder?: number; matchSources?: LoreMatchSourceBuckets } = {},
 ): LorebookActivationResult {
   const sourceOrder = options.sourceOrder ?? 0;
+  const matchSources = options.matchSources ?? EMPTY_MATCH_SOURCES;
   const matchContext = createKeyMatchContext();
   const entries: ActivatedLoreEntry[] = [];
   const warnings: string[] = [];
@@ -632,6 +746,7 @@ export function activateLorebookEntriesWithWarnings(
       sourceOrder,
       entryIndex,
       scanBuffer,
+      matchSources,
       matchContext,
     );
     warnings.push(...activation.warnings);

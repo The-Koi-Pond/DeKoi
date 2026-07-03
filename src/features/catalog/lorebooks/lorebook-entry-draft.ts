@@ -5,6 +5,7 @@ import type {
   LoreEntryRole,
   LoreEntryStrategy,
   LoreInsertionPosition,
+  LoreMatchSources,
   LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
 
@@ -22,7 +23,16 @@ export interface LorebookEntryDraft {
   insertionPosition: LoreInsertionPosition;
   depth: string;
   role: LoreEntryRole;
+  matchSources: LoreMatchSources;
 }
+
+export const EMPTY_LORE_MATCH_SOURCES: LoreMatchSources = {
+  characterDescription: false,
+  characterPersonality: false,
+  scenario: false,
+  characterNote: false,
+  personaDescription: false,
+};
 
 function splitLorebookEntryKeys(value: string) {
   const keys: string[] = [];
@@ -158,6 +168,19 @@ export function readNullablePercentInput(
   return typeof percent === "number" ? Math.min(100, percent) : percent;
 }
 
+export function normalizeLoreMatchSources(
+  value: LoreMatchSources | null | undefined,
+): LoreMatchSources {
+  return {
+    ...EMPTY_LORE_MATCH_SOURCES,
+    ...(value ?? {}),
+  };
+}
+
+function compactLoreMatchSources(value: LoreMatchSources) {
+  return Object.values(value).some(Boolean) ? value : null;
+}
+
 export function entryDraftDisablesBannerSave({
   draft,
   showEditor,
@@ -194,5 +217,6 @@ export function lorebookEntryDraftToInput(
     insertionPosition: draft.insertionPosition,
     depth,
     role: draft.insertionPosition === "at-depth" ? draft.role : null,
+    matchSources: compactLoreMatchSources(draft.matchSources),
   };
 }

@@ -83,9 +83,14 @@ requires compatibility. Current generation applies lore activation before
 building prompt context: enabled constant entries with non-empty bodies
 activate automatically, while selective entries activate when any non-empty
 primary key matches the last `scanDepth` transcript items, optionally including
-speaker names. Plaintext matching respects `caseSensitiveKeys` and
-`matchWholeWords`; `/pattern/flags` keys compile as regex, bypass whole-word
-wrapping, and fall back to plaintext with a warning when invalid or unsafe.
+speaker names. Entries can also opt into additional match sources from selected
+companion `description`, `personality`, `scenario`, and `characterNote` fields
+and the active persona `description`; these sources are not scanned by default.
+The same `includeNames` setting controls whether companion/persona display
+names and nicknames are included in those additional source blobs. Plaintext
+matching respects `caseSensitiveKeys` and `matchWholeWords`; `/pattern/flags`
+keys compile as regex, bypass whole-word wrapping, and fall back to plaintext
+with a warning when invalid or unsafe.
 Activated entries are sorted by descending `insertionOrder`, with selected
 lorebook order and original entry order as stable tiebreakers. Messenger and
 Roleplay prompt assembly places `before-character` entries before persona and
@@ -101,9 +106,9 @@ descending `insertionOrder` plus the same stable tiebreakers within each
 strategy group. Estimates use roughly characters divided by 4 because DeKoi
 has no tokenizer dependency. Roleplay lorebook summaries count against budgets
 and are emitted at most once per generation request. Optional secondary keys
-and `selectiveLogic` are applied during activation. Probability, recursion,
-triggers, character filters, and match-source blocks remain normalized storage
-fields but are not applied to prompt assembly yet.
+and `selectiveLogic` are applied against the same per-entry scan buffer during
+activation. Probability, recursion, triggers, and character filters remain
+normalized storage fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

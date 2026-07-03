@@ -6,6 +6,7 @@ import {
 } from "../catalog/lorebook-actions";
 import { createProviderConnectionRecord } from "../catalog/provider-connection-actions";
 import type { CharacterRecord } from "../contracts/types/character";
+import type { PersonaRecord } from "../contracts/types/persona";
 import type {
   LorebookActivationSettings,
   LorebookRecord,
@@ -32,7 +33,7 @@ import {
 
 const now = "2026-07-02T00:00:00.000Z";
 
-function character(): CharacterRecord {
+function character(input: Partial<CharacterRecord> = {}): CharacterRecord {
   return {
     id: "character-1",
     schemaVersion: 1,
@@ -56,9 +57,36 @@ function character(): CharacterRecord {
     characterNoteRole: "system",
     talkativeness: 0.5,
     avatarUrl: null,
-    lorebookIds: [],
     createdAt: now,
     updatedAt: now,
+    ...input,
+    lorebookIds: input.lorebookIds ?? [],
+  };
+}
+
+function persona(input: Partial<PersonaRecord> = {}): PersonaRecord {
+  return {
+    id: "persona-1",
+    schemaVersion: 1,
+    displayName: "Alex",
+    nickname: null,
+    description: "",
+    personality: "",
+    scenario: "",
+    systemPrompt: "",
+    postHistoryInstructions: "",
+    creator: "",
+    characterVersion: "",
+    creatorNotes: "",
+    tags: [],
+    characterNote: "",
+    characterNoteDepth: 0,
+    characterNoteRole: "system",
+    talkativeness: 0.5,
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+    ...input,
   };
 }
 
@@ -258,6 +286,94 @@ describe("generation lorebook activation wiring", () => {
     );
     expect(request.promptMessages[0].content).toContain(
       "This still activates as plaintext.",
+    );
+  });
+
+  it("activates Messenger lore from opted-in companion and persona sources", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "No matching key here.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Carries a moonlit archive pass.",
+          personality: "Watches the glass harbor.",
+        }),
+      ],
+      personas: [persona({ description: "A violet cartographer." })],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          entries: [
+            {
+              id: "default-off",
+              title: "Default Off",
+              body: "Should not activate from character personality.",
+              key: ["glass harbor"],
+            },
+            {
+              id: "character-source",
+              title: "Character Source",
+              body: "Character description source activated.",
+              key: ["moonlit archive"],
+              input: {
+                matchSources: {
+                  characterDescription: true,
+                  characterPersonality: false,
+                  scenario: false,
+                  characterNote: false,
+                  personaDescription: false,
+                },
+              },
+            },
+            {
+              id: "persona-source",
+              title: "Persona Source",
+              body: "Persona description source activated.",
+              key: ["violet cartographer"],
+              input: {
+                matchSources: {
+                  characterDescription: false,
+                  characterPersonality: false,
+                  scenario: false,
+                  characterNote: false,
+                  personaDescription: true,
+                },
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).toContain("Character description source activated.");
+    expect(systemPrompt).toContain("Persona description source activated.");
+    expect(systemPrompt).not.toContain(
+      "Should not activate from character personality.",
     );
   });
 
@@ -483,6 +599,91 @@ describe("generation lorebook activation wiring", () => {
     expect(request.promptMessages[0].content).toContain(
       "This still activates as plaintext.",
     );
+  });
+
+  it("activates Roleplay lore from opted-in companion and persona sources", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "No matching key here.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [
+        character({
+          characterNote: "Bound to the silver rook.",
+          scenario: "Hides the amber crossing.",
+        }),
+      ],
+      personas: [persona({ description: "A quiet stargazer." })],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          entries: [
+            {
+              id: "default-off",
+              title: "Default Off",
+              body: "Should not activate from scenario.",
+              key: ["amber crossing"],
+            },
+            {
+              id: "character-note-source",
+              title: "Character Note Source",
+              body: "Character note source activated.",
+              key: ["silver rook"],
+              input: {
+                matchSources: {
+                  characterDescription: false,
+                  characterPersonality: false,
+                  scenario: false,
+                  characterNote: true,
+                  personaDescription: false,
+                },
+              },
+            },
+            {
+              id: "persona-source",
+              title: "Persona Source",
+              body: "Persona description source activated.",
+              key: ["quiet stargazer"],
+              input: {
+                matchSources: {
+                  characterDescription: false,
+                  characterPersonality: false,
+                  scenario: false,
+                  characterNote: false,
+                  personaDescription: true,
+                },
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
+    expect(promptText).toContain("Character note source activated.");
+    expect(promptText).toContain("Persona description source activated.");
+    expect(promptText).not.toContain("Should not activate from scenario.");
   });
 
   it("surfaces Roleplay invalid regex warnings from inactive lore entries", () => {

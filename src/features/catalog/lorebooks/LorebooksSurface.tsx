@@ -20,7 +20,9 @@ import { DeleteButton } from "../shared/DeleteButton";
 import {
   canSaveLorebookEntryDraft,
   entryDraftDisablesBannerSave,
+  EMPTY_LORE_MATCH_SOURCES,
   lorebookEntryDraftToInput,
+  normalizeLoreMatchSources,
   parseLorebookEntryKeys,
   readFiniteNumberInput,
   readNonNegativeIntegerInput,
@@ -57,6 +59,7 @@ interface LorebookDraftState {
   title: string;
   summary: string;
   scanDepth: string;
+  includeNames: boolean;
   caseSensitiveKeys: boolean;
   matchWholeWords: boolean;
   budgetTokens: string;
@@ -75,11 +78,13 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   insertionPosition: "after-character",
   depth: "0",
   role: "system",
+  matchSources: EMPTY_LORE_MATCH_SOURCES,
 };
 const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   title: "",
   summary: "",
   scanDepth: String(DEFAULT_LOREBOOK_ACTIVATION.scanDepth),
+  includeNames: DEFAULT_LOREBOOK_ACTIVATION.includeNames,
   caseSensitiveKeys: DEFAULT_LOREBOOK_ACTIVATION.caseSensitiveKeys,
   matchWholeWords: DEFAULT_LOREBOOK_ACTIVATION.matchWholeWords,
   budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
@@ -98,6 +103,7 @@ function draftFromEntry(entry: {
   insertionPosition: LoreInsertionPosition;
   depth: number | null;
   role: LoreEntryRole | null;
+  matchSources: LorebookEntryDraft["matchSources"] | null;
 }): LorebookEntryDraft {
   return {
     title: entry.title,
@@ -111,8 +117,20 @@ function draftFromEntry(entry: {
     insertionPosition: entry.insertionPosition,
     depth: String(entry.depth ?? 0),
     role: entry.role ?? "system",
+    matchSources: normalizeLoreMatchSources(entry.matchSources),
   };
 }
+
+const MATCH_SOURCE_OPTIONS: {
+  key: keyof LorebookEntryDraft["matchSources"];
+  label: string;
+}[] = [
+  { key: "characterDescription", label: "Character description" },
+  { key: "characterPersonality", label: "Character personality" },
+  { key: "scenario", label: "Scenario" },
+  { key: "characterNote", label: "Character note" },
+  { key: "personaDescription", label: "Persona description" },
+];
 
 function ScanDepthInput({
   fallback,
@@ -281,6 +299,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
           lorebookDraft.scanDepth,
           DEFAULT_LOREBOOK_ACTIVATION.scanDepth,
         ),
+        includeNames: lorebookDraft.includeNames,
         caseSensitiveKeys: lorebookDraft.caseSensitiveKeys,
         matchWholeWords: lorebookDraft.matchWholeWords,
         budgetTokens,
@@ -357,6 +376,20 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
       activation: {
         ...activeLorebook.activation,
         caseSensitiveKeys,
+      },
+    });
+  }
+
+  function commitActiveIncludeNames(includeNames: boolean) {
+    if (!activeLorebook) return;
+    if (includeNames === activeLorebook.activation.includeNames) return;
+
+    nav.updateLorebook(activeLorebook.id, {
+      title: activeLorebook.title,
+      summary: activeLorebook.summary,
+      activation: {
+        ...activeLorebook.activation,
+        includeNames,
       },
     });
   }
@@ -472,6 +505,19 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   scanDepth: e.target.value,
                 })
               }
+            />
+          </div>
+          <div className="catalog-editor-field catalog-editor-toggle">
+            <span className="catalog-toggle-label">Include names</span>
+            <Switch
+              checked={lorebookDraft.includeNames}
+              onChange={(includeNames) =>
+                setLorebookDraft({
+                  ...lorebookDraft,
+                  includeNames,
+                })
+              }
+              ariaLabel="Include names"
             />
           </div>
           <div className="catalog-editor-field catalog-editor-toggle">
@@ -675,6 +721,14 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   initialValue={activeLorebook.activation.scanDepth}
                   fallback={activeLorebook.activation.scanDepth}
                   onCommit={commitActiveScanDepth}
+                />
+              </div>
+              <div className="catalog-editor-field catalog-editor-toggle">
+                <span className="catalog-toggle-label">Include names</span>
+                <Switch
+                  checked={activeLorebook.activation.includeNames}
+                  onChange={commitActiveIncludeNames}
+                  ariaLabel="Include names"
                 />
               </div>
               <div className="catalog-editor-field catalog-editor-toggle">
@@ -887,6 +941,35 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                     </select>
                   </div>
                 )}
+                <details className="catalog-editor-section">
+                  <summary>Additional matching sources</summary>
+                  <p className="catalog-field-hint">
+                    Name matching follows the lorebook Include names setting.
+                  </p>
+                  {MATCH_SOURCE_OPTIONS.map((option) => (
+                    <div
+                      className="catalog-editor-field catalog-editor-toggle"
+                      key={option.key}
+                    >
+                      <span className="catalog-toggle-label">
+                        {option.label}
+                      </span>
+                      <Switch
+                        checked={draft.matchSources[option.key]}
+                        onChange={(checked) =>
+                          setDraft({
+                            ...draft,
+                            matchSources: {
+                              ...draft.matchSources,
+                              [option.key]: checked,
+                            },
+                          })
+                        }
+                        ariaLabel={option.label}
+                      />
+                    </div>
+                  ))}
+                </details>
                 <div className="catalog-editor-field">
                   <label htmlFor="lore-insertion-order">Insertion Order</label>
                   <input
