@@ -10,6 +10,11 @@ export function getInitials(name: string) {
     .toUpperCase();
 }
 
+/**
+ * Entries staged on the persona (right) side of the scene. Narration and OOC
+ * are not dialogue and are never staged — they render as distinct variants per
+ * DESIGN.md §8 Roleplay.
+ */
 export function isOwnRoleplayEntry(entry: RoleplayEntry) {
-  return entry.role === "persona" || entry.role === "narration";
+  return entry.role === "persona";
 }

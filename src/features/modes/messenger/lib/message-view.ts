@@ -16,3 +16,16 @@ export function getMessageClassName(message: MessengerMessage) {
     ? "messenger-message messenger-message-own"
     : "messenger-message";
 }
+
+/**
+ * Stable key for grouping consecutive messages from the same author. Two
+ * messages group together only when their author keys match; the render layer
+ * additionally applies a time window so a long gap still re-opens the header.
+ */
+export function getMessageAuthorKey(message: MessengerMessage) {
+  const { author } = message;
+  if (author.kind === "persona") return `persona:${author.personaId}`;
+  if (author.kind === "character") return `character:${author.characterId}`;
+  if (author.kind === "system") return `system:${author.label}`;
+  return `unknown:${author.label}`;
+}

@@ -33,13 +33,14 @@ import {
   type GenerationNoticeAction,
 } from "../shared";
 import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
+import { copyTextToClipboard } from "../../../shared/browser/clipboard";
 import {
   getMessageDateKey,
   getMessageDateSeparatorLabel,
   getMessageDateTimeTitle,
   getMessageTimeLabel,
 } from "../shared/message-time";
-import { getInitials, getMessageClassName } from "./lib/message-view";
+import { getInitials, getMessageAuthorKey, getMessageClassName } from "./lib/message-view";
 import {
   getMessengerThreadReferenceNotices,
   getMessengerThreadReferenceSummary,
@@ -63,6 +64,24 @@ function createLocalId(prefix: string) {
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+/** DESIGN.md §8 Messenger: pending turns show a quiet jade shimmer-dot row with
+ * reserved layout space. */
+function MessengerPendingRow() {
+  return (
+    <div className="messenger-pending-row" role="status" aria-live="polite">
+      <span className="messenger-pending-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+      <span className="messenger-pending-label">Generating…</span>
+    </div>
+  );
+}
+
+/** Consecutive same-author messages within this window (ms) share one header. */
+const MESSENGER_GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 interface MessengerThreadProps {
   nav: MessengerThreadNav;
@@ -481,6 +500,12 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     );
   }
 
+  function handleCopyMessage(message: MessengerMessage) {
+    const body = message.body.trim();
+    if (!body) return;
+    void copyTextToClipboard(body);
+  }
+
   function openMessengerThreadSettings() {
     onOpenSideRail?.();
     nav.setSideRailView("chat-settings");
@@ -564,7 +589,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       )}
 
       <div className="message-list" aria-label="Messenger messages" ref={messageListRef}>
-        {messengerThread.messages.length === 0 && (
+        {messengerThread.messages.length === 0 && !isGenerating && (
           <p className="messenger-empty-note">No messages yet.</p>
         )}
         {messengerThread.messages.map((message, index) => {
@@ -579,6 +604,18 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
             ? (activeDeleteRequest?.label ?? message.author.label)
             : message.author.label;
           const timeLabel = getMessageTimeLabel(message.createdAt);
+          // Grouping: consecutive same-author messages within the window share one
+          // header. A date separator or a different author re-opens the header.
+          const previousMessage = index > 0 ? messengerThread.messages[index - 1] : null;
+          const previousTime = previousMessage ? Date.parse(previousMessage.createdAt) : NaN;
+          const currentTime = Date.parse(message.createdAt);
+          const opensGroup =
+            !previousMessage ||
+            showDateSeparator ||
+            getMessageAuthorKey(previousMessage) !== getMessageAuthorKey(message) ||
+            Number.isNaN(previousTime) ||
+            Number.isNaN(currentTime) ||
+            currentTime - previousTime > MESSENGER_GROUP_WINDOW_MS;
 
           return (
             <Fragment key={message.id}>
@@ -588,33 +625,48 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                 </div>
               )}
               <article
-                className={`${getMessageClassName(message)}${isEditing ? " editing" : ""}${
-                  isConfirmingDelete ? " confirming-delete" : ""
-                }`}
+                className={`${getMessageClassName(message)}${
+                  opensGroup ? " group-head" : " group-continuation"
+                }${isEditing ? " editing" : ""}${isConfirmingDelete ? " confirming-delete" : ""}`}
               >
                 <span className="message-avatar" aria-hidden="true">
-                  {authorAvatar.avatarUrl ? (
-                    <img src={authorAvatar.avatarUrl} alt="" />
-                  ) : (
-                    authorAvatar.initials
-                  )}
+                  {opensGroup &&
+                    (authorAvatar.avatarUrl ? (
+                      <img src={authorAvatar.avatarUrl} alt="" />
+                    ) : (
+                      authorAvatar.initials
+                    ))}
                 </span>
                 <div className="message-content">
-                  <div className="message-heading">
-                    <div className="message-author">
-                      {message.author.label}
-                      {timeLabel && (
-                        <time
-                          className="message-timestamp"
-                          dateTime={message.createdAt}
-                          title={getMessageDateTimeTitle(message.createdAt)}
-                        >
-                          {timeLabel}
-                        </time>
-                      )}
-                      {message.origin === "placeholder" && <span>Placeholder</span>}
+                  {opensGroup ? (
+                    <div className="message-heading">
+                      <div className="message-author">
+                        <span className="message-author-name">{message.author.label}</span>
+                        {message.origin === "placeholder" && (
+                          <span className="message-origin-chip">Placeholder</span>
+                        )}
+                        {timeLabel && (
+                          <time
+                            className="message-timestamp"
+                            dateTime={message.createdAt}
+                            title={getMessageDateTimeTitle(message.createdAt)}
+                          >
+                            {timeLabel}
+                          </time>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    timeLabel && (
+                      <time
+                        className="message-hover-timestamp"
+                        dateTime={message.createdAt}
+                        title={getMessageDateTimeTitle(message.createdAt)}
+                      >
+                        {timeLabel}
+                      </time>
+                    )
+                  )}
                   {isEditing ? (
                     <div className="message-edit-form">
                       <textarea
@@ -679,6 +731,16 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                           <>
                             <button
                               type="button"
+                              className="message-action-pill"
+                              aria-label={`Copy message from ${message.author.label}`}
+                              title="Copy"
+                              onClick={() => handleCopyMessage(message)}
+                            >
+                              ⧉
+                            </button>
+                            <button
+                              type="button"
+                              className="message-action-pill"
                               aria-label={`Edit message from ${message.author.label}`}
                               title="Edit"
                               onClick={() => handleEditMessage(message)}
@@ -687,6 +749,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                             </button>
                             <button
                               type="button"
+                              className="message-action-pill"
                               aria-label={`Delete message from ${message.author.label}`}
                               title="Delete"
                               onClick={() => handleDeleteMessage(message)}
@@ -703,6 +766,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
             </Fragment>
           );
         })}
+        {isGenerating && <MessengerPendingRow />}
       </div>
 
       <GenerationNotice
