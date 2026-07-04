@@ -1,3 +1,4 @@
+import { applyFormatPostProcessors } from "./macro-builtins/format-macros";
 import { mapMacroSpans } from "./macro-spans";
 import { applyBuiltins, renderUnknownMacro } from "./macro-builtins";
 import type { MacroContext, ResolveMacroOptions } from "./macro-types";
@@ -8,6 +9,10 @@ function finalizeResult(result: string, options: ResolveMacroOptions) {
   return options.trimResult === false ? result : result.trim();
 }
 
+function finalizeResolvedResult(result: string, options: ResolveMacroOptions) {
+  return finalizeResult(applyFormatPostProcessors(result), options);
+}
+
 function resolveMacroPass(input: string, context: MacroContext) {
   return mapMacroSpans(input, ({ body }) => {
     const replacement = applyBuiltins(body, context);
@@ -15,8 +20,18 @@ function resolveMacroPass(input: string, context: MacroContext) {
   });
 }
 
+function snapshotMacroContext(context: MacroContext): MacroContext {
+  if (context.now !== null && context.now !== undefined) return context;
+
+  return {
+    ...context,
+    now: new Date(),
+  };
+}
+
 /**
- * Resolves Slice 1 DeKoi prompt macros without storage, runtime, or provider access.
+ * Resolves DeKoi prompt macros without storage, runtime, or provider access.
+ * If context.now is omitted, the current time is snapped once per resolver call.
  */
 export function resolveMacros(
   template: string,
@@ -24,15 +39,16 @@ export function resolveMacros(
   options: ResolveMacroOptions = {},
 ) {
   let result = template;
+  const resolutionContext = snapshotMacroContext(context);
 
   for (let pass = 0; pass < MAX_MACRO_RESOLUTION_PASSES; pass += 1) {
-    const next = resolveMacroPass(result, context);
-    if (next === result) return finalizeResult(next, options);
+    const next = resolveMacroPass(result, resolutionContext);
+    if (next === result) return finalizeResolvedResult(next, options);
     result = next;
   }
 
-  const stableAfterFinalPass = resolveMacroPass(result, context);
-  if (stableAfterFinalPass === result) return finalizeResult(result, options);
+  const stableAfterFinalPass = resolveMacroPass(result, resolutionContext);
+  if (stableAfterFinalPass === result) return finalizeResolvedResult(result, options);
 
   return finalizeResult(template, options);
 }

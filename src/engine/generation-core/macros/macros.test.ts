@@ -12,6 +12,29 @@ function macroContext(input: Partial<MacroContext> = {}): MacroContext {
   };
 }
 
+function expectedTimeParts(now: string, timeZone: string) {
+  const date = new Date(now);
+
+  return {
+    date: new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "long",
+      timeZone,
+      year: "numeric",
+    }).format(date),
+    time: new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone,
+    }).format(date),
+    timeZone: new Intl.DateTimeFormat("en-US", { timeZone }).resolvedOptions().timeZone,
+    weekday: new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "long",
+    }).format(date),
+  };
+}
+
 describe("macro balance helpers", () => {
   it("finds the end of a balanced macro span with nested macros", () => {
     const input = "a {{outer::{{inner}}}} z";
@@ -111,6 +134,168 @@ describe("resolveMacros", () => {
 
   it("resolves missing character and context field values to empty strings", () => {
     expect(resolveMacros("A{{description}}B{{model}}C", macroContext())).toBe("ABC");
+  });
+
+  it("resolves time macros from an explicit time source and time zone", () => {
+    const now = "2026-07-04T13:05:06.000Z";
+    const expected = expectedTimeParts(now, "Australia/Sydney");
+    const context = macroContext({
+      now,
+      timeZone: "Australia/Sydney",
+    });
+
+    expect(resolveMacros("{{weekday}}|{{date}}|{{time}}|{{timezone}}|{{isotime}}", context)).toBe(
+      `${expected.weekday}|${expected.date}|${expected.time}|${expected.timeZone}|${now}`,
+    );
+  });
+
+  it("applies time zones when formatting local date and weekday macros", () => {
+    const now = "2026-07-04T01:05:06.000Z";
+    const expected = expectedTimeParts(now, "America/New_York");
+    const context = macroContext({
+      now,
+      timeZone: "America/New_York",
+    });
+
+    expect(resolveMacros("{{weekday}} {{date}} {{time}}", context)).toBe(
+      `${expected.weekday} ${expected.date} ${expected.time}`,
+    );
+  });
+
+  it("defaults missing macro time zones to UTC", () => {
+    const now = "2026-07-04T13:05:06.000Z";
+    const expected = expectedTimeParts(now, "UTC");
+    const context = macroContext({ now });
+
+    expect(resolveMacros("{{timezone}} {{time}}", context)).toBe(
+      `${expected.timeZone} ${expected.time}`,
+    );
+  });
+
+  it("snapshots omitted macro time once per resolver call", () => {
+    const RealDate = Date;
+    const samples = [
+      new RealDate("2026-07-04T23:59:59.000Z"),
+      new RealDate("2026-07-05T00:00:01.000Z"),
+    ];
+    let fallbackDateCalls = 0;
+
+    class SteppingDate extends RealDate {
+      constructor(value?: string | number | Date) {
+        if (arguments.length === 0) {
+          super(samples[Math.min(fallbackDateCalls, samples.length - 1)].getTime());
+          fallbackDateCalls += 1;
+          return;
+        }
+
+        super(value instanceof RealDate ? value.getTime() : (value ?? Number.NaN));
+      }
+    }
+
+    globalThis.Date = SteppingDate as unknown as DateConstructor;
+
+    try {
+      expect(resolveMacros("{{date}}|{{isotime}}", macroContext({ timeZone: "UTC" }))).toBe(
+        "July 4, 2026|2026-07-04T23:59:59.000Z",
+      );
+      expect(fallbackDateCalls).toBe(1);
+    } finally {
+      globalThis.Date = RealDate;
+    }
+  });
+
+  it("leaves time macros visible when the time context is invalid", () => {
+    expect(resolveMacros("{{time}}/{{timezone}}", macroContext({ timeZone: "Mars/Base" }))).toBe(
+      "{{time}}/{{timezone}}",
+    );
+    expect(resolveMacros("{{time}}/{{timezone}}", macroContext({ now: "invalid" }))).toBe(
+      "{{time}}/UTC",
+    );
+  });
+
+  it("resolves isotime when the time zone context is invalid", () => {
+    const now = "2026-07-04T13:05:06.000Z";
+
+    expect(
+      resolveMacros(
+        "{{isotime}}|{{time}}|{{date}}|{{weekday}}|{{timezone}}",
+        macroContext({ now, timeZone: "Mars/Base" }),
+      ),
+    ).toBe(`${now}|{{time}}|{{date}}|{{weekday}}|{{timezone}}`);
+  });
+
+  it("resolves newline and trim marker macros", () => {
+    expect(resolveMacros("A{{newline}}B", macroContext())).toBe("A\nB");
+    expect(
+      resolveMacros("x{{trimStart}}   y|x   {{trimEnd}}y|x   {{trim}}   y", macroContext(), {
+        trimResult: false,
+      }),
+    ).toBe("xy|xy|xy");
+  });
+
+  it("removes trim markers before applying case block macros", () => {
+    expect(
+      resolveMacros(
+        "{{lowercase}}X{{trimStart}}   Y|X   {{trimEnd}}Y|X   {{trim}}   Y{{/lowercase}}",
+        macroContext(),
+        { trimResult: false },
+      ),
+    ).toBe("xy|xy|xy");
+  });
+
+  it("applies case block macros after nested substitutions", () => {
+    expect(
+      resolveMacros(
+        "{{uppercase}}hello {{user}}{{/uppercase}} {{lowercase}}LOUD {{char}}{{/lowercase}}",
+        macroContext(),
+      ),
+    ).toBe("HELLO ALEX loud mara");
+  });
+
+  it("applies case block macros after recursive macro values stabilize", () => {
+    const context = macroContext({ char: "{{user}}" });
+
+    expect(resolveMacros("{{uppercase}}{{char}}{{/uppercase}}", context)).toBe("ALEX");
+  });
+
+  it("supports nested case blocks with matching close markers", () => {
+    expect(
+      resolveMacros("{{uppercase}}a {{uppercase}}b{{/uppercase}} c{{/uppercase}}", macroContext()),
+    ).toBe("A B C");
+  });
+
+  it("leaves over-deep case blocks unchanged", () => {
+    const input = `${"{{uppercase}}".repeat(80)}x${"{{/uppercase}}".repeat(80)}`;
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("leaves malformed case block macros visible after resolving nested content", () => {
+    expect(resolveMacros("{{uppercase}}{{user}}", macroContext())).toBe("{{uppercase}}Alex");
+  });
+
+  it("leaves crossed case block markers unchanged", () => {
+    const input = "{{uppercase}}a {{lowercase}}b{{/uppercase}} c{{/lowercase}}";
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("leaves case blocks inside malformed macro tails unchanged", () => {
+    const input = "before {{missing {{uppercase}}x{{/uppercase}}";
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("leaves case blocks that cross macro span boundaries unchanged", () => {
+    const input = "{{unknown {{uppercase}}}}x{{/uppercase}}";
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("applies complete case blocks inside unknown macro bodies", () => {
+    expect(resolveMacros("{{unknown {{uppercase}}{{user}}{{/uppercase}}}}", macroContext())).toBe(
+      "{{unknown ALEX}}",
+    );
   });
 
   it("uses the persona display name for persona macros when available", () => {

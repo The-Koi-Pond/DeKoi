@@ -1,6 +1,6 @@
 # Generation Macro Semantics
 
-Status: Slice 1 resolver contract is implemented. Full generation wiring is a
+Status: Slice 2 resolver contract is implemented. Full generation wiring is a
 Slice 3 follow-up; current Messenger and Roleplay system prompts still use the
 temporary `replaceGenerationPromptMacros` helper, which resolves `{{char}}`,
 `{{user}}`, and their compatibility aliases.
@@ -11,6 +11,8 @@ Macros are DeKoi-owned prompt assembly behavior. The implementation is
 clean-room, pure TypeScript under `src/engine/generation-core/macros`, and must
 not import React, feature code, runtime adapters, Tauri APIs, browser APIs, or
 storage.
+Slice 2 time macros use ECMAScript `Date` and `Intl.DateTimeFormat` built-ins;
+their display strings can vary with the host runtime's ICU and time-zone data.
 
 The public entry point is:
 
@@ -18,8 +20,10 @@ The public entry point is:
 resolveMacros(template: string, context: MacroContext, options?: ResolveMacroOptions): string
 ```
 
-The resolver is deterministic for a given template and context. Slice 1 does
-not read storage, mutate context, call providers, or use randomness.
+The resolver does not read storage, mutate context, call providers, or use
+randomness. It is deterministic for a given template and context when callers
+pass `context.now`; if they omit `context.now`, the resolver snapshots the
+current wall-clock time once per `resolveMacros` call.
 
 ## Syntax
 
@@ -33,19 +37,35 @@ not read storage, mutate context, call providers, or use randomness.
   known nested macro, the nested value resolves first.
 - Empty macros are unknown and remain unchanged.
 - `{{// ...}}` is a comment macro and resolves to an empty string.
-- Slice 1 has no escape syntax for a well-formed macro span. If the body matches
-  no active macro, the span remains visible; known nested macros inside it still
-  resolve first.
+- The resolver has no escape syntax for a well-formed macro span. If the body
+  matches no active macro, the span remains visible; known nested macros inside
+  it still resolve first.
 - Replacement values can themselves contain macros. Resolution repeats up to
   the recursion guard.
 - The recursion guard is 16 passes. On overflow, the resolver returns the
   original input for that call, discarding partial progress made in earlier
-  passes, then applies the same final trim rule as any other result.
+  passes, then applies the same final trim rule as any other result. Format
+  post-processing is skipped on this overflow fallback, so format markers in
+  the original input remain visible.
 - Final output is trimmed by default. Pass `{ trimResult: false }` to preserve
   leading and trailing whitespace.
 - DeKoi prefers canonical identity macros. `{{charName}}` and `{{userName}}`
   are supported compatibility aliases for pasted or older local prompts, but
   new DeKoi-authored prompts should use `{{char}}` and `{{user}}`.
+- `{{uppercase}}...{{/uppercase}}` and `{{lowercase}}...{{/lowercase}}`
+  transform the resolved block body. Nested case blocks are supported. Malformed
+  case blocks are left visible. Case block post-processing has a 64-level depth
+  guard; over-depth case blocks are left visible. Case transforms skip
+  parser-malformed macro tails, and complete case blocks inside unresolved
+  unknown macro spans transform only when the open and close markers are inside
+  the same span. Case transforms are terminal post-processing; macro-looking
+  text produced by changing case is not resolved again.
+- `{{trimStart}}` removes whitespace immediately after its marker,
+  `{{trimEnd}}` removes whitespace immediately before its marker, and
+  `{{trim}}` removes whitespace on both sides. Trim markers are removed before
+  case transforms. Trim macros use reserved internal sentinel strings during
+  resolution; prompt content should not intentionally include `NUL`-delimited
+  `DEKOI_MACRO_TRIM` sentinel text.
 
 ## Slice 1 Macros
 
@@ -89,13 +109,42 @@ Context macros resolve missing values to an empty string:
 | `{{lastGenerationType}}` | `context.lastGenerationType` |
 | `{{idle_duration}}`      | `context.idleDuration`       |
 
+## Slice 2 Macros
+
+Time macros use `context.now` when provided, otherwise one current wall-clock
+snapshot shared by every time macro in the resolver call. `context.now` accepts
+a `Date`, string, or number handled by the ECMAScript `Date` constructor.
+Display macros format with `Intl.DateTimeFormat` using the DeKoi default locale
+`en-US`. They use normalized `context.timeZone` when valid and `UTC` when no
+time zone is passed. Invalid time zones leave `{{time}}`, `{{date}}`,
+`{{weekday}}`, and `{{timezone}}` visible, while `{{isotime}}` does not depend
+on the time zone. Invalid `context.now` values leave `{{time}}`, `{{date}}`,
+`{{weekday}}`, and `{{isotime}}` visible, while `{{timezone}}` can still resolve.
+
+| Macro          | Value                                                       |
+| -------------- | ----------------------------------------------------------- |
+| `{{time}}`     | hour and minute in normalized `context.timeZone`, or `UTC`  |
+| `{{date}}`     | long date in normalized `context.timeZone`, or `UTC`        |
+| `{{weekday}}`  | weekday name in normalized `context.timeZone`, or `UTC`     |
+| `{{isotime}}`  | resolved time as `Date.prototype.toISOString()`             |
+| `{{timezone}}` | normalized `context.timeZone`, or `UTC` when none is passed |
+
+Formatting macros:
+
+| Macro                            | Value                              |
+| -------------------------------- | ---------------------------------- |
+| `{{newline}}`                    | newline character                  |
+| `{{trim}}`                       | trims whitespace on both sides     |
+| `{{trimStart}}`                  | trims following whitespace         |
+| `{{trimEnd}}`                    | trims preceding whitespace         |
+| `{{uppercase}}...{{/uppercase}}` | uppercases the resolved block body |
+| `{{lowercase}}...{{/lowercase}}` | lowercases the resolved block body |
+
 ## Reserved Later Semantics
 
-These macro families are intentionally not active in Slice 1. Until their
-slices land, matching spans remain unchanged unless they contain nested Slice 1
-macros:
+These macro families are intentionally not active yet. Until their slices land,
+matching spans remain unchanged unless they contain nested active macros:
 
-- time and formatting macros
 - random and dice macros
 - control-flow blocks
 - deferred character macros for group scenarios
