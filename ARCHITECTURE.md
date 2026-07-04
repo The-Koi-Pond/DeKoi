@@ -179,7 +179,8 @@ architecture-level rules:
 
 - `src/engine` owns native record contracts under `contracts/types`,
   deterministic catalog/mode/lore-runtime/ripple actions, and provider-neutral
-  generation assembly, including lorebook activation under `generation-core`.
+  generation assembly, including lorebook activation and the Slice 1 macro
+  resolver contract under `generation-core`.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules
