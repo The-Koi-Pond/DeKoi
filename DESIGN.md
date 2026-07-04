@@ -69,7 +69,7 @@ Every shell decision serves this loop, in this order:
 6. **Siblings, not twins.** Messenger and Roleplay share a pond, a palette, and a composer — but
    Messenger is the quick surface (rows, speed, scan) and Roleplay is the staged surface (bubbles,
    cast, scene). Neither borrows the other's costume, and neither clones another product.
-7. **The deep tools are kept, not hidden.** Connections, Deep Water, Stocking, and Catalog are tended
+7. **The deep tools are kept, not hidden.** Connections and Pond Care's Data & Backup tools are tended
    surfaces: aligned forms, readable logs, explicit dangerous actions, plain-language recovery.
    Advanced never means ugly, and ugly never hides behind "advanced."
 
@@ -304,7 +304,7 @@ The shell is a fixed grid of named water regions:
 | **Shoal**     | Thread list     | `shallow`         | 264–300px: saved Messenger/Roleplay threads with kind, title, recency. Collapsible; collapsed state leaves a reopen affordance in the bank/pond.                                                             |
 | **Pond**      | Main surface    | `raise`           | Everything primary: home, threads, catalogs, editors. Home content is center-column (≈920px max); threads manage their own text measure.                                                                     |
 | **Tide**      | Status strip    | `water`           | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging.                                                            |
-| **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (Deep Water, Stocking, Catalog, appearance). Floating layer — this is where a real drop shadow belongs.                           |
+| **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (General, Appearance, Behavior, Generation, Data & Backup). Floating layer — this is where a real drop shadow belongs.            |
 
 The **Ripple Dock** (per-thread state panel) docks inside the pond region alongside a thread, as a
 `shallow` sibling panel — not a second care drawer.
@@ -332,7 +332,7 @@ surface:
 - **Provider forms (Connections)**: the densest allowed form surface, but every field keeps a visible
   label, inline validation, and a plain-language description. Secrets are write-only with
   save/check/clear affordances; never echo secret values.
-- **Storage logs / Deep Water**: table-like rows at `body` size with status chips; repair and
+- **Storage logs / Data & Backup**: table-like rows at `body` size with status chips; repair and
   reload actions adjacent to the rows they affect; destructive actions confirmed inline, not in a
   modal maze.
 - **Messenger**: compact message rows (dense but breathing — small gaps, grouped turns).
@@ -498,7 +498,7 @@ matters.
 
 - **Owned labels** come from `DOMAIN_MODEL.md` and are used consistently: Messenger, Roleplay,
   Pond, Companions, Personas, Lorebooks, Presets, Ripples / Ripple Dock, Agents, Connections, Media,
-  and the Pond Care sections (Deep Water, Stocking, Catalog).
+  and the Pond Care sections (General, Appearance, Behavior, Generation, Data & Backup).
 - **Clarity beats cuteness.** Theme words name _places and records_; verbs stay plain. "New
   thread", "Save", "Import bundle", "Check connection" — never "release a koi" for a save button.
 - **Voice:** calm, direct, first-person-free, lightly atmospheric only at thresholds (home
@@ -556,7 +556,7 @@ matters.
   machinery.
 - Do use the material stack (abyss → water → shallow → raise) for depth instead of shadows and
   blur.
-- Do give Connections, Deep Water, and Stocking the same craft as the hero — kept tools, not a
+- Do give Connections and Data & Backup the same craft as the hero — kept tools, not a
   basement.
 - Do pair every color-coded state with an icon or label.
 
@@ -592,7 +592,7 @@ matters.
    treatments.
 4. **Stage 4 — Catalog, settings, storage, provider polish.** Apply density rules to Companions/
    Personas/Lorebooks/Presets/Agents/Media catalogs; rebuild Connections forms to labeled-field
-   standards with secret-safe affordances; bring Deep Water/Stocking logs to readable-row +
+   standards with secret-safe affordances; bring Data & Backup logs to readable-row +
    inline-action standards with honest destructive confirms.
 5. **Stage 5 — Accessibility & motion audit.** Contrast pass on every token pairing in use;
    keyboard walk of shell + both thread surfaces; touch-target audit at coarse pointer; reduced-

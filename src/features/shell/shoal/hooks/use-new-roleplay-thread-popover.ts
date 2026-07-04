@@ -57,7 +57,7 @@ export function useNewRoleplayThreadPopover({
     characterDraft.initializeCharacterDraft(initialCharacterIds);
     setNewRoleplayConnectionId(defaultMessengerConnectionId);
     setNewRoleplayPersonaId(roleplayPersonaId);
-    setNewRoleplayLorebookIds(lorebooks.map((lorebook) => lorebook.id));
+    setNewRoleplayLorebookIds([]);
     setNewRoleplayCompanionMenuOpen(false);
     setNewRoleplayLorebookMenuOpen(false);
     setNewRoleplayOpen(true);

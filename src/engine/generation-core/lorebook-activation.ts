@@ -1,6 +1,8 @@
 import {
   resolveEntryTiming,
   resolveEntryRecursion,
+  type LoreInsertionStrategy,
+  type LoreSourceKind,
   type LorebookActivationSettings,
   type LorebookRecord,
   type LoreEntryRecord,
@@ -20,7 +22,7 @@ import {
   type PrimaryMatchCountResult,
 } from "./lorebook-activation-types";
 import {
-  compareActivatedEntryOrder,
+  compareActivatedEntryInsertionOrder,
   finalizeActivationResult,
 } from "./lorebook-activation-resolution";
 
@@ -64,8 +66,10 @@ export interface LoreRuntimeStateActivationUpdateOptions {
 
 /** Options for lore activation and deterministic test-time random gates. */
 export interface LorebookActivationOptions {
-  /** Selected-lorebook order used as a stable tiebreaker across multiple lorebooks. */
+  /** Resolved lorebook-source order used as a stable tiebreaker across multiple lorebooks. */
   sourceOrder?: number;
+  /** Source bucket that bound this lorebook to the generation context. */
+  sourceKind?: LoreSourceKind;
   /** Prebuilt companion/persona source buckets for entries that opt into extra matching. */
   matchSources?: LoreMatchSourceBuckets;
   /** Current thread transcript message count, after any just-submitted user message. */
@@ -646,6 +650,7 @@ function activateEntry(
   entry: LoreEntryRecord,
   sourceOrder: number,
   entryIndex: number,
+  sourceKind: LoreSourceKind,
   scanBuffer: string,
   matchSources: LoreMatchSourceBuckets,
   matchContext: KeyMatchContext,
@@ -673,6 +678,7 @@ function activateEntry(
         matchedKeyCount: 0,
         warnings: [],
         sourceOrder,
+        sourceKind,
         entryIndex,
         recursionLevel: entryRecursionLevel,
       },
@@ -752,6 +758,7 @@ function activateEntry(
     matchedKeyCount: 1,
     warnings,
     sourceOrder,
+    sourceKind,
     entryIndex,
     recursionLevel: entryRecursionLevel,
   };
@@ -821,12 +828,13 @@ function uniqueWarnings(warnings: string[]) {
   return [...new Set(warnings)];
 }
 
-/**
- * Sorts activated entries in prompt priority order. Higher insertion order wins;
- * equal order keeps lorebook/source order, then original entry order.
- */
-export function sortActivatedEntries(entries: ActivatedLoreEntry[]) {
-  return [...entries].sort(compareActivatedEntryOrder);
+export function sortActivatedEntriesForInsertion(
+  entries: ActivatedLoreEntry[],
+  strategy: LoreInsertionStrategy = "sorted-evenly",
+) {
+  return [...entries].sort((left, right) =>
+    compareActivatedEntryInsertionOrder(left, right, strategy),
+  );
 }
 
 function budgetPriorityRank(entry: ActivatedLoreEntry) {
@@ -838,7 +846,7 @@ function budgetPriorityRank(entry: ActivatedLoreEntry) {
 function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
   return [...entries].sort((left, right) => {
     const priorityDelta = budgetPriorityRank(left) - budgetPriorityRank(right);
-    return priorityDelta || compareActivatedEntryOrder(left, right);
+    return priorityDelta || compareActivatedEntryInsertionOrder(left, right);
   });
 }
 
@@ -875,11 +883,11 @@ function resolveTokenBudget({
  * tokenizer dependency, so the default estimate is roughly chars / 4. Percent
  * budgets are only resolved when caller-provided context size is known. Budget
  * priority keeps direct activations before recursive activations, and constants
- * before selective entries within each activation source.
+ * before selective entries within each direct/recursive group.
  */
 export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTokenBudgetOptions) {
   const budget = resolveTokenBudget(options);
-  if (budget === null) return sortActivatedEntries(entries);
+  if (budget === null) return sortActivatedEntriesForInsertion(entries);
 
   const approxTokens = options.approxTokens ?? approximateLoreEntryTokens;
   const kept: ActivatedLoreEntry[] = [];
@@ -895,7 +903,7 @@ export function applyTokenBudget(entries: ActivatedLoreEntry[], options: ApplyTo
     usedTokens += entryTokens;
   }
 
-  return sortActivatedEntries(kept);
+  return sortActivatedEntriesForInsertion(kept);
 }
 
 /**
@@ -918,6 +926,7 @@ export function activateLorebookEntries(
 interface ActivationEvaluationContext {
   messageCount: number;
   sourceOrder: number;
+  sourceKind: LoreSourceKind;
   matchSources: LoreMatchSourceBuckets;
   matchContext: KeyMatchContext;
   primaryMatchCounters: Map<string, PrimaryMatchCounter>;
@@ -930,6 +939,7 @@ function createStickyActivatedEntry(
   entry: LoreEntryRecord,
   sourceOrder: number,
   entryIndex: number,
+  sourceKind: LoreSourceKind,
 ): ActivatedLoreEntry {
   return {
     lorebookId: lorebook.id,
@@ -942,6 +952,7 @@ function createStickyActivatedEntry(
     matchedKeyCount: 0,
     warnings: [],
     sourceOrder,
+    sourceKind,
     entryIndex,
     recursionLevel: null,
   };
@@ -963,6 +974,7 @@ function runDirectScan(
         entry,
         context.sourceOrder,
         entryIndex,
+        context.sourceKind,
       );
       entries.push(stickyEntry);
       continue;
@@ -977,6 +989,7 @@ function runDirectScan(
       entry,
       context.sourceOrder,
       entryIndex,
+      context.sourceKind,
       scanBuffer,
       context.matchSources,
       context.matchContext,
@@ -1021,6 +1034,7 @@ function entryWouldActivateFromRecursion(
       entry,
       context.sourceOrder,
       entryIndex,
+      context.sourceKind,
       scanBuffer,
       context.matchSources,
       context.matchContext,
@@ -1126,6 +1140,7 @@ function runRecursionPasses({
         entry,
         context.sourceOrder,
         entryIndex,
+        context.sourceKind,
         recursionScanBuffer,
         context.matchSources,
         context.matchContext,
@@ -1277,6 +1292,7 @@ export function activateLorebookEntriesWithWarnings(
   const context: ActivationEvaluationContext = {
     messageCount,
     sourceOrder: options.sourceOrder ?? 0,
+    sourceKind: options.sourceKind ?? "chat",
     matchSources: options.matchSources ?? EMPTY_MATCH_SOURCES,
     matchContext: createKeyMatchContext(),
     primaryMatchCounters: new Map(),

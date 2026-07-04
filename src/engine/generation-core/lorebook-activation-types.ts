@@ -1,4 +1,4 @@
-import type { LoreEntryRecord } from "../contracts/types/lorebook";
+import type { LoreEntryRecord, LoreSourceKind } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 
 /** Activated entry plus match provenance, ordering, and summary metadata. */
@@ -13,6 +13,7 @@ export interface ActivatedLoreEntry {
   matchedKeyCount: number;
   warnings: string[];
   sourceOrder: number;
+  sourceKind: LoreSourceKind;
   entryIndex: number;
   recursionLevel: number | null;
 }

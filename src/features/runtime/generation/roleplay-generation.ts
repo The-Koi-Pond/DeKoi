@@ -1,3 +1,4 @@
+import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
@@ -25,6 +26,7 @@ import {
 
 export interface GenerateRoleplayThreadTurnInput {
   thread: RoleplayThread;
+  appSettings: AppSettings;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
@@ -67,6 +69,7 @@ async function generateRoleplayResponse(
 }
 
 export async function generateRoleplayThreadTurn({
+  appSettings,
   characters,
   createId,
   fallbackProviderConnectionId = null,
@@ -80,6 +83,7 @@ export async function generateRoleplayThreadTurn({
   thread,
 }: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
   const context = createRoleplayGenerationContext({
+    appSettings,
     characters,
     fallbackProviderConnectionId,
     lorebooks,

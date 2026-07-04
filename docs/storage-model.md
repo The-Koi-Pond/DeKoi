@@ -64,6 +64,14 @@ App-wide load/save orchestration lives in
 Bundle import/export and legacy import normalization live under
 `src/runtime/storage/bundles`.
 
+App settings normalize `globalLorebookIds` as trimmed unique lorebook IDs and
+`loreInsertionStrategy` as one of `sorted-evenly`, `character-first`, or
+`global-first`. Missing or invalid values fall back to no global lorebooks and
+`sorted-evenly`.
+
+Persona records normalize `lorebookIds` as trimmed unique lorebook IDs, matching
+character lorebook bindings.
+
 Lorebooks currently use `schemaVersion: 2`. New lorebooks default activation to
 `scanDepth: 2`, `includeNames: true`, `caseSensitiveKeys: false`,
 `matchWholeWords: true`, `recursiveScan: false`, `maxRecursionSteps: 0`,
@@ -82,8 +90,14 @@ activation depths, clamps percentages to 0-100, normalizes group weights to
 non-negative finite numbers, and intentionally rejects pre-v2 lorebook or entry
 records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
-requires compatibility. Current generation applies lore activation before
-building prompt context: enabled constant entries with non-empty bodies activate
+requires compatibility.
+
+Current generation applies lore activation before building prompt context.
+Messenger and Roleplay resolve lorebook sources from chat/thread selections,
+the active persona, selected characters, and global app settings, then scan each
+lorebook at most once. If the same lorebook appears in more than one bucket, the
+first bucket wins in deterministic order: chat, persona, character, then
+global. Enabled constant entries with non-empty bodies activate
 automatically unless blocked by timing delay or delayed until recursion, while
 selective entries activate when any non-empty primary key matches the last
 `scanDepth` transcript items, optionally including speaker names. Entries can
@@ -118,8 +132,12 @@ count; otherwise groups use weighted random selection by `groupWeight`. If all
 active candidates in a weighted group have zero weight, the first
 prompt-priority candidate wins. Sticky activations bypass inclusion-group
 suppression and per-entry `probability`; other surviving entries pass through
-the probability gate. Activated entries are sorted by descending `insertionOrder`,
-with selected lorebook order and original entry order as stable tiebreakers.
+the probability gate. The default `sorted-evenly` insertion strategy sorts
+activated entries by descending `insertionOrder`, with resolved lorebook source
+order and original entry order as stable tiebreakers. `character-first` ranks
+character-sourced lore before other source buckets, and `global-first` ranks
+global lore before other source buckets; both strategies keep the same
+`insertionOrder` and stable tiebreakers within each rank.
 Messenger and
 Roleplay prompt assembly places `before-character` entries before persona and
 character context, `after-character` entries after character context, and
@@ -130,7 +148,7 @@ hoist system messages. Lorebook budgets apply per lorebook, using
 `budgetTokens` first or `budgetPercent` against provider `maxContext` when
 known. Percent budgets are left unapplied when context size is unknown. Budget
 trimming spends budget on direct activations before recursive activations, then
-on constant entries before selective entries within each activation source,
+on constant entries before selective entries within each direct/recursive group,
 then uses descending `insertionOrder` plus the same stable tiebreakers within
 each priority group. Kept entries are re-sorted into prompt order afterward.
 Estimates use roughly characters divided by 4 because DeKoi has no tokenizer
@@ -186,7 +204,7 @@ Desktop collection files expose explicit per-collection metadata:
 - whether the collection state is repairable
 
 The app stores metadata from the last loaded snapshot, completed import, or
-successful collection write as a staleness baseline. Pond Care > Deep Water can
+successful collection write as a staleness baseline. Pond Care > Data & Backup can
 check the current desktop metadata and report when collection files changed
 outside DeKoi, but the app does not hot-load or merge those files. Partial
 desktop metadata checks keep per-entity details for healthy collections and
@@ -349,6 +367,8 @@ Current relationships:
 | `roleplay-threads`    | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                       |
 | `roleplay-entries`    | `threadId`             | `roleplay-threads.id`                           | Deleting a Roleplay thread removes its entries from the projected entry collection.      |
 | `characters`          | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from character context.                                    |
+| `personas`            | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from persona context.                                      |
+| `app-settings`        | `globalLorebookIds[]`  | `lorebooks.id`                                  | Deleted lorebooks are removed from global generation context.                            |
 | `lore-runtime-states` | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import. |
 | `ripple-states`       | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import.                                     |
 
@@ -367,6 +387,8 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   split collections.
 - Include `lore-runtime-states` in native bundles, import missing older bundle
   fields as empty, and skip runtime states whose owner thread is not imported.
+- Include persona lorebook bindings and global lore settings in native bundle
+  import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and
   warn that those fields were skipped.
 - Import required-key provider connections as `needs-key` unless a desktop

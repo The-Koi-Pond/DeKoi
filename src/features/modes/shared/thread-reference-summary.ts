@@ -40,9 +40,39 @@ function countSelectedIds(ids: readonly string[], availableIds: ReadonlySet<stri
   return ids.filter((id) => availableIds.has(id)).length;
 }
 
+function collectReferencedLorebookIds({
+  characters,
+  globalLorebookIds,
+  personas,
+  thread,
+}: {
+  characters: readonly CharacterRecord[];
+  globalLorebookIds: readonly string[];
+  personas: readonly PersonaRecord[];
+  thread: ThreadReferenceRecord;
+}) {
+  const characterById = new Map(characters.map((character) => [character.id, character]));
+  const personaById = new Map(personas.map((persona) => [persona.id, persona]));
+  const activePersona = thread.activePersonaId
+    ? (personaById.get(thread.activePersonaId) ?? null)
+    : null;
+  const companionLorebookIds = [...new Set(thread.characterIds)].flatMap(
+    (characterId) => characterById.get(characterId)?.lorebookIds ?? [],
+  );
+  const referencedIds = [
+    ...thread.lorebookIds,
+    ...(activePersona?.lorebookIds ?? []),
+    ...companionLorebookIds,
+    ...globalLorebookIds,
+  ];
+
+  return [...new Set(referencedIds.map((id) => id.trim()).filter(Boolean))];
+}
+
 export function getThreadReferenceSummary({
   characters,
   fallbackProviderConnectionId,
+  globalLorebookIds = [],
   lorebooks,
   personas,
   providerConnections,
@@ -50,6 +80,7 @@ export function getThreadReferenceSummary({
 }: {
   characters: readonly CharacterRecord[];
   fallbackProviderConnectionId?: string | null;
+  globalLorebookIds?: readonly string[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
@@ -72,7 +103,10 @@ export function getThreadReferenceSummary({
     hasMissingPersona: !!thread.activePersonaId && !personaIds.has(thread.activePersonaId),
     hasNoConnectionAvailable: !hasFallbackConnection,
     missingCompanionCount: countMissingIds(thread.characterIds, characterIds),
-    missingLorebookCount: countMissingIds(thread.lorebookIds, lorebookIds),
+    missingLorebookCount: countMissingIds(
+      collectReferencedLorebookIds({ characters, globalLorebookIds, personas, thread }),
+      lorebookIds,
+    ),
     selectedCompanionCount: countSelectedIds(thread.characterIds, characterIds),
   };
 }

@@ -35,7 +35,7 @@ export function ChatSettingsLorebooksDrawer({
       drawerId="lorebooks"
       open={open}
       summary={summary}
-      title="Lorebooks"
+      title="Chat lorebooks"
       onToggle={onToggle}
     >
       <ChatSettingsLorebookSelector

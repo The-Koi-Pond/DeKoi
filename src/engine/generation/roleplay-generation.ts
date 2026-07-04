@@ -1,6 +1,7 @@
 import type { CharacterRecord } from "../contracts/types/character";
-import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { LorebookRecord, LoreInsertionStrategy } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
+import type { AppSettings } from "../contracts/types/app-settings";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
@@ -20,6 +21,7 @@ import {
   personaGenerationContext,
   replaceGenerationPromptMacros,
   resolveGenerationRecords,
+  type LorebookSourceBuckets,
 } from "./generation";
 import type {
   GenerationParameters,
@@ -77,6 +79,8 @@ export interface RoleplayGenerationContext {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
+  lorebookSources: LorebookSourceBuckets;
+  loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   requestThread: RoleplayThread;
@@ -88,6 +92,7 @@ export interface RoleplayGenerationContextInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
 }
@@ -126,6 +131,7 @@ function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterR
 }
 
 export function createRoleplayGenerationContext({
+  appSettings = null,
   characters,
   fallbackProviderConnectionId = null,
   lorebooks,
@@ -135,6 +141,7 @@ export function createRoleplayGenerationContext({
 }: RoleplayGenerationContextInput): RoleplayGenerationContext {
   const records = resolveGenerationRecords({
     activePersonaId: thread.activePersonaId,
+    appSettings,
     characterIds: thread.characterIds,
     characters,
     fallbackProviderConnectionId,
@@ -150,13 +157,15 @@ export function createRoleplayGenerationContext({
     activePersona: records.activePersona,
     companions: records.companions,
     lorebooks: records.lorebooks,
+    lorebookSources: records.lorebookSources,
+    loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
       characterIds: records.companions.map((companion) => companion.id),
-      lorebookIds: records.lorebooks.map((lorebook) => lorebook.id),
+      lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
       providerConnectionId: records.providerConnectionId,
     },
     warnings: records.warnings,
@@ -254,7 +263,8 @@ function buildPostHistoryPrompt({
 function createRoleplayPromptAssembly({
   activePersona,
   companions,
-  lorebooks,
+  lorebookSources,
+  loreInsertionStrategy,
   loreRuntimeState,
   providerConnection,
   thread,
@@ -262,7 +272,8 @@ function createRoleplayPromptAssembly({
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
-  lorebooks: LorebookRecord[];
+  lorebookSources: LorebookSourceBuckets;
+  loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
@@ -272,11 +283,12 @@ function createRoleplayPromptAssembly({
   promptMessages: RoleplayGenerationPromptMessage[];
   warnings: string[];
 } {
-  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
+  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
     includeSummary: true,
+    insertionStrategy: loreInsertionStrategy,
     runtimeState: loreRuntimeState,
     scanSources: roleplayLoreScanSources(thread),
   });
@@ -358,7 +370,8 @@ export function createRoleplayGenerationRequestAssembly({
   const promptAssembly = createRoleplayPromptAssembly({
     activePersona: context.activePersona,
     companions: context.companions,
-    lorebooks: context.lorebooks,
+    lorebookSources: context.lorebookSources,
+    loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
     providerConnection: context.providerConnection,
     thread: context.requestThread,

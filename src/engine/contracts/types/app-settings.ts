@@ -1,5 +1,6 @@
 import { isProviderConnectionId, type ProviderConnectionId } from "./provider-connection";
 import { MESSENGER, type SurfaceId } from "../constants/surfaces";
+import type { LoreInsertionStrategy } from "./lorebook";
 
 const MAX_SURFACE_STATUS_LENGTH = 80;
 
@@ -29,6 +30,8 @@ export interface AppSettings {
   defaultTemperature: number;
   defaultMaxTokens: number;
   defaultTopP: number;
+  globalLorebookIds: string[];
+  loreInsertionStrategy: LoreInsertionStrategy;
 }
 
 export type ShoalSortMode = "freshest" | "oldest" | "title";
@@ -52,6 +55,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultTemperature: 80,
   defaultMaxTokens: 1024,
   defaultTopP: 95,
+  globalLorebookIds: [],
+  loreInsertionStrategy: "sorted-evenly",
 };
 
 function isSurfaceId(value: unknown): value is SurfaceId {
@@ -74,9 +79,25 @@ function isDensityPref(value: unknown): value is DensityPref {
   return value === "comfortable" || value === "compact";
 }
 
+function isLoreInsertionStrategy(value: unknown): value is LoreInsertionStrategy {
+  return value === "sorted-evenly" || value === "character-first" || value === "global-first";
+}
+
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
   if (typeof value !== "number" || Number.isNaN(value)) return fallback;
   return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function cleanStringIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function migrateLegacyConnectionId(parsed: Partial<AppSettings>): ProviderConnectionId {
@@ -145,5 +166,9 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       DEFAULT_APP_SETTINGS.defaultMaxTokens,
     ),
     defaultTopP: clampNumber(parsed.defaultTopP, 0, 100, DEFAULT_APP_SETTINGS.defaultTopP),
+    globalLorebookIds: cleanStringIds(parsed.globalLorebookIds),
+    loreInsertionStrategy: isLoreInsertionStrategy(parsed.loreInsertionStrategy)
+      ? parsed.loreInsertionStrategy
+      : DEFAULT_APP_SETTINGS.loreInsertionStrategy,
   };
 }

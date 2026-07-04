@@ -11,6 +11,7 @@ import {
   appendMessengerMessages,
   createGeneratedCompanionMessage,
 } from "../../../engine/modes/messenger/messenger-actions";
+import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
@@ -38,6 +39,7 @@ export interface MessengerGenerationRuntimeSnapshot {
 
 export interface GenerateMessengerThreadReplyInput {
   thread: MessengerThread;
+  appSettings: AppSettings;
   userMessage: MessengerMessage;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
@@ -92,6 +94,7 @@ async function generateMessengerResponse(
 }
 
 export async function generateMessengerThreadReply({
+  appSettings,
   characters,
   createId,
   fallbackProviderConnectionId = null,
@@ -107,6 +110,7 @@ export async function generateMessengerThreadReply({
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const runtime = selectMessengerGenerationRuntime(mode);
   const context = createMessengerGenerationContext({
+    appSettings,
     characters,
     fallbackProviderConnectionId,
     lorebooks,

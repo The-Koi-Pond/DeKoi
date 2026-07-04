@@ -365,6 +365,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
 
     try {
       const result = await generateRoleplayThreadTurn({
+        appSettings: nav.appSettings,
         characters: nav.characters,
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,

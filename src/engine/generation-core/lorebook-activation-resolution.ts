@@ -1,4 +1,8 @@
-import type { LorebookActivationSettings } from "../contracts/types/lorebook";
+import type {
+  LorebookActivationSettings,
+  LoreInsertionStrategy,
+  LoreSourceKind,
+} from "../contracts/types/lorebook";
 import {
   activatedLoreEntryKey,
   type ActivatedLoreEntry,
@@ -29,9 +33,25 @@ function stableEntryTiebreaker(left: ActivatedLoreEntry, right: ActivatedLoreEnt
   return left.entryIndex - right.entryIndex;
 }
 
-export function compareActivatedEntryOrder(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
+function compareActivatedEntryOrder(left: ActivatedLoreEntry, right: ActivatedLoreEntry) {
   const orderDelta = right.entry.insertionOrder - left.entry.insertionOrder;
   return orderDelta || stableEntryTiebreaker(left, right);
+}
+
+function sourceKindRank(kind: LoreSourceKind, strategy: LoreInsertionStrategy) {
+  if (strategy === "character-first") return kind === "character" ? 0 : 1;
+  if (strategy === "global-first") return kind === "global" ? 0 : 1;
+  return 0;
+}
+
+export function compareActivatedEntryInsertionOrder(
+  left: ActivatedLoreEntry,
+  right: ActivatedLoreEntry,
+  strategy: LoreInsertionStrategy = "sorted-evenly",
+) {
+  const sourceDelta =
+    sourceKindRank(left.sourceKind, strategy) - sourceKindRank(right.sourceKind, strategy);
+  return sourceDelta || compareActivatedEntryOrder(left, right);
 }
 
 function sortActivationResolutionEntries(entries: ActivatedLoreEntry[]) {
