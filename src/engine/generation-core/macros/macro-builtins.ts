@@ -1,6 +1,8 @@
 import { resolveCharacterMacro } from "./macro-builtins/character-macros";
 import { resolveContextMacro } from "./macro-builtins/context-macros";
+import { resolveFormatMacro } from "./macro-builtins/format-macros";
 import { resolveIdentityMacro } from "./macro-builtins/identity-macros";
+import { resolveTimeMacro } from "./macro-builtins/time-macros";
 import type { MacroContext } from "./macro-types";
 
 function isCommentMacro(name: string) {
@@ -18,6 +20,8 @@ export function applyBuiltins(body: string, context: MacroContext) {
   return (
     resolveIdentityMacro(name, context) ??
     resolveCharacterMacro(name, context) ??
-    resolveContextMacro(name, context)
+    resolveContextMacro(name, context) ??
+    resolveTimeMacro(name, context) ??
+    resolveFormatMacro(name)
   );
 }

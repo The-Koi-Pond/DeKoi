@@ -20,7 +20,10 @@ export type CharacterMacroFields = Pick<
 
 type PersonaMacroFields = Pick<PersonaRecord, "displayName">;
 
-/** Values available to Slice 1 macro resolution. */
+/** Time source accepted by the ECMAScript Date constructor for time macros. */
+export type MacroTimeSource = Date | string | number;
+
+/** Values available to macro resolution. */
 export interface MacroContext {
   user: string;
   char: string;
@@ -32,6 +35,13 @@ export interface MacroContext {
   model?: string | null;
   lastGenerationType?: string | null;
   idleDuration?: string | null;
+  /**
+   * Time source for time macros; omitted values snapshot current time once per
+   * resolver call.
+   */
+  now?: MacroTimeSource | null;
+  /** IANA time zone for display time macros; omitted values default to UTC. */
+  timeZone?: string | null;
 }
 
 /** Options that control final resolver output formatting. */
