@@ -53,6 +53,7 @@ export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
     characterNoteRole: readPersonaNoteRole(value.characterNoteRole),
     talkativeness: readNumberInRange(value.talkativeness, 50, 0, 100),
     avatarUrl: readNullableString(value.avatarUrl),
+    lorebookIds: readTrimmedStringArray(value.lorebookIds),
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
   };

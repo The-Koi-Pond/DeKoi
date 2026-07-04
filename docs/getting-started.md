@@ -71,7 +71,8 @@ The default fixture URL is:
 http://127.0.0.1:7341
 ```
 
-Use that URL in Pond Care > Deep Water > Remote Runtime URL. The fixture keeps storage in memory, so records disappear when the fixture process stops.
+Use that URL in Pond Care > Data & Backup > Remote Runtime URL. The fixture
+keeps storage in memory, so records disappear when the fixture process stops.
 
 ## Run Checks
 
@@ -101,11 +102,13 @@ Focused checks for narrow changes are mapped to change types in
 - Start with catalog records, then Messenger or Roleplay threads. Roleplay has
   native thread settings and send guards, but deeper scene-specific polish is
   still early.
-- Use Pond Care > Deep Water to confirm the selected runtime path.
-- Use Pond Care > Stocking for DeKoi-native bundle import and export. Imports
-  preview first, require confirmation, create a pre-import backup, and then
-  replace collections through the storage commit path.
-- Use Pond Care > Catalog for provider-key checks and secret storage.
+- Use Pond Care > Data & Backup to confirm the selected runtime path.
+- Use Pond Care > Generation for default model parameters, global lorebooks, and
+  lore insertion strategy.
+- Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
+  Imports preview first, require confirmation, create a pre-import backup, and
+  then replace collections through the storage commit path.
+- Use the Connections catalog for provider-key checks and secret storage.
 - Required-key provider generation needs the desktop app so saved keys can stay
   in the desktop key store; browser mode can still use compatible no-key/local
   provider paths with a configured Base URL and model.

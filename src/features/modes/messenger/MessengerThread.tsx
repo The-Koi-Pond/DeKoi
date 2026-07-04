@@ -414,6 +414,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
     try {
       const result = await generateMessengerThreadReply({
+        appSettings: nav.appSettings,
         characters: nav.characters,
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,

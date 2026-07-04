@@ -169,7 +169,9 @@ export function useAppController(): NavContextType {
   } = useLorebookActions({
     lorebooks,
     setLorebooks,
+    setAppSettings,
     setCharacters,
+    setPersonas,
     setRoleplayThreads,
     setMessengerThreads,
   });
@@ -197,7 +199,6 @@ export function useAppController(): NavContextType {
     activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
     characters,
     roleplayThreads,
-    lorebooks,
     personas,
     providerConnections,
     setRoleplayThreads,

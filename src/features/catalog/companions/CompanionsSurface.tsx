@@ -7,6 +7,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
+import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -14,7 +15,7 @@ interface CompanionsSurfaceProps {
   nav: CompanionsSurfaceNav;
 }
 
-export type CompanionsSurfaceNav = Pick<NavCatalogState, "characters"> &
+export type CompanionsSurfaceNav = Pick<NavCatalogState, "characters" | "lorebooks"> &
   Pick<NavCharacterActions, "createCharacter" | "deleteCharacter" | "updateCharacter"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
@@ -40,6 +41,7 @@ interface DraftState {
   characterNoteRole: CharacterNoteRole;
   talkativeness: string;
   avatarUrl: string;
+  lorebookIds: string[];
 }
 
 const EMPTY_DRAFT: DraftState = {
@@ -63,6 +65,7 @@ const EMPTY_DRAFT: DraftState = {
   characterNoteRole: "system",
   talkativeness: "50",
   avatarUrl: "",
+  lorebookIds: [],
 };
 
 function asText(value: unknown) {
@@ -141,6 +144,7 @@ function draftFromCharacter(record: CharacterRecord): DraftState {
     characterNoteRole: asNoteRole(record.characterNoteRole),
     talkativeness: asNumberString(record.talkativeness, 50),
     avatarUrl: asNullableText(record.avatarUrl) ?? "",
+    lorebookIds: asTextArray(record.lorebookIds),
   };
 }
 
@@ -166,6 +170,7 @@ function draftToInput(draft: DraftState): CharacterRecordInput {
     characterNoteRole: draft.characterNoteRole,
     talkativeness: parseNumber(draft.talkativeness, 50),
     avatarUrl: draft.avatarUrl.trim() || null,
+    lorebookIds: draft.lorebookIds,
   };
 }
 
@@ -176,6 +181,7 @@ function draftsMatch(left: DraftState, right: DraftState) {
 interface CompanionEditorProps {
   editingId: string | null;
   initialDraft: DraftState;
+  lorebooks: CompanionsSurfaceNav["lorebooks"];
   onBack: () => void;
   onDelete?: () => void;
   onSave: (input: CharacterRecordInput) => void;
@@ -184,6 +190,7 @@ interface CompanionEditorProps {
 function CompanionEditor({
   editingId,
   initialDraft,
+  lorebooks,
   onBack,
   onDelete,
   onSave,
@@ -408,6 +415,18 @@ function CompanionEditor({
             </div>
           </section>
 
+          <section className="catalog-editor-section" aria-labelledby="comp-lore-heading">
+            <h4 id="comp-lore-heading">Lorebooks</h4>
+            <LorebookMultiSelect
+              emptyMessage="No lorebooks have been created yet."
+              idPrefix="comp-lorebook"
+              label="Character lorebooks"
+              lorebooks={lorebooks}
+              selectedLorebookIds={draft.lorebookIds}
+              onChange={(lorebookIds) => setDraft({ ...draft, lorebookIds })}
+            />
+          </section>
+
           <section className="catalog-editor-section" aria-labelledby="comp-meta-heading">
             <h4 id="comp-meta-heading">Creator's Metadata</h4>
             <div className="catalog-editor-grid">
@@ -501,6 +520,7 @@ export function CompanionsSurface({ nav }: CompanionsSurfaceProps) {
           key={editingId ?? "new-companion"}
           editingId={editingId}
           initialDraft={initialDraft}
+          lorebooks={nav.lorebooks}
           onBack={handleBack}
           onDelete={editingId ? handleDelete : undefined}
           onSave={handleSave}

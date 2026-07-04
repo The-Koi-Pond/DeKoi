@@ -5,6 +5,7 @@ import {
   createLorebookEntryRecord,
   createLorebookRecord,
 } from "../../../engine/catalog/lorebook-actions";
+import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
@@ -149,6 +150,7 @@ describe("lorebook warning propagation", () => {
   it("includes Messenger activation warnings in runtime results", async () => {
     const message = messengerMessage();
     const result = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -176,6 +178,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const providerWarningResult = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -204,6 +207,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const droppedDraftResult = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -240,6 +244,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const result = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -260,6 +265,7 @@ describe("lorebook warning propagation", () => {
   it("includes Roleplay activation warnings in runtime results", async () => {
     const entry = roleplayEntry();
     const result = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -286,6 +292,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const providerWarningResult = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -313,6 +320,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const droppedDraftResult = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],
@@ -348,6 +356,7 @@ describe("lorebook warning propagation", () => {
     );
 
     const result = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [invalidRegexLorebook()],

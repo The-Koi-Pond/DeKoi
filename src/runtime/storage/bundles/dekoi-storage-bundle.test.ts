@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   DEKOI_STORAGE_BUNDLE_KIND,
   DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+  createDeKoiStorageBundle,
   normalizeDeKoiStorageBundle,
 } from "./dekoi-storage-bundle";
+import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import { createMessengerThread } from "../../../engine/modes/messenger/messenger-actions";
+import { createPersonaRecord } from "../../../engine/catalog/persona-actions";
 
 const now = "2026-06-24T07:00:00.000Z";
 
@@ -137,5 +140,43 @@ describe("normalizeDeKoiStorageBundle", () => {
     expect(result.preview.warnings).toContain(
       "Lore runtime states skipped 1 record(s) without an imported owner.",
     );
+  });
+
+  it("preserves persona lorebooks and global lore settings in native bundles", () => {
+    const persona = createPersonaRecord({
+      id: "persona-1",
+      input: {
+        displayName: "Alex",
+        lorebookIds: ["persona-lore"],
+      },
+      now,
+    });
+    const bundle = createDeKoiStorageBundle({
+      appSettings: {
+        ...DEFAULT_APP_SETTINGS,
+        globalLorebookIds: ["global-lore"],
+        loreInsertionStrategy: "global-first",
+      },
+      characters: [],
+      roleplayThreads: [],
+      personas: [persona],
+      lorebooks: [],
+      loreRuntimeStates: [],
+      providerConnections: [],
+      messengerThreads: [],
+      rippleStates: [],
+    });
+    const result = normalizeDeKoiStorageBundle(bundle);
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(bundle.data.personas[0]?.lorebookIds).toEqual(["persona-lore"]);
+    expect(bundle.data.appSettings.globalLorebookIds).toEqual(["global-lore"]);
+    expect(bundle.data.appSettings.loreInsertionStrategy).toBe("global-first");
+    expect(result.preview.bundle.data.personas[0]?.lorebookIds).toEqual(["persona-lore"]);
+    expect(result.preview.bundle.data.appSettings.globalLorebookIds).toEqual(["global-lore"]);
+    expect(result.preview.bundle.data.appSettings.loreInsertionStrategy).toBe("global-first");
   });
 });

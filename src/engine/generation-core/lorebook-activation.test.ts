@@ -8,7 +8,7 @@ import {
   buildMatchSources,
   buildScanBuffer,
   matchKey,
-  sortActivatedEntries,
+  sortActivatedEntriesForInsertion,
 } from "./lorebook-activation";
 import { finalizeActivationResult } from "./lorebook-activation-resolution";
 import type { ActivatedLoreEntry } from "./lorebook-activation-types";
@@ -17,7 +17,10 @@ import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
-import { activateLoreGenerationEntriesWithWarnings } from "../generation/generation";
+import {
+  activateLoreGenerationEntriesWithWarnings,
+  type LorebookSourceBuckets,
+} from "../generation/generation";
 
 const now = "2026-07-02T00:00:00.000Z";
 
@@ -32,6 +35,15 @@ function lorebook(entries: LorebookRecord["entries"], activation = {}) {
       now,
     }),
     entries,
+  };
+}
+
+function chatLorebookSources(lorebooks: LorebookRecord[]): LorebookSourceBuckets {
+  return {
+    chat: lorebooks,
+    persona: [],
+    character: [],
+    global: [],
   };
 }
 
@@ -91,6 +103,7 @@ function activatedEntry(
     matchedKeyCount: 0,
     warnings: [],
     sourceOrder: 0,
+    sourceKind: "chat",
     entryIndex: 0,
     recursionLevel: null,
     ...overrides,
@@ -151,6 +164,7 @@ function persona(input: Partial<PersonaRecord> = {}): PersonaRecord {
     createdAt: now,
     updatedAt: now,
     ...input,
+    lorebookIds: input.lorebookIds ?? [],
   };
 }
 
@@ -382,7 +396,7 @@ describe("lorebook activation", () => {
     });
 
     const result = activateLoreGenerationEntriesWithWarnings(
-      [lorebook([timed], { budgetTokens: 0 })],
+      chatLorebookSources([lorebook([timed], { budgetTokens: 0 })]),
       {
         runtimeState: runtimeState(),
         scanSources: [{ body: "Open the moon gate." }],
@@ -403,7 +417,7 @@ describe("lorebook activation", () => {
     });
 
     const result = activateLoreGenerationEntriesWithWarnings(
-      [lorebook([sticky], { budgetTokens: 0 })],
+      chatLorebookSources([lorebook([sticky], { budgetTokens: 0 })]),
       {
         runtimeState: runtimeState({
           lastEvaluatedMessageCount: 1,
@@ -1026,7 +1040,7 @@ describe("lorebook activation", () => {
     });
 
     expect(
-      sortActivatedEntries([...firstLorebookEntries, ...secondLorebookEntries]).map(
+      sortActivatedEntriesForInsertion([...firstLorebookEntries, ...secondLorebookEntries]).map(
         (item) => item.entry.title,
       ),
     ).toEqual(["High Other Source", "Tied First", "Tied Second", "Low"]);

@@ -1,15 +1,20 @@
 import type { CharacterRecord } from "../contracts/types/character";
-import type { LorebookRecord } from "../contracts/types/lorebook";
+import type {
+  LorebookRecord,
+  LoreInsertionStrategy,
+  LoreSourceKind,
+} from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
+import type { AppSettings } from "../contracts/types/app-settings";
 import {
   advanceLoreRuntimeStateForEvaluation,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
   buildMatchSources,
   buildScanBuffer,
-  sortActivatedEntries,
+  sortActivatedEntriesForInsertion,
   updateLoreRuntimeStateFromActivation,
   type ActivatedLoreEntry,
   type LorebookScanSource,
@@ -64,7 +69,12 @@ export interface GenerationAdapter<Request extends GenerationRequestBase> {
 export interface GenerationRecordContext {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
+  /** Resolved lorebooks from every source bucket, deduped by first bucket precedence. */
   lorebooks: LorebookRecord[];
+  /** Chat, persona, character, and global lorebooks before cross-bucket dedupe. */
+  lorebookSources: LorebookSourceBuckets;
+  /** Saved app-wide ordering preference for final lore insertion. */
+  loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   warnings: string[];
@@ -78,6 +88,8 @@ export interface ResolveGenerationRecordsInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  /** App-wide lore source and insertion settings. */
+  appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   warningPrefix: string;
@@ -93,6 +105,27 @@ function uniqueGenerationIds(ids: string[]) {
 
 function createGenerationWarning(prefix: string, kind: string, id: string) {
   return `${prefix} references a missing ${kind}: ${id}.`;
+}
+
+function resolveLorebookSourceBucket({
+  ids,
+  kind,
+  lorebookById,
+  warnings,
+  warningPrefix,
+}: {
+  ids: string[];
+  kind: LoreSourceKind;
+  lorebookById: Map<string, LorebookRecord>;
+  warnings: string[];
+  warningPrefix: string;
+}) {
+  return uniqueGenerationIds(ids).flatMap((lorebookId) => {
+    const lorebook = lorebookById.get(lorebookId);
+    if (lorebook) return [lorebook];
+    warnings.push(createGenerationWarning(warningPrefix, `${kind} lorebook`, lorebookId));
+    return [];
+  });
 }
 
 export function namedGenerationBlock(title: string, lines: string[]) {
@@ -123,7 +156,12 @@ export interface LoreGenerationContextOptions {
   contextTokens?: number | null;
   /** Already-loaded per-thread lore timer state for sticky and cooldown effects. */
   runtimeState?: LoreRuntimeState | null;
+  /** Final ordering strategy after all source buckets have been activated. */
+  insertionStrategy?: LoreInsertionStrategy;
 }
+
+/** Lorebooks grouped by the context source that selected them for generation. */
+export type LorebookSourceBuckets = Record<LoreSourceKind, LorebookRecord[]>;
 
 export interface ActivatedLoreGenerationResult {
   entries: ActivatedLoreEntry[];
@@ -145,6 +183,27 @@ function approximatePromptTextTokens(value: string) {
 
 function uniqueCleanWarnings(warnings: string[]) {
   return [...new Set(warnings.map((warning) => warning.trim()).filter(Boolean))];
+}
+
+function orderedLorebookSources(lorebooks: LorebookSourceBuckets) {
+  const sources: { lorebook: LorebookRecord; sourceKind: LoreSourceKind; sourceOrder: number }[] =
+    [];
+  const sourceKinds: LoreSourceKind[] = ["chat", "persona", "character", "global"];
+  const seenLorebookIds = new Set<string>();
+
+  for (const sourceKind of sourceKinds) {
+    for (const lorebook of lorebooks[sourceKind]) {
+      if (seenLorebookIds.has(lorebook.id)) continue;
+      seenLorebookIds.add(lorebook.id);
+      sources.push({
+        lorebook,
+        sourceKind,
+        sourceOrder: sources.length,
+      });
+    }
+  }
+
+  return sources;
 }
 
 export function characterGenerationContext(
@@ -184,7 +243,7 @@ export function personaGenerationContext(
 }
 
 export function activateLoreGenerationEntriesWithWarnings(
-  lorebooks: LorebookRecord[],
+  lorebooks: LorebookSourceBuckets,
   options: LoreGenerationContextOptions = {},
 ): ActivatedLoreGenerationResult {
   const warnings: string[] = [];
@@ -195,37 +254,43 @@ export function activateLoreGenerationEntriesWithWarnings(
     activePersona: options.activePersona ?? null,
     companions: options.companions ?? [],
   });
-  const activatedEntries = lorebooks.flatMap((lorebook, sourceOrder) => {
-    const scanBuffer = buildScanBuffer(scanSources, lorebook.activation);
-    const summary = lorebook.summary.trim();
-    const reservedTokens =
-      options.includeSummary && summary
-        ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
-        : 0;
-    const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
-      matchSources,
-      messageCount,
-      runtimeState,
-      sourceOrder,
-    });
-    warnings.push(...activation.warnings);
-    const keptEntries = applyTokenBudget(activation.entries, {
-      budgetTokens: lorebook.activation.budgetTokens,
-      budgetPercent: lorebook.activation.budgetPercent,
-      contextTokens: options.contextTokens,
-      reservedTokens,
-    });
-    runtimeState = updateLoreRuntimeStateFromActivation({
-      activatedEntries: activation.entries,
-      keptEntries,
-      lorebook,
-      messageCount,
-      runtimeState,
-    });
-    return keptEntries;
-  });
+  const activatedEntries = orderedLorebookSources(lorebooks).flatMap(
+    ({ lorebook, sourceKind, sourceOrder }) => {
+      const scanBuffer = buildScanBuffer(scanSources, lorebook.activation);
+      const summary = lorebook.summary.trim();
+      const reservedTokens =
+        options.includeSummary && summary
+          ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
+          : 0;
+      const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
+        matchSources,
+        messageCount,
+        runtimeState,
+        sourceKind,
+        sourceOrder,
+      });
+      warnings.push(...activation.warnings);
+      const keptEntries = applyTokenBudget(activation.entries, {
+        budgetTokens: lorebook.activation.budgetTokens,
+        budgetPercent: lorebook.activation.budgetPercent,
+        contextTokens: options.contextTokens,
+        reservedTokens,
+      });
+      runtimeState = updateLoreRuntimeStateFromActivation({
+        activatedEntries: activation.entries,
+        keptEntries,
+        lorebook,
+        messageCount,
+        runtimeState,
+      });
+      return keptEntries;
+    },
+  );
   return {
-    entries: sortActivatedEntries(activatedEntries),
+    entries: sortActivatedEntriesForInsertion(
+      activatedEntries,
+      options.insertionStrategy ?? "sorted-evenly",
+    ),
     runtimeState,
     warnings: uniqueCleanWarnings(warnings),
   };
@@ -366,6 +431,7 @@ export function createGenerationParameters(
 
 export function resolveGenerationRecords({
   activePersonaId,
+  appSettings = null,
   characterIds,
   characters,
   fallbackProviderConnectionId = null,
@@ -394,12 +460,39 @@ export function resolveGenerationRecords({
     warnings.push(createGenerationWarning(warningPrefix, "persona", activePersonaId));
   }
 
-  const selectedLorebooks = uniqueGenerationIds(lorebookIds).flatMap((lorebookId) => {
-    const lorebook = lorebookById.get(lorebookId);
-    if (lorebook) return [lorebook];
-    warnings.push(createGenerationWarning(warningPrefix, "lorebook", lorebookId));
-    return [];
+  const selectedLorebooks = resolveLorebookSourceBucket({
+    ids: lorebookIds,
+    kind: "chat",
+    lorebookById,
+    warnings,
+    warningPrefix,
   });
+  const lorebookSources: LorebookSourceBuckets = {
+    chat: selectedLorebooks,
+    persona: activePersona
+      ? resolveLorebookSourceBucket({
+          ids: activePersona.lorebookIds,
+          kind: "persona",
+          lorebookById,
+          warnings,
+          warningPrefix,
+        })
+      : [],
+    character: resolveLorebookSourceBucket({
+      ids: companions.flatMap((companion) => companion.lorebookIds),
+      kind: "character",
+      lorebookById,
+      warnings,
+      warningPrefix,
+    }),
+    global: resolveLorebookSourceBucket({
+      ids: appSettings?.globalLorebookIds ?? [],
+      kind: "global",
+      lorebookById,
+      warnings,
+      warningPrefix,
+    }),
+  };
 
   let selectedProviderConnectionId = providerConnectionId;
   let providerConnection: ProviderConnectionRecord | null = selectedProviderConnectionId
@@ -424,7 +517,9 @@ export function resolveGenerationRecords({
   return {
     activePersona,
     companions,
-    lorebooks: selectedLorebooks,
+    lorebooks: orderedLorebookSources(lorebookSources).map((source) => source.lorebook),
+    lorebookSources,
+    loreInsertionStrategy: appSettings?.loreInsertionStrategy ?? "sorted-evenly",
     providerConnectionId: selectedProviderConnectionId,
     providerConnection,
     warnings,

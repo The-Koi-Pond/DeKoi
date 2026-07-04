@@ -1,6 +1,7 @@
 import type { CharacterRecord } from "../contracts/types/character";
-import type { LorebookRecord } from "../contracts/types/lorebook";
+import type { LorebookRecord, LoreInsertionStrategy } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
+import type { AppSettings } from "../contracts/types/app-settings";
 import {
   resolveMessengerSystemPrompt,
   type MessengerMessage,
@@ -24,6 +25,7 @@ import {
   personaGenerationContext,
   replaceGenerationPromptMacros,
   resolveGenerationRecords,
+  type LorebookSourceBuckets,
 } from "./generation";
 import type {
   GenerationAdapter,
@@ -69,6 +71,8 @@ export interface MessengerGenerationContext {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebooks: LorebookRecord[];
+  lorebookSources: LorebookSourceBuckets;
+  loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   requestThread: MessengerThread;
@@ -80,11 +84,13 @@ export interface MessengerGenerationContextInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
 }
 
 export function createMessengerGenerationContext({
+  appSettings = null,
   characters,
   fallbackProviderConnectionId = null,
   lorebooks,
@@ -94,6 +100,7 @@ export function createMessengerGenerationContext({
 }: MessengerGenerationContextInput): MessengerGenerationContext {
   const records = resolveGenerationRecords({
     activePersonaId: thread.activePersonaId,
+    appSettings,
     characterIds: thread.characterIds,
     characters,
     fallbackProviderConnectionId,
@@ -109,13 +116,15 @@ export function createMessengerGenerationContext({
     activePersona: records.activePersona,
     companions: records.companions,
     lorebooks: records.lorebooks,
+    lorebookSources: records.lorebookSources,
+    loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
       characterIds: records.companions.map((companion) => companion.id),
-      lorebookIds: records.lorebooks.map((lorebook) => lorebook.id),
+      lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
       mode: records.companions.length > 1 ? "group" : "direct",
       providerConnectionId: records.providerConnectionId,
     },
@@ -198,7 +207,8 @@ function buildSystemPrompt({
 function createMessengerPromptAssembly({
   activePersona,
   companions,
-  lorebooks,
+  lorebookSources,
+  loreInsertionStrategy,
   loreRuntimeState,
   providerConnection,
   thread,
@@ -206,7 +216,8 @@ function createMessengerPromptAssembly({
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
-  lorebooks: LorebookRecord[];
+  lorebookSources: LorebookSourceBuckets;
+  loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
@@ -216,10 +227,11 @@ function createMessengerPromptAssembly({
   promptMessages: MessengerGenerationPromptMessage[];
   warnings: string[];
 } {
-  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebooks, {
+  const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
+    insertionStrategy: loreInsertionStrategy,
     runtimeState: loreRuntimeState,
     scanSources: messengerLoreScanSources(thread),
   });
@@ -299,7 +311,8 @@ export function createMessengerGenerationRequestAssembly({
   const promptAssembly = createMessengerPromptAssembly({
     activePersona: context.activePersona,
     companions: context.companions,
-    lorebooks: context.lorebooks,
+    lorebookSources: context.lorebookSources,
+    loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
     providerConnection: context.providerConnection,
     thread: context.requestThread,

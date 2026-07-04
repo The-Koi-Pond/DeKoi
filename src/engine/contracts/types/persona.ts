@@ -19,6 +19,7 @@ export interface PersonaRecord {
   characterNoteRole: PersonaNoteRole;
   talkativeness: number;
   avatarUrl: string | null;
+  lorebookIds: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -10,7 +10,6 @@ import {
   deleteRoleplayThread as deleteRoleplayThreadRecord,
   renameRoleplayThread as renameRoleplayThreadRecord,
 } from "../../../../engine/modes/roleplay/roleplay-actions";
-import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type {
   ProviderConnectionId,
@@ -28,7 +27,6 @@ type UseRoleplayThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
   characters: CharacterRecord[];
   roleplayThreads: RoleplayThread[];
-  lorebooks: LorebookRecord[];
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
   setRoleplayThreads: StateSetter<RoleplayThread[]>;
@@ -43,7 +41,6 @@ export function useRoleplayThreadActions({
   activeMessengerConnectionId,
   characters,
   roleplayThreads,
-  lorebooks,
   personas,
   providerConnections,
   setRoleplayThreads,
@@ -68,11 +65,7 @@ export function useRoleplayThreadActions({
         ),
       ];
       const lorebookIds = [
-        ...new Set(
-          (input?.lorebookIds ?? lorebooks.map((lorebook) => lorebook.id))
-            .map((id) => id.trim())
-            .filter(Boolean),
-        ),
+        ...new Set((input?.lorebookIds ?? []).map((id) => id.trim()).filter(Boolean)),
       ];
       const requestedConnectionId = input?.providerConnectionId?.trim() ?? "";
       const activeConnection =
@@ -118,7 +111,6 @@ export function useRoleplayThreadActions({
       activeMessengerConnectionId,
       characters,
       roleplayThreads.length,
-      lorebooks,
       openRoleplayThread,
       personas,
       providerConnections,

@@ -2,6 +2,8 @@ export type LoreEntryStrategy = "selective" | "constant";
 export type LoreSelectiveLogic = "and-any" | "and-all" | "not-any" | "not-all";
 export type LoreInsertionPosition = "before-character" | "after-character" | "at-depth";
 export type LoreEntryRole = "system" | "user" | "assistant";
+export type LoreSourceKind = "chat" | "persona" | "character" | "global";
+export type LoreInsertionStrategy = "sorted-evenly" | "character-first" | "global-first";
 export type LoreGenerationTriggerType =
   "normal" | "continue" | "impersonate" | "swipe" | "regenerate" | "quiet";
 

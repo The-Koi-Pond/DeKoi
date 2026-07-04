@@ -290,7 +290,7 @@
       "material": "shallow",
       "widthClamp": "clamp(360px, 30vw, 430px)",
       "rules": [
-        "Pond Care sections: Deep Water, Stocking, Catalog, appearance",
+        "Pond Care sections: General, Appearance, Behavior, Generation, Data & Backup",
         "glides over the pond and carries the floating shadow",
         "becomes a scrimmed overlay below 1280px"
       ]
@@ -675,9 +675,11 @@
       "Connections",
       "Media",
       "Pond Care",
-      "Deep Water",
-      "Stocking",
-      "Catalog"
+      "General",
+      "Appearance",
+      "Behavior",
+      "Generation",
+      "Data & Backup"
     ],
     "messengerLabels": "plain utilitarian: New thread, Copy, Retry, Edit, Delete",
     "roleplayLabels": "scene-aware where it clarifies: Set the scene, Continue scene, Branch from here; primary actions remain instantly legible",
@@ -690,7 +692,7 @@
     "keep dense text on calm opaque surfaces with atmosphere in the water around them",
     "make provider, runtime, and save state visible in tide and header language without exposing machinery",
     "use the material stack abyss to water to shallow to raise for depth instead of shadows and blur",
-    "give Connections, Deep Water, and Stocking the same craft as the hero",
+    "give Connections and Data & Backup the same craft as the hero",
     "pair every color-coded state with an icon or label"
   ],
   "donts": [
@@ -741,7 +743,7 @@
       "items": [
         "apply density rules to Companions, Personas, Lorebooks, Presets, Agents, and Media catalogs",
         "rebuild Connections forms to labeled-field standards with secret-safe affordances",
-        "bring Deep Water and Stocking logs to readable-row and inline-action standards with honest destructive confirms"
+        "bring Data & Backup logs to readable-row and inline-action standards with honest destructive confirms"
       ]
     },
     {

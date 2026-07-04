@@ -183,7 +183,7 @@ Likely relationships:
 
 - Can appear in many Messenger threads.
 - Can appear in many Roleplay threads.
-- Can reference lorebooks, presets, or media later.
+- Can reference lorebooks; presets and media can attach later.
 
 Not fully settled yet:
 
@@ -206,6 +206,7 @@ Likely relationships:
 - A Messenger thread may have one active persona.
 - A Roleplay thread may have one active persona.
 - A persona can be reused across many threads.
+- Can reference lorebooks that travel with that persona into generation.
 
 Not fully settled yet:
 
@@ -225,7 +226,9 @@ Purpose:
 Likely relationships:
 
 - Can be attached to characters.
+- Can be attached to personas.
 - Can be attached to Messenger or Roleplay threads.
+- Can be attached globally through app settings.
 - Can contain many lore entries.
 
 Current implementation:
@@ -233,16 +236,19 @@ Current implementation:
 - Lorebooks and lore entries are `schemaVersion: 2` records with activation,
   inclusion, placement, trigger, filter, timing, match-source, and budget
   fields.
-- Messenger and Roleplay prompt assembly activates selected lorebooks before
-  provider requests: constant entries activate unless blocked by timing delay or
+- Messenger and Roleplay prompt assembly resolves lorebooks from the chat or
+  scene, active persona, selected companions, and global app settings before
+  provider requests. Constant entries activate unless blocked by timing delay or
   delayed until recursion, selective entries match keys against recent
   transcript text and opted-in companion/persona fields, recursive scan can let
   activated entry bodies unlock further entries, per-thread lore runtime state
   applies sticky and cooldown timers, inclusion groups collapse to one winner
   before per-entry probability runs except for sticky activations, and activated
-  entries are ordered, placed, and budget-trimmed deterministically. The catalog
-  UI exposes the matching, inclusion, probability, placement, recursion, timed
-  effect, and budget controls.
+  entries are ordered by the saved insertion strategy, placed, and
+  budget-trimmed deterministically. The catalog UI exposes the matching,
+  inclusion, probability, placement, recursion, timed effect, and budget
+  controls; companion, persona, thread, and global settings choose which
+  lorebooks participate.
 - Exact activation, ordering, and budgeting mechanics live in
   [docs/storage-model.md](./docs/storage-model.md).
 
@@ -317,7 +323,8 @@ Likely relationships:
 - Has one or more character participants.
 - May have one active persona.
 - Contains many MessengerMessages.
-- May reference lorebooks, presets, media, and provider connections later.
+- May attach chat-specific lorebooks and choose a provider connection; presets
+  and media can attach later.
 
 Important behavior:
 

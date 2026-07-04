@@ -7,6 +7,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
+import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -14,7 +15,7 @@ interface PersonasSurfaceProps {
   nav: PersonasSurfaceNav;
 }
 
-export type PersonasSurfaceNav = Pick<NavCatalogState, "personas"> &
+export type PersonasSurfaceNav = Pick<NavCatalogState, "lorebooks" | "personas"> &
   Pick<NavPersonaActions, "createPersona" | "deletePersona" | "updatePersona"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
@@ -36,6 +37,7 @@ interface DraftState {
   characterNoteRole: PersonaNoteRole;
   talkativeness: string;
   avatarUrl: string;
+  lorebookIds: string[];
 }
 
 const EMPTY_DRAFT: DraftState = {
@@ -55,6 +57,7 @@ const EMPTY_DRAFT: DraftState = {
   characterNoteRole: "system",
   talkativeness: "50",
   avatarUrl: "",
+  lorebookIds: [],
 };
 
 function asText(value: unknown) {
@@ -117,6 +120,7 @@ function draftFromPersona(record: PersonaRecord): DraftState {
     characterNoteRole: asNoteRole(record.characterNoteRole),
     talkativeness: asNumberString(record.talkativeness, 50),
     avatarUrl: asNullableText(record.avatarUrl) ?? "",
+    lorebookIds: asTextArray(record.lorebookIds),
   };
 }
 
@@ -138,6 +142,7 @@ function draftToInput(draft: DraftState): PersonaRecordInput {
     characterNoteRole: draft.characterNoteRole,
     talkativeness: parseNumber(draft.talkativeness, 50),
     avatarUrl: draft.avatarUrl.trim() || null,
+    lorebookIds: draft.lorebookIds,
   };
 }
 
@@ -148,12 +153,20 @@ function draftsMatch(left: DraftState, right: DraftState) {
 interface PersonaEditorProps {
   editingId: string | null;
   initialDraft: DraftState;
+  lorebooks: PersonasSurfaceNav["lorebooks"];
   onBack: () => void;
   onDelete?: () => void;
   onSave: (input: PersonaRecordInput) => void;
 }
 
-function PersonaEditor({ editingId, initialDraft, onBack, onDelete, onSave }: PersonaEditorProps) {
+function PersonaEditor({
+  editingId,
+  initialDraft,
+  lorebooks,
+  onBack,
+  onDelete,
+  onSave,
+}: PersonaEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
 
@@ -329,6 +342,18 @@ function PersonaEditor({ editingId, initialDraft, onBack, onDelete, onSave }: Pe
             </div>
           </section>
 
+          <section className="catalog-editor-section" aria-labelledby="pers-lore-heading">
+            <h4 id="pers-lore-heading">Lorebooks</h4>
+            <LorebookMultiSelect
+              emptyMessage="No lorebooks have been created yet."
+              idPrefix="pers-lorebook"
+              label="Persona lorebooks"
+              lorebooks={lorebooks}
+              selectedLorebookIds={draft.lorebookIds}
+              onChange={(lorebookIds) => setDraft({ ...draft, lorebookIds })}
+            />
+          </section>
+
           <section className="catalog-editor-section" aria-labelledby="pers-meta-heading">
             <h4 id="pers-meta-heading">Creator's Metadata</h4>
             <div className="catalog-editor-grid">
@@ -422,6 +447,7 @@ export function PersonasSurface({ nav }: PersonasSurfaceProps) {
           key={editingId ?? "new-persona"}
           editingId={editingId}
           initialDraft={initialDraft}
+          lorebooks={nav.lorebooks}
           onBack={handleBack}
           onDelete={editingId ? handleDelete : undefined}
           onSave={handleSave}

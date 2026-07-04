@@ -9,7 +9,10 @@ import type { ProviderConnectionProvider } from "../contracts/types/provider-con
 import type { MessengerMessage, MessengerThread } from "../contracts/types/messenger";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
-import { formatLoreGenerationEntries } from "./generation";
+import {
+  activateLoreGenerationEntriesWithWarnings,
+  formatLoreGenerationEntries,
+} from "./generation";
 import {
   createMessengerGenerationContext,
   createMessengerGenerationRequest,
@@ -75,6 +78,7 @@ function persona(input: Partial<PersonaRecord> = {}): PersonaRecord {
     createdAt: now,
     updatedAt: now,
     ...input,
+    lorebookIds: input.lorebookIds ?? [],
   };
 }
 
@@ -656,6 +660,102 @@ describe("generation lorebook activation wiring", () => {
     expect(promptText).not.toContain("Should not activate from scenario.");
   });
 
+  it("activates Roleplay lore from chat, persona, character, and global sources without rewriting chat IDs", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["chat-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      appSettings: {
+        globalLorebookIds: ["global-lore"],
+        loreInsertionStrategy: "sorted-evenly",
+      },
+      characters: [character({ lorebookIds: ["character-lore"] })],
+      personas: [persona({ lorebookIds: ["persona-lore"] })],
+      lorebooks: [
+        selectiveLorebook({
+          id: "chat-lore",
+          title: "Chat Lore",
+          entries: [
+            {
+              id: "chat-entry",
+              title: "Chat",
+              body: "Roleplay chat-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "persona-lore",
+          title: "Persona Lore",
+          entries: [
+            {
+              id: "persona-entry",
+              title: "Persona",
+              body: "Roleplay persona-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "character-lore",
+          title: "Character Lore",
+          entries: [
+            {
+              id: "character-entry",
+              title: "Character",
+              body: "Roleplay character-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "global-lore",
+          title: "Global Lore",
+          entries: [
+            {
+              id: "global-entry",
+              title: "Global",
+              body: "Roleplay global-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
+
+    expect(context.requestThread.lorebookIds).toEqual(["chat-lore"]);
+    expect(request.lorebooks.map((lorebook) => lorebook.id)).toEqual([
+      "chat-lore",
+      "persona-lore",
+      "character-lore",
+      "global-lore",
+    ]);
+    expect(promptText).toContain("Roleplay chat-source lore.");
+    expect(promptText).toContain("Roleplay persona-source lore.");
+    expect(promptText).toContain("Roleplay character-source lore.");
+    expect(promptText).toContain("Roleplay global-source lore.");
+  });
+
   it("surfaces Roleplay invalid regex warnings from inactive lore entries", () => {
     const thread: RoleplayThread = {
       id: "roleplay-thread-1",
@@ -952,6 +1052,136 @@ describe("generation lorebook activation wiring", () => {
     expect(systemPrompt.indexOf("After character lore.")).toBeGreaterThan(
       systemPrompt.indexOf("Replying companion"),
     );
+  });
+
+  it("dedupes a lorebook shared across character and global sources, keeping character", () => {
+    const duplicateSourceLorebook = selectiveLorebook({
+      id: "shared-source-lore",
+      title: "Shared Source Lore",
+      entries: [
+        {
+          id: "shared-entry",
+          title: "Shared Entry",
+          body: "Both sources carry this entry.",
+          input: {
+            strategy: "constant",
+            insertionOrder: 10,
+          },
+        },
+      ],
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [],
+        persona: [],
+        character: [duplicateSourceLorebook],
+        global: [duplicateSourceLorebook],
+      },
+      { insertionStrategy: "character-first" },
+    );
+
+    expect(result.entries.map((entry) => entry.sourceKind)).toEqual(["character"]);
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["shared-entry"]);
+  });
+
+  it("activates Messenger lore from chat, persona, character, and global sources without rewriting chat IDs", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["chat-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      appSettings: {
+        globalLorebookIds: ["global-lore"],
+        loreInsertionStrategy: "sorted-evenly",
+      },
+      characters: [character({ lorebookIds: ["character-lore"] })],
+      personas: [persona({ lorebookIds: ["persona-lore"] })],
+      lorebooks: [
+        selectiveLorebook({
+          id: "chat-lore",
+          title: "Chat Lore",
+          entries: [
+            {
+              id: "chat-entry",
+              title: "Chat",
+              body: "Chat-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "persona-lore",
+          title: "Persona Lore",
+          entries: [
+            {
+              id: "persona-entry",
+              title: "Persona",
+              body: "Persona-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "character-lore",
+          title: "Character Lore",
+          entries: [
+            {
+              id: "character-entry",
+              title: "Character",
+              body: "Character-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+        selectiveLorebook({
+          id: "global-lore",
+          title: "Global Lore",
+          entries: [
+            {
+              id: "global-entry",
+              title: "Global",
+              body: "Global-source lore.",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(context.requestThread.lorebookIds).toEqual(["chat-lore"]);
+    expect(request.lorebooks.map((lorebook) => lorebook.id)).toEqual([
+      "chat-lore",
+      "persona-lore",
+      "character-lore",
+      "global-lore",
+    ]);
+    expect(systemPrompt).toContain("Chat-source lore.");
+    expect(systemPrompt).toContain("Persona-source lore.");
+    expect(systemPrompt).toContain("Character-source lore.");
+    expect(systemPrompt).toContain("Global-source lore.");
   });
 
   it("injects Messenger at-depth lore into the transcript with explicit role", () => {

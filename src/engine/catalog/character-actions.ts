@@ -33,10 +33,6 @@ function cleanNullableText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-function cleanLorebookIds(value: string[] | undefined) {
-  return [...new Set(value ?? [])].filter(Boolean);
-}
-
 function cleanTextArray(value: string[] | undefined) {
   return [...new Set(value?.map((item) => item.trim()).filter(Boolean) ?? [])];
 }
@@ -87,7 +83,7 @@ export function createCharacterRecord({
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
-    lorebookIds: cleanLorebookIds(input.lorebookIds),
+    lorebookIds: cleanTextArray(input.lorebookIds),
     createdAt: now,
     updatedAt: now,
   };
@@ -120,7 +116,7 @@ export function updateCharacterRecord(
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
-    lorebookIds: cleanLorebookIds(input.lorebookIds),
+    lorebookIds: cleanTextArray(input.lorebookIds),
     updatedAt,
   };
 }

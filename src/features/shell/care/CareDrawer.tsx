@@ -17,8 +17,10 @@ import { Slider } from "../../../shared/ui/primitives/Slider";
 import { NumberField } from "../../../shared/ui/primitives/NumberField";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Chip } from "../../../shared/ui/primitives/Chip";
+import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { SettingSection } from "./SettingSection";
 import { ROLEPLAY, MESSENGER, RESERVED } from "../../../engine/contracts/constants/surfaces";
+import type { LoreInsertionStrategy } from "../../../engine/contracts/types/lorebook";
 import {
   getDeKoiStorageBundleCounts,
   exportDesktopBundleFile,
@@ -98,6 +100,12 @@ const SEND_ON_ENTER_SURFACES = [
   { value: RESERVED, label: "Reserved" },
 ] as const;
 
+const LORE_INSERTION_STRATEGIES = [
+  { value: "sorted-evenly", label: "Sorted evenly" },
+  { value: "character-first", label: "Character first" },
+  { value: "global-first", label: "Global first" },
+] as const satisfies { value: LoreInsertionStrategy; label: string }[];
+
 type ImportBackupResult =
   | {
       ok: true;
@@ -134,6 +142,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     defaultTemperature,
     defaultMaxTokens,
     defaultTopP,
+    globalLorebookIds,
+    loreInsertionStrategy,
   } = nav.appSettings;
   const [runtimeUrl, setRuntimeUrl] = useState(nav.remoteRuntimeUrl);
   const [runtimeHealth, setRuntimeHealth] = useState("");
@@ -1600,6 +1610,42 @@ export function CareDrawer({ nav }: CareDrawerProps) {
                   <span>Focused</span>
                   <span>Diverse</span>
                 </div>
+              </div>
+            </SettingSection>
+
+            <SettingSection title="Lorebooks" description="Context added to every generation">
+              <LorebookMultiSelect
+                emptyMessage="No lorebooks have been created yet."
+                fieldClassName="field"
+                hintClassName="help"
+                idPrefix="care-global-lorebook"
+                label="Global lorebooks"
+                labelClassName={null}
+                lorebooks={nav.lorebooks}
+                selectedLorebookIds={globalLorebookIds}
+                onChange={(lorebookIds) =>
+                  nav.updateAppSettings({ globalLorebookIds: lorebookIds })
+                }
+              />
+
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label htmlFor="care-lore-insertion">Insertion strategy</label>
+                <select
+                  className="pondsel"
+                  id="care-lore-insertion"
+                  value={loreInsertionStrategy}
+                  onChange={(event) =>
+                    nav.updateAppSettings({
+                      loreInsertionStrategy: event.target.value as LoreInsertionStrategy,
+                    })
+                  }
+                >
+                  {LORE_INSERTION_STRATEGIES.map((strategy) => (
+                    <option key={strategy.value} value={strategy.value}>
+                      {strategy.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </SettingSection>
 

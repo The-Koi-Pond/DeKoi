@@ -24,10 +24,10 @@ export function ChatSettingsLorebookSelector({
 }: ChatSettingsLorebookSelectorProps) {
   return (
     <div className="chat-settings-field">
-      <span>Selected lorebooks</span>
+      <span>Chat lorebooks</span>
       {missingLorebookCount > 0 && (
         <ChatSettingsNotice actionLabel="Clear missing" onAction={onClearMissingLorebooks}>
-          {missingLorebookCount} selected lorebook
+          {missingLorebookCount} selected chat lorebook
           {missingLorebookCount === 1 ? " is" : "s are"} no longer saved. Missing lorebooks are
           skipped when {surfaceLabel} builds a reply.
         </ChatSettingsNotice>

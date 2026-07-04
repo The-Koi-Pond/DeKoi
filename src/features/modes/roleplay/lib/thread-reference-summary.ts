@@ -39,6 +39,7 @@ export function getRoleplayThreadReferenceSummary({
   return getThreadReferenceSummary({
     characters,
     fallbackProviderConnectionId: appSettings.activeMessengerConnectionId,
+    globalLorebookIds: appSettings.globalLorebookIds,
     lorebooks,
     personas,
     providerConnections,

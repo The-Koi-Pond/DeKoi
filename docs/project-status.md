@@ -10,7 +10,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
   trigger, filter, timing, match-source, and budget fields.
-- Lorebook prompt assembly activates enabled constant entries unless blocked by
+- Lorebook prompt assembly resolves chat/thread, active-persona,
+  selected-companion, and global app-setting lorebook sources with deterministic
+  first-source precedence, activates enabled constant entries unless blocked by
   timing delay or delayed until recursion, selective primary-key entries from
   recent Messenger or Roleplay transcript text, per-entry opted-in
   companion/persona match sources, optional filter logic, and regex keys,
@@ -19,11 +21,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   delay/cooldown/sticky effects through per-thread lore runtime state, resolves
   inclusion groups, applies probability gates after group winners are selected
   while sticky activations bypass inclusion-group suppression and probability,
-  orders activated entries by insertion order, places them before character
-  context, after character context, or at transcript depth, and applies lorebook
-  budget caps with direct activations prioritized before recursive activations,
-  constants before selective entries within each source, and a cheap text-length
-  estimate.
+  orders activated entries by insertion order using the saved insertion
+  strategy, places them before character context, after character context, or at
+  transcript depth, and applies lorebook budget caps with direct activations
+  prioritized before recursive activations, constants before selective entries
+  within each direct/recursive group, and a cheap text-length estimate.
 - Lorebook catalog controls expose scan depth, budget tokens or percent, entry
   Strategy/Key, Optional Filter, Selective Logic, Additional matching sources,
   Include names, case-sensitive and whole-word matching, insertion order,
@@ -31,6 +33,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   per-entry probability, inclusion groups, group weight, insertion-order group
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
+- Companion and Persona editors can attach lorebooks, and Pond Care generation
+  settings can attach global lorebooks and choose `sorted-evenly`,
+  `character-first`, or `global-first` insertion.
 - Collection-backed storage entity registry and Rust allowlist checks, including
   split Messenger message and Roleplay entry collections and per-thread lore
   runtime states.
@@ -46,8 +51,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   failures into actions for API keys, Base URL, selected model, provider support,
   and network reachability while preserving provider refusal/error detail.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
-  missing connection/persona/companion/lorebook states with narrow recovery
-  actions through mode-native records.
+  missing connection/persona/companion/lorebook states, including lorebooks
+  referenced through chat, persona, companion, or global sources, with narrow
+  recovery actions through mode-native records.
 - Messenger and Roleplay thread surfaces expose thread settings, pre-send
   missing-reference notices, and touch-friendly confirmation-aware edit/delete
   message or entry actions.

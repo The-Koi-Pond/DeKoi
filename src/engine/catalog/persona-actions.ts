@@ -17,6 +17,7 @@ export interface PersonaRecordInput {
   characterNoteRole?: PersonaNoteRole;
   talkativeness?: number;
   avatarUrl?: string | null;
+  lorebookIds?: string[];
 }
 
 function cleanText(value: string | undefined, fallback = "") {
@@ -74,6 +75,7 @@ export function createPersonaRecord({
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
+    lorebookIds: cleanTextArray(input.lorebookIds),
     createdAt: now,
     updatedAt: now,
   };
@@ -102,6 +104,7 @@ export function updatePersonaRecord(
     characterNoteRole: cleanNoteRole(input.characterNoteRole),
     talkativeness: cleanTalkativeness(input.talkativeness),
     avatarUrl: cleanNullableText(input.avatarUrl),
+    lorebookIds: cleanTextArray(input.lorebookIds),
     updatedAt,
   };
 }
@@ -122,4 +125,18 @@ export function duplicatePersonaRecord(
 
 export function deletePersonaRecord(records: PersonaRecord[], id: string) {
   return records.filter((record) => record.id !== id);
+}
+
+export function removePersonaLorebook(
+  record: PersonaRecord,
+  lorebookId: string,
+  updatedAt: string,
+): PersonaRecord {
+  if (!record.lorebookIds.includes(lorebookId)) return record;
+
+  return {
+    ...record,
+    lorebookIds: record.lorebookIds.filter((id) => id !== lorebookId),
+    updatedAt,
+  };
 }

@@ -18,7 +18,7 @@ Default URL:
 http://127.0.0.1:7341
 ```
 
-Use that URL in Pond Care > Deep Water > Remote Runtime URL. The fixture keeps
+Use that URL in Pond Care > Data & Backup > Remote Runtime URL. The fixture keeps
 storage in memory, so records disappear when the fixture process stops.
 
 Optional host and port:
@@ -50,7 +50,7 @@ the desktop runtime.
 
 ## Desktop Runtime
 
-Inside the Tauri app, Pond Care > Deep Water can select:
+Inside the Tauri app, Pond Care > Data & Backup can select:
 
 ```text
 desktop://runtime
@@ -314,6 +314,7 @@ Request:
         "characterNoteRole": "system",
         "talkativeness": 50,
         "avatarUrl": null,
+        "lorebookIds": [],
         "createdAt": "2026-06-24T07:00:00.000Z",
         "updatedAt": "2026-06-24T07:00:00.000Z"
       },
@@ -424,6 +425,14 @@ live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
 rendering or generating. Legacy embedded `messages` or `entries` may still be
 accepted on load or bundle import, but normal writes use the split collections.
 
+`app-settings` records include `globalLorebookIds` and `loreInsertionStrategy`
+for generation-wide lore context. `globalLorebookIds` stores trimmed unique
+lorebook IDs; `loreInsertionStrategy` is `sorted-evenly`, `character-first`, or
+`global-first`.
+
+`personas` records include `lorebookIds`, matching character lorebook bindings.
+Runtimes should preserve those IDs when listing or replacing persona storage.
+
 `lorebooks` records use `schemaVersion: 2`. Remote runtimes should preserve the
 lorebook `activation` block and each entry's activation, placement, trigger,
 filter, timing, recursion, inclusion, role, and match-source fields when
@@ -445,17 +454,20 @@ entry state is keyed by `lorebookId` and `entryId`, records the entry's
 its transcript removes its matching lore runtime state; bundle import skips
 orphaned lore runtime states and treats missing older bundle fields as empty.
 
-When `generation_generate` includes selected lorebooks, they use the same v2
-shape. Current DeKoi prompt assembly resolves selected lorebooks into
-`promptMessages` before sending the request. Compatible runtimes should use
-`promptMessages` for provider calls and do not need to re-run lorebook
-activation. Activation includes enabled non-empty constant entries unless
-blocked by timing delay or delayed until recursion, plus selective entries
-whose primary keys match recent transcript text or entry-opted additional match
-sources from selected companion `description`, `personality`, `scenario`, and
-`characterNote` fields and the active persona `description`. Additional match
-sources are off by default, and the lorebook `includeNames` setting controls
-whether display names and nicknames are included in their match blobs.
+When `generation_generate` includes resolved lorebooks, they use the same v2
+shape. Current DeKoi prompt assembly resolves lorebook sources from the
+chat/thread, active persona, selected companions, and app-wide global settings,
+then scans each lorebook at most once before sending the request. Duplicate
+lorebooks keep the first source bucket in deterministic order: chat, persona,
+character, then global. Compatible runtimes should use `promptMessages` for
+provider calls and do not need to re-run lorebook activation. Activation
+includes enabled non-empty constant entries unless blocked by timing delay or
+delayed until recursion, plus selective entries whose primary keys match recent
+transcript text or entry-opted additional match sources from selected companion
+`description`, `personality`, `scenario`, and `characterNote` fields and the
+active persona `description`. Additional match sources are off by default, and
+the lorebook `includeNames` setting controls whether display names and
+nicknames are included in their match blobs.
 Transcript matching uses
 `scanDepth` and `includeNames`; plaintext key matching uses
 `caseSensitiveKeys` and `matchWholeWords`. Slash-delimited regex keys fall back
@@ -476,13 +488,17 @@ whole group to highest-`insertionOrder` resolution; the flagged entry does not
 automatically win. Otherwise, `useGroupScoring` keeps the candidate with the
 highest unique matched primary-key count, and the default path uses weighted
 random selection by `groupWeight`. Sticky activations bypass inclusion-group
-suppression and per-entry probability; DeKoi then sorts activated entries by
-descending insertion order, places them before character context, after
-character context, or at transcript depth, and applies lorebook budget caps
-before the runtime receives `promptMessages`. Budget estimates use roughly
+suppression and per-entry probability; DeKoi then sorts activated entries by the
+saved `loreInsertionStrategy`. `sorted-evenly` uses descending insertion order
+across all source buckets, `character-first` ranks character-sourced lore first,
+and `global-first` ranks global lore first; all strategies keep resolved
+lorebook source order and entry order as stable tiebreakers. DeKoi places kept
+entries before character context, after character context, or at transcript
+depth, and applies lorebook budget caps before the runtime receives
+`promptMessages`. Budget estimates use roughly
 characters divided by 4. Budget trimming gives direct activations first claim on
 the cap before recursive activations, then constant entries before selective
-entries within each activation source; each priority group still uses
+entries within each direct/recursive group; each priority group still uses
 descending insertion order and stable lorebook/entry tiebreakers. Timers are
 started or preserved only for entries that survive budget trimming; trimming a
 sticky activation clears the sticky timer while preserving any remaining
