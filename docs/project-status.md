@@ -50,6 +50,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider-backed generation notices in Messenger and Roleplay format common
   failures into actions for API keys, Base URL, selected model, provider support,
   and network reachability while preserving provider refusal/error detail.
+- Slice 1 generation macro semantics are documented and implemented as a pure
+  TypeScript resolver under `src/engine/generation-core/macros`.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
   missing connection/persona/companion/lorebook states, including lorebooks
   referenced through chat, persona, companion, or global sources, with narrow
@@ -72,6 +74,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider transport is still narrow and experimental; required-key providers
   use desktop provider-key storage through the runtime boundary, and
   provider-specific response parsing still needs more real-endpoint validation.
+- Full macro resolver wiring is deferred; current Messenger and Roleplay system
+  prompt assembly still uses the temporary `replaceGenerationPromptMacros`
+  helper for `{{char}}`, `{{user}}`, and compatibility aliases.
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.

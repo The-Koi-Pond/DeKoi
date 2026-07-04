@@ -87,6 +87,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules and [AGENTS.md](
 - [Agent Guidance](./AGENTS.md): source lanes, proof expectations, and shipping workflow.
 - [Domain Model](./DOMAIN_MODEL.md): product vocabulary, naming map, record glossary, and naming guardrails.
 - [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
+- [Generation Macro Semantics](./docs/generation-macro-semantics.md): Slice 1 prompt macro resolver contract and deferred macro families.
 - [Storage Model](./docs/storage-model.md): collection-backed durable data guardrails.
 - [Remote Runtime Contract](./docs/remote-runtime-contract.md): compatible runtime health, invoke, generation, and storage commands.
 

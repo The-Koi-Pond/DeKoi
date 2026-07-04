@@ -226,6 +226,11 @@ Runtimes should use the shared generation fields for provider calls:
 `providerConnection`, `targetCharacterId`, `targetCharacterName`,
 `promptMessages`, and `parameters`.
 
+DeKoi owns generation macro resolution in app-side prompt assembly; see
+[Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
+treat `promptMessages` as the final provider input and must not re-run macro
+resolution or interpret unresolved macro-looking text.
+
 Request:
 
 ```json
