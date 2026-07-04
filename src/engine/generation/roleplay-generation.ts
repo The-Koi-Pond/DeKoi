@@ -13,14 +13,16 @@ import {
   activateLoreGenerationEntriesWithWarnings,
   characterGenerationContext,
   cleanGenerationText,
+  createGenerationMacroContext,
   createGenerationParameters,
   exampleDialogueGenerationContext,
   formatLoreGenerationEntries,
   injectAtDepth,
   namedGenerationBlock,
   personaGenerationContext,
-  replaceGenerationPromptMacros,
+  resolveGenerationMacros,
   resolveGenerationRecords,
+  type GenerationMacroContext,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -115,6 +117,14 @@ function roleplayLoreScanSources(thread: RoleplayThread): LorebookScanSource[] {
   }));
 }
 
+function latestRoleplayInput(thread: RoleplayThread) {
+  for (let index = thread.entries.length - 1; index >= 0; index -= 1) {
+    if (thread.entries[index].body.trim()) return thread.entries[index].body;
+  }
+
+  return null;
+}
+
 function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterRecord[]) {
   const availableCompanions = companions.filter((companion) =>
     thread.characterIds.includes(companion.id),
@@ -176,6 +186,7 @@ function buildRoleplaySystemPrompt({
   activePersona,
   activatedLoreEntries,
   companions,
+  macroContext,
   summarizedLorebookIds,
   targetCompanion,
   thread,
@@ -183,23 +194,18 @@ function buildRoleplaySystemPrompt({
   activePersona: PersonaRecord | null;
   activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
+  macroContext: GenerationMacroContext;
   summarizedLorebookIds: Set<string>;
   targetCompanion: CharacterRecord | null;
   thread: RoleplayThread;
 }) {
-  const targetName = targetCompanion?.displayName ?? "the selected character";
-  const userName = activePersona?.displayName ?? "the user";
-  const selectedPrompt = replaceGenerationPromptMacros(
-    DEFAULT_ROLEPLAY_SYSTEM_PROMPT,
-    targetName,
-    userName,
-  );
+  const selectedPrompt = resolveGenerationMacros(DEFAULT_ROLEPLAY_SYSTEM_PROMPT, macroContext);
 
   return [
     selectedPrompt,
     ...namedGenerationBlock("Scene", [
-      thread.title ? `Title: ${thread.title}` : "",
-      thread.sceneText ? thread.sceneText : "",
+      thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : "",
+      thread.sceneText ? resolveGenerationMacros(thread.sceneText, macroContext) : "",
     ]),
     ...namedGenerationBlock(
       "Selected lore",
@@ -213,7 +219,7 @@ function buildRoleplaySystemPrompt({
     ...namedGenerationBlock(
       "Active persona",
       activePersona
-        ? personaGenerationContext(activePersona, "Persona instructions")
+        ? personaGenerationContext(activePersona, "Persona instructions", { macroContext })
         : ["Anonymous user"],
     ),
     ...companions.flatMap((companion) =>
@@ -221,6 +227,7 @@ function buildRoleplaySystemPrompt({
         companion.id === targetCompanion?.id ? "Replying character" : "Other character",
         characterGenerationContext(companion, {
           includeExamples: false,
+          macroContext,
           systemPromptLabel: "Character instructions",
         }),
       ),
@@ -232,28 +239,39 @@ function buildRoleplaySystemPrompt({
         { includeSummary: true, summarizedLorebookIds },
       ),
     ),
-    ...namedGenerationBlock("Example dialogue", exampleDialogueGenerationContext(companions)),
+    ...namedGenerationBlock(
+      "Example dialogue",
+      exampleDialogueGenerationContext(companions, { macroContext }),
+    ),
   ].join("\n\n");
 }
 
 function buildPostHistoryPrompt({
   activePersona,
+  macroContext,
   targetCompanion,
 }: {
   activePersona: PersonaRecord | null;
+  macroContext: GenerationMacroContext;
   targetCompanion: CharacterRecord | null;
 }) {
-  const targetName = targetCompanion?.displayName ?? "the selected character";
-  const userName = activePersona?.displayName ?? "the user";
+  const targetName = macroContext.char;
+  const userName = macroContext.user;
+  const targetPostHistoryInstructions = targetCompanion?.postHistoryInstructions
+    ? resolveGenerationMacros(targetCompanion.postHistoryInstructions, macroContext)
+    : "";
+  const personaPostHistoryInstructions = activePersona?.postHistoryInstructions
+    ? resolveGenerationMacros(activePersona.postHistoryInstructions, macroContext)
+    : "";
 
   return [
     `Continue the scene as ${targetName}.`,
     `Write only ${targetName}'s next turn. Do not write ${userName}'s response.`,
-    targetCompanion?.postHistoryInstructions
-      ? `Character post-history instructions: ${targetCompanion.postHistoryInstructions}`
+    targetPostHistoryInstructions.trim()
+      ? `Character post-history instructions: ${targetPostHistoryInstructions}`
       : "",
-    activePersona?.postHistoryInstructions
-      ? `Persona post-history instructions: ${activePersona.postHistoryInstructions}`
+    personaPostHistoryInstructions.trim()
+      ? `Persona post-history instructions: ${personaPostHistoryInstructions}`
       : "",
   ]
     .filter((line) => line.trim())
@@ -266,6 +284,7 @@ function createRoleplayPromptAssembly({
   lorebookSources,
   loreInsertionStrategy,
   loreRuntimeState,
+  now,
   providerConnection,
   thread,
   targetCompanion,
@@ -275,6 +294,7 @@ function createRoleplayPromptAssembly({
   lorebookSources: LorebookSourceBuckets;
   loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
+  now: string;
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
@@ -283,12 +303,23 @@ function createRoleplayPromptAssembly({
   promptMessages: RoleplayGenerationPromptMessage[];
   warnings: string[];
 } {
+  const macroContext = createGenerationMacroContext({
+    activePersona,
+    companions,
+    lastInput: latestRoleplayInput(thread),
+    now,
+    providerConnection,
+    targetCompanion,
+    targetNameFallback: "the selected character",
+    threadId: thread.id,
+  });
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
     includeSummary: true,
     insertionStrategy: loreInsertionStrategy,
+    macroContext,
     runtimeState: loreRuntimeState,
     scanSources: roleplayLoreScanSources(thread),
   });
@@ -304,6 +335,7 @@ function createRoleplayPromptAssembly({
     activePersona,
     activatedLoreEntries,
     companions,
+    macroContext,
     summarizedLorebookIds,
     targetCompanion,
     thread,
@@ -324,7 +356,7 @@ function createRoleplayPromptAssembly({
       ...transcriptWithDepthLore,
       {
         role: "user",
-        content: buildPostHistoryPrompt({ activePersona, targetCompanion }),
+        content: buildPostHistoryPrompt({ activePersona, macroContext, targetCompanion }),
       },
     ],
     warnings: loreActivation.warnings,
@@ -373,6 +405,7 @@ export function createRoleplayGenerationRequestAssembly({
     lorebookSources: context.lorebookSources,
     loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
+    now,
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,

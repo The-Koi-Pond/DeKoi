@@ -238,17 +238,19 @@ Current implementation:
   fields.
 - Messenger and Roleplay prompt assembly resolves lorebooks from the chat or
   scene, active persona, selected companions, and global app settings before
-  provider requests. Constant entries activate unless blocked by timing delay or
-  delayed until recursion, selective entries match keys against recent
-  transcript text and opted-in companion/persona fields, recursive scan can let
+  provider requests. Current built-in macros resolve across lore summaries,
+  entry bodies, and opted-in companion/persona match-source fields during prompt
+  assembly. Constant entries activate unless blocked by timing delay or delayed
+  until recursion, selective entries match keys against recent transcript text
+  and opted-in companion/persona fields, recursive scan can let resolved
   activated entry bodies unlock further entries, per-thread lore runtime state
   applies sticky and cooldown timers, inclusion groups collapse to one winner
   before per-entry probability runs except for sticky activations, and activated
   entries are ordered by the saved insertion strategy, placed, and
-  budget-trimmed deterministically. The catalog UI exposes the matching,
-  inclusion, probability, placement, recursion, timed effect, and budget
-  controls; companion, persona, thread, and global settings choose which
-  lorebooks participate.
+  budget-trimmed deterministically using resolved prompt text. The catalog UI
+  exposes the matching, inclusion, probability, placement, recursion, timed
+  effect, and budget controls; companion, persona, thread, and global settings
+  choose which lorebooks participate.
 - Exact activation, ordering, and budgeting mechanics live in
   [docs/storage-model.md](./docs/storage-model.md).
 

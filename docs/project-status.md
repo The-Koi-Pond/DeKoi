@@ -16,8 +16,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   timing delay or delayed until recursion, selective primary-key entries from
   recent Messenger or Roleplay transcript text, per-entry opted-in
   companion/persona match sources, optional filter logic, and regex keys,
-  recursively scans activated entry bodies when enabled, surfaces invalid or
-  unsafe regex and runaway recursion warnings, applies timed
+  recursively scans macro-resolved activated entry bodies when enabled, surfaces
+  invalid or unsafe regex and runaway recursion warnings, applies timed
   delay/cooldown/sticky effects through per-thread lore runtime state, resolves
   inclusion groups, applies probability gates after group winners are selected
   while sticky activations bypass inclusion-group suppression and probability,
@@ -25,7 +25,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   strategy, places them before character context, after character context, or at
   transcript depth, and applies lorebook budget caps with direct activations
   prioritized before recursive activations, constants before selective entries
-  within each direct/recursive group, and a cheap text-length estimate.
+  within each direct/recursive group, and a cheap text-length estimate of
+  macro-resolved summaries and bodies.
 - Lorebook catalog controls expose scan depth, budget tokens or percent, entry
   Strategy/Key, Optional Filter, Selective Logic, Additional matching sources,
   Include names, case-sensitive and whole-word matching, insertion order,
@@ -50,8 +51,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider-backed generation notices in Messenger and Roleplay format common
   failures into actions for API keys, Base URL, selected model, provider support,
   and network reachability while preserving provider refusal/error detail.
-- Slice 2 generation macro semantics are documented and implemented as a pure
-  TypeScript resolver under `src/engine/generation-core/macros`.
+- Current built-in generation macro semantics are documented and implemented as
+  a pure TypeScript resolver under `src/engine/generation-core/macros`, with
+  Messenger and Roleplay prompt assembly wiring in `src/engine/generation`.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
   missing connection/persona/companion/lorebook states, including lorebooks
   referenced through chat, persona, companion, or global sources, with narrow
@@ -74,9 +76,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider transport is still narrow and experimental; required-key providers
   use desktop provider-key storage through the runtime boundary, and
   provider-specific response parsing still needs more real-endpoint validation.
-- Full macro resolver wiring is deferred; current Messenger and Roleplay system
-  prompt assembly still uses the temporary `replaceGenerationPromptMacros`
-  helper for `{{char}}`, `{{user}}`, and compatibility aliases.
+- Macro resolver wiring is active in Messenger and Roleplay prompt assembly for
+  current built-in macros; control-flow, random, deferred character, and
+  variable macros remain future slices.
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.
