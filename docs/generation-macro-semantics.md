@@ -1,9 +1,10 @@
 # Generation Macro Semantics
 
-Status: Slice 2 resolver contract is implemented. Full generation wiring is a
-Slice 3 follow-up; current Messenger and Roleplay system prompts still use the
-temporary `replaceGenerationPromptMacros` helper, which resolves `{{char}}`,
-`{{user}}`, and their compatibility aliases.
+Status: Slice 3 generation wiring is implemented for Messenger and Roleplay.
+Generation prompt assembly now uses the Slice 1/2 resolver for system prompts,
+Roleplay scene setup, character and persona context fields, post-history
+instructions, lorebook summaries, activated lore entry bodies, at-depth lore
+messages, and example dialogue.
 
 ## Boundary
 
@@ -108,6 +109,26 @@ Context macros resolve missing values to an empty string:
 | `{{chatId}}`             | `context.chatId`             |
 | `{{lastGenerationType}}` | `context.lastGenerationType` |
 | `{{idle_duration}}`      | `context.idleDuration`       |
+
+Generation callers derive `context.lastInput` at the mode boundary. Messenger
+uses the current user message being generated from. Roleplay uses the latest
+nonblank thread entry body, regardless of whether that entry is persona,
+character, scene, or narration. Generation macro context trims this value before
+resolution.
+
+Generation macro context also trims persona and companion display names before
+assigning `context.user`, `context.char`, and `context.characters`; empty names
+fall back to mode-owned labels such as `the user`, `the selected companion`, or
+`the selected character`. Character field macros normally read the target
+companion. When prompt assembly renders each companion's context or example
+dialogue, that companion temporarily becomes `context.char` and
+`context.characterFields` for that field resolution.
+
+For lore activation, DeKoi resolves current built-in macros in lorebook
+summaries, lore entry bodies, and opted-in companion/persona match-source fields
+before activation, recursive scanning, timer updates, and budget estimates.
+Macro-empty lore bodies do not activate or start timers. Unknown macros stay
+visible in the resolved prompt text, while comment macros still resolve empty.
 
 ## Slice 2 Macros
 

@@ -229,7 +229,10 @@ Runtimes should use the shared generation fields for provider calls:
 DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
 treat `promptMessages` as the final provider input and must not re-run macro
-resolution or interpret unresolved macro-looking text.
+resolution or interpret unresolved macro-looking text. This includes current
+built-in macros in Messenger and Roleplay system prompts, Roleplay scene setup,
+persona and character context fields, post-history instructions, lorebook
+summaries and bodies, at-depth lore, and example dialogue.
 
 Request:
 
@@ -466,13 +469,15 @@ then scans each lorebook at most once before sending the request. Duplicate
 lorebooks keep the first source bucket in deterministic order: chat, persona,
 character, then global. Compatible runtimes should use `promptMessages` for
 provider calls and do not need to re-run lorebook activation. Activation
-includes enabled non-empty constant entries unless blocked by timing delay or
-delayed until recursion, plus selective entries whose primary keys match recent
-transcript text or entry-opted additional match sources from selected companion
-`description`, `personality`, `scenario`, and `characterNote` fields and the
-active persona `description`. Additional match sources are off by default, and
-the lorebook `includeNames` setting controls whether display names and
-nicknames are included in their match blobs.
+uses macro-resolved lorebook summaries, lore entry bodies, and entry-opted
+additional match sources. It includes enabled non-empty constant entries unless
+blocked by timing delay or delayed until recursion, plus selective entries
+whose primary keys match recent transcript text or entry-opted additional match
+sources from selected companion `description`, `personality`, `scenario`, and
+`characterNote` fields and the active persona `description`. Additional match
+sources are off by default, and the lorebook `includeNames` setting controls
+whether macro-resolved display names and nicknames are included in their match
+blobs.
 Transcript matching uses
 `scanDepth` and `includeNames`; plaintext key matching uses
 `caseSensitiveKeys` and `matchWholeWords`. Slash-delimited regex keys fall back
@@ -481,10 +486,10 @@ satisfy the entry's selective logic. Timing delay blocks direct and recursive
 activation until the thread's non-empty transcript count reaches the entry's
 `delay`; cooldown blocks reactivation while its timer remains, and sticky timers
 activate entries before normal matching. When `recursiveScan` is enabled,
-activated entry bodies can activate further entries unless blocked by
-`nonRecursable`, `preventFurther`, or `delayUntilRecursion`/`recursionLevel`;
-`maxRecursionSteps` caps recursion passes, and `0` means unlimited until DeKoi's
-64-pass hard cap.
+macro-resolved activated entry bodies can activate further entries unless
+blocked by `nonRecursable`, `preventFurther`, or
+`delayUntilRecursion`/`recursionLevel`; `maxRecursionSteps` caps recursion
+passes, and `0` means unlimited until DeKoi's 64-pass hard cap.
 DeKoi resolves comma-separated inclusion groups after direct and recursive
 activation. Active entries are sorted by descending `insertionOrder` before
 group resolution, so overlapping groups are discovered in prompt-priority order.
@@ -500,11 +505,11 @@ and `global-first` ranks global lore first; all strategies keep resolved
 lorebook source order and entry order as stable tiebreakers. DeKoi places kept
 entries before character context, after character context, or at transcript
 depth, and applies lorebook budget caps before the runtime receives
-`promptMessages`. Budget estimates use roughly
-characters divided by 4. Budget trimming gives direct activations first claim on
-the cap before recursive activations, then constant entries before selective
-entries within each direct/recursive group; each priority group still uses
-descending insertion order and stable lorebook/entry tiebreakers. Timers are
+`promptMessages`. Budget estimates use macro-resolved summaries and bodies at
+roughly characters divided by 4. Budget trimming gives direct activations first
+claim on the cap before recursive activations, then constant entries before
+selective entries within each direct/recursive group; each priority group still
+uses descending insertion order and stable lorebook/entry tiebreakers. Timers are
 started or preserved only for entries that survive budget trimming; trimming a
 sticky activation clears the sticky timer while preserving any remaining
 cooldown. Percent budgets apply only when the selected provider connection has

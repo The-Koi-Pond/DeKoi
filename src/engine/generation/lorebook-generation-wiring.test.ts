@@ -5,12 +5,14 @@ import { createProviderConnectionRecord } from "../catalog/provider-connection-a
 import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { LorebookActivationSettings, LorebookRecord } from "../contracts/types/lorebook";
+import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
 import type { MessengerMessage, MessengerThread } from "../contracts/types/messenger";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
 import {
   activateLoreGenerationEntriesWithWarnings,
+  createGenerationMacroContext,
   formatLoreGenerationEntries,
 } from "./generation";
 import {
@@ -856,6 +858,287 @@ describe("generation lorebook activation wiring", () => {
     expect(systemPrompt).not.toContain("Forest Lore / Grove: The hidden grove opens at sunset.");
   });
 
+  it("counts macro-resolved lorebook summaries against the lore token budget", () => {
+    const longCreatorNotes =
+      "This companion description expands far beyond the raw summary macro and must consume the lore budget before the entry body is allowed.";
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "We should look for the grove.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [character({ creatorNotes: longCreatorNotes })],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          summary: "{{creatorNotes}}",
+          activation: { budgetTokens: 30 },
+          entries: [
+            {
+              id: "match",
+              title: "Grove",
+              body: "Ok.",
+              key: ["grove"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).not.toContain(longCreatorNotes);
+    expect(systemPrompt).not.toContain("Forest Lore / Grove: Ok.");
+  });
+
+  it("counts macro-resolved lore entry bodies against the lore token budget", () => {
+    const longCreatorNotes =
+      "This companion description expands far beyond the raw entry macro and must not bypass the lore budget cap.";
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [character({ creatorNotes: longCreatorNotes })],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { budgetTokens: 12 },
+          entries: [
+            {
+              id: "macro-body",
+              title: "Macro Body",
+              body: "{{creatorNotes}}",
+              input: { strategy: "constant" },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
+
+    expect(promptText).not.toContain(longCreatorNotes);
+    expect(promptText).not.toContain("City Lore / Macro Body");
+  });
+
+  it("uses macro-resolved lore bodies for recursive activation and inserted text", () => {
+    const companion = character({
+      description: "The moon gate opens when the canal bell rings.",
+    });
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { recursiveScan: true },
+      entries: [
+        {
+          id: "seed",
+          title: "Seed",
+          body: "{{description}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "recursive",
+          title: "Recursive",
+          body: "The resolved seed entry unlocked this lore.",
+          key: ["moon gate"],
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      companions: [companion],
+      now,
+      targetCompanion: companion,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        companions: [companion],
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["seed", "recursive"]);
+    expect(formatLoreGenerationEntries(result.entries)).toContain(
+      "City Lore / Seed: The moon gate opens when the canal bell rings.",
+    );
+  });
+
+  it("does not activate timers for macro-empty lore bodies", () => {
+    const companion = character({ creatorNotes: "" });
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "empty",
+          title: "Empty",
+          body: "{{creatorNotes}}{{// hidden lore }}",
+          input: {
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+      ],
+    });
+    const runtimeState = {
+      id: "lore-runtime-1",
+      schemaVersion: 1,
+      ownerKind: "messenger-thread",
+      ownerId: "messenger-thread-1",
+      lastEvaluatedMessageCount: 0,
+      entries: [],
+      createdAt: now,
+      updatedAt: now,
+    } satisfies LoreRuntimeState;
+    const macroContext = createGenerationMacroContext({
+      companions: [companion],
+      now,
+      targetCompanion: companion,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        companions: [companion],
+        macroContext,
+        runtimeState,
+        scanSources: [{ name: "Alex", body: "Hello." }],
+      },
+    );
+
+    expect(result.entries).toEqual([]);
+    expect(result.runtimeState?.entries).toEqual([]);
+  });
+
+  it("resolves companion and persona match-source fields before activation", () => {
+    const companion = character({
+      creatorNotes: "canal sigil",
+      description: "{{creatorNotes}}",
+    });
+    const activePersona = persona({
+      description: "Follows {{char}} through the lantern route.",
+    });
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { matchWholeWords: false },
+      entries: [
+        {
+          id: "character-source",
+          title: "Character Source",
+          body: "Character source activated.",
+          key: ["canal sigil"],
+          input: {
+            matchSources: {
+              characterDescription: true,
+              characterPersonality: false,
+              scenario: false,
+              characterNote: false,
+              personaDescription: false,
+            },
+          },
+        },
+        {
+          id: "persona-source",
+          title: "Persona Source",
+          body: "Persona source activated.",
+          key: ["Mara"],
+          input: {
+            matchSources: {
+              characterDescription: false,
+              characterPersonality: false,
+              scenario: false,
+              characterNote: false,
+              personaDescription: true,
+            },
+          },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      activePersona,
+      companions: [companion],
+      now,
+      targetCompanion: companion,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        activePersona,
+        companions: [companion],
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual([
+      "character-source",
+      "persona-source",
+    ]);
+  });
+
   it("emits a Roleplay lorebook summary once when entries use multiple positions", () => {
     const thread: RoleplayThread = {
       id: "roleplay-thread-1",
@@ -1051,6 +1334,107 @@ describe("generation lorebook activation wiring", () => {
     );
     expect(systemPrompt.indexOf("After character lore.")).toBeGreaterThan(
       systemPrompt.indexOf("Replying companion"),
+    );
+  });
+
+  it("resolves macros across Messenger prompt assembly surfaces", () => {
+    const connection = providerConnection("openai");
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: connection.id,
+      systemPromptMode: "custom",
+      systemPrompt:
+        "Custom {{char}}/{{user}}/{{input}}/{{model}}/{{chatId}}/{{isotime}} {{unknownMacro}} {{// hidden}}",
+      messages: [messengerMessage("message-1", "  Canal please.  ")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Field macro sees {{user}} via {{model}}.",
+          characterNote: "Unknown stays {{literalCharacter}}.",
+          postHistoryInstructions: "Keep {{input}} for {{char}}.",
+        }),
+      ],
+      personas: [
+        persona({
+          displayName: "  Alex  ",
+          description: "Persona field sees {{char}} after {{input}}.",
+          postHistoryInstructions: "Persona remembers {{chatId}} and {{isotime}}.",
+        }),
+      ],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          summary: "Summary for {{user}}.",
+          entries: [
+            {
+              id: "before",
+              title: "Before",
+              body: "Before lore for {{char}} and {{persona}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "before-character",
+              },
+            },
+            {
+              id: "after",
+              title: "After",
+              body: "After lore keeps literal {{unknownLore}} for {{user}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+            {
+              id: "depth",
+              title: "Depth",
+              body: "Depth lore sees {{model}} and {{chatId}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "at-depth",
+                depth: 0,
+                role: "user",
+              },
+            },
+          ],
+        }),
+      ],
+      providerConnections: [connection],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
+
+    expect(promptText).toContain(
+      "Custom Mara/Alex/Canal please./test-model/messenger-thread-1/2026-07-02T00:00:00.000Z {{unknownMacro}}",
+    );
+    expect(promptText).not.toContain("hidden");
+    expect(promptText).toContain("Description: Field macro sees Alex via test-model.");
+    expect(promptText).toContain("Character note: Unknown stays {{literalCharacter}}.");
+    expect(promptText).toContain("Description: Persona field sees Mara after Canal please.");
+    expect(promptText).toContain("Before lore for Mara and Alex.");
+    expect(promptText).toContain("After lore keeps literal {{unknownLore}} for Alex.");
+    expect(promptText).toContain("Depth lore sees test-model and messenger-thread-1.");
+    expect(promptText).toContain("Post-history instructions\nKeep Canal please. for Mara.");
+    expect(promptText).toContain(
+      "Persona post-history instructions\nPersona remembers messenger-thread-1 and 2026-07-02T00:00:00.000Z.",
     );
   });
 
@@ -1466,5 +1850,121 @@ describe("generation lorebook activation wiring", () => {
       expect.stringContaining("Continue the scene as Mara."),
     ]);
     expect(request.promptMessages[3].role).toBe("system");
+  });
+
+  it("resolves macros across Roleplay prompt assembly surfaces", () => {
+    const connection = providerConnection("openai");
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene for {{char}}",
+      sceneText: "Scene setup mentions {{user}} and {{input}}.",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: connection.id,
+      entries: [roleplayEntry("entry-1", "  Open the gate.  ")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Trusts {{user}} near {{input}}.",
+          personality: "Says {{unknownPersonality}} plainly.",
+          exampleMessages: "Mara: {{user}} brought {{input}}.",
+          postHistoryInstructions: "Character says {{input}} to {{user}}.",
+        }),
+      ],
+      personas: [
+        persona({
+          description: "Persona sees {{char}} with {{model}}.",
+          postHistoryInstructions: "Persona says {{char}} should answer {{input}}.",
+        }),
+      ],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          summary: "Forest summary for {{char}}.",
+          entries: [
+            {
+              id: "before",
+              title: "Before",
+              body: "Before roleplay lore for {{char}} and {{user}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "before-character",
+              },
+            },
+            {
+              id: "after",
+              title: "After",
+              body: "After roleplay lore for {{persona}} using {{model}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+            {
+              id: "depth",
+              title: "Depth",
+              body: "Depth roleplay lore sees {{chatId}} and {{input}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "at-depth",
+                depth: 0,
+                role: null,
+              },
+            },
+            {
+              id: "comment-only",
+              title: "Comment Only",
+              body: "{{// hidden lore }}",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+          ],
+        }),
+      ],
+      providerConnections: [connection],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
+    const postHistoryPrompt = request.promptMessages[request.promptMessages.length - 1].content;
+
+    expect(promptText).toContain(
+      "You are Mara, writing the next in-character turn in an ongoing fictional roleplay with Alex.",
+    );
+    expect(promptText).not.toContain("{{char}}");
+    expect(promptText).not.toContain("{{user}}");
+    expect(promptText).toContain("Title: Scene for Mara");
+    expect(promptText).toContain("Scene setup mentions Alex and Open the gate.");
+    expect(promptText).toContain("Forest Lore: Forest summary for Mara.");
+    expect(promptText).toContain("Description: Trusts Alex near Open the gate.");
+    expect(promptText).toContain("Personality: Says {{unknownPersonality}} plainly.");
+    expect(promptText).toContain("Description: Persona sees Mara with test-model.");
+    expect(promptText).toContain("Mara: Alex brought Open the gate.");
+    expect(promptText).toContain("Before roleplay lore for Mara and Alex.");
+    expect(promptText).toContain("After roleplay lore for Alex using test-model.");
+    expect(promptText).toContain("Depth roleplay lore sees roleplay-thread-1 and Open the gate.");
+    expect(promptText).not.toContain("Comment Only:");
+    expect(postHistoryPrompt).toContain("Continue the scene as Mara.");
+    expect(postHistoryPrompt).toContain(
+      "Character post-history instructions: Character says Open the gate. to Alex.",
+    );
+    expect(postHistoryPrompt).toContain(
+      "Persona post-history instructions: Persona says Mara should answer Open the gate.",
+    );
   });
 });

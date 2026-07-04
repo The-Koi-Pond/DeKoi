@@ -18,13 +18,15 @@ import {
   activateLoreGenerationEntriesWithWarnings,
   characterGenerationContext,
   cleanGenerationText,
+  createGenerationMacroContext,
   createGenerationParameters,
   formatLoreGenerationEntries,
   injectAtDepth,
   namedGenerationBlock,
   personaGenerationContext,
-  replaceGenerationPromptMacros,
+  resolveGenerationMacros,
   resolveGenerationRecords,
+  type GenerationMacroContext,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -152,22 +154,27 @@ function buildSystemPrompt({
   activePersona,
   activatedLoreEntries,
   companions,
+  macroContext,
   targetCompanion,
   thread,
 }: {
   activePersona: PersonaRecord | null;
   activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
+  macroContext: GenerationMacroContext;
   targetCompanion: CharacterRecord | null;
   thread: MessengerThread;
 }) {
-  const targetName = targetCompanion?.displayName ?? "the selected companion";
-  const userName = activePersona?.displayName ?? "the user";
-  const selectedPrompt = replaceGenerationPromptMacros(
+  const selectedPrompt = resolveGenerationMacros(
     resolveMessengerSystemPrompt(thread),
-    targetName,
-    userName,
+    macroContext,
   );
+  const targetPostHistoryInstructions = targetCompanion?.postHistoryInstructions
+    ? resolveGenerationMacros(targetCompanion.postHistoryInstructions, macroContext)
+    : "";
+  const personaPostHistoryInstructions = activePersona?.postHistoryInstructions
+    ? resolveGenerationMacros(activePersona.postHistoryInstructions, macroContext)
+    : "";
 
   return [
     selectedPrompt,
@@ -181,12 +188,14 @@ function buildSystemPrompt({
     ),
     ...namedGenerationBlock(
       "Active persona",
-      activePersona ? personaGenerationContext(activePersona) : ["Anonymous user"],
+      activePersona
+        ? personaGenerationContext(activePersona, "System prompt", { macroContext })
+        : ["Anonymous user"],
     ),
     ...companions.flatMap((companion) =>
       namedGenerationBlock(
         companion.id === targetCompanion?.id ? "Replying companion" : "Other companion",
-        characterGenerationContext(companion),
+        characterGenerationContext(companion, { macroContext }),
       ),
     ),
     ...namedGenerationBlock(
@@ -195,11 +204,11 @@ function buildSystemPrompt({
         activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "after-character"),
       ),
     ),
-    ...(targetCompanion?.postHistoryInstructions
-      ? [`Post-history instructions\n${targetCompanion.postHistoryInstructions}`]
+    ...(targetPostHistoryInstructions.trim()
+      ? [`Post-history instructions\n${targetPostHistoryInstructions}`]
       : []),
-    ...(activePersona?.postHistoryInstructions
-      ? [`Persona post-history instructions\n${activePersona.postHistoryInstructions}`]
+    ...(personaPostHistoryInstructions.trim()
+      ? [`Persona post-history instructions\n${personaPostHistoryInstructions}`]
       : []),
   ].join("\n\n");
 }
@@ -210,28 +219,42 @@ function createMessengerPromptAssembly({
   lorebookSources,
   loreInsertionStrategy,
   loreRuntimeState,
+  now,
   providerConnection,
   thread,
   targetCompanion,
+  userMessage,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
   lorebookSources: LorebookSourceBuckets;
   loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
+  now: string;
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
+  userMessage: MessengerMessage;
 }): {
   loreRuntimeState: LoreRuntimeState | null;
   promptMessages: MessengerGenerationPromptMessage[];
   warnings: string[];
 } {
+  const macroContext = createGenerationMacroContext({
+    activePersona,
+    companions,
+    lastInput: userMessage.body,
+    now,
+    providerConnection,
+    targetCompanion,
+    threadId: thread.id,
+  });
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
     insertionStrategy: loreInsertionStrategy,
+    macroContext,
     runtimeState: loreRuntimeState,
     scanSources: messengerLoreScanSources(thread),
   });
@@ -257,6 +280,7 @@ function createMessengerPromptAssembly({
           activePersona,
           activatedLoreEntries,
           companions,
+          macroContext,
           targetCompanion,
           thread,
         }),
@@ -314,9 +338,11 @@ export function createMessengerGenerationRequestAssembly({
     lorebookSources: context.lorebookSources,
     loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
+    now,
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,
+    userMessage,
   });
 
   return {

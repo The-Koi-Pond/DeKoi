@@ -19,6 +19,11 @@ import {
   type ActivatedLoreEntry,
   type LorebookScanSource,
 } from "../generation-core/lorebook-activation";
+import {
+  resolveMacros,
+  type MacroContext,
+  type ResolveMacroOptions,
+} from "../generation-core/macros/macro-engine";
 
 export type GenerationProviderKind = "remote-runtime" | "external-provider";
 
@@ -133,16 +138,112 @@ export function namedGenerationBlock(title: string, lines: string[]) {
   return body ? [`${title}\n${body}`] : [];
 }
 
-export function replaceGenerationPromptMacros(
-  prompt: string,
-  targetName: string,
-  userName: string,
+export type GenerationMacroContext = MacroContext;
+
+/** Inputs Messenger and Roleplay use to build an engine-owned macro context. */
+export interface GenerationMacroContextInput {
+  activePersona?: PersonaRecord | null;
+  companions?: CharacterRecord[];
+  lastGenerationType?: string | null;
+  /** Latest mode-owned input exposed to `{{input}}` after trimming. */
+  lastInput?: string | null;
+  now?: MacroContext["now"];
+  providerConnection?: ProviderConnectionRecord | null;
+  targetCompanion?: CharacterRecord | null;
+  targetNameFallback?: string;
+  threadId?: string | null;
+  timeZone?: string | null;
+  userNameFallback?: string;
+}
+
+function cleanMacroName(value: string | null | undefined, fallback: string) {
+  return cleanGenerationText(value) || fallback;
+}
+
+/**
+ * Creates the prompt macro context without storage, host, or provider calls.
+ * Display names and input text are trimmed; empty names use caller fallbacks.
+ */
+export function createGenerationMacroContext({
+  activePersona = null,
+  companions = [],
+  lastGenerationType = null,
+  lastInput = null,
+  now = null,
+  providerConnection = null,
+  targetCompanion = null,
+  targetNameFallback = "the selected companion",
+  threadId = null,
+  timeZone = null,
+  userNameFallback = "the user",
+}: GenerationMacroContextInput): GenerationMacroContext {
+  const user = cleanMacroName(activePersona?.displayName, userNameFallback);
+
+  return {
+    user,
+    char: cleanMacroName(targetCompanion?.displayName, targetNameFallback),
+    characters: companions
+      .map((companion) => cleanGenerationText(companion.displayName))
+      .filter(Boolean),
+    characterFields: targetCompanion,
+    personaFields: activePersona ? { displayName: user } : null,
+    lastInput: cleanGenerationText(lastInput) || null,
+    chatId: threadId,
+    model: providerConnection?.model ?? null,
+    lastGenerationType,
+    now,
+    timeZone,
+  };
+}
+
+function createCharacterGenerationMacroContext(
+  macroContext: GenerationMacroContext,
+  character: CharacterRecord,
+): GenerationMacroContext {
+  return {
+    ...macroContext,
+    char: cleanMacroName(character.displayName, macroContext.char),
+    characterFields: character,
+  };
+}
+
+/**
+ * Resolves generation prompt macros while preserving caller-owned surrounding
+ * whitespace unless the caller passes different resolver options.
+ */
+export function resolveGenerationMacros(
+  value: string,
+  macroContext: GenerationMacroContext,
+  options: ResolveMacroOptions = { trimResult: false },
 ) {
-  return prompt
-    .replaceAll("{{charName}}", targetName)
-    .replaceAll("{{char}}", targetName)
-    .replaceAll("{{userName}}", userName)
-    .replaceAll("{{user}}", userName);
+  return resolveMacros(value, macroContext, options);
+}
+
+function resolveOptionalGenerationMacros(
+  value: string,
+  macroContext: GenerationMacroContext | null | undefined,
+  options?: ResolveMacroOptions,
+) {
+  return macroContext ? resolveGenerationMacros(value, macroContext, options) : value;
+}
+
+function resolveGenerationMacroField(
+  value: string | null | undefined,
+  macroContext: GenerationMacroContext | null | undefined,
+  options?: ResolveMacroOptions,
+) {
+  return resolveOptionalGenerationMacros(value ?? "", macroContext, options);
+}
+
+function macroLabeledLines(
+  macroContext: GenerationMacroContext | null | undefined,
+  macroOptions: ResolveMacroOptions | undefined,
+  rows: [label: string, value: string | null | undefined][],
+) {
+  return rows.flatMap(([label, value]) => {
+    const resolved = resolveGenerationMacroField(value, macroContext, macroOptions).trim();
+    return resolved ? [`${label}: ${resolved}`] : [];
+  });
 }
 
 export interface LoreGenerationContextOptions {
@@ -151,6 +252,9 @@ export interface LoreGenerationContextOptions {
   /** Selected companions used by entries that opt into companion match sources. */
   companions?: CharacterRecord[];
   includeSummary?: boolean;
+  /** Optional prompt macro context for resolving lore activation and output text. */
+  macroContext?: GenerationMacroContext | null;
+  macroOptions?: ResolveMacroOptions;
   /** Transcript sources scanned according to each lorebook's scan depth. */
   scanSources?: LorebookScanSource[];
   contextTokens?: number | null;
@@ -173,6 +277,8 @@ export interface ActivatedLoreGenerationResult {
 /** Formatting state shared across system-prompt and at-depth lore placement. */
 export interface LoreGenerationFormatOptions {
   includeSummary?: boolean;
+  macroContext?: GenerationMacroContext | null;
+  macroOptions?: ResolveMacroOptions;
   providerConnection?: ProviderConnectionRecord | null;
   summarizedLorebookIds?: Set<string>;
 }
@@ -183,6 +289,139 @@ function approximatePromptTextTokens(value: string) {
 
 function uniqueCleanWarnings(warnings: string[]) {
   return [...new Set(warnings.map((warning) => warning.trim()).filter(Boolean))];
+}
+
+function resolveLoreGenerationSummary(
+  value: string,
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  },
+) {
+  return resolveOptionalGenerationMacros(value, options.macroContext, options.macroOptions).trim();
+}
+
+function resolveLoreGenerationEntryBody(
+  entry: ActivatedLoreEntry,
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  },
+) {
+  return resolveOptionalGenerationMacros(
+    entry.entry.body,
+    options.macroContext,
+    options.macroOptions,
+  ).trim();
+}
+
+function approximateResolvedLoreEntryTokens(entry: ActivatedLoreEntry) {
+  const body = entry.entry.body.trim();
+  if (!body) return 0;
+
+  return approximatePromptTextTokens(`${entry.lorebookTitle} / ${entry.entry.title}: ${body}`);
+}
+
+function resolveLorebookForGenerationActivation(
+  lorebook: LorebookRecord,
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  },
+) {
+  const macroContext = options.macroContext;
+  if (!macroContext) return lorebook;
+
+  return {
+    ...lorebook,
+    summary: resolveLoreGenerationSummary(lorebook.summary, options),
+    entries: lorebook.entries.map((entry) => ({
+      ...entry,
+      body: resolveOptionalGenerationMacros(entry.body, macroContext, options.macroOptions).trim(),
+    })),
+  };
+}
+
+function resolveMatchSourceCompanions(
+  companions: CharacterRecord[],
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  },
+) {
+  const baseMacroContext = options.macroContext;
+  if (!baseMacroContext) return companions;
+
+  return companions.map((companion) => {
+    const macroContext = createCharacterGenerationMacroContext(baseMacroContext, companion);
+    const nickname = resolveGenerationMacroField(
+      companion.nickname,
+      macroContext,
+      options.macroOptions,
+    ).trim();
+
+    return {
+      ...companion,
+      displayName: resolveGenerationMacroField(
+        companion.displayName,
+        macroContext,
+        options.macroOptions,
+      ).trim(),
+      nickname: nickname || null,
+      description: resolveGenerationMacroField(
+        companion.description,
+        macroContext,
+        options.macroOptions,
+      ).trim(),
+      personality: resolveGenerationMacroField(
+        companion.personality,
+        macroContext,
+        options.macroOptions,
+      ).trim(),
+      scenario: resolveGenerationMacroField(
+        companion.scenario,
+        macroContext,
+        options.macroOptions,
+      ).trim(),
+      characterNote: resolveGenerationMacroField(
+        companion.characterNote,
+        macroContext,
+        options.macroOptions,
+      ).trim(),
+    };
+  });
+}
+
+function resolveMatchSourcePersona(
+  persona: PersonaRecord | null,
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  },
+) {
+  const macroContext = options.macroContext;
+  if (!persona || !macroContext) return persona;
+
+  const nickname = resolveGenerationMacroField(
+    persona.nickname,
+    macroContext,
+    options.macroOptions,
+  ).trim();
+
+  return {
+    ...persona,
+    displayName: resolveGenerationMacroField(
+      persona.displayName,
+      macroContext,
+      options.macroOptions,
+    ).trim(),
+    nickname: nickname || null,
+    description: resolveGenerationMacroField(
+      persona.description,
+      macroContext,
+      options.macroOptions,
+    ).trim(),
+  };
 }
 
 function orderedLorebookSources(lorebooks: LorebookSourceBuckets) {
@@ -208,38 +447,61 @@ function orderedLorebookSources(lorebooks: LorebookSourceBuckets) {
 
 export function characterGenerationContext(
   character: CharacterRecord,
-  options: { includeExamples?: boolean; systemPromptLabel?: string } = {},
+  options: {
+    includeExamples?: boolean;
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+    systemPromptLabel?: string;
+  } = {},
 ) {
   const systemPromptLabel = options.systemPromptLabel ?? "System prompt";
   const includeExamples = options.includeExamples ?? true;
+  const macroContext = options.macroContext
+    ? createCharacterGenerationMacroContext(options.macroContext, character)
+    : null;
+  const displayName = resolveGenerationMacroField(
+    character.displayName,
+    macroContext,
+    options.macroOptions,
+  ).trim();
+  const rows: [label: string, value: string | null | undefined][] = [
+    ["Nickname", character.nickname],
+    ["Description", character.description],
+    ["Personality", character.personality],
+    ["Scenario", character.scenario],
+    [systemPromptLabel, character.systemPrompt],
+  ];
+  if (includeExamples) rows.push(["Example messages", character.exampleMessages]);
+  rows.push(["Character note", character.characterNote]);
 
-  return [
-    `Name: ${character.displayName}`,
-    character.nickname ? `Nickname: ${character.nickname}` : "",
-    character.description ? `Description: ${character.description}` : "",
-    character.personality ? `Personality: ${character.personality}` : "",
-    character.scenario ? `Scenario: ${character.scenario}` : "",
-    character.systemPrompt ? `${systemPromptLabel}: ${character.systemPrompt}` : "",
-    includeExamples && character.exampleMessages
-      ? `Example messages: ${character.exampleMessages}`
-      : "",
-    character.characterNote ? `Character note: ${character.characterNote}` : "",
-  ].filter(Boolean);
+  return [`Name: ${displayName}`, ...macroLabeledLines(macroContext, options.macroOptions, rows)];
 }
 
 export function personaGenerationContext(
   persona: PersonaRecord,
   systemPromptLabel = "System prompt",
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  } = {},
 ) {
+  const displayName = resolveGenerationMacroField(
+    persona.displayName,
+    options.macroContext,
+    options.macroOptions,
+  ).trim();
+
   return [
-    `Name: ${persona.displayName}`,
-    persona.nickname ? `Nickname: ${persona.nickname}` : "",
-    persona.description ? `Description: ${persona.description}` : "",
-    persona.personality ? `Personality: ${persona.personality}` : "",
-    persona.scenario ? `Scenario: ${persona.scenario}` : "",
-    persona.systemPrompt ? `${systemPromptLabel}: ${persona.systemPrompt}` : "",
-    persona.characterNote ? `Persona note: ${persona.characterNote}` : "",
-  ].filter(Boolean);
+    `Name: ${displayName}`,
+    ...macroLabeledLines(options.macroContext, options.macroOptions, [
+      ["Nickname", persona.nickname],
+      ["Description", persona.description],
+      ["Personality", persona.personality],
+      ["Scenario", persona.scenario],
+      [systemPromptLabel, persona.systemPrompt],
+      ["Persona note", persona.characterNote],
+    ]),
+  ];
 }
 
 export function activateLoreGenerationEntriesWithWarnings(
@@ -251,18 +513,19 @@ export function activateLoreGenerationEntriesWithWarnings(
   const messageCount = scanSources.filter((source) => source.body?.trim()).length;
   let runtimeState = advanceLoreRuntimeStateForEvaluation(options.runtimeState, messageCount);
   const matchSources = buildMatchSources({
-    activePersona: options.activePersona ?? null,
-    companions: options.companions ?? [],
+    activePersona: resolveMatchSourcePersona(options.activePersona ?? null, options),
+    companions: resolveMatchSourceCompanions(options.companions ?? [], options),
   });
   const activatedEntries = orderedLorebookSources(lorebooks).flatMap(
     ({ lorebook, sourceKind, sourceOrder }) => {
-      const scanBuffer = buildScanBuffer(scanSources, lorebook.activation);
-      const summary = lorebook.summary.trim();
+      const activationLorebook = resolveLorebookForGenerationActivation(lorebook, options);
+      const scanBuffer = buildScanBuffer(scanSources, activationLorebook.activation);
+      const summary = activationLorebook.summary.trim();
       const reservedTokens =
         options.includeSummary && summary
-          ? approximatePromptTextTokens(`${lorebook.title}: ${summary}`)
+          ? approximatePromptTextTokens(`${activationLorebook.title}: ${summary}`)
           : 0;
-      const activation = activateLorebookEntriesWithWarnings(lorebook, scanBuffer, {
+      const activation = activateLorebookEntriesWithWarnings(activationLorebook, scanBuffer, {
         matchSources,
         messageCount,
         runtimeState,
@@ -271,15 +534,16 @@ export function activateLoreGenerationEntriesWithWarnings(
       });
       warnings.push(...activation.warnings);
       const keptEntries = applyTokenBudget(activation.entries, {
-        budgetTokens: lorebook.activation.budgetTokens,
-        budgetPercent: lorebook.activation.budgetPercent,
+        budgetTokens: activationLorebook.activation.budgetTokens,
+        budgetPercent: activationLorebook.activation.budgetPercent,
         contextTokens: options.contextTokens,
+        approxTokens: approximateResolvedLoreEntryTokens,
         reservedTokens,
       });
       runtimeState = updateLoreRuntimeStateFromActivation({
         activatedEntries: activation.entries,
         keptEntries,
-        lorebook,
+        lorebook: activationLorebook,
         messageCount,
         runtimeState,
       });
@@ -303,16 +567,17 @@ export function formatLoreGenerationEntries(
 ) {
   const summarizedLorebookIds = options.summarizedLorebookIds ?? new Set<string>();
   return entries.flatMap((activatedEntry) => {
-    const summary = activatedEntry.lorebookSummary.trim();
+    const summary = resolveLoreGenerationSummary(activatedEntry.lorebookSummary, options);
     const summaryLine =
       options.includeSummary && summary && !summarizedLorebookIds.has(activatedEntry.lorebookId)
         ? `${activatedEntry.lorebookTitle}: ${summary}`
         : null;
     if (summaryLine) summarizedLorebookIds.add(activatedEntry.lorebookId);
+    const body = resolveLoreGenerationEntryBody(activatedEntry, options);
 
     return [
       ...(summaryLine ? [summaryLine] : []),
-      `${activatedEntry.lorebookTitle} / ${activatedEntry.entry.title}: ${activatedEntry.entry.body.trim()}`,
+      ...(body ? [`${activatedEntry.lorebookTitle} / ${activatedEntry.entry.title}: ${body}`] : []),
     ];
   });
 }
@@ -410,12 +675,30 @@ export function injectAtDepth(
   return result;
 }
 
-export function exampleDialogueGenerationContext(companions: CharacterRecord[]) {
-  return companions.flatMap((companion) =>
-    companion.exampleMessages.trim()
-      ? [`${companion.displayName}\n${companion.exampleMessages.trim()}`]
-      : [],
-  );
+export function exampleDialogueGenerationContext(
+  companions: CharacterRecord[],
+  options: {
+    macroContext?: GenerationMacroContext | null;
+    macroOptions?: ResolveMacroOptions;
+  } = {},
+) {
+  return companions.flatMap((companion) => {
+    const macroContext = options.macroContext
+      ? createCharacterGenerationMacroContext(options.macroContext, companion)
+      : null;
+    const displayName = resolveGenerationMacroField(
+      companion.displayName,
+      macroContext,
+      options.macroOptions,
+    ).trim();
+    const exampleMessages = resolveGenerationMacroField(
+      companion.exampleMessages,
+      macroContext,
+      options.macroOptions,
+    ).trim();
+
+    return exampleMessages ? [`${displayName}\n${exampleMessages}`] : [];
+  });
 }
 
 export function createGenerationParameters(
