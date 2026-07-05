@@ -72,6 +72,8 @@ export interface NavStorageState {
   storageReady: boolean;
   storageHasUnsavedChanges: boolean;
   importRecoveryState: NavStorageImportRecoveryState;
+  /** Per-collection records dropped during the most recent load (empty when none). */
+  droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>;
   remoteRuntimeUrl: string;
 }
 

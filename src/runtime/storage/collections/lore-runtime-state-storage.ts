@@ -13,6 +13,7 @@ type LoreRuntimeStateStorageStatus = "ready" | "error";
 
 export type LoreRuntimeStateStorageSnapshot = {
   states: LoreRuntimeState[];
+  droppedRecordCount: number;
   mode: LoreRuntimeStateStorageMode;
   status: LoreRuntimeStateStorageStatus;
   message: string;
@@ -94,6 +95,7 @@ export async function loadLoreRuntimeStatesFromStorage(
 
   return {
     states: snapshot.records,
+    droppedRecordCount: snapshot.droppedRecordCount,
     mode: snapshot.mode,
     status: snapshot.status,
     message: snapshot.message,
@@ -103,7 +105,7 @@ export async function loadLoreRuntimeStatesFromStorage(
 export async function saveLoreRuntimeStatesToStorage(
   states: LoreRuntimeState[],
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<Omit<LoreRuntimeStateStorageSnapshot, "states">> {
+): Promise<Omit<LoreRuntimeStateStorageSnapshot, "states" | "droppedRecordCount">> {
   const result = await loreRuntimeStateRepository.save(states, rawUrl);
 
   return {

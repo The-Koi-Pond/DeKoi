@@ -64,8 +64,9 @@ Desktop records are stored under:
 
 Desktop collection files are JSON arrays with explicit recovery behavior for
 malformed files, backup sidecars, pre-repair sidecars, manual repair, stale
-checks, and reloads. See [Storage Model](./docs/storage-model.md) for the full
-durable storage policy.
+checks, reloads, and dropped-record warnings when individual records cannot be
+normalized. See [Storage Model](./docs/storage-model.md) for the full durable
+storage policy.
 
 In-app storage, repair, bundle import/export, and provider-key tools live under
 Pond Care; [docs/getting-started.md](./docs/getting-started.md) walks through

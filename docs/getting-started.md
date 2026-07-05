@@ -55,6 +55,11 @@ malformed desktop collection at a time by restoring a valid backup or, when no
 restorable backup exists, replacing it with an empty collection. The malformed
 bytes remain in `.json.pre-repair` until the user finishes the repair.
 
+If Pond Care warns that unreadable records were skipped during load, restore a
+backup bundle before editing those collections. DeKoi blocks saves for affected
+collections, including paired Messenger or Roleplay transcript collections, so a
+whole-collection save cannot silently erase the skipped records.
+
 ## Use A Remote Runtime
 
 A compatible runtime can provide storage and generation through the HTTP contract in [remote-runtime-contract.md](./remote-runtime-contract.md).

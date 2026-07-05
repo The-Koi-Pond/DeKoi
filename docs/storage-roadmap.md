@@ -23,7 +23,7 @@ that a user can understand what will happen before data changes.
   storage snapshots.
 - `src/app/use-app-storage-sync.ts` owns current React lifecycle storage sync:
   startup load, dirty collection queueing, stale checks, reload blocking, and
-  import coordination.
+  import coordination, including dropped-record save blocking.
 - `src/features/runtime/storage` owns user-facing storage workflow wrappers.
 - `src-tauri` owns desktop file IO, bundle dialogs, repair, and provider
   secrets behind shared API wrappers.
@@ -32,7 +32,8 @@ that a user can understand what will happen before data changes.
 
 - Product record types and pure behavior stay in `src/engine`.
 - Runtime storage normalizes JSON into engine records, adapts repositories,
-  assembles snapshots, and handles bundle import/export.
+  counts rejected load records, assembles snapshots, and handles bundle
+  import/export.
 - Feature UI renders state and gathers intent; it does not define durable
   schemas or bypass shared API wrappers.
 - Desktop and remote storage both use explicit collection names. Remote runtimes
@@ -74,5 +75,7 @@ These are intentionally not current contracts:
 - Keep transcript rows split from thread metadata.
 - Keep provider keys out of collection JSON, bundles, and restore payloads.
 - Do not silently recover corrupt collection files by treating them as empty.
+- Do not silently erase records rejected during load normalization; surface the
+  counts and block whole-collection saves until recovery clears them.
 - Do not leak SQL table names, host file paths, or old compatibility names into
   DeKoi product concepts.

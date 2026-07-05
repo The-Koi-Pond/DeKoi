@@ -14,6 +14,7 @@ type RippleStateStorageStatus = "ready" | "error";
 
 export type RippleStateStorageSnapshot = {
   states: RippleState[];
+  droppedRecordCount: number;
   mode: RippleStateStorageMode;
   status: RippleStateStorageStatus;
   message: string;
@@ -94,6 +95,7 @@ export async function loadRippleStatesFromStorage(
 
   return {
     states: snapshot.records,
+    droppedRecordCount: snapshot.droppedRecordCount,
     mode: snapshot.mode,
     status: snapshot.status,
     message: snapshot.message,
@@ -103,7 +105,7 @@ export async function loadRippleStatesFromStorage(
 export async function saveRippleStatesToStorage(
   states: RippleState[],
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<Omit<RippleStateStorageSnapshot, "states">> {
+): Promise<Omit<RippleStateStorageSnapshot, "states" | "droppedRecordCount">> {
   const result = await rippleStateRepository.save(states, rawUrl);
 
   return {
