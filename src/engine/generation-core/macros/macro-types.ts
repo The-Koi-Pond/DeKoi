@@ -23,6 +23,9 @@ type PersonaMacroFields = Pick<PersonaRecord, "displayName">;
 /** Time source accepted by the ECMAScript Date constructor for time macros. */
 export type MacroTimeSource = Date | string | number;
 
+/** Random source for random and dice macros. */
+type MacroRandomSource = () => number;
+
 /** Values available to macro resolution. */
 export interface MacroContext {
   user: string;
@@ -44,8 +47,10 @@ export interface MacroContext {
   timeZone?: string | null;
 }
 
-/** Options that control final resolver output formatting. */
+/** Options that control resolver output formatting and injectable sources. */
 export interface ResolveMacroOptions {
   /** Defaults to trimming the final output unless explicitly set to false. */
   trimResult?: boolean;
+  /** Defaults to Math.random when omitted. Values are clamped into [0, 1). */
+  random?: MacroRandomSource;
 }

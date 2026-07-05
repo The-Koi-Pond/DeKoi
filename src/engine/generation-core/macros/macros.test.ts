@@ -12,6 +12,27 @@ function macroContext(input: Partial<MacroContext> = {}): MacroContext {
   };
 }
 
+function characterMacroFields(
+  input: Partial<NonNullable<MacroContext["characterFields"]>> = {},
+): NonNullable<MacroContext["characterFields"]> {
+  return {
+    displayName: "",
+    nickname: "",
+    description: "",
+    personality: "",
+    scenario: "",
+    firstMessage: "",
+    exampleMessages: "",
+    systemPrompt: "",
+    postHistoryInstructions: "",
+    creator: "",
+    characterVersion: "",
+    creatorNotes: "",
+    characterNote: "",
+    ...input,
+  };
+}
+
 function expectedTimeParts(now: string, timeZone: string) {
   const date = new Date(now);
 
@@ -33,6 +54,20 @@ function expectedTimeParts(now: string, timeZone: string) {
       weekday: "long",
     }).format(date),
   };
+}
+
+function sequenceRandom(values: number[]) {
+  let index = 0;
+
+  return () => {
+    const value = values[Math.min(index, values.length - 1)] ?? 0;
+    index += 1;
+    return value;
+  };
+}
+
+function throwingRandom(): never {
+  throw new Error("Random macro should not be evaluated");
 }
 
 describe("macro balance helpers", () => {
@@ -306,6 +341,238 @@ describe("resolveMacros", () => {
 
   it("removes comment macros", () => {
     expect(resolveMacros("A{{// hidden {{user}} }}B", macroContext())).toBe("AB");
+  });
+
+  it("strips comment macros before evaluating nested random content", () => {
+    expect(
+      resolveMacros("A{{// {{random::A::B}} }}B", macroContext(), { random: throwingRandom }),
+    ).toBe("AB");
+    expect(
+      resolveMacros("A{{ // {{random::A::B}} }}B", macroContext(), { random: throwingRandom }),
+    ).toBe("AB");
+  });
+
+  it("strips nested comment macros inside unresolved outer spans without evaluating them", () => {
+    expect(
+      resolveMacros("{{unknown {{// {{random::A::B}} }}{{user}}}}", macroContext(), {
+        random: throwingRandom,
+      }),
+    ).toBe("{{unknown Alex}}");
+  });
+
+  it("resolves simple control macros to empty strings", () => {
+    expect(resolveMacros("A{{noop}}B{{banned}}C", macroContext())).toBe("ABC");
+  });
+
+  it("resolves if blocks with truthy fallback and else branches", () => {
+    const context = macroContext();
+
+    expect(resolveMacros("{{#if user}}yes{{else}}no{{/if}}", context)).toBe("yes");
+    expect(resolveMacros("{{ #if user}}yes{{ else }}no{{ /if }}", context)).toBe("yes");
+    expect(resolveMacros("{{#if model}}yes{{else}}no{{/if}}", context)).toBe("no");
+    expect(resolveMacros("{{#if model}}yes{{/if}}", context)).toBe("");
+  });
+
+  it("supports comparison and containment condition operators", () => {
+    const context = macroContext({ characters: ["Mara", "Koi"] });
+
+    expect(
+      resolveMacros(
+        [
+          '{{#if char == "Mara"}}eq{{/if}}',
+          "{{#if char != user}}ne{{/if}}",
+          "{{#if char is \u201cMara\u201d}}is{{/if}}",
+          "{{#if char contains ar}}contains{{/if}}",
+          "{{#if characters includes Koi}}includes{{/if}}",
+        ].join("|"),
+        context,
+      ),
+    ).toBe("eq|ne|is|contains|includes");
+  });
+
+  it("resolves nested macro operands and only evaluates the selected if branch", () => {
+    expect(
+      resolveMacros(
+        '{{#if {{char}} == "Mara"}}Hi {{user}}{{else}}{{random::bad::worse}}{{/if}}',
+        macroContext(),
+        { random: throwingRandom },
+      ),
+    ).toBe("Hi Alex");
+  });
+
+  it("resolves structural macros produced while resolving condition operands", () => {
+    expect(
+      resolveMacros(
+        '{{#if char == "Mara"}}yes{{else}}no{{/if}}',
+        macroContext({
+          char: "{{displayName}}",
+          characterFields: characterMacroFields({
+            displayName: "{{#if user}}Mara{{else}}Nope{{/if}}",
+          }),
+        }),
+      ),
+    ).toBe("yes");
+
+    expect(
+      resolveMacros(
+        '{{#if char == "Mara"}}yes{{else}}no{{/if}}',
+        macroContext({
+          char: "{{displayName}}",
+          characterFields: characterMacroFields({
+            displayName: "{{// hidden}}Mara",
+          }),
+        }),
+      ),
+    ).toBe("yes");
+  });
+
+  it("leaves recursive condition operands visible when the depth guard is exhausted", () => {
+    const input = "{{#if char}}yes{{/if}}";
+
+    expect(resolveMacros(input, macroContext({ char: "{{#if char}}x{{/if}}" }))).toBe(input);
+  });
+
+  it("leaves unresolved condition block contents inert", () => {
+    const input = "{{user}} {{#if char}}Hi {{user}} {{// hidden }}{{random::A::B}}{{/if}}";
+    const expected = "Alex {{#if char}}Hi {{user}} {{// hidden }}{{random::A::B}}{{/if}}";
+
+    expect(
+      resolveMacros(input, macroContext({ char: "{{#if char}}x{{/if}}" }), {
+        random: throwingRandom,
+      }),
+    ).toBe(expected);
+  });
+
+  it("leaves format blocks inside unresolved condition blocks inert", () => {
+    const input = "{{#if char}}{{uppercase}}mara{{/uppercase}}{{/if}}";
+
+    expect(resolveMacros(input, macroContext({ char: "{{#if char}}x{{/if}}" }))).toBe(input);
+  });
+
+  it("leaves unresolved condition blocks inert inside enclosing case blocks", () => {
+    const context = macroContext({ char: "{{#if char}}x{{/if}}" });
+
+    expect(
+      resolveMacros("{{lowercase}}A {{#if char}}Hi {{user}}{{/if}} B{{/lowercase}}", context),
+    ).toBe("a {{#if char}}Hi {{user}}{{/if}} b");
+    expect(
+      resolveMacros("{{uppercase}}a {{#if char}}Hi {{user}}{{/if}} b{{/uppercase}}", context),
+    ).toBe("A {{#if char}}Hi {{user}}{{/if}} B");
+  });
+
+  it("leaves recursive condition operands visible when replacement passes overflow", () => {
+    const input = "{{#if char}}yes{{/if}}";
+
+    expect(resolveMacros(input, macroContext({ char: "{{char}}x" }))).toBe(input);
+  });
+
+  it("applies format postprocessors while resolving condition operands", () => {
+    expect(
+      resolveMacros(
+        '{{#if char == "MARA"}}yes{{else}}no{{/if}}',
+        macroContext({
+          char: "{{displayName}}",
+          characterFields: characterMacroFields({
+            displayName: "{{uppercase}}mara{{/uppercase}}",
+          }),
+        }),
+      ),
+    ).toBe("yes");
+  });
+
+  it("supports nested if blocks in selected branches", () => {
+    expect(
+      resolveMacros("{{#if user}}{{#if model}}bad{{else}}ok{{/if}}{{/if}}", macroContext()),
+    ).toBe("ok");
+  });
+
+  it("leaves malformed if blocks visible", () => {
+    const input = "{{#if user}}yes{{else}}no";
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("leaves malformed if block contents inert", () => {
+    const input =
+      "{{user}} {{#if user}}Hi {{char}} {{random::A::B}} {{uppercase}}mara{{/uppercase}}";
+    const expected =
+      "Alex {{#if user}}Hi {{char}} {{random::A::B}} {{uppercase}}mara{{/uppercase}}";
+
+    expect(resolveMacros(input, macroContext(), { random: throwingRandom })).toBe(expected);
+  });
+
+  it("leaves condition blocks visible when the condition contains a malformed span", () => {
+    const input = '{{#if "{{" == "Mara"}}yes{{else}}no{{/if}}';
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("treats additional same-depth else markers as selected branch content", () => {
+    expect(resolveMacros("{{#if model}}a{{else}}b{{else}}c{{/if}}", macroContext())).toBe(
+      "b{{else}}c",
+    );
+  });
+
+  it("resolves random macros with deterministic injected random samples", () => {
+    expect(
+      resolveMacros("{{random}}|{{random:X:Y}}|{{random::A::B::C}}", macroContext(), {
+        random: sequenceRandom([0.25, 0.75, 0.99]),
+      }),
+    ).toBe("0.25|Y|C");
+  });
+
+  it("treats single-colon random macros as exactly two options", () => {
+    expect(
+      resolveMacros("{{random:A:B:C}}|{{random:A:B:C}}", macroContext(), {
+        random: sequenceRandom([0.25, 0.75]),
+      }),
+    ).toBe("A|B:C");
+  });
+
+  it("leaves single-colon random macros without two options visible", () => {
+    const input = "{{random:A}} {{random:}}";
+
+    expect(resolveMacros(input, macroContext(), { random: throwingRandom })).toBe(input);
+  });
+
+  it("resolves nested macros inside random options before selection", () => {
+    expect(
+      resolveMacros("{{random::{{user}}::{{char}}}}", macroContext(), {
+        random: sequenceRandom([0.75]),
+      }),
+    ).toBe("Mara");
+  });
+
+  it("applies relative decimal weights and excludes zero-weight random options", () => {
+    expect(
+      resolveMacros(
+        "{{random::A@2::B@1}}|{{random::A@0::B@0.5::C@1.5}}|{{random::A@0::B@0.5::C@1.5}}",
+        macroContext(),
+        { random: sequenceRandom([0.8, 0.2, 0.3]) },
+      ),
+    ).toBe("B|B|C");
+  });
+
+  it("only treats trailing numeric @ markers as random weights", () => {
+    expect(
+      resolveMacros("{{random::a@example.com::ignored@0}}", macroContext(), {
+        random: sequenceRandom([0.99]),
+      }),
+    ).toBe("a@example.com");
+  });
+
+  it("resolves dice roll macros with deterministic injected random samples", () => {
+    expect(
+      resolveMacros("{{roll:2d6}}|{{roll:3D4}}", macroContext(), {
+        random: sequenceRandom([0, 0.999, 0.5, 0.5, 0.5]),
+      }),
+    ).toBe("7|9");
+  });
+
+  it("leaves invalid dice roll macros visible", () => {
+    const input = "{{roll:0d6}} {{roll:2d0}} {{roll:1001d6}} {{roll:bad}}";
+
+    expect(resolveMacros(input, macroContext())).toBe(input);
   });
 
   it("resolves nested macro values across passes", () => {

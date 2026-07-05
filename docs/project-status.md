@@ -77,8 +77,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   use desktop provider-key storage through the runtime boundary, and
   provider-specific response parsing still needs more real-endpoint validation.
 - Macro resolver wiring is active in Messenger and Roleplay prompt assembly for
-  current built-in macros; control-flow, random, deferred character, and
-  variable macros remain future slices.
+  current built-in identity, context, time, formatting, comment, control-flow,
+  random, and dice macros; deferred character and variable macros remain future
+  slices.
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.
