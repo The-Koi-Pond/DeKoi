@@ -26,6 +26,15 @@ Remote runtimes expose the same entities through explicit storage commands:
 - `storage_update`
 - `storage_delete`
 
+`storage_replace` is the primary DeKoi save path. Partial mutation commands stay
+in the runtime contract for future targeted adapters, but they must not upsert,
+silently replace records, synthesize IDs, or fabricate malformed durable records.
+`storage_create` rejects existing IDs, `storage_update` and `storage_delete`
+reject missing IDs, and create/update results must still satisfy the durable
+record rules below, including `schemaVersion >= 1` for non-settings records.
+`storage_update` merges into the existing record, rejects mismatched `patch.id`
+values, and stamps `updatedAt` for non-settings records.
+
 If DeKoi later uses SQLite or another database, that database is an
 implementation detail behind the same DeKoi record contracts. It should not
 leak table-driven names into UI, engine records, provider requests, or import

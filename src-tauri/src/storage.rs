@@ -787,15 +787,6 @@ fn read_runtime_records(
     read_collection_records_from_path(&path, entity)
 }
 
-fn write_runtime_records(
-    app: &tauri::AppHandle,
-    entity: &str,
-    records: Vec<serde_json::Value>,
-) -> Result<(), String> {
-    let path = runtime_entity_path(app, entity)?;
-    write_runtime_records_to_path(&path, entity, records)
-}
-
 fn write_runtime_records_to_path(
     path: &Path,
     entity: &str,
@@ -1017,17 +1008,158 @@ pub(crate) fn runtime_args_object<'a>(
         .ok_or_else(|| format!("{command} requires args."))
 }
 
-fn runtime_entity(args: &serde_json::Map<String, serde_json::Value>) -> Result<&str, String> {
-    let entity = args
-        .get("entity")
+fn required_nonempty_str(
+    map: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    missing_message: impl Into<String>,
+) -> Result<String, String> {
+    let value = map
+        .get(key)
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .trim();
-    if entity.is_empty() {
-        return Err("Storage command requires args.entity.".to_string());
+    if value.is_empty() {
+        return Err(missing_message.into());
     }
 
-    Ok(entity)
+    Ok(value.to_string())
+}
+
+fn runtime_entity(args: &serde_json::Map<String, serde_json::Value>) -> Result<String, String> {
+    required_nonempty_str(args, "entity", "Storage command requires args.entity.")
+}
+
+fn ensure_durable_record_fields(
+    entity: &str,
+    command: &str,
+    record: &serde_json::Map<String, serde_json::Value>,
+) -> Result<(), String> {
+    if entity == APP_SETTINGS_ENTITY {
+        return Ok(());
+    }
+
+    let has_schema_version = record
+        .get("schemaVersion")
+        .and_then(|value| value.as_u64())
+        .is_some_and(|value| value >= 1);
+    if !has_schema_version {
+        return Err(format!("{command} records require schemaVersion."));
+    }
+
+    for field in ["createdAt", "updatedAt"] {
+        required_nonempty_str(record, field, format!("{command} records require {field}."))?;
+    }
+
+    Ok(())
+}
+
+fn required_command_id(
+    args: &serde_json::Map<String, serde_json::Value>,
+    command: &str,
+) -> Result<String, String> {
+    required_nonempty_str(args, "id", format!("{command} requires args.id."))
+}
+
+fn record_index_by_id(
+    records: &[serde_json::Value],
+    id: &str,
+    command: &str,
+) -> Result<Option<usize>, String> {
+    let mut found = None;
+    for (index, record) in records.iter().enumerate() {
+        if read_string_field(record, "id").trim() == id {
+            if found.is_some() {
+                return Err(format!("{command} found duplicate record id '{id}'."));
+            }
+            found = Some(index);
+        }
+    }
+
+    Ok(found)
+}
+
+fn current_iso_timestamp() -> String {
+    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
+}
+
+fn storage_create_at_path(
+    path: &Path,
+    entity: &str,
+    value: &serde_json::Map<String, serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let mut record = value.clone();
+    let id = required_nonempty_str(&record, "id", "storage_create records require id.")?;
+    record.insert("id".to_string(), serde_json::Value::String(id.clone()));
+    ensure_durable_record_fields(entity, "storage_create", &record)?;
+
+    // Contract-only path; production autosave uses storage_replace, so this scan is not hot.
+    let mut records = read_collection_records_from_path(path, entity)?;
+    if record_index_by_id(&records, &id, "storage_create")?.is_some() {
+        return Err(format!(
+            "storage_create cannot replace existing {entity} record '{id}'."
+        ));
+    }
+
+    let next_record = serde_json::Value::Object(record);
+    records.push(next_record.clone());
+    write_runtime_records_to_path(path, entity, records)?;
+
+    Ok(next_record)
+}
+
+fn storage_update_at_path(
+    path: &Path,
+    entity: &str,
+    id: &str,
+    patch: &serde_json::Map<String, serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    if let Some(patch_id) = patch.get("id") {
+        let patch_id = patch_id.as_str().unwrap_or("").trim();
+        if patch_id != id {
+            return Err("storage_update patch.id must match args.id.".to_string());
+        }
+    }
+
+    let mut records = read_collection_records_from_path(path, entity)?;
+    let index = record_index_by_id(&records, id, "storage_update")?
+        .ok_or_else(|| format!("storage_update could not find {entity} record '{id}'."))?;
+    let Some(existing) = records[index].as_object() else {
+        return Err(format!(
+            "storage_update {entity} record '{id}' must be an object."
+        ));
+    };
+    let mut record = existing.clone();
+    for (key, value) in patch {
+        record.insert(key.clone(), value.clone());
+    }
+    record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+    if entity != APP_SETTINGS_ENTITY {
+        record.insert(
+            "updatedAt".to_string(),
+            serde_json::Value::String(current_iso_timestamp()),
+        );
+    }
+    ensure_durable_record_fields(entity, "storage_update", &record)?;
+
+    let next_record = serde_json::Value::Object(record);
+    records[index] = next_record.clone();
+    write_runtime_records_to_path(path, entity, records)?;
+
+    Ok(next_record)
+}
+
+fn storage_delete_at_path(
+    path: &Path,
+    entity: &str,
+    id: &str,
+) -> Result<serde_json::Value, String> {
+    let mut records = read_collection_records_from_path(path, entity)?;
+    let index = record_index_by_id(&records, id, "storage_delete")?
+        .ok_or_else(|| format!("storage_delete could not find {entity} record '{id}'."))?;
+    records.remove(index);
+    write_runtime_records_to_path(path, entity, records)?;
+
+    Ok(serde_json::json!({ "ok": true }))
 }
 
 pub(crate) fn storage_list(
@@ -1036,11 +1168,13 @@ pub(crate) fn storage_list(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_list")?;
     let entity = runtime_entity(args)?;
-    if entity == LEGACY_BUBBLE_THREADS_ENTITY {
+    if entity.as_str() == LEGACY_BUBBLE_THREADS_ENTITY {
         return Ok(serde_json::Value::Array(Vec::new()));
     }
 
-    Ok(serde_json::Value::Array(read_runtime_records(app, entity)?))
+    Ok(serde_json::Value::Array(read_runtime_records(
+        app, &entity,
+    )?))
 }
 
 pub(crate) fn storage_create(
@@ -1049,33 +1183,13 @@ pub(crate) fn storage_create(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_create")?;
     let entity = runtime_entity(args)?;
-    ensure_collection_entity(entity)?;
+    ensure_collection_entity(&entity)?;
     let value = args
         .get("value")
         .and_then(|value| value.as_object())
         .ok_or_else(|| "storage_create requires args.value.".to_string())?;
-    let mut record = value.clone();
-    let id = record
-        .get("id")
-        .and_then(|value| value.as_str())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .unwrap_or_else(|| format!("desktop-runtime-record-{}", current_unix_ms()));
-    let now = current_iso_timestamp();
-    record.insert("id".to_string(), serde_json::Value::String(id.clone()));
-    record
-        .entry("createdAt".to_string())
-        .or_insert_with(|| serde_json::Value::String(now.clone()));
-    record.insert("updatedAt".to_string(), serde_json::Value::String(now));
-
-    let next_record = serde_json::Value::Object(record);
-    let mut records = read_runtime_records(app, entity)?;
-    records.retain(|record| read_string_field(record, "id") != id);
-    records.push(next_record.clone());
-    write_runtime_records(app, entity, records)?;
-
-    Ok(next_record)
+    let path = runtime_entity_path(app, &entity)?;
+    storage_create_at_path(&path, &entity, value)
 }
 
 pub(crate) fn storage_update(
@@ -1084,43 +1198,14 @@ pub(crate) fn storage_update(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_update")?;
     let entity = runtime_entity(args)?;
-    ensure_collection_entity(entity)?;
-    let id = args
-        .get("id")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim();
-    if id.is_empty() {
-        return Err("storage_update requires args.id.".to_string());
-    }
+    ensure_collection_entity(&entity)?;
+    let id = required_command_id(args, "storage_update")?;
     let patch = args
         .get("patch")
         .and_then(|value| value.as_object())
         .ok_or_else(|| "storage_update requires args.patch.".to_string())?;
-
-    let mut records = read_runtime_records(app, entity)?;
-    let existing = records
-        .iter()
-        .find(|record| read_string_field(record, "id") == id)
-        .and_then(|record| record.as_object())
-        .cloned()
-        .unwrap_or_default();
-    let mut record = existing;
-    for (key, value) in patch {
-        record.insert(key.clone(), value.clone());
-    }
-    record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
-    record.insert(
-        "updatedAt".to_string(),
-        serde_json::Value::String(current_iso_timestamp()),
-    );
-    let next_record = serde_json::Value::Object(record);
-
-    records.retain(|record| read_string_field(record, "id") != id);
-    records.push(next_record.clone());
-    write_runtime_records(app, entity, records)?;
-
-    Ok(next_record)
+    let path = runtime_entity_path(app, &entity)?;
+    storage_update_at_path(&path, &entity, &id, patch)
 }
 
 pub(crate) fn storage_delete(
@@ -1129,21 +1214,10 @@ pub(crate) fn storage_delete(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_delete")?;
     let entity = runtime_entity(args)?;
-    ensure_collection_entity(entity)?;
-    let id = args
-        .get("id")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim();
-    if id.is_empty() {
-        return Err("storage_delete requires args.id.".to_string());
-    }
-
-    let mut records = read_runtime_records(app, entity)?;
-    records.retain(|record| read_string_field(record, "id") != id);
-    write_runtime_records(app, entity, records)?;
-
-    Ok(serde_json::json!({ "ok": true }))
+    ensure_collection_entity(&entity)?;
+    let id = required_command_id(args, "storage_delete")?;
+    let path = runtime_entity_path(app, &entity)?;
+    storage_delete_at_path(&path, &entity, &id)
 }
 
 pub(crate) fn storage_replace(
@@ -1152,7 +1226,7 @@ pub(crate) fn storage_replace(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_replace")?;
     let entity = runtime_entity(args)?;
-    ensure_collection_entity(entity)?;
+    ensure_collection_entity(&entity)?;
     let records = args
         .get("records")
         .and_then(|value| value.as_array())
@@ -1165,39 +1239,21 @@ pub(crate) fn storage_replace(
             return Err("storage_replace records must be objects.".to_string());
         };
 
-        let id = record
-            .get("id")
-            .and_then(|value| value.as_str())
-            .unwrap_or("")
-            .trim();
-        if id.is_empty() {
-            return Err("storage_replace records require id.".to_string());
-        }
-        if !ids.insert(id.to_string()) {
+        let id = required_nonempty_str(record, "id", "storage_replace records require id.")?;
+        if !ids.insert(id.clone()) {
             return Err("storage_replace records require unique ids.".to_string());
         }
 
         let mut normalized_record = record.clone();
-        normalized_record.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+        normalized_record.insert("id".to_string(), serde_json::Value::String(id));
         normalized_records.push(serde_json::Value::Object(normalized_record));
     }
 
     let count = normalized_records.len();
-    let path = runtime_entity_path(app, entity)?;
-    let metadata = replace_runtime_records_at_path(&path, entity, normalized_records)?;
+    let path = runtime_entity_path(app, &entity)?;
+    let metadata = replace_runtime_records_at_path(&path, &entity, normalized_records)?;
 
     Ok(serde_json::json!({ "ok": true, "count": count, "metadata": metadata }))
-}
-
-pub(crate) fn current_unix_ms() -> u128 {
-    std::time::SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis())
-        .unwrap_or_default()
-}
-
-pub(crate) fn current_iso_timestamp() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[tauri::command]
@@ -1278,6 +1334,13 @@ pub(crate) fn dekoi_storage_collection_metadata(
 mod tests {
     use super::*;
 
+    fn current_unix_ms() -> u128 {
+        std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_millis())
+            .unwrap_or_default()
+    }
+
     fn temp_test_dir(name: &str) -> PathBuf {
         let directory = std::env::temp_dir().join(format!(
             "dekoi-storage-{name}-{}-{}",
@@ -1293,12 +1356,169 @@ mod tests {
             .expect("test JSON file should parse")
     }
 
+    fn durable_test_record(id: &str, title: &str, updated_at: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": id,
+            "schemaVersion": 1,
+            "title": title,
+            "createdAt": "2026-07-01T00:00:00.000Z",
+            "updatedAt": updated_at
+        })
+    }
+
     fn rollback_file_count(directory: &Path) -> usize {
         fs::read_dir(directory)
             .expect("test directory should be readable")
             .filter_map(Result::ok)
             .filter(|entry| entry.file_name().to_string_lossy().contains(".rollback-"))
             .count()
+    }
+
+    #[test]
+    fn storage_create_rejects_existing_record_id_without_replacing() {
+        let directory = temp_test_dir("storage-create-existing");
+        let path = directory.join("messenger-threads.json");
+        let original = durable_test_record("thread-1", "Original", "2026-07-01T00:00:00.000Z");
+        fs::write(&path, serde_json::json!([original]).to_string())
+            .expect("collection fixture should be written");
+        let incoming = durable_test_record("thread-1", "Incoming", "2026-07-02T00:00:00.000Z");
+
+        let error = storage_create_at_path(
+            &path,
+            MESSENGER_THREADS_ENTITY,
+            incoming
+                .as_object()
+                .expect("incoming test record should be an object"),
+        )
+        .expect_err("create should reject an existing id");
+
+        assert!(error.contains("cannot replace existing messenger-threads record 'thread-1'"));
+        assert_eq!(read_json(&path)[0]["title"], "Original");
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_create_requires_durable_record_fields() {
+        let directory = temp_test_dir("storage-create-durable-fields");
+        let path = directory.join("messenger-threads.json");
+        let incoming = serde_json::json!({
+            "id": "thread-1",
+            "createdAt": "2026-07-01T00:00:00.000Z",
+            "updatedAt": "2026-07-01T00:00:00.000Z"
+        });
+
+        let error = storage_create_at_path(
+            &path,
+            MESSENGER_THREADS_ENTITY,
+            incoming
+                .as_object()
+                .expect("incoming test record should be an object"),
+        )
+        .expect_err("create should reject records missing schemaVersion");
+
+        assert_eq!(error, "storage_create records require schemaVersion.");
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_create_rejects_zero_schema_version() {
+        let directory = temp_test_dir("storage-create-zero-schema");
+        let path = directory.join("messenger-threads.json");
+        let incoming = serde_json::json!({
+            "id": "thread-1",
+            "schemaVersion": 0,
+            "createdAt": "2026-07-01T00:00:00.000Z",
+            "updatedAt": "2026-07-01T00:00:00.000Z"
+        });
+
+        let error = storage_create_at_path(
+            &path,
+            MESSENGER_THREADS_ENTITY,
+            incoming
+                .as_object()
+                .expect("incoming test record should be an object"),
+        )
+        .expect_err("create should reject schemaVersion 0");
+
+        assert_eq!(error, "storage_create records require schemaVersion.");
+        assert!(!path.exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_update_rejects_missing_record_without_upsert() {
+        let directory = temp_test_dir("storage-update-missing");
+        let path = directory.join("messenger-threads.json");
+        fs::write(&path, "[]").expect("empty collection fixture should be written");
+        let patch = serde_json::json!({ "title": "Should not create" });
+
+        let error = storage_update_at_path(
+            &path,
+            MESSENGER_THREADS_ENTITY,
+            "thread-1",
+            patch.as_object().expect("patch should be an object"),
+        )
+        .expect_err("update should reject a missing id");
+
+        assert!(error.contains("could not find messenger-threads record 'thread-1'"));
+        assert_eq!(read_json(&path), serde_json::json!([]));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_update_preserves_id_and_stamps_updated_at() {
+        let directory = temp_test_dir("storage-update-existing");
+        let path = directory.join("messenger-threads.json");
+        let old_updated_at = "2026-07-01T00:00:00.000Z";
+        let original = durable_test_record("thread-1", "Original", old_updated_at);
+        fs::write(&path, serde_json::json!([original]).to_string())
+            .expect("collection fixture should be written");
+        let patch = serde_json::json!({ "title": "Updated" });
+
+        let result = storage_update_at_path(
+            &path,
+            MESSENGER_THREADS_ENTITY,
+            "thread-1",
+            patch.as_object().expect("patch should be an object"),
+        )
+        .expect("update should succeed");
+
+        assert_eq!(result["id"], "thread-1");
+        assert_eq!(result["title"], "Updated");
+        assert_ne!(result["updatedAt"], old_updated_at);
+        assert_eq!(read_json(&path)[0]["title"], "Updated");
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_delete_rejects_missing_record_without_silent_success() {
+        let directory = temp_test_dir("storage-delete-missing");
+        let path = directory.join("messenger-threads.json");
+        fs::write(&path, "[]").expect("empty collection fixture should be written");
+
+        let error = storage_delete_at_path(&path, MESSENGER_THREADS_ENTITY, "thread-1")
+            .expect_err("delete should reject a missing id");
+
+        assert!(error.contains("could not find messenger-threads record 'thread-1'"));
+        assert_eq!(read_json(&path), serde_json::json!([]));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn storage_delete_removes_existing_record() {
+        let directory = temp_test_dir("storage-delete-existing");
+        let path = directory.join("messenger-threads.json");
+        let original = durable_test_record("thread-1", "Original", "2026-07-01T00:00:00.000Z");
+        fs::write(&path, serde_json::json!([original]).to_string())
+            .expect("collection fixture should be written");
+
+        let result = storage_delete_at_path(&path, MESSENGER_THREADS_ENTITY, "thread-1")
+            .expect("delete should succeed for an existing id");
+
+        assert_eq!(result, serde_json::json!({ "ok": true }));
+        assert_eq!(read_json(&path), serde_json::json!([]));
+        let _ = fs::remove_dir_all(directory);
     }
 
     #[test]

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 7341;
 const RUNTIME_MARKER = "de-koi-server";
+const APP_SETTINGS_ENTITY = "app-settings";
 const SUPPORTED_COMMANDS = new Set([
   "generation_generate",
   "provider_connection_check",
@@ -77,6 +78,25 @@ function listRecords(storage, args) {
   return Array.from(getEntityStore(storage, entity).values());
 }
 
+function requireRecordId(record, command) {
+  const id = readString(record.id).trim();
+  if (!id) throw new Error(`${command} records require id.`);
+  return id;
+}
+
+function ensureDurableRecordFields(entity, command, record) {
+  if (entity === APP_SETTINGS_ENTITY) return;
+
+  if (!Number.isSafeInteger(record.schemaVersion) || record.schemaVersion < 1) {
+    throw new Error(`${command} records require schemaVersion.`);
+  }
+  for (const field of ["createdAt", "updatedAt"]) {
+    if (!readString(record[field]).trim()) {
+      throw new Error(`${command} records require ${field}.`);
+    }
+  }
+}
+
 function createRecord(storage, args) {
   if (!isRecord(args)) throw new Error("storage_create requires args.");
 
@@ -85,9 +105,14 @@ function createRecord(storage, args) {
   if (!entity) throw new Error("storage_create requires args.entity.");
   if (!isRecord(value)) throw new Error("storage_create requires args.value.");
 
-  const id = readString(value.id).trim() || `fixture-record-${Date.now()}`;
+  const id = requireRecordId(value, "storage_create");
   const record = { ...value, id };
-  getEntityStore(storage, entity).set(id, record);
+  ensureDurableRecordFields(entity, "storage_create", record);
+
+  const store = getEntityStore(storage, entity);
+  if (store.has(id))
+    throw new Error(`storage_create cannot replace existing ${entity} record '${id}'.`);
+  store.set(id, record);
   return record;
 }
 
@@ -100,10 +125,22 @@ function updateRecord(storage, args) {
   if (!entity) throw new Error("storage_update requires args.entity.");
   if (!id) throw new Error("storage_update requires args.id.");
   if (!isRecord(patch)) throw new Error("storage_update requires args.patch.");
+  if ("id" in patch && readString(patch.id).trim() !== id) {
+    throw new Error("storage_update patch.id must match args.id.");
+  }
 
   const store = getEntityStore(storage, entity);
-  const existing = isRecord(store.get(id)) ? store.get(id) : {};
+  const existing = store.get(id);
+  if (!isRecord(existing)) {
+    throw new Error(`storage_update could not find ${entity} record '${id}'.`);
+  }
+
   const record = { ...existing, ...patch, id };
+  if (entity !== APP_SETTINGS_ENTITY) {
+    record.updatedAt = new Date().toISOString();
+  }
+  ensureDurableRecordFields(entity, "storage_update", record);
+
   store.set(id, record);
   return record;
 }
@@ -116,7 +153,12 @@ function deleteRecord(storage, args) {
   if (!entity) throw new Error("storage_delete requires args.entity.");
   if (!id) throw new Error("storage_delete requires args.id.");
 
-  getEntityStore(storage, entity).delete(id);
+  const store = getEntityStore(storage, entity);
+  if (!store.has(id)) {
+    throw new Error(`storage_delete could not find ${entity} record '${id}'.`);
+  }
+
+  store.delete(id);
   return { ok: true };
 }
 
