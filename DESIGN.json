@@ -146,6 +146,38 @@
       "no gradient text outside the hero wordmark",
       "no unnamed hex values; new hues require a named token and written role first"
     ],
+    "semanticColorRoles": {
+      "backdropAndSurfaces": {
+        "tokens": ["abyss", "water", "shallow", "raise"],
+        "rule": "use the material stack in order; never place dense text over atmosphere"
+      },
+      "bordersAndSeparators": {
+        "tokens": ["reedSoft", "reed"],
+        "rule": "reedSoft for quiet seams; reed for control outlines and stronger boundaries"
+      },
+      "primaryActionAndIdentity": {
+        "tokens": ["koi", "koiHot", "koiDeep", "ink"],
+        "rule": "primary CTAs, companion identity, destructive confirmations; never panel floods or large backgrounds"
+      },
+      "supportFocusHealth": {
+        "tokens": ["jade", "jadeHot", "ink"],
+        "rule": "connected, saved, healthy, focus, persona identity, supportive actions"
+      },
+      "attentionPending": {
+        "tokens": ["amber", "amberHot", "ink"],
+        "rule": "warnings, unsaved or pending nudges, recoverable problems; must resolve or explain"
+      },
+      "text": {
+        "tokens": ["foam", "mist", "mistDim", "belly", "ink"],
+        "rule": "foam primary, mist secondary, mistDim redundant only, belly rare art emphasis, ink on accent fills"
+      },
+      "disabled": {
+        "tokens": ["mistDim"],
+        "opacityToken": "disabled",
+        "rule": "disabled state still needs a label or nearby reason; never color-only"
+      },
+      "invariant": "user-selected accent remaps interactive accents only; semantic state roles stay fixed"
+    },
     "typography": {
       "families": {
         "display": "\"Shippori Mincho\", \"Songti SC\", serif",
@@ -186,7 +218,14 @@
       "lg": 22,
       "md": 14,
       "sm": 10,
-      "pill": 999
+      "pill": 999,
+      "rules": {
+        "lg": "large composed surfaces: home basins, empty states, broad editor or catalog panels",
+        "md": "default cards, dialogs, popovers, grouped controls, repeated catalog items",
+        "sm": "inputs, textareas, dense rows, message bubbles, status chips, small wells",
+        "pill": "chips, segmented options, status pills, round icon controls, avatars",
+        "oneOffRule": "invent one-off radii only for asset geometry or inherited shapes; repeated values become tokens"
+      }
     },
     "spacing": {
       "unitPx": 4,
@@ -195,14 +234,59 @@
         "xs": 4,
         "sm": 8,
         "md": 12,
-        "lg": 18,
-        "xl": 26,
-        "xxl": 40
-      }
+        "lg": 16,
+        "xl": 24,
+        "xxl": 32,
+        "section": 40
+      },
+      "usage": {
+        "hairline": "hairline separations, tiny optical offsets, compact divider gaps",
+        "xs": "icon and text gaps, status-dot gaps, very tight stacks",
+        "sm": "chip gaps, compact row gaps, icon-button inner rhythm",
+        "md": "default control padding, field gaps, small card internals",
+        "lg": "panel and header padding, comfortable row gaps, toolbar outer padding",
+        "xl": "major surface padding, drawer and body padding, home and catalog card padding",
+        "xxl": "section gaps, empty-state rhythm, wide editor group spacing",
+        "section": "major Pond and home bands, living mark gaps, large transitions"
+      },
+      "rules": [
+        "use tokens for repeated gaps and padding",
+        "raw pixels are allowed for fixed shell dimensions, asset alignment, and one-off optical correction",
+        "compact density tightens care and settings spacing by one token step but never shrinks type, line height, or required touch targets",
+        "interactive controls are at least 36px tall by default and 40px on coarse pointers",
+        "hover, focus, loading, and error affordances reserve their space to avoid layout jump"
+      ]
     },
     "elevation": {
       "model": "elevation is a step up the opaque material stack, not a shadow",
       "stack": ["abyss", "water", "shallow", "raise"],
+      "levels": {
+        "level0": {
+          "material": "abyss",
+          "rule": "viewport backdrop only; content does not sit directly here"
+        },
+        "level1": {
+          "material": "water",
+          "rule": "shell chrome separated by reedSoft hairlines, not shadows"
+        },
+        "level2": {
+          "material": "shallow",
+          "rule": "secondary panels, thread headers, drawer chrome, and docked support surfaces"
+        },
+        "level3": {
+          "material": "raise",
+          "rule": "primary work surfaces, cards, editors, and message bodies; opaque and still"
+        },
+        "floating": {
+          "materials": ["shallow", "raise"],
+          "rule": "care drawer overlays, menus, popovers, and dialogs may use the floating shadow plus scrim and focus management"
+        }
+      },
+      "rules": [
+        "hover and selected states do not create new elevation levels",
+        "do not use drop shadows for ordinary cards, rows, or controls",
+        "focus rings are accessibility state, not elevation"
+      ],
       "floatingShadow": "0 12px 34px rgba(0, 0, 0, 0.5)",
       "floatingShadowUse": "care drawer, menus, dialogs, and the hero mark glow only",
       "viewportVignette": "inset 0 0 200px 40px rgba(0, 0, 0, 0.45)"
@@ -320,6 +404,27 @@
       "storageLogs": "table-like rows at body size with status chips and adjacent inline repair or reload actions",
       "messenger": "compact grouped message rows with small gaps",
       "roleplay": "roomier vertical rhythm with air around bubbles in one calm center column"
+    },
+    "layoutConstraints": {
+      "scrollOwnership": "the shell owns viewport structure; feature surfaces own their internal scroll regions; keep one obvious scroll owner per active surface",
+      "measures": {
+        "messengerMessageCh": { "min": 60, "max": 75 },
+        "roleplaySceneMaxPx": 680,
+        "pondHomeMaxPx": 920
+      },
+      "fixedRegions": {
+        "waterlineHeightPx": 38,
+        "bankWidthPx": 56,
+        "shoalWidthPx": { "min": 264, "max": 300 },
+        "tideHeightPx": 46,
+        "careWidthClamp": "clamp(360px, 30vw, 430px)"
+      },
+      "rules": [
+        "names, paths, provider labels, and metadata truncate with ellipsis plus full value on focus or hover",
+        "text and metadata never force grid columns wider than the viewport",
+        "no cards inside cards; page sections are full-width bands or unframed layouts",
+        "content remains non-overlapping, keyboard reachable, and readable at every breakpoint"
+      ]
     }
   },
   "messageDesign": {
@@ -436,6 +541,19 @@
       "atmosphereBoundary": "pond life surrounds the conversation in backdrop, seams, and empty states; never behind message text",
       "legacyBoundary": "no prior-project message layouts, prompt labels, mode chrome, or UI copy; requirements written in DeKoi terms first"
     }
+  },
+  "componentStates": {
+    "default": "token surface, hairline border where needed, readable label, stable dimensions",
+    "hover": "border or tint change, opacity change, or max 3px translate; no scaling rows, cards, or messages",
+    "focus": "2px accent outline at 2px offset; exposes the same actions as hover",
+    "active": "koiDeep or accent-deep press state with instant feedback",
+    "selected": "accent border plus tint fill plus text, icon, or shape cue; never color alone",
+    "disabled": "mistDim plus disabled opacity, with a visible reason when disabled state blocks progress",
+    "loading": "reserved space, role=status, label text plus spinner or dot only if motion is allowed",
+    "pending": "amber or jade status depending on meaning, text label, stable layout, no spinner-only state",
+    "error": "inline role=alert notice, amber for recoverable warning, koi for failure, one next action",
+    "destructive": "koi treatment plus explicit inline or typed confirmation; never hidden as a secondary surprise",
+    "touch": "hover-only controls become visible and touch targets are at least 40px on coarse pointers"
   },
   "components": {
     "button": {
@@ -710,11 +828,11 @@
   "implementationStages": [
     {
       "stage": 1,
-      "name": "token and doc sync",
+      "name": "token adoption and cleanup",
       "items": [
-        "align pond-tokens.css with the color, motion, opacity, and type scale tokens",
-        "add the ink token and named motion and opacity variables",
-        "re-cut the stray presence green to jade",
+        "keep pond-tokens.css aligned with the color, spacing, radius, type, motion, opacity, and elevation contracts",
+        "replace repeated raw spacing and radius values with tokens opportunistically",
+        "re-cut any stray non-token state colors to jade, amber, or koi",
         "verify DESIGN.json values match CSS one-to-one"
       ]
     },

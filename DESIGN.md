@@ -101,6 +101,31 @@ shadows are reserved for genuinely floating layers (care drawer over content, me
 for the hero mark's warm glow. A soft inset vignette around the viewport keeps the whole app
 feeling like water in a basin rather than panels on a page.
 
+### Radius and elevation rules
+
+Radius is part of the handmade pond language, but it is controlled. Use these tokens before
+inventing one-off curves:
+
+| Token  | Value | Use                                                                                 |
+| ------ | ----- | ----------------------------------------------------------------------------------- |
+| `lg`   | 22px  | Large composed surfaces: home basins, empty states, broad editor or catalog panels. |
+| `md`   | 14px  | Default cards, dialogs, popovers, grouped controls, and repeated catalog items.     |
+| `sm`   | 10px  | Inputs, textareas, dense rows, message bubbles, status chips, and small wells.      |
+| `pill` | 999px | Chips, segmented options, status pills, round icon controls, and avatars.           |
+
+Elevation follows the material stack:
+
+- **Level 0 / `abyss`:** viewport backdrop only. Content does not sit directly here.
+- **Level 1 / `water`:** shell chrome: waterline, bank, tide. It separates with `reedSoft`
+  hairlines, not shadows.
+- **Level 2 / `shallow`:** secondary panels, thread headers, drawer chrome, and docked support
+  surfaces. It may use a stronger `reed` border when adjacent to `raise`.
+- **Level 3 / `raise`:** primary work surfaces, cards, editors, and message bodies. It is opaque
+  and still; it does not get a drop shadow just because it is important.
+- **Floating:** care drawer overlays, menus, popovers, and dialogs may use the floating shadow
+  plus scrim/focus management. Hover and selected states do not create new elevation levels; they
+  use tint, border, and at most the §6 hover translate limit.
+
 ### Atmosphere rules
 
 Atmosphere is real but rationed:
@@ -180,6 +205,23 @@ properties in `src/shared/ui/pond-tokens.css` must match.
 | `mistDim` | `#5c7882` | Tertiary, _non-essential_ metadata and disabled text only — it sits near 3:1 on `raise` and must never carry information that exists nowhere else. |
 | `belly`   | `#f5ece1` | Warm paper highlight: koi belly in artwork, rare warm emphasis on dark art surfaces. Not a general text color.                                     |
 | `ink`     | `#0c1216` | Text and glyphs **on** koi/jade/amber fills. Foam on accent fills fails contrast; ink passes.                                                      |
+
+### Semantic color roles
+
+| Role                         | Tokens                                    | Rules                                                                                 |
+| ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Backdrop and surfaces        | `abyss`, `water`, `shallow`, `raise`      | Use the stack in order; never place dense text over atmosphere.                       |
+| Borders and separators       | `reedSoft`, `reed`                        | `reedSoft` for quiet seams, `reed` for control outlines and stronger boundaries.      |
+| Primary action and identity  | `koi`, `koiHot`, `koiDeep`, `ink`         | Primary CTAs, companion identity, destructive confirmations; never large backgrounds. |
+| Support, focus, and health   | `jade`, `jadeHot`, `ink`                  | Connected/saved/healthy states, focus rings, persona identity, supportive actions.    |
+| Attention and pending states | `amber`, `amberHot`, `ink`                | Warnings, unsaved/pending nudges, recoverable problems; must resolve or explain.      |
+| Text                         | `foam`, `mist`, `mistDim`, `belly`, `ink` | `foam` for primary text, `mist` for secondary, `mistDim` only when redundant.         |
+| Disabled                     | `mistDim` plus `disabled` opacity         | Disabled state still needs a label or nearby reason; it cannot be color-only.         |
+
+Hard failures use koi-bordered inline notices; recoverable warnings use amber. The user-selected
+accent remaps _interactive_ accents only. Semantic state roles stay fixed: jade still means
+healthy/supportive, amber still means pending/warning, and koi still means primary warmth or
+blocked/destructive.
 
 ### Where accent color is forbidden
 
@@ -293,6 +335,34 @@ flashes, or zooms. Three registers:
 
 ## 7. Layout and Surfaces
 
+### Spacing tokens
+
+Spacing uses a 4px base with one 2px hairline step for optical seams. These are the default tokens
+for gaps, padding, and rhythm:
+
+| Token      | Value | Use                                                                            |
+| ---------- | ----- | ------------------------------------------------------------------------------ |
+| `hairline` | 2px   | Hairline separations, tiny optical offsets, compact divider gaps.              |
+| `xs`       | 4px   | Icon/text gaps, status-dot gaps, very tight stacks.                            |
+| `sm`       | 8px   | Chip gaps, compact row gaps, icon-button inner rhythm.                         |
+| `md`       | 12px  | Default control padding, field gaps, small card internals.                     |
+| `lg`       | 16px  | Panel/header padding, comfortable row gaps, toolbar outer padding.             |
+| `xl`       | 24px  | Major surface padding, drawer/body padding, home/catalog card padding.         |
+| `xxl`      | 32px  | Section gaps, empty-state rhythm, wide editor group spacing.                   |
+| `section`  | 40px  | Major Pond/home bands and the gap around the living mark or large transitions. |
+
+Rules:
+
+- Use spacing tokens for repeated gaps and padding. Raw pixel values are allowed for fixed shell
+  dimensions, asset alignment, and one-off optical correction; if a raw value repeats, promote it
+  to a token.
+- Comfortable density is the default. Compact density may tighten care/settings spacing by one
+  token step, but it never shrinks type, line height, or required touch targets.
+- Interactive controls are at least 36px tall by default and 40px on coarse pointers. Small
+  desktop icon buttons may render at 24px only when their surrounding row provides the hit area.
+- Hover, focus, loading, and error affordances reserve their space; state changes must not make
+  rows jump or text reflow unpredictably.
+
 ### Shell regions
 
 The shell is a fixed grid of named water regions:
@@ -318,6 +388,21 @@ The **Ripple Dock** (per-thread state panel) docks inside the pond region alongs
 - **< 720px (touch-first)**: bank condenses to essential places (home, Messenger, Roleplay,
   care); one panel at a time; composer and message actions sized for thumbs; tide collapses to a
   status dot + sheet.
+
+### Layout constraints
+
+- The shell owns viewport structure; feature surfaces own their internal scroll regions. Avoid
+  nested page scroll traps, and keep one obvious scroll owner per active surface.
+- Primary reading and writing surfaces constrain measure: Messenger message text is 60–75ch;
+  Roleplay scene text is max ≈680px; Pond home content is max ≈920px.
+- Fixed-format regions keep stable dimensions: waterline ≈38px, bank ≈56px, shoal 264–300px,
+  tide ≈46px, care drawer `clamp(360px, 30vw, 430px)`.
+- Names, paths, provider labels, and metadata truncate with ellipsis plus full value on focus or
+  hover. They never force grid columns wider than the viewport.
+- No cards inside cards. Page sections are full-width bands or unframed layouts; cards are for
+  repeated items, tools, dialogs, and intentionally framed work.
+- At every breakpoint, content must remain non-overlapping, keyboard reachable, and readable
+  without relying on hover-only controls.
 
 ### Density
 
@@ -430,6 +515,24 @@ a well-typeset script.
 ---
 
 ## 9. Component Guidance
+
+### Shared component state contract
+
+Every interactive component supports the same state vocabulary unless a surface-specific rule
+overrides it:
+
+| State       | Treatment                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| Default     | Token surface, hairline border where needed, readable label, stable dimensions.                |
+| Hover       | Border/tint change, opacity change, or ≤ 3px translate; no scaling rows, cards, or messages.   |
+| Focus       | 2px accent outline at 2px offset; exposes the same actions as hover.                           |
+| Active      | `koiDeep`/accent-deep or darker surface press state with `instant` feedback.                   |
+| Selected    | Accent border + tint fill + text/icon/shape cue; never color alone.                            |
+| Disabled    | `mistDim` + disabled opacity, with a visible reason when the disabled state blocks progress.   |
+| Loading     | Reserved space, `role="status"`, label text plus spinner/dot only if motion is allowed.        |
+| Pending     | Amber or jade status depending on meaning, text label, stable layout, no spinner-only state.   |
+| Error       | Inline `role="alert"` notice, amber for recoverable warning, koi for failure, one next action. |
+| Destructive | Koi treatment plus explicit inline/typed confirmation; never hidden as a secondary surprise.   |
 
 - **Buttons.** Primary: koi gradient fill (`koiHot → koiDeep`), `ink` text, `md` radius, ≥ 36px
   tall (40px touch). Roleplay-primary may use the jade ramp. Secondary: `raise` fill, `reed`
@@ -579,9 +682,10 @@ matters.
 
 ## 14. Implementation Plan (staged, not for this change)
 
-1. **Stage 1 — Token & doc sync.** Align `pond-tokens.css` with §4–§6: add `ink`, motion and
-   opacity tokens, type scale variables; re-cut the stray presence green to jade; verify
-   `DESIGN.json` values match CSS one-to-one.
+1. **Stage 1 — Token adoption & cleanup.** Keep `pond-tokens.css` aligned with the color,
+   spacing, radius, type, motion, opacity, and elevation contracts; replace repeated raw
+   spacing/radius values with tokens opportunistically; re-cut any stray non-token state colors
+   to jade/amber/koi; verify `DESIGN.json` values match CSS one-to-one.
 2. **Stage 2 — Hero & shell consistency.** Refine the living mark (ring spacing, koi drawing,
    wake subtlety, designed reduced-motion still); normalize waterline/bank/shoal/tide materials
    and borders to the material stack; give the care drawer its floating shadow + scrim overlay
