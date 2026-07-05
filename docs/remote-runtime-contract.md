@@ -553,7 +553,21 @@ not send dropped-record counts separately.
     "entity": "messenger-threads",
     "records": [
       {
-        "id": "messenger-thread-example"
+        "id": "messenger-thread-example",
+        "schemaVersion": 1,
+        "kind": "messenger",
+        "mode": "direct",
+        "title": "Messenger example",
+        "characterIds": [],
+        "activePersonaId": null,
+        "lorebookIds": [],
+        "presetId": null,
+        "providerConnectionId": null,
+        "systemPromptMode": "default",
+        "systemPrompt": "",
+        "messages": [],
+        "createdAt": "2026-06-24T07:20:00.000Z",
+        "updatedAt": "2026-06-24T07:20:00.000Z"
       }
     ]
   }
@@ -566,6 +580,9 @@ Each record must be an object with a non-empty unique `id`; runtimes should
 reject invalid or duplicate IDs instead of partially replacing a collection.
 Durable runtimes should also reject replacement when the existing collection is
 unreadable or known-corrupt rather than silently overwriting possible user data.
+For `storage_replace`, DeKoi's TypeScript runtime adapters own native record
+normalization before the call. Runtime implementations validate collection
+structure and IDs; they do not duplicate every product-record validator.
 After DeKoi loads a collection with dropped records, it will not call
 `storage_replace` for that collection, or for the paired split transcript
 collection, until reload or import/restore clears the dropped-record count.
@@ -592,6 +609,10 @@ optional; when present, DeKoi uses it as the new stale-check baseline for that
 collection only when the response succeeded and the metadata entity matches the
 saved collection. A mismatched metadata entity is a storage contract error.
 
+`storage_replace` is the primary DeKoi save path. Partial mutation commands are
+strict targeted mutations: they must not upsert, silently replace records,
+synthesize IDs, or create malformed durable product records.
+
 Example RippleState list:
 
 ```json
@@ -612,13 +633,20 @@ Example RippleState list:
   "args": {
     "entity": "messenger-threads",
     "value": {
-      "id": "messenger-thread-example"
+      "id": "messenger-thread-example",
+      "schemaVersion": 1,
+      "title": "Messenger example",
+      "createdAt": "2026-06-24T07:20:00.000Z",
+      "updatedAt": "2026-06-24T07:20:00.000Z"
     }
   }
 }
 ```
 
-Returns the created record.
+Creates one record and returns it. `value` must be an object with a non-empty
+`id`. Runtime implementations must reject an ID that already exists; create is
+not replace. For non-settings collections, the created record must include
+`schemaVersion >= 1`, `createdAt`, and `updatedAt`.
 
 `storage_update`:
 
@@ -635,7 +663,10 @@ Returns the created record.
 }
 ```
 
-Returns the updated record.
+Updates one existing record and returns it. Missing IDs are errors; update is
+not create. `patch.id`, when present, must match `args.id`. The persisted result
+must still include required durable fields. Desktop and fixture runtimes stamp
+`updatedAt` for non-settings collections.
 
 `storage_delete`:
 
@@ -649,6 +680,7 @@ Returns the updated record.
 }
 ```
 
+Deletes one existing record. Missing IDs are errors; delete is not a no-op.
 Returns:
 
 ```json
