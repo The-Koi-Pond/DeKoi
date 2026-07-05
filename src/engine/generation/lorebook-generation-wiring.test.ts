@@ -154,6 +154,24 @@ function messengerMessage(id: string, body: string): MessengerMessage {
   };
 }
 
+function messengerCharacterMessage(
+  id: string,
+  characterId: string,
+  label: string,
+  body: string,
+): MessengerMessage {
+  return {
+    id,
+    schemaVersion: 1,
+    threadId: "messenger-thread-1",
+    author: { kind: "character", characterId, label },
+    body,
+    origin: "generated",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 function roleplayEntry(id: string, body: string): RoleplayEntry {
   return {
     id,
@@ -168,6 +186,34 @@ function roleplayEntry(id: string, body: string): RoleplayEntry {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function roleplayCharacterEntry(
+  id: string,
+  characterId: string,
+  label: string,
+  body: string,
+): RoleplayEntry {
+  return {
+    id,
+    schemaVersion: 1,
+    threadId: "roleplay-thread-1",
+    role: "character",
+    characterId,
+    personaId: null,
+    label,
+    body,
+    origin: "generated",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function promptBeforeActivePersona(content: string) {
+  const markerIndex = content.indexOf("\n\nActive persona");
+
+  expect(markerIndex).toBeGreaterThanOrEqual(0);
+  return content.slice(0, markerIndex);
 }
 
 describe("generation lorebook activation wiring", () => {
@@ -1438,6 +1484,54 @@ describe("generation lorebook activation wiring", () => {
     );
   });
 
+  it("resolves character macros for the selected Messenger group speaker", () => {
+    const userMessage = messengerMessage("message-2", "Your turn.");
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "group",
+      title: "Thread",
+      characterIds: ["character-1", "character-2"],
+      activePersonaId: "persona-1",
+      lorebookIds: [],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "custom",
+      systemPrompt:
+        '{{#if char == "Koi"}}Speaker {{char}}: {{description}}{{else}}Wrong speaker {{char}}{{/if}}',
+      messages: [
+        messengerCharacterMessage("message-1", "character-1", "Mara", "First reply."),
+        userMessage,
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({ id: "character-1", displayName: "Mara", description: "Mara description." }),
+        character({ id: "character-2", displayName: "Koi", description: "Koi description." }),
+      ],
+      personas: [persona()],
+      lorebooks: [],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage,
+    });
+    const systemPrompt = request.promptMessages[0].content;
+    const selectedPrompt = promptBeforeActivePersona(systemPrompt);
+
+    expect(request.targetCharacterId).toBe("character-2");
+    expect(selectedPrompt).toContain("Speaker Koi: Koi description.");
+    expect(selectedPrompt).not.toContain("Wrong speaker");
+    expect(selectedPrompt).not.toContain("Mara description.");
+  });
+
   it("dedupes a lorebook shared across character and global sources, keeping character", () => {
     const duplicateSourceLorebook = selectiveLorebook({
       id: "shared-source-lore",
@@ -1966,5 +2060,52 @@ describe("generation lorebook activation wiring", () => {
     expect(postHistoryPrompt).toContain(
       "Persona post-history instructions: Persona says Mara should answer Open the gate.",
     );
+  });
+
+  it("resolves character macros for the selected Roleplay companion", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: '{{#if char == "Koi"}}Koi scene{{else}}Wrong scene{{/if}}',
+      sceneText: "Scene anchor: {{description}}",
+      characterIds: ["character-1", "character-2"],
+      activePersonaId: "persona-1",
+      lorebookIds: [],
+      providerConnectionId: null,
+      entries: [
+        roleplayCharacterEntry("entry-1", "character-1", "Mara", "First turn."),
+        roleplayEntry("entry-2", "Continue."),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [
+        character({ id: "character-1", displayName: "Mara", description: "Mara description." }),
+        character({ id: "character-2", displayName: "Koi", description: "Koi description." }),
+      ],
+      personas: [persona()],
+      lorebooks: [],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
+    const sharedPrompt = promptBeforeActivePersona(promptText);
+
+    expect(request.targetCharacterId).toBe("character-2");
+    expect(sharedPrompt).toContain(
+      "You are Koi, writing the next in-character turn in an ongoing fictional roleplay with Alex.",
+    );
+    expect(sharedPrompt).toContain("Title: Koi scene");
+    expect(sharedPrompt).toContain("Scene anchor: Koi description.");
+    expect(sharedPrompt).not.toContain("Wrong scene");
+    expect(sharedPrompt).not.toContain("Mara description.");
   });
 });
