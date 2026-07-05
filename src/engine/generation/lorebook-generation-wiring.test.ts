@@ -209,13 +209,6 @@ function roleplayCharacterEntry(
   };
 }
 
-function promptBeforeActivePersona(content: string) {
-  const markerIndex = content.indexOf("\n\nActive persona");
-
-  expect(markerIndex).toBeGreaterThanOrEqual(0);
-  return content.slice(0, markerIndex);
-}
-
 describe("generation lorebook activation wiring", () => {
   it("filters Messenger selected lore from message scan sources", () => {
     const thread: MessengerThread = {
@@ -1499,7 +1492,7 @@ describe("generation lorebook activation wiring", () => {
       providerConnectionId: null,
       systemPromptMode: "custom",
       systemPrompt:
-        '{{#if char == "Koi"}}Speaker {{char}}: {{description}}{{else}}Wrong speaker {{char}}{{/if}}',
+        '{{#if char == "Koi"}}Speaker {{char}}: {{creatorNotes}}{{else}}Wrong speaker {{char}}: {{creatorNotes}}{{/if}}',
       messages: [
         messengerCharacterMessage("message-1", "character-1", "Mara", "First reply."),
         userMessage,
@@ -1510,8 +1503,16 @@ describe("generation lorebook activation wiring", () => {
     const context = createMessengerGenerationContext({
       thread,
       characters: [
-        character({ id: "character-1", displayName: "Mara", description: "Mara description." }),
-        character({ id: "character-2", displayName: "Koi", description: "Koi description." }),
+        character({
+          id: "character-1",
+          displayName: "Mara",
+          creatorNotes: "Mara hidden creator notes.",
+        }),
+        character({
+          id: "character-2",
+          displayName: "Koi",
+          creatorNotes: "Koi selected creator notes.",
+        }),
       ],
       personas: [persona()],
       lorebooks: [],
@@ -1524,12 +1525,11 @@ describe("generation lorebook activation wiring", () => {
       userMessage,
     });
     const systemPrompt = request.promptMessages[0].content;
-    const selectedPrompt = promptBeforeActivePersona(systemPrompt);
 
     expect(request.targetCharacterId).toBe("character-2");
-    expect(selectedPrompt).toContain("Speaker Koi: Koi description.");
-    expect(selectedPrompt).not.toContain("Wrong speaker");
-    expect(selectedPrompt).not.toContain("Mara description.");
+    expect(systemPrompt).toContain("Speaker Koi: Koi selected creator notes.");
+    expect(systemPrompt).not.toContain("Wrong speaker");
+    expect(systemPrompt).not.toContain("Mara hidden creator notes.");
   });
 
   it("dedupes a lorebook shared across character and global sources, keeping character", () => {
@@ -2069,7 +2069,7 @@ describe("generation lorebook activation wiring", () => {
       kind: "roleplay",
       mode: "scene",
       title: '{{#if char == "Koi"}}Koi scene{{else}}Wrong scene{{/if}}',
-      sceneText: "Scene anchor: {{description}}",
+      sceneText: "Scene anchor: {{creatorNotes}}",
       characterIds: ["character-1", "character-2"],
       activePersonaId: "persona-1",
       lorebookIds: [],
@@ -2084,8 +2084,16 @@ describe("generation lorebook activation wiring", () => {
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
-        character({ id: "character-1", displayName: "Mara", description: "Mara description." }),
-        character({ id: "character-2", displayName: "Koi", description: "Koi description." }),
+        character({
+          id: "character-1",
+          displayName: "Mara",
+          creatorNotes: "Mara hidden creator notes.",
+        }),
+        character({
+          id: "character-2",
+          displayName: "Koi",
+          creatorNotes: "Koi selected creator notes.",
+        }),
       ],
       personas: [persona()],
       lorebooks: [],
@@ -2097,15 +2105,14 @@ describe("generation lorebook activation wiring", () => {
       now,
     });
     const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
-    const sharedPrompt = promptBeforeActivePersona(promptText);
 
     expect(request.targetCharacterId).toBe("character-2");
-    expect(sharedPrompt).toContain(
+    expect(promptText).toContain(
       "You are Koi, writing the next in-character turn in an ongoing fictional roleplay with Alex.",
     );
-    expect(sharedPrompt).toContain("Title: Koi scene");
-    expect(sharedPrompt).toContain("Scene anchor: Koi description.");
-    expect(sharedPrompt).not.toContain("Wrong scene");
-    expect(sharedPrompt).not.toContain("Mara description.");
+    expect(promptText).toContain("Title: Koi scene");
+    expect(promptText).toContain("Scene anchor: Koi selected creator notes.");
+    expect(promptText).not.toContain("Wrong scene");
+    expect(promptText).not.toContain("Mara hidden creator notes.");
   });
 });
