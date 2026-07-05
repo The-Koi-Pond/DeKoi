@@ -12,15 +12,16 @@ import {
   remoteRuntimeTarget,
 } from "../../shared/api/runtime-target";
 import { HOST_STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
-import type {
-  StorageCollectionRepository,
-  StorageCollectionMetadata,
-  StorageMode,
-  StorageRecord,
-  StorageRecordNormalizer,
-  StorageRecordsSnapshot,
-  StorageRepositoryInput,
-  StorageResult,
+import {
+  normalizeStorageRecordResult,
+  type StorageCollectionRepository,
+  type StorageCollectionMetadata,
+  type StorageMode,
+  type StorageRecord,
+  type StorageRecordNormalizer,
+  type StorageRecordsSnapshot,
+  type StorageRepositoryInput,
+  type StorageResult,
 } from "./storage-repository";
 
 export type HostStorageMode = StorageMode;
@@ -89,12 +90,18 @@ async function invokeHostStorage<T>(
   throw new Error(HOST_STORAGE_UNAVAILABLE_MESSAGE);
 }
 
+type LoadedHostRecords<T extends StorageRecord> = {
+  records: T[];
+  /** Raw records rejected by the normalizer; absent from `records`. */
+  droppedRecordCount: number;
+};
+
 async function loadHostRecords<T extends StorageRecord>(
   entity: StorageEntity,
   normalizeRecord: StorageRecordNormalizer<T>,
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<T[]> {
-  const records = await invokeHostStorage<unknown[]>(
+): Promise<LoadedHostRecords<T>> {
+  const records = await invokeHostStorage<unknown>(
     RUNTIME_COMMANDS.storageList,
     {
       entity,
@@ -102,8 +109,23 @@ async function loadHostRecords<T extends StorageRecord>(
     },
     rawUrl,
   );
+  if (!Array.isArray(records)) {
+    throw new Error(`Host storage list for ${entity} returned a non-array response.`);
+  }
 
-  return records.map(normalizeRecord).filter((record): record is T => record !== null);
+  let droppedRecordCount = 0;
+  const normalizedRecords: T[] = [];
+  for (const rawRecord of records) {
+    const normalized = normalizeStorageRecordResult(normalizeRecord(rawRecord));
+    droppedRecordCount += normalized.droppedRecordCount;
+    if (normalized.record) {
+      normalizedRecords.push(normalized.record);
+    } else {
+      droppedRecordCount += 1;
+    }
+  }
+
+  return { records: normalizedRecords, droppedRecordCount };
 }
 
 function normalizeOutgoingRecords<T extends StorageRecord>(
@@ -112,8 +134,8 @@ function normalizeOutgoingRecords<T extends StorageRecord>(
   normalizeRecord: StorageRecordNormalizer<T>,
 ): T[] {
   return records.map((record, index) => {
-    const normalizedRecord = normalizeRecord(record);
-    if (normalizedRecord) return normalizedRecord;
+    const normalized = normalizeStorageRecordResult(normalizeRecord(record));
+    if (normalized.record) return normalized.record;
 
     throw new Error(`Cannot save invalid ${entity} record at index ${index}.`);
   });
@@ -338,6 +360,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
   if (mode === "unavailable") {
     return {
       records: seedRecords,
+      droppedRecordCount: 0,
       mode,
       status: "error",
       message: HOST_STORAGE_UNAVAILABLE_MESSAGE,
@@ -345,9 +368,10 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
   }
 
   try {
-    const records = await loadHostRecords(entity, normalizeRecord, rawUrl);
+    const { records, droppedRecordCount } = await loadHostRecords(entity, normalizeRecord, rawUrl);
     return {
       records: records.length > 0 ? records : seedRecords,
+      droppedRecordCount,
       mode,
       status: "ready",
       message:
@@ -356,6 +380,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
   } catch (error) {
     return {
       records: seedRecords,
+      droppedRecordCount: 0,
       mode,
       status: "error",
       message: `Host storage unavailable. ${asErrorMessage(error)}`,
@@ -369,7 +394,7 @@ export function createHostStorageRepository<T extends StorageRecord>({
   seedRecords,
 }: StorageRepositoryInput<T>): StorageCollectionRepository<T> {
   return {
-    load: (rawUrl) => loadHostRecords(entity, normalizeRecord, rawUrl),
+    load: async (rawUrl) => (await loadHostRecords(entity, normalizeRecord, rawUrl)).records,
     loadSnapshot: (rawUrl) =>
       loadHostRecordsSnapshot({
         entity,

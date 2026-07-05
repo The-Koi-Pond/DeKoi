@@ -663,6 +663,14 @@ select.pondsel:disabled {
   margin: 10px 0 0;
 }
 
+.storage-dropped-warning {
+  color: var(--foam);
+  border-left: 3px solid var(--amber);
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+
 .storage-repair-list {
   display: grid;
   gap: 10px;

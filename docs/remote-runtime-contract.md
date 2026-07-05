@@ -77,6 +77,13 @@ normal autosave. Desktop collection writes use a synced temp file and preserve
 the previous readable file as `<entity>.json.bak`; storage bundle writes use the
 temp/sync path without creating a backup.
 
+If a readable desktop file or remote `storage_list` response contains individual
+records DeKoi cannot normalize, DeKoi loads the accepted records and counts the
+rejected records locally. Pond Care shows one dropped-records warning and DeKoi
+blocks saves for affected collections, including both sides of a split
+Messenger or Roleplay transcript pair, until reload or import/restore loads
+without drops.
+
 Malformed-collection repair is desktop-only and not part of the remote runtime
 HTTP contract. Pond Care uses dedicated Tauri commands to repair one collection
 at a time with explicit confirmation. Repair supports `restore-backup` and
@@ -532,7 +539,10 @@ Character filters and triggers are still not applied by DeKoi prompt assembly.
 }
 ```
 
-Returns an array of records.
+Returns an array of records. DeKoi treats a non-array response as a load error.
+For array responses, DeKoi normalizes each raw item, counts rejected items as
+dropped records, and surfaces that count through Pond Care; remote runtimes do
+not send dropped-record counts separately.
 
 `storage_replace`:
 
@@ -556,6 +566,9 @@ Each record must be an object with a non-empty unique `id`; runtimes should
 reject invalid or duplicate IDs instead of partially replacing a collection.
 Durable runtimes should also reject replacement when the existing collection is
 unreadable or known-corrupt rather than silently overwriting possible user data.
+After DeKoi loads a collection with dropped records, it will not call
+`storage_replace` for that collection, or for the paired split transcript
+collection, until reload or import/restore clears the dropped-record count.
 
 Returns:
 

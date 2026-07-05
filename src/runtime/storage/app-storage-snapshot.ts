@@ -80,10 +80,16 @@ export type AppStorageSnapshot = AppStorageRecords & {
   storageResult: StorageResult;
   migrationCollectionKeys: AppStorageMigrationCollectionKey[];
   storageMetadata: AppStorageMetadata;
+  /** Nonzero per-collection dropped-record counts from the most recent load. */
+  droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>;
 };
 
 type AppStorageMigrationCollectionKey =
   "roleplayThreads" | "roleplayEntries" | "messengerThreads" | "messengerMessages";
+
+type AppStorageCollectionLoadResult = StorageResult & {
+  droppedRecordCount: number;
+};
 
 export const APP_STORAGE_COLLECTION_ENTITIES = {
   appSettings: STORAGE_ENTITIES.appSettings,
@@ -207,6 +213,47 @@ function appStorageRequiresReload(collections: readonly AppStorageCollectionRepl
   return collections.some((collection) => collection.status === "ready");
 }
 
+/**
+ * Formats the single Pond Care warning derived from structured dropped-record
+ * counts. Storage status messages remain plain and do not duplicate this text.
+ */
+export function summarizeAppStorageDroppedRecords(
+  droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>,
+): { total: number; message: string } {
+  const droppedEntries = APP_STORAGE_COLLECTION_KEYS.filter(
+    (collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0,
+  ).map((collectionKey) => ({
+    collectionKey,
+    count: droppedRecordCountByCollection[collectionKey] ?? 0,
+  }));
+
+  const total = droppedEntries.reduce((sum, entry) => sum + entry.count, 0);
+  if (total === 0) return { total: 0, message: "" };
+
+  const detail = droppedEntries
+    .map((entry) => `${APP_STORAGE_COLLECTION_LABELS[entry.collectionKey]} (${entry.count})`)
+    .join(", ");
+  return {
+    total,
+    message: `${total} unreadable record(s) were skipped during load [${detail}]. Saving those collections will erase the skipped records permanently; restore from a backup bundle first.`,
+  };
+}
+
+function collectDroppedRecordCounts(
+  collectionSnapshots: readonly {
+    collectionKey: AppStorageCollectionKey;
+    snapshot: AppStorageCollectionLoadResult;
+  }[],
+): Partial<Record<AppStorageCollectionKey, number>> {
+  const droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>> = {};
+  for (const { collectionKey, snapshot } of collectionSnapshots) {
+    if (snapshot.droppedRecordCount > 0) {
+      droppedRecordCountByCollection[collectionKey] = snapshot.droppedRecordCount;
+    }
+  }
+  return droppedRecordCountByCollection;
+}
+
 export async function loadAppStorageMetadata(rawUrl: string): Promise<AppStorageMetadataResult> {
   const metadataResult = await loadHostStorageMetadata(rawUrl);
   return {
@@ -263,6 +310,25 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
       : []),
   ];
 
+  const collectionSnapshots = [
+    { collectionKey: "appSettings", snapshot: appSettingsSnapshot },
+    { collectionKey: "characters", snapshot: characterSnapshot },
+    { collectionKey: "personas", snapshot: personaSnapshot },
+    { collectionKey: "lorebooks", snapshot: lorebookSnapshot },
+    { collectionKey: "loreRuntimeStates", snapshot: loreRuntimeStateSnapshot },
+    { collectionKey: "providerConnections", snapshot: providerConnectionSnapshot },
+    { collectionKey: "roleplayThreads", snapshot: roleplaySnapshot },
+    { collectionKey: "roleplayEntries", snapshot: roleplayEntrySnapshot },
+    { collectionKey: "messengerThreads", snapshot: messengerSnapshot },
+    { collectionKey: "messengerMessages", snapshot: messengerMessageSnapshot },
+    { collectionKey: "rippleStates", snapshot: rippleSnapshot },
+  ] as const satisfies readonly {
+    collectionKey: AppStorageCollectionKey;
+    snapshot: AppStorageCollectionLoadResult;
+  }[];
+  const droppedRecordCountByCollection = collectDroppedRecordCounts(collectionSnapshots);
+  const storageResult = mergeStorageResults(collectionSnapshots.map(({ snapshot }) => snapshot));
+
   return {
     appSettings: appSettingsSnapshot.settings,
     characters: characterSnapshot.records,
@@ -275,19 +341,8 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     rippleStates: rippleSnapshot.states,
     migrationCollectionKeys,
     storageMetadata: metadataResult.storageMetadata,
-    storageResult: mergeStorageResults([
-      appSettingsSnapshot,
-      characterSnapshot,
-      personaSnapshot,
-      lorebookSnapshot,
-      loreRuntimeStateSnapshot,
-      providerConnectionSnapshot,
-      roleplaySnapshot,
-      roleplayEntrySnapshot,
-      messengerSnapshot,
-      messengerMessageSnapshot,
-      rippleSnapshot,
-    ]),
+    droppedRecordCountByCollection,
+    storageResult,
   };
 }
 

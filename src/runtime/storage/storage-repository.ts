@@ -33,10 +33,68 @@ export function mergeStorageResults<T extends StorageResult>(results: readonly T
 
 export type StorageRecord = { id: string };
 
-export type StorageRecordNormalizer<T extends StorageRecord> = (value: unknown) => T | null;
+/**
+ * Structured normalizer result for collection adapters that need to keep a
+ * parent record while counting nested records rejected during load.
+ */
+export type StorageRecordNormalization<T extends StorageRecord> = {
+  record: T | null;
+  /** Additional rejected records represented by this raw value. */
+  droppedRecordCount?: number;
+};
+
+export type StorageRecordNormalizerResult<T extends StorageRecord> =
+  T | null | StorageRecordNormalization<T>;
+
+/**
+ * Converts one raw collection item into a durable record, or null when the raw
+ * item must be skipped. Returning a structured result can add dropped counts
+ * for nested legacy records while still accepting the parent item.
+ */
+export type StorageRecordNormalizer<T extends StorageRecord> = (
+  value: unknown,
+) => StorageRecordNormalizerResult<T>;
+
+function isStorageRecordNormalization<T extends StorageRecord>(
+  result: StorageRecordNormalizerResult<T>,
+): result is StorageRecordNormalization<T> {
+  return (
+    result !== null &&
+    typeof result === "object" &&
+    !Array.isArray(result) &&
+    !("id" in result) &&
+    "record" in result
+  );
+}
+
+/**
+ * Collapses legacy normalizer results and structured results into one shape for
+ * host-backed load/save paths.
+ */
+export function normalizeStorageRecordResult<T extends StorageRecord>(
+  result: StorageRecordNormalizerResult<T>,
+): { record: T | null; droppedRecordCount: number } {
+  if (isStorageRecordNormalization(result)) {
+    const droppedRecordCount = result.droppedRecordCount ?? 0;
+    return {
+      record: result.record,
+      droppedRecordCount: droppedRecordCount > 0 ? Math.floor(droppedRecordCount) : 0,
+    };
+  }
+
+  return { record: result, droppedRecordCount: 0 };
+}
 
 export type StorageRecordsSnapshot<T extends StorageRecord> = {
   records: T[];
+  /**
+   * Number of raw records that were present on disk but rejected by the
+   * collection normalizer during load, plus any nested rejected records counted
+   * by a structured normalizer result. These records are NOT in `records`; if
+   * the collection is saved again they will be permanently lost. Surfaces a
+   * warning so the loss is not silent (mirrors the corrupt-file philosophy).
+   */
+  droppedRecordCount: number;
 } & StorageResult;
 
 export interface StorageCollectionRepository<T extends StorageRecord> {

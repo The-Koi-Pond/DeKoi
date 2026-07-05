@@ -13,16 +13,22 @@ import {
   readTimestamp,
 } from "../storage-json";
 import { createStorageRepository } from "../storage-repository-factory";
-import type { StorageResult } from "../storage-repository";
+import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
 type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
 };
 
+type NormalizedRoleplayThread = {
+  thread: RoleplayThread;
+  droppedRecordCount: number;
+};
+
 export type RoleplayStorageSnapshot = {
   records: RoleplayThread[];
   hasLegacyEmbeddedEntries: boolean;
+  droppedRecordCount: number;
   mode: StorageResult["mode"];
   status: StorageResult["status"];
   message: string;
@@ -71,7 +77,7 @@ export function normalizeRoleplayEntryRecord(
   };
 }
 
-export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
+function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRoleplayThread | null {
   if (!isRecord(value)) return null;
   if (value.schemaVersion !== 1) return null;
 
@@ -80,39 +86,59 @@ export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
   if (!id || !title) return null;
 
   const now = new Date().toISOString();
-  const entries = Array.isArray(value.entries)
-    ? value.entries
-        .map((entry) => normalizeRoleplayEntryRecord(entry, id))
-        .filter((entry): entry is RoleplayEntry => entry !== null)
-    : [];
+  const entries: RoleplayEntry[] = [];
+  let droppedRecordCount = 0;
+  if (Array.isArray(value.entries)) {
+    for (const entry of value.entries) {
+      const normalizedEntry = normalizeRoleplayEntryRecord(entry, id);
+      if (normalizedEntry) {
+        entries.push(normalizedEntry);
+      } else {
+        droppedRecordCount += 1;
+      }
+    }
+  }
 
   return {
-    id,
-    schemaVersion: 1,
-    kind: "roleplay",
-    mode: "scene",
-    title,
-    sceneText: readString(value.sceneText).trim(),
-    characterIds: readStringArray(value.characterIds),
-    activePersonaId: readNullableString(value.activePersonaId),
-    lorebookIds: readStringArray(value.lorebookIds),
-    providerConnectionId: readNullableString(value.providerConnectionId),
-    entries,
-    createdAt: readTimestamp(value.createdAt, now),
-    updatedAt: readTimestamp(value.updatedAt, now),
+    thread: {
+      id,
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title,
+      sceneText: readString(value.sceneText).trim(),
+      characterIds: readStringArray(value.characterIds),
+      activePersonaId: readNullableString(value.activePersonaId),
+      lorebookIds: readStringArray(value.lorebookIds),
+      providerConnectionId: readNullableString(value.providerConnectionId),
+      entries,
+      createdAt: readTimestamp(value.createdAt, now),
+      updatedAt: readTimestamp(value.updatedAt, now),
+    },
+    droppedRecordCount,
   };
+}
+
+export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
+  return normalizeRoleplayThreadWithDroppedCount(value)?.thread ?? null;
 }
 
 export function loadRoleplayThreads() {
   return [];
 }
 
-function normalizeRoleplayThreadStorageRecord(value: unknown): RoleplayThreadStorageRecord | null {
-  const thread = normalizeRoleplayThread(value);
-  if (!thread) return null;
+function normalizeRoleplayThreadStorageRecord(
+  value: unknown,
+): StorageRecordNormalization<RoleplayThreadStorageRecord> | null {
+  const normalized = normalizeRoleplayThreadWithDroppedCount(value);
+  if (!normalized) return null;
 
+  const { thread } = normalized;
   const record = toRoleplayThreadRecord(thread);
-  return thread.entries.length > 0 ? { ...record, entries: thread.entries } : record;
+  return {
+    record: thread.entries.length > 0 ? { ...record, entries: thread.entries } : record,
+    droppedRecordCount: normalized.droppedRecordCount,
+  };
 }
 
 const roleplayThreadRepository = createStorageRepository({

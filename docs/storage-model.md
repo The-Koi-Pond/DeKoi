@@ -187,9 +187,10 @@ implementation lives behind that factory in `src/runtime/storage/host-storage.ts
 Future SQLite or database-backed storage should implement the same repository
 shape behind the factory rather than leaking database details into feature code,
 collection adapters, or engine records.
-The shared repository module also owns storage result aggregation, so snapshot
-and import/export orchestration can combine adapter outcomes without depending
-on a concrete host implementation.
+The shared repository module also owns storage result aggregation and normalizer
+result wrapping, including dropped-record counts, so snapshot and import/export
+orchestration can combine adapter outcomes without depending on a concrete host
+implementation.
 
 App-wide save orchestration in `src/app/use-app-storage-sync.ts` tracks dirty
 collections instead of fanning every save out to every collection. It debounces
@@ -251,6 +252,36 @@ entity name, path category, whether `.json.bak`, `.json.tmp`, or
 `.json.pre-repair` siblings exist, and that writes are blocked. Normal autosave
 must not overwrite that collection until an explicit repair/import path repairs
 or replaces the corrupt file.
+
+### Per-Record Load Drops
+
+A readable collection file or remote `storage_list` response may still contain
+individual records the runtime adapter cannot normalize (a hand-edited entry, a
+record written by a newer DeKoi after a downgrade, or a record created through a
+raw storage command). Unlike a corrupt file, the collection loads; the
+unreadable records are skipped.
+
+Load normalization counts skipped collection records per collection and can also
+count legacy embedded transcript items rejected while their parent thread record
+loads. The count is surfaced through the storage snapshot (`droppedRecordCount`
+on each collection snapshot, aggregated as `droppedRecordCountByCollection` on
+the app storage snapshot). Pond Care derives one dropped-records warning from
+those structured counts whenever any collection had drops on the most recent
+load; normal storage status messages stay plain and do not duplicate the
+warning.
+
+Because `storage_replace` writes the whole collection, editing any record in a
+collection that had drops would erase the skipped records from disk on the next
+save (only the single-generation `.json.bak` retains them for desktop JSON).
+DeKoi blocks saves for affected collections until a reload or explicit
+import/restore replaces them with data that loads without drops. For split
+transcript storage, a drop in either the thread collection or its transcript item
+collection blocks saves for both collections in that Messenger or Roleplay pair.
+Restore from a backup bundle before editing a collection that reported drops.
+Legacy transcript auto-migration treats each Messenger or Roleplay thread and
+transcript split as one migration group; if either collection in that group had
+drops, DeKoi skips automatic migration for the group and leaves the Pond Care
+warning as the recovery signal.
 
 Desktop collection JSON writes use a sibling temp file and a `.json.bak`
 sibling:

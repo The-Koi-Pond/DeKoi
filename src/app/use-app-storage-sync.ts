@@ -87,10 +87,16 @@ const EMPTY_IMPORT_RECOVERY_STATE: AppStorageImportRecoveryState = {
   reason: null,
 };
 const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
+const DROPPED_RECORD_SAVE_BLOCK_MESSAGE =
+  "Storage save blocked because unreadable records were skipped during load. Restore from backup or repair storage before saving affected collections.";
 const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
   "Reload blocked because DeKoi still has unsaved storage changes. Wait for saving to finish before reloading.";
 const STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE =
   "Reload will discard local changes that have not been saved yet. Select Reload records again to confirm.";
+const APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS = [
+  ["roleplayThreads", "roleplayEntries"],
+  ["messengerThreads", "messengerMessages"],
+] as const satisfies readonly (readonly AppStorageCollectionKey[])[];
 
 export type AppStorageReloadDecision = "proceed" | "confirm-local-discard" | "block-active-work";
 
@@ -192,9 +198,10 @@ function createAppStorageSignatures(snapshot: AppStorageRecords): AppStorageColl
 
 function createLoadedAppStorageSignatures(
   snapshot: AppStorageSnapshot,
+  migrationCollectionKeys: readonly AppStorageCollectionKey[],
 ): AppStorageCollectionSignatures {
   const signatures = createAppStorageSignatures(snapshot);
-  for (const collectionKey of snapshot.migrationCollectionKeys) {
+  for (const collectionKey of migrationCollectionKeys) {
     signatures[collectionKey] = LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE;
   }
   return signatures;
@@ -202,12 +209,82 @@ function createLoadedAppStorageSignatures(
 
 function createMigrationAppStorageSignatures(
   snapshot: AppStorageSnapshot,
+  migrationCollectionKeys: readonly AppStorageCollectionKey[],
 ): PartialAppStorageCollectionSignatures {
   const signatures: PartialAppStorageCollectionSignatures = {};
-  for (const collectionKey of snapshot.migrationCollectionKeys) {
+  for (const collectionKey of migrationCollectionKeys) {
     signatures[collectionKey] = appStorageCollectionSignature(snapshot, collectionKey);
   }
   return signatures;
+}
+
+export function appStorageAutoMigrationCollectionKeys({
+  migrationCollectionKeys,
+  droppedRecordCountByCollection,
+}: {
+  migrationCollectionKeys: readonly AppStorageCollectionKey[];
+  droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>;
+}): AppStorageCollectionKey[] {
+  const migrationCollectionKeySet = new Set(migrationCollectionKeys);
+  const safeMigrationCollectionKeys: AppStorageCollectionKey[] = [];
+  for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
+    if (!group.every((collectionKey) => migrationCollectionKeySet.has(collectionKey))) continue;
+    if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
+      continue;
+    }
+    safeMigrationCollectionKeys.push(...group);
+  }
+  return safeMigrationCollectionKeys;
+}
+
+export function appStorageDroppedRecordSaveBlockCollectionKeys(
+  droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>,
+): AppStorageCollectionKey[] {
+  const blockedCollectionKeys = new Set<AppStorageCollectionKey>();
+  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    if ((droppedRecordCountByCollection[collectionKey] ?? 0) > 0) {
+      blockedCollectionKeys.add(collectionKey);
+    }
+  }
+
+  for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
+    if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
+      for (const collectionKey of group) {
+        blockedCollectionKeys.add(collectionKey);
+      }
+    }
+  }
+
+  return APP_STORAGE_COLLECTION_KEYS.filter((collectionKey) =>
+    blockedCollectionKeys.has(collectionKey),
+  );
+}
+
+function blockedAppStorageCollectionKeys(
+  collectionKeys: readonly AppStorageCollectionKey[],
+  blockedCollectionKeys: ReadonlySet<AppStorageCollectionKey>,
+) {
+  return collectionKeys.filter((collectionKey) => blockedCollectionKeys.has(collectionKey));
+}
+
+export function partitionAppStorageDirtyCollectionKeys({
+  dirtyCollectionKeys,
+  blockedCollectionKeys,
+}: {
+  dirtyCollectionKeys: readonly AppStorageCollectionKey[];
+  blockedCollectionKeys: ReadonlySet<AppStorageCollectionKey>;
+}) {
+  const blockedDirtyCollectionKeys = blockedAppStorageCollectionKeys(
+    dirtyCollectionKeys,
+    blockedCollectionKeys,
+  );
+  const saveableDirtyCollectionKeys = dirtyCollectionKeys.filter(
+    (collectionKey) => !blockedCollectionKeys.has(collectionKey),
+  );
+  return {
+    blockedDirtyCollectionKeys,
+    saveableDirtyCollectionKeys,
+  };
 }
 
 export function reconcileMigrationAppStorageSignatures({
@@ -362,6 +439,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setMessengerStorageMode: StateSetter<MessengerStorageMode>;
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
   setMessengerStorageMessage: StateSetter<string>;
+  setDroppedRecordCountByCollection: StateSetter<Partial<Record<AppStorageCollectionKey, number>>>;
   setStorageReady: StateSetter<boolean>;
 };
 
@@ -389,6 +467,7 @@ export function useAppStorageSync({
   setMessengerStorageMode,
   setMessengerStorageStatus,
   setMessengerStorageMessage,
+  setDroppedRecordCountByCollection,
   setStorageReady,
 }: UseAppStorageSyncInput) {
   const [storageHasUnsavedChanges, setStorageHasUnsavedChanges] = useState(false);
@@ -416,6 +495,7 @@ export function useAppStorageSync({
     desktopBackupPath?: string | null;
   } | null>(null);
   const confirmedReloadBlockToken = useRef<AppStorageReloadBlockToken | null>(null);
+  const droppedRecordSaveBlockedCollectionKeys = useRef<Set<AppStorageCollectionKey>>(new Set());
   const currentAppStorageRecords = useRef<AppStorageRecords>({
     appSettings,
     characters,
@@ -518,15 +598,37 @@ export function useAppStorageSync({
 
   const applyLoadedAppStorageSnapshot = useCallback(
     (snapshot: AppStorageSnapshot, options?: { storageReady?: boolean }) => {
-      savedSignatures.current = createLoadedAppStorageSignatures(snapshot);
-      unsavedSignatures.current = createMigrationAppStorageSignatures(snapshot);
+      const migrationCollectionKeys = appStorageAutoMigrationCollectionKeys(snapshot);
+      droppedRecordSaveBlockedCollectionKeys.current = new Set(
+        appStorageDroppedRecordSaveBlockCollectionKeys(snapshot.droppedRecordCountByCollection),
+      );
+      for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+        if (saveErrors.current[collectionKey] === DROPPED_RECORD_SAVE_BLOCK_MESSAGE) {
+          delete saveErrors.current[collectionKey];
+        }
+      }
+      savedSignatures.current = createLoadedAppStorageSignatures(snapshot, migrationCollectionKeys);
+      unsavedSignatures.current = createMigrationAppStorageSignatures(
+        snapshot,
+        migrationCollectionKeys,
+      );
       loadedStorageMetadata.current = snapshot.storageMetadata;
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
+      setDroppedRecordCountByCollection(snapshot.droppedRecordCountByCollection);
       setStorageReady(options?.storageReady ?? snapshot.storageResult.status === "ready");
       setStorageHasUnsavedChanges(hasUnsavedSignature(unsavedSignatures.current));
     },
-    [applyAppStorageRecords, setStorageReady],
+    [applyAppStorageRecords, setDroppedRecordCountByCollection, setStorageReady],
+  );
+
+  const applyReplacedAppStorageRecords = useCallback(
+    (records: AppStorageRecords) => {
+      applyAppStorageRecords(records);
+      droppedRecordSaveBlockedCollectionKeys.current = new Set();
+      setDroppedRecordCountByCollection({});
+    },
+    [applyAppStorageRecords, setDroppedRecordCountByCollection],
   );
 
   const cancelQueuedSaveDispatch = useCallback(() => {
@@ -707,6 +809,36 @@ export function useAppStorageSync({
           pendingSaves.current[collectionKey] !== undefined
         );
       });
+      const { blockedDirtyCollectionKeys, saveableDirtyCollectionKeys } =
+        partitionAppStorageDirtyCollectionKeys({
+          dirtyCollectionKeys,
+          blockedCollectionKeys: droppedRecordSaveBlockedCollectionKeys.current,
+        });
+      if (blockedDirtyCollectionKeys.length > 0) {
+        for (const collectionKey of dirtyCollectionKeys) {
+          unsavedSignatures.current[collectionKey] = signatures[collectionKey];
+        }
+        for (const collectionKey of blockedDirtyCollectionKeys) {
+          saveErrors.current[collectionKey] = DROPPED_RECORD_SAVE_BLOCK_MESSAGE;
+        }
+        if (saveableDirtyCollectionKeys.length === 0) {
+          refreshSaveStatus(generation, {
+            mode: currentStorageMode.current,
+            status: "error",
+            message: DROPPED_RECORD_SAVE_BLOCK_MESSAGE,
+          });
+          return {
+            mode: currentStorageMode.current,
+            status: "error",
+            message: DROPPED_RECORD_SAVE_BLOCK_MESSAGE,
+            flushed: false,
+            blocked: true,
+            dirtyCollectionKeys,
+            savedCollectionKeys: [],
+            failedCollectionKeys: blockedDirtyCollectionKeys,
+          };
+        }
+      }
 
       if (
         dirtyCollectionKeys.length === 0 &&
@@ -730,7 +862,7 @@ export function useAppStorageSync({
       }
       enqueueAppStorageCollectionSaves({
         snapshot,
-        collectionKeys: dirtyCollectionKeys,
+        collectionKeys: saveableDirtyCollectionKeys,
         rawUrl: remoteRuntimeUrl,
         generation,
         signatures,
@@ -759,7 +891,10 @@ export function useAppStorageSync({
       }
 
       const currentSignatures = createAppStorageSignatures(currentAppStorageRecords.current);
-      const changedDuringFlushKeys = changedAppStorageSignatureKeys(signatures, currentSignatures);
+      const changedDuringFlushKeys = changedAppStorageSignatureKeys(
+        signatures,
+        currentSignatures,
+      ).filter((collectionKey) => saveableDirtyCollectionKeys.includes(collectionKey));
       if (changedDuringFlushKeys.length > 0) {
         for (const collectionKey of changedDuringFlushKeys) {
           unsavedSignatures.current[collectionKey] = currentSignatures[collectionKey];
@@ -778,7 +913,7 @@ export function useAppStorageSync({
           flushed: false,
           blocked: true,
           dirtyCollectionKeys: changedDuringFlushKeys,
-          savedCollectionKeys: dirtyCollectionKeys.filter(
+          savedCollectionKeys: saveableDirtyCollectionKeys.filter(
             (collectionKey) => !changedDuringFlushKeys.includes(collectionKey),
           ),
           failedCollectionKeys: saveErrorCollectionKeys(saveErrors.current),
@@ -786,6 +921,21 @@ export function useAppStorageSync({
       }
 
       const failedCollectionKeys = saveErrorCollectionKeys(saveErrors.current);
+      if (blockedDirtyCollectionKeys.length > 0) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: DROPPED_RECORD_SAVE_BLOCK_MESSAGE,
+          flushed: false,
+          blocked: true,
+          dirtyCollectionKeys,
+          savedCollectionKeys: saveableDirtyCollectionKeys.filter(
+            (collectionKey) => !failedCollectionKeys.includes(collectionKey),
+          ),
+          failedCollectionKeys,
+        };
+      }
+
       if (failedCollectionKeys.length > 0) {
         return {
           mode: currentStorageMode.current,
@@ -976,7 +1126,7 @@ export function useAppStorageSync({
           pendingSaves.current = {};
           saveErrors.current = {};
           saveQueueRunning.current = null;
-          applyAppStorageRecords(records);
+          applyReplacedAppStorageRecords(records);
           setStorageReady(true);
           setStorageHasUnsavedChanges(false);
           currentStorageMode.current = storageResult.mode;
@@ -1008,7 +1158,7 @@ export function useAppStorageSync({
       }
     },
     [
-      applyAppStorageRecords,
+      applyReplacedAppStorageRecords,
       cancelQueuedSaveDispatch,
       reloadPersistedStorageAfterImportFailure,
       remoteRuntimeUrl,
@@ -1152,7 +1302,7 @@ export function useAppStorageSync({
         pendingSaves.current = {};
         saveErrors.current = {};
         saveQueueRunning.current = null;
-        applyAppStorageRecords(recovery.records);
+        applyReplacedAppStorageRecords(recovery.records);
         setStorageReady(true);
         setStorageHasUnsavedChanges(false);
         currentStorageMode.current = storageResult.mode;
@@ -1182,7 +1332,7 @@ export function useAppStorageSync({
       importCommitRunning.current = false;
     }
   }, [
-    applyAppStorageRecords,
+    applyReplacedAppStorageRecords,
     cancelQueuedSaveDispatch,
     reloadPersistedStorageAfterImportFailure,
     remoteRuntimeUrl,
@@ -1436,7 +1586,7 @@ export function useAppStorageSync({
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled || storageGeneration.current !== generation) return;
       const migrationCollectionKeys = asNonEmptyAppStorageCollectionKeys(
-        snapshot.migrationCollectionKeys,
+        appStorageAutoMigrationCollectionKeys(snapshot),
       );
       const shouldMigrateLegacyTranscripts =
         snapshot.storageResult.status === "ready" && migrationCollectionKeys !== null;
@@ -1532,7 +1682,6 @@ export function useAppStorageSync({
       cancelled = true;
     };
   }, [
-    applyAppStorageRecords,
     cancelQueuedSaveDispatch,
     applyLoadedAppStorageSnapshot,
     mergeLoadedStorageMetadata,
@@ -1603,8 +1752,19 @@ export function useAppStorageSync({
         }
       }
     }
+    const { blockedDirtyCollectionKeys, saveableDirtyCollectionKeys } =
+      partitionAppStorageDirtyCollectionKeys({
+        dirtyCollectionKeys,
+        blockedCollectionKeys: droppedRecordSaveBlockedCollectionKeys.current,
+      });
+    if (blockedDirtyCollectionKeys.length > 0) {
+      for (const collectionKey of blockedDirtyCollectionKeys) {
+        saveErrors.current[collectionKey] = DROPPED_RECORD_SAVE_BLOCK_MESSAGE;
+      }
+      shouldRefreshStorageStatus = true;
+    }
     lastSeenSnapshot.current = snapshot;
-    if (dirtyCollectionKeys.length === 0) {
+    if (saveableDirtyCollectionKeys.length === 0) {
       if (shouldRefreshStorageStatus) {
         refreshSaveStatus(storageGeneration.current);
       }
@@ -1619,7 +1779,7 @@ export function useAppStorageSync({
         queuedSaveIdleHandle.current = null;
         enqueueAppStorageCollectionSaves({
           snapshot,
-          collectionKeys: dirtyCollectionKeys,
+          collectionKeys: saveableDirtyCollectionKeys,
           rawUrl: remoteRuntimeUrl,
           generation: storageGeneration.current,
           signatures: nextSignatures,

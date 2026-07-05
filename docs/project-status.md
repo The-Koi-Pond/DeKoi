@@ -69,6 +69,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Pond Care storage repair for malformed desktop collections, using explicit
   Tauri commands, backup restore or empty replacement, and a separate finish
   action for `.json.pre-repair` sidecars.
+- Pond Care dropped-record warnings when storage load skips unreadable records,
+  with save blocking for affected collections until reload or import/restore
+  clears the count.
 - One-way legacy thread import into native Messenger records.
 
 ## Experimental Or Incomplete

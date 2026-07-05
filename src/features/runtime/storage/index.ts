@@ -10,6 +10,7 @@ export {
   readRuntimeTargetUrl,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
+  summarizeAppStorageDroppedRecords,
   writeRuntimeTargetUrl,
   type AppStorageCollectionKey,
   type AppStorageMetadata,

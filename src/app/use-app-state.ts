@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   loadInitialAppStorageRecords,
   readRuntimeTargetUrl,
+  type AppStorageCollectionKey,
   type AppStorageRecords,
   type MessengerStorageMode,
   type MessengerStorageStatus,
@@ -36,6 +37,9 @@ export function useAppState() {
   const [messengerStorageMessage, setMessengerStorageMessage] = useState(
     "Loading Messenger storage.",
   );
+  const [droppedRecordCountByCollection, setDroppedRecordCountByCollection] = useState<
+    Partial<Record<AppStorageCollectionKey, number>>
+  >({});
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] = useState(readRuntimeTargetUrl);
   const [appSettings, setAppSettings] = useState<AppStorageRecords["appSettings"]>(
     initialStorageRecords.appSettings,
@@ -73,6 +77,8 @@ export function useAppState() {
     setMessengerStorageStatus,
     messengerStorageMessage,
     setMessengerStorageMessage,
+    droppedRecordCountByCollection,
+    setDroppedRecordCountByCollection,
     remoteRuntimeUrl,
     setRemoteRuntimeUrlState,
     appSettings,

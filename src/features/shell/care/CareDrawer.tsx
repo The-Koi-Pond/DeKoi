@@ -29,6 +29,7 @@ import {
   loadAppStorageRepairStatus,
   readDesktopStorageBundle,
   repairAppStorageCollection,
+  summarizeAppStorageDroppedRecords,
   writeDesktopStorageBundle,
   previewDeKoiStorageBundleFile,
   previewLegacyImportFile,
@@ -89,6 +90,7 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     | "messengerStorageMode"
     | "messengerStorageStatus"
     | "storageHasUnsavedChanges"
+    | "droppedRecordCountByCollection"
     | "remoteRuntimeUrl"
   > &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads">;
@@ -171,6 +173,9 @@ export function CareDrawer({ nav }: CareDrawerProps) {
   const [legacyImportBusy, setLegacyImportBusy] = useState(false);
   const [legacyStatus, setLegacyStatus] = useState("");
   const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
+  const droppedRecordsSummary = summarizeAppStorageDroppedRecords(
+    nav.droppedRecordCountByCollection,
+  );
   const currentBundleCounts = getDeKoiStorageBundleCounts({
     appSettings: nav.appSettings,
     characters: nav.characters,
@@ -1751,6 +1756,11 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
               {nav.storageHasUnsavedChanges && (
                 <p className="bundle-note">Storage has local changes or pending saves.</p>
+              )}
+              {droppedRecordsSummary.total > 0 && (
+                <p className="bundle-status storage-dropped-warning" role="alert">
+                  {droppedRecordsSummary.message}
+                </p>
               )}
               {storageReloadStatus && <p className="bundle-status">{storageReloadStatus}</p>}
               {renderStorageRepairCollections()}

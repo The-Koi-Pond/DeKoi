@@ -21,6 +21,7 @@ export {
   loadAppStorageMetadata,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
+  summarizeAppStorageDroppedRecords,
   type AppStorageCollectionKey,
   type AppStorageMetadata,
   type AppStorageRecords,
