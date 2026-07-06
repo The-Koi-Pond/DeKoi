@@ -184,7 +184,10 @@ storage fields but are not applied to prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
-owning runtime adapter for each collection.
+owning runtime adapter for each collection. Native collection adapters read
+DeKoi field names only; old aliases such as `name`, `shortName`, `summary`,
+`url`, legacy provider labels, and removed provider kinds belong in the one-way
+legacy import adapter instead of durable load/save paths.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
@@ -345,10 +348,11 @@ If a collection replace fails, the import result reports the failed collection,
 records how many collections were replaced before the failure, marks partial
 commits as requiring a reload, reloads persisted storage so React state reflects
 the partial durable state, and states that automatic rollback is not implemented
-yet. Legacy converted-thread imports add native Messenger records to the current
-snapshot and use the same explicit commit path instead of relying on autosave.
+yet. Legacy converted imports add native catalog, provider, and Messenger
+records to the current snapshot and use the same explicit commit path instead of
+relying on autosave.
 Because that path commits a complete current snapshot, pending changes in other
-collections are persisted along with the converted Messenger threads.
+collections are persisted along with the converted records.
 
 The desktop host keeps a Rust allowlist for local file access:
 
@@ -374,6 +378,8 @@ that each documented runtime adapter uses the expected repository entity alias.
   not define the durable shape.
 - Runtime adapters may normalize unknown JSON into native records, but they do
   not invent product meaning.
+- Native collection adapters do not translate legacy catalog or provider aliases
+  while loading DeKoi collections or native bundles.
 - Provider-specific metadata stays out of core thread/message records unless it
   is wrapped in a DeKoi-owned field with a documented purpose.
 - Provider secrets are not ordinary collection data and must not be exported in
@@ -447,5 +453,9 @@ legacy source record -> DeKoi native record
 
 Import adapters may understand old source names. Engine records, collection
 names, UI labels, and provider requests should stay DeKoi-native.
+The current legacy import adapter can convert legacy companion, persona,
+provider-connection, and Messenger thread records, remap imported IDs before
+append, and clear imported thread provider references when the legacy provider
+record was not converted.
 
 Future storage direction lives in [Storage Roadmap](./storage-roadmap.md).

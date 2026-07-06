@@ -497,7 +497,9 @@ every field-level storage edit.
 
 Legacy import is a one-way adapter into DeKoi-native records; see
 [PROVENANCE.md](./PROVENANCE.md). Import code may know old source shapes, but
-core DeKoi records do not expose legacy names as their native model.
+core DeKoi records do not expose legacy names as their native model. Current
+legacy import may translate old catalog and provider aliases into native
+companion, persona, provider connection, and Messenger records before append.
 
 ### Provider Runtime
 

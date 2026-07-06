@@ -433,6 +433,12 @@ The browser app does not persist these entities in browser storage. If the app
 is not running in Tauri, configure a Remote Runtime URL before expecting durable
 storage.
 
+Storage records must use DeKoi-native field names. Remote runtimes should not
+depend on compatibility aliases such as catalog `name`, `shortName`, or
+`summary` fields, provider `name` or `url`, or removed provider kinds such as
+`mock`; those are handled only by the one-way legacy import adapter, not by
+normal `storage_list` or `storage_replace` normalization.
+
 Messenger and Roleplay transcript storage is split. `messenger-threads` records
 omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
 live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and

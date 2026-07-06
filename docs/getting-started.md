@@ -118,5 +118,6 @@ Focused checks for narrow changes are mapped to change types in
   in the desktop key store; browser mode can still use compatible no-key/local
   provider paths with a configured Base URL and model.
 - Treat legacy compatibility as explicit import work, not automatic migration.
-  The current legacy thread import adds converted native Messenger records after
-  the same backup and commit flow.
+  The current legacy import adds converted native companions, personas,
+  provider connections, and Messenger records after the same backup and commit
+  flow.

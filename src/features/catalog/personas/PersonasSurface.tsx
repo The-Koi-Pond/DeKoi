@@ -99,15 +99,11 @@ function parseNumber(value: string, fallback: number) {
 }
 
 function draftFromPersona(record: PersonaRecord): DraftState {
-  const legacyRecord = record as PersonaRecord & {
-    summary?: unknown;
-  };
-
   return {
     displayName: asText(record.displayName),
     nickname: asNullableText(record.nickname) ?? "",
     description: asText(record.description),
-    personality: asText(record.personality) || asText(legacyRecord.summary),
+    personality: asText(record.personality),
     scenario: asText(record.scenario),
     systemPrompt: asText(record.systemPrompt),
     postHistoryInstructions: asText(record.postHistoryInstructions),

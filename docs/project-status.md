@@ -72,7 +72,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Pond Care dropped-record warnings when storage load skips unreadable records,
   with save blocking for affected collections until reload or import/restore
   clears the count.
-- One-way legacy thread import into native Messenger records.
+- One-way legacy import into native companion, persona, provider connection, and
+  Messenger records.
 
 ## Experimental Or Incomplete
 
@@ -93,8 +94,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media and preset rails are placeholder-only.
-- Legacy thread import is an explicit one-way adapter into native Messenger
-  records; automatic browser-storage migration remains out of scope.
+- Legacy import is an explicit one-way adapter into native DeKoi records;
+  automatic browser-storage migration remains out of scope.
 - Storage is collection-backed first; a database may replace the implementation later only behind the same record contracts.
 
 ## Current Priorities

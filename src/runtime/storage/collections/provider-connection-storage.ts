@@ -44,26 +44,6 @@ function normalizeConnectionStatus(
   return providerOption.apiKeyRequired ? "needs-key" : "ready";
 }
 
-function normalizeLegacyLabel(label: string, provider: ProviderConnectionProvider) {
-  const providerOption = getProviderConnectionProviderOption(provider);
-  const cleanLabel = label.trim();
-  if (/^local mock$/i.test(cleanLabel)) return "Local";
-  if (/^remote runtime$/i.test(cleanLabel)) return "OpenAI";
-  return cleanLabel || providerOption.label;
-}
-
-function normalizeLegacySummary(summary: string, label: string) {
-  if (label === "OpenAI" && summary.includes("configured runtime")) {
-    return "OpenAI-compatible chat completion provider.";
-  }
-  return summary;
-}
-
-function normalizeLegacyModel(model: string) {
-  const cleanModel = model.trim();
-  return /^mock adapter$/i.test(cleanModel) ? "" : cleanModel;
-}
-
 export function normalizeProviderConnectionRecord(
   value: unknown,
   options: { preserveReadyStatus?: boolean } = {},
@@ -77,15 +57,12 @@ export function normalizeProviderConnectionRecord(
 
   const provider = normalizeConnectionProvider(value.provider);
   const providerOption = getProviderConnectionProviderOption(provider);
-  const label = normalizeLegacyLabel(
-    readString(value.label, readString(value.name)).trim(),
-    provider,
-  );
+  const label = readString(value.label).trim() || providerOption.label;
   if (!id || !label) return null;
 
-  const baseUrl = readString(value.baseUrl, readString(value.url)).trim();
-  const model = normalizeLegacyModel(readString(value.model, readString(value.modelLabel)).trim());
-  const summary = normalizeLegacySummary(readString(value.summary).trim(), label);
+  const baseUrl = readString(value.baseUrl).trim();
+  const model = readString(value.model).trim();
+  const summary = readString(value.summary).trim();
   const now = new Date().toISOString();
   return {
     id,
