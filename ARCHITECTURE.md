@@ -38,8 +38,9 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   entrypoints and shared helpers; it does not import engine or runtime bridge
   modules directly.
 - `src/engine`: React-free domain records, pure actions, prompt/generation
-  request assembly, and future capability ports. Engine code may not import
-  React, Tauri, feature internals, or concrete runtime adapters.
+  request assembly, engine-local shared helpers, and future capability ports.
+  Engine code may not import React, Tauri, feature internals, or concrete
+  runtime adapters.
 - `src/features`: React surfaces and workflows. Feature code renders UI,
   gathers user intent, calls engine helpers for product behavior, and uses
   feature-runtime workflows or focused shared API wrappers for persistence or
@@ -55,8 +56,9 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   exports DeKoi storage contracts, collection adapters, app snapshot
   orchestration, bundle import/export normalization, and legacy import. Host and
   remote transport wrappers live in `src/shared/api`.
-- `src/shared`: reusable UI primitives, styling tokens, browser-only helpers,
-  and other code that is genuinely generic across feature owners.
+- `src/shared`: reusable UI primitives, styling tokens, browser/React helpers,
+  generic non-product utilities, and other code that is genuinely generic
+  across feature owners.
 - `src/shared/api`: typed wrappers around desktop Tauri commands and
   remote-runtime HTTP invocation. Feature code may call focused wrappers or
   feature-runtime workflows. Engine code may not.
@@ -178,10 +180,10 @@ architecture-level rules:
 ## Current Shape
 
 - `src/engine` owns native record contracts under `contracts/types`,
-  deterministic catalog/mode/lore-runtime/ripple actions, and provider-neutral
-  generation assembly, including lorebook activation, the macro resolver under
-  `generation-core`, and Messenger/Roleplay prompt macro wiring under
-  `generation`.
+  deterministic catalog/mode/lore-runtime/ripple actions, engine-local shared
+  text/error helpers, and provider-neutral generation assembly, including
+  lorebook activation, the macro resolver under `generation-core`, and
+  Messenger/Roleplay prompt macro wiring under `generation`.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules
@@ -228,7 +230,9 @@ The file-level map lives in
 7. Put shared mode-neutral runtime systems in `src/features/runtime`.
 8. Put resource data/library owners in `src/features/catalog`.
 9. Put privileged local work in `src-tauri`.
-10. Put only generic helpers in `src/shared`.
+10. Put only generic non-product helpers in `src/shared`; keep engine-needed
+    copies under `src/engine/shared` so the engine boundary stays React-free and
+    host-free.
 11. Update this document and `scripts/check-frontend-boundaries.mjs` when a new
     architectural boundary becomes stable enough to enforce.
 

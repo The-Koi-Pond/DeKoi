@@ -6,6 +6,7 @@ import {
 } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
+import { cleanTextArray } from "../../shared/text";
 
 export function createMessengerThread({
   activePersonaId,
@@ -111,16 +112,12 @@ export function deleteMessengerThread(records: MessengerThread[], id: string) {
   return records.filter((record) => record.id !== id);
 }
 
-function cleanThreadIds(ids: string[]) {
-  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-}
-
 export function setMessengerThreadParticipants(
   thread: MessengerThread,
   characterIds: string[],
   updatedAt: string,
 ): MessengerThread {
-  const cleanCharacterIds = cleanThreadIds(characterIds);
+  const cleanCharacterIds = cleanTextArray(characterIds);
   return {
     ...thread,
     characterIds: cleanCharacterIds,
@@ -148,7 +145,7 @@ export function setMessengerThreadLorebooks(
 ): MessengerThread {
   return {
     ...thread,
-    lorebookIds: cleanThreadIds(lorebookIds),
+    lorebookIds: cleanTextArray(lorebookIds),
     updatedAt,
   };
 }

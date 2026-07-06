@@ -1,14 +1,7 @@
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { RoleplayEntry, RoleplayThread } from "../../contracts/types/roleplay";
 import type { PersonaRecord } from "../../contracts/types/persona";
-
-function cleanText(value: string | undefined, fallback = "") {
-  return value?.trim() || fallback;
-}
-
-function cleanIds(ids: string[]) {
-  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-}
+import { cleanText, cleanTextArray } from "../../shared/text";
 
 export function createRoleplayThread({
   activePersonaId,
@@ -34,9 +27,9 @@ export function createRoleplayThread({
     mode: "scene",
     title: cleanText(title, "New Roleplay Chat"),
     sceneText: "",
-    characterIds: cleanIds(characterIds),
+    characterIds: cleanTextArray(characterIds),
     activePersonaId,
-    lorebookIds: cleanIds(lorebookIds),
+    lorebookIds: cleanTextArray(lorebookIds),
     providerConnectionId,
     entries: [],
     createdAt: now,
@@ -214,7 +207,7 @@ export function setRoleplayThreadParticipants(
 ): RoleplayThread {
   return {
     ...thread,
-    characterIds: cleanIds(characterIds),
+    characterIds: cleanTextArray(characterIds),
     updatedAt,
   };
 }
@@ -247,7 +240,7 @@ export function setRoleplayThreadLorebooks(
 ): RoleplayThread {
   return {
     ...thread,
-    lorebookIds: cleanIds(lorebookIds),
+    lorebookIds: cleanTextArray(lorebookIds),
     updatedAt,
   };
 }

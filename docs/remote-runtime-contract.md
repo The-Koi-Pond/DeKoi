@@ -432,6 +432,10 @@ Supported storage entities:
 - `provider-connections`
 - `ripple-states`
 
+Unsupported or legacy entity names are rejected by DeKoi runtimes; compatibility
+for old storage names stays in the one-way import adapter or TypeScript record
+normalizers, not in extra runtime entities.
+
 The browser app does not persist these entities in browser storage. If the app
 is not running in Tauri, configure a Remote Runtime URL before expecting durable
 storage.
@@ -465,9 +469,10 @@ include names, whole-word matching, no recursive scan, unlimited configured
 recursion steps, group scoring off, no absolute token cap, and a 25 percent
 budget cap; new entries default to enabled `constant` notes placed
 `after-character` with insertion order 100, probability 100, group weight 100,
-and no insertion-order group-resolution flag. Pre-v2
-lorebook rows were development-only and are rejected by DeKoi normalization
-rather than migrated.
+and no insertion-order group-resolution flag. Primary and secondary key arrays
+are trimmed to non-empty unique keys in first-seen order. Pre-v2 lorebook rows
+were development-only and are rejected by DeKoi normalization rather than
+migrated.
 
 `lore-runtime-states` records use `schemaVersion: 1` and belong to either a
 Messenger or Roleplay thread through `ownerKind` and `ownerId`. They store
@@ -554,10 +559,11 @@ Character filters and triggers are still not applied by DeKoi prompt assembly.
 }
 ```
 
-Returns an array of records. DeKoi treats a non-array response as a load error.
-For array responses, DeKoi normalizes each raw item, counts rejected items as
-dropped records, and surfaces that count through Pond Care; remote runtimes do
-not send dropped-record counts separately.
+Returns an array of records. An empty array is a successful empty collection;
+DeKoi does not replace it with local seed records. DeKoi treats a non-array
+response as a load error. For array responses, DeKoi normalizes each raw item,
+counts rejected items as dropped records, and surfaces that count through Pond
+Care; remote runtimes do not send dropped-record counts separately.
 
 `storage_replace`:
 

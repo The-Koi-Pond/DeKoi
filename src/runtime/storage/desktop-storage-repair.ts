@@ -8,6 +8,7 @@ import {
   repairDesktopStorageCollection,
   type DesktopStorageRepairStrategy,
 } from "../../shared/api/desktop-storage-repair";
+import { errorMessage } from "../../shared/errors";
 import { getHostStorageMode } from "./storage-repository-factory";
 import {
   APP_STORAGE_COLLECTION_ENTITIES,
@@ -81,10 +82,6 @@ const COLLECTION_KEY_BY_ENTITY = new Map<StorageEntity, AppStorageCollectionKey>
     ([collectionKey, entity]) => [entity, collectionKey as AppStorageCollectionKey] as const,
   ),
 );
-
-function asErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
-}
 
 function normalizeStorageEntity(entity: string): StorageEntity | null {
   return HOST_STORAGE_ENTITIES.includes(entity as StorageEntity) ? (entity as StorageEntity) : null;
@@ -237,7 +234,7 @@ export async function loadAppStorageRepairStatus(
     return {
       mode,
       status: "error",
-      message: `Desktop storage repair status unavailable. ${asErrorMessage(error)}`,
+      message: `Desktop storage repair status unavailable. ${errorMessage(error, "Unknown storage error.")}`,
       collections: [],
     };
   }
@@ -287,7 +284,7 @@ export async function repairAppStorageCollection({
     return {
       mode,
       status: "error",
-      message: asErrorMessage(error),
+      message: errorMessage(error, "Unknown storage error."),
       collectionKey,
       entity,
       strategy,
@@ -337,7 +334,7 @@ export async function finishAppStorageCollectionRepair({
     return {
       mode,
       status: "error",
-      message: asErrorMessage(error),
+      message: errorMessage(error, "Unknown storage error."),
       collectionKey,
       entity,
       metadata: null,

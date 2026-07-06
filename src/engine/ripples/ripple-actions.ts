@@ -4,15 +4,12 @@ import type {
   RippleStateOwnerKind,
   RippleTone,
 } from "../contracts/types/ripples";
+import { cleanText } from "../shared/text";
 
 export interface RippleInput {
   tone?: RippleTone;
   title: string;
   body: string;
-}
-
-function cleanText(value: string | undefined, fallback = "") {
-  return value?.trim() || fallback;
 }
 
 function cleanTone(value: RippleTone | undefined): RippleTone {

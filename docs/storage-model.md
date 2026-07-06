@@ -91,7 +91,9 @@ to `enabled: true`, `strategy: "constant"`, `probability: 100`,
 `groupWeight: 100`, `prioritizeInclusion: false`,
 `insertionPosition: "after-character"`, `insertionOrder: 100`, and null keys,
 selective logic, inclusion group, depth, role, recursion, timing, triggers,
-character filter, and match-source blocks.
+character filter, and match-source blocks. Primary and secondary key arrays are
+trimmed, empty entries are removed, and duplicate keys are discarded in
+first-seen order.
 
 The lorebook collection adapter normalizes v2 values, filters malformed v2
 entries without dropping valid sibling entries, requires non-negative integer
@@ -215,6 +217,9 @@ The shared repository module also owns storage result aggregation and normalizer
 result wrapping, including dropped-record counts, so snapshot and import/export
 orchestration can combine adapter outcomes without depending on a concrete host
 implementation.
+Repository `seedRecords` are a load-failure fallback only: when desktop or
+remote storage successfully returns an empty collection, the collection stays
+empty instead of being replaced with seed records.
 
 App-wide save orchestration in `src/app/use-app-storage-sync.ts` tracks dirty
 collections instead of fanning every save out to every collection. It debounces

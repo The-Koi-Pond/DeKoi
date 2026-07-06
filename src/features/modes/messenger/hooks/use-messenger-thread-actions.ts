@@ -15,6 +15,7 @@ import type {
 } from "../../../../engine/contracts/types/provider-connection";
 import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
+import { cleanTextArray } from "../../../../shared/text";
 import type { MessengerThreadCreateInput, PondView } from "../../../navigation";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/lore-runtime-actions";
@@ -48,14 +49,8 @@ export function useMessengerThreadActions({
       const now = currentIsoTimestamp();
       const activePersonaId = input?.activePersonaId?.trim() || null;
       const fallbackCharacterIds = characters[0] ? [characters[0].id] : [];
-      const cleanCharacterIds: string[] = [
-        ...new Set<string>(
-          (input?.characterIds ?? fallbackCharacterIds).map((id) => id.trim()).filter(Boolean),
-        ),
-      ];
-      const cleanLorebookIds: string[] = [
-        ...new Set<string>((input?.lorebookIds ?? []).map((id) => id.trim()).filter(Boolean)),
-      ];
+      const cleanCharacterIds = cleanTextArray(input?.characterIds ?? fallbackCharacterIds);
+      const cleanLorebookIds = cleanTextArray(input?.lorebookIds);
       const activeConnection =
         providerConnections.find((connection) =>
           input?.providerConnectionId

@@ -2,6 +2,7 @@ import type { CharacterRecord } from "../../../engine/contracts/types/character"
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
+import { cleanTextArray } from "../../../shared/text";
 
 export interface ThreadReferenceRecord {
   activePersonaId: string | null;
@@ -66,7 +67,7 @@ function collectReferencedLorebookIds({
     ...globalLorebookIds,
   ];
 
-  return [...new Set(referencedIds.map((id) => id.trim()).filter(Boolean))];
+  return cleanTextArray(referencedIds);
 }
 
 export function getThreadReferenceSummary({

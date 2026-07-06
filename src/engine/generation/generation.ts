@@ -34,6 +34,7 @@ import {
   isRandomOptionMacroName,
   isRollMacroName,
 } from "../generation-core/macros/macro-builtins/random-macros";
+import { cleanTextArray } from "../shared/text";
 
 export type GenerationProviderKind = "remote-runtime" | "external-provider";
 
@@ -114,10 +115,6 @@ export function cleanGenerationText(value: string | null | undefined) {
   return value?.trim() ?? "";
 }
 
-function uniqueGenerationIds(ids: string[]) {
-  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-}
-
 function createGenerationWarning(prefix: string, kind: string, id: string) {
   return `${prefix} references a missing ${kind}: ${id}.`;
 }
@@ -135,7 +132,7 @@ function resolveLorebookSourceBucket({
   warnings: string[];
   warningPrefix: string;
 }) {
-  return uniqueGenerationIds(ids).flatMap((lorebookId) => {
+  return cleanTextArray(ids).flatMap((lorebookId) => {
     const lorebook = lorebookById.get(lorebookId);
     if (lorebook) return [lorebook];
     warnings.push(createGenerationWarning(warningPrefix, `${kind} lorebook`, lorebookId));
@@ -726,10 +723,6 @@ function settleLoreGenerationFormattingEntry(activatedEntry: ActivatedLoreEntry)
   );
 }
 
-function uniqueCleanWarnings(warnings: string[]) {
-  return [...new Set(warnings.map((warning) => warning.trim()).filter(Boolean))];
-}
-
 function attachLoreGenerationMacroCommit(
   activatedEntry: ActivatedLoreEntry,
   macroCommit: LoreGenerationMacroCommit,
@@ -1162,7 +1155,7 @@ export function activateLoreGenerationEntriesWithWarnings(
         options.insertionStrategy ?? "sorted-evenly",
       ),
       runtimeState,
-      warnings: uniqueCleanWarnings(warnings),
+      warnings: cleanTextArray(warnings),
     },
     formattingState,
   );
@@ -1562,7 +1555,7 @@ export function resolveGenerationRecords({
   const connectionIds = new Set(providerConnections.map((connection) => connection.id));
   const warnings: string[] = [];
 
-  const companions = uniqueGenerationIds(characterIds).flatMap((characterId) => {
+  const companions = cleanTextArray(characterIds).flatMap((characterId) => {
     const companion = characterById.get(characterId);
     if (companion) return [companion];
     warnings.push(createGenerationWarning(warningPrefix, "companion", characterId));

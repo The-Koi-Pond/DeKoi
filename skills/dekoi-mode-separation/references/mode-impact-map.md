@@ -83,6 +83,8 @@ Allowed shared homes:
 
 - `src/engine`: native record types, deterministic actions, and pure helpers
   that do not encode concrete mode orchestration.
+- `src/engine/shared`: engine-local helpers shared by engine owners without
+  importing generic frontend/shared code.
 - `src/engine/generation-core`: mode-neutral activation and prompt-selection
   primitives shared by Messenger and Roleplay.
 - `src/features/modes/shared`: shared mode UI and mode-safe helpers such as
@@ -93,6 +95,7 @@ Allowed shared homes:
   surfaces.
 - `src/runtime`: storage contracts, collection adapters, bundle import/export,
   and legacy import normalization.
+- `src/shared`: generic non-product helpers used by feature and runtime code.
 - `src/shared/ui`: generic UI atoms.
 - `src/shared/api`: typed host and remote-runtime command wrappers.
 

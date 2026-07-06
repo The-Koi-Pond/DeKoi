@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cancelIdle, requestIdle, type IdleHandle } from "../shared/browser/idle-callback";
+import { errorMessage } from "../shared/errors";
 import {
   appStorageCollectionCount,
   appStorageCollectionSignature,
@@ -741,8 +742,7 @@ export function useAppStorageSync({
             if (!unsavedSignatures.current[collectionKey]) {
               unsavedSignatures.current[collectionKey] = entry.signature;
             }
-            saveErrors.current[collectionKey] =
-              error instanceof Error ? error.message : "Storage save failed.";
+            saveErrors.current[collectionKey] = errorMessage(error, "Storage save failed.");
             refreshSaveStatus(entry.generation);
           },
         )
@@ -1005,9 +1005,9 @@ export function useAppStorageSync({
       } catch (error) {
         return {
           ...storageResult,
-          message: `${storageResult.message} Failed to reload persisted storage after the import failure: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          message: `${storageResult.message} Failed to reload persisted storage after the import failure: ${errorMessage(
+            error,
+          )}`,
         };
       }
     },
@@ -1088,12 +1088,7 @@ export function useAppStorageSync({
           storageResult = await replaceAppStorageSnapshot(records, remoteRuntimeUrl);
         } catch (error) {
           const failureResult = await reloadPersistedStorageAfterImportFailure(
-            createImportErrorResult(
-              records,
-              `Import failed unexpectedly. ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            ),
+            createImportErrorResult(records, `Import failed unexpectedly. ${errorMessage(error)}`),
             generation,
             { force: true },
           );
@@ -1265,9 +1260,7 @@ export function useAppStorageSync({
         const failureResult = await reloadPersistedStorageAfterImportFailure(
           createImportErrorResult(
             recovery.records,
-            `Restore failed unexpectedly. ${
-              error instanceof Error ? error.message : String(error)
-            }`,
+            `Restore failed unexpectedly. ${errorMessage(error)}`,
           ),
           generation,
           { force: true },
@@ -1539,9 +1532,7 @@ export function useAppStorageSync({
         reloaded: true,
       };
     } catch (error) {
-      const message = `Storage reload failed. ${
-        error instanceof Error ? error.message : String(error)
-      }`;
+      const message = `Storage reload failed. ${errorMessage(error)}`;
       setStorageReady(savedSignatures.current !== null);
       setMessengerStorageStatus("error");
       setMessengerStorageMessage(message);
@@ -1652,7 +1643,7 @@ export function useAppStorageSync({
           (error: unknown) => {
             if (cancelled || storageGeneration.current !== generation) return;
 
-            const message = error instanceof Error ? error.message : "Storage save failed.";
+            const message = errorMessage(error, "Storage save failed.");
             const currentRecords = currentAppStorageRecords.current;
             const currentSignatures = createAppStorageSignatures(currentRecords);
             const currentMigrationSignatures: PartialAppStorageCollectionSignatures = {};

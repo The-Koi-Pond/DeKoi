@@ -57,6 +57,22 @@ describe("createStorageRepository", () => {
     );
   });
 
+  it("does not replace a successful empty load with seed records", async () => {
+    vi.mocked(invokeRemote).mockResolvedValue([]);
+
+    const repository = createStorageRepository<TestRecord>({
+      entity: STORAGE_ENTITIES.characters,
+      normalizeRecord: normalizeTestRecord,
+      seedRecords: [{ id: "seed-1", label: "starter" }],
+    });
+
+    const snapshot = await repository.loadSnapshot("http://runtime.test");
+
+    expect(snapshot.records).toEqual([]);
+    expect(snapshot.droppedRecordCount).toBe(0);
+    expect(snapshot.status).toBe("ready");
+  });
+
   it("treats non-array storage_list responses as load errors", async () => {
     vi.mocked(invokeRemote).mockResolvedValue("not-records");
 

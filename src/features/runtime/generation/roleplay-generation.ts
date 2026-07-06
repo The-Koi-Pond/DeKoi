@@ -21,6 +21,7 @@ import {
 } from "./lore-runtime-state";
 import {
   generateWithConfiguredProvider,
+  providerErrorMessage,
   type ProviderGenerationRequest,
 } from "./provider-generation";
 
@@ -48,10 +49,6 @@ export interface GenerateRoleplayThreadTurnResult {
   loreRuntimeState: LoreRuntimeState | null;
   warnings: string[];
   generatedEntryCount: number;
-}
-
-function providerErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown provider error.");
 }
 
 async function generateRoleplayResponse(

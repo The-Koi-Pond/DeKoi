@@ -71,6 +71,21 @@ describe("lorebook actions", () => {
 });
 
 describe("lorebook entry actions", () => {
+  it("dedupes trimmed trigger keys when creating entries", () => {
+    const entry = createLorebookEntryRecord({
+      id: "entry-under-test",
+      input: {
+        title: "Triggered Entry",
+        key: [" dragon ", "dragon", "", "wyrm"],
+        keySecondary: [" cave ", "cave", "hoard"],
+      },
+      now: "2026-06-24T07:00:00.000Z",
+    });
+
+    expect(entry.key).toEqual(["dragon", "wyrm"]);
+    expect(entry.keySecondary).toEqual(["cave", "hoard"]);
+  });
+
   it("lets callers clear an entry body while preserving omitted optional blocks", () => {
     const entry = createLorebookEntryRecord({
       id: "entry-under-test",

@@ -107,5 +107,6 @@ export interface StorageCollectionRepository<T extends StorageRecord> {
 export interface StorageRepositoryInput<T extends StorageRecord> {
   entity: StorageEntity;
   normalizeRecord: StorageRecordNormalizer<T>;
+  /** Returned only when host storage cannot be loaded; successful empty collections stay empty. */
   seedRecords: T[];
 }
