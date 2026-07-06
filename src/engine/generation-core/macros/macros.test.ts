@@ -747,7 +747,7 @@ describe("resolveMacros", () => {
     ).toBe("yes|empty");
   });
 
-  it("treats missing bare condition variables as false", () => {
+  it("treats unknown bare condition operands as literals", () => {
     const context = macroContext({ variables: { mood: "happy", "quest-done": "yes" } });
 
     expect(
@@ -755,6 +755,7 @@ describe("resolveMacros", () => {
         [
           "{{#if questComplete}}yes{{else}}no{{/if}}",
           "{{#if quest-complete}}yes{{else}}no{{/if}}",
+          "{{#if Dragon}}dragon{{else}}missing{{/if}}",
           "{{#if getvar::questComplete}}yes{{else}}no{{/if}}",
           "{{#if getvar::quest-complete}}yes{{else}}no{{/if}}",
           "{{#if quest-done}}done{{else}}missing{{/if}}",
@@ -765,24 +766,26 @@ describe("resolveMacros", () => {
         ].join("|"),
         context,
       ),
-    ).toBe("no|no|no|no|done|mood|literal|literal|{{questComplete}}");
+    ).toBe("yes|yes|dragon|no|no|done|mood|literal|literal|{{questComplete}}");
   });
 
-  it("treats missing variable-like binary left operands as empty", () => {
+  it("treats unknown binary operands as literals", () => {
     const context = macroContext({ variables: { "quest-done": "yes" } });
 
     expect(
       resolveMacros(
         [
-          '{{#if questComplete == ""}}empty{{else}}bad{{/if}}',
-          '{{#if quest-complete is ""}}hyphen-empty{{else}}bad{{/if}}',
-          '{{#if questComplete != ""}}bad{{else}}not-empty{{/if}}',
+          '{{#if questComplete == ""}}bad{{else}}literal{{/if}}',
+          '{{#if quest-complete is ""}}bad{{else}}hyphen-literal{{/if}}',
+          '{{#if questComplete != ""}}not-empty{{else}}bad{{/if}}',
           '{{#if literal == ""}}bad{{else}}literal{{/if}}',
+          '{{#if Dragon contains "rag"}}dragon{{else}}bad{{/if}}',
+          '{{#if getvar::questComplete == ""}}empty{{else}}bad{{/if}}',
           '{{#if quest-done == "yes"}}done{{else}}bad{{/if}}',
         ].join("|"),
         context,
       ),
-    ).toBe("empty|hyphen-empty|not-empty|literal|done");
+    ).toBe("literal|hyphen-literal|not-empty|literal|dragon|empty|done");
   });
 
   it("does not parse word condition operators inside bare variable names", () => {

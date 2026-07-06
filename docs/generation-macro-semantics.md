@@ -213,11 +213,10 @@ macro spans such as `{{char}}`; or bare literal text. Quoted operands are
 literal except that nested macro spans inside the quoted text still resolve.
 Unquoted operands first try active built-ins, then fall back to their literal
 text when no active built-in matches.
-Bare operands also read `context.variables` before becoming literals. Missing
-variable-like names such as `questComplete`, `quest-complete`, or
-`getvar::questComplete` resolve as empty/false so conditions can test optional
-variables without leaving the whole block unresolved; ordinary bare words such
-as `literal` remain literal truthy text.
+Bare operands also read `context.variables` before becoming literals. Unknown
+bare operands such as `Dragon`, `questComplete`, or `quest-complete` remain
+literal truthy text; use explicit variable macros such as
+`getvar::questComplete` when a missing variable should resolve as empty/false.
 
 Random macros:
 
@@ -284,7 +283,10 @@ timers.
 ## Reserved Later Semantics
 
 These macro families are intentionally not active yet. Until their slices land,
-matching spans remain unchanged unless they contain nested active macros:
+matching spans follow the same unresolved-span rule as unknown macros: nested
+active macros stay inert, except comment spans are still stripped and terminal
+case post-processing can transform complete case blocks inside the unresolved
+span.
 
 - deferred character macros for group scenarios
 - persistent dynamic variable storage

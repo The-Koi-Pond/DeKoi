@@ -606,9 +606,7 @@ function resolveConditionOperand(
 
 function isMissingBareVariableReference(operand: string, context: MacroContext) {
   if (!isValidVariableName(operand)) return false;
-  if (Object.prototype.hasOwnProperty.call(context.variables, operand)) return true;
-
-  return /[-_\dA-Z]/.test(operand);
+  return Object.prototype.hasOwnProperty.call(context.variables, operand);
 }
 
 function evaluateCondition(

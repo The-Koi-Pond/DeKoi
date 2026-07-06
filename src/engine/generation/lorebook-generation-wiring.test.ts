@@ -1117,7 +1117,7 @@ describe("generation lorebook activation wiring", () => {
     expect(
       formatLoreGenerationEntries(result.entries, {
         macroContext,
-        macroOptions: { random: sequenceRandom([1, 0.999]) },
+        macroOptions: { random: sequenceRandom([0.999, 0.999]) },
       }),
     ).toEqual(["City Lore / Roll Seed: roll 6"]);
   });
