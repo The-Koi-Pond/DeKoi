@@ -2,13 +2,13 @@
  * Single-select pill group (Chip). Renders `.chips` / `.chip(.on)`.
  * Mirrors `Seg` API — pass `options`, `value`, `onChange`, and `ariaLabel`.
  */
-interface ChipOption {
-  value: string;
+interface ChipOption<T extends string> {
+  value: T;
   label: string;
 }
 
 interface ChipProps<T extends string> {
-  options: ReadonlyArray<ChipOption>;
+  options: ReadonlyArray<ChipOption<T>>;
   value: T;
   onChange: (value: T) => void;
   ariaLabel: string;
@@ -27,11 +27,11 @@ export function Chip<T extends string>({ options, value, onChange, ariaLabel }: 
             role="radio"
             tabIndex={selected ? 0 : -1}
             aria-checked={selected}
-            onClick={() => onChange(opt.value as T)}
+            onClick={() => onChange(opt.value)}
             onKeyDown={(e) => {
               if (e.key === " " || e.key === "Enter") {
                 e.preventDefault();
-                onChange(opt.value as T);
+                onChange(opt.value);
               }
             }}
           >

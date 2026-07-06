@@ -2,13 +2,13 @@
  * Segmented single-select. Renders `.seg` / `.seg .opt(.on)` from
  * care-fields.css. Controlled: pass `value` and `onChange`.
  */
-interface SegOption {
-  value: string;
+interface SegOption<T extends string> {
+  value: T;
   label: string;
 }
 
 interface SegProps<T extends string> {
-  options: ReadonlyArray<SegOption>;
+  options: ReadonlyArray<SegOption<T>>;
   value: T;
   onChange: (value: T) => void;
   ariaLabel: string;
@@ -26,11 +26,11 @@ export function Seg<T extends string>({ options, value, onChange, ariaLabel }: S
             role="radio"
             tabIndex={selected ? 0 : -1}
             aria-checked={selected}
-            onClick={() => onChange(opt.value as T)}
+            onClick={() => onChange(opt.value)}
             onKeyDown={(e) => {
               if (e.key === " " || e.key === "Enter") {
                 e.preventDefault();
-                onChange(opt.value as T);
+                onChange(opt.value);
               }
             }}
           >
