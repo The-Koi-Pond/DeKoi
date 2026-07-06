@@ -1,14 +1,14 @@
 import { useState, type ChangeEvent } from "react";
 import {
-  exportDesktopBundleFile,
-  importDesktopBundleFile,
-  previewDeKoiStorageBundleFile,
-  previewLegacyImportFile,
-  readDesktopStorageBundle,
-  writeDesktopStorageBundle,
-  type AppStorageReplaceResult,
+  exportCareDesktopBundleFile,
+  importCareDesktopBundleFile,
+  loadCareDesktopStorageBundle,
+  previewCareLegacyImportFile,
+  previewCareStorageBundleFile,
+  saveCareDesktopStorageBundle,
   type DeKoiLegacyImportPreview,
-  type DeKoiStorageBundlePreview,
+  type CareStorageBundlePreview,
+  type CareStorageImportCommitResult,
 } from "../../runtime";
 import type {
   NavCareActions,
@@ -58,7 +58,7 @@ export function useCareImportExportController({
 }: UseCareImportExportControllerInput) {
   const [desktopStorageBusy, setDesktopStorageBusy] = useState(false);
   const [desktopStorageStatus, setDesktopStorageStatus] = useState("");
-  const [bundlePreview, setBundlePreview] = useState<DeKoiStorageBundlePreview | null>(null);
+  const [bundlePreview, setBundlePreview] = useState<CareStorageBundlePreview | null>(null);
   const [bundleReplaceConfirmed, setBundleReplaceConfirmed] = useState(false);
   const [bundleStatus, setBundleStatus] = useState("");
   const [bundleImportBusy, setBundleImportBusy] = useState(false);
@@ -131,7 +131,7 @@ export function useCareImportExportController({
 
     if (isDesktopHostAvailable()) {
       try {
-        const info = await exportDesktopBundleFile(backupBundle, backupFilename);
+        const info = await exportCareDesktopBundleFile(backupBundle, backupFilename);
         if (!info) {
           return {
             ok: false,
@@ -196,7 +196,7 @@ export function useCareImportExportController({
       : `Requested browser download for pre-import backup: ${backup.filename}.`;
   }
 
-  function formatImportCommitResult(result: AppStorageReplaceResult) {
+  function formatImportCommitResult(result: CareStorageImportCommitResult) {
     if (result.status === "ready") return result.message;
 
     const completedCollections = result.collections.filter(
@@ -226,7 +226,7 @@ export function useCareImportExportController({
       }
 
       setDesktopStorageStatus("Saving desktop host bundle...");
-      const info = await writeDesktopStorageBundle(bundleResult.bundle);
+      const info = await saveCareDesktopStorageBundle(bundleResult.bundle);
       await refreshDesktopHostStatus();
       setDesktopStorageStatus(`Saved desktop host bundle (${formatBytes(info.byteLength)}).`);
     } catch (error) {
@@ -241,7 +241,7 @@ export function useCareImportExportController({
     setDesktopStorageStatus("Loading desktop host bundle...");
 
     try {
-      const result = await readDesktopStorageBundle();
+      const result = await loadCareDesktopStorageBundle();
       if (!result.ok) {
         setDesktopStorageStatus(result.error);
         return;
@@ -300,7 +300,7 @@ export function useCareImportExportController({
       }
 
       setBundleStatus("Opening desktop save dialog...");
-      const info = await exportDesktopBundleFile(bundleResult.bundle, getBundleFilename());
+      const info = await exportCareDesktopBundleFile(bundleResult.bundle, getBundleFilename());
       setBundleStatus(
         info
           ? `Exported desktop bundle (${formatBytes(info.byteLength)}).`
@@ -324,7 +324,7 @@ export function useCareImportExportController({
 
     if (!file) return;
 
-    const result = await previewDeKoiStorageBundleFile(file);
+    const result = await previewCareStorageBundleFile(file);
     if (!result.ok) {
       setBundleStatus(result.error);
       input.value = "";
@@ -403,7 +403,7 @@ export function useCareImportExportController({
     setStorageImportRestoreConfirmed(false);
 
     try {
-      const result = await importDesktopBundleFile();
+      const result = await importCareDesktopBundleFile();
       if (!result.ok) {
         setBundleStatus(result.cancelled ? "Desktop import cancelled." : result.error);
         return;
@@ -434,7 +434,7 @@ export function useCareImportExportController({
 
     if (!file) return;
 
-    const result = await previewLegacyImportFile(file);
+    const result = await previewCareLegacyImportFile(file);
     if (!result.ok) {
       setLegacyStatus(result.error);
       input.value = "";
