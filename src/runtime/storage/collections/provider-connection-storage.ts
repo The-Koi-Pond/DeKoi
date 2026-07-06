@@ -10,6 +10,7 @@ import {
   type ProviderConnectionStatus,
 } from "../../../engine/contracts/types/provider-connection";
 import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
+import { errorMessage } from "../../../shared/errors";
 import { isRecord, readNullableString, readString, readTimestamp } from "../storage-json";
 import { createStorageRepository, getHostStorageMode } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
@@ -203,7 +204,7 @@ async function hydrateDesktopProviderConnectionStatuses(
           ? record
           : ({ ...record, status: "needs-key" } satisfies ProviderConnectionRecord);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         verificationErrors.push(message);
         return withProviderConnectionSecretVerification(record, {
           status: "unverified",

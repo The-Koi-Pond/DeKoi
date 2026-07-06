@@ -1,3 +1,4 @@
+import { errorMessage } from "../../../shared/errors";
 import type { GenerationConnectionReadinessFailureCode } from "./generation-runtime";
 
 export type GenerationFailureRecoveryTarget = "connections" | "new-connection";
@@ -40,12 +41,6 @@ export function formatGenerationReadinessFailure(code: GenerationConnectionReadi
   return describeGenerationReadinessFailure(code).message;
 }
 
-function asErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error) return error.message || fallback;
-  const message = String(error ?? "").trim();
-  return message || fallback;
-}
-
 function stripGenerationFailurePrefix(message: string) {
   // Keep these prefixes in sync with provider-messenger-generation.ts and roleplay-generation.ts.
   return message
@@ -73,7 +68,7 @@ export function describeGenerationFailureNotice(
   error: unknown,
   fallback: string,
 ): GenerationFailureNotice {
-  const rawMessage = asErrorMessage(error, fallback);
+  const rawMessage = errorMessage(error, fallback);
   const detail = stripGenerationFailurePrefix(rawMessage);
   const normalized = detail.toLowerCase();
 

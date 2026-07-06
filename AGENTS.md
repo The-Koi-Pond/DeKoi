@@ -82,15 +82,15 @@ otherwise needs the baseline.
   controller wiring.
 - `src/engine`: React-free DeKoi records and product behavior for Messenger,
   Roleplay, catalog records, provider connections, Ripples, and generation
-  request assembly.
+  request assembly, plus engine-local shared helpers.
 - `src/features`: React surfaces. `features/modes` owns Messenger and Roleplay
   screens plus shared mode-safe UI/helpers; `features/catalog` owns catalog
   editors; `features/shell` owns Pond care/settings/import/export surfaces;
   `features/runtime` owns runtime-facing workflows.
 - `src/runtime`: app snapshot orchestration, storage adapters, bundle
   import/export normalization, and legacy import into DeKoi-native records.
-- `src/shared`: generic UI primitives, styling tokens, browser helpers, and
-  focused API wrappers under `src/shared/api`.
+- `src/shared`: generic UI primitives, styling tokens, browser/React helpers,
+  non-product utility helpers, and focused API wrappers under `src/shared/api`.
 - `src-tauri`: Rust command registration, app-data collection storage, bundle
   dialogs, provider secrets, host status, and the desktop runtime bridge.
 - `.github/bunny-review` and `.github/workflows/bunny-review*.yml`: GitHub

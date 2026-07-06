@@ -4,6 +4,7 @@ import {
   readDesktopStorageCollectionMetadata,
   type DesktopStorageCollectionMetadataResult,
 } from "../../shared/api/desktop-storage-metadata";
+import { errorMessage } from "../../shared/errors";
 import { invokeRemote } from "../../shared/api/remote-runtime";
 import { RUNTIME_COMMANDS, type StorageRuntimeCommand } from "../../shared/api/runtime-commands";
 import {
@@ -44,10 +45,6 @@ type HostStorageReplaceResponse = {
 
 export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
-
-function asErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
-}
 
 function remoteTargetIsAvailable(rawUrl: string) {
   try {
@@ -142,7 +139,7 @@ function normalizeOutgoingRecords<T extends StorageRecord>(
 }
 
 function storageReplaceUnsupportedMessage(error: unknown) {
-  const message = asErrorMessage(error);
+  const message = errorMessage(error, "Unknown storage error.");
   return message.includes(RUNTIME_COMMANDS.storageReplace)
     ? `Runtime must support ${RUNTIME_COMMANDS.storageReplace} collection writes. ${message}`
     : message;
@@ -274,7 +271,7 @@ export async function loadHostStorageMetadata(
     return {
       mode,
       status: "error",
-      message: `Desktop storage metadata unavailable. ${asErrorMessage(error)}`,
+      message: `Desktop storage metadata unavailable. ${errorMessage(error, "Unknown storage error.")}`,
       metadataAvailable: false,
       collectionMetadata: [],
       metadataErrors: [],
@@ -370,7 +367,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
   try {
     const { records, droppedRecordCount } = await loadHostRecords(entity, normalizeRecord, rawUrl);
     return {
-      records: records.length > 0 ? records : seedRecords,
+      records,
       droppedRecordCount,
       mode,
       status: "ready",
@@ -383,7 +380,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
       droppedRecordCount: 0,
       mode,
       status: "error",
-      message: `Host storage unavailable. ${asErrorMessage(error)}`,
+      message: `Host storage unavailable. ${errorMessage(error, "Unknown storage error.")}`,
     };
   }
 }

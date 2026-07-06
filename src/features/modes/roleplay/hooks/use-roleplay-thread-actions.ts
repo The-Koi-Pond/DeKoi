@@ -20,6 +20,7 @@ import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/
 import { deleteRippleStateForOwner } from "../../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
+import { cleanTextArray } from "../../../../shared/text";
 import type { RoleplayThreadCreateInput, PondView } from "../../../navigation";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 
@@ -57,16 +58,10 @@ export function useRoleplayThreadActions({
         input?.activePersonaId === undefined
           ? (personas[0]?.id ?? null)
           : input.activePersonaId?.trim() || null;
-      const characterIds = [
-        ...new Set(
-          (input?.characterIds ?? characters.slice(0, 1).map((companion) => companion.id))
-            .map((id) => id.trim())
-            .filter(Boolean),
-        ),
-      ];
-      const lorebookIds = [
-        ...new Set((input?.lorebookIds ?? []).map((id) => id.trim()).filter(Boolean)),
-      ];
+      const characterIds = cleanTextArray(
+        input?.characterIds ?? characters.slice(0, 1).map((companion) => companion.id),
+      );
+      const lorebookIds = cleanTextArray(input?.lorebookIds);
       const requestedConnectionId = input?.providerConnectionId?.trim() ?? "";
       const activeConnection =
         providerConnections.find((connection) =>

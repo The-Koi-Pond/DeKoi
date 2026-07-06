@@ -1,4 +1,5 @@
 import "./LorebookMultiSelect.css";
+import { cleanTextArray } from "../text";
 
 interface LorebookMultiSelectItem {
   id: string;
@@ -21,7 +22,7 @@ function orderSelectedLorebookIds(
   lorebooks: readonly LorebookMultiSelectItem[],
   selectedLorebookIds: readonly string[],
 ) {
-  const cleanSelectedIds = selectedLorebookIds.map((id) => id.trim()).filter(Boolean);
+  const cleanSelectedIds = cleanTextArray(selectedLorebookIds);
   const selectedIds = new Set(cleanSelectedIds);
   const lorebookIds = new Set(lorebooks.map((lorebook) => lorebook.id));
   const orderedIds = lorebooks
@@ -36,7 +37,7 @@ function toggleLorebookId(
   selectedLorebookIds: readonly string[],
   lorebookId: string,
 ) {
-  const cleanSelectedIds = selectedLorebookIds.map((id) => id.trim()).filter(Boolean);
+  const cleanSelectedIds = cleanTextArray(selectedLorebookIds);
   const nextIds = cleanSelectedIds.includes(lorebookId)
     ? cleanSelectedIds.filter((currentId) => currentId !== lorebookId)
     : [...cleanSelectedIds, lorebookId];

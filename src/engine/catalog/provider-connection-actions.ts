@@ -4,6 +4,7 @@ import type {
   ProviderConnectionStatus,
 } from "../contracts/types/provider-connection";
 import { getProviderConnectionProviderOption } from "../contracts/types/provider-connection";
+import { cleanNullableText, cleanText } from "../shared/text";
 
 export interface ProviderConnectionInput {
   label: string;
@@ -17,15 +18,6 @@ export interface ProviderConnectionInput {
   agentDefault?: boolean;
   maxContext?: number | null;
   maxOutput?: number | null;
-}
-
-function cleanText(value: string | undefined, fallback = "") {
-  return value?.trim() || fallback;
-}
-
-function cleanNullableText(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
 }
 
 function cleanNullableNumber(value: number | null | undefined) {

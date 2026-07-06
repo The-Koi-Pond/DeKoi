@@ -16,6 +16,7 @@ import {
   DEFAULT_LOREBOOK_ACTIVATION,
   DEFAULT_LORE_ENTRY_RECURSION,
 } from "../contracts/types/lorebook";
+import { cleanNullableText, cleanText, cleanTextArray } from "../shared/text";
 
 export interface LorebookEntryInput {
   title: string;
@@ -46,17 +47,8 @@ export interface LorebookInput {
   activation?: Partial<LorebookActivationSettings>;
 }
 
-function cleanText(value: string | undefined, fallback = "") {
-  return value?.trim() || fallback;
-}
-
-function cleanNullableText(value: string | null | undefined) {
-  return value?.trim() || null;
-}
-
 function cleanStringList(value: string[] | null | undefined) {
-  if (!value) return null;
-  const cleaned = value.map((item) => item.trim()).filter(Boolean);
+  const cleaned = cleanTextArray(value);
   return cleaned.length > 0 ? cleaned : null;
 }
 
