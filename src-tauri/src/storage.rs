@@ -20,7 +20,6 @@ const MESSENGER_MESSAGES_ENTITY: &str = "messenger-messages";
 const PERSONAS_ENTITY: &str = "personas";
 const PROVIDER_CONNECTIONS_ENTITY: &str = "provider-connections";
 const RIPPLE_STATES_ENTITY: &str = "ripple-states";
-const LEGACY_BUBBLE_THREADS_ENTITY: &str = "bubble-threads";
 const COLLECTION_ENTITIES: &[&str] = &[
     APP_SETTINGS_ENTITY,
     CHARACTERS_ENTITY,
@@ -1168,9 +1167,6 @@ pub(crate) fn storage_list(
 ) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "storage_list")?;
     let entity = runtime_entity(args)?;
-    if entity.as_str() == LEGACY_BUBBLE_THREADS_ENTITY {
-        return Ok(serde_json::Value::Array(Vec::new()));
-    }
 
     Ok(serde_json::Value::Array(read_runtime_records(
         app, &entity,

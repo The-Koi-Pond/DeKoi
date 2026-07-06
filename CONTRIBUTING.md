@@ -24,7 +24,7 @@ Follow the ownership boundaries in [ARCHITECTURE.md](./ARCHITECTURE.md):
 - src/engine owns React-free domain records and pure product behavior.
 - src/features owns React surfaces and workflows.
 - src/runtime owns frontend storage adapters, import/export normalization, and remaining migration bridge code.
-- src/shared owns generic UI primitives, styling tokens, and browser-only helpers.
+- src/shared owns generic UI primitives, styling tokens, browser/React helpers, and non-product utility helpers.
 - src-tauri owns privileged desktop and hostable capabilities.
 
 Stop and redesign if engine code needs React, feature internals, runtime adapters, Tauri APIs, or browser APIs.

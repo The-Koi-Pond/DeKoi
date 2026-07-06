@@ -19,6 +19,7 @@ import type {
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import type { DeKoiDesktopHostStatus } from "../../../shared/api/desktop-host-status";
 import { downloadJsonFile } from "../../../shared/browser/download-json";
+import { errorMessage } from "../../../shared/errors";
 import {
   createLegacyImportDataFingerprint,
   prepareLegacyImportData,
@@ -149,9 +150,7 @@ export function useCareImportExportController({
       } catch (error) {
         return {
           ok: false,
-          message: `Pre-import backup failed. Import was not started. ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          message: `Pre-import backup failed. Import was not started. ${errorMessage(error)}`,
         };
       }
     }
@@ -171,9 +170,9 @@ export function useCareImportExportController({
     } catch (error) {
       return {
         ok: false,
-        message: `Pre-import backup download failed. Import was not started. ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        message: `Pre-import backup download failed. Import was not started. ${errorMessage(
+          error,
+        )}`,
       };
     }
   }
@@ -230,7 +229,7 @@ export function useCareImportExportController({
       await refreshDesktopHostStatus();
       setDesktopStorageStatus(`Saved desktop host bundle (${formatBytes(info.byteLength)}).`);
     } catch (error) {
-      setDesktopStorageStatus(error instanceof Error ? error.message : String(error));
+      setDesktopStorageStatus(errorMessage(error));
     } finally {
       setDesktopStorageBusy(false);
     }
@@ -262,7 +261,7 @@ export function useCareImportExportController({
       );
       setBundleStatus("Confirm replacement to import the desktop host bundle.");
     } catch (error) {
-      setDesktopStorageStatus(error instanceof Error ? error.message : String(error));
+      setDesktopStorageStatus(errorMessage(error));
     } finally {
       setDesktopStorageBusy(false);
     }
@@ -284,7 +283,7 @@ export function useCareImportExportController({
       });
       setBundleStatus("Exported a DeKoi JSON bundle.");
     } catch (error) {
-      setBundleStatus(error instanceof Error ? error.message : String(error));
+      setBundleStatus(errorMessage(error));
     }
   }
 
@@ -307,7 +306,7 @@ export function useCareImportExportController({
           : "Desktop export cancelled.",
       );
     } catch (error) {
-      setBundleStatus(error instanceof Error ? error.message : String(error));
+      setBundleStatus(errorMessage(error));
     } finally {
       setDesktopFileBusy(false);
     }
@@ -387,7 +386,7 @@ export function useCareImportExportController({
       setBundleStatus(
         `Import failed. ${
           backup ? formatImportBackupReference(backup) : "Pre-import backup was not created."
-        } ${error instanceof Error ? error.message : String(error)}`,
+        } ${errorMessage(error)}`,
       );
     } finally {
       setBundleImportBusy(false);
@@ -417,7 +416,7 @@ export function useCareImportExportController({
       });
       setBundleStatus(`Previewing desktop bundle (${formatBytes(result.info.byteLength)}).`);
     } catch (error) {
-      setBundleStatus(error instanceof Error ? error.message : String(error));
+      setBundleStatus(errorMessage(error));
     } finally {
       setDesktopFileBusy(false);
     }
@@ -505,7 +504,7 @@ export function useCareImportExportController({
       setLegacyStatus(
         `Legacy import failed. ${
           backup ? formatImportBackupReference(backup) : "Pre-import backup was not created."
-        } ${error instanceof Error ? error.message : String(error)}`,
+        } ${errorMessage(error)}`,
       );
     } finally {
       setLegacyImportBusy(false);
@@ -589,9 +588,7 @@ export function useCareImportExportController({
     } catch (error) {
       setStorageImportRestoreConfirmed(false);
       setStorageImportFailureStatus(
-        `Restore failed. Import the saved pre-import backup file if needed. ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Restore failed. Import the saved pre-import backup file if needed. ${errorMessage(error)}`,
       );
     } finally {
       setStorageImportRestoreBusy(false);

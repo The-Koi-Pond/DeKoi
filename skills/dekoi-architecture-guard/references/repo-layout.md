@@ -45,8 +45,8 @@ src/runtime/
   normalization.
 
 src/shared/
-  Generic UI primitives, styling tokens, browser helpers, React helpers, and
-  typed API wrappers.
+  Generic UI primitives, styling tokens, browser/React helpers, non-product
+  utility helpers, and typed API wrappers.
 
 src/shared/api/
   Typed wrappers around desktop Tauri commands and remote-runtime HTTP
@@ -74,6 +74,12 @@ src/engine/generation/roleplay-generation.ts
 
 src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.
+
+src/engine/shared/errors.ts
+src/engine/shared/text.ts
+  Engine-local shared formatting and string cleanup helpers. Keep behavior
+  aligned with matching generic helpers in src/shared without importing across
+  the engine boundary.
 
 src/engine/generation-core/lorebook-activation.ts
 src/engine/generation-core/lorebook-activation-resolution.ts

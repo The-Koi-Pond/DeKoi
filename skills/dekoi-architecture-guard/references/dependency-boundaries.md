@@ -71,7 +71,10 @@ Ask these before adding a file:
    narrow command.
 10. Is it a runtime wrapper for embedded Tauri or remote-runtime HTTP? Put it in
     `src/shared/api`.
-11. Is it pure product behavior reused by multiple modes? Put it in a
+11. Is it a generic non-product helper for feature/runtime code? Put it in
+    `src/shared`. If engine code also needs it, mirror a small helper under
+    `src/engine/shared` and keep the behavior comments aligned.
+12. Is it pure product behavior reused by multiple modes? Put it in a
     mode-neutral engine helper only if it does not encode mode orchestration or
     feature-facing UI copy.
 

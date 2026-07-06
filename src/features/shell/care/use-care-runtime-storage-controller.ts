@@ -14,6 +14,7 @@ import {
   type DeKoiDesktopHostStatus,
 } from "../../../shared/api/desktop-host-status";
 import { checkRemoteRuntimeHealth } from "../../../shared/api/remote-runtime";
+import { errorMessage } from "../../../shared/errors";
 import type { StorageRepairActionState } from "./care-drawer-types";
 
 type CareRuntimeStorageNav = Pick<NavStorageActions, "checkAppStorageStale" | "reloadAppStorage"> &
@@ -112,7 +113,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
           : result.message;
       setStorageReloadStatus(`${statusMessage}${repairMessage}`);
     } catch (error) {
-      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
+      setStorageReloadStatus(errorMessage(error));
     } finally {
       setStorageReloadBusy(false);
     }
@@ -128,7 +129,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
       const repairMessage = repairStatus.collections.length > 0 ? ` ${repairStatus.message}` : "";
       setStorageReloadStatus(`${result.message}${repairMessage}`);
     } catch (error) {
-      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
+      setStorageReloadStatus(errorMessage(error));
     } finally {
       setStorageReloadBusy(false);
     }
@@ -205,7 +206,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
         : "";
       setStorageReloadStatus(`${result.message} ${reloadResult.message}${finishMessage}`);
     } catch (error) {
-      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
+      setStorageReloadStatus(errorMessage(error));
     } finally {
       setStorageRepairBusy(null);
     }
@@ -239,7 +240,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
       const repairStatus = await refreshStorageRepairStatus();
       setStorageReloadStatus(`${result.message} ${repairStatus.message}`);
     } catch (error) {
-      setStorageReloadStatus(error instanceof Error ? error.message : String(error));
+      setStorageReloadStatus(errorMessage(error));
     } finally {
       setStorageRepairBusy(null);
     }

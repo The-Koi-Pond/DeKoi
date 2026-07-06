@@ -1,4 +1,5 @@
 import type { PersonaNoteRole, PersonaRecord } from "../contracts/types/persona";
+import { cleanNullableText, cleanText, cleanTextArray } from "../shared/text";
 
 export interface PersonaRecordInput {
   displayName: string;
@@ -18,19 +19,6 @@ export interface PersonaRecordInput {
   talkativeness?: number;
   avatarUrl?: string | null;
   lorebookIds?: string[];
-}
-
-function cleanText(value: string | undefined, fallback = "") {
-  return value?.trim() || fallback;
-}
-
-function cleanNullableText(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
-}
-
-function cleanTextArray(value: string[] | undefined) {
-  return [...new Set(value?.map((item) => item.trim()).filter(Boolean) ?? [])];
 }
 
 function cleanNoteRole(value: PersonaNoteRole | undefined) {

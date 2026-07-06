@@ -12,6 +12,7 @@ import {
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
+import { errorMessage } from "../../../shared/errors";
 
 type ProviderJson = Record<string, unknown>;
 type ProviderTextResult = {
@@ -89,7 +90,7 @@ function normalizeProviderResponse(
 }
 
 export function providerErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown provider error.");
+  return errorMessage(error, "Unknown provider error.");
 }
 
 function assertProviderConnection(request: ProviderGenerationRequest) {

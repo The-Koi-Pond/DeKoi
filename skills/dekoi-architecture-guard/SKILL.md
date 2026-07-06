@@ -67,8 +67,10 @@ Also keep these current repo files in force when relevant:
   generation, ripple state, and storage workflows and should stay React-free.
 - Storage contracts, collection adapters, bundle import/export, and legacy
   import normalization live in `src/runtime`.
-- Generic UI primitives, styling tokens, browser helpers, and genuinely generic
-  React helpers live in `src/shared`.
+- Generic UI primitives, styling tokens, browser/React helpers, and generic
+  non-product helpers live in `src/shared`. If the engine needs the same helper
+  behavior, keep a small engine-local copy under `src/engine/shared` instead of
+  importing `src/shared`.
 - Runtime wrappers live in `src/shared/api`. They may call embedded Tauri or the
   configured remote runtime, and they own typed command boundaries.
 - New or touched feature code should call typed wrappers or feature runtime

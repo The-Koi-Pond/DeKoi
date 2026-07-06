@@ -1,5 +1,6 @@
 import { attachRoleplayEntriesToThreads } from "../../engine/contracts/types/roleplay";
 import { attachMessengerMessagesToThreads } from "../../engine/contracts/types/messenger";
+import { errorMessage } from "../../shared/errors";
 import { loadAppSettingsFromStorage, saveAppSettingsToStorage } from "./collections/app-settings";
 import {
   loadCharacterRecordsFromStorage,
@@ -198,7 +199,7 @@ export function changedAppStorageMetadataKeys(
 }
 
 function asAppStorageErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error ?? "Unknown storage error.");
+  return errorMessage(error, "Unknown storage error.");
 }
 
 function storageResultWithoutCollectionMetadata(result: StorageResult): AppStorageStatusResult {

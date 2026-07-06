@@ -20,6 +20,7 @@ import { fetchProviderConnectionModels } from "../../../shared/api/provider-conn
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { getDesktopProviderSecretStatus } from "../../../shared/api/desktop-provider-secrets";
 import { isDesktopRuntimeUrl, readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
+import { errorMessage } from "../../../shared/errors";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -280,7 +281,7 @@ function ConnectionEditor({
           : "Saved.",
       );
     } catch (error) {
-      setSaveStatus(error instanceof Error ? error.message : String(error));
+      setSaveStatus(errorMessage(error));
     } finally {
       setSaveBusy(false);
     }
@@ -343,7 +344,7 @@ function ConnectionEditor({
       }
     } catch (error) {
       setFetchedModels([]);
-      setModelFetchStatus(error instanceof Error ? error.message : String(error));
+      setModelFetchStatus(errorMessage(error));
     } finally {
       setModelFetchBusy(false);
     }
@@ -378,7 +379,7 @@ function ConnectionEditor({
       );
       setConnectionCheckStatus(result.message || "API key is valid.");
     } catch (error) {
-      setConnectionCheckStatus(error instanceof Error ? error.message : String(error));
+      setConnectionCheckStatus(errorMessage(error));
     } finally {
       setConnectionCheckBusy(false);
     }

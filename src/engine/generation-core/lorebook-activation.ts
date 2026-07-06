@@ -25,6 +25,7 @@ import {
   compareActivatedEntryInsertionOrder,
   finalizeActivationResult,
 } from "./lorebook-activation-resolution";
+import { errorMessage } from "../shared/errors";
 
 export type { ActivatedLoreEntry, LorebookActivationResult } from "./lorebook-activation-types";
 
@@ -393,7 +394,7 @@ function compileRegexKey(
     context.regexCache.set(cacheKey, compiled);
     return compiled;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     const compiled = {
       regex: null,
       warning: `Invalid regex key "${key.trim()}" treated as plaintext: ${message}`,
