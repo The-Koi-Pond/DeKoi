@@ -254,6 +254,77 @@ describe("prepareLegacyImportData", () => {
     expect(prepared.messengerThreads[0]?.providerConnectionId).toBeNull();
   });
 
+  it("clears imported thread catalog references when catalog records were not converted", () => {
+    const data: DeKoiLegacyImportData = {
+      sourceLabel: "Legacy DeKoi export",
+      characters: [],
+      personas: [],
+      providerConnections: [],
+      messengerThreads: [
+        {
+          id: "legacy-thread",
+          schemaVersion: 1,
+          kind: "messenger",
+          mode: "direct",
+          title: "Imported thread",
+          characterIds: ["character-skipped"],
+          activePersonaId: "persona-skipped",
+          lorebookIds: [],
+          presetId: null,
+          providerConnectionId: null,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          messages: [
+            {
+              id: "legacy-message-character",
+              schemaVersion: 1,
+              threadId: "legacy-thread",
+              author: {
+                kind: "character",
+                characterId: "character-skipped",
+                label: "Skipped character",
+              },
+              body: "Hello.",
+              origin: "imported",
+              createdAt: now,
+              updatedAt: now,
+            },
+            {
+              id: "legacy-message-persona",
+              schemaVersion: 1,
+              threadId: "legacy-thread",
+              author: {
+                kind: "persona",
+                personaId: "persona-skipped",
+                label: "Skipped persona",
+              },
+              body: "Hi.",
+              origin: "imported",
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+
+    const prepared = prepareLegacyImportData(data);
+    const thread = prepared.messengerThreads[0];
+
+    expect(thread?.characterIds).toEqual([]);
+    expect(thread?.activePersonaId).toBeNull();
+    expect(thread?.messages[0]?.author).toEqual({
+      kind: "unknown",
+      label: "Skipped character",
+    });
+    expect(thread?.messages[1]?.author).toEqual({
+      kind: "unknown",
+      label: "Skipped persona",
+    });
+  });
+
   it("keeps imported record ids distinct when legacy ids are duplicated", () => {
     const data: DeKoiLegacyImportData = {
       sourceLabel: "Legacy DeKoi export",

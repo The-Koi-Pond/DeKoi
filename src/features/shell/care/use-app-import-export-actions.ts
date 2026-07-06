@@ -79,12 +79,11 @@ function remapIds<T extends { id: string }>(records: T[], prefix: RecordIdPrefix
   return [remapped, idMap] as const;
 }
 
-function remapReference(idMap: ReadonlyMap<string, string>, id: string) {
-  return idMap.get(id) ?? id;
-}
-
-function remapNullableReference(idMap: ReadonlyMap<string, string>, id: string | null) {
-  return id === null ? null : remapReference(idMap, id);
+function remapImportedReferences(idMap: ReadonlyMap<string, string>, ids: string[]) {
+  return ids.flatMap((id) => {
+    const remapped = idMap.get(id);
+    return remapped ? [remapped] : [];
+  });
 }
 
 function remapImportedNullableReference(idMap: ReadonlyMap<string, string>, id: string | null) {
@@ -98,16 +97,22 @@ function remapLegacyMessageAuthor(
   personaIds: ReadonlyMap<string, string>,
 ): MessengerMessageAuthor {
   switch (author.kind) {
-    case "character":
+    case "character": {
+      const characterId = characterIds.get(author.characterId);
+      if (!characterId) return { kind: "unknown", label: author.label };
       return {
         ...author,
-        characterId: remapReference(characterIds, author.characterId),
+        characterId,
       };
-    case "persona":
+    }
+    case "persona": {
+      const personaId = personaIds.get(author.personaId);
+      if (!personaId) return { kind: "unknown", label: author.label };
       return {
         ...author,
-        personaId: remapReference(personaIds, author.personaId),
+        personaId,
       };
+    }
     default:
       return author;
   }
@@ -131,10 +136,8 @@ export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegac
       return {
         ...thread,
         id,
-        characterIds: thread.characterIds.map((characterId) =>
-          remapReference(characterIdMap, characterId),
-        ),
-        activePersonaId: remapNullableReference(personaIdMap, thread.activePersonaId),
+        characterIds: remapImportedReferences(characterIdMap, thread.characterIds),
+        activePersonaId: remapImportedNullableReference(personaIdMap, thread.activePersonaId),
         providerConnectionId: remapImportedNullableReference(
           providerConnectionIdMap,
           thread.providerConnectionId,
