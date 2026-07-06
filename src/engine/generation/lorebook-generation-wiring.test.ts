@@ -13,11 +13,13 @@ import { activateLorebookEntries } from "../generation-core/lorebook-activation"
 import {
   activateLoreGenerationEntriesWithWarnings,
   createGenerationMacroContext,
+  finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
 } from "./generation";
 import {
   createMessengerGenerationContext,
   createMessengerGenerationRequest,
+  createMessengerGenerationRequestAssembly,
 } from "./messenger-generation";
 import {
   createRoleplayGenerationContext,
@@ -25,6 +27,16 @@ import {
 } from "./roleplay-generation";
 
 const now = "2026-07-02T00:00:00.000Z";
+
+function sequenceRandom(values: number[]) {
+  let index = 0;
+
+  return () => {
+    const value = values[Math.min(index, values.length - 1)] ?? 0;
+    index += 1;
+    return value;
+  };
+}
 
 function character(input: Partial<CharacterRecord> = {}): CharacterRecord {
   return {
@@ -1046,9 +1058,952 @@ describe("generation lorebook activation wiring", () => {
     );
 
     expect(result.entries.map((entry) => entry.entry.id)).toEqual(["seed", "recursive"]);
-    expect(formatLoreGenerationEntries(result.entries)).toContain(
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toContain(
       "City Lore / Seed: The moon gate opens when the canal bell rings.",
     );
+  });
+
+  it("does not recurse through random or roll activation previews", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { recursiveScan: true },
+      entries: [
+        {
+          id: "random-seed",
+          title: "Random Seed",
+          body: "{{random::hidden-random::}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "roll-seed",
+          title: "Roll Seed",
+          body: "roll {{roll:1d6}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "hidden-random",
+          title: "Hidden Random",
+          body: "Random preview leaked into recursion.",
+          key: ["hidden-random"],
+        },
+        {
+          id: "hidden-roll",
+          title: "Hidden Roll",
+          body: "Roll preview leaked into recursion.",
+          key: ["roll 1"],
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["random-seed", "roll-seed"]);
+    expect(
+      formatLoreGenerationEntries(result.entries, {
+        macroContext,
+        macroOptions: { random: sequenceRandom([1, 0.999]) },
+      }),
+    ).toEqual(["City Lore / Roll Seed: roll 6"]);
+  });
+
+  it("keeps macro lore bodies that resolve after prompt variables", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "delayed",
+          title: "Delayed",
+          body: "{{getvar::mood}}",
+          input: { strategy: "constant", insertionPosition: "after-character" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["delayed"]);
+    macroContext.variables.mood = "calm";
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Delayed: calm",
+    ]);
+  });
+
+  it("commits only kept visible lore variable mutations", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{setvar::summarySeen::1}}",
+      title: "City Lore",
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: "{{setvar::leaked::bad}}Dropped",
+          key: ["absent"],
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{setvar::kept::yes}}Kept {{kept}} {{getvar::leaked}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        includeSummary: true,
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["kept"]);
+    expect(
+      formatLoreGenerationEntries(result.entries, { includeSummary: true, macroContext }),
+    ).toEqual(["City Lore / Kept: Kept yes"]);
+    expect(macroContext.variables).toEqual({ kept: "yes" });
+  });
+
+  it("resolves kept lore variable mutations in prompt order", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{addvar::count::1}}Summary {{getvar::count}}",
+      title: "City Lore",
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: "{{setvar::count::999}}Dropped",
+          key: ["absent"],
+        },
+        {
+          id: "first",
+          title: "First",
+          body: "{{incvar::count}}First {{getvar::count}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "second",
+          title: "Second",
+          body: "Second saw [{{getvar::count}}]{{incvar::count}} now {{getvar::count}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        includeSummary: true,
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    const formatted = formatLoreGenerationEntries(result.entries, {
+      includeSummary: true,
+      macroContext,
+    });
+
+    expect(formatted).toEqual([
+      "City Lore: Summary 1",
+      "City Lore / First: First 2",
+      "City Lore / Second: Second saw [2] now 3",
+    ]);
+    expect(macroContext.variables).toEqual({ count: "3" });
+    expect(() =>
+      formatLoreGenerationEntries(result.entries, { includeSummary: true, macroContext }),
+    ).toThrow("Cannot format lore macro text more than once with the same macro context.");
+    expect(macroContext.variables).toEqual({ count: "3" });
+  });
+
+  it("rejects stale lore macro formatting after a summary toggle", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{setvar::summaryFlag::yes}}Summary",
+      title: "City Lore",
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "Body sees {{getvar::summaryFlag}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: Body sees",
+    ]);
+    expect(() =>
+      formatLoreGenerationEntries(result.entries, { includeSummary: true, macroContext }),
+    ).toThrow("Cannot format lore macro text more than once with the same macro context.");
+    expect(macroContext.variables).toEqual({});
+  });
+
+  it("preserves summary variable mutations until summaries are emitted", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{setvar::summaryFlag::yes}}Summary",
+      title: "City Lore",
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "Body sees {{getvar::summaryFlag}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(result.entries, { includeSummary: true, macroContext }),
+    ).toEqual(["City Lore: Summary", "City Lore / Kept: Body sees yes"]);
+    expect(macroContext.variables).toEqual({ summaryFlag: "yes" });
+  });
+
+  it("budgets kept lore text at its formatting point", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{setvar::detail::This detail is much too long for the lore budget.}}Seed",
+      title: "City Lore",
+      activation: { budgetTokens: 12 },
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{getvar::detail}}Ok",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        includeSummary: true,
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(result.entries, { includeSummary: true, macroContext }),
+    ).toEqual([]);
+    expect(macroContext.variables).toEqual({});
+  });
+
+  it("recomputes lore budget previews after prompt-order variable commits", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 11 },
+      entries: [
+        {
+          id: "first",
+          title: "First",
+          body: "{{setvar::routeFlag::short}}A",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "second",
+          title: "Second",
+          body: "{{#if routeFlag}}B{{else}}This hidden fallback is deliberately long enough to exceed the lore budget before the first entry commits its variable.{{/if}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / First: A",
+      "City Lore / Second: B",
+    ]);
+    expect(macroContext.variables).toEqual({ routeFlag: "short" });
+  });
+
+  it("budgets random lore previews by resolved option length", () => {
+    const companion = character({
+      description:
+        "The archived canal oath is deliberately long enough to exceed the preview budget when resolved.",
+    });
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 10 },
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::{{description}}::short literal text}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      companions: [companion],
+      now,
+      targetCompanion: companion,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        companions: [companion],
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(result.entries, {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0]) },
+      }),
+    ).toEqual([]);
+  });
+
+  it("budgets bare random lore previews conservatively", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 6 },
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(result.entries, {
+        macroContext,
+        macroOptions: { random: sequenceRandom([1]) },
+      }),
+    ).toEqual([]);
+  });
+
+  it("samples random lore macros only when kept lore is emitted", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "inactive",
+          title: "Inactive",
+          body: "{{random::hidden-left::hidden-right}}",
+          key: ["absent"],
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.9, 0.1]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: visible-right",
+    ]);
+  });
+
+  it("does not sample random lore macros from budget-dropped entries", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 12 },
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: "{{random::ok::This hidden branch is much too long for the lore budget and should be dropped before sampling.}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.9, 0.1]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: visible-right",
+    ]);
+  });
+
+  it("budgets random previews against downstream variable effects", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 16 },
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: "{{random::{{setvar::tail::tiny}}longer::short}}{{getvar::tail}}",
+          input: { strategy: "constant" },
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+      variables: {
+        tail: "this downstream variable text is too long for the lore budget",
+      },
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.9, 0.1]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: visible-right",
+    ]);
+    expect(macroContext.variables.tail).toBe(
+      "this downstream variable text is too long for the lore budget",
+    );
+  });
+
+  it("budgets nested random previews against enclosing variable effects", () => {
+    const longTail =
+      "this enclosing variable text is too long for the lore budget after random resolution";
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 16 },
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: `{{#if {{random::longer::{{setvar::tail::${longTail}}}x}}}}ok{{/if}}{{getvar::tail}}`,
+          input: { strategy: "constant" },
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+      variables: { tail: "tiny" },
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.9, 0.1]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: visible-right",
+    ]);
+    expect(macroContext.variables.tail).toBe("tiny");
+  });
+
+  it("budgets random structural previews by restored text length", () => {
+    const longBranch =
+      "This unresolved structural branch is deliberately long enough to exceed the budget preview.";
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 10 },
+      entries: [
+        {
+          id: "dropped",
+          title: "Dropped",
+          body: `{{random::{{#if {{getvar::loop}}}}${longBranch}{{/if}}::short}}`,
+          input: { strategy: "constant" },
+        },
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+      variables: { loop: "{{#if loop}}blocked{{/if}}" },
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(result.entries, {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.1, 0.9]) },
+      }),
+    ).toEqual(["City Lore / Kept: visible-left"]);
+  });
+
+  it("keeps macro lore budget priority before prompt insertion order", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 8, recursiveScan: true },
+      entries: [
+        {
+          id: "direct-constant",
+          title: "C",
+          body: "C",
+          input: {
+            insertionOrder: 0,
+            strategy: "constant",
+          },
+        },
+        {
+          id: "direct-selective",
+          title: "S",
+          body: "S",
+          key: ["gate"],
+          input: {
+            insertionOrder: 200,
+          },
+        },
+        {
+          id: "recursive-constant",
+          title: "R",
+          body: "R",
+          input: {
+            insertionOrder: 300,
+            recursion: {
+              delayUntilRecursion: true,
+              nonRecursable: false,
+              preventFurther: false,
+              recursionLevel: 0,
+            },
+            strategy: "constant",
+          },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [{ body: "gate" }],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual([
+      "recursive-constant",
+      "direct-selective",
+      "direct-constant",
+    ]);
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / S: S",
+      "City Lore / C: C",
+    ]);
+  });
+
+  it("reserves same-rank macro lore budget by insertion priority across prompt positions", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 10 },
+      entries: [
+        {
+          id: "lower-before",
+          title: "Low",
+          body: "L",
+          input: {
+            insertionOrder: 10,
+            insertionPosition: "before-character",
+            strategy: "constant",
+          },
+        },
+        {
+          id: "higher-after",
+          title: "High",
+          body: "{{getvar::expanded}}",
+          input: {
+            insertionOrder: 100,
+            insertionPosition: "after-character",
+            strategy: "constant",
+          },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(
+        result.entries.filter((entry) => entry.entry.insertionPosition === "before-character"),
+        { macroContext },
+      ),
+    ).toEqual([]);
+
+    macroContext.variables.expanded = "Expanded tail";
+
+    expect(
+      formatLoreGenerationEntries(
+        result.entries.filter((entry) => entry.entry.insertionPosition === "after-character"),
+        { macroContext },
+      ),
+    ).toEqual(["City Lore / High: Expanded tail"]);
+  });
+
+  it("does not sample random summary macros when summaries are omitted", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      summary: "{{random::hidden-left::hidden-right}}",
+      title: "City Lore",
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{random::visible-left::visible-right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.9, 0.1]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: visible-right",
+    ]);
+  });
+
+  it("reuses sampled kept lore text during repeated formatting", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "kept",
+          title: "Kept",
+          body: "{{setvar::mood::{{random::calm::wild}}}}Mood {{getvar::mood}} and {{random::left::right}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        macroOptions: { random: sequenceRandom([0.1, 0.1, 0.9, 0.9]) },
+        scanSources: [],
+      },
+    );
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Kept: Mood calm and left",
+    ]);
+    expect(macroContext.variables).toEqual({ mood: "calm" });
+  });
+
+  it("rejects stale formatting after a macro lore body resolves empty", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "mutable",
+          title: "Mutable",
+          body: "{{setvar::dropped::bad}}{{getvar::bodyText}}",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+    macroContext.variables.bodyText = "Visible";
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["mutable"]);
+    macroContext.variables.bodyText = "";
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([]);
+    expect(macroContext.variables).toEqual({ bodyText: "" });
+
+    macroContext.variables.bodyText = "Visible again";
+    expect(() => formatLoreGenerationEntries(result.entries, { macroContext })).toThrow(
+      "Cannot format lore macro text more than once with the same macro context.",
+    );
+    expect(macroContext.variables).toEqual({ bodyText: "Visible again" });
   });
 
   it("does not activate timers for macro-empty lore bodies", () => {
@@ -1100,8 +2055,263 @@ describe("generation lorebook activation wiring", () => {
       },
     );
 
-    expect(result.entries).toEqual([]);
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["empty"]);
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([]);
+    expect(finalizeLoreGenerationRuntimeState(result)?.entries).toEqual([]);
+  });
+
+  it("clears macro lore runtime timers from budget-dropped activation results", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      activation: { budgetTokens: 0 },
+      entries: [
+        {
+          id: "timed",
+          title: "Timed",
+          body: "Timed lore.",
+          input: {
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+      ],
+    });
+    const runtimeState = {
+      id: "lore-runtime-1",
+      schemaVersion: 1,
+      ownerKind: "messenger-thread",
+      ownerId: "messenger-thread-1",
+      lastEvaluatedMessageCount: 0,
+      entries: [
+        {
+          lorebookId: lorebook.id,
+          entryId: "timed",
+          entryUpdatedAt: now,
+          activatedAtMessageIndex: 0,
+          stickyRemaining: 2,
+          cooldownRemaining: 1,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    } satisfies LoreRuntimeState;
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        runtimeState,
+        scanSources: [{ body: "Hello." }],
+      },
+    );
+
+    expect(result.entries.map((entry) => entry.entry.id)).toEqual(["timed"]);
+    expect(result.runtimeState?.entries).toMatchObject([
+      {
+        stickyRemaining: 1,
+        cooldownRemaining: 0,
+      },
+    ]);
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([]);
+    expect(finalizeLoreGenerationRuntimeState(result)?.entries).toEqual([]);
+  });
+
+  it("keeps macro activation runtime state stable until explicit finalization", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "timed",
+          title: "Timed",
+          body: "Timed lore.",
+          input: {
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+      ],
+    });
+    const runtimeState = {
+      id: "lore-runtime-1",
+      schemaVersion: 1,
+      ownerKind: "messenger-thread",
+      ownerId: "messenger-thread-1",
+      lastEvaluatedMessageCount: 0,
+      entries: [],
+      createdAt: now,
+      updatedAt: now,
+    } satisfies LoreRuntimeState;
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        runtimeState,
+        scanSources: [{ body: "Hello." }],
+      },
+    );
+    const runtimeStateBeforeFormatting = result.runtimeState;
+
+    expect(formatLoreGenerationEntries(result.entries, { macroContext })).toEqual([
+      "City Lore / Timed: Timed lore.",
+    ]);
+    expect(result.runtimeState).toBe(runtimeStateBeforeFormatting);
     expect(result.runtimeState?.entries).toEqual([]);
+    expect(finalizeLoreGenerationRuntimeState(result)?.entries).toMatchObject([
+      {
+        entryId: "timed",
+        stickyRemaining: 2,
+        cooldownRemaining: 1,
+      },
+    ]);
+  });
+
+  it("rejects macro lore runtime finalization before every activation settles", () => {
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "before",
+          title: "Before",
+          body: "Before lore.",
+          input: {
+            insertionPosition: "before-character",
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+        {
+          id: "after",
+          title: "After",
+          body: "After lore.",
+          input: {
+            insertionPosition: "after-character",
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(
+      formatLoreGenerationEntries(
+        result.entries.filter((entry) => entry.entry.insertionPosition === "before-character"),
+        { macroContext },
+      ),
+    ).toEqual(["City Lore / Before: Before lore."]);
+    expect(() => finalizeLoreGenerationRuntimeState(result)).toThrow(
+      "Cannot finalize lore runtime state before formatting all macro-activated lore entries.",
+    );
+  });
+
+  it("clears stale timers when macro-resolved lore bodies are empty", () => {
+    const companion = character({ creatorNotes: "" });
+    const lorebook = selectiveLorebook({
+      id: "city-lore",
+      title: "City Lore",
+      entries: [
+        {
+          id: "empty",
+          title: "Empty",
+          body: "{{creatorNotes}}{{// hidden lore }}",
+          input: {
+            strategy: "constant",
+            timing: { delay: 0, sticky: 2, cooldown: 1 },
+          },
+        },
+      ],
+    });
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: [companion.id],
+      activePersonaId: null,
+      lorebookIds: [lorebook.id],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const runtimeState = {
+      id: "lore-runtime-1",
+      schemaVersion: 1,
+      ownerKind: "messenger-thread",
+      ownerId: thread.id,
+      lastEvaluatedMessageCount: 0,
+      entries: [
+        {
+          lorebookId: lorebook.id,
+          entryId: "empty",
+          entryUpdatedAt: now,
+          activatedAtMessageIndex: 0,
+          stickyRemaining: 2,
+          cooldownRemaining: 1,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    } satisfies LoreRuntimeState;
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [companion],
+      personas: [],
+      lorebooks: [lorebook],
+    });
+
+    const assembly = createMessengerGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      loreRuntimeState: runtimeState,
+      now,
+      userMessage: thread.messages[0],
+    });
+
+    expect(assembly.request.promptMessages[0].content).not.toContain("City Lore / Empty");
+    expect(assembly.loreRuntimeState?.entries).toEqual([]);
   });
 
   it("resolves companion and persona match-source fields before activation", () => {
@@ -1308,6 +2518,73 @@ describe("generation lorebook activation wiring", () => {
     ).toEqual(["Forest Lore / Grove: The hidden grove opens at sunset."]);
   });
 
+  it("rejects macro-context formatting for unresolved raw lore entries", () => {
+    const activated = activateLorebookEntries(
+      selectiveLorebook({
+        id: "forest-lore",
+        title: "Forest Lore",
+        summary: "{{setvar::summary::hidden}}Hidden summary",
+        entries: [
+          {
+            id: "match",
+            title: "Grove",
+            body: "{{setvar::body::visible}}The hidden grove opens at sunset.",
+            key: ["grove"],
+          },
+        ],
+      }),
+      "grove",
+    );
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    expect(() =>
+      formatLoreGenerationEntries(activated, {
+        includeSummary: false,
+        macroContext,
+      }),
+    ).toThrow("Cannot format unresolved lore entries with a macro context.");
+    expect(macroContext.variables).toEqual({});
+  });
+
+  it("rejects raw formatting for macro-activated lore entries", () => {
+    const lorebook = selectiveLorebook({
+      id: "forest-lore",
+      title: "Forest Lore",
+      entries: [
+        {
+          id: "match",
+          title: "Grove",
+          body: "The hidden grove opens at sunset.",
+          input: { strategy: "constant" },
+        },
+      ],
+    });
+    const macroContext = createGenerationMacroContext({
+      now,
+      threadId: "messenger-thread-1",
+    });
+
+    const result = activateLoreGenerationEntriesWithWarnings(
+      {
+        chat: [lorebook],
+        persona: [],
+        character: [],
+        global: [],
+      },
+      {
+        macroContext,
+        scanSources: [],
+      },
+    );
+
+    expect(() => formatLoreGenerationEntries(result.entries)).toThrow(
+      "Cannot format macro-activated lore entries without a macro context.",
+    );
+  });
+
   it("routes Messenger lore around character context by insertion position", () => {
     const thread: MessengerThread = {
       id: "messenger-thread-1",
@@ -1374,6 +2651,267 @@ describe("generation lorebook activation wiring", () => {
     expect(systemPrompt.indexOf("After character lore.")).toBeGreaterThan(
       systemPrompt.indexOf("Replying companion"),
     );
+  });
+
+  it("makes Messenger character variables visible to following lore", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "{{setvar::mood::calm}}A steady companion.",
+        }),
+      ],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          entries: [
+            {
+              id: "after",
+              title: "After",
+              body: "After-character lore sees {{getvar::mood}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+
+    expect(request.promptMessages[0].content).toContain(
+      "City Lore / After: After-character lore sees calm.",
+    );
+  });
+
+  it("budgets Messenger after-character lore after character variables resolve", () => {
+    const longDetail =
+      "This detail expands after character context and must still be counted before lore emits.";
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: `{{setvar::detail::${longDetail}}}A steady companion.`,
+        }),
+      ],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { budgetTokens: 8 },
+          entries: [
+            {
+              id: "after",
+              title: "After",
+              body: "Ok {{getvar::detail}}",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+                timing: { cooldown: 1, delay: 0, sticky: 2 },
+              },
+            },
+          ],
+        }),
+      ],
+    });
+    const runtimeState = {
+      id: "lore-runtime-1",
+      schemaVersion: 1,
+      ownerKind: "messenger-thread",
+      ownerId: "messenger-thread-1",
+      lastEvaluatedMessageCount: 0,
+      entries: [],
+      createdAt: now,
+      updatedAt: now,
+    } satisfies LoreRuntimeState;
+
+    const assembly = createMessengerGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      loreRuntimeState: runtimeState,
+      now,
+      userMessage: thread.messages[0],
+    });
+    const request = assembly.request;
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).toContain("Description: A steady companion.");
+    expect(systemPrompt).not.toContain("City Lore / After");
+    expect(systemPrompt).not.toContain(longDetail);
+    expect(assembly.loreRuntimeState?.entries).toEqual([]);
+  });
+
+  it("does not pre-drop Messenger lore that shrinks after character variables resolve", () => {
+    const longDetail =
+      "This activation-time detail is deliberately too long for the lore budget before the character block replaces it.";
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "custom",
+      systemPrompt: `{{setvar::detail::${longDetail}}}`,
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "{{setvar::detail::ok}}A steady companion.",
+        }),
+      ],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { budgetTokens: 6 },
+          entries: [
+            {
+              id: "after",
+              title: "After",
+              body: "{{getvar::detail}}",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).toContain("Description: A steady companion.");
+    expect(systemPrompt).toContain("City Lore / After: ok");
+    expect(systemPrompt).not.toContain(longDetail);
+  });
+
+  it("keeps higher-priority Messenger lore when later variables expand its budget cost", () => {
+    const detail = "expanded detail still fits by itself";
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["city-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: `{{setvar::detail::${detail}}}A steady companion.`,
+        }),
+      ],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "city-lore",
+          title: "City Lore",
+          activation: { budgetTokens: 15 },
+          entries: [
+            {
+              id: "before-low",
+              title: "B",
+              body: "L",
+              key: ["Hello"],
+              input: {
+                insertionPosition: "before-character",
+              },
+            },
+            {
+              id: "after-high",
+              title: "A",
+              body: "Ok {{getvar::detail}}",
+              input: {
+                insertionPosition: "after-character",
+                strategy: "constant",
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).not.toContain("City Lore / B: L");
+    expect(systemPrompt).toContain(`City Lore / A: Ok ${detail}`);
   });
 
   it("resolves macros across Messenger prompt assembly surfaces", () => {
@@ -1474,6 +3012,136 @@ describe("generation lorebook activation wiring", () => {
     expect(promptText).toContain("Post-history instructions\nKeep Canal please. for Mara.");
     expect(promptText).toContain(
       "Persona post-history instructions\nPersona remembers messenger-thread-1 and 2026-07-02T00:00:00.000Z.",
+    );
+  });
+
+  it("resolves Messenger post-history macros after persona and companion sections", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: [],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "custom",
+      systemPrompt: "Base prompt.",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Companion mood before post {{getvar::postMood}}.",
+          postHistoryInstructions: "{{setvar::postMood::late}}Post mood {{getvar::postMood}}.",
+        }),
+      ],
+      personas: [
+        persona({
+          description: "Persona mood before post {{getvar::postMood}}.",
+        }),
+      ],
+      lorebooks: [],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).toContain("Description: Persona mood before post .");
+    expect(systemPrompt).toContain("Description: Companion mood before post .");
+    expect(systemPrompt).toContain("Post-history instructions\nPost mood late.");
+    expect(systemPrompt).not.toContain("before post late");
+    expect(systemPrompt.indexOf("Description: Companion mood before post .")).toBeLessThan(
+      systemPrompt.indexOf("Post-history instructions"),
+    );
+  });
+
+  it("applies Messenger lore variable side effects in prompt insertion order", () => {
+    const thread: MessengerThread = {
+      id: "messenger-thread-1",
+      schemaVersion: 1,
+      kind: "messenger",
+      mode: "direct",
+      title: "Thread",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["order-lore"],
+      presetId: null,
+      providerConnectionId: null,
+      systemPromptMode: "custom",
+      systemPrompt: "{{setvar::loreMood::system}}System mood {{getvar::loreMood}}.",
+      messages: [messengerMessage("message-1", "Hello.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createMessengerGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Character mood {{getvar::loreMood}}.",
+          postHistoryInstructions: "Post mood {{getvar::loreMood}}.",
+        }),
+      ],
+      personas: [
+        persona({
+          description: "Persona mood {{getvar::loreMood}}.",
+        }),
+      ],
+      lorebooks: [
+        selectiveLorebook({
+          id: "order-lore",
+          title: "Order Lore",
+          entries: [
+            {
+              id: "before",
+              title: "Before",
+              body: "Before lore saw {{getvar::loreMood}} then {{setvar::loreMood::before}}{{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "before-character" },
+            },
+            {
+              id: "after",
+              title: "After",
+              body: "{{setvar::loreMood::after}}After lore {{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "after-character" },
+            },
+            {
+              id: "depth",
+              title: "Depth",
+              body: "{{setvar::loreMood::depth}}Depth lore {{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "at-depth", depth: 0 },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createMessengerGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+      userMessage: thread.messages[0],
+    });
+    const systemPrompt = request.promptMessages[0].content;
+
+    expect(systemPrompt).toContain("System mood system.");
+    expect(systemPrompt).toContain("Before lore saw system then before.");
+    expect(systemPrompt).toContain("Description: Persona mood before.");
+    expect(systemPrompt).toContain("Description: Character mood before.");
+    expect(systemPrompt).toContain("After lore after.");
+    expect(systemPrompt).toContain("Post-history instructions\nPost mood after.");
+    expect(systemPrompt).not.toContain("mood depth");
+    expect(request.promptMessages.map((message) => message.content)).toEqual(
+      expect.arrayContaining([expect.stringContaining("Depth lore depth.")]),
     );
   });
 
@@ -1946,6 +3614,61 @@ describe("generation lorebook activation wiring", () => {
     expect(request.promptMessages[3].role).toBe("system");
   });
 
+  it("makes Roleplay character variables visible to following lore", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "Scene",
+      sceneText: "",
+      characterIds: ["character-1"],
+      activePersonaId: null,
+      lorebookIds: ["forest-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "Start.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "{{setvar::sceneMood::focused}}Ready for the scene.",
+        }),
+      ],
+      personas: [],
+      lorebooks: [
+        selectiveLorebook({
+          id: "forest-lore",
+          title: "Forest Lore",
+          summary: "",
+          entries: [
+            {
+              id: "after",
+              title: "After",
+              body: "After-character lore sees {{getvar::sceneMood}}.",
+              input: {
+                strategy: "constant",
+                insertionPosition: "after-character",
+              },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+
+    expect(request.promptMessages[0].content).toContain(
+      "Forest Lore / After: After-character lore sees focused.",
+    );
+  });
+
   it("resolves macros across Roleplay prompt assembly surfaces", () => {
     const connection = providerConnection("openai");
     const thread: RoleplayThread = {
@@ -2059,6 +3782,95 @@ describe("generation lorebook activation wiring", () => {
     );
     expect(postHistoryPrompt).toContain(
       "Persona post-history instructions: Persona says Mara should answer Open the gate.",
+    );
+  });
+
+  it("applies Roleplay lore variable side effects in prompt insertion order", () => {
+    const thread: RoleplayThread = {
+      id: "roleplay-thread-1",
+      schemaVersion: 1,
+      kind: "roleplay",
+      mode: "scene",
+      title: "{{setvar::sceneMood::title}}Scene mood {{getvar::sceneMood}}",
+      sceneText: "{{setvar::sceneMood::scene}}Scene setup mood {{getvar::sceneMood}}.",
+      characterIds: ["character-1"],
+      activePersonaId: "persona-1",
+      lorebookIds: ["order-lore"],
+      providerConnectionId: null,
+      entries: [roleplayEntry("entry-1", "Open the gate.")],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const context = createRoleplayGenerationContext({
+      thread,
+      characters: [
+        character({
+          description: "Character mood {{getvar::loreMood}}.",
+          postHistoryInstructions: "Post mood {{getvar::loreMood}}.",
+        }),
+      ],
+      personas: [
+        persona({
+          description: "Persona mood {{getvar::loreMood}}.",
+        }),
+      ],
+      lorebooks: [
+        selectiveLorebook({
+          id: "order-lore",
+          title: "Order Lore",
+          entries: [
+            {
+              id: "before",
+              title: "Before",
+              body: "Before roleplay lore saw {{getvar::sceneMood}} then {{setvar::loreMood::before}}{{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "before-character" },
+            },
+            {
+              id: "after",
+              title: "After",
+              body: "{{setvar::loreMood::after}}After roleplay lore {{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "after-character" },
+            },
+            {
+              id: "depth-tail",
+              title: "Depth Tail",
+              body: "{{setvar::loreMood::depth-tail}}Depth roleplay tail {{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "at-depth", depth: 0 },
+            },
+            {
+              id: "depth-before",
+              title: "Depth Before",
+              body: "{{setvar::loreMood::depth-before}}Depth roleplay before {{getvar::loreMood}}.",
+              input: { strategy: "constant", insertionPosition: "at-depth", depth: 1 },
+            },
+          ],
+        }),
+      ],
+    });
+
+    const request = createRoleplayGenerationRequest({
+      context,
+      id: "request-1",
+      now,
+    });
+    const systemPrompt = request.promptMessages[0].content;
+    const postHistoryPrompt = request.promptMessages[request.promptMessages.length - 1].content;
+
+    expect(systemPrompt).toContain("Title: Scene mood title");
+    expect(systemPrompt).toContain("Scene setup mood scene.");
+    expect(systemPrompt).toContain("Before roleplay lore saw scene then before.");
+    expect(systemPrompt).toContain("Description: Persona mood before.");
+    expect(systemPrompt).toContain("Description: Character mood before.");
+    expect(systemPrompt).toContain("After roleplay lore after.");
+    expect(systemPrompt).not.toContain("mood depth");
+    expect(request.promptMessages.map((message) => message.content)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Depth roleplay before depth-before."),
+        expect.stringContaining("Depth roleplay tail depth-tail."),
+      ]),
+    );
+    expect(postHistoryPrompt).toContain(
+      "Character post-history instructions: Post mood depth-tail.",
     );
   });
 

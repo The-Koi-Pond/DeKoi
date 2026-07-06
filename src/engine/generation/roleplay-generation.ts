@@ -16,6 +16,7 @@ import {
   createGenerationMacroContext,
   createGenerationParameters,
   exampleDialogueGenerationContext,
+  finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
   injectAtDepth,
   namedGenerationBlock,
@@ -187,33 +188,31 @@ function buildRoleplaySystemPrompt({
   activatedLoreEntries,
   companions,
   macroContext,
+  prelude,
   summarizedLorebookIds,
   targetCompanion,
-  thread,
 }: {
   activePersona: PersonaRecord | null;
   activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
   macroContext: GenerationMacroContext;
+  prelude: {
+    sceneLines: string[];
+    selectedPrompt: string;
+  };
   summarizedLorebookIds: Set<string>;
   targetCompanion: CharacterRecord | null;
-  thread: RoleplayThread;
 }) {
-  const selectedPrompt = resolveGenerationMacros(DEFAULT_ROLEPLAY_SYSTEM_PROMPT, macroContext);
-
   return [
-    selectedPrompt,
-    ...namedGenerationBlock("Scene", [
-      thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : "",
-      thread.sceneText ? resolveGenerationMacros(thread.sceneText, macroContext) : "",
-    ]),
+    prelude.selectedPrompt,
+    ...namedGenerationBlock("Scene", prelude.sceneLines),
     ...namedGenerationBlock(
       "Selected lore",
       formatLoreGenerationEntries(
         activatedLoreEntries.filter(
           (entry) => entry.entry.insertionPosition === "before-character",
         ),
-        { includeSummary: true, summarizedLorebookIds },
+        { includeSummary: true, macroContext, summarizedLorebookIds },
       ),
     ),
     ...namedGenerationBlock(
@@ -236,7 +235,7 @@ function buildRoleplaySystemPrompt({
       "Selected lore",
       formatLoreGenerationEntries(
         activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "after-character"),
-        { includeSummary: true, summarizedLorebookIds },
+        { includeSummary: true, macroContext, summarizedLorebookIds },
       ),
     ),
     ...namedGenerationBlock(
@@ -244,6 +243,19 @@ function buildRoleplaySystemPrompt({
       exampleDialogueGenerationContext(companions, { macroContext }),
     ),
   ].join("\n\n");
+}
+
+function resolveRoleplayPromptPrelude(
+  thread: RoleplayThread,
+  macroContext: GenerationMacroContext,
+) {
+  return {
+    selectedPrompt: resolveGenerationMacros(DEFAULT_ROLEPLAY_SYSTEM_PROMPT, macroContext),
+    sceneLines: [
+      thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : "",
+      thread.sceneText ? resolveGenerationMacros(thread.sceneText, macroContext) : "",
+    ],
+  };
 }
 
 function buildPostHistoryPrompt({
@@ -313,6 +325,7 @@ function createRoleplayPromptAssembly({
     targetNameFallback: "the selected character",
     threadId: thread.id,
   });
+  const prelude = resolveRoleplayPromptPrelude(thread, macroContext);
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
@@ -336,18 +349,24 @@ function createRoleplayPromptAssembly({
     activatedLoreEntries,
     companions,
     macroContext,
+    prelude,
     summarizedLorebookIds,
     targetCompanion,
-    thread,
   });
   const transcriptWithDepthLore = injectAtDepth(
     transcript,
     activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "at-depth"),
-    { includeSummary: true, providerConnection, summarizedLorebookIds },
+    { includeSummary: true, macroContext, providerConnection, summarizedLorebookIds },
   );
+  const postHistoryPrompt = buildPostHistoryPrompt({
+    activePersona,
+    macroContext,
+    targetCompanion,
+  });
+  const finalLoreRuntimeState = finalizeLoreGenerationRuntimeState(loreActivation);
 
   return {
-    loreRuntimeState: loreActivation.runtimeState,
+    loreRuntimeState: finalLoreRuntimeState,
     promptMessages: [
       {
         role: "system",
@@ -356,7 +375,7 @@ function createRoleplayPromptAssembly({
       ...transcriptWithDepthLore,
       {
         role: "user",
-        content: buildPostHistoryPrompt({ activePersona, macroContext, targetCompanion }),
+        content: postHistoryPrompt,
       },
     ],
     warnings: loreActivation.warnings,

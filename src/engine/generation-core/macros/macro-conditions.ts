@@ -1,11 +1,25 @@
 import { applyBuiltins, renderUnknownMacro } from "./macro-builtins";
 import { applyFormatPostProcessors } from "./macro-builtins/format-macros";
-import { findMacroSpanClose, mapMacroSpans } from "./macro-spans";
+import { isRandomOptionMacroName, resolveRandomMacro } from "./macro-builtins/random-macros";
+import { isValidVariableName } from "./macro-builtins/variable-macros";
+import { findMacroSpanClose, mapMacroSpans, type MacroSpan } from "./macro-spans";
+import { restoreMacroState, snapshotMacroState } from "./macro-state";
 import type { MacroContext, ResolveMacroOptions } from "./macro-types";
 
 const MAX_CONDITION_BLOCK_DEPTH = 64;
 const MAX_CONDITION_VALUE_PASSES = 16;
+const MAX_INLINE_MACRO_REPLACEMENT_DEPTH = MAX_CONDITION_VALUE_PASSES;
 const STRUCTURAL_MACRO_TOKEN_PATTERN = /{{\s*(?:#if(?:\s|})|\/\/)/;
+const KNOWN_NESTED_MACRO_PREFIXES = ["addvar::", "decvar::", "getvar::", "incvar::", "setvar::"];
+const KNOWN_NESTED_MACRO_NAMES = new Set([
+  "/lowercase",
+  "/trim",
+  "/uppercase",
+  "lowercase",
+  "random",
+  "trim",
+  "uppercase",
+]);
 
 type ConditionOperator = "==" | "!=" | "is" | "contains" | "includes";
 
@@ -36,12 +50,13 @@ interface StructuralMacroResult {
   value: string;
 }
 
-interface MacroTextPassResult {
+export interface MacroTextPassResult {
   exhausted: boolean;
+  overflowed: boolean;
   value: string;
 }
 
-interface MacroShieldState {
+export interface MacroShieldState {
   prefix: string;
   values: string[];
 }
@@ -62,6 +77,16 @@ interface ConditionEvaluationResult {
 
 function isCommentBody(body: string) {
   return body.trimStart().startsWith("//");
+}
+
+function shouldResolveMacroBody(body: string) {
+  const name = body.trim();
+  if (name === "") return true;
+  if (isRandomOptionMacroName(name) || name.startsWith("roll:")) return true;
+  if (KNOWN_NESTED_MACRO_NAMES.has(name)) return true;
+  if (KNOWN_NESTED_MACRO_PREFIXES.some((prefix) => name.startsWith(prefix))) return true;
+  if (startsWithIfPrefix(name) || name === "else" || name === "/if") return true;
+  return !name.includes("{{");
 }
 
 function startsWithIfPrefix(body: string) {
@@ -127,12 +152,18 @@ function findMatchingIfBlock(input: string, open: IfOpenToken): IfBlockMatch | n
   return null;
 }
 
-function isWordChar(value: string | undefined) {
-  return value !== undefined && /^[A-Za-z0-9_]$/.test(value);
+function isWhitespace(value: string | undefined) {
+  return value !== undefined && /\s/.test(value);
 }
 
-function hasWordBoundary(input: string, start: number, length: number) {
-  return !isWordChar(input[start - 1]) && !isWordChar(input[start + length]);
+function isVariableNameCharacter(value: string | undefined) {
+  return value !== undefined && /[A-Za-z0-9_-]/.test(value);
+}
+
+function hasWordOperatorDelimiter(input: string, start: number, length: number) {
+  const before = input[start - 1];
+  const after = input[start + length];
+  return isWhitespace(before) && after !== undefined && !isVariableNameCharacter(after);
 }
 
 function quoteCloseFor(value: string) {
@@ -181,7 +212,10 @@ function findConditionOperator(input: string) {
     }
 
     for (const operator of wordOperators) {
-      if (input.startsWith(operator, cursor) && hasWordBoundary(input, cursor, operator.length)) {
+      if (
+        input.startsWith(operator, cursor) &&
+        hasWordOperatorDelimiter(input, cursor, operator.length)
+      ) {
         return { length: operator.length, operator, start: cursor };
       }
     }
@@ -239,13 +273,17 @@ function createMacroShieldState(input: string): MacroShieldState {
   return { prefix, values: [] };
 }
 
+export function createMacroPassShields(input: string): MacroShieldState {
+  return createMacroShieldState(input);
+}
+
 function shieldMacroText(input: string, shields: MacroShieldState) {
   const token = `${shields.prefix}${shields.values.length}\u0000`;
   shields.values.push(input);
   return token;
 }
 
-function restoreShieldedMacroText(input: string, shields: MacroShieldState) {
+export function restoreMacroPassShields(input: string, shields: MacroShieldState) {
   let result = input;
 
   for (let index = 0; index < shields.values.length; index += 1) {
@@ -253,6 +291,14 @@ function restoreShieldedMacroText(input: string, shields: MacroShieldState) {
   }
 
   return result;
+}
+
+function restoreShieldedMacroText(input: string, shields: MacroShieldState) {
+  return restoreMacroPassShields(input, shields);
+}
+
+function shieldResolvedMacroText(input: string, shields: MacroShieldState) {
+  return shieldMacroText(restoreShieldedMacroText(input, shields), shields);
 }
 
 function shieldRemainingStructuralMacroText(input: string, shields: MacroShieldState): string {
@@ -312,12 +358,21 @@ function resolveStructuralMacroResult(
   options: ResolveMacroOptions,
   depth: number,
   shields: MacroShieldState,
+  previewTail: string,
 ): StructuralMacroResult {
   if (!STRUCTURAL_MACRO_TOKEN_PATTERN.test(input)) {
     return { exhausted: false, value: input };
   }
 
-  return resolveStructuralMacrosAtDepth(input, context, options, depth, shields);
+  return resolveStructuralMacrosAtDepth(
+    input,
+    context,
+    options,
+    depth,
+    shields,
+    false,
+    previewTail,
+  );
 }
 
 function resolveMacroTextPass(
@@ -325,24 +380,158 @@ function resolveMacroTextPass(
   context: MacroContext,
   options: ResolveMacroOptions,
   depth: number,
+  passShields: MacroShieldState | null = null,
+  inlineDepth = 0,
+  previewTail = "",
 ): MacroTextPassResult {
-  const shields = createMacroShieldState(input);
+  const shields = passShields ?? createMacroShieldState(input);
   const withStructuralMacros = resolveStructuralMacroResult(
     input,
     context,
     options,
     depth,
     shields,
+    previewTail,
   );
-  const value = mapMacroSpans(withStructuralMacros.value, ({ body }) => {
+
+  let randomOptionExhausted = false;
+  let replacementExhausted = false;
+  let replacementOverflowed = false;
+
+  function resolveReplacementText(value: string, tail: string): string {
+    if (!value.includes("{{")) return value;
+
+    const resolved = resolveMacroTextInline(
+      value,
+      context,
+      options,
+      depth + 1,
+      shields,
+      inlineDepth + 1,
+      tail,
+    );
+    replacementExhausted = replacementExhausted || resolved.exhausted;
+    replacementOverflowed = replacementOverflowed || resolved.overflowed;
+    return resolved.value;
+  }
+
+  function resolveRandomSpan(span: MacroSpan) {
+    return resolveRandomMacro(span.body.trim(), options, (value, randomOption) => {
+      const commit = randomOption?.commit !== false;
+      const stateBeforePreview = commit ? null : snapshotMacroState(context);
+      const selected = resolveMacroTextInline(
+        value,
+        context,
+        options,
+        depth + 1,
+        shields,
+        inlineDepth + 1,
+      );
+      const tail = span.source.slice(span.end) + previewTail;
+      const previewTailResult =
+        stateBeforePreview && options.randomSelection === "longest" && tail
+          ? resolveMacroTextInline(tail, context, options, depth, shields, inlineDepth + 1, "")
+          : null;
+      if (stateBeforePreview) {
+        restoreMacroState(context, stateBeforePreview);
+      }
+      if (commit) {
+        randomOptionExhausted = randomOptionExhausted || selected.exhausted;
+        replacementOverflowed = replacementOverflowed || selected.overflowed;
+      }
+      const previewValue = previewTailResult
+        ? selected.value + previewTailResult.value
+        : selected.value;
+      return commit ? previewValue : restoreShieldedMacroText(previewValue, shields);
+    });
+  }
+
+  function resolveMacroSpan({ body, end, source }: MacroSpan) {
     const replacement = applyBuiltins(body, context, options);
-    return replacement ?? renderUnknownMacro(body);
+    return replacement === null
+      ? renderUnknownMacro(body)
+      : resolveReplacementText(replacement, source.slice(end) + previewTail);
+  }
+
+  const value = mapMacroSpans(withStructuralMacros.value, resolveMacroSpan, {
+    replaceRawMacro: resolveRandomSpan,
+    resolveBody: (span) => shouldResolveMacroBody(span.body),
   });
 
   return {
-    exhausted: withStructuralMacros.exhausted,
-    value: restoreShieldedMacroText(value, shields),
+    exhausted: withStructuralMacros.exhausted || randomOptionExhausted || replacementExhausted,
+    overflowed: replacementOverflowed,
+    value: passShields ? value : restoreShieldedMacroText(value, shields),
   };
+}
+
+function resolveMacroTextInline(
+  input: string,
+  context: MacroContext,
+  options: ResolveMacroOptions,
+  depth: number,
+  shields: MacroShieldState,
+  inlineDepth: number,
+  previewTail = "",
+): MacroTextPassResult {
+  if (inlineDepth > MAX_INLINE_MACRO_REPLACEMENT_DEPTH) {
+    return { exhausted: true, overflowed: true, value: input };
+  }
+
+  const stateBeforeInput = snapshotMacroState(context);
+  let result = input;
+  let exhausted = false;
+
+  const rollbackExhaustedResult = (value: string): MacroTextPassResult => {
+    restoreMacroState(context, stateBeforeInput);
+    return {
+      exhausted: true,
+      overflowed: false,
+      value: shieldResolvedMacroText(value, shields),
+    };
+  };
+
+  for (let pass = 0; pass < MAX_CONDITION_VALUE_PASSES; pass += 1) {
+    const next = resolveMacroTextPass(
+      result,
+      context,
+      options,
+      depth,
+      shields,
+      inlineDepth,
+      previewTail,
+    );
+    exhausted = exhausted || next.exhausted;
+    if (next.overflowed) {
+      restoreMacroState(context, stateBeforeInput);
+      return { exhausted: true, overflowed: true, value: input };
+    }
+    if (next.value === result) {
+      return exhausted
+        ? rollbackExhaustedResult(result)
+        : { exhausted: false, overflowed: false, value: result };
+    }
+    result = next.value;
+  }
+
+  const stableAfterFinalPass = resolveMacroTextPass(
+    result,
+    context,
+    options,
+    depth,
+    shields,
+    inlineDepth,
+    previewTail,
+  );
+  exhausted = exhausted || stableAfterFinalPass.exhausted;
+  if (!stableAfterFinalPass.overflowed && stableAfterFinalPass.value === result) {
+    return exhausted
+      ? rollbackExhaustedResult(result)
+      : { exhausted: false, overflowed: false, value: result };
+  }
+
+  restoreMacroState(context, stateBeforeInput);
+  return { exhausted: true, overflowed: true, value: input };
 }
 
 function resolveMacroText(
@@ -350,12 +539,13 @@ function resolveMacroText(
   context: MacroContext,
   options: ResolveMacroOptions,
   depth: number,
+  previewTail = "",
 ): ConditionOperandResult {
   let result = input;
 
   for (let pass = 0; pass < MAX_CONDITION_VALUE_PASSES; pass += 1) {
-    const next = resolveMacroTextPass(result, context, options, depth);
-    if (next.exhausted) return { kind: "unresolved" };
+    const next = resolveMacroTextPass(result, context, options, depth, null, 0, previewTail);
+    if (next.exhausted || next.overflowed) return { kind: "unresolved" };
     if (next.value === result) {
       return {
         kind: "resolved",
@@ -365,8 +555,18 @@ function resolveMacroText(
     result = next.value;
   }
 
-  const stableAfterFinalPass = resolveMacroTextPass(result, context, options, depth);
-  if (stableAfterFinalPass.exhausted) return { kind: "unresolved" };
+  const stableAfterFinalPass = resolveMacroTextPass(
+    result,
+    context,
+    options,
+    depth,
+    null,
+    0,
+    previewTail,
+  );
+  if (stableAfterFinalPass.exhausted || stableAfterFinalPass.overflowed) {
+    return { kind: "unresolved" };
+  }
   if (stableAfterFinalPass.value === result) {
     return { kind: "resolved", value: applyFormatPostProcessorsWithStructuralShields(result) };
   }
@@ -379,21 +579,36 @@ function resolveConditionOperand(
   context: MacroContext,
   options: ResolveMacroOptions,
   depth: number,
+  previewTail: string,
+  missingBareVariableValue: string | null = null,
 ): ConditionOperandResult {
   const operand = rawOperand.trim();
   if (operand === "") return { kind: "resolved", value: "" };
 
   const quotedOperand = unwrapQuotedOperand(operand);
-  if (quotedOperand !== null) return resolveMacroText(quotedOperand, context, options, depth);
+  if (quotedOperand !== null)
+    return resolveMacroText(quotedOperand, context, options, depth, previewTail);
 
-  if (operand.includes("{{")) return resolveMacroText(operand, context, options, depth);
+  if (operand.includes("{{"))
+    return resolveMacroText(operand, context, options, depth, previewTail);
 
   const directReplacement = applyBuiltins(operand, context, options);
   if (directReplacement !== null) {
-    return resolveMacroText(directReplacement, context, options, depth);
+    return resolveMacroText(directReplacement, context, options, depth, previewTail);
+  }
+
+  if (missingBareVariableValue !== null && isValidVariableName(operand)) {
+    return { kind: "resolved", value: missingBareVariableValue };
   }
 
   return { kind: "resolved", value: operand };
+}
+
+function isMissingBareVariableReference(operand: string, context: MacroContext) {
+  if (!isValidVariableName(operand)) return false;
+  if (Object.prototype.hasOwnProperty.call(context.variables, operand)) return true;
+
+  return /[-_\dA-Z]/.test(operand);
 }
 
 function evaluateCondition(
@@ -401,17 +616,28 @@ function evaluateCondition(
   context: MacroContext,
   options: ResolveMacroOptions,
   depth: number,
+  previewTail: string,
 ): ConditionEvaluationResult {
   const parsed = parseCondition(condition);
   if (parsed.malformed) return { unresolved: false, value: null };
 
-  const left = resolveConditionOperand(parsed.left, context, options, depth);
+  const leftMissingBareVariableValue = isMissingBareVariableReference(parsed.left.trim(), context)
+    ? ""
+    : null;
+  const left = resolveConditionOperand(
+    parsed.left,
+    context,
+    options,
+    depth,
+    previewTail,
+    leftMissingBareVariableValue,
+  );
   if (left.kind === "unresolved") return { unresolved: true, value: null };
   if (parsed.operator === null) {
     return { unresolved: false, value: left.value.trim().length > 0 };
   }
 
-  const right = resolveConditionOperand(parsed.right, context, options, depth);
+  const right = resolveConditionOperand(parsed.right, context, options, depth, previewTail);
   if (right.kind === "unresolved") return { unresolved: true, value: null };
 
   switch (parsed.operator) {
@@ -434,14 +660,21 @@ function resolveStructuralMacrosAtDepth(
   options: ResolveMacroOptions,
   depth: number,
   shields: MacroShieldState,
+  rollbackScopeOnExhaustion: boolean,
+  previewTail: string,
 ): StructuralMacroResult {
   if (depth >= MAX_CONDITION_BLOCK_DEPTH) {
     return { exhausted: true, value: shieldMacroText(input, shields) };
   }
 
+  const stateBeforeInput = rollbackScopeOnExhaustion ? snapshotMacroState(context) : null;
   let result = "";
   let cursor = 0;
   let exhausted = false;
+
+  const restoreExhaustedScope = (fallback: ReturnType<typeof snapshotMacroState>) => {
+    restoreMacroState(context, stateBeforeInput ?? fallback);
+  };
 
   while (cursor < input.length) {
     const next = readNextMacroSpan(input, cursor);
@@ -464,15 +697,29 @@ function resolveStructuralMacrosAtDepth(
 
     const open = asIfOpenToken(next.span);
     if (open === null) {
+      if (isRandomOptionMacroName(next.span.body.trim())) {
+        result += input.slice(next.span.start, next.span.end);
+        cursor = next.span.end;
+        continue;
+      }
+
+      const stateBeforeSpan = snapshotMacroState(context);
       const body = resolveStructuralMacrosAtDepth(
         next.span.body,
         context,
         options,
         depth + 1,
         shields,
+        rollbackScopeOnExhaustion,
+        input.slice(next.span.end) + previewTail,
       );
       exhausted = exhausted || body.exhausted;
-      result += `{{${body.value}}}`;
+      if (body.exhausted) {
+        restoreExhaustedScope(stateBeforeSpan);
+        result += shieldMacroText(input.slice(next.span.start, next.span.end), shields);
+      } else {
+        result += `{{${body.value}}}`;
+      }
       cursor = next.span.end;
       continue;
     }
@@ -486,9 +733,20 @@ function resolveStructuralMacrosAtDepth(
     const truthyContent = input.slice(open.end, match.elseToken?.start ?? match.close.start);
     const falsyContent =
       match.elseToken === null ? "" : input.slice(match.elseToken.end, match.close.start);
-    const conditionResult = evaluateCondition(open.condition, context, options, depth + 1);
+    const blockTail = input.slice(match.close.end) + previewTail;
+    const stateBeforeIf = snapshotMacroState(context);
+    const conditionResult = evaluateCondition(
+      open.condition,
+      context,
+      options,
+      depth + 1,
+      input.slice(open.end, match.close.end) + blockTail,
+    );
     exhausted = exhausted || conditionResult.unresolved;
     if (conditionResult.value === null) {
+      if (conditionResult.unresolved) {
+        restoreExhaustedScope(stateBeforeIf);
+      }
       result += shieldMacroText(input.slice(open.start, match.close.end), shields);
       cursor = match.close.end;
       continue;
@@ -502,9 +760,16 @@ function resolveStructuralMacrosAtDepth(
       options,
       depth + 1,
       shields,
+      true,
+      blockTail,
     );
     exhausted = exhausted || selected.exhausted;
-    result += selected.value;
+    if (selected.exhausted) {
+      restoreExhaustedScope(stateBeforeIf);
+      result += shieldResolvedMacroText(selected.value, shields);
+    } else {
+      result += selected.value;
+    }
     cursor = match.close.end;
   }
 
@@ -515,8 +780,9 @@ export function resolveMacroPassWithStructuralMacros(
   input: string,
   context: MacroContext,
   options: ResolveMacroOptions,
+  passShields?: MacroShieldState,
 ) {
-  return resolveMacroTextPass(input, context, options, 0).value;
+  return resolveMacroTextPass(input, context, options, 0, passShields ?? null);
 }
 
 export function applyFinalFormatPostProcessors(input: string) {

@@ -101,25 +101,25 @@ records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
-Current generation builds a generation-owned macro context at the mode boundary,
-resolves current built-in macros in activation inputs, then applies lore
-activation before building final prompt messages. Messenger and Roleplay resolve
-lorebook sources from chat/thread selections, the active persona, selected
-characters, and global app settings, then scan each lorebook at most once. If
-the same lorebook appears in more than one bucket, the first bucket wins in
-deterministic order: chat, persona, character, then global. Enabled constant
-entries with non-empty resolved bodies activate
-automatically unless blocked by timing delay or delayed until recursion, while
-selective entries activate when any non-empty primary key matches the last
-`scanDepth` transcript items, optionally including speaker names. Entries can
-also opt into additional match
-sources from selected companion `description`, `personality`, `scenario`, and
-`characterNote` fields and the active persona `description`; these sources are
-not scanned by default. Those companion/persona match-source fields are
-macro-resolved before activation. The same `includeNames` setting controls
-whether macro-resolved companion/persona display names and nicknames are
-included in those additional source blobs. Plaintext matching respects
-`caseSensitiveKeys` and
+Current generation builds a generation-owned macro context, including the
+request-local variable map, at the mode boundary. It resolves current built-in
+macros in activation inputs through scratch contexts so variable mutations do
+not commit while scanning, then applies lore activation before building final
+prompt messages. Messenger and Roleplay resolve lorebook sources from
+chat/thread selections, the active persona, selected characters, and global app
+settings, then scan each lorebook at most once. If the same lorebook appears in
+more than one bucket, the first bucket wins in deterministic order: chat,
+persona, character, then global. Enabled constant entries with non-empty source
+bodies activate automatically unless blocked by timing delay or delayed until
+recursion, while selective entries activate when any non-empty primary key
+matches the last `scanDepth` transcript items, optionally including speaker
+names. Entries can also opt into additional match sources from selected
+companion `description`, `personality`, `scenario`, and `characterNote` fields
+and the active persona `description`; these sources are not scanned by default.
+Those companion/persona match-source fields are macro-resolved before
+activation. The same `includeNames` setting controls whether macro-resolved
+companion/persona display names and nicknames are included in those additional
+source blobs. Plaintext matching respects `caseSensitiveKeys` and
 `matchWholeWords`; `/pattern/flags` keys compile as regex, bypass whole-word
 wrapping, and fall back to plaintext with a warning when invalid or unsafe.
 Timing delay blocks direct and recursive activation until the thread's
@@ -128,8 +128,10 @@ reactivation while its timer remains. Sticky timers activate entries before
 normal matching while `stickyRemaining` is positive.
 When `recursiveScan` is enabled and a direct entry activates, DeKoi appends
 macro-resolved activated entry bodies that do not set `preventFurther` to the
-scan buffer and repeatedly scans remaining eligible entries. `nonRecursable`
-entries can still activate directly but never from recursion.
+scan buffer and repeatedly scans remaining eligible entries. Random and roll
+macro spans are stripped from those recursion bodies so hidden sampled text
+cannot unlock further entries. `nonRecursable` entries can still activate
+directly but never from recursion.
 `delayUntilRecursion` blocks direct activation; `recursionLevel: 0` opens on the
 first recursion pass, and higher levels open after lower-level recursion
 stabilizes. `maxRecursionSteps` caps recursion passes; `0` means no configured
@@ -152,11 +154,14 @@ order and original entry order as stable tiebreakers. `character-first` ranks
 character-sourced lore before other source buckets, and `global-first` ranks
 global lore before other source buckets; both strategies keep the same
 `insertionOrder` and stable tiebreakers within each rank.
-Messenger and
-Roleplay prompt assembly places `before-character` entries before persona and
-character context, `after-character` entries after character context, and
-`at-depth` entries into transcript messages by depth from the newest transcript
-item. At-depth role defaults to `system`; Anthropic and Google provider
+Messenger and Roleplay prompt assembly places `before-character` entries before
+persona and character context, `after-character` entries after character
+context, and `at-depth` entries into transcript messages by depth from the
+newest transcript item. Kept lore summaries and bodies commit variable
+mutations only when that prompt-position text is formatted; dropped,
+macro-empty, unselected, or preview-only text does not commit variables or
+sample final random output. At-depth role defaults to `system`; Anthropic and
+Google provider
 connections convert at-depth system lore to `user` because those providers
 hoist system messages. Lorebook budgets apply per lorebook, using
 `budgetTokens` first or `budgetPercent` against provider `maxContext` when
@@ -166,21 +171,28 @@ on constant entries before selective entries within each direct/recursive group,
 then uses descending `insertionOrder` plus the same stable tiebreakers within
 each priority group. Kept entries are re-sorted into prompt order afterward.
 Estimates use macro-resolved lore summaries and bodies at roughly characters
-divided by 4 because DeKoi has no tokenizer dependency. Timers are started or
-preserved only for lore entries that survive budget trimming; when an active
+divided by 4 because DeKoi has no tokenizer dependency. Macro-aware budget
+previews use resolved random option lengths, conservative bare-random estimates,
+and the variable state at that prompt position; previews are recomputed after
+earlier prompt-order variable commits. Timers are started or preserved only for
+lore entries that survive final formatting and budget trimming; when an active
 sticky entry is trimmed, DeKoi clears the sticky timer while preserving any
-remaining cooldown. Roleplay lorebook summaries count against budgets and are
-emitted at most once per generation request. Optional secondary keys and
-`selectiveLogic` are applied against the same per-entry scan buffer during
-activation. Sticky, cooldown, and delay timing fields are normalized storage
-fields; prompt assembly applies them through per-thread `lore-runtime-states`,
-which record active entry timers by `(lorebookId, entryId)` and advance once per
-generation from the current non-empty transcript count. Lore runtime states are
-cleared when an owning Messenger or Roleplay thread is deleted or its transcript
-is cleared. Timer entries also reset on the next activation pass when their lore
-entry's `updatedAt` no longer matches, so editing an entry starts its
-sticky/cooldown state fresh. Triggers and character filters remain normalized
-storage fields but are not applied to prompt assembly yet.
+remaining cooldown. Macro-empty formatted bodies are omitted and do not start
+timers. Roleplay lorebook summaries count against budgets and are emitted at
+most once per generation request. Optional secondary keys and `selectiveLogic`
+are applied against the same per-entry scan buffer during activation. Sticky,
+cooldown, and delay timing fields are normalized storage fields; prompt assembly
+applies them through per-thread `lore-runtime-states`, which record active entry
+timers by `(lorebookId, entryId)` and advance once per generation from the
+current non-empty transcript count. Macro-activated lore runtime updates are
+finalized only after every prompt-position lore format pass settles, so
+budget-dropped and macro-empty entries can clear timers before the updated state
+is persisted. Lore runtime states are cleared when an owning Messenger or
+Roleplay thread is deleted or its transcript is cleared. Timer entries also
+reset on the next activation pass when their lore entry's `updatedAt` no longer
+matches, so editing an entry starts its sticky/cooldown state fresh. Triggers
+and character filters remain normalized storage fields but are not applied to
+prompt assembly yet.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

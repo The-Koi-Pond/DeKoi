@@ -239,7 +239,10 @@ treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
 built-in macros in Messenger and Roleplay system prompts, Roleplay scene setup,
 persona and character context fields, post-history instructions, lorebook
-summaries and bodies, at-depth lore, and example dialogue.
+summaries and bodies, at-depth lore, and example dialogue. It also includes
+request-local variable macro side effects: DeKoi commits only the variable
+mutations that survive app-side prompt formatting, then sends the final
+`promptMessages`.
 
 Request:
 
@@ -481,16 +484,17 @@ chat/thread, active persona, selected companions, and app-wide global settings,
 then scans each lorebook at most once before sending the request. Duplicate
 lorebooks keep the first source bucket in deterministic order: chat, persona,
 character, then global. Compatible runtimes should use `promptMessages` for
-provider calls and do not need to re-run lorebook activation. Activation
-uses macro-resolved lorebook summaries, lore entry bodies, and entry-opted
-additional match sources. It includes enabled non-empty constant entries unless
-blocked by timing delay or delayed until recursion, plus selective entries
-whose primary keys match recent transcript text or entry-opted additional match
-sources from selected companion `description`, `personality`, `scenario`, and
-`characterNote` fields and the active persona `description`. Additional match
-sources are off by default, and the lorebook `includeNames` setting controls
-whether macro-resolved display names and nicknames are included in their match
-blobs.
+provider calls and do not need to re-run lorebook activation. Activation uses
+macro-resolved lorebook summaries, lore entry bodies, and entry-opted additional
+match sources through scratch macro contexts, so variable mutations do not
+commit while scanning. It includes enabled constant entries with non-empty
+source bodies unless blocked by timing delay or delayed until recursion, plus
+selective entries whose primary keys match recent transcript text or entry-opted
+additional match sources from selected companion `description`, `personality`,
+`scenario`, and `characterNote` fields and the active persona `description`.
+Additional match sources are off by default, and the lorebook `includeNames`
+setting controls whether macro-resolved display names and nicknames are included
+in their match blobs.
 Transcript matching uses
 `scanDepth` and `includeNames`; plaintext key matching uses
 `caseSensitiveKeys` and `matchWholeWords`. Slash-delimited regex keys fall back
@@ -501,8 +505,10 @@ activation until the thread's non-empty transcript count reaches the entry's
 activate entries before normal matching. When `recursiveScan` is enabled,
 macro-resolved activated entry bodies can activate further entries unless
 blocked by `nonRecursable`, `preventFurther`, or
-`delayUntilRecursion`/`recursionLevel`; `maxRecursionSteps` caps recursion
-passes, and `0` means unlimited until DeKoi's 64-pass hard cap.
+`delayUntilRecursion`/`recursionLevel`; random and roll spans are stripped from
+those recursion bodies so sampled text cannot unlock further entries.
+`maxRecursionSteps` caps recursion passes, and `0` means unlimited until
+DeKoi's 64-pass hard cap.
 DeKoi resolves comma-separated inclusion groups after direct and recursive
 activation. Active entries are sorted by descending `insertionOrder` before
 group resolution, so overlapping groups are discovered in prompt-priority order.
@@ -522,15 +528,18 @@ depth, and applies lorebook budget caps before the runtime receives
 roughly characters divided by 4. Budget trimming gives direct activations first
 claim on the cap before recursive activations, then constant entries before
 selective entries within each direct/recursive group; each priority group still
-uses descending insertion order and stable lorebook/entry tiebreakers. Timers are
-started or preserved only for entries that survive budget trimming; trimming a
-sticky activation clears the sticky timer while preserving any remaining
-cooldown. Percent budgets apply only when the selected provider connection has
-`maxContext`; otherwise DeKoi leaves the activated lore in place instead of
-silently dropping it. Runtimes should preserve the provided `promptMessages`
-roles and content, including at-depth system lore that DeKoi has already
-converted to `user` for Anthropic or Google provider connections. Secondary-key
-logic is already applied before the runtime receives `promptMessages`.
+uses descending insertion order and stable lorebook/entry tiebreakers. Macro
+budget previews are recomputed after earlier prompt-order variable commits, and
+random lore text is sampled only when kept lore is emitted. Timers are started
+or preserved only for entries that survive final formatting and budget trimming;
+macro-empty or budget-dropped entries can clear sticky timers while preserving
+remaining cooldown. Percent budgets apply only when the selected provider
+connection has `maxContext`; otherwise DeKoi leaves the activated lore in place
+instead of silently dropping it. Runtimes should preserve the provided
+`promptMessages` roles and content, including at-depth system lore that DeKoi
+has already converted to `user` for Anthropic or Google provider connections.
+Secondary-key logic is already applied before the runtime receives
+`promptMessages`.
 Character filters and triggers are still not applied by DeKoi prompt assembly.
 
 `storage_list`:

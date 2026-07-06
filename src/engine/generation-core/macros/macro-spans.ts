@@ -1,8 +1,14 @@
 export interface MacroSpan {
   raw: string;
   body: string;
+  source: string;
   start: number;
   end: number;
+}
+
+interface MapMacroSpansOptions {
+  replaceRawMacro?: (span: MacroSpan) => string | null;
+  resolveBody?: (span: MacroSpan) => boolean;
 }
 
 const MAX_MACRO_PARSE_DEPTH = 64;
@@ -35,7 +41,11 @@ export function findMacroSpanClose(input: string, openIndex: number) {
   return null;
 }
 
-export function mapMacroSpans(input: string, replaceMacro: (span: MacroSpan) => string): string {
+export function mapMacroSpans(
+  input: string,
+  replaceMacro: (span: MacroSpan) => string,
+  options: MapMacroSpansOptions = {},
+): string {
   let result = "";
   let cursor = 0;
 
@@ -56,8 +66,25 @@ export function mapMacroSpans(input: string, replaceMacro: (span: MacroSpan) => 
 
     const raw = input.slice(start, end);
     const originalBody = input.slice(start + 2, end - 2);
-    const body = mapMacroSpans(originalBody, replaceMacro);
-    result += replaceMacro({ raw, body, start, end });
+    const rawReplacement = options.replaceRawMacro?.({
+      raw,
+      body: originalBody,
+      source: input,
+      start,
+      end,
+    });
+    if (rawReplacement !== null && rawReplacement !== undefined) {
+      result += rawReplacement;
+      cursor = end;
+      continue;
+    }
+
+    const span = { raw, body: originalBody, source: input, start, end };
+    const body =
+      options.resolveBody?.(span) === false
+        ? originalBody
+        : mapMacroSpans(originalBody, replaceMacro, options);
+    result += replaceMacro({ raw, body, source: input, start, end });
     cursor = end;
   }
 

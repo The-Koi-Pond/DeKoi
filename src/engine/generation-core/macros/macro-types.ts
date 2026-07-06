@@ -25,12 +25,20 @@ export type MacroTimeSource = Date | string | number;
 
 /** Random source for random and dice macros. */
 type MacroRandomSource = () => number;
+type MacroRandomSelection = "first" | "longest" | "sample";
+
+export type MacroVariableMutation =
+  { kind: "add"; name: string; delta: number } | { kind: "set"; name: string; value: string };
 
 /** Values available to macro resolution. */
 export interface MacroContext {
   user: string;
   char: string;
   characters: string[];
+  /** Request-local string variables read and mutated by variable macros. */
+  variables: Record<string, string>;
+  /** Optional mutation log for callers that preview and later replay changes. */
+  variableMutations?: MacroVariableMutation[];
   characterFields?: CharacterMacroFields | null;
   personaFields?: PersonaMacroFields | null;
   lastInput?: string | null;
@@ -53,4 +61,6 @@ export interface ResolveMacroOptions {
   trimResult?: boolean;
   /** Defaults to Math.random when omitted. Values are clamped into [0, 1). */
   random?: MacroRandomSource;
+  /** Internal deterministic random handling for non-consuming preview passes. */
+  randomSelection?: MacroRandomSelection;
 }
