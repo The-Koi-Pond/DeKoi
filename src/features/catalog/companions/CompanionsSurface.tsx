@@ -118,16 +118,11 @@ function parseNumber(value: string, fallback: number) {
 }
 
 function draftFromCharacter(record: CharacterRecord): DraftState {
-  const legacyRecord = record as CharacterRecord & {
-    shortName?: unknown;
-    summary?: unknown;
-  };
-
   return {
     displayName: asText(record.displayName),
-    nickname: asNullableText(record.nickname) ?? asNullableText(legacyRecord.shortName) ?? "",
+    nickname: asNullableText(record.nickname) ?? "",
     description: asText(record.description),
-    personality: asText(record.personality) || asText(legacyRecord.summary),
+    personality: asText(record.personality),
     scenario: asText(record.scenario),
     firstMessage: asText(record.firstMessage),
     alternateGreetings: joinBlocks(record.alternateGreetings),

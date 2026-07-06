@@ -1428,7 +1428,7 @@ test("provider connection storage skips removed non-remote lane records", () => 
       id: "connection-remote",
       kind: "remote-runtime",
       provider: "openai",
-      label: "OpenAI",
+      label: "Remote runtime",
       baseUrl: "https://api.openai.com/v1",
       model: "gpt-4o-mini",
       status: "ready",

@@ -2,7 +2,10 @@ import { useCallback } from "react";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
-import { attachMessengerMessagesToThreads } from "../../../engine/contracts/types/messenger";
+import {
+  attachMessengerMessagesToThreads,
+  type MessengerMessageAuthor,
+} from "../../../engine/contracts/types/messenger";
 import { attachRoleplayEntriesToThreads } from "../../../engine/contracts/types/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
@@ -35,6 +38,8 @@ type ImportCommitOptions = {
   desktopBackupPath?: string | null;
 };
 
+type RecordIdPrefix = "character" | "connection" | "persona";
+
 function createImportActionErrorResult(
   records: AppStorageRecords,
   message: string,
@@ -59,17 +64,89 @@ function createImportActionErrorResult(
   };
 }
 
+function remapIds<T extends { id: string }>(records: T[], prefix: RecordIdPrefix) {
+  const idMap = new Map<string, string>();
+  const remapped = records.map((record) => {
+    const id = createRecordId(prefix);
+    if (!idMap.has(record.id)) {
+      idMap.set(record.id, id);
+    }
+    return {
+      ...record,
+      id,
+    };
+  });
+  return [remapped, idMap] as const;
+}
+
+function remapImportedReferences(idMap: ReadonlyMap<string, string>, ids: string[]) {
+  return ids.flatMap((id) => {
+    const remapped = idMap.get(id);
+    return remapped ? [remapped] : [];
+  });
+}
+
+function remapImportedNullableReference(idMap: ReadonlyMap<string, string>, id: string | null) {
+  if (id === null) return null;
+  return idMap.get(id) ?? null;
+}
+
+function remapLegacyMessageAuthor(
+  author: MessengerMessageAuthor,
+  characterIds: ReadonlyMap<string, string>,
+  personaIds: ReadonlyMap<string, string>,
+): MessengerMessageAuthor {
+  switch (author.kind) {
+    case "character": {
+      const characterId = characterIds.get(author.characterId);
+      if (!characterId) return { kind: "unknown", label: author.label };
+      return {
+        ...author,
+        characterId,
+      };
+    }
+    case "persona": {
+      const personaId = personaIds.get(author.personaId);
+      if (!personaId) return { kind: "unknown", label: author.label };
+      return {
+        ...author,
+        personaId,
+      };
+    }
+    default:
+      return author;
+  }
+}
+
 export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegacyImportData {
+  const [characters, characterIdMap] = remapIds(data.characters, "character");
+  const [personas, personaIdMap] = remapIds(data.personas, "persona");
+  const [providerConnections, providerConnectionIdMap] = remapIds(
+    data.providerConnections,
+    "connection",
+  );
+
   return {
     ...data,
+    characters,
+    personas,
+    providerConnections,
     messengerThreads: data.messengerThreads.map((thread) => {
       const id = createRecordId("messenger-thread");
       return {
         ...thread,
         id,
+        characterIds: remapImportedReferences(characterIdMap, thread.characterIds),
+        activePersonaId: remapImportedNullableReference(personaIdMap, thread.activePersonaId),
+        providerConnectionId: remapImportedNullableReference(
+          providerConnectionIdMap,
+          thread.providerConnectionId,
+        ),
         messages: thread.messages.map((message) => ({
           ...message,
+          id: createRecordId("messenger-message"),
           threadId: id,
+          author: remapLegacyMessageAuthor(message.author, characterIdMap, personaIdMap),
         })),
       };
     }),
@@ -80,12 +157,12 @@ export function createLegacyImportDataFingerprint(data: DeKoiLegacyImportData) {
   return createDeKoiStorageBundleFingerprint(
     createDeKoiStorageBundle({
       appSettings: DEFAULT_APP_SETTINGS,
-      characters: [],
+      characters: data.characters,
       roleplayThreads: [],
-      personas: [],
+      personas: data.personas,
       lorebooks: [],
       loreRuntimeStates: [],
-      providerConnections: [],
+      providerConnections: data.providerConnections,
       messengerThreads: data.messengerThreads,
       rippleStates: [],
     }),
@@ -196,11 +273,11 @@ export function useAppImportExportActions({
 
       const importedRecords: AppStorageRecords = {
         appSettings,
-        characters,
-        personas,
+        characters: [...data.characters, ...characters],
+        personas: [...data.personas, ...personas],
         lorebooks,
         loreRuntimeStates,
-        providerConnections,
+        providerConnections: [...data.providerConnections, ...providerConnections],
         roleplayThreads,
         messengerThreads: [...data.messengerThreads, ...messengerThreads],
         rippleStates,

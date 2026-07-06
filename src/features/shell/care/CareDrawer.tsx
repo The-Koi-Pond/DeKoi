@@ -1045,6 +1045,15 @@ export function CareDrawer({ nav }: CareDrawerProps) {
         <b>Legacy import preview</b>
         <div className="bundle-counts">
           <span>
+            <b>{preview.counts.characters}</b> companions
+          </span>
+          <span>
+            <b>{preview.counts.personas}</b> personas
+          </span>
+          <span>
+            <b>{preview.counts.providerConnections}</b> connections
+          </span>
+          <span>
             <b>{preview.counts.messengerThreads}</b> Messenger threads
           </span>
           <span>

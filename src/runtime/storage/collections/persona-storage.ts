@@ -40,7 +40,7 @@ export function normalizePersonaRecord(value: unknown): PersonaRecord | null {
     displayName,
     nickname: readNullableString(value.nickname),
     description: readString(value.description).trim(),
-    personality: readString(value.personality).trim() || readString(value.summary).trim(),
+    personality: readString(value.personality).trim(),
     scenario: readString(value.scenario).trim(),
     systemPrompt: readString(value.systemPrompt).trim(),
     postHistoryInstructions: readString(value.postHistoryInstructions).trim(),
