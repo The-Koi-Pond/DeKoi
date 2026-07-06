@@ -15,6 +15,7 @@ import {
   type RoleplayGenerationResponse,
 } from "../../../engine/generation/roleplay-generation";
 import type { GenerationRuntimeMode } from "./generation-runtime";
+import { createGeneratedDraftRecords } from "./generated-draft-records";
 import {
   compactGenerationLoreRuntimeState,
   createGenerationLoreRuntimeState,
@@ -104,29 +105,21 @@ export async function generateRoleplayThreadTurn({
   });
   const request = requestAssembly.request;
   const response = await generateRoleplayResponse(request, mode);
-  const droppedDraftWarnings: string[] = [];
-  const entries = response.messages.flatMap((messageDraft) => {
-    const companion = context.companions.find(
-      (candidate) => candidate.id === messageDraft.characterId,
-    );
-    if (!companion) {
-      droppedDraftWarnings.push(
-        `Generation response referenced an unavailable companion: ${messageDraft.characterId}.`,
-      );
-      return [];
-    }
-
-    return [
+  const draftRecords = createGeneratedDraftRecords({
+    companions: context.companions,
+    createRecord: ({ body, companion, id, now }) =>
       createGeneratedRoleplayEntry({
-        body: messageDraft.body,
+        body,
         companion,
-        id: createId("roleplay-entry"),
-        now: response.createdAt,
+        id,
+        now,
         thread,
       }),
-    ];
+    nextId: () => createId("roleplay-entry"),
+    response,
   });
-  const warnings = [...response.warnings, ...droppedDraftWarnings, ...request.warnings];
+  const entries = draftRecords.records;
+  const warnings = [...response.warnings, ...draftRecords.warnings, ...request.warnings];
 
   return {
     thread: entries.length > 0 ? appendRoleplayEntries(thread, entries) : thread,

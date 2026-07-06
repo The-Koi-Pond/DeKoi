@@ -402,8 +402,9 @@ drops unknown companion drafts and surfaces a warning.
 `request.warnings` contains non-fatal DeKoi-side context and lore activation
 warnings discovered before the runtime call, such as invalid or unsafe regex
 keys that fell back to plaintext or recursive lore activation stopped by the
-hard pass cap. Runtimes do not need to echo these warnings; DeKoi surfaces them
-alongside runtime response warnings after generation.
+hard pass cap. Runtimes do not need to echo these warnings; DeKoi surfaces
+runtime response warnings first, then unknown companion draft warnings, then
+`request.warnings`.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and

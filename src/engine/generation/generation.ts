@@ -96,6 +96,64 @@ export interface GenerationRecordContext {
   warnings: string[];
 }
 
+/**
+ * Shared provider-facing request fields for mode-owned generation requests.
+ * Messenger and Roleplay still own their prompt assembly and mode-specific
+ * request fields.
+ */
+export interface GenerationRequestEnvelope<Thread> extends GenerationRequestBase {
+  schemaVersion: 1;
+  thread: Thread;
+  companions: CharacterRecord[];
+  activePersona: PersonaRecord | null;
+  lorebooks: LorebookRecord[];
+  providerConnectionId: string | null;
+}
+
+/**
+ * Creates the mode-neutral request envelope after the caller has selected the
+ * mode thread, target companion, and final prompt messages.
+ *
+ * Warning order is preserved as context warnings followed by prompt warnings;
+ * runtime workflows merge provider and dropped-draft warnings in their results.
+ */
+export function createGenerationRequestEnvelope<Thread>({
+  context,
+  id,
+  now,
+  parameters,
+  promptMessages,
+  promptWarnings = [],
+  targetCompanion,
+  thread,
+}: {
+  context: GenerationRecordContext;
+  id: string;
+  now: string;
+  parameters?: Partial<GenerationParameters>;
+  promptMessages: GenerationPromptMessage[];
+  promptWarnings?: string[];
+  targetCompanion: CharacterRecord | null;
+  thread: Thread;
+}): GenerationRequestEnvelope<Thread> {
+  return {
+    schemaVersion: 1,
+    id,
+    createdAt: now,
+    thread,
+    companions: context.companions,
+    activePersona: context.activePersona,
+    lorebooks: context.lorebooks,
+    providerConnectionId: context.providerConnectionId,
+    providerConnection: context.providerConnection,
+    targetCharacterId: targetCompanion?.id ?? null,
+    targetCharacterName: targetCompanion?.displayName ?? null,
+    promptMessages,
+    parameters: createGenerationParameters(parameters, context.providerConnection),
+    warnings: [...context.warnings, ...promptWarnings],
+  };
+}
+
 export interface ResolveGenerationRecordsInput {
   activePersonaId: string | null;
   characterIds: string[];
@@ -1525,7 +1583,7 @@ export function exampleDialogueGenerationContext(
   });
 }
 
-export function createGenerationParameters(
+function createGenerationParameters(
   parameters: Partial<GenerationParameters> | undefined,
   providerConnection: ProviderConnectionRecord | null,
 ): GenerationParameters {

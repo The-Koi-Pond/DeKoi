@@ -14,7 +14,7 @@ import {
   characterGenerationContext,
   cleanGenerationText,
   createGenerationMacroContext,
-  createGenerationParameters,
+  createGenerationRequestEnvelope,
   exampleDialogueGenerationContext,
   finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
@@ -24,6 +24,7 @@ import {
   resolveGenerationMacros,
   resolveGenerationRecords,
   type GenerationMacroContext,
+  type GenerationRequestEnvelope,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -58,25 +59,7 @@ export interface RoleplayGenerationRequestAssembly {
   loreRuntimeState: LoreRuntimeState | null;
 }
 
-export interface RoleplayGenerationRequest {
-  schemaVersion: 1;
-  id: string;
-  createdAt: string;
-  thread: RoleplayThread;
-  companions: CharacterRecord[];
-  activePersona: PersonaRecord | null;
-  lorebooks: LorebookRecord[];
-  providerConnectionId: string | null;
-  providerConnection: ProviderConnectionRecord | null;
-  targetCharacterId: string | null;
-  targetCharacterName: string | null;
-  promptMessages: RoleplayGenerationPromptMessage[];
-  parameters: RoleplayGenerationParameters;
-  /**
-   * Non-fatal app-side context or activation warnings to surface after generation.
-   */
-  warnings: string[];
-}
+export type RoleplayGenerationRequest = GenerationRequestEnvelope<RoleplayThread>;
 
 export interface RoleplayGenerationContext {
   activePersona: PersonaRecord | null;
@@ -431,22 +414,16 @@ export function createRoleplayGenerationRequestAssembly({
   });
 
   return {
-    request: {
-      schemaVersion: 1,
+    request: createGenerationRequestEnvelope({
+      context,
       id,
-      createdAt: now,
-      thread: context.requestThread,
-      companions: context.companions,
-      activePersona: context.activePersona,
-      lorebooks: context.lorebooks,
-      providerConnectionId: context.providerConnectionId,
-      providerConnection: context.providerConnection,
-      targetCharacterId: targetCompanion?.id ?? null,
-      targetCharacterName: targetCompanion?.displayName ?? null,
+      now,
+      parameters,
       promptMessages: promptAssembly.promptMessages,
-      parameters: createGenerationParameters(parameters, context.providerConnection),
-      warnings: [...context.warnings, ...promptAssembly.warnings],
-    },
+      promptWarnings: promptAssembly.warnings,
+      targetCompanion,
+      thread: context.requestThread,
+    }),
     loreRuntimeState: promptAssembly.loreRuntimeState,
   };
 }
