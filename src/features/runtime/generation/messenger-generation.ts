@@ -18,6 +18,7 @@ import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runt
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
+import { createGeneratedDraftRecords } from "./generated-draft-records";
 import {
   getGenerationModeForConnection,
   selectGenerationRuntime,
@@ -135,29 +136,21 @@ export async function generateMessengerThreadReply({
   });
   const request = requestAssembly.request;
   const response = await generateMessengerResponse(request, runtime.mode);
-  const droppedDraftWarnings: string[] = [];
-  const generatedMessages = response.messages.flatMap((messageDraft) => {
-    const companion = context.companions.find(
-      (candidate) => candidate.id === messageDraft.characterId,
-    );
-    if (!companion) {
-      droppedDraftWarnings.push(
-        `Generation response referenced an unavailable companion: ${messageDraft.characterId}.`,
-      );
-      return [];
-    }
-
-    return [
+  const draftRecords = createGeneratedDraftRecords({
+    companions: context.companions,
+    createRecord: ({ body, companion, id, now }) =>
       createGeneratedCompanionMessage({
-        body: messageDraft.body,
+        body,
         companion,
-        id: createId("messenger-message"),
-        now: response.createdAt,
+        id,
+        now,
         thread,
       }),
-    ];
+    nextId: () => createId("messenger-message"),
+    response,
   });
-  const warnings = [...response.warnings, ...droppedDraftWarnings, ...request.warnings];
+  const generatedMessages = draftRecords.records;
+  const warnings = [...response.warnings, ...draftRecords.warnings, ...request.warnings];
 
   return {
     thread:

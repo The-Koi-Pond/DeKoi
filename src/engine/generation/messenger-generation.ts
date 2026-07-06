@@ -19,7 +19,7 @@ import {
   characterGenerationContext,
   cleanGenerationText,
   createGenerationMacroContext,
-  createGenerationParameters,
+  createGenerationRequestEnvelope,
   finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
   injectAtDepth,
@@ -28,6 +28,7 @@ import {
   resolveGenerationMacros,
   resolveGenerationRecords,
   type GenerationMacroContext,
+  type GenerationRequestEnvelope,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -40,25 +41,8 @@ import type {
 type MessengerGenerationPromptMessage = GenerationPromptMessage;
 export type MessengerGenerationParameters = GenerationParameters;
 
-export interface MessengerGenerationRequest {
-  schemaVersion: 1;
-  id: string;
-  createdAt: string;
-  thread: MessengerThread;
+export interface MessengerGenerationRequest extends GenerationRequestEnvelope<MessengerThread> {
   userMessage: MessengerMessage;
-  companions: CharacterRecord[];
-  activePersona: PersonaRecord | null;
-  lorebooks: LorebookRecord[];
-  providerConnectionId: string | null;
-  providerConnection: ProviderConnectionRecord | null;
-  targetCharacterId: string | null;
-  targetCharacterName: string | null;
-  promptMessages: MessengerGenerationPromptMessage[];
-  parameters: MessengerGenerationParameters;
-  /**
-   * Non-fatal app-side context or activation warnings to surface after generation.
-   */
-  warnings: string[];
 }
 
 export type MessengerGenerationResponse = GenerationResponse;
@@ -360,21 +344,17 @@ export function createMessengerGenerationRequestAssembly({
 
   return {
     request: {
-      schemaVersion: 1,
-      id,
-      createdAt: now,
-      thread: context.requestThread,
+      ...createGenerationRequestEnvelope({
+        context,
+        id,
+        now,
+        parameters,
+        promptMessages: promptAssembly.promptMessages,
+        promptWarnings: promptAssembly.warnings,
+        targetCompanion,
+        thread: context.requestThread,
+      }),
       userMessage,
-      companions: context.companions,
-      activePersona: context.activePersona,
-      lorebooks: context.lorebooks,
-      providerConnectionId: context.providerConnectionId,
-      providerConnection: context.providerConnection,
-      targetCharacterId: targetCompanion?.id ?? null,
-      targetCharacterName: targetCompanion?.displayName ?? null,
-      promptMessages: promptAssembly.promptMessages,
-      parameters: createGenerationParameters(parameters, context.providerConnection),
-      warnings: [...context.warnings, ...promptAssembly.warnings],
     },
     loreRuntimeState: promptAssembly.loreRuntimeState,
   };

@@ -89,6 +89,9 @@ Allowed shared homes:
   primitives shared by Messenger and Roleplay.
 - `src/features/modes/shared`: shared mode UI and mode-safe helpers such as
   `ChatComposer` and reference-summary helpers.
+- `src/features/runtime/generation/generated-draft-records.ts`: shared
+  generation-response draft mapping; callers still provide mode-owned record
+  creation and ID prefixes.
 - `src/features/runtime/generation`: generation workflows that bind mode-owned
   request builders to provider/runtime transport.
 - `src/features/runtime/storage`: storage workflows used by mode and shell
