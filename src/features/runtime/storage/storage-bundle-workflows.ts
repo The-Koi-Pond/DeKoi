@@ -47,7 +47,7 @@ export async function importCareDesktopBundleFile() {
   return await importDesktopBundleFile();
 }
 
-export async function previewDeKoiStorageBundleFile(
+export async function previewCareStorageBundleFile(
   file: File,
 ): Promise<DeKoiStorageBundleParseResult> {
   try {
@@ -57,22 +57,12 @@ export async function previewDeKoiStorageBundleFile(
   }
 }
 
-export async function previewLegacyImportFile(file: File): Promise<DeKoiLegacyImportParseResult> {
+export async function previewCareLegacyImportFile(
+  file: File,
+): Promise<DeKoiLegacyImportParseResult> {
   try {
     return normalizeLegacyImport(JSON.parse(await file.text()) as unknown);
   } catch {
     return { ok: false, error: "Legacy import file must be valid JSON." };
   }
-}
-
-export async function previewCareStorageBundleFile(
-  file: File,
-): Promise<DeKoiStorageBundleParseResult> {
-  return await previewDeKoiStorageBundleFile(file);
-}
-
-export async function previewCareLegacyImportFile(
-  file: File,
-): Promise<DeKoiLegacyImportParseResult> {
-  return await previewLegacyImportFile(file);
 }
