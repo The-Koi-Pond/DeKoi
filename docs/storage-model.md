@@ -209,6 +209,13 @@ collections instead of fanning every save out to every collection. It debounces
 rapid state changes, schedules writes during idle time, sends one
 `storage_replace` per dirty collection, and serializes collection writes so a
 collection cannot have overlapping saves.
+The same app-sync owner exposes an explicit flush barrier for backup, export,
+import, reload, shutdown, and manual workflows. A flush cancels queued dispatch,
+records the current collection signatures, writes dirty saveable collections,
+waits for active and pending saves to settle, and reports a blocked result
+instead of pretending success when storage is not ready, an import is active,
+the storage target changes, unreadable dropped records block replacement saves,
+or records change while the flush is running.
 
 Desktop collection files expose explicit per-collection metadata:
 
@@ -337,6 +344,9 @@ DeKoi bundle import is a two-step flow: preview first, then explicit commit afte
 confirmation. Accepted DeKoi-native bundles are persisted through
 `replaceAppStorageSnapshot`, which replaces known collections in a fixed order
 instead of relying on React state changes and the autosave effect.
+The preview includes a fingerprint of the normalized bundle content. The Care UI
+checks the preview fingerprint again at commit time so a stale preview cannot
+commit different normalized data than the user reviewed.
 
 Before committing an import, the Care UI creates a pre-import DeKoi bundle
 backup. In the desktop app, this uses the awaitable desktop save dialog and the
@@ -347,8 +357,11 @@ as browser-saved instead of verified.
 If a collection replace fails, the import result reports the failed collection,
 records how many collections were replaced before the failure, marks partial
 commits as requiring a reload, reloads persisted storage so React state reflects
-the partial durable state, and states that automatic rollback is not implemented
-yet. Legacy converted imports add native catalog, provider, and Messenger
+the partial durable state, and keeps an in-session pre-import restore available
+while the storage target remains unchanged. Restoring the in-session backup uses
+the same explicit replacement path as import commit and is blocked while another
+import, restore, active save, queued save, pending save, or unsaved signature is
+present. Legacy converted imports add native catalog, provider, and Messenger
 records to the current snapshot and use the same explicit commit path instead of
 relying on autosave.
 Because that path commits a complete current snapshot, pending changes in other

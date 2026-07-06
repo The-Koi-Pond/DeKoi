@@ -42,15 +42,6 @@ that a user can understand what will happen before data changes.
   bundles.
 - Legacy import remains a one-way adapter into DeKoi-native records.
 
-## Near-Term Roadmap
-
-1. Expose an explicit app-storage flush barrier that settles pending saves before
-   backup, export, import, reload, or shutdown workflows.
-2. Add bundle fingerprinting between preview and commit so stale previews cannot
-   commit different normalized data.
-3. Add an explicit in-session restore action backed by the pre-import records
-   after a partial import failure.
-
 ## Future Gates
 
 These are intentionally not current contracts:
