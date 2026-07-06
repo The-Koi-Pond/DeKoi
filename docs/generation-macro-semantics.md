@@ -1,10 +1,10 @@
 # Generation Macro Semantics
 
-Status: Slice 4 control-flow, random, and dice macros are implemented.
-Generation prompt assembly now uses the Slice 1/2/4 resolver for system prompts,
-Roleplay scene setup, character and persona context fields, post-history
-instructions, lorebook summaries, activated lore entry bodies, at-depth lore
-messages, and example dialogue.
+Status: Slice 6 variable macro transactions are implemented.
+Generation prompt assembly now uses the Slice 1/2/4/6 resolver for system
+prompts, Roleplay scene setup, character and persona context fields,
+post-history instructions, lorebook summaries, activated lore entry bodies,
+at-depth lore messages, and example dialogue.
 
 ## Boundary
 
@@ -21,11 +21,14 @@ The public entry point is:
 resolveMacros(template: string, context: MacroContext, options?: ResolveMacroOptions): string
 ```
 
-The resolver does not read storage, mutate context, call providers, or touch
-runtime adapters. It is deterministic for a given template and context when
-callers pass `context.now` and `options.random`; if they omit `context.now`, the
-resolver snapshots the current wall-clock time once per `resolveMacros` call.
-If callers omit `options.random`, random and dice macros use `Math.random`.
+The resolver does not read storage, call providers, or touch runtime adapters.
+Variable macros can mutate `context.variables` and optionally append to
+`context.variableMutations`; callers that need non-mutating previews must pass a
+scratch context. Resolution is deterministic for a given template and context
+when callers pass `context.now` and `options.random`; if they omit
+`context.now`, the resolver snapshots the current wall-clock time once per
+`resolveMacros` call. If callers omit `options.random`, random and dice macros
+use `Math.random`.
 Injected random values are clamped into `[0, 1)`: non-finite values and values
 at or below `0` become `0`, while values at or above `1` become a value just
 below `1`.
@@ -38,22 +41,24 @@ below `1`.
 - Spans deeper than the 64-level parser depth guard are treated as malformed
   and left unchanged.
 - Macro names are matched after trimming whitespace inside the braces.
-- Unknown macros are left as macro spans. If an unknown outer macro contains a
-  known nested macro, the nested value resolves first.
+- Unknown macros are left as macro spans. Nested macros inside an unknown outer
+  macro stay inert, except comment spans are still stripped and terminal case
+  post-processing can transform complete case blocks inside that unknown span.
 - Empty macros are unknown and remain unchanged.
 - A macro whose body starts with `//` after leading whitespace is a comment
   macro and resolves to an empty string before nested content inside the comment
   can evaluate.
 - The resolver has no escape syntax for a well-formed macro span. If the body
-  matches no active macro, the span remains visible; known nested macros inside
-  it still resolve first.
+  matches no active macro, the span remains visible; most nested macros inside
+  that unknown span remain inert as described above.
 - Replacement values can themselves contain macros. Resolution repeats up to
   the recursion guard.
 - The recursion guard is 16 passes. On overflow, the resolver returns the
   original input for that call, discarding partial progress made in earlier
   passes, then applies the same final trim rule as any other result. Format
   post-processing is skipped on this overflow fallback, so format markers in
-  the original input remain visible.
+  the original input remain visible. Variable mutations made during an
+  overflowing or otherwise exhausted replacement are rolled back.
 - Final output is trimmed by default. Pass `{ trimResult: false }` to preserve
   leading and trailing whitespace.
 - DeKoi prefers canonical identity macros. `{{charName}}` and `{{userName}}`
@@ -133,8 +138,14 @@ dialogue, that companion temporarily becomes `context.char` and
 For lore activation, DeKoi resolves current built-in macros in lorebook
 summaries, lore entry bodies, and opted-in companion/persona match-source fields
 before activation, recursive scanning, timer updates, and budget estimates.
-Macro-empty lore bodies do not activate or start timers. Unknown macros stay
-visible in the resolved prompt text, while comment macros still resolve empty.
+Activation uses scratch macro contexts, so variable mutations do not commit
+while scanning. Random options use the first valid option for activation
+previews, and random or roll spans are removed from recursive scan bodies so
+hidden random results cannot unlock further lore. Lore with a non-empty source
+body can remain an activation candidate even when its activation preview is
+empty; if final formatting resolves the kept body empty, it is omitted and does
+not start timers. Unknown macros stay visible in the resolved prompt text, while
+comment macros still resolve empty.
 
 ## Slice 2 Macros
 
@@ -202,6 +213,10 @@ macro spans such as `{{char}}`; or bare literal text. Quoted operands are
 literal except that nested macro spans inside the quoted text still resolve.
 Unquoted operands first try active built-ins, then fall back to their literal
 text when no active built-in matches.
+Bare operands also read `context.variables` before becoming literals. Unknown
+bare operands such as `Dragon`, `questComplete`, or `quest-complete` remain
+literal truthy text; use explicit variable macros such as
+`getvar::questComplete` when a missing variable should resolve as empty/false.
 
 Random macros:
 
@@ -216,8 +231,11 @@ Random macros:
 Random options trim surrounding whitespace. The single-colon form is exactly
 two options split at the first option separator; without that separator it
 remains visible. Use the double-colon form for variadic options or values that
-contain literal colons. Nested macros inside random options resolve before
-option selection. A trailing numeric `@weight` marks that option's relative
+contain literal colons. Option separators inside balanced `#if`, `uppercase`,
+or `lowercase` blocks are treated as content, not separators. Nested macros
+inside the selected random option resolve before output. Unselected options are
+previewed without committing variable mutations, so only the selected option can
+change variables. A trailing numeric `@weight` marks that option's relative
 weight; decimals are allowed, `0` excludes the option, and non-numeric `@` text
 such as email addresses remains part of the option. If every option is excluded,
 the macro resolves to an empty string.
@@ -226,11 +244,49 @@ Dice rolls require positive integer `X` and `Y` values; the `d` separator is
 case-insensitive. To keep prompt resolution bounded, rolls over 1000 dice or
 over 1000000 sides are invalid and remain visible.
 
+## Slice 6 Macros
+
+Variable macros read and mutate `context.variables`, which is an in-memory
+string map owned by the caller for the current prompt assembly.
+
+| Macro                     | Value                                                            |
+| ------------------------- | ---------------------------------------------------------------- |
+| `{{getvar::name}}`        | `context.variables.name`, or empty string when missing           |
+| `{{name}}`                | same as `getvar` when `name` exists and no earlier built-in wins |
+| `{{setvar::name::value}}` | sets `name` to `value` and renders empty string                  |
+| `{{addvar::name::delta}}` | adds numeric `delta` to `name` and renders empty string          |
+| `{{incvar::name}}`        | adds `1` to `name` and renders empty string                      |
+| `{{decvar::name}}`        | adds `-1` to `name` and renders empty string                     |
+
+Variable names are trimmed and may contain punctuation; empty names are invalid
+and leave the macro visible. `setvar` values preserve everything after the
+second `::`. Arithmetic uses JavaScript `Number`; missing, non-finite, or
+non-numeric current values and deltas are treated as `0`. Explicit built-ins win
+over catch-all variable names, so a variable named `newline` does not shadow
+`{{newline}}`; use `{{getvar::newline}}` to read it.
+
+Variable mutations run left-to-right across the resolved prompt text and across
+recursive replacement values. Mutations in comments, unselected condition
+branches, unselected random options, unknown macro bodies, unresolved condition
+blocks, and overflowing recursive replacements are rolled back or never run.
+When `context.variableMutations` is present, committed `set` and `add`
+mutations are appended for callers that need to replay a preview later.
+
+Lore generation uses variable transactions in two phases. Activation, recursive
+scan, and budget previews use scratch contexts and never commit variable
+changes. Kept lore summaries and bodies commit their variable mutations only
+when they are formatted into prompt order. Budget checks are recomputed after
+earlier prompt-order mutations, random lore is sampled only when kept text is
+emitted, and dropped or macro-empty lore does not commit variables or start
+timers.
+
 ## Reserved Later Semantics
 
 These macro families are intentionally not active yet. Until their slices land,
-matching spans remain unchanged unless they contain nested active macros:
+matching spans follow the same unresolved-span rule as unknown macros: nested
+active macros stay inert, except comment spans are still stripped and terminal
+case post-processing can transform complete case blocks inside the unresolved
+span.
 
 - deferred character macros for group scenarios
-- variable macros and variable snapshot transactions
 - persistent dynamic variable storage

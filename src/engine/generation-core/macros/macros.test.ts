@@ -8,6 +8,7 @@ function macroContext(input: Partial<MacroContext> = {}): MacroContext {
     user: "Alex",
     char: "Mara",
     characters: ["Mara"],
+    variables: {},
     ...input,
   };
 }
@@ -268,6 +269,26 @@ describe("resolveMacros", () => {
     ).toBe("xy|xy|xy");
   });
 
+  it("keeps explicit format macros ahead of catch-all variable names", () => {
+    const context = macroContext({
+      variables: {
+        newline: "shadow newline",
+        trim: "shadow trim",
+        trimEnd: "shadow trim end",
+        trimStart: "shadow trim start",
+      },
+    });
+
+    expect(resolveMacros("A{{newline}}B", context)).toBe("A\nB");
+    expect(
+      resolveMacros(
+        "x{{trimStart}}   y|x   {{trimEnd}}y|x   {{trim}}   y|{{getvar::newline}}",
+        context,
+        { trimResult: false },
+      ),
+    ).toBe("xy|xy|xy|shadow newline");
+  });
+
   it("removes trim markers before applying case block macros", () => {
     expect(
       resolveMacros(
@@ -327,9 +348,9 @@ describe("resolveMacros", () => {
     expect(resolveMacros(input, macroContext())).toBe(input);
   });
 
-  it("applies complete case blocks inside unknown macro bodies", () => {
+  it("leaves complete case blocks inside unknown macro bodies inert", () => {
     expect(resolveMacros("{{unknown {{uppercase}}{{user}}{{/uppercase}}}}", macroContext())).toBe(
-      "{{unknown ALEX}}",
+      "{{unknown {{USER}}}}",
     );
   });
 
@@ -357,7 +378,7 @@ describe("resolveMacros", () => {
       resolveMacros("{{unknown {{// {{random::A::B}} }}{{user}}}}", macroContext(), {
         random: throwingRandom,
       }),
-    ).toBe("{{unknown Alex}}");
+    ).toBe("{{unknown {{user}}}}");
   });
 
   it("resolves simple control macros to empty strings", () => {
@@ -388,6 +409,21 @@ describe("resolveMacros", () => {
         context,
       ),
     ).toBe("eq|ne|is|contains|includes");
+  });
+
+  it("supports compact word condition operators before quoted operands", () => {
+    const context = macroContext({ characters: ["Mara", "Koi"] });
+
+    expect(
+      resolveMacros(
+        [
+          '{{#if char is"Mara"}}is{{/if}}',
+          '{{#if characters includes"Koi"}}includes{{/if}}',
+          "{{#if char is{{user}}}}bad{{else}}macro{{/if}}",
+        ].join("|"),
+        context,
+      ),
+    ).toBe("is|includes|macro");
   });
 
   it("resolves nested macro operands and only evaluates the selected if branch", () => {
@@ -543,6 +579,59 @@ describe("resolveMacros", () => {
     ).toBe("Mara");
   });
 
+  it("only commits variable mutations from the selected random option", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({ variables: {}, variableMutations });
+
+    expect(
+      resolveMacros(
+        "{{random::{{setvar::route::left}}left::{{setvar::route::right}}right}}{{getvar::route}}",
+        context,
+        { random: sequenceRandom([0.25]) },
+      ),
+    ).toBe("leftleft");
+    expect(context.variables).toEqual({ route: "left" });
+    expect(variableMutations).toEqual([{ kind: "set", name: "route", value: "left" }]);
+  });
+
+  it("resolves selected random options through structural macro scope", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({ variables: {}, variableMutations });
+
+    expect(
+      resolveMacros(
+        [
+          "{{random::{{#if model}}{{setvar::route::bad}}{{else}}ok{{/if}}::fallback}}|{{getvar::route}}",
+          "{{random::{{// {{setvar::comment::bad}} }}ok::fallback}}|{{getvar::comment}}",
+        ].join(","),
+        context,
+        { random: sequenceRandom([0.25, 0.25]) },
+      ),
+    ).toBe("ok|,ok|");
+    expect(context.variables).toEqual({});
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("ignores random option separators inside balanced structural blocks", () => {
+    expect(
+      resolveMacros(
+        "{{random::{{#if user}}A::B{{/if}}::C}}|{{random::{{#if user}}A::B{{/if}}::C}}",
+        macroContext(),
+        { random: sequenceRandom([0.25, 0.5]) },
+      ),
+    ).toBe("A::B|C");
+  });
+
+  it("ignores random option separators inside balanced format blocks", () => {
+    expect(
+      resolveMacros(
+        "{{random::{{uppercase}}a::b{{/uppercase}}::{{lowercase}}C::D{{/lowercase}}}}|{{random::{{uppercase}}a::b{{/uppercase}}::{{lowercase}}C::D{{/lowercase}}}}",
+        macroContext(),
+        { random: sequenceRandom([0.25, 0.75]) },
+      ),
+    ).toBe("A::B|c::d");
+  });
+
   it("applies relative decimal weights and excludes zero-weight random options", () => {
     expect(
       resolveMacros(
@@ -573,6 +662,245 @@ describe("resolveMacros", () => {
     const input = "{{roll:0d6}} {{roll:2d0}} {{roll:1001d6}} {{roll:bad}}";
 
     expect(resolveMacros(input, macroContext())).toBe(input);
+  });
+
+  it("resolves variable reads and catch-all variable names", () => {
+    const context = macroContext({
+      variables: {
+        Mara_mood: "focused",
+        POV: "close third",
+      },
+    });
+
+    expect(resolveMacros("{{getvar::POV}}|{{POV}}|{{getvar::{{char}}_mood}}", context)).toBe(
+      "close third|close third|focused",
+    );
+  });
+
+  it("leaves unknown macros visible when no matching variable exists", () => {
+    const context = macroContext({ variables: { POV: "close third" } });
+
+    expect(resolveMacros("{{missing}} {{unknown::{{user}}}}", context)).toBe(
+      "{{missing}} {{unknown::{{user}}}}",
+    );
+  });
+
+  it("mutates variables left-to-right and renders mutations as empty strings", () => {
+    const context = macroContext({ variables: { count: "1", mood: "calm" } });
+
+    expect(
+      resolveMacros(
+        "{{setvar::mood::happy}}{{mood}}|{{addvar::count::2.5}}{{getvar::count}}|{{incvar::count}}{{decvar::missing}}{{getvar::count}}/{{missing}}",
+        context,
+      ),
+    ).toBe("happy|3.5|4.5/-1");
+    expect(context.variables).toEqual({
+      count: "4.5",
+      missing: "-1",
+      mood: "happy",
+    });
+  });
+
+  it("applies recursive variable mutations before later prompt spans", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{displayName}}",
+      characterFields: characterMacroFields({
+        displayName: "{{setvar::mood::calm}}",
+      }),
+      variables: {},
+      variableMutations,
+    });
+
+    expect(resolveMacros("{{char}}{{getvar::mood}}", context)).toBe("calm");
+    expect(context.variables).toEqual({ mood: "calm" });
+    expect(variableMutations).toEqual([{ kind: "set", name: "mood", value: "calm" }]);
+  });
+
+  it("coerces arithmetic variable values through finite numbers", () => {
+    const context = macroContext({ variables: { score: "not numeric" } });
+
+    expect(
+      resolveMacros(
+        "{{addvar::score::2}}{{getvar::score}}|{{addvar::score::nope}}{{getvar::score}}",
+        context,
+      ),
+    ).toBe("2|2");
+    expect(context.variables.score).toBe("2");
+  });
+
+  it("strips comment macros before evaluating nested variable side effects", () => {
+    const context = macroContext({ variables: { mood: "calm" } });
+
+    expect(resolveMacros("A{{// {{setvar::mood::bad}} }}B", context)).toBe("AB");
+    expect(context.variables.mood).toBe("calm");
+  });
+
+  it("resolves variables as condition operands", () => {
+    const context = macroContext({ variables: { empty: "", mood: "happy" } });
+
+    expect(
+      resolveMacros(
+        "{{#if mood == happy}}yes{{else}}no{{/if}}|{{#if empty}}bad{{else}}empty{{/if}}",
+        context,
+      ),
+    ).toBe("yes|empty");
+  });
+
+  it("treats unknown bare condition operands as literals", () => {
+    const context = macroContext({ variables: { mood: "happy", "quest-done": "yes" } });
+
+    expect(
+      resolveMacros(
+        [
+          "{{#if questComplete}}yes{{else}}no{{/if}}",
+          "{{#if quest-complete}}yes{{else}}no{{/if}}",
+          "{{#if Dragon}}dragon{{else}}missing{{/if}}",
+          "{{#if getvar::questComplete}}yes{{else}}no{{/if}}",
+          "{{#if getvar::quest-complete}}yes{{else}}no{{/if}}",
+          "{{#if quest-done}}done{{else}}missing{{/if}}",
+          "{{#if mood}}mood{{else}}missing{{/if}}",
+          "{{#if literal}}literal{{else}}missing{{/if}}",
+          '{{#if "literal"}}literal{{else}}missing{{/if}}',
+          "{{questComplete}}",
+        ].join("|"),
+        context,
+      ),
+    ).toBe("yes|yes|dragon|no|no|done|mood|literal|literal|{{questComplete}}");
+  });
+
+  it("treats unknown binary operands as literals", () => {
+    const context = macroContext({ variables: { "quest-done": "yes" } });
+
+    expect(
+      resolveMacros(
+        [
+          '{{#if questComplete == ""}}bad{{else}}literal{{/if}}',
+          '{{#if quest-complete is ""}}bad{{else}}hyphen-literal{{/if}}',
+          '{{#if questComplete != ""}}not-empty{{else}}bad{{/if}}',
+          '{{#if literal == ""}}bad{{else}}literal{{/if}}',
+          '{{#if Dragon contains "rag"}}dragon{{else}}bad{{/if}}',
+          '{{#if getvar::questComplete == ""}}empty{{else}}bad{{/if}}',
+          '{{#if quest-done == "yes"}}done{{else}}bad{{/if}}',
+        ].join("|"),
+        context,
+      ),
+    ).toBe("literal|hyphen-literal|not-empty|literal|dragon|empty|done");
+  });
+
+  it("does not parse word condition operators inside bare variable names", () => {
+    const context = macroContext({
+      variables: {
+        "bag-contains-key": "yes",
+        "door-is-open": "yes",
+        "list-includes-map": "yes",
+      },
+    });
+
+    expect(
+      resolveMacros(
+        [
+          "{{#if door-is-open}}open{{else}}closed{{/if}}",
+          "{{#if bag-contains-key}}key{{else}}missing{{/if}}",
+          "{{#if list-includes-map}}map{{else}}missing{{/if}}",
+        ].join("|"),
+        context,
+      ),
+    ).toBe("open|key|map");
+  });
+
+  it("rolls back variable mutations when condition operands stay unresolved", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}x{{/if}}",
+      variables: { mood: "calm" },
+      variableMutations,
+    });
+    const input = "{{user}} {{#if {{setvar::mood::bad}}{{char}}}}yes{{/if}} {{mood}}";
+
+    expect(resolveMacros(input, context)).toBe(
+      "Alex {{#if {{setvar::mood::bad}}{{char}}}}yes{{/if}} calm",
+    );
+    expect(context.variables).toEqual({ mood: "calm" });
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("rolls back selected branch mutations when nested conditions stay unresolved", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}x{{/if}}",
+      variables: { mood: "" },
+      variableMutations,
+    });
+    const input =
+      "{{#if user}}{{#if {{setvar::mood::bad}}user}}ok{{/if}}{{#if char}}inner{{/if}}{{#if mood}}after{{/if}}{{/if}}|{{getvar::mood}}";
+
+    expect(resolveMacros(input, context)).toBe("ok{{#if char}}inner{{/if}}|");
+    expect(context.variables).toEqual({ mood: "" });
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("leaves variable macros inside exhausted selected branches inert", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}x{{/if}}",
+      variables: { mood: "calm" },
+      variableMutations,
+    });
+    const input =
+      "{{#if user}}{{setvar::mood::bad}}{{mood}}{{#if char}}x{{/if}}{{/if}}|{{getvar::mood}}";
+
+    expect(resolveMacros(input, context)).toBe(
+      "{{setvar::mood::bad}}{{mood}}{{#if char}}x{{/if}}|calm",
+    );
+    expect(context.variables).toEqual({ mood: "calm" });
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("rolls back selected random option mutations when inline structural resolution exhausts", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}x{{/if}}",
+      variables: {},
+      variableMutations,
+    });
+
+    expect(
+      resolveMacros(
+        "{{random::{{#if char}}blocked{{/if}}{{setvar::seen::1}}::fallback}}|{{getvar::seen}}",
+        context,
+        { random: sequenceRandom([0.25]) },
+      ),
+    ).toBe("{{#if char}}blocked{{/if}}|");
+    expect(context.variables).toEqual({});
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("rolls back recursive replacement mutations when inline structural resolution exhausts", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}blocked{{/if}}{{setvar::seen::1}}",
+      variables: {},
+      variableMutations,
+    });
+
+    expect(resolveMacros("{{char}}|{{getvar::seen}}", context)).toBe("{{#if char}}blocked{{/if}}|");
+    expect(context.variables).toEqual({});
+    expect(variableMutations).toEqual([]);
+  });
+
+  it("keeps independent variable mutations before unresolved conditions", () => {
+    const variableMutations: NonNullable<MacroContext["variableMutations"]> = [];
+    const context = macroContext({
+      char: "{{#if char}}x{{/if}}",
+      variables: {},
+      variableMutations,
+    });
+    const input = "{{setvar::seen::1}}{{#if char}}blocked{{/if}}|{{getvar::seen}}";
+
+    expect(resolveMacros(input, context)).toBe("{{#if char}}blocked{{/if}}|1");
+    expect(context.variables).toEqual({ seen: "1" });
+    expect(variableMutations).toEqual([{ kind: "set", name: "seen", value: "1" }]);
   });
 
   it("resolves nested macro values across passes", () => {
@@ -612,8 +940,17 @@ describe("resolveMacros", () => {
     expect(resolveMacros(input, macroContext())).toBe(input);
   });
 
-  it("resolves nested macros inside unknown outer macros, then leaves the outer macro", () => {
-    expect(resolveMacros("{{unknown::{{user}}}}", macroContext())).toBe("{{unknown::Alex}}");
+  it("leaves nested macros inside unknown outer macros inert", () => {
+    expect(resolveMacros("{{unknown::{{user}}}}", macroContext())).toBe("{{unknown::{{user}}}}");
+  });
+
+  it("leaves nested variable mutations inside unknown outer macros inert", () => {
+    const context = macroContext({ variables: {} });
+
+    expect(resolveMacros("{{unknown::{{setvar::x::y}}}}{{getvar::x}}", context)).toBe(
+      "{{unknown::{{setvar::x::y}}}}",
+    );
+    expect(context.variables).toEqual({});
   });
 
   it("leaves unknown, empty, and malformed macros unchanged", () => {
@@ -633,6 +970,18 @@ describe("resolveMacros", () => {
     const context = macroContext({ char: "{{char}}x" });
 
     expect(resolveMacros("{{char}}", context)).toBe("{{char}}");
+  });
+
+  it("rolls back variable mutations when replacement recursion overflows", () => {
+    const context = macroContext({
+      char: "{{char}}x",
+      variables: { mood: "calm" },
+    });
+
+    expect(resolveMacros("{{setvar::mood::bad}}{{char}}", context)).toBe(
+      "{{setvar::mood::bad}}{{char}}",
+    );
+    expect(context.variables).toEqual({ mood: "calm" });
   });
 
   it("applies the final trim rule to overflow output", () => {

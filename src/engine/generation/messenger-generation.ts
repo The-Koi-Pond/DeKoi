@@ -20,6 +20,7 @@ import {
   cleanGenerationText,
   createGenerationMacroContext,
   createGenerationParameters,
+  finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
   injectAtDepth,
   namedGenerationBlock,
@@ -155,27 +156,16 @@ function buildSystemPrompt({
   activatedLoreEntries,
   companions,
   macroContext,
+  selectedPrompt,
   targetCompanion,
-  thread,
 }: {
   activePersona: PersonaRecord | null;
   activatedLoreEntries: ActivatedLoreEntry[];
   companions: CharacterRecord[];
   macroContext: GenerationMacroContext;
+  selectedPrompt: string;
   targetCompanion: CharacterRecord | null;
-  thread: MessengerThread;
 }) {
-  const selectedPrompt = resolveGenerationMacros(
-    resolveMessengerSystemPrompt(thread),
-    macroContext,
-  );
-  const targetPostHistoryInstructions = targetCompanion?.postHistoryInstructions
-    ? resolveGenerationMacros(targetCompanion.postHistoryInstructions, macroContext)
-    : "";
-  const personaPostHistoryInstructions = activePersona?.postHistoryInstructions
-    ? resolveGenerationMacros(activePersona.postHistoryInstructions, macroContext)
-    : "";
-
   return [
     selectedPrompt,
     ...namedGenerationBlock(
@@ -184,6 +174,7 @@ function buildSystemPrompt({
         activatedLoreEntries.filter(
           (entry) => entry.entry.insertionPosition === "before-character",
         ),
+        { macroContext },
       ),
     ),
     ...namedGenerationBlock(
@@ -202,15 +193,31 @@ function buildSystemPrompt({
       "Selected lore",
       formatLoreGenerationEntries(
         activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "after-character"),
+        { macroContext },
       ),
     ),
-    ...(targetPostHistoryInstructions.trim()
-      ? [`Post-history instructions\n${targetPostHistoryInstructions}`]
-      : []),
-    ...(personaPostHistoryInstructions.trim()
-      ? [`Persona post-history instructions\n${personaPostHistoryInstructions}`]
-      : []),
+    ...postHistoryInstructionBlock(
+      "Post-history instructions",
+      targetCompanion?.postHistoryInstructions,
+      macroContext,
+    ),
+    ...postHistoryInstructionBlock(
+      "Persona post-history instructions",
+      activePersona?.postHistoryInstructions,
+      macroContext,
+    ),
   ].join("\n\n");
+}
+
+function postHistoryInstructionBlock(
+  label: string,
+  value: string | null | undefined,
+  macroContext: GenerationMacroContext,
+) {
+  if (!value) return [];
+
+  const resolved = resolveGenerationMacros(value, macroContext).trim();
+  return resolved ? [`${label}\n${resolved}`] : [];
 }
 
 function createMessengerPromptAssembly({
@@ -249,6 +256,10 @@ function createMessengerPromptAssembly({
     targetCompanion,
     threadId: thread.id,
   });
+  const selectedPrompt = resolveGenerationMacros(
+    resolveMessengerSystemPrompt(thread),
+    macroContext,
+  );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
@@ -265,25 +276,27 @@ function createMessengerPromptAssembly({
       role: messageRole(message),
       content: messageContent(message),
     }));
+  const systemPrompt = buildSystemPrompt({
+    activePersona,
+    activatedLoreEntries,
+    companions,
+    macroContext,
+    selectedPrompt,
+    targetCompanion,
+  });
   const transcriptWithDepthLore = injectAtDepth(
     transcript,
     activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "at-depth"),
-    { providerConnection },
+    { macroContext, providerConnection },
   );
+  const finalLoreRuntimeState = finalizeLoreGenerationRuntimeState(loreActivation);
 
   return {
-    loreRuntimeState: loreActivation.runtimeState,
+    loreRuntimeState: finalLoreRuntimeState,
     promptMessages: [
       {
         role: "system",
-        content: buildSystemPrompt({
-          activePersona,
-          activatedLoreEntries,
-          companions,
-          macroContext,
-          targetCompanion,
-          thread,
-        }),
+        content: systemPrompt,
       },
       ...transcriptWithDepthLore,
     ],

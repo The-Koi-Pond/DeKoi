@@ -63,6 +63,7 @@ export interface LoreRuntimeStateActivationUpdateOptions {
   messageCount?: number | null;
   activatedEntries: ActivatedLoreEntry[];
   keptEntries?: ActivatedLoreEntry[];
+  entryHasBody?: (entry: LoreEntryRecord) => boolean;
 }
 
 /** Options for lore activation and deterministic test-time random gates. */
@@ -79,6 +80,8 @@ export interface LorebookActivationOptions {
   rand?: () => number;
   /** Already-advanced per-thread mutable lore timer state. Engine treats this as pure input. */
   runtimeState?: LoreRuntimeState | null;
+  entryHasBody?: (entry: LoreEntryRecord) => boolean;
+  recursionBody?: (entry: ActivatedLoreEntry) => string;
 }
 
 interface CompiledRegexKey {
@@ -107,6 +110,7 @@ type EntryActivationMode = "activate" | "probe";
 type PrimaryMatchCounter = () => PrimaryMatchCountResult;
 
 interface ActivateEntryOptions {
+  entryHasBody?: (entry: LoreEntryRecord) => boolean;
   mode?: EntryActivationMode;
 }
 
@@ -194,13 +198,18 @@ export function advanceLoreRuntimeStateForEvaluation(
   };
 }
 
-function runtimeEntryStateMatchesEntry(entryState: LoreRuntimeEntryState, entry: LoreEntryRecord) {
-  return entryState.entryUpdatedAt === entry.updatedAt && entry.enabled && entryHasBody(entry);
+function runtimeEntryStateMatchesEntry(
+  entryState: LoreRuntimeEntryState,
+  entry: LoreEntryRecord,
+  hasBody: (entry: LoreEntryRecord) => boolean,
+) {
+  return entryState.entryUpdatedAt === entry.updatedAt && entry.enabled && hasBody(entry);
 }
 
 function buildRuntimeEntryStateMap(
   runtimeState: LoreRuntimeState | null,
   lorebook: LorebookRecord,
+  hasBody: (entry: LoreEntryRecord) => boolean = entryHasBody,
 ) {
   const entryById = new Map(lorebook.entries.map((entry) => [entry.id, entry]));
   const statesByKey = new Map<string, LoreRuntimeEntryState>();
@@ -208,7 +217,7 @@ function buildRuntimeEntryStateMap(
   for (const entryState of runtimeState?.entries ?? []) {
     if (entryState.lorebookId !== lorebook.id) continue;
     const entry = entryById.get(entryState.entryId);
-    if (!entry || !runtimeEntryStateMatchesEntry(entryState, entry)) continue;
+    if (!entry || !runtimeEntryStateMatchesEntry(entryState, entry, hasBody)) continue;
     statesByKey.set(entryStateKey(entryState), entryState);
   }
 
@@ -598,12 +607,20 @@ function entryHasActivationPath(entry: LoreEntryRecord) {
   );
 }
 
-function entryCanPossiblyActivate(entry: LoreEntryRecord) {
-  return entry.enabled && entryHasBody(entry) && entryHasActivationPath(entry);
+function entryCanPossiblyActivateWithBody(
+  entry: LoreEntryRecord,
+  hasBody: (entry: LoreEntryRecord) => boolean,
+) {
+  return entry.enabled && hasBody(entry) && entryHasActivationPath(entry);
 }
 
-function entryCanPossiblyActivateFromRecursion(entry: LoreEntryRecord) {
-  return entryCanPossiblyActivate(entry) && !resolveEntryRecursion(entry).nonRecursable;
+function entryCanPossiblyActivateFromRecursion(
+  entry: LoreEntryRecord,
+  hasBody: (entry: LoreEntryRecord) => boolean,
+) {
+  return (
+    entryCanPossiblyActivateWithBody(entry, hasBody) && !resolveEntryRecursion(entry).nonRecursable
+  );
 }
 
 function entryCanActivateFromSource(
@@ -659,7 +676,8 @@ function activateEntry(
   recursionLevel: number,
   options: ActivateEntryOptions = {},
 ): EntryActivationResult {
-  if (!entry.enabled || !entryHasBody(entry)) {
+  const hasBody = options.entryHasBody ?? entryHasBody;
+  if (!entry.enabled || !hasBody(entry)) {
     return { entry: null, warnings: [] };
   }
   if (!entryCanActivateFromSource(entry, activationSource, recursionLevel)) {
@@ -844,11 +862,16 @@ function budgetPriorityRank(entry: ActivatedLoreEntry) {
   return sourceRank * 2 + strategyRank;
 }
 
+export function compareActivatedEntryBudgetPriority(
+  left: ActivatedLoreEntry,
+  right: ActivatedLoreEntry,
+) {
+  const priorityDelta = budgetPriorityRank(left) - budgetPriorityRank(right);
+  return priorityDelta || compareActivatedEntryInsertionOrder(left, right);
+}
+
 function budgetPriorityEntries(entries: ActivatedLoreEntry[]) {
-  return [...entries].sort((left, right) => {
-    const priorityDelta = budgetPriorityRank(left) - budgetPriorityRank(right);
-    return priorityDelta || compareActivatedEntryInsertionOrder(left, right);
-  });
+  return [...entries].sort(compareActivatedEntryBudgetPriority);
 }
 
 function approximateLoreEntryTokens(entry: ActivatedLoreEntry) {
@@ -933,6 +956,8 @@ interface ActivationEvaluationContext {
   primaryMatchCounters: Map<string, PrimaryMatchCounter>;
   runtimeEntryStates: Map<string, LoreRuntimeEntryState>;
   runtimeState: LoreRuntimeState | null;
+  entryHasBody: (entry: LoreEntryRecord) => boolean;
+  recursionBody: (entry: ActivatedLoreEntry) => string;
 }
 
 function createStickyActivatedEntry(
@@ -996,6 +1021,7 @@ function runDirectScan(
       context.matchContext,
       "direct",
       0,
+      { entryHasBody: context.entryHasBody },
     );
     warnings.push(...activation.warnings);
     if (activation.entry) {
@@ -1012,10 +1038,13 @@ function runDirectScan(
   return { entries, warnings, runtimeState: context.runtimeState };
 }
 
-function recursionScanBodies(entries: ActivatedLoreEntry[]) {
+function recursionScanBodies(
+  entries: ActivatedLoreEntry[],
+  selectBody: (entry: ActivatedLoreEntry) => string = (entry) => entry.entry.body,
+) {
   return entries
     .filter((entry) => !resolveEntryRecursion(entry.entry).preventFurther)
-    .map((entry) => entry.entry.body.trim())
+    .map((entry) => selectBody(entry).trim())
     .filter(Boolean);
 }
 
@@ -1027,7 +1056,7 @@ function entryWouldActivateFromRecursion(
   context: ActivationEvaluationContext,
   recursionLevel: number,
 ) {
-  if (!entryCanPossiblyActivateFromRecursion(entry)) return false;
+  if (!entryCanPossiblyActivateFromRecursion(entry, context.entryHasBody)) return false;
   if (!entryPassesTimedActivationGate(lorebook, entry, context)) return false;
   return (
     activateEntry(
@@ -1041,7 +1070,7 @@ function entryWouldActivateFromRecursion(
       context.matchContext,
       "recursion",
       recursionLevel,
-      { mode: "probe" },
+      { entryHasBody: context.entryHasBody, mode: "probe" },
     ).entry !== null
   );
 }
@@ -1055,7 +1084,7 @@ function nextDelayedRecursionLevel(
 ) {
   return lorebook.entries.reduce<number | null>((nextLevel, entry, entryIndex) => {
     if (activeEntryIds.has(entry.id)) return nextLevel;
-    if (!entryCanPossiblyActivateFromRecursion(entry)) return nextLevel;
+    if (!entryCanPossiblyActivateFromRecursion(entry, context.entryHasBody)) return nextLevel;
     const recursion = resolveEntryRecursion(entry);
     if (!recursion.delayUntilRecursion) return nextLevel;
     if (recursion.recursionLevel <= currentLevel) return nextLevel;
@@ -1112,7 +1141,7 @@ function runRecursionPasses({
   warnings: string[];
 }): LorebookActivationResult {
   const activeEntryIds = new Set(entries.map((entry) => entry.entry.id));
-  const recursionBodies = recursionScanBodies(entries);
+  const recursionBodies = recursionScanBodies(entries, context.recursionBody);
   if (recursionBodies.length === 0) {
     return { entries, warnings, runtimeState: context.runtimeState };
   }
@@ -1147,6 +1176,7 @@ function runRecursionPasses({
         context.matchContext,
         "recursion",
         recursionLevel,
+        { entryHasBody: context.entryHasBody },
       );
       warnings.push(...activation.warnings);
       if (!activation.entry) continue;
@@ -1166,7 +1196,7 @@ function runRecursionPasses({
 
     if (recursiveEntries.length > 0) {
       entries.push(...recursiveEntries);
-      const newBodies = recursionScanBodies(recursiveEntries);
+      const newBodies = recursionScanBodies(recursiveEntries, context.recursionBody);
       if (newBodies.length > 0) {
         recursionScanBuffer = [recursionScanBuffer, ...newBodies].join("\n");
         if (
@@ -1203,10 +1233,11 @@ export function updateLoreRuntimeStateFromActivation({
   lorebook,
   messageCount,
   runtimeState,
+  entryHasBody: runtimeEntryHasBody = entryHasBody,
 }: LoreRuntimeStateActivationUpdateOptions) {
   if (!runtimeState) return null;
 
-  const runtimeEntryStates = buildRuntimeEntryStateMap(runtimeState, lorebook);
+  const runtimeEntryStates = buildRuntimeEntryStateMap(runtimeState, lorebook, runtimeEntryHasBody);
   const keptEntriesByKey = new Map(
     keptEntries.map((activatedEntry) => [activatedLoreEntryKey(activatedEntry), activatedEntry]),
   );
@@ -1275,6 +1306,7 @@ function withLoreRuntimeState(
     ...result,
     runtimeState: updateLoreRuntimeStateFromActivation({
       activatedEntries: result.entries,
+      entryHasBody: context.entryHasBody,
       lorebook,
       messageCount: context.messageCount,
       runtimeState: context.runtimeState,
@@ -1297,8 +1329,14 @@ export function activateLorebookEntriesWithWarnings(
     matchSources: options.matchSources ?? EMPTY_MATCH_SOURCES,
     matchContext: createKeyMatchContext(),
     primaryMatchCounters: new Map(),
-    runtimeEntryStates: buildRuntimeEntryStateMap(runtimeState, lorebook),
+    runtimeEntryStates: buildRuntimeEntryStateMap(
+      runtimeState,
+      lorebook,
+      options.entryHasBody ?? entryHasBody,
+    ),
     runtimeState,
+    entryHasBody: options.entryHasBody ?? entryHasBody,
+    recursionBody: options.recursionBody ?? ((entry) => entry.entry.body),
   };
   const countPrimaryMatches = (entry: ActivatedLoreEntry) =>
     context.primaryMatchCounters.get(activatedLoreEntryKey(entry))?.() ?? {

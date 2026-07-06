@@ -5,6 +5,7 @@ import { resolveFormatMacro } from "./macro-builtins/format-macros";
 import { resolveIdentityMacro } from "./macro-builtins/identity-macros";
 import { resolveRandomMacro } from "./macro-builtins/random-macros";
 import { resolveTimeMacro } from "./macro-builtins/time-macros";
+import { resolveVariableMacro } from "./macro-builtins/variable-macros";
 import type { MacroContext, ResolveMacroOptions } from "./macro-types";
 
 export function renderUnknownMacro(body: string) {
@@ -25,6 +26,7 @@ export function applyBuiltins(
     resolveContextMacro(name, context) ??
     resolveTimeMacro(name, context) ??
     resolveRandomMacro(name, options) ??
-    resolveFormatMacro(name)
+    resolveFormatMacro(name) ??
+    resolveVariableMacro(name, context)
   );
 }
