@@ -194,9 +194,7 @@ describe("catalog macro live preview", () => {
     );
 
     expect(markup).toContain('id="described-field-macro-preview"');
-    expect(markup).toContain(
-      'aria-describedby="existing-help described-field-macro-preview"',
-    );
+    expect(markup).toContain('aria-describedby="existing-help described-field-macro-preview"');
   });
 
   it("does not resolve inactive textarea previews", () => {
