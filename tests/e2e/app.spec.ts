@@ -42,6 +42,7 @@ import {
   type AppStorageReplaceResult,
 } from "../../src/features/runtime";
 import { createHostStorageMetadataResult } from "../../src/runtime/storage/host-storage";
+import { HOST_STORAGE_ENTITIES } from "../../src/runtime/storage/storage-entities";
 import {
   changedAppStorageMetadataKeys,
   createDeKoiStorageBundle,
@@ -65,19 +66,7 @@ import {
 } from "../../src/features/modes/roleplay/lib/thread-reference-summary";
 
 const TEST_RUNTIME_URL = "http://dekoi-runtime.test";
-const STORAGE_ENTITIES = [
-  "app-settings",
-  "characters",
-  "personas",
-  "lorebooks",
-  "lore-runtime-states",
-  "provider-connections",
-  "roleplay-threads",
-  "roleplay-entries",
-  "messenger-threads",
-  "messenger-messages",
-  "ripple-states",
-] as const;
+const STORAGE_ENTITIES = HOST_STORAGE_ENTITIES;
 const STORAGE_ENTITY_SET = new Set<string>(STORAGE_ENTITIES);
 
 type StorageEntity = (typeof STORAGE_ENTITIES)[number];
@@ -359,6 +348,7 @@ function createBundleFixture() {
       personas: [],
       lorebooks: [],
       loreRuntimeStates: [],
+      macroVariableStates: [],
       providerConnections: [],
       messengerThreads: [],
       messengerMessages: [],
@@ -395,6 +385,7 @@ function createEmptyAppStorageRecords(): AppStorageRecords {
     personas: [],
     lorebooks: [],
     loreRuntimeStates: [],
+    macroVariableStates: [],
     providerConnections: [],
     roleplayThreads: [],
     messengerThreads: [],
@@ -639,6 +630,7 @@ test("storage import reload decision falls back to completed collections", () =>
     personas: 0,
     lorebooks: 0,
     loreRuntimeStates: 0,
+    macroVariableStates: 0,
     providerConnections: 0,
     roleplayThreads: 0,
     roleplayEntries: 0,
@@ -876,6 +868,7 @@ test("migration signature reconciliation keeps changed migrated collections dirt
     personas: "personas-saved",
     lorebooks: "lorebooks-saved",
     loreRuntimeStates: "lore-runtime-states-saved",
+    macroVariableStates: "macro-variable-states-saved",
     providerConnections: "provider-connections-saved",
     roleplayThreads: "legacy-migration-marker",
     roleplayEntries: "legacy-migration-marker",
@@ -1300,6 +1293,7 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
     personas: [],
     lorebooks: [],
     loreRuntimeStates: [],
+    macroVariableStates: [],
     providerConnections: [],
     messengerThreads: [messengerWithMessage],
     rippleStates: [],

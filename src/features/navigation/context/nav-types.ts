@@ -6,6 +6,7 @@ import type {
   LoreRuntimeState,
   LoreRuntimeStateOwnerKind,
 } from "../../../engine/contracts/types/lore-runtime-state";
+import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { LorebookEntryInput, LorebookInput } from "../../../engine/catalog/lorebook-actions";
 import type { MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
@@ -65,6 +66,10 @@ export interface NavLoreRuntimeState {
   loreRuntimeStates: LoreRuntimeState[];
 }
 
+export interface NavMacroVariableState {
+  macroVariableStates: MacroVariableScope[];
+}
+
 export interface NavStorageState {
   messengerStorageMode: MessengerStorageMode;
   messengerStorageStatus: MessengerStorageStatus;
@@ -93,6 +98,7 @@ interface NavState
     NavThreadState,
     NavRippleState,
     NavLoreRuntimeState,
+    NavMacroVariableState,
     NavStorageState,
     NavSettingsState,
     NavCareState {}
@@ -202,6 +208,13 @@ export interface NavLoreRuntimeActions {
   ) => void;
 }
 
+export interface NavMacroVariableActions {
+  updateMacroVariableStates: (
+    nextStates:
+      MacroVariableScope[] | ((currentStates: MacroVariableScope[]) => MacroVariableScope[]),
+  ) => void;
+}
+
 export interface NavStorageBundleActions {
   createStorageBundle: () => DeKoiStorageBundle;
   importStorageBundle: (
@@ -279,6 +292,7 @@ interface NavActions
     NavMessengerThreadActions,
     NavRippleActions,
     NavLoreRuntimeActions,
+    NavMacroVariableActions,
     NavStorageBundleActions,
     NavStorageActions,
     NavCareActions {}

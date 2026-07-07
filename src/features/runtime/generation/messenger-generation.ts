@@ -15,6 +15,7 @@ import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
+import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
@@ -28,6 +29,10 @@ import {
   compactGenerationLoreRuntimeState,
   createGenerationLoreRuntimeState,
 } from "./lore-runtime-state";
+import {
+  buildGenerationMacroVariableState,
+  type MacroVariableStateCommit,
+} from "../../../engine/macro-variables/macro-variable-actions";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
 export type MessengerGenerationRuntimeMode = GenerationRuntimeMode;
@@ -46,6 +51,7 @@ export interface GenerateMessengerThreadReplyInput {
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   loreRuntimeState?: LoreRuntimeState | null;
+  macroVariableStates?: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
@@ -63,6 +69,7 @@ export interface GenerateMessengerThreadReplyResult {
   response: MessengerGenerationResponse;
   generatedMessages: MessengerMessage[];
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableCommit: MacroVariableStateCommit;
   runtimeMode: MessengerGenerationRuntimeMode;
   runtimeLabel: string;
   warnings: string[];
@@ -101,6 +108,7 @@ export async function generateMessengerThreadReply({
   fallbackProviderConnectionId = null,
   lorebooks,
   loreRuntimeState,
+  macroVariableStates = [],
   mode = "remote-runtime",
   now,
   parameters,
@@ -110,6 +118,11 @@ export async function generateMessengerThreadReply({
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const runtime = selectMessengerGenerationRuntime(mode);
+  const macroVariableSelection = buildGenerationMacroVariableState({
+    macroVariableStates,
+    ownerId: thread.id,
+    ownerKind: "messenger-thread",
+  });
   const context = createMessengerGenerationContext({
     appSettings,
     characters,
@@ -118,6 +131,7 @@ export async function generateMessengerThreadReply({
     personas,
     providerConnections,
     thread,
+    variables: macroVariableSelection.variables,
   });
   const generationLoreRuntimeState = createGenerationLoreRuntimeState({
     createId,
@@ -151,6 +165,8 @@ export async function generateMessengerThreadReply({
   });
   const generatedMessages = draftRecords.records;
   const warnings = [...response.warnings, ...draftRecords.warnings, ...request.warnings];
+  const variableMutations =
+    generatedMessages.length > 0 ? requestAssembly.macroVariableMutations : [];
 
   return {
     thread:
@@ -161,6 +177,13 @@ export async function generateMessengerThreadReply({
       requestAssembly.loreRuntimeState,
       response.createdAt,
     ),
+    macroVariableCommit: {
+      variableMutations,
+      now: response.createdAt,
+      ownerId: thread.id,
+      ownerKind: "messenger-thread",
+      selection: macroVariableSelection,
+    },
     runtimeMode: runtime.mode,
     runtimeLabel: runtime.label,
     warnings,

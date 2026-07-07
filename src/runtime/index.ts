@@ -53,6 +53,7 @@ export {
   type DeKoiLegacyImportPreview,
 } from "./storage/bundles/legacy-import";
 export { loadLorebookRecords } from "./storage/collections/lorebook-storage";
+export { loadMacroVariableScopes } from "./storage/collections/macro-variable-state-storage";
 export {
   loadInitialMessengerThreads,
   type MessengerStorageMode,

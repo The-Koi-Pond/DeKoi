@@ -6,7 +6,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 - React and TypeScript app shell built with Vite.
 - Native product records for Messenger, Roleplay, companions, personas,
-  lorebooks, lore runtime states, provider connections, and Ripples.
+  lorebooks, lore runtime states, macro variable scopes, provider connections,
+  and Ripples.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
   trigger, filter, timing, match-source, and budget fields.
@@ -40,10 +41,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   `character-first`, or `global-first` insertion.
 - Collection-backed storage entity registry and Rust allowlist checks, including
   split Messenger message and Roleplay entry collections and per-thread lore
-  runtime states.
+  runtime states plus global and per-thread macro variable states.
 - DeKoi-native bundle import and export paths through the desktop host, with
   preview, explicit confirmation, pre-import backup, and commit-path collection
-  replacement, including lore runtime state cleanup for missing owner threads.
+  replacement, including lore runtime state and macro variable state cleanup for
+  missing owner threads.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage, provider checks,
   model listing, and generation commands.
@@ -55,7 +57,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Current built-in generation macro semantics, including variable macro
   transactions, are documented and implemented as a pure TypeScript resolver
   under `src/engine/generation-core/macros`, with Messenger and Roleplay prompt
-  assembly wiring in `src/engine/generation`.
+  assembly wiring in `src/engine/generation` and successful-generation
+  persistence through owner-scoped macro variable state.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
   missing connection/persona/companion/lorebook states, including lorebooks
   referenced through chat, persona, companion, or global sources, with narrow
@@ -82,10 +85,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider transport is still narrow and experimental; required-key providers
   use desktop provider-key storage through the runtime boundary, and
   provider-specific response parsing still needs more real-endpoint validation.
-- Macro resolver wiring is active in Messenger and Roleplay prompt assembly for
-  current built-in identity, context, time, formatting, comment, control-flow,
-  random, dice, and variable macros; deferred character macros and persistent
-  dynamic variable storage remain future slices.
+- Deferred character macros for group scenarios remain future prompt behavior.
 - Runtime generation routing is not fully symmetric yet: desktop uses the
   desktop runtime provider path, while browser mode has a direct provider
   fallback and remote-runtime command paths for storage/check/model commands.

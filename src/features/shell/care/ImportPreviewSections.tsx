@@ -37,6 +37,8 @@ export function BundleCounts({ counts }: BundleCountsProps) {
         { value: counts.lorebookEntries, label: "lore entries" },
         { value: counts.loreRuntimeStates, label: "lore runtime states" },
         { value: counts.loreRuntimeEntries, label: "lore runtime entries" },
+        { value: counts.macroVariableStates, label: "macro variable states" },
+        { value: counts.macroVariables, label: "macro variables" },
         { value: counts.providerConnections, label: "connections" },
         { value: counts.messengerThreads, label: "threads" },
         { value: counts.messengerMessages, label: "messages" },

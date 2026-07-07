@@ -27,6 +27,8 @@ export function appStorageCollectionSignature(
       return JSON.stringify(snapshot.lorebooks) ?? "null";
     case "loreRuntimeStates":
       return JSON.stringify(snapshot.loreRuntimeStates) ?? "null";
+    case "macroVariableStates":
+      return JSON.stringify(snapshot.macroVariableStates) ?? "null";
     case "providerConnections":
       return JSON.stringify(snapshot.providerConnections) ?? "null";
     case "roleplayThreads":
@@ -59,6 +61,8 @@ export function appStorageCollectionCount(
       return snapshot.lorebooks.length;
     case "loreRuntimeStates":
       return snapshot.loreRuntimeStates.length;
+    case "macroVariableStates":
+      return snapshot.macroVariableStates.length;
     case "providerConnections":
       return snapshot.providerConnections.length;
     case "roleplayThreads":
@@ -91,6 +95,8 @@ export function appStorageCollectionSource(
       return snapshot.lorebooks;
     case "loreRuntimeStates":
       return snapshot.loreRuntimeStates;
+    case "macroVariableStates":
+      return snapshot.macroVariableStates;
     case "providerConnections":
       return snapshot.providerConnections;
     case "roleplayThreads":

@@ -427,6 +427,7 @@ Supported storage entities:
 - `roleplay-entries`
 - `lorebooks`
 - `lore-runtime-states`
+- `macro-variable-states`
 - `messenger-threads`
 - `messenger-messages`
 - `personas`
@@ -483,6 +484,20 @@ entry state is keyed by `lorebookId` and `entryId`, records the entry's
 `stickyRemaining`, and `cooldownRemaining` values. Deleting a thread or clearing
 its transcript removes its matching lore runtime state; bundle import skips
 orphaned lore runtime states and treats missing older bundle fields as empty.
+
+`macro-variable-states` records use `schemaVersion: 1` and belong to global
+state, a Messenger thread, or a Roleplay thread through `ownerKind` and
+`ownerId`. Global records use `ownerKind: "global"` and `ownerId: "global"`;
+thread-scoped records use `ownerKind: "messenger-thread"` or
+`"roleplay-thread"` and the owning thread ID. The `variables` object stores
+trimmed non-empty variable names with string values. Generation starts with
+global variables, overlays thread variables, and persists committed mutations
+only after generation succeeds. New variables created during a thread generation
+are saved to the thread scope; existing global-only variables remain global.
+Deleting a thread or clearing its transcript removes matching thread-scoped
+macro variable state, bundle import skips orphaned thread-scoped states, and
+missing older bundle fields are treated as empty. Future preset-toggle
+variables are request inputs and are not persisted in this collection.
 
 When `generation_generate` includes resolved lorebooks, they use the same v2
 shape. Current DeKoi prompt assembly resolves lorebook sources from the

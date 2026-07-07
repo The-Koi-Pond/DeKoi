@@ -64,6 +64,30 @@ function invalidRegexLorebook(): LorebookRecord {
   };
 }
 
+function variableLorebook(): LorebookRecord {
+  const lorebook = createLorebookRecord({
+    id: "lorebook-1",
+    input: {
+      title: "Variable Lore",
+    },
+    now,
+  });
+  return {
+    ...lorebook,
+    entries: [
+      createLorebookEntryRecord({
+        id: "entry-1",
+        input: {
+          title: "Variable",
+          body: "{{setvar::mood::calm}}Mood lore.",
+          strategy: "constant",
+        },
+        now,
+      }),
+    ],
+  };
+}
+
 function messengerMessage(): MessengerMessage {
   return {
     id: "message-1",
@@ -227,6 +251,52 @@ describe("lorebook warning propagation", () => {
     );
   });
 
+  it("omits Messenger macro variable commits when no reply is accepted", async () => {
+    const message = messengerMessage();
+    vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
+      async (request: ProviderGenerationRequest) => ({
+        schemaVersion: 1,
+        requestId: request.id,
+        providerKind: "external-provider",
+        createdAt: now,
+        messages: [],
+        warnings: ["Provider returned no text."],
+      }),
+    );
+
+    const noReplyResult = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
+      characters: [companion()],
+      createId,
+      lorebooks: [variableLorebook()],
+      now,
+      personas: [],
+      providerConnections: [],
+      thread: messengerThread(message),
+      userMessage: message,
+    });
+
+    expect(noReplyResult.generatedMessages).toEqual([]);
+    expect(noReplyResult.macroVariableCommit.variableMutations).toEqual([]);
+
+    const acceptedResult = await generateMessengerThreadReply({
+      appSettings: DEFAULT_APP_SETTINGS,
+      characters: [companion()],
+      createId,
+      lorebooks: [variableLorebook()],
+      now,
+      personas: [],
+      providerConnections: [],
+      thread: messengerThread(message),
+      userMessage: message,
+    });
+
+    expect(acceptedResult.generatedMessages).toHaveLength(1);
+    expect(acceptedResult.macroVariableCommit.variableMutations).toEqual([
+      { kind: "set", name: "mood", value: "calm" },
+    ]);
+  });
+
   it("puts Messenger dropped-draft warnings before activation warnings when a reply survives", async () => {
     const message = messengerMessage();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
@@ -337,6 +407,50 @@ describe("lorebook warning propagation", () => {
     expect(droppedDraftResult.warnings[1]).toContain(
       'Invalid regex key "/[bad/" treated as plaintext',
     );
+  });
+
+  it("omits Roleplay macro variable commits when no entry is accepted", async () => {
+    const entry = roleplayEntry();
+    vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
+      async (request: ProviderGenerationRequest) => ({
+        schemaVersion: 1,
+        requestId: request.id,
+        providerKind: "external-provider",
+        createdAt: now,
+        messages: [],
+        warnings: ["Provider returned no text."],
+      }),
+    );
+
+    const noEntryResult = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
+      characters: [companion()],
+      createId,
+      lorebooks: [variableLorebook()],
+      now,
+      personas: [],
+      providerConnections: [],
+      thread: roleplayThread(entry),
+    });
+
+    expect(noEntryResult.generatedEntryCount).toBe(0);
+    expect(noEntryResult.macroVariableCommit.variableMutations).toEqual([]);
+
+    const acceptedResult = await generateRoleplayThreadTurn({
+      appSettings: DEFAULT_APP_SETTINGS,
+      characters: [companion()],
+      createId,
+      lorebooks: [variableLorebook()],
+      now,
+      personas: [],
+      providerConnections: [],
+      thread: roleplayThread(entry),
+    });
+
+    expect(acceptedResult.generatedEntryCount).toBe(1);
+    expect(acceptedResult.macroVariableCommit.variableMutations).toEqual([
+      { kind: "set", name: "mood", value: "calm" },
+    ]);
   });
 
   it("puts Roleplay dropped-draft warnings before activation warnings when an entry survives", async () => {

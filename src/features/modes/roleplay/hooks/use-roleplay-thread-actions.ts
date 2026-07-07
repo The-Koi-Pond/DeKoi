@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
+import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import {
   appendRoleplayEntries,
@@ -22,6 +23,7 @@ import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
 import { cleanTextArray } from "../../../../shared/text";
 import type { RoleplayThreadCreateInput, PondView } from "../../../navigation";
+import { deleteMacroVariableStateForOwner } from "../../../../engine/macro-variables/macro-variable-actions";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 
 type UseRoleplayThreadActionsInput = {
@@ -32,6 +34,7 @@ type UseRoleplayThreadActionsInput = {
   providerConnections: ProviderConnectionRecord[];
   setRoleplayThreads: StateSetter<RoleplayThread[]>;
   setLoreRuntimeStates: StateSetter<LoreRuntimeState[]>;
+  setMacroVariableStates: StateSetter<MacroVariableScope[]>;
   setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
@@ -46,6 +49,7 @@ export function useRoleplayThreadActions({
   providerConnections,
   setRoleplayThreads,
   setLoreRuntimeStates,
+  setMacroVariableStates,
   setRippleStates,
   setView,
   view,
@@ -151,8 +155,11 @@ export function useRoleplayThreadActions({
       setLoreRuntimeStates((currentStates) =>
         deleteLoreRuntimeStateForOwner(currentStates, "roleplay-thread", threadId),
       );
+      setMacroVariableStates((currentStates) =>
+        deleteMacroVariableStateForOwner(currentStates, "roleplay-thread", threadId),
+      );
     },
-    [setLoreRuntimeStates, setRoleplayThreads],
+    [setLoreRuntimeStates, setMacroVariableStates, setRoleplayThreads],
   );
 
   const deleteRoleplayThread = useCallback(
@@ -160,6 +167,9 @@ export function useRoleplayThreadActions({
       setRoleplayThreads((currentThreads) => deleteRoleplayThreadRecord(currentThreads, threadId));
       setLoreRuntimeStates((currentStates) =>
         deleteLoreRuntimeStateForOwner(currentStates, "roleplay-thread", threadId),
+      );
+      setMacroVariableStates((currentStates) =>
+        deleteMacroVariableStateForOwner(currentStates, "roleplay-thread", threadId),
       );
       setRippleStates((currentStates) =>
         deleteRippleStateForOwner(currentStates, "roleplay-thread", threadId),
@@ -169,7 +179,14 @@ export function useRoleplayThreadActions({
         setView({ kind: "pond" });
       }
     },
-    [setLoreRuntimeStates, setRoleplayThreads, setRippleStates, setView, view],
+    [
+      setLoreRuntimeStates,
+      setMacroVariableStates,
+      setRoleplayThreads,
+      setRippleStates,
+      setView,
+      view,
+    ],
   );
 
   return {

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   appendRoleplayEntries,
   createNarrationRoleplayEntry,
@@ -18,9 +18,12 @@ import {
   getGenerationModeForConnection,
   selectGenerationRuntime,
 } from "../../runtime";
+import { commitGenerationMacroVariableStates } from "../../../engine/macro-variables/macro-variable-actions";
 import type {
   NavCatalogState,
   NavLoreRuntimeActions,
+  NavMacroVariableActions,
+  NavMacroVariableState,
   NavRoleplayThreadActions,
   NavSettingsState,
   NavStorageState,
@@ -34,6 +37,7 @@ import {
   getGenerationNoticeAction,
   type GenerationNoticeAction,
 } from "../shared";
+import { generationOriginStillExists } from "../shared/generation-origin";
 import { getMessageDateTimeTitle, getMessageTimeLabel } from "../shared/message-time";
 import { getCopyableRoleplayEntryBody, getInitials, isOwnRoleplayEntry } from "./lib/message-view";
 import {
@@ -49,6 +53,8 @@ export type RoleplayThreadNav = Pick<
 > &
   Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
+  Pick<NavMacroVariableState, "macroVariableStates"> &
+  Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "roleplayThreads"> &
@@ -122,6 +128,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const entryListRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
+  const roleplayThreadsRef = useRef(nav.roleplayThreads);
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const threadConnection = getProviderConnectionById(
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
@@ -180,6 +187,10 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const activePersona = thread?.activePersonaId
     ? (nav.personas.find((persona) => persona.id === thread.activePersonaId) ?? null)
     : null;
+
+  useLayoutEffect(() => {
+    roleplayThreadsRef.current = nav.roleplayThreads;
+  }, [nav.roleplayThreads]);
 
   useEffect(() => {
     if (!entryListRef.current) return;
@@ -371,6 +382,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
         loreRuntimeState: nav.getLoreRuntimeState("roleplay-thread", threadWithUserEntry.id),
+        macroVariableStates: nav.macroVariableStates,
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -383,8 +395,32 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         thread: threadWithUserEntry,
       });
 
+      const ownerExists = generationOriginStillExists({
+        itemId: userEntry.id,
+        selectItems: (candidate) => candidate.entries,
+        threadId: threadWithUserEntry.id,
+        threads: roleplayThreadsRef.current,
+      });
+      if (!ownerExists) {
+        setGenerationState({
+          threadId: commitThread.id,
+          status: "idle",
+          message: "",
+          action: null,
+        });
+        return;
+      }
+
       if (result.generatedEntryCount > 0) {
         nav.updateRoleplayThread(result.thread);
+        nav.updateMacroVariableStates((currentStates) =>
+          commitGenerationMacroVariableStates({
+            ...result.macroVariableCommit,
+            createId: createLocalId,
+            macroVariableStates: currentStates,
+            ownerExists,
+          }),
+        );
       }
       nav.updateLoreRuntimeState(
         result.loreRuntimeState,

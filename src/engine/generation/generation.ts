@@ -37,6 +37,7 @@ import {
 import { cleanTextArray } from "../shared/text";
 
 export type GenerationProviderKind = "remote-runtime" | "external-provider";
+export type { MacroVariableMutation };
 
 export interface GenerationPromptMessage {
   role: "system" | "user" | "assistant";
@@ -221,6 +222,8 @@ export interface GenerationMacroContextInput {
   userNameFallback?: string;
   /** Initial request-local variable state for prompt macro resolution. */
   variables?: Record<string, string>;
+  /** Optional commit log for variable mutations that survive prompt assembly. */
+  variableMutations?: MacroVariableMutation[];
 }
 
 function cleanMacroName(value: string | null | undefined, fallback: string) {
@@ -244,6 +247,7 @@ export function createGenerationMacroContext({
   timeZone = null,
   userNameFallback = "the user",
   variables = {},
+  variableMutations,
 }: GenerationMacroContextInput): GenerationMacroContext {
   const user = cleanMacroName(activePersona?.displayName, userNameFallback);
 
@@ -262,6 +266,7 @@ export function createGenerationMacroContext({
     now,
     timeZone,
     variables: { ...variables },
+    variableMutations,
   };
 }
 
@@ -865,6 +870,7 @@ function consumeLoreGenerationMacroPreview(
   }
 
   applyGenerationVariableMutations(macroContext.variables, preview.variableMutations);
+  macroContext.variableMutations?.push(...preview.variableMutations);
   commit.consumedContexts.add(macroContext);
 }
 

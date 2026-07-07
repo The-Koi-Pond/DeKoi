@@ -89,8 +89,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules and [AGENTS.md](
 - [Domain Model](./DOMAIN_MODEL.md): product vocabulary, naming map, record glossary, and naming guardrails.
 - [Architecture Notes](./ARCHITECTURE.md): source lanes, dependency direction, and growth path.
 - [Generation Macro Semantics](./docs/generation-macro-semantics.md):
-  current built-in prompt macro semantics, generation wiring, and reserved
-  macro behavior.
+  current built-in prompt macro semantics, generation wiring, dynamic variable
+  persistence, and reserved macro behavior.
 - [Storage Model](./docs/storage-model.md): collection-backed durable data guardrails.
 - [Remote Runtime Contract](./docs/remote-runtime-contract.md): compatible runtime health, invoke, generation, and storage commands.
 
