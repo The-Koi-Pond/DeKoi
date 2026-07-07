@@ -109,6 +109,24 @@ describe("normalizeProviderConnectionRecord", () => {
     expect(
       normalizeProviderConnectionRecord({
         ...baseOldConnection,
+        label: "   ",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        baseUrl: "",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        model: "",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
         createdAt: "not-a-date",
       }),
     ).toBeNull();

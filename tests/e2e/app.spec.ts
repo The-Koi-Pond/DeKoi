@@ -1400,6 +1400,11 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
     id: "connection-malformed-runtime-kind",
     provider: "not-a-provider",
   };
+  const emptyFieldRuntimeKindConnection = {
+    ...oldRuntimeKindConnection,
+    id: "connection-empty-field-runtime-kind",
+    baseUrl: "",
+  };
   const providerConnection = {
     ...legacyMockConnection,
     id: "connection-provider",
@@ -1429,6 +1434,7 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
     }),
   ).toBeNull();
   expect(normalizeProviderConnectionRecord(malformedRuntimeKindConnection)).toBeNull();
+  expect(normalizeProviderConnectionRecord(emptyFieldRuntimeKindConnection)).toBeNull();
   const upgradedConnection = normalizeProviderConnectionRecord(oldRuntimeKindConnection, {
     preserveReadyStatus: true,
   });

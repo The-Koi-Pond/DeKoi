@@ -36,6 +36,10 @@ function isNumberOrNull(value: unknown) {
   return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function isValidMigratedStatus(value: unknown) {
   return value === "ready" || value === "needs-key" || value === "needs-runtime";
 }
@@ -47,9 +51,9 @@ function isValidTimestamp(value: unknown) {
 function canMigrateOldRuntimeKindConnection(value: Record<string, unknown>) {
   return (
     hasRecognizedConnectionProvider(value.provider) &&
-    typeof value.label === "string" &&
-    typeof value.baseUrl === "string" &&
-    typeof value.model === "string" &&
+    isNonEmptyString(value.label) &&
+    isNonEmptyString(value.baseUrl) &&
+    isNonEmptyString(value.model) &&
     typeof value.summary === "string" &&
     isValidMigratedStatus(value.status) &&
     (typeof value.modelLabel === "string" || value.modelLabel === null) &&
