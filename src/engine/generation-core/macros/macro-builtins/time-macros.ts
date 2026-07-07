@@ -1,9 +1,9 @@
 import type { MacroContext, MacroTimeSource } from "../macro-types";
+import { TIME_MACRO_DEFINITIONS, findLiteralMacroDefinition } from "../macro-definitions";
 import { cleanMacroValue } from "./shared";
 
 const DEFAULT_TIME_ZONE = "UTC";
 const TIME_MACRO_LOCALE = "en-US";
-const TIME_MACRO_NAMES = new Set(["time", "date", "weekday", "isotime", "timezone"]);
 
 function macroDateFromSource(source: MacroTimeSource | null | undefined) {
   const date = source === null || source === undefined ? new Date() : new Date(source);
@@ -47,9 +47,10 @@ function formatWeekdayMacro(date: Date, timeZone: string) {
 }
 
 export function resolveTimeMacro(name: string, context: MacroContext) {
-  if (!TIME_MACRO_NAMES.has(name)) return null;
+  const definition = findLiteralMacroDefinition(TIME_MACRO_DEFINITIONS, name);
+  if (definition === null) return null;
 
-  if (name === "isotime") {
+  if (definition.value === "isotime") {
     const date = macroDateFromSource(context.now);
     return date === null ? null : date.toISOString();
   }
@@ -57,21 +58,17 @@ export function resolveTimeMacro(name: string, context: MacroContext) {
   const timeZone = normalizeTimeZone(context.timeZone);
   if (timeZone === null) return null;
 
-  if (name === "timezone") return timeZone;
+  if (definition.value === "timezone") return timeZone;
 
   const date = macroDateFromSource(context.now);
   if (date === null) return null;
 
-  switch (name) {
+  switch (definition.value) {
     case "time":
       return formatTimeMacro(date, timeZone);
     case "date":
       return formatDateMacro(date, timeZone);
     case "weekday":
       return formatWeekdayMacro(date, timeZone);
-    case "isotime":
-      return date.toISOString();
-    default:
-      return null;
   }
 }

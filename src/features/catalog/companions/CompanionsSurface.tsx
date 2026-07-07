@@ -8,6 +8,7 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
+import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -244,34 +245,34 @@ function CompanionEditor({
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="comp-desc">Description</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="comp-desc"
                 className="pondinput pondtextarea"
                 rows={5}
                 value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                onValueChange={(description) => setDraft({ ...draft, description })}
                 placeholder="Character description"
               />
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="comp-personality">Personality Summary</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="comp-personality"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.personality}
-                onChange={(e) => setDraft({ ...draft, personality: e.target.value })}
+                onValueChange={(personality) => setDraft({ ...draft, personality })}
                 placeholder="Brief personality"
               />
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="comp-scenario">Scenario</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="comp-scenario"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.scenario}
-                onChange={(e) => setDraft({ ...draft, scenario: e.target.value })}
+                onValueChange={(scenario) => setDraft({ ...draft, scenario })}
                 placeholder="Dialogue context"
               />
             </div>
@@ -316,12 +317,12 @@ function CompanionEditor({
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="comp-examples">Examples of Dialogue</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="comp-examples"
                 className="pondinput pondtextarea"
                 rows={7}
                 value={draft.exampleMessages}
-                onChange={(e) => setDraft({ ...draft, exampleMessages: e.target.value })}
+                onValueChange={(exampleMessages) => setDraft({ ...draft, exampleMessages })}
                 placeholder="<START>"
               />
             </div>
@@ -332,35 +333,37 @@ function CompanionEditor({
             <div className="catalog-editor-grid">
               <div className="catalog-editor-field">
                 <label htmlFor="comp-system-prompt">Main/System Prompt</label>
-                <textarea
+                <CatalogMacroTextarea
                   id="comp-system-prompt"
                   className="pondinput pondtextarea"
                   rows={4}
                   value={draft.systemPrompt}
-                  onChange={(e) => setDraft({ ...draft, systemPrompt: e.target.value })}
-                  placeholder="{{original}}"
+                  onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
+                  placeholder="Optional system prompt"
                 />
               </div>
               <div className="catalog-editor-field">
                 <label htmlFor="comp-post-history">Post-History Instructions</label>
-                <textarea
+                <CatalogMacroTextarea
                   id="comp-post-history"
                   className="pondinput pondtextarea"
                   rows={4}
                   value={draft.postHistoryInstructions}
-                  onChange={(e) => setDraft({ ...draft, postHistoryInstructions: e.target.value })}
-                  placeholder="{{original}}"
+                  onValueChange={(postHistoryInstructions) =>
+                    setDraft({ ...draft, postHistoryInstructions })
+                  }
+                  placeholder="Optional post-history instructions"
                 />
               </div>
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="comp-note">Character's Note</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="comp-note"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.characterNote}
-                onChange={(e) => setDraft({ ...draft, characterNote: e.target.value })}
+                onValueChange={(characterNote) => setDraft({ ...draft, characterNote })}
                 placeholder="Optional static note"
               />
             </div>

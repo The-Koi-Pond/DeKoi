@@ -1,6 +1,7 @@
 # Generation Macro Semantics
 
-Status: Slice 7 dynamic variable persistence is implemented.
+Status: Slice 7 dynamic variable persistence and Slice 9a active-macro editor
+metadata are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
 context fields, post-history instructions, lorebook summaries, activated lore
@@ -20,6 +21,22 @@ The public entry point is:
 ```ts
 resolveMacros(template: string, context: MacroContext, options?: ResolveMacroOptions): string
 ```
+
+The engine also exports `SUPPORTED_MACROS` and `SUPPORTED_MACRO_CATEGORIES` for
+editor UI consumption. `SUPPORTED_MACROS` is projected from the same
+`macro-definitions.ts` source that resolver modules use for literal names,
+prefixes, and supported pattern families. This list is active-only: future or
+deferred macro ideas must not be shown as supported until the resolver
+implements them.
+
+Catalog multiline text editors expose a Macros browser for the macro-resolved
+text areas wired in this slice: Companion and Persona descriptive fields, system
+prompts, post-history instructions, notes, Companion example dialogue, and
+Lorebook entry bodies. Companion first-message, alternate-greeting, and
+group-only greeting fields remain plain text today. The browser searches
+supported syntax, category labels, and descriptions, then inserts the selected
+macro text at the current textarea selection. It is not a live preview and does
+not evaluate or validate field output while editing.
 
 The resolver does not read storage, call providers, or touch runtime adapters.
 Variable macros can mutate `context.variables` and optionally append to
@@ -310,4 +327,8 @@ active macros stay inert, except comment spans are still stripped and terminal
 case post-processing can transform complete case blocks inside the unresolved
 span.
 
-- deferred character macros for group scenarios
+- deferred character macro second-pass behavior for group scenarios, if prompt
+  assembly later needs to resolve shared text before a target companion is known
+
+Unsupported legacy or future macros such as `{{original}}` are not part of the
+active catalog and should not be shown as insertable syntax.

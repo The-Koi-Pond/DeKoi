@@ -1,9 +1,7 @@
 import type { ResolveMacroOptions } from "../macro-types";
+import { RANDOM_COLON_PREFIX, RANDOM_DOUBLE_COLON_PREFIX, ROLL_PREFIX } from "../macro-definitions";
 import { findMacroSpanClose } from "../macro-spans";
 
-const RANDOM_DOUBLE_COLON_PREFIX = "random::";
-const RANDOM_COLON_PREFIX = "random:";
-const ROLL_PREFIX = "roll:";
 const MAX_DICE_COUNT = 1000;
 const MAX_DICE_SIDES = 1_000_000;
 const MAX_RANDOM_STRUCTURAL_DEPTH = 64;
