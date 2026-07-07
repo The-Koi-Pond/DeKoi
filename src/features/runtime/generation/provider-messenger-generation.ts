@@ -2,7 +2,6 @@ import type { MessengerGenerationAdapter } from "../../../engine/generation/mess
 import { generateWithConfiguredProvider, providerErrorMessage } from "./provider-generation";
 
 export const providerMessengerGenerationAdapter: MessengerGenerationAdapter = {
-  providerKind: "external-provider",
   async generate(request) {
     try {
       return await generateWithConfiguredProvider(request);

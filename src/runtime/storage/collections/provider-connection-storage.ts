@@ -1,6 +1,7 @@
 import {
   PROVIDER_CONNECTION_DURABLE_FIELDS,
   PROVIDER_CONNECTION_DURABLE_FIELD_SET,
+  PROVIDER_CONNECTION_PROVIDER_OPTIONS,
   getProviderConnectionProviderOption,
   normalizeProviderConnectionProvider,
   sanitizeProviderConnectionRecord,
@@ -24,8 +25,55 @@ type ProviderConnectionSecretVerification = {
   };
 };
 
-function normalizeConnectionKind(value: unknown): ProviderConnectionKind | null {
-  return value === "remote-runtime" ? value : null;
+function hasRecognizedConnectionProvider(value: unknown): value is ProviderConnectionProvider {
+  return (
+    typeof value === "string" &&
+    PROVIDER_CONNECTION_PROVIDER_OPTIONS.some((option) => option.value === value)
+  );
+}
+
+function isNumberOrNull(value: unknown) {
+  return value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
+function isNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isValidMigratedStatus(value: unknown) {
+  return value === "ready" || value === "needs-key" || value === "needs-runtime";
+}
+
+function isValidTimestamp(value: unknown) {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+
+function canMigrateOldRuntimeKindConnection(value: Record<string, unknown>) {
+  return (
+    hasRecognizedConnectionProvider(value.provider) &&
+    isNonEmptyString(value.label) &&
+    isNonEmptyString(value.baseUrl) &&
+    isNonEmptyString(value.model) &&
+    typeof value.summary === "string" &&
+    isValidMigratedStatus(value.status) &&
+    (typeof value.modelLabel === "string" || value.modelLabel === null) &&
+    typeof value.agentDefault === "boolean" &&
+    isNumberOrNull(value.maxContext) &&
+    isNumberOrNull(value.maxOutput) &&
+    isValidTimestamp(value.createdAt) &&
+    isValidTimestamp(value.updatedAt)
+  );
+}
+
+function normalizeConnectionKind(
+  value: unknown,
+  record: Record<string, unknown>,
+): ProviderConnectionKind | null {
+  if (value === "remote-runtime") {
+    return canMigrateOldRuntimeKindConnection(record) ? "provider" : null;
+  }
+
+  return value === "provider" ? value : null;
 }
 
 function normalizeConnectionProvider(value: unknown) {
@@ -53,7 +101,7 @@ export function normalizeProviderConnectionRecord(
   if (value.schemaVersion !== 1) return null;
 
   const id = readString(value.id).trim();
-  const kind = normalizeConnectionKind(value.kind);
+  const kind = normalizeConnectionKind(value.kind, value);
   if (!kind) return null;
 
   const provider = normalizeConnectionProvider(value.provider);

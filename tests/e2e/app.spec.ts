@@ -487,7 +487,7 @@ test("messenger thread reference summary flags missing settings before send", ()
   const readyProviderConnection = {
     id: "connection-ready",
     schemaVersion: 1,
-    kind: "remote-runtime",
+    kind: "provider",
     provider: "custom",
     label: "Ready Connection",
     baseUrl: "http://localhost:11434/v1",
@@ -557,7 +557,7 @@ test("roleplay thread reference summary flags missing settings before send", () 
   const readyProviderConnection = {
     id: "connection-ready",
     schemaVersion: 1,
-    kind: "remote-runtime",
+    kind: "provider",
     provider: "custom",
     label: "Ready Connection",
     baseUrl: "http://localhost:11434/v1",
@@ -1366,7 +1366,7 @@ test("storage bundle fingerprints track normalized data but ignore export time",
   );
 });
 
-test("provider connection storage skips removed non-remote lane records", () => {
+test("provider connection storage upgrades old runtime-kind rows and skips removed lanes", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const legacyMockConnection = {
     id: "connection-legacy-mock",
@@ -1385,12 +1385,32 @@ test("provider connection storage skips removed non-remote lane records", () => 
     createdAt,
     updatedAt: createdAt,
   };
-  const remoteConnection = {
+  const oldRuntimeKindConnection = {
     ...legacyMockConnection,
-    id: "connection-remote",
+    id: "connection-old-runtime-kind",
     kind: "remote-runtime",
     provider: "openai",
     label: "Remote runtime",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    modelLabel: "gpt-4o-mini",
+  };
+  const malformedRuntimeKindConnection = {
+    ...oldRuntimeKindConnection,
+    id: "connection-malformed-runtime-kind",
+    provider: "not-a-provider",
+  };
+  const emptyFieldRuntimeKindConnection = {
+    ...oldRuntimeKindConnection,
+    id: "connection-empty-field-runtime-kind",
+    baseUrl: "",
+  };
+  const providerConnection = {
+    ...legacyMockConnection,
+    id: "connection-provider",
+    kind: "provider",
+    provider: "openai",
+    label: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
     modelLabel: "gpt-4o-mini",
@@ -1413,19 +1433,62 @@ test("provider connection storage skips removed non-remote lane records", () => 
       label: "Missing kind",
     }),
   ).toBeNull();
-  expect(
-    normalizeProviderConnectionRecord(remoteConnection, {
-      preserveReadyStatus: true,
-    }),
-  ).toEqual(
+  expect(normalizeProviderConnectionRecord(malformedRuntimeKindConnection)).toBeNull();
+  expect(normalizeProviderConnectionRecord(emptyFieldRuntimeKindConnection)).toBeNull();
+  const upgradedConnection = normalizeProviderConnectionRecord(oldRuntimeKindConnection, {
+    preserveReadyStatus: true,
+  });
+  expect(upgradedConnection).toEqual(
     expect.objectContaining({
-      id: "connection-remote",
-      kind: "remote-runtime",
+      id: "connection-old-runtime-kind",
+      kind: "provider",
       provider: "openai",
       label: "Remote runtime",
       baseUrl: "https://api.openai.com/v1",
       model: "gpt-4o-mini",
       status: "ready",
+    }),
+  );
+  expect(
+    normalizeProviderConnectionRecord(providerConnection, {
+      preserveReadyStatus: true,
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      id: "connection-provider",
+      kind: "provider",
+      provider: "openai",
+      label: "OpenAI",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      status: "ready",
+    }),
+  );
+
+  if (!upgradedConnection) {
+    throw new Error("Expected old runtime-kind provider connection to normalize.");
+  }
+
+  const thread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "thread-existing-connection",
+    now: createdAt,
+    providerConnectionId: upgradedConnection.id,
+    title: "Existing connection thread",
+  });
+  const summary = getMessengerThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [upgradedConnection],
+    thread,
+  });
+  expect(summary).toEqual(
+    expect.objectContaining({
+      hasMissingConnection: false,
+      hasNoConnectionAvailable: false,
     }),
   );
 });
@@ -1452,7 +1515,7 @@ test("provider generation readiness blocks desktop-key providers in browser mode
       {
         ...connection,
         schemaVersion: 1,
-        kind: "remote-runtime",
+        kind: "provider",
         summary: "",
         status: "ready",
         modelLabel: connection.model,
@@ -1469,7 +1532,7 @@ test("provider generation readiness blocks desktop-key providers in browser mode
     {
       id: "connection-custom",
       schemaVersion: 1,
-      kind: "remote-runtime",
+      kind: "provider",
       provider: "custom",
       label: "Local custom",
       baseUrl: "http://localhost:11434/v1",

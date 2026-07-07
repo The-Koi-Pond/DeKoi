@@ -15,7 +15,6 @@ import {
   createRoleplayGenerationRequestAssembly,
   type RoleplayGenerationResponse,
 } from "../../../engine/generation/roleplay-generation";
-import type { GenerationRuntimeMode } from "./generation-runtime";
 import { createGeneratedDraftRecords } from "./generated-draft-records";
 import {
   compactGenerationLoreRuntimeState,
@@ -42,7 +41,6 @@ export interface GenerateRoleplayThreadTurnInput {
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
-  mode?: GenerationRuntimeMode;
   parameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -61,9 +59,7 @@ export interface GenerateRoleplayThreadTurnResult {
 
 async function generateRoleplayResponse(
   request: ProviderGenerationRequest,
-  mode: GenerationRuntimeMode = "remote-runtime",
 ): Promise<RoleplayGenerationResponse> {
-  void mode;
   try {
     return await generateWithConfiguredProvider(request);
   } catch (error) {
@@ -81,7 +77,6 @@ export async function generateRoleplayThreadTurn({
   lorebooks,
   loreRuntimeState,
   macroVariableStates = [],
-  mode = "remote-runtime",
   now,
   parameters,
   personas,
@@ -118,7 +113,7 @@ export async function generateRoleplayThreadTurn({
     parameters,
   });
   const request = requestAssembly.request;
-  const response = await generateRoleplayResponse(request, mode);
+  const response = await generateRoleplayResponse(request);
   const draftRecords = createGeneratedDraftRecords({
     companions: context.companions,
     createRecord: ({ body, companion, id, now }) =>

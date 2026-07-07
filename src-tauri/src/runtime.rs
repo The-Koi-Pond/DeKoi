@@ -628,7 +628,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         return Ok(serde_json::json!({
             "schemaVersion": 1,
             "requestId": request_id,
-            "providerKind": "external-provider",
+            "source": "provider-transport",
             "createdAt": read_string_field(request, "createdAt"),
             "messages": [],
             "warnings": ["No companion is available for this thread."]
@@ -728,7 +728,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         return Ok(serde_json::json!({
             "schemaVersion": 1,
             "requestId": request_id,
-            "providerKind": "external-provider",
+            "source": "provider-transport",
             "createdAt": read_string_field(request, "createdAt"),
             "messages": [],
             "warnings": [empty_warning]
@@ -738,7 +738,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
     Ok(serde_json::json!({
         "schemaVersion": 1,
         "requestId": request_id,
-        "providerKind": "external-provider",
+        "source": "provider-transport",
         "createdAt": read_string_field(request, "createdAt"),
         "messages": [
             {

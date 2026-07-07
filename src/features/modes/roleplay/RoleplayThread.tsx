@@ -13,10 +13,9 @@ import { copyTextToClipboard } from "../../../shared/browser/clipboard";
 import {
   describeGenerationFailureNotice,
   describeGenerationReadinessFailure,
+  describeGenerationTransport,
   generateRoleplayThreadTurn,
   getGenerationConnectionReadiness,
-  getGenerationModeForConnection,
-  selectGenerationRuntime,
 } from "../../runtime";
 import { commitGenerationMacroVariableStates } from "../../../engine/macro-variables/macro-variable-actions";
 import type {
@@ -134,8 +133,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
-  const generationMode = getGenerationModeForConnection(threadConnection);
-  const generationRuntime = selectGenerationRuntime(generationMode);
+  const generationTransport = describeGenerationTransport();
   const isGenerating =
     generationState.threadId === activeThreadId && generationState.status === "generating";
   const visibleGenerationStatus =
@@ -344,8 +342,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     }
 
     const commitConnection = connectionReadiness.connection;
-    const sendMode = getGenerationModeForConnection(commitConnection);
-    const sendRuntime = selectGenerationRuntime(sendMode);
+    const sendTransport = describeGenerationTransport();
     const sendPersona = commitThread.activePersonaId
       ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
       : null;
@@ -370,7 +367,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     setGenerationState({
       threadId: commitThread.id,
       status: "generating",
-      message: `Generating through ${sendRuntime.label}.`,
+      message: `Generating through ${sendTransport.label}.`,
       action: null,
     });
 
@@ -383,7 +380,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         lorebooks: nav.lorebooks,
         loreRuntimeState: nav.getLoreRuntimeState("roleplay-thread", threadWithUserEntry.id),
         macroVariableStates: nav.macroVariableStates,
-        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
@@ -439,7 +435,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
           : (() => {
               const notice = describeGenerationFailureNotice(
                 result.warnings[0] ?? "",
-                `${sendRuntime.label} did not return a Roleplay reply.`,
+                `${sendTransport.label} did not return a Roleplay reply.`,
               );
               return {
                 threadId: commitThread.id,
@@ -907,12 +903,12 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
             </Fragment>
           );
         })}
-        {isGenerating && <RoleplayPendingRow label={generationRuntime.label} />}
+        {isGenerating && <RoleplayPendingRow label={generationTransport.label} />}
       </div>
 
       <GenerationNotice
         action={generationNoticeAction}
-        fallbackMessage={`${generationRuntime.label} is replying through the provider path.`}
+        fallbackMessage={`${generationTransport.label} is replying through the provider path.`}
         message={generationStatusMessage}
         onAction={handleGenerationNoticeAction}
         onDismiss={dismissGenerationNotice}
@@ -928,7 +924,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||
-              `${generationRuntime.label} is replying through the provider-neutral path.`
+              `${generationTransport.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === ROLEPLAY
               ? "Enter sends. Shift+Enter adds a new line."
               : "Enter adds a new line. Use Send to release the message.")

@@ -1,5 +1,4 @@
 import type {
-  MessengerGenerationAdapter,
   MessengerGenerationRequest,
   MessengerGenerationResponse,
 } from "../../../engine/generation/messenger-generation";
@@ -20,11 +19,7 @@ import type { MessengerMessage, MessengerThread } from "../../../engine/contract
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { createGeneratedDraftRecords } from "./generated-draft-records";
-import {
-  getGenerationModeForConnection,
-  selectGenerationRuntime,
-  type GenerationRuntimeMode,
-} from "./generation-runtime";
+import { describeGenerationTransport } from "./generation-transport";
 import {
   compactGenerationLoreRuntimeState,
   createGenerationLoreRuntimeState,
@@ -34,14 +29,6 @@ import {
   type MacroVariableStateCommit,
 } from "../../../engine/macro-variables/macro-variable-actions";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
-
-export type MessengerGenerationRuntimeMode = GenerationRuntimeMode;
-
-export interface MessengerGenerationRuntimeSnapshot {
-  mode: MessengerGenerationRuntimeMode;
-  label: string;
-  adapter: MessengerGenerationAdapter;
-}
 
 export interface GenerateMessengerThreadReplyInput {
   thread: MessengerThread;
@@ -55,7 +42,6 @@ export interface GenerateMessengerThreadReplyInput {
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
-  mode?: MessengerGenerationRuntimeMode;
   parameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -70,35 +56,14 @@ export interface GenerateMessengerThreadReplyResult {
   generatedMessages: MessengerMessage[];
   loreRuntimeState: LoreRuntimeState | null;
   macroVariableCommit: MacroVariableStateCommit;
-  runtimeMode: MessengerGenerationRuntimeMode;
   runtimeLabel: string;
   warnings: string[];
 }
 
-export function selectMessengerGenerationRuntime(
-  mode: MessengerGenerationRuntimeMode = "remote-runtime",
-): MessengerGenerationRuntimeSnapshot {
-  const runtime = selectGenerationRuntime(mode);
-
-  return {
-    mode: runtime.mode,
-    label: runtime.label,
-    adapter: providerMessengerGenerationAdapter,
-  };
-}
-
-export function getMessengerGenerationModeForConnection(
-  connection: ProviderConnectionRecord | null | undefined,
-): MessengerGenerationRuntimeMode {
-  return getGenerationModeForConnection(connection);
-}
-
 async function generateMessengerResponse(
   request: MessengerGenerationRequest,
-  mode: MessengerGenerationRuntimeMode = "remote-runtime",
 ): Promise<MessengerGenerationResponse> {
-  const runtime = selectMessengerGenerationRuntime(mode);
-  return runtime.adapter.generate(request);
+  return providerMessengerGenerationAdapter.generate(request);
 }
 
 export async function generateMessengerThreadReply({
@@ -109,7 +74,6 @@ export async function generateMessengerThreadReply({
   lorebooks,
   loreRuntimeState,
   macroVariableStates = [],
-  mode = "remote-runtime",
   now,
   parameters,
   personas,
@@ -117,7 +81,7 @@ export async function generateMessengerThreadReply({
   thread,
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
-  const runtime = selectMessengerGenerationRuntime(mode);
+  const generationTransport = describeGenerationTransport();
   const macroVariableSelection = buildGenerationMacroVariableState({
     macroVariableStates,
     ownerId: thread.id,
@@ -149,7 +113,7 @@ export async function generateMessengerThreadReply({
     userMessage,
   });
   const request = requestAssembly.request;
-  const response = await generateMessengerResponse(request, runtime.mode);
+  const response = await generateMessengerResponse(request);
   const draftRecords = createGeneratedDraftRecords({
     companions: context.companions,
     createRecord: ({ body, companion, id, now }) =>
@@ -184,8 +148,7 @@ export async function generateMessengerThreadReply({
       ownerKind: "messenger-thread",
       selection: macroVariableSelection,
     },
-    runtimeMode: runtime.mode,
-    runtimeLabel: runtime.label,
+    runtimeLabel: generationTransport.label,
     warnings,
   };
 }

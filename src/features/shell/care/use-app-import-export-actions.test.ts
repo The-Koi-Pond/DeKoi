@@ -75,7 +75,7 @@ function createProviderConnection(
   return {
     id,
     schemaVersion: 1,
-    kind: "remote-runtime",
+    kind: "provider",
     provider: "custom",
     label,
     baseUrl: "",
@@ -201,7 +201,7 @@ describe("prepareLegacyImportData", () => {
         {
           id: "legacy-connection",
           schemaVersion: 1,
-          kind: "remote-runtime",
+          kind: "provider",
           provider: "custom",
           label: "Local",
           baseUrl: "",

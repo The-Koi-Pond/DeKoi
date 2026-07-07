@@ -98,9 +98,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   character-macro second pass is not needed for the current selected-speaker
   architecture; reopen it only if prompt assembly must resolve shared text
   before a target companion is known.
-- Runtime generation routing is not fully symmetric yet: desktop uses the
-  desktop runtime provider path, while browser mode has a direct provider
-  fallback and remote-runtime command paths for storage/check/model commands.
+- Messenger and Roleplay generation now use provider transport directly:
+  desktop uses the desktop runtime provider path, browser mode has a direct
+  provider fallback, and remote-runtime command paths remain for storage,
+  provider checks, and model listing.
 - Roleplay now has native thread settings and send guards, but deeper
   scene-specific semantics, media, and visual-novel presentation remain early.
 - Lorebook triggers and character filters are normalized and stored, but

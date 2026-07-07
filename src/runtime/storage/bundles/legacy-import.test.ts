@@ -138,6 +138,7 @@ describe("normalizeLegacyImport", () => {
       personality: "Careful and kind.",
     });
     expect(result.preview.data.providerConnections[0]).toMatchObject({
+      kind: "provider",
       label: "OpenAI",
       baseUrl: "https://legacy.example/v1",
       model: "gpt-4o-mini",
@@ -240,7 +241,7 @@ describe("normalizeLegacyImport", () => {
     expect(result.preview.warnings).toEqual([]);
     expect(result.preview.data.providerConnections[0]).toMatchObject({
       id: "connection-local-mock",
-      kind: "remote-runtime",
+      kind: "provider",
       provider: "custom",
       label: "Local",
       baseUrl: "",

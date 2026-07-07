@@ -62,7 +62,11 @@ whole-collection save cannot silently erase the skipped records.
 
 ## Use A Remote Runtime
 
-A compatible runtime can provide storage and generation through the HTTP contract in [remote-runtime-contract.md](./remote-runtime-contract.md).
+A compatible runtime can provide storage, provider checks, and model listing
+through the HTTP contract in
+[remote-runtime-contract.md](./remote-runtime-contract.md). Messenger and
+Roleplay generation currently use the provider transport described in
+[runtime-model.md](./runtime-model.md).
 
 For the development fixture:
 

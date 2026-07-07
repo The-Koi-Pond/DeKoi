@@ -47,7 +47,7 @@ export function createProviderConnectionRecord({
   return {
     id,
     schemaVersion: 1,
-    kind: "remote-runtime",
+    kind: "provider",
     provider: provider.value,
     label: cleanText(input.label, "Unnamed connection"),
     baseUrl: cleanText(input.baseUrl),
@@ -73,7 +73,7 @@ export function updateProviderConnectionRecord(
   return {
     id: record.id,
     schemaVersion: 1,
-    kind: "remote-runtime",
+    kind: "provider",
     provider: provider.value,
     label: cleanText(input.label, record.label),
     baseUrl: cleanText(input.baseUrl),

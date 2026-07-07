@@ -36,7 +36,7 @@ import {
 } from "../generation-core/macros/macro-builtins/random-macros";
 import { cleanTextArray } from "../shared/text";
 
-export type GenerationProviderKind = "remote-runtime" | "external-provider";
+export type GenerationResponseSource = "remote-runtime" | "provider-transport";
 export type { MacroVariableMutation };
 
 export interface GenerationPromptMessage {
@@ -58,7 +58,7 @@ export interface GeneratedMessageDraft {
 export interface GenerationResponse {
   schemaVersion: 1;
   requestId: string;
-  providerKind: GenerationProviderKind;
+  source: GenerationResponseSource;
   createdAt: string;
   messages: GeneratedMessageDraft[];
   warnings: string[];
@@ -79,7 +79,6 @@ export interface GenerationRequestBase {
 }
 
 export interface GenerationAdapter<Request extends GenerationRequestBase> {
-  providerKind: GenerationProviderKind;
   generate: (request: Request) => Promise<GenerationResponse>;
 }
 

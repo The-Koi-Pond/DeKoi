@@ -1,6 +1,6 @@
 export type ProviderConnectionId = string;
 
-export type ProviderConnectionKind = "remote-runtime";
+export type ProviderConnectionKind = "provider";
 export type ProviderConnectionProvider =
   | "openai"
   | "openai_chatgpt"
@@ -207,7 +207,7 @@ export function normalizeProviderConnectionProvider(
 }
 
 function normalizeProviderConnectionKind(value: unknown): ProviderConnectionKind {
-  return value === "remote-runtime" ? value : "remote-runtime";
+  return value === "provider" ? value : "provider";
 }
 
 function normalizeProviderConnectionText(value: unknown, fallback = "") {

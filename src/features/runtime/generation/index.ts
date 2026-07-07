@@ -5,13 +5,8 @@ export {
   type GenerationFailureRecoveryTarget,
 } from "./generation-errors";
 export {
+  describeGenerationTransport,
   getGenerationConnectionReadiness,
-  getGenerationModeForConnection,
-  selectGenerationRuntime,
-} from "./generation-runtime";
+} from "./generation-transport";
 export { generateRoleplayThreadTurn } from "./roleplay-generation";
-export {
-  generateMessengerThreadReply,
-  getMessengerGenerationModeForConnection,
-  selectMessengerGenerationRuntime,
-} from "./messenger-generation";
+export { generateMessengerThreadReply } from "./messenger-generation";
