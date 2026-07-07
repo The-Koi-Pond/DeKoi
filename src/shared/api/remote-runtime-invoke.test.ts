@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { invokeRemote } from "./remote-runtime-invoke";
-import { fetchRemoteRuntimeJson } from "./remote-runtime-http";
+import {
+  fetchRemoteRuntimeJson,
+  REMOTE_RUNTIME_COMMAND_TIMEOUT_MS,
+  REMOTE_RUNTIME_GENERATION_TIMEOUT_MS,
+} from "./remote-runtime-http";
 import { RUNTIME_COMMANDS, type RemoteRuntimeCommand } from "./runtime-commands";
 
 vi.mock("./desktop-host-common", () => ({
@@ -21,8 +25,6 @@ vi.mock("./remote-runtime-http", async (importOriginal) => {
 });
 
 const fetchRemoteRuntimeJsonMock = vi.mocked(fetchRemoteRuntimeJson);
-const commandTimeoutMs = 30_000;
-const generationTimeoutMs = 120_000;
 
 describe("invokeRemote", () => {
   beforeEach(() => {
@@ -36,7 +38,7 @@ describe("invokeRemote", () => {
     expect(fetchRemoteRuntimeJsonMock).toHaveBeenCalledWith(
       "https://runtime.test/api/invoke",
       expect.objectContaining({ method: "POST" }),
-      generationTimeoutMs,
+      REMOTE_RUNTIME_GENERATION_TIMEOUT_MS,
     );
   });
 
@@ -54,7 +56,31 @@ describe("invokeRemote", () => {
     expect(fetchRemoteRuntimeJsonMock).toHaveBeenLastCalledWith(
       "https://runtime.test/api/invoke",
       expect.objectContaining({ method: "POST" }),
-      commandTimeoutMs,
+      REMOTE_RUNTIME_COMMAND_TIMEOUT_MS,
     );
+  });
+
+  it("surfaces non-OK remote runtime errors from JSON message bodies", async () => {
+    fetchRemoteRuntimeJsonMock.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      body: { message: "Token expired." },
+    });
+
+    await expect(
+      invokeRemote(RUNTIME_COMMANDS.storageList, {}, "https://runtime.test"),
+    ).rejects.toThrow("Token expired.");
+  });
+
+  it("falls back to the HTTP status when non-OK error bodies are unreadable", async () => {
+    fetchRemoteRuntimeJsonMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      body: null,
+    });
+
+    await expect(
+      invokeRemote(RUNTIME_COMMANDS.storageList, {}, "https://runtime.test"),
+    ).rejects.toThrow("Remote runtime returned 500.");
   });
 });
