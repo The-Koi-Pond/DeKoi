@@ -51,7 +51,8 @@ Also keep these current repo files in force when relevant:
    `desktop-commands.ts` or `runtime-commands.ts` when a command contract
    changes, then run the matching contract check.
 8. Keep privileged local IO, app-data storage, provider secrets, native dialogs,
-   and desktop runtime command execution in `src-tauri`.
+   desktop runtime command execution, provider transport, and provider response
+   parsing in `src-tauri`.
 9. Split large mixed files when adding behavior would make the file broader.
 10. Update docs or skill references when a durable architecture decision changes.
 11. Report the impact area and dependent areas reviewed.

@@ -152,7 +152,11 @@ src-tauri/src/lib.rs
   Tauri setup and command registration.
 
 src-tauri/src/runtime.rs
-  Desktop runtime command execution.
+  Desktop runtime command execution and provider transport.
+
+src-tauri/src/provider_response.rs
+  Provider response text extraction and empty-response warning parsing shared by
+  the Rust desktop provider path.
 
 src-tauri/src/storage.rs
   App-data collection storage.

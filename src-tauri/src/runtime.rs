@@ -1,3 +1,6 @@
+use crate::provider_response::{
+    extract_provider_text, is_openai_compatible, provider_empty_warning,
+};
 use crate::secrets::provider_secret_read_for_scope;
 use crate::storage::{
     read_string_field, runtime_args_object, storage_create, storage_delete, storage_list,
@@ -55,143 +58,6 @@ fn append_openai_chat_completions_endpoint(base_url: &str) -> String {
     }
 
     format!("{trimmed}/v1/chat/completions")
-}
-
-fn response_shape(value: &serde_json::Value) -> String {
-    if let Some(items) = value.as_array() {
-        return format!("array({})", items.len());
-    }
-
-    if let Some(record) = value.as_object() {
-        if record.is_empty() {
-            return "object(no fields)".to_string();
-        }
-
-        let keys = record.keys().take(8).cloned().collect::<Vec<String>>();
-        let suffix = if record.len() > 8 { ", ..." } else { "" };
-        return format!("fields: {}{suffix}", keys.join(", "));
-    }
-
-    match value {
-        serde_json::Value::Null => "null".to_string(),
-        serde_json::Value::Bool(_) => "boolean".to_string(),
-        serde_json::Value::Number(_) => "number".to_string(),
-        serde_json::Value::String(_) => "string".to_string(),
-        serde_json::Value::Array(_) | serde_json::Value::Object(_) => "unknown".to_string(),
-    }
-}
-
-fn first_text(value: &serde_json::Value) -> String {
-    if let Some(text) = value.as_str() {
-        return text.to_string();
-    }
-
-    if let Some(items) = value.as_array() {
-        return items
-            .iter()
-            .map(first_text)
-            .filter(|text| !text.trim().is_empty())
-            .collect::<Vec<String>>()
-            .join("\n");
-    }
-
-    if let Some(record) = value.as_object() {
-        for key in [
-            "text",
-            "output_text",
-            "response_text",
-            "generated_text",
-            "content",
-            "parts",
-            "message",
-            "response",
-            "generation",
-            "completion",
-            "result",
-            "results",
-            "value",
-        ] {
-            if let Some(field) = record.get(key) {
-                let text = first_text(field);
-                if !text.trim().is_empty() {
-                    return text;
-                }
-            }
-        }
-    }
-
-    String::new()
-}
-
-fn first_refusal(value: &serde_json::Value) -> String {
-    if let Some(items) = value.as_array() {
-        for item in items {
-            let refusal = first_refusal(item);
-            if !refusal.is_empty() {
-                return refusal;
-            }
-        }
-        return String::new();
-    }
-
-    if let Some(record) = value.as_object() {
-        if let Some(refusal) = record.get("refusal") {
-            let text = if let Some(text) = refusal.as_str() {
-                text.trim().to_string()
-            } else {
-                first_text(refusal).trim().to_string()
-            };
-            if !text.is_empty() {
-                return text;
-            }
-        }
-
-        for key in [
-            "content", "parts", "message", "response", "output", "results", "data",
-        ] {
-            if let Some(field) = record.get(key) {
-                let refusal = first_refusal(field);
-                if !refusal.is_empty() {
-                    return refusal;
-                }
-            }
-        }
-    }
-
-    String::new()
-}
-
-fn generic_provider_text(payload: &serde_json::Value) -> String {
-    if let Some(record) = payload.as_object() {
-        for key in [
-            "message",
-            "response",
-            "response_text",
-            "output_text",
-            "output",
-            "generated_text",
-            "generation",
-            "completion",
-            "result",
-            "results",
-            "content",
-            "text",
-            "data",
-        ] {
-            if let Some(field) = record.get(key) {
-                let text = first_text(field);
-                if !text.trim().is_empty() {
-                    return text.trim().to_string();
-                }
-            }
-        }
-    }
-
-    first_text(payload).trim().to_string()
-}
-
-fn empty_provider_warning(payload: &serde_json::Value) -> String {
-    format!("Provider returned no text ({}).", response_shape(payload))
 }
 
 fn provider_connection_requires_api_key(provider: &str) -> bool {
@@ -257,111 +123,6 @@ fn provider_connection_api_key(
         Some(secret) if !secret.trim().is_empty() => Ok(secret),
         _ => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
     }
-}
-
-fn openai_text(payload: &serde_json::Value) -> String {
-    let response_text = generic_provider_text(payload);
-    if !response_text.trim().is_empty() {
-        return response_text.trim().to_string();
-    }
-
-    payload
-        .get("choices")
-        .and_then(|choices| choices.as_array())
-        .and_then(|choices| {
-            choices.iter().find_map(|choice| {
-                let text = choice
-                    .get("message")
-                    .and_then(|message| message.get("content"))
-                    .map(first_text)
-                    .filter(|text| !text.trim().is_empty())
-                    .unwrap_or_else(|| {
-                        first_text(choice.get("text").unwrap_or(&serde_json::Value::Null))
-                    });
-                (!text.trim().is_empty()).then_some(text)
-            })
-        })
-        .unwrap_or_default()
-        .trim()
-        .to_string()
-}
-
-fn provider_empty_warning(provider: &str, payload: &serde_json::Value) -> String {
-    if is_openai_compatible(provider) {
-        let first_choice = payload
-            .get("choices")
-            .and_then(|choices| choices.as_array())
-            .and_then(|choices| choices.first());
-        let refusal = first_choice.map(first_refusal).unwrap_or_default();
-        if !refusal.is_empty() {
-            return format!("Provider refused the reply: {refusal}");
-        }
-
-        let finish_reason = first_choice
-            .and_then(|choice| choice.get("finish_reason"))
-            .and_then(|reason| reason.as_str())
-            .unwrap_or("")
-            .trim();
-        if !finish_reason.is_empty() {
-            return format!("Provider returned no text (finish reason: {finish_reason}).");
-        }
-    }
-
-    if provider == "anthropic" {
-        let stop_reason = payload
-            .get("stop_reason")
-            .and_then(|reason| reason.as_str())
-            .unwrap_or("")
-            .trim();
-        if !stop_reason.is_empty() {
-            return format!("Provider returned no text (stop reason: {stop_reason}).");
-        }
-    }
-
-    if provider == "google" {
-        let block_reason = payload
-            .get("promptFeedback")
-            .and_then(|feedback| feedback.get("blockReason"))
-            .and_then(|reason| reason.as_str())
-            .unwrap_or("")
-            .trim();
-        if !block_reason.is_empty() {
-            return format!("Provider blocked the prompt ({block_reason}).");
-        }
-
-        let finish_reason = payload
-            .get("candidates")
-            .and_then(|candidates| candidates.as_array())
-            .and_then(|candidates| candidates.first())
-            .and_then(|candidate| candidate.get("finishReason"))
-            .and_then(|reason| reason.as_str())
-            .unwrap_or("")
-            .trim();
-        if !finish_reason.is_empty() {
-            return format!("Provider returned no text (finish reason: {finish_reason}).");
-        }
-    }
-
-    empty_provider_warning(payload)
-}
-
-fn google_text(payload: &serde_json::Value) -> String {
-    payload
-        .get("candidates")
-        .and_then(|candidates| candidates.as_array())
-        .and_then(|candidates| {
-            candidates.iter().find_map(|candidate| {
-                let text = first_text(candidate.get("content").unwrap_or(&serde_json::Value::Null));
-                (!text.trim().is_empty()).then_some(text)
-            })
-        })
-        .unwrap_or_default()
-        .trim()
-        .to_string()
-}
-
-fn anthropic_text(payload: &serde_json::Value) -> String {
-    generic_provider_text(payload)
 }
 
 fn system_prompt(prompt_messages: &[serde_json::Value]) -> String {
@@ -742,13 +503,6 @@ fn provider_headers(provider: &str, api_key: &str) -> Result<reqwest::header::He
     Ok(headers)
 }
 
-fn is_openai_compatible(provider: &str) -> bool {
-    matches!(
-        provider,
-        "openai" | "mistral" | "cohere" | "openrouter" | "nanogpt" | "xai" | "custom"
-    )
-}
-
 async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "generation_generate")?;
     let request = args
@@ -823,7 +577,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         )
         .await?;
         (
-            openai_text(&payload),
+            extract_provider_text(provider, &payload),
             provider_empty_warning(provider, &payload),
         )
     } else if provider == "anthropic" {
@@ -842,7 +596,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         )
         .await?;
         (
-            anthropic_text(&payload),
+            extract_provider_text(provider, &payload),
             provider_empty_warning(provider, &payload),
         )
     } else if provider == "google" {
@@ -882,7 +636,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         )
         .await?;
         (
-            google_text(&payload),
+            extract_provider_text(provider, &payload),
             provider_empty_warning(provider, &payload),
         )
     } else {
@@ -1077,33 +831,6 @@ mod tests {
         assert_eq!(
             error,
             "Provider returned HTTP 401 Unauthorized: invalid_api_key"
-        );
-    }
-
-    #[test]
-    fn openai_empty_warning_preserves_content_part_refusal() {
-        let warning = provider_empty_warning(
-            "openai",
-            &serde_json::json!({
-                "choices": [
-                    {
-                        "message": {
-                            "content": [
-                                {
-                                    "type": "refusal",
-                                    "refusal": "Cannot help with that request."
-                                }
-                            ]
-                        },
-                        "finish_reason": "stop"
-                    }
-                ]
-            }),
-        );
-
-        assert_eq!(
-            warning,
-            "Provider refused the reply: Cannot help with that request."
         );
     }
 }
