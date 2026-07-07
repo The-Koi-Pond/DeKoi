@@ -21,6 +21,29 @@ pub(crate) fn extract_provider_text(provider: &str, payload: &serde_json::Value)
     generic_provider_text(payload)
 }
 
+pub(crate) fn extract_provider_connection_check_text(
+    provider: &str,
+    payload: &serde_json::Value,
+) -> String {
+    if provider == "custom" {
+        return generic_provider_text(payload);
+    }
+
+    if is_openai_compatible(provider) {
+        return openai_choice_text(payload);
+    }
+
+    if provider == "anthropic" {
+        return anthropic_content_text(payload);
+    }
+
+    if provider == "google" {
+        return google_candidate_text(payload);
+    }
+
+    generic_provider_text(payload)
+}
+
 pub(crate) fn provider_empty_warning(provider: &str, payload: &serde_json::Value) -> String {
     if is_openai_compatible(provider) {
         let first_choice = payload
@@ -223,6 +246,10 @@ fn openai_text(payload: &serde_json::Value) -> String {
         return response_text.trim().to_string();
     }
 
+    openai_choice_text(payload)
+}
+
+fn openai_choice_text(payload: &serde_json::Value) -> String {
     payload
         .get("choices")
         .and_then(|choices| choices.as_array())
@@ -244,7 +271,25 @@ fn openai_text(payload: &serde_json::Value) -> String {
         .to_string()
 }
 
+fn anthropic_content_text(payload: &serde_json::Value) -> String {
+    payload
+        .get("content")
+        .and_then(|content| content.as_array().map(|_| first_text(content)))
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
 fn google_text(payload: &serde_json::Value) -> String {
+    let text = google_candidate_text(payload);
+    if !text.trim().is_empty() {
+        return text;
+    }
+
+    generic_provider_text(payload)
+}
+
+fn google_candidate_text(payload: &serde_json::Value) -> String {
     if let Some(candidates) = payload
         .get("candidates")
         .and_then(|candidates| candidates.as_array())
@@ -260,7 +305,7 @@ fn google_text(payload: &serde_json::Value) -> String {
             .to_string();
     }
 
-    generic_provider_text(payload)
+    String::new()
 }
 
 #[cfg(test)]

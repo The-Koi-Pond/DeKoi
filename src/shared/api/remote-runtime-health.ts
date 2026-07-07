@@ -1,9 +1,17 @@
 import { checkDesktopRuntimeHealth } from "./desktop-runtime";
-import { remoteFetchInit, remoteHeaders } from "./remote-runtime-http";
+import {
+  fetchRemoteRuntimeJson,
+  remoteHeaders,
+  REMOTE_RUNTIME_HEALTH_TIMEOUT_MS,
+} from "./remote-runtime-http";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import { isDesktopRuntimeUrl, readRemoteRuntimeUrl, remoteRuntimeTarget } from "./runtime-target";
 
 const SUPPORTED_REMOTE_RUNTIME_MARKERS = new Set(["de-koi-server", "de-koi-desktop"]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
 
 function isSupportedRemoteRuntime(value: unknown): boolean {
   return typeof value === "string" && SUPPORTED_REMOTE_RUNTIME_MARKERS.has(value);
@@ -32,12 +40,14 @@ export async function checkRemoteRuntimeHealth(
   }
 
   try {
-    const response = await fetch(
+    const response = await fetchRemoteRuntimeJson(
       `${target.baseUrl}/health?probe=1`,
-      remoteFetchInit({
+      {
         method: "GET",
         headers: remoteHeaders(target, { accept: "application/json" }),
-      }),
+      },
+      REMOTE_RUNTIME_HEALTH_TIMEOUT_MS,
+      { shouldReadBody: (healthResponse) => healthResponse.ok },
     );
 
     if (!response.ok) {
@@ -47,7 +57,7 @@ export async function checkRemoteRuntimeHealth(
       };
     }
 
-    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    const body = isRecord(response.body) ? response.body : null;
     if (!body || body.ok !== true || !isSupportedRemoteRuntime(body.runtime)) {
       return {
         status: "unreachable",
