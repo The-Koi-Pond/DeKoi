@@ -15,12 +15,19 @@ import {
   type SupportedMacro,
   type SupportedMacroCategory,
 } from "../../../engine/generation-core/macros/macro-engine";
-import { insertMacroText, type CatalogTextSelectionRange } from "./catalogMacroText";
+import {
+  insertMacroText,
+  resolveCatalogMacroPreview,
+  type CatalogMacroPreviewContext,
+  type CatalogTextSelectionRange,
+} from "./catalogMacroText";
 
 type CatalogMacroTextareaProps = Omit<
   TextareaHTMLAttributes<HTMLTextAreaElement>,
   "onChange" | "value"
 > & {
+  previewContext?: CatalogMacroPreviewContext | null;
+  previewLabel?: string;
   value: string;
   onValueChange: (value: string) => void;
 };
@@ -61,16 +68,26 @@ export function CatalogMacroTextarea({
   onFocus,
   onKeyUp,
   onSelect,
+  previewContext = null,
+  previewLabel = "Preview",
   onValueChange,
   value,
   ...textareaProps
 }: CatalogMacroTextareaProps) {
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [textFocused, setTextFocused] = useState(Boolean(textareaProps.autoFocus));
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSelectionRef = useRef<TextSelectionSnapshot | null>(null);
   const browserId = `${id ?? "catalog"}-macro-browser`;
+  const previewId = `${id ?? "catalog"}-macro-preview`;
   const groups = useMemo(() => groupedMacros(query.trim().toLowerCase()), [query]);
+  const previewEnabled = previewContext !== null && (textFocused || browserOpen);
+  const preview = useMemo(
+    () =>
+      previewEnabled && previewContext ? resolveCatalogMacroPreview(value, previewContext) : null,
+    [previewContext, previewEnabled, value],
+  );
 
   function rememberSelection(textarea: HTMLTextAreaElement) {
     lastSelectionRef.current = {
@@ -92,6 +109,7 @@ export function CatalogMacroTextarea({
 
   function handleTextBlur(event: FocusEvent<HTMLTextAreaElement>) {
     rememberSelection(event.currentTarget);
+    setTextFocused(false);
     onBlur?.(event);
   }
 
@@ -102,6 +120,7 @@ export function CatalogMacroTextarea({
 
   function handleTextFocus(event: FocusEvent<HTMLTextAreaElement>) {
     rememberSelection(event.currentTarget);
+    setTextFocused(true);
     onFocus?.(event);
   }
 
@@ -191,6 +210,14 @@ export function CatalogMacroTextarea({
         onKeyUp={handleTextKeyUp}
         onSelect={handleTextSelect}
       />
+      {preview !== null && (
+        <div className="catalog-macro-preview" id={previewId}>
+          <span className="catalog-macro-preview-label">{previewLabel}</span>
+          <output className="catalog-macro-preview-output">
+            {preview.trim() ? preview : "Empty result"}
+          </output>
+        </div>
+      )}
     </div>
   );
 }

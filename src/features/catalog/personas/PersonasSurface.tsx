@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { PersonaNoteRole, PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
 import type {
@@ -9,6 +9,7 @@ import type {
 } from "../../navigation";
 import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
+import { createPersonaCatalogMacroPreviewContext } from "../shared/catalogMacroPreviewContext";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -165,6 +166,10 @@ function PersonaEditor({
   onSave,
 }: PersonaEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
+  const macroPreviewContext = useMemo(
+    () => createPersonaCatalogMacroPreviewContext(draftToInput(draft)),
+    [draft],
+  );
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
 
   function handleSave() {
@@ -224,6 +229,7 @@ function PersonaEditor({
                 rows={5}
                 value={draft.description}
                 onValueChange={(description) => setDraft({ ...draft, description })}
+                previewContext={macroPreviewContext}
                 placeholder="Persona description"
               />
             </div>
@@ -235,6 +241,7 @@ function PersonaEditor({
                 rows={3}
                 value={draft.personality}
                 onValueChange={(personality) => setDraft({ ...draft, personality })}
+                previewContext={macroPreviewContext}
                 placeholder="Brief personality"
               />
             </div>
@@ -246,6 +253,7 @@ function PersonaEditor({
                 rows={3}
                 value={draft.scenario}
                 onValueChange={(scenario) => setDraft({ ...draft, scenario })}
+                previewContext={macroPreviewContext}
                 placeholder="Dialogue context"
               />
             </div>
@@ -262,6 +270,7 @@ function PersonaEditor({
                   rows={4}
                   value={draft.systemPrompt}
                   onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
+                  previewContext={macroPreviewContext}
                   placeholder="Optional system prompt"
                 />
               </div>
@@ -275,6 +284,7 @@ function PersonaEditor({
                   onValueChange={(postHistoryInstructions) =>
                     setDraft({ ...draft, postHistoryInstructions })
                   }
+                  previewContext={macroPreviewContext}
                   placeholder="Optional post-history instructions"
                 />
               </div>
@@ -287,6 +297,7 @@ function PersonaEditor({
                 rows={3}
                 value={draft.characterNote}
                 onValueChange={(characterNote) => setDraft({ ...draft, characterNote })}
+                previewContext={macroPreviewContext}
                 placeholder="Optional static note"
               />
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CharacterNoteRole, CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
 import type {
@@ -9,6 +9,7 @@ import type {
 } from "../../navigation";
 import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
+import { createCharacterCatalogMacroPreviewContext } from "../shared/catalogMacroPreviewContext";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -192,6 +193,10 @@ function CompanionEditor({
   onSave,
 }: CompanionEditorProps) {
   const [draft, setDraft] = useState<DraftState>(initialDraft);
+  const macroPreviewContext = useMemo(
+    () => createCharacterCatalogMacroPreviewContext(draftToInput(draft)),
+    [draft],
+  );
   const hasPendingChanges = !draftsMatch(draft, initialDraft);
 
   function handleSave() {
@@ -251,6 +256,7 @@ function CompanionEditor({
                 rows={5}
                 value={draft.description}
                 onValueChange={(description) => setDraft({ ...draft, description })}
+                previewContext={macroPreviewContext}
                 placeholder="Character description"
               />
             </div>
@@ -262,6 +268,7 @@ function CompanionEditor({
                 rows={3}
                 value={draft.personality}
                 onValueChange={(personality) => setDraft({ ...draft, personality })}
+                previewContext={macroPreviewContext}
                 placeholder="Brief personality"
               />
             </div>
@@ -273,6 +280,7 @@ function CompanionEditor({
                 rows={3}
                 value={draft.scenario}
                 onValueChange={(scenario) => setDraft({ ...draft, scenario })}
+                previewContext={macroPreviewContext}
                 placeholder="Dialogue context"
               />
             </div>
@@ -323,6 +331,7 @@ function CompanionEditor({
                 rows={7}
                 value={draft.exampleMessages}
                 onValueChange={(exampleMessages) => setDraft({ ...draft, exampleMessages })}
+                previewContext={macroPreviewContext}
                 placeholder="<START>"
               />
             </div>
@@ -339,6 +348,7 @@ function CompanionEditor({
                   rows={4}
                   value={draft.systemPrompt}
                   onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
+                  previewContext={macroPreviewContext}
                   placeholder="Optional system prompt"
                 />
               </div>
@@ -352,6 +362,7 @@ function CompanionEditor({
                   onValueChange={(postHistoryInstructions) =>
                     setDraft({ ...draft, postHistoryInstructions })
                   }
+                  previewContext={macroPreviewContext}
                   placeholder="Optional post-history instructions"
                 />
               </div>
@@ -364,6 +375,7 @@ function CompanionEditor({
                 rows={3}
                 value={draft.characterNote}
                 onValueChange={(characterNote) => setDraft({ ...draft, characterNote })}
+                previewContext={macroPreviewContext}
                 placeholder="Optional static note"
               />
             </div>

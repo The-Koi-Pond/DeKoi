@@ -113,7 +113,10 @@ Focused checks for narrow changes are mapped to change types in
   still early.
 - In macro-resolved Companion and Persona multiline fields, and in Lorebook
   entry body editors, use the Macros button to browse and insert currently
-  supported prompt macro syntax. Companion greeting fields stay plain text today.
+  supported prompt macro syntax. Companion and Persona fields show an inline
+  preview while the field is active or the Macros browser is open; Lorebook entry
+  bodies remain insert-only because their preview needs active generation
+  context. Companion greeting fields stay plain text today.
 - Use Pond Care > Data & Backup to confirm the selected runtime path.
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.

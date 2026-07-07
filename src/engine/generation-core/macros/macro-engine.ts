@@ -86,6 +86,25 @@ export function resolveMacros(
   return finalizeResult(template, options);
 }
 
+/** Creates a preview-safe macro context copy without caller-owned mutation logs. */
+export function createScratchMacroContext(context: MacroContext): MacroContext {
+  const scratchContext = {
+    ...context,
+    variables: { ...context.variables },
+  };
+  delete scratchContext.variableMutations;
+  return scratchContext;
+}
+
+/** Resolves macros against a scratch context so variable macros do not mutate the caller. */
+export function resolveMacrosWithScratchContext(
+  template: string,
+  context: MacroContext,
+  options: ResolveMacroOptions = {},
+) {
+  return resolveMacros(template, createScratchMacroContext(context), options);
+}
+
 export type { MacroContext, MacroVariableMutation, ResolveMacroOptions } from "./macro-types";
 export { SUPPORTED_MACRO_CATEGORIES, SUPPORTED_MACROS } from "./macro-catalog";
 export type { SupportedMacro, SupportedMacroCategory } from "./macro-catalog";
