@@ -214,10 +214,12 @@ DeKoi field names only; old aliases such as `name`, `shortName`, `summary`,
 `url`, legacy provider labels, and removed provider kinds belong in the one-way
 legacy import adapter instead of durable load/save paths.
 Native provider connection rows and DeKoi storage bundles must use
-`kind: "provider"`. Rows with the old provider-connection kind
-`"remote-runtime"` are treated as stale local-development data on the native
-load path and are rejected rather than migrated in place. Use legacy import to
-convert those rows, or reset/recreate the provider-connections collection.
+`kind: "provider"`. The native load path accepts the old
+provider-connection kind `"remote-runtime"` only as a narrow boundary migration:
+valid rows are normalized to `kind: "provider"` with their IDs preserved, so
+existing thread references still resolve. Removed provider lanes such as
+`mock`, `local`, or missing `kind` still reject on the native load path. Wider
+alias and shape cleanup belongs in the one-way legacy import adapter.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public

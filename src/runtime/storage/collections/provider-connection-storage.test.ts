@@ -5,24 +5,66 @@ import { normalizeProviderConnectionRecord } from "./provider-connection-storage
 const now = "2026-07-06T00:00:00.000Z";
 
 describe("normalizeProviderConnectionRecord", () => {
-  it("rejects old runtime-kind provider rows on the native load path", () => {
-    expect(
-      normalizeProviderConnectionRecord({
+  it("migrates old remote-runtime provider rows to the native provider kind", () => {
+    const record = normalizeProviderConnectionRecord(
+      {
         id: "connection-1",
         schemaVersion: 1,
         kind: "remote-runtime",
-        provider: "openai",
-        label: "Remote runtime",
-        baseUrl: "",
-        model: "Mock adapter",
-        summary: "Legacy configured runtime.",
+        provider: "custom",
+        label: "Local provider",
+        baseUrl: "http://localhost:11434/v1",
+        model: "local-model",
+        summary: "Existing saved connection.",
         status: "ready",
-        modelLabel: "Mock adapter",
+        modelLabel: "local-model",
         agentDefault: false,
         maxContext: null,
         maxOutput: null,
         createdAt: now,
         updatedAt: now,
+      },
+      { preserveReadyStatus: true },
+    );
+
+    expect(record).toEqual(
+      expect.objectContaining({
+        id: "connection-1",
+        kind: "provider",
+        provider: "custom",
+        label: "Local provider",
+        baseUrl: "http://localhost:11434/v1",
+        model: "local-model",
+        status: "ready",
+      }),
+    );
+  });
+
+  it("rejects removed or missing provider lanes on the native load path", () => {
+    const baseConnection = {
+      id: "connection-removed",
+      schemaVersion: 1,
+      provider: "custom",
+      label: "Removed lane",
+      baseUrl: "",
+      model: "",
+      summary: "",
+      status: "ready",
+      modelLabel: null,
+      agentDefault: false,
+      maxContext: null,
+      maxOutput: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    expect(normalizeProviderConnectionRecord({ ...baseConnection, kind: "mock" })).toBeNull();
+    expect(normalizeProviderConnectionRecord({ ...baseConnection, kind: "local" })).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseConnection,
+        kind: undefined,
+        id: "connection-missing-kind",
       }),
     ).toBeNull();
   });

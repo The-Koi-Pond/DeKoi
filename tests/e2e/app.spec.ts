@@ -1366,7 +1366,7 @@ test("storage bundle fingerprints track normalized data but ignore export time",
   );
 });
 
-test("provider connection storage skips removed non-provider lane records", () => {
+test("provider connection storage upgrades old runtime-kind rows and skips removed lanes", () => {
   const createdAt = "2026-06-28T00:00:00.000Z";
   const legacyMockConnection = {
     id: "connection-legacy-mock",
@@ -1423,7 +1423,20 @@ test("provider connection storage skips removed non-provider lane records", () =
       label: "Missing kind",
     }),
   ).toBeNull();
-  expect(normalizeProviderConnectionRecord(oldRuntimeKindConnection)).toBeNull();
+  const upgradedConnection = normalizeProviderConnectionRecord(oldRuntimeKindConnection, {
+    preserveReadyStatus: true,
+  });
+  expect(upgradedConnection).toEqual(
+    expect.objectContaining({
+      id: "connection-old-runtime-kind",
+      kind: "provider",
+      provider: "openai",
+      label: "Remote runtime",
+      baseUrl: "https://api.openai.com/v1",
+      model: "gpt-4o-mini",
+      status: "ready",
+    }),
+  );
   expect(
     normalizeProviderConnectionRecord(providerConnection, {
       preserveReadyStatus: true,
@@ -1437,6 +1450,33 @@ test("provider connection storage skips removed non-provider lane records", () =
       baseUrl: "https://api.openai.com/v1",
       model: "gpt-4o-mini",
       status: "ready",
+    }),
+  );
+
+  if (!upgradedConnection) {
+    throw new Error("Expected old runtime-kind provider connection to normalize.");
+  }
+
+  const thread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    id: "thread-existing-connection",
+    now: createdAt,
+    providerConnectionId: upgradedConnection.id,
+    title: "Existing connection thread",
+  });
+  const summary = getMessengerThreadReferenceSummary({
+    appSettings: DEFAULT_APP_SETTINGS,
+    characters: [],
+    lorebooks: [],
+    personas: [],
+    providerConnections: [upgradedConnection],
+    thread,
+  });
+  expect(summary).toEqual(
+    expect.objectContaining({
+      hasMissingConnection: false,
+      hasNoConnectionAvailable: false,
     }),
   );
 });

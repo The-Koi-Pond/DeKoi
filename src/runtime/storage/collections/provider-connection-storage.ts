@@ -25,6 +25,7 @@ type ProviderConnectionSecretVerification = {
 };
 
 function normalizeConnectionKind(value: unknown): ProviderConnectionKind | null {
+  if (value === "remote-runtime") return "provider";
   return value === "provider" ? value : null;
 }
 

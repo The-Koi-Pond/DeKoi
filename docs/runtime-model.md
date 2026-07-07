@@ -36,14 +36,14 @@ A provider connection is the user's saved model or service configuration:
 
 Native provider connection records use `kind: "provider"`. The old
 `"remote-runtime"` provider-connection kind is legacy source vocabulary and
-should only appear in import compatibility code or historical examples.
+should only appear in storage-boundary migration code or historical examples.
 
-Native storage and DeKoi storage bundles intentionally reject old
-`kind: "remote-runtime"` provider connection rows. During early development,
-schema cleanup favors the current DeKoi-native shape over local data
-preservation. To carry old local records forward, use the legacy import path;
-otherwise recreate provider connections or reset the provider-connections
-collection.
+Native storage and DeKoi storage bundles narrowly migrate valid old
+`kind: "remote-runtime"` provider connection rows to `kind: "provider"` while
+preserving their IDs, so existing threads keep their selected connection.
+Removed provider lanes such as `mock`, `local`, or missing `kind` still reject
+on the native load path. Wider alias and shape cleanup belongs in the one-way
+legacy import path.
 
 ## Generation Transport
 
