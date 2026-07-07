@@ -40,10 +40,11 @@ should only appear in storage-boundary migration code or historical examples.
 
 Native storage and DeKoi storage bundles narrowly migrate valid old
 `kind: "remote-runtime"` provider connection rows to `kind: "provider"` while
-preserving their IDs, so existing threads keep their selected connection.
-Removed provider lanes such as `mock`, `local`, or missing `kind` still reject
-on the native load path. Wider alias and shape cleanup belongs in the one-way
-legacy import path.
+preserving their IDs, so existing threads keep their selected connection. The
+old row must still have a recognized provider and native provider fields.
+Removed provider lanes such as `mock`, `local`, malformed `remote-runtime`, or
+missing `kind` still reject on the native load path. Wider alias and shape
+cleanup belongs in the one-way legacy import path.
 
 ## Generation Transport
 

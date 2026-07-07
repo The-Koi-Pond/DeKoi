@@ -1395,6 +1395,11 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
     model: "gpt-4o-mini",
     modelLabel: "gpt-4o-mini",
   };
+  const malformedRuntimeKindConnection = {
+    ...oldRuntimeKindConnection,
+    id: "connection-malformed-runtime-kind",
+    provider: "not-a-provider",
+  };
   const providerConnection = {
     ...legacyMockConnection,
     id: "connection-provider",
@@ -1423,6 +1428,7 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
       label: "Missing kind",
     }),
   ).toBeNull();
+  expect(normalizeProviderConnectionRecord(malformedRuntimeKindConnection)).toBeNull();
   const upgradedConnection = normalizeProviderConnectionRecord(oldRuntimeKindConnection, {
     preserveReadyStatus: true,
   });

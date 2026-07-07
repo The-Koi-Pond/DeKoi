@@ -69,6 +69,51 @@ describe("normalizeProviderConnectionRecord", () => {
     ).toBeNull();
   });
 
+  it("rejects malformed old remote-runtime rows instead of defaulting them", () => {
+    const baseOldConnection = {
+      id: "connection-old-runtime",
+      schemaVersion: 1,
+      kind: "remote-runtime",
+      provider: "custom",
+      label: "Local provider",
+      baseUrl: "http://localhost:11434/v1",
+      model: "local-model",
+      summary: "Existing saved connection.",
+      status: "ready",
+      modelLabel: "local-model",
+      agentDefault: false,
+      maxContext: null,
+      maxOutput: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        provider: "not-a-provider",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        provider: undefined,
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        label: undefined,
+      }),
+    ).toBeNull();
+    expect(
+      normalizeProviderConnectionRecord({
+        ...baseOldConnection,
+        createdAt: "not-a-date",
+      }),
+    ).toBeNull();
+  });
+
   it("does not read legacy provider aliases on the native load path", () => {
     const record = normalizeProviderConnectionRecord({
       id: "connection-1",
