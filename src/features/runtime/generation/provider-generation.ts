@@ -15,7 +15,7 @@ import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
 import { errorMessage } from "../../../shared/errors";
 
 type ProviderJson = Record<string, unknown>;
-type ProviderTextResult = {
+export type ProviderTextResult = {
   text: string;
   warning?: string;
 };
@@ -222,26 +222,29 @@ function firstText(value: unknown): string {
   if (Array.isArray(value)) {
     return value
       .map((item) => firstText(item))
-      .filter(Boolean)
+      .filter((text) => text.trim().length > 0)
       .join("\n");
   }
 
   if (isRecord(value)) {
-    return (
-      firstText(value.text) ||
-      firstText(value.output_text) ||
-      firstText(value.response_text) ||
-      firstText(value.generated_text) ||
-      firstText(value.content) ||
-      firstText(value.parts) ||
-      firstText(value.message) ||
-      firstText(value.response) ||
-      firstText(value.generation) ||
-      firstText(value.completion) ||
-      firstText(value.result) ||
-      firstText(value.results) ||
-      firstText(value.value)
-    );
+    for (const key of [
+      "text",
+      "output_text",
+      "response_text",
+      "generated_text",
+      "content",
+      "parts",
+      "message",
+      "response",
+      "generation",
+      "completion",
+      "result",
+      "results",
+      "value",
+    ]) {
+      const text = firstText(value[key]);
+      if (text.trim()) return text;
+    }
   }
 
   return "";
@@ -273,21 +276,26 @@ function firstRefusal(value: unknown): string {
 function genericProviderText(payload: unknown) {
   if (!isRecord(payload)) return firstText(payload).trim();
 
-  return (
-    firstText(payload.message) ||
-    firstText(payload.response) ||
-    firstText(payload.response_text) ||
-    firstText(payload.output_text) ||
-    firstText(payload.output) ||
-    firstText(payload.generated_text) ||
-    firstText(payload.generation) ||
-    firstText(payload.completion) ||
-    firstText(payload.result) ||
-    firstText(payload.results) ||
-    firstText(payload.content) ||
-    firstText(payload.text) ||
-    firstText(payload.data)
-  ).trim();
+  for (const key of [
+    "message",
+    "response",
+    "response_text",
+    "output_text",
+    "output",
+    "generated_text",
+    "generation",
+    "completion",
+    "result",
+    "results",
+    "content",
+    "text",
+    "data",
+  ]) {
+    const text = firstText(payload[key]).trim();
+    if (text) return text;
+  }
+
+  return firstText(payload).trim();
 }
 
 function emptyProviderWarning(payload: unknown) {
@@ -295,12 +303,12 @@ function emptyProviderWarning(payload: unknown) {
 }
 
 function openAiText(payload: unknown): ProviderTextResult {
+  const responseText = genericProviderText(payload);
+  if (responseText.trim()) return { text: responseText.trim() };
+
   if (!isRecord(payload)) {
     return { text: "", warning: emptyProviderWarning(payload) };
   }
-
-  const responseText = genericProviderText(payload);
-  if (responseText.trim()) return { text: responseText.trim() };
 
   if (!Array.isArray(payload.choices)) {
     return { text: "", warning: emptyProviderWarning(payload) };
@@ -329,11 +337,12 @@ function openAiText(payload: unknown): ProviderTextResult {
 }
 
 function anthropicText(payload: unknown): ProviderTextResult {
+  const text = genericProviderText(payload);
+  if (text) return { text };
+
   if (!isRecord(payload)) {
     return { text: "", warning: emptyProviderWarning(payload) };
   }
-  const text = genericProviderText(payload);
-  if (text) return { text };
 
   const stopReason = readString(payload.stop_reason).trim();
   return {
@@ -377,6 +386,17 @@ function googleText(payload: unknown): ProviderTextResult {
       ? `Provider returned no text (finish reason: ${finishReason}).`
       : emptyProviderWarning(payload),
   };
+}
+
+export function extractProviderTextResult(
+  provider: ProviderConnectionProvider,
+  payload: unknown,
+): ProviderTextResult {
+  if (openAiCompatibleProviders(provider)) return openAiText(payload);
+  if (provider === "anthropic") return anthropicText(payload);
+  if (provider === "google") return googleText(payload);
+
+  throw new Error(`${provider} is not supported by the bare-minimum provider adapter yet.`);
 }
 
 function stripSpeakerPrefix(body: string, speakerName: string | null) {
@@ -459,7 +479,7 @@ async function generateWithBrowserProvider(
         max_tokens: maxTokens,
       },
     );
-    return createProviderResponse(request, openAiText(payload));
+    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
   }
 
   if (connection.provider === "anthropic") {
@@ -471,7 +491,7 @@ async function generateWithBrowserProvider(
       top_p: topP,
       max_tokens: maxTokens,
     });
-    return createProviderResponse(request, anthropicText(payload));
+    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
   }
 
   if (connection.provider === "google") {
@@ -495,7 +515,7 @@ async function generateWithBrowserProvider(
         },
       },
     );
-    return createProviderResponse(request, googleText(payload));
+    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
   }
 
   throw new Error(

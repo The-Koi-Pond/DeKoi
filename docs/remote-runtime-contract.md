@@ -226,6 +226,19 @@ do not contain saved keys. The desktop runtime may resolve a saved key by
 matches the connection provider and base URL. Remote HTTP runtimes should not
 infer saved secrets from DeKoi storage records.
 
+The built-in direct provider paths currently support `openai`, `anthropic`,
+`google`, `mistral`, `cohere`, `openrouter`, `nanogpt`, `xai`, and `custom`.
+The desktop runtime uses that matrix for provider checks, model listing,
+generation request shaping, and response extraction; the browser fallback uses
+it for generation request shaping and response extraction. `mistral`, `cohere`,
+`openrouter`, `nanogpt`, `xai`, and `custom` use the OpenAI-compatible chat
+completions path. Non-direct aliases such as `openai_chatgpt`,
+`claude_subscription`, and `google_vertex` are valid provider connection record
+values, but the built-in direct provider adapter rejects them until a dedicated
+transport exists. A remote HTTP runtime may still implement its own
+`generation_generate` behavior for any provider value as long as it returns the
+normalized DeKoi response shape below.
+
 ## `generation_generate`
 
 The request may carry Messenger or Roleplay native fields for local context.
@@ -409,7 +422,17 @@ runtime response warnings first, then unknown companion draft warnings, then
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
 browser OpenAI-compatible parsing preserve refusal text from either a top-level
-message refusal or a refusal content part.
+message refusal, a refusal content part, or a refusal nested under common
+content, parts, message, response, output, results, or data fields. The built-in
+adapters also surface provider-specific empty-response warnings for OpenAI-style
+`finish_reason`, Anthropic `stop_reason`, and Google `promptFeedback.blockReason`
+or candidate `finishReason` values.
+
+Provider response extraction parity is guarded by
+`test-fixtures/provider-response-parity.json` with `schemaVersion: 1`. Update
+that fixture when adding supported response shapes or changing empty-response
+warning text; both the TypeScript browser adapter and Rust desktop adapter read
+the same fixture.
 
 Provider connection records in generation requests do not include saved API key
 material. Desktop generation resolves saved keys through the desktop provider

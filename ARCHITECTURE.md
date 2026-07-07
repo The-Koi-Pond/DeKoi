@@ -64,7 +64,7 @@ Use the prior architecture skeleton in DeKoi-owned terms:
   feature-runtime workflows. Engine code may not.
 - `src-tauri`: privileged desktop and hostable capabilities: local files,
   app-data collection storage, provider secrets, native dialogs, desktop runtime
-  dispatch, and provider transport.
+  dispatch, provider transport, and provider response parsing.
 
 ## Dependency Direction
 
@@ -198,7 +198,8 @@ architecture-level rules:
   import/export, and legacy import through shared API wrappers.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
-  status, desktop runtime dispatch, and provider transport.
+  status, desktop runtime dispatch, provider transport, and provider response
+  parsing.
 
 The file-level map lives in
 `skills/dekoi-architecture-guard/references/repo-layout.md`.

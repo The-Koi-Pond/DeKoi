@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "openai choice content string",
+      "provider": "openai",
+      "payload": {
+        "choices": [
+          {
+            "message": {
+              "content": "OpenAI reply"
+            },
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "expected": {
+        "text": "OpenAI reply"
+      }
+    },
+    {
+      "name": "openai choice content parts join with newlines",
+      "provider": "openai",
+      "payload": {
+        "choices": [
+          {
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Part one"
+                },
+                {
+                  "type": "text",
+                  "text": "Part two"
+                }
+              ]
+            },
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "expected": {
+        "text": "Part one\nPart two"
+      }
+    },
+    {
+      "name": "openai refusal warning",
+      "provider": "openai",
+      "payload": {
+        "choices": [
+          {
+            "message": {
+              "content": [
+                {
+                  "type": "refusal",
+                  "refusal": "Cannot help with that request."
+                }
+              ]
+            },
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "expected": {
+        "text": "",
+        "warning": "Provider refused the reply: Cannot help with that request."
+      }
+    },
+    {
+      "name": "openai finish reason warning",
+      "provider": "openai",
+      "payload": {
+        "choices": [
+          {
+            "finish_reason": "length"
+          }
+        ]
+      },
+      "expected": {
+        "text": "",
+        "warning": "Provider returned no text (finish reason: length)."
+      }
+    },
+    {
+      "name": "anthropic content parts",
+      "provider": "anthropic",
+      "payload": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Anthropic reply"
+          }
+        ]
+      },
+      "expected": {
+        "text": "Anthropic reply"
+      }
+    },
+    {
+      "name": "anthropic stop reason warning",
+      "provider": "anthropic",
+      "payload": {
+        "content": [],
+        "stop_reason": "max_tokens"
+      },
+      "expected": {
+        "text": "",
+        "warning": "Provider returned no text (stop reason: max_tokens)."
+      }
+    },
+    {
+      "name": "google candidate content part",
+      "provider": "google",
+      "payload": {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "Gemini reply"
+                }
+              ]
+            },
+            "finishReason": "STOP"
+          }
+        ]
+      },
+      "expected": {
+        "text": "Gemini reply"
+      }
+    },
+    {
+      "name": "google prompt block warning",
+      "provider": "google",
+      "payload": {
+        "promptFeedback": {
+          "blockReason": "SAFETY"
+        }
+      },
+      "expected": {
+        "text": "",
+        "warning": "Provider blocked the prompt (SAFETY)."
+      }
+    },
+    {
+      "name": "google generic fallback without candidates",
+      "provider": "google",
+      "payload": {
+        "text": "Gemini proxy reply"
+      },
+      "expected": {
+        "text": "Gemini proxy reply"
+      }
+    },
+    {
+      "name": "custom generic skips blank first field",
+      "provider": "custom",
+      "payload": {
+        "message": "   ",
+        "response": {
+          "content": [
+            {
+              "text": "Fallback reply"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "text": "Fallback reply"
+      }
+    },
+    {
+      "name": "custom generic falls back to nested parts",
+      "provider": "custom",
+      "payload": {
+        "parts": [
+          {
+            "text": "Parts fallback reply"
+          }
+        ]
+      },
+      "expected": {
+        "text": "Parts fallback reply"
+      }
+    },
+    {
+      "name": "custom top-level array text",
+      "provider": "custom",
+      "payload": [
+        {
+          "text": "First array reply"
+        },
+        {
+          "text": "Second array reply"
+        }
+      ],
+      "expected": {
+        "text": "First array reply\nSecond array reply"
+      }
+    }
+  ]
+}

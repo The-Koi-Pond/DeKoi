@@ -6,6 +6,7 @@ import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { isRecord, readString, readTimestamp } from "../storage-json";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import { createStorageRepository, type StorageMode } from "../storage-repository-factory";
+import type { StorageCollectionMetadata } from "../storage-repository";
 
 type MacroVariableStateStorageMode = StorageMode;
 type MacroVariableStateStorageStatus = "ready" | "error";
@@ -16,6 +17,13 @@ export type MacroVariableStateStorageSnapshot = {
   mode: MacroVariableStateStorageMode;
   status: MacroVariableStateStorageStatus;
   message: string;
+};
+
+export type MacroVariableStateStorageSaveResult = Omit<
+  MacroVariableStateStorageSnapshot,
+  "states" | "droppedRecordCount"
+> & {
+  metadata?: StorageCollectionMetadata | null;
 };
 
 function normalizeOwnerKind(value: unknown): MacroVariableScopeOwnerKind | null {
@@ -86,12 +94,13 @@ export async function loadMacroVariableStatesFromStorage(
 export async function saveMacroVariableStatesToStorage(
   states: MacroVariableScope[],
   rawUrl = readRemoteRuntimeUrl(),
-): Promise<Omit<MacroVariableStateStorageSnapshot, "states" | "droppedRecordCount">> {
+): Promise<MacroVariableStateStorageSaveResult> {
   const result = await macroVariableStateRepository.save(states, rawUrl);
 
   return {
     mode: result.mode,
     status: result.status,
     message: result.message,
+    metadata: result.metadata,
   };
 }
