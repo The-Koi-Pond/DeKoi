@@ -67,10 +67,6 @@ export function normalizeMacroVariableScope(value: unknown): MacroVariableScope 
   };
 }
 
-export function loadMacroVariableScopes() {
-  return [];
-}
-
 const macroVariableStateRepository = createStorageRepository({
   entity: STORAGE_ENTITIES.macroVariableStates,
   normalizeRecord: normalizeMacroVariableScope,
