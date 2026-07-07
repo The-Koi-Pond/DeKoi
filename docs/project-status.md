@@ -79,8 +79,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Pond Care dropped-record warnings when storage load skips unreadable records,
   with save blocking for affected collections until reload or import/restore
   clears the count.
-- One-way legacy import into native companion, persona, provider connection, and
-  Messenger records.
+- One-way legacy import into native companion, persona, provider connection,
+  Messenger, and macro variable scope records, including preview counts and
+  same-name global macro variable overwrite warnings.
 
 ## Experimental Or Incomplete
 

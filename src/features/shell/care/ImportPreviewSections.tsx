@@ -37,7 +37,7 @@ export function BundleCounts({ counts }: BundleCountsProps) {
         { value: counts.lorebookEntries, label: "lore entries" },
         { value: counts.loreRuntimeStates, label: "lore runtime states" },
         { value: counts.loreRuntimeEntries, label: "lore runtime entries" },
-        { value: counts.macroVariableStates, label: "macro variable states" },
+        { value: counts.macroVariableStates, label: "macro variable scopes" },
         { value: counts.macroVariables, label: "macro variables" },
         { value: counts.providerConnections, label: "connections" },
         { value: counts.messengerThreads, label: "threads" },
@@ -126,6 +126,8 @@ function LegacyImportCounts({ counts }: { counts: DeKoiLegacyImportPreview["coun
       items={[
         { value: counts.characters, label: "companions" },
         { value: counts.personas, label: "personas" },
+        { value: counts.macroVariableStates, label: "macro variable scopes" },
+        { value: counts.macroVariables, label: "macro variables" },
         { value: counts.providerConnections, label: "connections" },
         { value: counts.messengerThreads, label: "Messenger threads" },
         { value: counts.messengerMessages, label: "messages" },

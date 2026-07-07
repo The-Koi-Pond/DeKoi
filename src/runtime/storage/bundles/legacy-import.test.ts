@@ -61,6 +61,12 @@ describe("normalizeLegacyImport", () => {
           updatedAt: now,
         },
       ],
+      globalVariables: {
+        weather: "rain",
+        count: 3,
+        " ": "dropped",
+        nested: { unsupported: true },
+      },
       providerConnections: [
         {
           id: "legacy-connection",
@@ -88,6 +94,10 @@ describe("normalizeLegacyImport", () => {
           characterIds: ["legacy-character"],
           activePersonaId: "legacy-persona",
           providerConnectionId: "legacy-connection",
+          variables: {
+            mood: "calm",
+            active: true,
+          },
           messages: [
             {
               id: "legacy-message",
@@ -114,6 +124,8 @@ describe("normalizeLegacyImport", () => {
     expect(result.preview.counts).toMatchObject({
       characters: 1,
       personas: 1,
+      macroVariableStates: 2,
+      macroVariables: 4,
       providerConnections: 1,
       messengerThreads: 1,
       messengerMessages: 1,
@@ -132,6 +144,46 @@ describe("normalizeLegacyImport", () => {
       summary: "OpenAI-compatible chat completion provider.",
       status: "needs-key",
     });
+    expect(result.preview.data.macroVariableStates).toEqual([
+      {
+        id: "macro-variable-state-imported-global",
+        schemaVersion: 1,
+        ownerKind: "global",
+        ownerId: "global",
+        variables: {
+          weather: "rain",
+          count: "3",
+        },
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      },
+      {
+        id: "macro-variable-state-imported-thread-1",
+        schemaVersion: 1,
+        ownerKind: "messenger-thread",
+        ownerId: "legacy-thread",
+        variables: {
+          mood: "calm",
+          active: "true",
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+    expect(result.preview.data.messengerThreadMacroVariableStates).toEqual([
+      {
+        id: "macro-variable-state-imported-thread-1",
+        schemaVersion: 1,
+        ownerKind: "messenger-thread",
+        ownerId: "legacy-thread",
+        variables: {
+          mood: "calm",
+          active: "true",
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
   });
 
   it("converts legacy local mock providers into native custom connections", () => {
@@ -199,5 +251,140 @@ describe("normalizeLegacyImport", () => {
     expect(result.preview.data.messengerThreads[0]?.providerConnectionId).toBe(
       "connection-local-mock",
     );
+  });
+
+  it("imports global variable records without leaking source-native names into counts", () => {
+    const result = normalizeLegacyImport({
+      globalVariables: {
+        weather: "rain",
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.data).toMatchObject({
+      sourceLabel: "Legacy chat variables JSON",
+      macroVariableStates: [
+        {
+          id: "macro-variable-state-imported-global",
+          schemaVersion: 1,
+          ownerKind: "global",
+          ownerId: "global",
+          variables: { weather: "rain" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+    expect(result.preview.counts).toMatchObject({
+      macroVariableStates: 1,
+      macroVariables: 1,
+    });
+    expect(result.preview.data.messengerThreadMacroVariableStates).toEqual([]);
+    expect(result.preview.warnings).toEqual([]);
+  });
+
+  it("keeps thread macro variables paired by thread position for duplicate legacy IDs", () => {
+    const result = normalizeLegacyImport({
+      messengerThreads: [
+        {
+          id: "legacy-thread",
+          kind: "messenger",
+          title: "A (no variables in source)",
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "legacy-thread",
+          kind: "messenger",
+          title: "B (has variables in source)",
+          variables: {
+            mood: "happy",
+          },
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.data.messengerThreads.map((thread) => thread.title)).toEqual([
+      "A (no variables in source)",
+      "B (has variables in source)",
+    ]);
+    expect(result.preview.data.messengerThreadMacroVariableStates).toEqual([
+      null,
+      {
+        id: "macro-variable-state-imported-thread-2",
+        schemaVersion: 1,
+        ownerKind: "messenger-thread",
+        ownerId: "legacy-thread",
+        variables: { mood: "happy" },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+  });
+
+  it("merges legacy global variables with later sources taking precedence", () => {
+    const result = normalizeLegacyImport({
+      globalVariables: {
+        mood: "top-level",
+        weather: "rain",
+      },
+      messengerThreads: [
+        {
+          id: "legacy-thread-first",
+          kind: "messenger",
+          title: "First imported thread",
+          globalVariables: {
+            mood: "first-thread",
+          },
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "legacy-thread-second",
+          kind: "messenger",
+          title: "Second imported thread",
+          globalVariables: {
+            mood: "second-thread",
+            day: "Tuesday",
+          },
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.data.macroVariableStates[0]).toMatchObject({
+      ownerKind: "global",
+      ownerId: "global",
+      variables: {
+        mood: "second-thread",
+        weather: "rain",
+        day: "Tuesday",
+      },
+    });
+    expect(result.preview.counts).toMatchObject({
+      macroVariableStates: 1,
+      macroVariables: 3,
+    });
+    expect(result.preview.warnings).toEqual([]);
   });
 });

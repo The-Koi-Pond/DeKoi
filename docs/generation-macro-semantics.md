@@ -295,6 +295,13 @@ the thread scope. Deleting or clearing a thread removes its thread-scoped macro
 variable state. Preset-toggle variables are request inputs and are not persisted
 in `macro-variable-states`.
 
+Legacy import can seed the same storage collection from old `globalVariables`
+and Messenger thread `variables`. Import-time behavior does not change resolver
+precedence: thread variables still overlay global variables during generation.
+On commit, imported global keys merge into the current global scope with
+imported values taking precedence for same-name keys, while imported thread
+variables stay attached to their converted Messenger thread.
+
 ## Reserved Later Semantics
 
 This macro family is intentionally not active yet. Until its slice lands,

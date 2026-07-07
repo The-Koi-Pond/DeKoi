@@ -389,9 +389,13 @@ the partial durable state, and keeps an in-session pre-import restore available
 while the storage target remains unchanged. Restoring the in-session backup uses
 the same explicit replacement path as import commit and is blocked while another
 import, restore, active save, queued save, pending save, or unsaved signature is
-present. Legacy converted imports add native catalog, provider, and Messenger
-records to the current snapshot and use the same explicit commit path instead of
-relying on autosave.
+present. Legacy converted imports add native catalog, provider, Messenger, and
+macro variable scope records to the current snapshot and use the same explicit
+commit path instead of relying on autosave.
+Imported thread-scoped macro variable scopes are appended with their converted
+Messenger threads. Imported global macro variables are merged into the current
+global scope when one exists; same-name imported globals take precedence, and the
+preview warns before commit.
 Because that path commits a complete current snapshot, pending changes in other
 collections are persisted along with the converted records.
 
@@ -499,8 +503,19 @@ legacy source record -> DeKoi native record
 Import adapters may understand old source names. Engine records, collection
 names, UI labels, and provider requests should stay DeKoi-native.
 The current legacy import adapter can convert legacy companion, persona,
-provider-connection, and Messenger thread records, remap imported IDs before
-append, and clear imported thread provider references when the legacy provider
-record was not converted.
+provider-connection, Messenger thread, and macro variable records. Legacy
+`globalVariables` become a global `MacroVariableScope`; Messenger thread
+`variables` become thread-scoped `MacroVariableScope` records. Variable names are
+trimmed, string, number, and boolean values are converted to strings, null
+values become empty strings, and unsupported values or blank names are dropped.
+Legacy preview counts report both macro variable scopes and individual macro
+variables.
+Before append, imported IDs are remapped and imported thread provider references
+are cleared when the legacy provider record was not converted. Thread-scoped
+macro variable scopes are paired to imported Messenger threads by source
+position during preview and preparation, so duplicate legacy thread IDs and
+asymmetric variable presence keep the correct imported owner. Imported global
+variables are merged with current global variables at commit; imported same-name
+globals overwrite current values and Pond Care shows a warning before commit.
 
 Future storage direction lives in [Storage Roadmap](./storage-roadmap.md).

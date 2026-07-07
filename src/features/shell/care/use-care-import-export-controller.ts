@@ -12,6 +12,7 @@ import {
 } from "../../runtime";
 import type {
   NavCareActions,
+  NavMacroVariableState,
   NavStorageActions,
   NavStorageBundleActions,
   NavStorageState,
@@ -22,11 +23,13 @@ import { downloadJsonFile } from "../../../shared/browser/download-json";
 import { errorMessage } from "../../../shared/errors";
 import {
   createLegacyImportDataFingerprint,
+  getLegacyImportPreviewWarnings,
   prepareLegacyImportData,
 } from "./use-app-import-export-actions";
 import type { StorageImportFailureSource } from "./care-drawer-types";
 
 type CareImportExportNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
+  Pick<NavMacroVariableState, "macroVariableStates"> &
   Pick<
     NavStorageBundleActions,
     "createStorageBundle" | "importLegacyData" | "importStorageBundle"
@@ -445,6 +448,11 @@ export function useCareImportExportController({
       ...result.preview,
       data: preparedData,
       fingerprint: createLegacyImportDataFingerprint(preparedData),
+      warnings: getLegacyImportPreviewWarnings(
+        result.preview.warnings,
+        preparedData.macroVariableStates,
+        nav.macroVariableStates,
+      ),
     });
     setLegacyStatus(`Previewing ${file.name}.`);
     input.value = "";

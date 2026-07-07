@@ -505,6 +505,9 @@ depend on compatibility aliases such as catalog `name`, `shortName`, or
 `summary` fields, provider `name` or `url`, or removed provider kinds such as
 `mock`; those are handled only by the one-way legacy import adapter, not by
 normal `storage_list` or `storage_replace` normalization.
+Legacy `globalVariables` and Messenger thread `variables` are likewise converted
+only by Pond Care's one-way legacy import into `macro-variable-states`;
+compatible runtimes should not expose those legacy fields in normal records.
 
 Messenger and Roleplay transcript storage is split. `messenger-threads` records
 omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
@@ -556,6 +559,9 @@ Deleting a thread or clearing its transcript removes matching thread-scoped
 macro variable state, bundle import skips orphaned thread-scoped states, and
 missing older bundle fields are treated as empty. Future preset-toggle
 variables are request inputs and are not persisted in this collection.
+When Pond Care commits a legacy import, DeKoi has already remapped imported
+thread scopes to converted Messenger thread IDs and merged imported global
+variables with existing globals; imported same-name globals take precedence.
 
 When `generation_generate` includes resolved lorebooks, they use the same v2
 shape. Current DeKoi prompt assembly resolves lorebook sources from the
