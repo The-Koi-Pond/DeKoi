@@ -92,7 +92,8 @@ otherwise needs the baseline.
 - `src/shared`: generic UI primitives, styling tokens, browser/React helpers,
   non-product utility helpers, and focused API wrappers under `src/shared/api`.
 - `src-tauri`: Rust command registration, app-data collection storage, bundle
-  dialogs, provider secrets, host status, and the desktop runtime bridge.
+  dialogs, provider secrets, host status, desktop runtime bridge, provider
+  transport, and provider response parsing.
 - `.github/bunny-review` and `.github/workflows/bunny-review*.yml`: GitHub
   Actions Bunny Review automation. This is separate from the local
   `skills/bunny-style-review` review lens.
