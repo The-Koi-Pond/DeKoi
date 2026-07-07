@@ -1,9 +1,5 @@
+import { CONTROL_MACRO_DEFINITIONS, findLiteralMacroDefinition } from "../macro-definitions";
+
 export function resolveControlMacro(name: string) {
-  switch (name) {
-    case "noop":
-    case "banned":
-      return "";
-    default:
-      return null;
-  }
+  return findLiteralMacroDefinition(CONTROL_MACRO_DEFINITIONS, name)?.output ?? null;
 }

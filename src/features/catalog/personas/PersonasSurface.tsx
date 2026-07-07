@@ -8,6 +8,7 @@ import type {
   NavViewState,
 } from "../../navigation";
 import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
+import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import "../shared/CatalogSurface.css";
 
@@ -217,34 +218,34 @@ function PersonaEditor({
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="pers-desc">Description</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="pers-desc"
                 className="pondinput pondtextarea"
                 rows={5}
                 value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                onValueChange={(description) => setDraft({ ...draft, description })}
                 placeholder="Persona description"
               />
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="pers-personality">Personality Summary</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="pers-personality"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.personality}
-                onChange={(e) => setDraft({ ...draft, personality: e.target.value })}
+                onValueChange={(personality) => setDraft({ ...draft, personality })}
                 placeholder="Brief personality"
               />
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="pers-scenario">Scenario</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="pers-scenario"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.scenario}
-                onChange={(e) => setDraft({ ...draft, scenario: e.target.value })}
+                onValueChange={(scenario) => setDraft({ ...draft, scenario })}
                 placeholder="Dialogue context"
               />
             </div>
@@ -255,40 +256,37 @@ function PersonaEditor({
             <div className="catalog-editor-grid">
               <div className="catalog-editor-field">
                 <label htmlFor="pers-system-prompt">Main/System Prompt</label>
-                <textarea
+                <CatalogMacroTextarea
                   id="pers-system-prompt"
                   className="pondinput pondtextarea"
                   rows={4}
                   value={draft.systemPrompt}
-                  onChange={(e) => setDraft({ ...draft, systemPrompt: e.target.value })}
-                  placeholder="{{original}}"
+                  onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
+                  placeholder="Optional system prompt"
                 />
               </div>
               <div className="catalog-editor-field">
                 <label htmlFor="pers-post-history">Post-History Instructions</label>
-                <textarea
+                <CatalogMacroTextarea
                   id="pers-post-history"
                   className="pondinput pondtextarea"
                   rows={4}
                   value={draft.postHistoryInstructions}
-                  onChange={(e) =>
-                    setDraft({
-                      ...draft,
-                      postHistoryInstructions: e.target.value,
-                    })
+                  onValueChange={(postHistoryInstructions) =>
+                    setDraft({ ...draft, postHistoryInstructions })
                   }
-                  placeholder="{{original}}"
+                  placeholder="Optional post-history instructions"
                 />
               </div>
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="pers-note">Persona's Note</label>
-              <textarea
+              <CatalogMacroTextarea
                 id="pers-note"
                 className="pondinput pondtextarea"
                 rows={3}
                 value={draft.characterNote}
-                onChange={(e) => setDraft({ ...draft, characterNote: e.target.value })}
+                onValueChange={(characterNote) => setDraft({ ...draft, characterNote })}
                 placeholder="Optional static note"
               />
             </div>

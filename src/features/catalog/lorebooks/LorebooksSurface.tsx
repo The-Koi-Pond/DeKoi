@@ -23,6 +23,7 @@ import {
 } from "../../../engine/contracts/types/lorebook";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import { NullableActivationInput } from "../shared/ActivationInputs";
+import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
 import { DeleteButton } from "../shared/DeleteButton";
 import {
@@ -790,12 +791,12 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                 </div>
                 <div className="catalog-editor-field">
                   <label htmlFor="lore-body">Body</label>
-                  <textarea
+                  <CatalogMacroTextarea
                     id="lore-body"
                     className="pondinput pondtextarea"
                     rows={4}
                     value={draft.body}
-                    onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                    onValueChange={(body) => setDraft({ ...draft, body })}
                     placeholder="Entry content…"
                   />
                 </div>
