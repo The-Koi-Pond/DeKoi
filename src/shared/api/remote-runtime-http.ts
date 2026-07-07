@@ -1,4 +1,17 @@
 import type { RuntimeTarget } from "./runtime-target";
+import {
+  fetchJsonWithTimeout,
+  formatTimeoutDuration,
+  type FetchJsonWithTimeoutOptions,
+} from "./http-timeout";
+
+/** Default timeout for remote runtime commands other than generation. */
+export const REMOTE_RUNTIME_COMMAND_TIMEOUT_MS = 30_000;
+/** Longer timeout for remote runtime provider-backed generation. */
+export const REMOTE_RUNTIME_GENERATION_TIMEOUT_MS = 120_000;
+
+/** Short timeout for remote runtime health probes. */
+export const REMOTE_RUNTIME_HEALTH_TIMEOUT_MS = 5_000;
 
 export function remoteHeaders(target: RuntimeTarget, extra?: HeadersInit): HeadersInit {
   return {
@@ -8,22 +21,40 @@ export function remoteHeaders(target: RuntimeTarget, extra?: HeadersInit): Heade
   };
 }
 
-export function remoteFetchInit(init: RequestInit): RequestInit {
+function remoteFetchInit(init: RequestInit): RequestInit {
   return {
     ...init,
     cache: "no-store",
   };
 }
 
-export async function readRemoteRuntimeError(response: Response): Promise<Error> {
-  try {
-    const body = (await response.json()) as Record<string, unknown>;
-    const message =
-      typeof body.message === "string"
-        ? body.message
-        : `Remote runtime returned ${response.status}.`;
-    return new Error(message);
-  } catch {
-    return new Error(`Remote runtime returned ${response.status}.`);
-  }
+/** Fetches remote-runtime JSON with no-store caching and status-preserving body handling. */
+export async function fetchRemoteRuntimeJson(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs = REMOTE_RUNTIME_COMMAND_TIMEOUT_MS,
+  options: FetchJsonWithTimeoutOptions = {},
+): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const { response, body } = await fetchJsonWithTimeout(
+    input,
+    remoteFetchInit(init),
+    timeoutMs,
+    `Remote runtime request timed out after ${formatTimeoutDuration(timeoutMs)}.`,
+    options,
+  );
+
+  return { ok: response.ok, status: response.status, body };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Builds the surfaced runtime error, preferring a JSON message when available. */
+export function readRemoteRuntimeError(status: number, body: unknown): Error {
+  const message =
+    isRecord(body) && typeof body.message === "string"
+      ? body.message
+      : `Remote runtime returned ${status}.`;
+  return new Error(message);
 }

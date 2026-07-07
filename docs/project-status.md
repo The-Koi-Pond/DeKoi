@@ -54,6 +54,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Provider-backed generation notices in Messenger and Roleplay format common
   failures into actions for API keys, Base URL, selected model, provider support,
   and network reachability while preserving provider refusal/error detail.
+- Remote runtime health, remote invoke, and direct provider network paths have
+  bounded timeouts, including stalled response-body reads.
 - Current built-in generation macro semantics, including variable macro
   transactions, are documented and implemented as a pure TypeScript resolver
   under `src/engine/generation-core/macros`, with Messenger and Roleplay prompt

@@ -1,13 +1,70 @@
 use crate::provider_response::{
-    extract_provider_text, is_openai_compatible, provider_empty_warning,
+    extract_provider_connection_check_text, extract_provider_text, is_openai_compatible,
+    provider_empty_warning,
 };
 use crate::secrets::provider_secret_read_for_scope;
 use crate::storage::{
     read_string_field, runtime_args_object, storage_create, storage_delete, storage_list,
     storage_replace, storage_update,
 };
+use std::time::Duration;
 
 const DESKTOP_RUNTIME_MARKER: &str = "de-koi-desktop";
+const PROVIDER_CONNECTION_TIMEOUT: Duration = Duration::from_secs(30);
+const PROVIDER_GENERATION_TIMEOUT: Duration = Duration::from_secs(120);
+
+fn provider_http_client(timeout: Duration) -> Result<reqwest::Client, String> {
+    reqwest::ClientBuilder::new()
+        .timeout(timeout)
+        .build()
+        .map_err(|error| format!("Provider HTTP client failed to initialize. {error}"))
+}
+
+fn provider_request_error(action: &str, timeout: Duration, error: reqwest::Error) -> String {
+    if error.is_timeout() {
+        format!("{action} timed out after {} seconds.", timeout.as_secs())
+    } else {
+        format!("{action} failed. {error}")
+    }
+}
+
+fn parse_provider_json_body(
+    status: reqwest::StatusCode,
+    body: &[u8],
+    action: &str,
+) -> Result<serde_json::Value, String> {
+    if body.is_empty() {
+        if status.is_success() {
+            return Err(format!("{action} returned an empty response body."));
+        }
+        return Ok(serde_json::Value::Null);
+    }
+
+    serde_json::from_slice::<serde_json::Value>(body).map_err(|error| {
+        if status.is_success() {
+            format!("{action} returned an invalid JSON response. {error}")
+        } else {
+            format!(
+                "Provider returned HTTP {status}, but the response body was not valid JSON. {error}"
+            )
+        }
+    })
+}
+
+async fn provider_json_payload(
+    response: reqwest::Response,
+    action: &str,
+    timeout: Duration,
+) -> Result<(reqwest::StatusCode, serde_json::Value), String> {
+    let status = response.status();
+    let body = response
+        .bytes()
+        .await
+        .map_err(|error| provider_request_error(action, timeout, error))?;
+    let payload = parse_provider_json_body(status, &body, action)?;
+
+    Ok((status, payload))
+}
 
 fn as_object<'a>(
     value: &'a serde_json::Value,
@@ -354,6 +411,20 @@ fn parse_provider_models(payload: &serde_json::Value) -> Vec<String> {
     models
 }
 
+fn validate_provider_connection_check_payload(
+    provider: &str,
+    payload: &serde_json::Value,
+) -> Result<(), String> {
+    if extract_provider_connection_check_text(provider, payload)
+        .trim()
+        .is_empty()
+    {
+        return Err(provider_empty_warning(provider, payload));
+    }
+
+    Ok(())
+}
+
 async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_json::Value, String> {
     let args = runtime_args_object(args, "provider_connection_check")?;
     let connection = args
@@ -377,9 +448,17 @@ async fn provider_connection_check(args: &serde_json::Value) -> Result<serde_jso
         .trim();
     let api_key = provider_connection_api_key(provider, connection)?;
     let request = provider_connection_check_request(provider, base_url, model)?;
-    let client = reqwest::Client::new();
+    let client = provider_http_client(PROVIDER_CONNECTION_TIMEOUT)?;
     let headers = provider_headers(provider, &api_key)?;
-    post_provider_json(&client, request.url, headers, request.body).await?;
+    let payload = post_provider_json(
+        &client,
+        request.url,
+        headers,
+        request.body,
+        PROVIDER_CONNECTION_TIMEOUT,
+    )
+    .await?;
+    validate_provider_connection_check_payload(provider, &payload)?;
 
     Ok(serde_json::json!({
         "success": true,
@@ -405,18 +484,17 @@ async fn provider_connection_models(args: &serde_json::Value) -> Result<serde_js
         .trim();
     let api_key = provider_connection_api_key(provider, connection)?;
     let (url, headers) = provider_connection_models_request(provider, base_url, &api_key)?;
-    let client = reqwest::Client::new();
+    let client = provider_http_client(PROVIDER_CONNECTION_TIMEOUT)?;
     let response = client
         .get(url)
         .headers(headers)
         .send()
         .await
-        .map_err(|error| format!("Model fetch failed. {error}"))?;
-    let status = response.status();
-    let payload = response
-        .json::<serde_json::Value>()
-        .await
-        .unwrap_or(serde_json::Value::Null);
+        .map_err(|error| {
+            provider_request_error("Model fetch", PROVIDER_CONNECTION_TIMEOUT, error)
+        })?;
+    let (status, payload) =
+        provider_json_payload(response, "Model fetch", PROVIDER_CONNECTION_TIMEOUT).await?;
     if !status.is_success() {
         return Err(provider_error(&payload, status));
     }
@@ -431,6 +509,7 @@ async fn post_provider_json(
     url: String,
     headers: reqwest::header::HeaderMap,
     body: serde_json::Value,
+    timeout: Duration,
 ) -> Result<serde_json::Value, String> {
     let response = client
         .post(url)
@@ -438,12 +517,8 @@ async fn post_provider_json(
         .json(&body)
         .send()
         .await
-        .map_err(|error| format!("Provider request failed. {error}"))?;
-    let status = response.status();
-    let payload = response
-        .json::<serde_json::Value>()
-        .await
-        .unwrap_or(serde_json::Value::Null);
+        .map_err(|error| provider_request_error("Provider request", timeout, error))?;
+    let (status, payload) = provider_json_payload(response, "Provider request", timeout).await?;
     if !status.is_success() {
         return Err(provider_error(&payload, status));
     }
@@ -560,7 +635,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
         }));
     }
 
-    let client = reqwest::Client::new();
+    let client = provider_http_client(PROVIDER_GENERATION_TIMEOUT)?;
     let headers = provider_headers(provider, &api_key)?;
     let (text, empty_warning) = if is_openai_compatible(provider) {
         let payload = post_provider_json(
@@ -574,6 +649,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
                 "top_p": top_p,
                 "max_tokens": max_tokens
             }),
+            PROVIDER_GENERATION_TIMEOUT,
         )
         .await?;
         (
@@ -593,6 +669,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
                 "top_p": top_p,
                 "max_tokens": max_tokens
             }),
+            PROVIDER_GENERATION_TIMEOUT,
         )
         .await?;
         (
@@ -633,6 +710,7 @@ async fn generation_generate(args: &serde_json::Value) -> Result<serde_json::Val
                     "maxOutputTokens": max_tokens
                 }
             }),
+            PROVIDER_GENERATION_TIMEOUT,
         )
         .await?;
         (
@@ -798,6 +876,142 @@ mod tests {
         }));
 
         assert_eq!(models, vec!["alpha".to_string(), "zeta".to_string()]);
+    }
+
+    #[test]
+    fn provider_json_payload_rejects_empty_success_body() {
+        let error = parse_provider_json_body(reqwest::StatusCode::OK, b"", "Model fetch")
+            .expect_err("Empty successful provider bodies should not prove provider validity");
+
+        assert_eq!(error, "Model fetch returned an empty response body.");
+    }
+
+    #[test]
+    fn provider_json_payload_allows_empty_error_body_for_status_message() {
+        let payload =
+            parse_provider_json_body(reqwest::StatusCode::BAD_GATEWAY, b"", "Model fetch")
+                .expect("Empty error bodies should still preserve HTTP status handling");
+
+        assert_eq!(payload, serde_json::Value::Null);
+    }
+
+    #[test]
+    fn provider_json_payload_rejects_malformed_success_body() {
+        let error = parse_provider_json_body(reqwest::StatusCode::OK, b"not-json", "Model fetch")
+            .expect_err("Non-empty malformed provider bodies should not be silently accepted");
+
+        assert!(error.contains("invalid JSON response"));
+    }
+
+    #[test]
+    fn provider_connection_check_requires_generated_text() {
+        let error = validate_provider_connection_check_payload("openai", &serde_json::json!({}))
+            .expect_err("A parseable but empty generation payload should not validate");
+
+        assert_eq!(error, "Provider returned no text (object(no fields)).");
+    }
+
+    #[test]
+    fn provider_connection_check_rejects_generic_text_for_openai_shape() {
+        let error = validate_provider_connection_check_payload(
+            "openai",
+            &serde_json::json!({
+                "message": "OK"
+            }),
+        )
+        .expect_err("Known providers must return their expected generation shape");
+
+        assert_eq!(error, "Provider returned no text (fields: message).");
+    }
+
+    #[test]
+    fn provider_connection_check_rejects_generic_text_for_google_shape() {
+        let error = validate_provider_connection_check_payload(
+            "google",
+            &serde_json::json!({
+                "text": "OK"
+            }),
+        )
+        .expect_err("Google checks must return a candidate payload");
+
+        assert_eq!(error, "Provider returned no text (fields: text).");
+    }
+
+    #[test]
+    fn provider_connection_check_rejects_generic_text_for_anthropic_shape() {
+        let error = validate_provider_connection_check_payload(
+            "anthropic",
+            &serde_json::json!({
+                "message": "OK"
+            }),
+        )
+        .expect_err("Anthropic checks must return a content payload");
+
+        assert_eq!(error, "Provider returned no text (fields: message).");
+    }
+
+    #[test]
+    fn provider_connection_check_accepts_generated_text() {
+        validate_provider_connection_check_payload(
+            "openai",
+            &serde_json::json!({
+                "choices": [{
+                    "message": {
+                        "content": "OK"
+                    }
+                }]
+            }),
+        )
+        .expect("Generated text should prove the connection check response");
+    }
+
+    #[test]
+    fn provider_connection_check_accepts_anthropic_generated_text() {
+        validate_provider_connection_check_payload(
+            "anthropic",
+            &serde_json::json!({
+                "content": [{
+                    "type": "text",
+                    "text": "OK"
+                }]
+            }),
+        )
+        .expect("Anthropic content should prove the connection check response");
+    }
+
+    #[test]
+    fn provider_connection_check_accepts_google_generated_text() {
+        validate_provider_connection_check_payload(
+            "google",
+            &serde_json::json!({
+                "candidates": [{
+                    "content": {
+                        "parts": [{ "text": "OK" }]
+                    }
+                }]
+            }),
+        )
+        .expect("Google candidates should prove the connection check response");
+    }
+
+    #[test]
+    fn provider_connection_check_accepts_custom_generic_text() {
+        validate_provider_connection_check_payload(
+            "custom",
+            &serde_json::json!({
+                "message": "OK"
+            }),
+        )
+        .expect("Custom provider checks keep the generic response fallback");
+    }
+
+    #[test]
+    fn provider_connection_models_empty_payload_has_no_models() {
+        let models = parse_provider_models(&serde_json::json!({
+            "data": []
+        }));
+
+        assert!(models.is_empty());
     }
 
     #[test]

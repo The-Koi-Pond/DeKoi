@@ -48,6 +48,12 @@ Compatible response:
 The Tauri desktop host uses `de-koi-desktop` internally when Pond Care selects
 the desktop runtime.
 
+Remote HTTP health probes are intentionally short. DeKoi times them out after
+5 seconds, reads the JSON body only for 2xx responses, reports non-2xx responses
+as unreachable with their status, treats malformed successful JSON as
+unreachable, and reports successful JSON with incompatible markers as an
+incompatible health response.
+
 ## Desktop Runtime
 
 Inside the Tauri app, Pond Care > Data & Backup can select:
@@ -134,12 +140,20 @@ Error response:
 }
 ```
 
-The browser adapter treats any non-2xx response as a runtime error and surfaces
-the message in the active chat surface. Provider-backed generation errors should
-keep actionable provider detail, such as nested `error.message`, `error.detail`,
-`error.type`, `error.code`, or the HTTP status. DeKoi formats common failures
-into user actions for API keys, Base URL, selected model, unsupported providers,
-and network reachability.
+Remote HTTP calls are bounded: health probes use a 5 second timeout,
+non-generation invoke commands use a 30 second timeout, and
+`generation_generate` uses a 120 second timeout. The timeout covers both the
+request and JSON response-body read.
+
+The browser adapter treats any non-2xx `/api/invoke` response as a runtime
+error and surfaces the message in the active chat surface. A readable JSON
+`message` field is used when present; when a non-2xx body is missing or not
+readable as JSON, DeKoi falls back to the HTTP status. Successful 2xx invoke
+responses must have a readable JSON body. Provider-backed generation errors
+should keep actionable provider detail, such as nested `error.message`,
+`error.detail`, `error.type`, `error.code`, or the HTTP status. DeKoi formats
+common failures into user actions for API keys, Base URL, selected model,
+unsupported providers, and network reachability.
 
 ## Commands
 
@@ -194,6 +208,12 @@ Compatible response:
 }
 ```
 
+Compatible runtimes should return this success only after confirming the
+provider can generate text for the selected model. The built-in desktop checker
+sends a minimal generation request and rejects empty, malformed, or provider
+shape-incompatible successful provider bodies instead of treating them as a
+valid connection.
+
 `provider_connection_models` lists model IDs for a configured provider endpoint:
 
 ```json
@@ -238,6 +258,21 @@ values, but the built-in direct provider adapter rejects them until a dedicated
 transport exists. A remote HTTP runtime may still implement its own
 `generation_generate` behavior for any provider value as long as it returns the
 normalized DeKoi response shape below.
+
+Built-in direct provider checks and model listing use a 30 second timeout.
+Built-in direct provider generation uses a 120 second timeout in both the
+desktop runtime and the browser fallback. Successful provider responses must be
+readable JSON. Empty or malformed successful bodies fail the request; non-2xx
+provider responses may be empty, but DeKoi still preserves the HTTP status in
+the surfaced error.
+
+For built-in `provider_connection_check`, OpenAI-compatible providers other
+than `custom` must return generated text in `choices[].message.content` or
+`choices[].text`; Anthropic must return text under `content`; Google must
+return text under `candidates[].content`. `custom` keeps the generic text
+extractor so local OpenAI-compatible services can expose simpler response
+shapes during checks. A generic top-level `message` or `text` field does not
+prove a valid OpenAI, Anthropic, or Google connection check.
 
 ## `generation_generate`
 

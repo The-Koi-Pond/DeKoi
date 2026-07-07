@@ -11,6 +11,7 @@ import {
 } from "../../../engine/contracts/types/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
+import { fetchJsonWithTimeout, formatTimeoutDuration } from "../../../shared/api/http-timeout";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
 import { errorMessage } from "../../../shared/errors";
 
@@ -21,6 +22,8 @@ export type ProviderTextResult = {
 };
 
 export type ProviderGenerationRequest = GenerationRequestBase;
+
+const PROVIDER_GENERATION_TIMEOUT_MS = 120_000;
 
 function isRecord(value: unknown): value is ProviderJson {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -184,12 +187,16 @@ function providerPayloadErrorMessage(payload: unknown) {
 }
 
 async function postJson(url: string, headers: Record<string, string>, body: ProviderJson) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json().catch(() => null)) as unknown;
+  const { response, body: payload } = await fetchJsonWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    },
+    PROVIDER_GENERATION_TIMEOUT_MS,
+    `Provider request timed out after ${formatTimeoutDuration(PROVIDER_GENERATION_TIMEOUT_MS)}.`,
+  );
   const payloadError = providerPayloadErrorMessage(payload);
 
   if (!response.ok) {
