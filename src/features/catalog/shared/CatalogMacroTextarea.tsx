@@ -62,6 +62,7 @@ function groupedMacros(query: string) {
 }
 
 export function CatalogMacroTextarea({
+  "aria-describedby": ariaDescribedBy,
   id,
   onBlur,
   onClick,
@@ -88,6 +89,8 @@ export function CatalogMacroTextarea({
       previewEnabled && previewContext ? resolveCatalogMacroPreview(value, previewContext) : null,
     [previewContext, previewEnabled, value],
   );
+  const textareaAriaDescribedBy =
+    [ariaDescribedBy, preview !== null ? previewId : null].filter(Boolean).join(" ") || undefined;
 
   function rememberSelection(textarea: HTMLTextAreaElement) {
     lastSelectionRef.current = {
@@ -200,6 +203,7 @@ export function CatalogMacroTextarea({
       )}
       <textarea
         {...textareaProps}
+        aria-describedby={textareaAriaDescribedBy}
         id={id}
         ref={textareaRef}
         value={value}

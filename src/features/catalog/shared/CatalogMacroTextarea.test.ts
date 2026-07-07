@@ -180,6 +180,25 @@ describe("catalog macro live preview", () => {
     expect(withoutPreview).not.toContain("catalog-macro-preview");
   });
 
+  it("links rendered previews to the textarea description", () => {
+    const context = createPersonaCatalogMacroPreviewContext({ displayName: "Alex" });
+    const markup = renderToStaticMarkup(
+      createElement(CatalogMacroTextarea, {
+        id: "described-field",
+        autoFocus: true,
+        "aria-describedby": "existing-help",
+        onValueChange: () => {},
+        previewContext: context,
+        value: "Hello {{persona}}",
+      }),
+    );
+
+    expect(markup).toContain('id="described-field-macro-preview"');
+    expect(markup).toContain(
+      'aria-describedby="existing-help described-field-macro-preview"',
+    );
+  });
+
   it("does not resolve inactive textarea previews", () => {
     const context = createPersonaCatalogMacroPreviewContext({ displayName: "Alex" });
     const markup = renderToStaticMarkup(
