@@ -1,7 +1,7 @@
 # Generation Macro Semantics
 
-Status: Slice 7 dynamic variable persistence and Slice 9a active-macro editor
-metadata are implemented.
+Status: Slice 7 dynamic variable persistence, Slice 9a active-macro editor
+metadata, and the Slice 9b catalog live-preview pass are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
 context fields, post-history instructions, lorebook summaries, activated lore
@@ -16,10 +16,16 @@ storage.
 Slice 2 time macros use ECMAScript `Date` and `Intl.DateTimeFormat` built-ins;
 their display strings can vary with the host runtime's ICU and time-zone data.
 
-The public entry point is:
+The primary resolver entry points are:
 
 ```ts
 resolveMacros(template: string, context: MacroContext, options?: ResolveMacroOptions): string
+createScratchMacroContext(context: MacroContext): MacroContext
+resolveMacrosWithScratchContext(
+  template: string,
+  context: MacroContext,
+  options?: ResolveMacroOptions,
+): string
 ```
 
 The engine also exports `SUPPORTED_MACROS` and `SUPPORTED_MACRO_CATEGORIES` for
@@ -35,17 +41,24 @@ prompts, post-history instructions, notes, Companion example dialogue, and
 Lorebook entry bodies. Companion first-message, alternate-greeting, and
 group-only greeting fields remain plain text today. The browser searches
 supported syntax, category labels, and descriptions, then inserts the selected
-macro text at the current textarea selection. It is not a live preview and does
-not evaluate or validate field output while editing.
+macro text at the current textarea selection. Companion and Persona editors also
+show live previews when a field is focused or its Macros browser is open, the
+field contains macro syntax, and the catalog draft supplies a local macro
+context. Companion previews resolve the draft companion identity and character
+fields. Persona previews resolve the draft persona identity and generic
+`{{char}}` selected-companion fallback, but do not fabricate target-companion
+field values; blank persona drafts preserve `{{persona}}` literally until a
+display name exists. Lorebook entry bodies still expose insertion only in
+catalog because they need an active generation context to preview accurately.
 
 The resolver does not read storage, call providers, or touch runtime adapters.
 Variable macros can mutate `context.variables` and optionally append to
-`context.variableMutations`; callers that need non-mutating previews must pass a
-scratch context. Resolution is deterministic for a given template and context
-when callers pass `context.now` and `options.random`; if they omit
-`context.now`, the resolver snapshots the current wall-clock time once per
-`resolveMacros` call. If callers omit `options.random`, random and dice macros
-use `Math.random`.
+`context.variableMutations`; callers that need non-mutating previews should use
+the scratch resolver helpers so preview work clones variables and discards any
+mutation log. Resolution is deterministic for a given template and context when
+callers pass `context.now` and `options.random`; if they omit `context.now`, the
+resolver snapshots the current wall-clock time once per `resolveMacros` call. If
+callers omit `options.random`, random and dice macros use `Math.random`.
 Injected random values are clamped into `[0, 1)`: non-finite values and values
 at or below `0` become `0`, while values at or above `1` become a value just
 below `1`.

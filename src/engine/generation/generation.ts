@@ -24,6 +24,7 @@ import {
 } from "../generation-core/lorebook-activation";
 import { activatedLoreEntryKey } from "../generation-core/lorebook-activation-types";
 import {
+  createScratchMacroContext,
   resolveMacros,
   type MacroContext,
   type MacroVariableMutation,
@@ -297,7 +298,7 @@ function resolveGenerationMacrosDiscardingVariables(
   macroContext: GenerationMacroContext,
   options: ResolveMacroOptions = { trimResult: false },
 ) {
-  return resolveMacros(value ?? "", createScratchGenerationMacroContext(macroContext), options);
+  return resolveMacros(value ?? "", createScratchMacroContext(macroContext), options);
 }
 
 function activationMacroOptions(options: ResolveMacroOptions | undefined): ResolveMacroOptions {
@@ -318,19 +319,6 @@ function resolveGenerationMacrosForActivation(
     macroContext,
     activationMacroOptions(options),
   );
-}
-
-function snapshotGenerationVariables(macroContext: GenerationMacroContext) {
-  return { ...macroContext.variables };
-}
-
-function createScratchGenerationMacroContext(macroContext: GenerationMacroContext) {
-  const scratchContext = {
-    ...macroContext,
-    variables: snapshotGenerationVariables(macroContext),
-  };
-  delete scratchContext.variableMutations;
-  return scratchContext;
 }
 
 function readGenerationVariableNumber(value: string | undefined) {
@@ -361,7 +349,7 @@ function resolveGenerationMacroPreview(
 ): ResolvedGenerationMacroPreview {
   const source = value ?? "";
   const variableMutations: MacroVariableMutation[] = [];
-  const scratchContext = createScratchGenerationMacroContext(macroContext);
+  const scratchContext = createScratchMacroContext(macroContext);
   applyGenerationVariableMutations(scratchContext.variables, extraMutations);
   scratchContext.variableMutations = variableMutations;
   const content = resolveMacros(source, scratchContext, options);

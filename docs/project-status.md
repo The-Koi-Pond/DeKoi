@@ -62,7 +62,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   assembly wiring in `src/engine/generation` and successful-generation
   persistence through owner-scoped macro variable state. The engine also exports
   active macro metadata for editor UI, and macro-resolved catalog text areas can
-  browse and insert supported macro syntax.
+  browse and insert supported macro syntax. Companion and Persona macro editors
+  show scratch live previews where their local draft context is available.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
   missing connection/persona/companion/lorebook states, including lorebooks
   referenced through chat, persona, companion, or global sources, with narrow
