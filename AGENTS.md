@@ -81,8 +81,8 @@ otherwise needs the baseline.
 - `src/app`: React bootstrap, app providers, storage sync, and top-level app
   controller wiring.
 - `src/engine`: React-free DeKoi records and product behavior for Messenger,
-  Roleplay, catalog records, provider connections, Ripples, and generation
-  request assembly, plus engine-local shared helpers.
+  Roleplay, catalog records, provider connections, macro variable state,
+  Ripples, and generation request assembly, plus engine-local shared helpers.
 - `src/features`: React surfaces. `features/modes` owns Messenger and Roleplay
   screens plus shared mode-safe UI/helpers; `features/catalog` owns catalog
   editors; `features/shell` owns Pond care/settings/import/export surfaces;

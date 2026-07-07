@@ -25,6 +25,7 @@ import {
   resolveGenerationRecords,
   type GenerationMacroContext,
   type GenerationRequestEnvelope,
+  type MacroVariableMutation,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -57,6 +58,7 @@ export type RoleplayGenerationResponse = GenerationResponse;
 export interface RoleplayGenerationRequestAssembly {
   request: RoleplayGenerationRequest;
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
 }
 
 export type RoleplayGenerationRequest = GenerationRequestEnvelope<RoleplayThread>;
@@ -70,6 +72,7 @@ export interface RoleplayGenerationContext {
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   requestThread: RoleplayThread;
+  variables: Record<string, string>;
   warnings: string[];
 }
 
@@ -81,6 +84,7 @@ export interface RoleplayGenerationContextInput {
   appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
+  variables?: Record<string, string>;
 }
 
 function roleplayEntryRole(entry: RoleplayEntry): RoleplayGenerationPromptMessage["role"] {
@@ -132,6 +136,7 @@ export function createRoleplayGenerationContext({
   personas,
   providerConnections = [],
   thread,
+  variables = {},
 }: RoleplayGenerationContextInput): RoleplayGenerationContext {
   const records = resolveGenerationRecords({
     activePersonaId: thread.activePersonaId,
@@ -155,6 +160,7 @@ export function createRoleplayGenerationContext({
     loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
+    variables,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
@@ -283,6 +289,7 @@ function createRoleplayPromptAssembly({
   providerConnection,
   thread,
   targetCompanion,
+  variables,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
@@ -293,11 +300,14 @@ function createRoleplayPromptAssembly({
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
+  variables?: Record<string, string>;
 }): {
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
   promptMessages: RoleplayGenerationPromptMessage[];
   warnings: string[];
 } {
+  const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
     companions,
@@ -307,6 +317,8 @@ function createRoleplayPromptAssembly({
     targetCompanion,
     targetNameFallback: "the selected character",
     threadId: thread.id,
+    variables,
+    variableMutations: macroVariableMutations,
   });
   const prelude = resolveRoleplayPromptPrelude(thread, macroContext);
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
@@ -350,6 +362,7 @@ function createRoleplayPromptAssembly({
 
   return {
     loreRuntimeState: finalLoreRuntimeState,
+    macroVariableMutations,
     promptMessages: [
       {
         role: "system",
@@ -411,6 +424,7 @@ export function createRoleplayGenerationRequestAssembly({
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,
+    variables: context.variables,
   });
 
   return {
@@ -425,5 +439,6 @@ export function createRoleplayGenerationRequestAssembly({
       thread: context.requestThread,
     }),
     loreRuntimeState: promptAssembly.loreRuntimeState,
+    macroVariableMutations: promptAssembly.macroVariableMutations,
   };
 }

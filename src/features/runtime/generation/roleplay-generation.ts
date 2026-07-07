@@ -2,6 +2,7 @@ import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
+import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
@@ -21,6 +22,10 @@ import {
   createGenerationLoreRuntimeState,
 } from "./lore-runtime-state";
 import {
+  buildGenerationMacroVariableState,
+  type MacroVariableStateCommit,
+} from "../../../engine/macro-variables/macro-variable-actions";
+import {
   generateWithConfiguredProvider,
   providerErrorMessage,
   type ProviderGenerationRequest,
@@ -33,6 +38,7 @@ export interface GenerateRoleplayThreadTurnInput {
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   loreRuntimeState?: LoreRuntimeState | null;
+  macroVariableStates?: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
@@ -48,6 +54,7 @@ export interface GenerateRoleplayThreadTurnInput {
 export interface GenerateRoleplayThreadTurnResult {
   thread: RoleplayThread;
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableCommit: MacroVariableStateCommit;
   warnings: string[];
   generatedEntryCount: number;
 }
@@ -73,6 +80,7 @@ export async function generateRoleplayThreadTurn({
   fallbackProviderConnectionId = null,
   lorebooks,
   loreRuntimeState,
+  macroVariableStates = [],
   mode = "remote-runtime",
   now,
   parameters,
@@ -80,6 +88,11 @@ export async function generateRoleplayThreadTurn({
   providerConnections,
   thread,
 }: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
+  const macroVariableSelection = buildGenerationMacroVariableState({
+    macroVariableStates,
+    ownerId: thread.id,
+    ownerKind: "roleplay-thread",
+  });
   const context = createRoleplayGenerationContext({
     appSettings,
     characters,
@@ -88,6 +101,7 @@ export async function generateRoleplayThreadTurn({
     personas,
     providerConnections,
     thread,
+    variables: macroVariableSelection.variables,
   });
   const generationLoreRuntimeState = createGenerationLoreRuntimeState({
     createId,
@@ -120,6 +134,7 @@ export async function generateRoleplayThreadTurn({
   });
   const entries = draftRecords.records;
   const warnings = [...response.warnings, ...draftRecords.warnings, ...request.warnings];
+  const variableMutations = entries.length > 0 ? requestAssembly.macroVariableMutations : [];
 
   return {
     thread: entries.length > 0 ? appendRoleplayEntries(thread, entries) : thread,
@@ -127,6 +142,13 @@ export async function generateRoleplayThreadTurn({
       requestAssembly.loreRuntimeState,
       response.createdAt,
     ),
+    macroVariableCommit: {
+      variableMutations,
+      now: response.createdAt,
+      ownerId: thread.id,
+      ownerKind: "roleplay-thread",
+      selection: macroVariableSelection,
+    },
     warnings,
     generatedEntryCount: entries.length,
   };

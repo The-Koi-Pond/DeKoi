@@ -428,6 +428,31 @@ Current implementation:
 - It is saved locally and included in DeKoi storage bundles, with orphaned
   states skipped on bundle import.
 
+### MacroVariableScope
+
+MacroVariableScope is internal owner-scoped state for dynamic prompt macro
+variables.
+
+Purpose:
+
+- Keep variable macro values durable without putting prompt scratch state on
+  thread records.
+- Share global variables with Messenger and Roleplay while allowing thread-level
+  overrides.
+- Persist only variable mutations that survive successful generation.
+
+Current implementation:
+
+- One global scope uses `ownerKind: "global"` and `ownerId: "global"`.
+- MessengerThread and RoleplayThread scopes use the owning thread ID, are saved
+  locally, and are included in DeKoi storage bundles.
+- Generation starts with global variables overlaid by the active thread scope;
+  existing global-only keys stay global when mutated, and new keys are saved to
+  the thread scope.
+- Thread deletion, transcript clearing, and bundle import orphan cleanup remove
+  thread-scoped macro variable state. Preset-toggle variables are request inputs,
+  not MacroVariableScope records.
+
 ### RippleState
 
 RippleState is the DeKoi name for dynamic per-thread state.

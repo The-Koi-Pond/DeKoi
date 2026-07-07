@@ -1,7 +1,9 @@
-import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import type {
   NavCatalogState,
   NavLoreRuntimeActions,
+  NavMacroVariableActions,
+  NavMacroVariableState,
   NavMessengerThreadActions,
   NavSettingsState,
   NavStorageState,
@@ -28,6 +30,7 @@ import {
   getMessengerGenerationModeForConnection,
   selectMessengerGenerationRuntime,
 } from "../../runtime";
+import { commitGenerationMacroVariableStates } from "../../../engine/macro-variables/macro-variable-actions";
 import {
   ChatComposer,
   GenerationNotice,
@@ -35,6 +38,7 @@ import {
   type GenerationNoticeAction,
 } from "../shared";
 import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
+import { generationOriginStillExists } from "../shared/generation-origin";
 import { copyTextToClipboard } from "../../../shared/browser/clipboard";
 import {
   getMessageDateKey,
@@ -61,6 +65,8 @@ export type MessengerThreadNav = Pick<
 > &
   Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
+  Pick<NavMacroVariableState, "macroVariableStates"> &
+  Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavStorageState, "storageReady"> &
   Pick<NavThreadState, "messengerThreads"> &
@@ -124,6 +130,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
+  const messengerThreadsRef = useRef(nav.messengerThreads);
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) => messengerThread.characterIds.includes(companion.id))
     : [];
@@ -213,6 +220,10 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       initials: getInitials(author.label),
     };
   };
+
+  useLayoutEffect(() => {
+    messengerThreadsRef.current = nav.messengerThreads;
+  }, [nav.messengerThreads]);
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -420,6 +431,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
         loreRuntimeState: nav.getLoreRuntimeState("messenger-thread", threadWithUserMessage.id),
+        macroVariableStates: nav.macroVariableStates,
         mode: sendMode,
         now: sentAt,
         parameters: {
@@ -432,6 +444,22 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         thread: threadWithUserMessage,
         userMessage,
       });
+
+      let ownerExists = generationOriginStillExists({
+        itemId: userMessage.id,
+        selectItems: (thread) => thread.messages,
+        threadId: threadWithUserMessage.id,
+        threads: messengerThreadsRef.current,
+      });
+      if (!ownerExists) {
+        setGenerationState({
+          threadId: commitThread.id,
+          status: "idle",
+          message: "",
+          action: null,
+        });
+        return;
+      }
 
       if (result.generatedMessages.length > 0) {
         const typingNames = [
@@ -446,7 +474,30 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         await waitForGeneratedTypingDelay(
           result.generatedMessages.map((message) => message.body).join("\n"),
         );
+        ownerExists = generationOriginStillExists({
+          itemId: userMessage.id,
+          selectItems: (thread) => thread.messages,
+          threadId: threadWithUserMessage.id,
+          threads: messengerThreadsRef.current,
+        });
+        if (!ownerExists) {
+          setGenerationState({
+            threadId: commitThread.id,
+            status: "idle",
+            message: "",
+            action: null,
+          });
+          return;
+        }
         nav.updateMessengerThread(result.thread);
+        nav.updateMacroVariableStates((currentStates) =>
+          commitGenerationMacroVariableStates({
+            ...result.macroVariableCommit,
+            createId: createLocalId,
+            macroVariableStates: currentStates,
+            ownerExists,
+          }),
+        );
       }
       nav.updateLoreRuntimeState(
         result.loreRuntimeState,

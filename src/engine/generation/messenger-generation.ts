@@ -29,6 +29,7 @@ import {
   resolveGenerationRecords,
   type GenerationMacroContext,
   type GenerationRequestEnvelope,
+  type MacroVariableMutation,
   type LorebookSourceBuckets,
 } from "./generation";
 import type {
@@ -52,6 +53,7 @@ export type MessengerGenerationAdapter = GenerationAdapter<MessengerGenerationRe
 export interface MessengerGenerationRequestAssembly {
   request: MessengerGenerationRequest;
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
 }
 
 export interface MessengerGenerationContext {
@@ -63,6 +65,7 @@ export interface MessengerGenerationContext {
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   requestThread: MessengerThread;
+  variables: Record<string, string>;
   warnings: string[];
 }
 
@@ -74,6 +77,7 @@ export interface MessengerGenerationContextInput {
   appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
+  variables?: Record<string, string>;
 }
 
 export function createMessengerGenerationContext({
@@ -84,6 +88,7 @@ export function createMessengerGenerationContext({
   personas,
   providerConnections = [],
   thread,
+  variables = {},
 }: MessengerGenerationContextInput): MessengerGenerationContext {
   const records = resolveGenerationRecords({
     activePersonaId: thread.activePersonaId,
@@ -107,6 +112,7 @@ export function createMessengerGenerationContext({
     loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
+    variables,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
@@ -215,6 +221,7 @@ function createMessengerPromptAssembly({
   thread,
   targetCompanion,
   userMessage,
+  variables,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
@@ -226,11 +233,14 @@ function createMessengerPromptAssembly({
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
   userMessage: MessengerMessage;
+  variables?: Record<string, string>;
 }): {
   loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
   promptMessages: MessengerGenerationPromptMessage[];
   warnings: string[];
 } {
+  const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
     companions,
@@ -239,6 +249,8 @@ function createMessengerPromptAssembly({
     providerConnection,
     targetCompanion,
     threadId: thread.id,
+    variables,
+    variableMutations: macroVariableMutations,
   });
   const selectedPrompt = resolveGenerationMacros(
     resolveMessengerSystemPrompt(thread),
@@ -277,6 +289,7 @@ function createMessengerPromptAssembly({
 
   return {
     loreRuntimeState: finalLoreRuntimeState,
+    macroVariableMutations,
     promptMessages: [
       {
         role: "system",
@@ -340,6 +353,7 @@ export function createMessengerGenerationRequestAssembly({
     thread: context.requestThread,
     targetCompanion,
     userMessage,
+    variables: context.variables,
   });
 
   return {
@@ -357,5 +371,6 @@ export function createMessengerGenerationRequestAssembly({
       userMessage,
     },
     loreRuntimeState: promptAssembly.loreRuntimeState,
+    macroVariableMutations: promptAssembly.macroVariableMutations,
   };
 }

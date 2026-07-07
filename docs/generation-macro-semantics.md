@@ -1,10 +1,10 @@
 # Generation Macro Semantics
 
-Status: Slice 6 variable macro transactions are implemented.
-Generation prompt assembly now uses the Slice 1/2/4/6 resolver for system
-prompts, Roleplay scene setup, character and persona context fields,
-post-history instructions, lorebook summaries, activated lore entry bodies,
-at-depth lore messages, and example dialogue.
+Status: Slice 7 dynamic variable persistence is implemented.
+Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
+persistence flow for system prompts, Roleplay scene setup, character and persona
+context fields, post-history instructions, lorebook summaries, activated lore
+entry bodies, at-depth lore messages, and example dialogue.
 
 ## Boundary
 
@@ -280,13 +280,27 @@ earlier prompt-order mutations, random lore is sampled only when kept text is
 emitted, and dropped or macro-empty lore does not commit variables or start
 timers.
 
+## Slice 7 Dynamic Variable Persistence
+
+The resolver still treats variables as caller-owned context and never reads
+storage. Messenger and Roleplay generation build a request-local variable map
+from global `MacroVariableScope` state overlaid with the active thread scope,
+then record committed prompt-order mutations for the caller.
+
+Mode generation commits those mutations only after provider generation succeeds
+and only while the originating user input still exists. Mutated keys update the
+scope that supplied them at generation start: thread keys stay thread-scoped,
+keys that existed only in global state stay global, and new keys are saved to
+the thread scope. Deleting or clearing a thread removes its thread-scoped macro
+variable state. Preset-toggle variables are request inputs and are not persisted
+in `macro-variable-states`.
+
 ## Reserved Later Semantics
 
-These macro families are intentionally not active yet. Until their slices land,
+This macro family is intentionally not active yet. Until its slice lands,
 matching spans follow the same unresolved-span rule as unknown macros: nested
 active macros stay inert, except comment spans are still stripped and terminal
 case post-processing can transform complete case blocks inside the unresolved
 span.
 
 - deferred character macros for group scenarios
-- persistent dynamic variable storage

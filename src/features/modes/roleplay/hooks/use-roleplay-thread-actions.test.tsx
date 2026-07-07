@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
+import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { RippleState } from "../../../../engine/contracts/types/ripples";
@@ -34,6 +35,7 @@ function createStateSetter<T>(state: { current: T }): StateSetter<T> {
 function captureRoleplayThreadActions() {
   const roleplayThreads = { current: [] as RoleplayThread[] };
   const loreRuntimeStates = { current: [] as LoreRuntimeState[] };
+  const macroVariableStates = { current: [] as MacroVariableScope[] };
   const rippleStates = { current: [] as RippleState[] };
   const actions = { current: null as ReturnType<typeof useRoleplayThreadActions> | null };
   let openedThreadId: string | null = null;
@@ -47,6 +49,7 @@ function captureRoleplayThreadActions() {
       providerConnections: [providerConnection("connection-1")],
       setRoleplayThreads: createStateSetter(roleplayThreads),
       setLoreRuntimeStates: createStateSetter(loreRuntimeStates),
+      setMacroVariableStates: createStateSetter(macroVariableStates),
       setRippleStates: createStateSetter(rippleStates),
       setView: () => {},
       view: { kind: "pond" },

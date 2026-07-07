@@ -152,6 +152,7 @@ src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
 src/engine/lore-runtime    Pure per-thread lore timer state actions.
+src/engine/macro-variables Pure owner-scoped macro variable state actions.
 src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports for storage, secrets, providers, files.
 ```
@@ -180,10 +181,11 @@ architecture-level rules:
 ## Current Shape
 
 - `src/engine` owns native record contracts under `contracts/types`,
-  deterministic catalog/mode/lore-runtime/ripple actions, engine-local shared
-  text/error helpers, and provider-neutral generation assembly, including
-  lorebook activation, the macro resolver under `generation-core`, and
-  Messenger/Roleplay prompt macro wiring under `generation`.
+  deterministic catalog/mode/lore-runtime/macro-variable/ripple actions,
+  engine-local shared text/error helpers, and provider-neutral generation
+  assembly, including lorebook activation, the macro resolver under
+  `generation-core`, and Messenger/Roleplay prompt macro wiring under
+  `generation`.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules
@@ -205,7 +207,8 @@ The file-level map lives in
 ## Future Architecture Work
 
 1. Move remaining flat engine work into the implemented target skeleton:
-   `contracts`, `core`, `generation`, `modes`, `catalog`, and `ripples`.
+   `contracts`, `core`, `generation`, `modes`, `catalog`, `macro-variables`,
+   and `ripples`.
 2. Deepen current feature packages using the previous repo's package pattern:
    public entrypoint, `components`, `hooks`, `lib`, and local `types` when
    needed.

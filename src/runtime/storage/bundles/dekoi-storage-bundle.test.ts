@@ -34,6 +34,7 @@ describe("normalizeDeKoiStorageBundle", () => {
           },
         ],
         loreRuntimeStates: [],
+        macroVariableStates: [],
         providerConnections: [],
         messengerThreads: [],
         messengerMessages: [],
@@ -123,6 +124,7 @@ describe("normalizeDeKoiStorageBundle", () => {
             updatedAt: now,
           },
         ],
+        macroVariableStates: [],
         providerConnections: [],
         messengerThreads: [thread],
         messengerMessages: [],
@@ -139,6 +141,107 @@ describe("normalizeDeKoiStorageBundle", () => {
     ]);
     expect(result.preview.warnings).toContain(
       "Lore runtime states skipped 1 record(s) without an imported owner.",
+    );
+  });
+
+  it("imports missing macro variable states as empty for older storage bundles", () => {
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        loreRuntimeStates: [],
+        providerConnections: [],
+        messengerThreads: [],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.macroVariableStates).toEqual([]);
+    expect(result.preview.warnings).not.toContain(
+      "Macro variable states was missing or not an array; imported as empty.",
+    );
+  });
+
+  it("skips orphaned thread macro variable states but keeps global state", () => {
+    const thread = createMessengerThread({
+      activePersonaId: null,
+      characterIds: [],
+      id: "messenger-thread-imported",
+      now,
+      title: "Imported",
+    });
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        loreRuntimeStates: [],
+        macroVariableStates: [
+          {
+            id: "macro-variable-state-imported",
+            schemaVersion: 1,
+            ownerKind: "messenger-thread",
+            ownerId: "messenger-thread-imported",
+            variables: { mood: "calm" },
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            id: "macro-variable-state-orphaned",
+            schemaVersion: 1,
+            ownerKind: "messenger-thread",
+            ownerId: "missing-thread",
+            variables: { hidden: "yes" },
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            id: "macro-variable-state-global",
+            schemaVersion: 1,
+            ownerKind: "global",
+            ownerId: "global",
+            variables: { day: "Tuesday" },
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        providerConnections: [],
+        messengerThreads: [thread],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.macroVariableStates.map((state) => state.id)).toEqual([
+      "macro-variable-state-imported",
+      "macro-variable-state-global",
+    ]);
+    expect(result.preview.counts.macroVariableStates).toBe(2);
+    expect(result.preview.counts.macroVariables).toBe(2);
+    expect(result.preview.warnings).toContain(
+      "Macro variable states skipped 1 record(s) without an imported owner.",
     );
   });
 
@@ -162,6 +265,7 @@ describe("normalizeDeKoiStorageBundle", () => {
       personas: [persona],
       lorebooks: [],
       loreRuntimeStates: [],
+      macroVariableStates: [],
       providerConnections: [],
       messengerThreads: [],
       rippleStates: [],

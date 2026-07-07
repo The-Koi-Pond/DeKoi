@@ -24,6 +24,9 @@ export function useAppState() {
   const [loreRuntimeStates, setLoreRuntimeStates] = useState(
     initialStorageRecords.loreRuntimeStates,
   );
+  const [macroVariableStates, setMacroVariableStates] = useState(
+    initialStorageRecords.macroVariableStates,
+  );
   const [providerConnections, setProviderConnections] = useState(
     initialStorageRecords.providerConnections,
   );
@@ -63,6 +66,8 @@ export function useAppState() {
     setLorebooks,
     loreRuntimeStates,
     setLoreRuntimeStates,
+    macroVariableStates,
+    setMacroVariableStates,
     providerConnections,
     setProviderConnections,
     roleplayThreads,

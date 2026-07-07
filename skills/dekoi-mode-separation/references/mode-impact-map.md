@@ -63,12 +63,15 @@ Owner paths:
 
 - `src/engine/contracts/types/ripples.ts`
 - `src/engine/ripples/ripple-actions.ts`
+- `src/engine/contracts/types/macro-variables.ts`
+- `src/engine/macro-variables/macro-variable-actions.ts`
 - `src/features/runtime/ripples`
 
 Owns:
 
 - dynamic per-thread state records
 - deterministic ripple mutations
+- global and per-thread macro variable state selection/commit mutations
 - shared ripple workflows used by mode surfaces
 
 Must not own:

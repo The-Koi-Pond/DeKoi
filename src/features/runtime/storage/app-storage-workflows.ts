@@ -45,6 +45,7 @@ export function loadInitialAppStorageRecords(): AppStorageRecords {
     personas: loadPersonaRecords(),
     lorebooks: loadLorebookRecords(),
     loreRuntimeStates: [],
+    macroVariableStates: [],
     providerConnections: loadProviderConnectionRecords(),
     roleplayThreads: loadRoleplayThreads(),
     messengerThreads: loadInitialMessengerThreads(),

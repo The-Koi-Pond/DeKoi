@@ -10,6 +10,8 @@ export type {
   NavLoreRuntimeActions,
   NavLoreRuntimeState,
   NavLorebookActions,
+  NavMacroVariableActions,
+  NavMacroVariableState,
   NavMessengerThreadActions,
   MessengerThreadCreateInput,
   NavPersonaActions,

@@ -42,19 +42,20 @@ adapters.
 
 ## Current Collections
 
-| Entity                 | Native owner                                        | Record                     | Runtime adapter                                                  |
-| ---------------------- | --------------------------------------------------- | -------------------------- | ---------------------------------------------------------------- |
-| `app-settings`         | `src/engine/contracts/types/app-settings.ts`        | `AppSettings`              | `src/runtime/storage/collections/app-settings.ts`                |
-| `characters`           | `src/engine/contracts/types/character.ts`           | `CharacterRecord`          | `src/runtime/storage/collections/character-storage.ts`           |
-| `roleplay-threads`     | `src/engine/contracts/types/roleplay.ts`            | `RoleplayThreadRecord`     | `src/runtime/storage/collections/roleplay-storage.ts`            |
-| `roleplay-entries`     | `src/engine/contracts/types/roleplay.ts`            | `RoleplayEntry`            | `src/runtime/storage/collections/roleplay-entry-storage.ts`      |
-| `lorebooks`            | `src/engine/contracts/types/lorebook.ts`            | `LorebookRecord`           | `src/runtime/storage/collections/lorebook-storage.ts`            |
-| `lore-runtime-states`  | `src/engine/contracts/types/lore-runtime-state.ts`  | `LoreRuntimeState`         | `src/runtime/storage/collections/lore-runtime-state-storage.ts`  |
-| `messenger-threads`    | `src/engine/contracts/types/messenger.ts`           | `MessengerThreadRecord`    | `src/runtime/storage/collections/messenger-storage.ts`           |
-| `messenger-messages`   | `src/engine/contracts/types/messenger.ts`           | `MessengerMessage`         | `src/runtime/storage/collections/messenger-message-storage.ts`   |
-| `personas`             | `src/engine/contracts/types/persona.ts`             | `PersonaRecord`            | `src/runtime/storage/collections/persona-storage.ts`             |
-| `provider-connections` | `src/engine/contracts/types/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts` |
-| `ripple-states`        | `src/engine/contracts/types/ripples.ts`             | `RippleState`              | `src/runtime/storage/collections/ripple-state-storage.ts`        |
+| Entity                  | Native owner                                        | Record                     | Runtime adapter                                                   |
+| ----------------------- | --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `app-settings`          | `src/engine/contracts/types/app-settings.ts`        | `AppSettings`              | `src/runtime/storage/collections/app-settings.ts`                 |
+| `characters`            | `src/engine/contracts/types/character.ts`           | `CharacterRecord`          | `src/runtime/storage/collections/character-storage.ts`            |
+| `roleplay-threads`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayThreadRecord`     | `src/runtime/storage/collections/roleplay-storage.ts`             |
+| `roleplay-entries`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayEntry`            | `src/runtime/storage/collections/roleplay-entry-storage.ts`       |
+| `lorebooks`             | `src/engine/contracts/types/lorebook.ts`            | `LorebookRecord`           | `src/runtime/storage/collections/lorebook-storage.ts`             |
+| `lore-runtime-states`   | `src/engine/contracts/types/lore-runtime-state.ts`  | `LoreRuntimeState`         | `src/runtime/storage/collections/lore-runtime-state-storage.ts`   |
+| `macro-variable-states` | `src/engine/contracts/types/macro-variables.ts`     | `MacroVariableScope`       | `src/runtime/storage/collections/macro-variable-state-storage.ts` |
+| `messenger-threads`     | `src/engine/contracts/types/messenger.ts`           | `MessengerThreadRecord`    | `src/runtime/storage/collections/messenger-storage.ts`            |
+| `messenger-messages`    | `src/engine/contracts/types/messenger.ts`           | `MessengerMessage`         | `src/runtime/storage/collections/messenger-message-storage.ts`    |
+| `personas`              | `src/engine/contracts/types/persona.ts`             | `PersonaRecord`            | `src/runtime/storage/collections/persona-storage.ts`              |
+| `provider-connections`  | `src/engine/contracts/types/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts`  |
+| `ripple-states`         | `src/engine/contracts/types/ripples.ts`             | `RippleState`              | `src/runtime/storage/collections/ripple-state-storage.ts`         |
 
 ## Source Of Truth
 
@@ -195,6 +196,16 @@ reset on the next activation pass when their lore entry's `updatedAt` no longer
 matches, so editing an entry starts its sticky/cooldown state fresh. Triggers
 and character filters remain normalized storage fields but are not applied to
 prompt assembly yet.
+
+Dynamic macro variables persist in `macro-variable-states`. Global state uses
+`ownerKind: "global"` with `ownerId: "global"`; Messenger and Roleplay states
+use their thread ID. Generation starts with global variables, overlays the
+thread variables, resolves macros, then persists only the committed mutation log
+after generation succeeds. Mutated keys target the scope that supplied them at
+generation start: thread keys stay thread-scoped, keys that belonged only to
+global state stay global, and new keys are saved to the thread scope. Future
+preset-toggle variables are request inputs and are not persisted by this
+collection.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the
@@ -435,23 +446,24 @@ actions to clear only the missing thread references.
 
 Current relationships:
 
-| From                  | Field                  | Points to                                       | Cleanup expectation                                                                      |
-| --------------------- | ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `messenger-threads`   | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from thread participants.                                 |
-| `messenger-threads`   | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                               |
-| `messenger-threads`   | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from thread context.                                       |
-| `messenger-threads`   | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                       |
-| `messenger-messages`  | `threadId`             | `messenger-threads.id`                          | Deleting a Messenger thread removes its messages from the projected message collection.  |
-| `roleplay-threads`    | `characterIds[]`       | `characters.id`                                 | Deleted characters are removed from scene participants.                                  |
-| `roleplay-threads`    | `activePersonaId`      | `personas.id`                                   | Deleted personas clear the active persona.                                               |
-| `roleplay-threads`    | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from scene context.                                        |
-| `roleplay-threads`    | `providerConnectionId` | `provider-connections.id`                       | Deleted connections clear the selected connection.                                       |
-| `roleplay-entries`    | `threadId`             | `roleplay-threads.id`                           | Deleting a Roleplay thread removes its entries from the projected entry collection.      |
-| `characters`          | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from character context.                                    |
-| `personas`            | `lorebookIds[]`        | `lorebooks.id`                                  | Deleted lorebooks are removed from persona context.                                      |
-| `app-settings`        | `globalLorebookIds[]`  | `lorebooks.id`                                  | Deleted lorebooks are removed from global generation context.                            |
-| `lore-runtime-states` | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import. |
-| `ripple-states`       | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id` | Orphaned ripple states are skipped on bundle import.                                     |
+| From                    | Field                  | Points to                                                      | Cleanup expectation                                                                                                           |
+| ----------------------- | ---------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `messenger-threads`     | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                      |
+| `messenger-threads`     | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                    |
+| `messenger-threads`     | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                            |
+| `messenger-threads`     | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                            |
+| `messenger-messages`    | `threadId`             | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                       |
+| `roleplay-threads`      | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                       |
+| `roleplay-threads`      | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                    |
+| `roleplay-threads`      | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                             |
+| `roleplay-threads`      | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                            |
+| `roleplay-entries`      | `threadId`             | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                           |
+| `characters`            | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                         |
+| `personas`              | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                           |
+| `app-settings`          | `globalLorebookIds[]`  | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                 |
+| `lore-runtime-states`   | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                      |
+| `macro-variable-states` | `ownerId`              | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import. |
+| `ripple-states`         | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                          |
 
 ## Import And Export
 
@@ -468,6 +480,9 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   split collections.
 - Include `lore-runtime-states` in native bundles, import missing older bundle
   fields as empty, and skip runtime states whose owner thread is not imported.
+- Include `macro-variable-states` in native bundles, import missing older bundle
+  fields as empty, and skip thread-scoped states whose owner thread is not
+  imported. Global macro variable state is not owner-filtered.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and

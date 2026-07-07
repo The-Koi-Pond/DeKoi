@@ -3,6 +3,7 @@ import type {
   NavCareState,
   NavCatalogState,
   NavLoreRuntimeState,
+  NavMacroVariableState,
   NavRippleState,
   NavSettingsActions,
   NavSettingsState,
@@ -17,6 +18,7 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavCareState, "careOpen" | "careTab"> &
   Pick<NavCatalogState, "characters" | "lorebooks" | "personas" | "providerConnections"> &
   Pick<NavLoreRuntimeState, "loreRuntimeStates"> &
+  Pick<NavMacroVariableState, "macroVariableStates"> &
   Pick<NavRippleState, "rippleStates"> &
   Pick<
     NavSettingsActions,

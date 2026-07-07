@@ -433,6 +433,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setPersonas: StateSetter<AppStorageRecords["personas"]>;
   setLorebooks: StateSetter<AppStorageRecords["lorebooks"]>;
   setLoreRuntimeStates: StateSetter<AppStorageRecords["loreRuntimeStates"]>;
+  setMacroVariableStates: StateSetter<AppStorageRecords["macroVariableStates"]>;
   setProviderConnections: StateSetter<AppStorageRecords["providerConnections"]>;
   setRoleplayThreads: StateSetter<AppStorageRecords["roleplayThreads"]>;
   setMessengerThreads: StateSetter<AppStorageRecords["messengerThreads"]>;
@@ -450,6 +451,7 @@ export function useAppStorageSync({
   personas,
   lorebooks,
   loreRuntimeStates,
+  macroVariableStates,
   providerConnections,
   roleplayThreads,
   messengerThreads,
@@ -461,6 +463,7 @@ export function useAppStorageSync({
   setPersonas,
   setLorebooks,
   setLoreRuntimeStates,
+  setMacroVariableStates,
   setProviderConnections,
   setRoleplayThreads,
   setMessengerThreads,
@@ -503,6 +506,7 @@ export function useAppStorageSync({
     personas,
     lorebooks,
     loreRuntimeStates,
+    macroVariableStates,
     providerConnections,
     roleplayThreads,
     messengerThreads,
@@ -555,6 +559,7 @@ export function useAppStorageSync({
       setPersonas(records.personas);
       setLorebooks(records.lorebooks);
       setLoreRuntimeStates(records.loreRuntimeStates);
+      setMacroVariableStates(records.macroVariableStates);
       setProviderConnections(records.providerConnections);
       setRoleplayThreads(records.roleplayThreads);
       setMessengerThreads(records.messengerThreads);
@@ -565,6 +570,7 @@ export function useAppStorageSync({
       setCharacters,
       setLorebooks,
       setLoreRuntimeStates,
+      setMacroVariableStates,
       setMessengerThreads,
       setPersonas,
       setProviderConnections,
@@ -580,6 +586,7 @@ export function useAppStorageSync({
       personas,
       lorebooks,
       loreRuntimeStates,
+      macroVariableStates,
       providerConnections,
       roleplayThreads,
       messengerThreads,
@@ -590,6 +597,7 @@ export function useAppStorageSync({
     characters,
     lorebooks,
     loreRuntimeStates,
+    macroVariableStates,
     messengerThreads,
     personas,
     providerConnections,
@@ -1698,6 +1706,7 @@ export function useAppStorageSync({
       personas,
       lorebooks,
       loreRuntimeStates,
+      macroVariableStates,
       providerConnections,
       roleplayThreads,
       messengerThreads,
@@ -1798,6 +1807,7 @@ export function useAppStorageSync({
     roleplayThreads,
     lorebooks,
     loreRuntimeStates,
+    macroVariableStates,
     messengerThreads,
     personas,
     providerConnections,

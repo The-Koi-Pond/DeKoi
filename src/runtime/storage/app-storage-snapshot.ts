@@ -23,6 +23,10 @@ import {
   saveLoreRuntimeStatesToStorage,
 } from "./collections/lore-runtime-state-storage";
 import {
+  loadMacroVariableStatesFromStorage,
+  saveMacroVariableStatesToStorage,
+} from "./collections/macro-variable-state-storage";
+import {
   loadMessengerThreadsFromStorage,
   saveMessengerThreadsToStorage,
 } from "./collections/messenger-storage";
@@ -98,6 +102,7 @@ export const APP_STORAGE_COLLECTION_ENTITIES = {
   personas: STORAGE_ENTITIES.personas,
   lorebooks: STORAGE_ENTITIES.lorebooks,
   loreRuntimeStates: STORAGE_ENTITIES.loreRuntimeStates,
+  macroVariableStates: STORAGE_ENTITIES.macroVariableStates,
   providerConnections: STORAGE_ENTITIES.providerConnections,
   roleplayThreads: STORAGE_ENTITIES.roleplayThreads,
   roleplayEntries: STORAGE_ENTITIES.roleplayEntries,
@@ -136,6 +141,7 @@ export const APP_STORAGE_COLLECTION_LABELS = {
   personas: "Personas",
   lorebooks: "Lorebooks",
   loreRuntimeStates: "Lore runtime states",
+  macroVariableStates: "Macro variable states",
   providerConnections: "Provider connections",
   roleplayThreads: "Roleplay threads",
   roleplayEntries: "Roleplay entries",
@@ -273,6 +279,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     personaSnapshot,
     lorebookSnapshot,
     loreRuntimeStateSnapshot,
+    macroVariableStateSnapshot,
     providerConnectionSnapshot,
     roleplaySnapshot,
     roleplayEntrySnapshot,
@@ -286,6 +293,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loadPersonaRecordsFromStorage(rawUrl),
     loadLorebookRecordsFromStorage(rawUrl),
     loadLoreRuntimeStatesFromStorage(rawUrl),
+    loadMacroVariableStatesFromStorage(rawUrl),
     loadProviderConnectionRecordsFromStorage(rawUrl),
     loadRoleplayThreadsFromStorage(rawUrl),
     loadRoleplayEntriesFromStorage(rawUrl),
@@ -317,6 +325,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     { collectionKey: "personas", snapshot: personaSnapshot },
     { collectionKey: "lorebooks", snapshot: lorebookSnapshot },
     { collectionKey: "loreRuntimeStates", snapshot: loreRuntimeStateSnapshot },
+    { collectionKey: "macroVariableStates", snapshot: macroVariableStateSnapshot },
     { collectionKey: "providerConnections", snapshot: providerConnectionSnapshot },
     { collectionKey: "roleplayThreads", snapshot: roleplaySnapshot },
     { collectionKey: "roleplayEntries", snapshot: roleplayEntrySnapshot },
@@ -336,6 +345,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     personas: personaSnapshot.records,
     lorebooks: lorebookSnapshot.records,
     loreRuntimeStates: loreRuntimeStateSnapshot.states,
+    macroVariableStates: macroVariableStateSnapshot.states,
     providerConnections: providerConnectionSnapshot.records,
     roleplayThreads,
     messengerThreads,
@@ -363,6 +373,8 @@ async function saveAppStorageCollection(
       return saveLorebookRecordsToStorage(snapshot.lorebooks, rawUrl);
     case "loreRuntimeStates":
       return saveLoreRuntimeStatesToStorage(snapshot.loreRuntimeStates, rawUrl);
+    case "macroVariableStates":
+      return saveMacroVariableStatesToStorage(snapshot.macroVariableStates, rawUrl);
     case "providerConnections":
       return saveProviderConnectionRecordsToStorage(snapshot.providerConnections, rawUrl);
     case "roleplayThreads":

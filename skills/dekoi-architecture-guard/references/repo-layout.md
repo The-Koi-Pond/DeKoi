@@ -101,6 +101,11 @@ src/engine/contracts/types/ripples.ts
 src/engine/ripples/ripple-actions.ts
   Shared per-thread Ripple state contract and deterministic mutations.
 
+src/engine/contracts/types/macro-variables.ts
+src/engine/macro-variables/macro-variable-actions.ts
+  Shared global and per-thread macro variable state contract and deterministic
+  selection/commit mutations.
+
 src/engine/contracts/types/app-settings.ts
 src/engine/contracts/types/project-plan.ts
 src/engine/contracts/constants/surfaces.ts
@@ -117,6 +122,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/macro-variables Owner-scoped macro variable state actions.
 src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports only when real adapters need them.
 ```
