@@ -119,5 +119,7 @@ Focused checks for narrow changes are mapped to change types in
   provider paths with a configured Base URL and model.
 - Treat legacy compatibility as explicit import work, not automatic migration.
   The current legacy import adds converted native companions, personas,
-  provider connections, and Messenger records after the same backup and commit
-  flow.
+  provider connections, Messenger records, and macro variable scopes after the
+  same backup and commit flow. The preview shows macro variable scope and
+  variable counts, and warns when imported global variables will overwrite
+  same-name current globals.

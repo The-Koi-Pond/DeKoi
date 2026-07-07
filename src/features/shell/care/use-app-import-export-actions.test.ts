@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { prepareLegacyImportData } from "./use-app-import-export-actions";
+import {
+  getLegacyImportPreviewWarnings,
+  mergeLegacyImportMacroVariableStates,
+  prepareLegacyImportData,
+} from "./use-app-import-export-actions";
 import type { DeKoiLegacyImportData } from "../../runtime";
 
 const now = "2026-07-06T00:00:00.000Z";
@@ -87,6 +91,23 @@ function createProviderConnection(
   };
 }
 
+function createMacroVariableState(
+  id: string,
+  ownerKind: DeKoiLegacyImportData["macroVariableStates"][number]["ownerKind"],
+  ownerId: string,
+  variables: Record<string, string>,
+): DeKoiLegacyImportData["macroVariableStates"][number] {
+  return {
+    id,
+    schemaVersion: 1,
+    ownerKind,
+    ownerId,
+    variables,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 describe("prepareLegacyImportData", () => {
   it("remaps imported catalog ids and thread references before append", () => {
     const data: DeKoiLegacyImportData = {
@@ -141,6 +162,37 @@ describe("prepareLegacyImportData", () => {
           talkativeness: 50,
           avatarUrl: null,
           lorebookIds: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      macroVariableStates: [
+        {
+          id: "macro-variable-state-legacy-thread",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "calm" },
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "macro-variable-state-legacy-global",
+          schemaVersion: 1,
+          ownerKind: "global",
+          ownerId: "global",
+          variables: { weather: "rain" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      messengerThreadMacroVariableStates: [
+        {
+          id: "macro-variable-state-legacy-thread",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "calm" },
           createdAt: now,
           updatedAt: now,
         },
@@ -206,6 +258,12 @@ describe("prepareLegacyImportData", () => {
     const providerConnectionId = prepared.providerConnections[0]?.id;
     const thread = prepared.messengerThreads[0];
     const message = thread?.messages[0];
+    const threadVariableState = prepared.macroVariableStates.find(
+      (state) => state.ownerKind === "messenger-thread",
+    );
+    const globalVariableState = prepared.macroVariableStates.find(
+      (state) => state.ownerKind === "global",
+    );
 
     expect(characterId).toMatch(/^character-/);
     expect(personaId).toMatch(/^persona-/);
@@ -220,6 +278,18 @@ describe("prepareLegacyImportData", () => {
       kind: "character",
       characterId,
     });
+    expect(threadVariableState).toMatchObject({
+      id: expect.stringMatching(/^macro-variable-state-/),
+      ownerKind: "messenger-thread",
+      ownerId: thread?.id,
+      variables: { mood: "calm" },
+    });
+    expect(globalVariableState).toMatchObject({
+      id: expect.stringMatching(/^macro-variable-state-/),
+      ownerKind: "global",
+      ownerId: "global",
+      variables: { weather: "rain" },
+    });
   });
 
   it("clears imported thread provider references when the provider was not converted", () => {
@@ -227,6 +297,8 @@ describe("prepareLegacyImportData", () => {
       sourceLabel: "Legacy DeKoi export",
       characters: [],
       personas: [],
+      macroVariableStates: [],
+      messengerThreadMacroVariableStates: [null],
       providerConnections: [],
       messengerThreads: [
         {
@@ -259,6 +331,8 @@ describe("prepareLegacyImportData", () => {
       sourceLabel: "Legacy DeKoi export",
       characters: [],
       personas: [],
+      macroVariableStates: [],
+      messengerThreadMacroVariableStates: [null],
       providerConnections: [],
       messengerThreads: [
         {
@@ -336,6 +410,8 @@ describe("prepareLegacyImportData", () => {
         createPersona("legacy-persona", "First persona"),
         createPersona("legacy-persona", "Second persona"),
       ],
+      macroVariableStates: [],
+      messengerThreadMacroVariableStates: [null],
       providerConnections: [
         createProviderConnection("legacy-connection", "First connection"),
         createProviderConnection("legacy-connection", "Second connection"),
@@ -410,5 +486,295 @@ describe("prepareLegacyImportData", () => {
       kind: "persona",
       personaId: personaIds[0],
     });
+  });
+
+  it("keeps duplicate legacy thread macro variables attached to their matching imported thread", () => {
+    const data: DeKoiLegacyImportData = {
+      sourceLabel: "Legacy DeKoi export",
+      characters: [],
+      personas: [],
+      macroVariableStates: [
+        {
+          id: "macro-variable-state-first-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "first" },
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "macro-variable-state-second-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "second" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      messengerThreadMacroVariableStates: [
+        {
+          id: "macro-variable-state-first-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "first" },
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "macro-variable-state-second-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "second" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      providerConnections: [],
+      messengerThreads: [
+        {
+          id: "legacy-thread",
+          schemaVersion: 1,
+          kind: "messenger",
+          mode: "direct",
+          title: "First imported thread",
+          characterIds: [],
+          activePersonaId: null,
+          lorebookIds: [],
+          presetId: null,
+          providerConnectionId: null,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "legacy-thread",
+          schemaVersion: 1,
+          kind: "messenger",
+          mode: "direct",
+          title: "Second imported thread",
+          characterIds: [],
+          activePersonaId: null,
+          lorebookIds: [],
+          presetId: null,
+          providerConnectionId: null,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+
+    const prepared = prepareLegacyImportData(data);
+
+    expect(prepared.messengerThreads).toHaveLength(2);
+    expect(prepared.macroVariableStates).toHaveLength(2);
+    expect(prepared.macroVariableStates[0]).toMatchObject({
+      ownerId: prepared.messengerThreads[0]?.id,
+      variables: { mood: "first" },
+    });
+    expect(prepared.macroVariableStates[1]).toMatchObject({
+      ownerId: prepared.messengerThreads[1]?.id,
+      variables: { mood: "second" },
+    });
+    expect(prepared.macroVariableStates[0]?.ownerId).not.toBe(
+      prepared.macroVariableStates[1]?.ownerId,
+    );
+  });
+
+  it("keeps asymmetric duplicate legacy thread variables attached to the source thread", () => {
+    const data: DeKoiLegacyImportData = {
+      sourceLabel: "Legacy DeKoi export",
+      characters: [],
+      personas: [],
+      macroVariableStates: [
+        {
+          id: "macro-variable-state-second-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "happy" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      messengerThreadMacroVariableStates: [
+        null,
+        {
+          id: "macro-variable-state-second-duplicate",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "legacy-thread",
+          variables: { mood: "happy" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      providerConnections: [],
+      messengerThreads: [
+        {
+          id: "legacy-thread",
+          schemaVersion: 1,
+          kind: "messenger",
+          mode: "direct",
+          title: "A (no variables in source)",
+          characterIds: [],
+          activePersonaId: null,
+          lorebookIds: [],
+          presetId: null,
+          providerConnectionId: null,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "legacy-thread",
+          schemaVersion: 1,
+          kind: "messenger",
+          mode: "direct",
+          title: "B (has variables in source)",
+          characterIds: [],
+          activePersonaId: null,
+          lorebookIds: [],
+          presetId: null,
+          providerConnectionId: null,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+
+    const prepared = prepareLegacyImportData(data);
+
+    expect(prepared.macroVariableStates).toHaveLength(1);
+    expect(prepared.macroVariableStates[0]).toMatchObject({
+      ownerId: prepared.messengerThreads[1]?.id,
+      variables: { mood: "happy" },
+    });
+    expect(prepared.macroVariableStates[0]?.ownerId).not.toBe(prepared.messengerThreads[0]?.id);
+  });
+
+  it("drops thread-scoped macro variables when their imported thread was not converted", () => {
+    const data: DeKoiLegacyImportData = {
+      sourceLabel: "Legacy DeKoi export",
+      characters: [],
+      personas: [],
+      macroVariableStates: [
+        {
+          id: "macro-variable-state-orphaned",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "thread-skipped",
+          variables: { mood: "lost" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      messengerThreadMacroVariableStates: [],
+      providerConnections: [],
+      messengerThreads: [],
+    };
+
+    const prepared = prepareLegacyImportData(data);
+
+    expect(prepared.macroVariableStates).toEqual([]);
+  });
+});
+
+describe("mergeLegacyImportMacroVariableStates", () => {
+  it("merges imported global variables into the current global scope", () => {
+    const merged = mergeLegacyImportMacroVariableStates(
+      [
+        {
+          id: "macro-variable-state-imported-global",
+          schemaVersion: 1,
+          ownerKind: "global",
+          ownerId: "global",
+          variables: { mood: "imported", scene: "rain" },
+          createdAt: now,
+          updatedAt: "2026-07-06T01:00:00.000Z",
+        },
+        {
+          id: "macro-variable-state-imported-thread",
+          schemaVersion: 1,
+          ownerKind: "messenger-thread",
+          ownerId: "messenger-thread-imported",
+          variables: { affection: "2" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      [
+        {
+          id: "macro-variable-state-current-global",
+          schemaVersion: 1,
+          ownerKind: "global",
+          ownerId: "global",
+          variables: { mood: "current", day: "Tuesday" },
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    );
+
+    expect(merged).toHaveLength(2);
+    expect(merged[0]).toMatchObject({
+      ownerKind: "messenger-thread",
+      ownerId: "messenger-thread-imported",
+      variables: { affection: "2" },
+    });
+    expect(merged[1]).toMatchObject({
+      id: "macro-variable-state-current-global",
+      ownerKind: "global",
+      ownerId: "global",
+      variables: { mood: "imported", day: "Tuesday", scene: "rain" },
+      updatedAt: "2026-07-06T01:00:00.000Z",
+    });
+  });
+});
+
+describe("getLegacyImportPreviewWarnings", () => {
+  it("warns only when imported globals collide with current globals", () => {
+    const importedStates = [
+      createMacroVariableState("macro-variable-state-imported-global", "global", "global", {
+        mood: "imported",
+        weather: "rain",
+      }),
+    ];
+
+    expect(getLegacyImportPreviewWarnings([], importedStates, [])).toEqual([]);
+    expect(
+      getLegacyImportPreviewWarnings([], importedStates, [
+        createMacroVariableState("macro-variable-state-current-global", "global", "global", {
+          day: "Tuesday",
+        }),
+      ]),
+    ).toEqual([]);
+    expect(
+      getLegacyImportPreviewWarnings(
+        ["Skipped 1 unsupported legacy character record(s)."],
+        importedStates,
+        [
+          createMacroVariableState("macro-variable-state-current-global", "global", "global", {
+            mood: "current",
+          }),
+        ],
+      ),
+    ).toEqual([
+      "Skipped 1 unsupported legacy character record(s).",
+      "Imported global macro variables will overwrite same-name current global macro variables.",
+    ]);
   });
 });

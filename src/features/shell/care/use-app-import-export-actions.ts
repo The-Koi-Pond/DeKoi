@@ -6,6 +6,7 @@ import {
   attachMessengerMessagesToThreads,
   type MessengerMessageAuthor,
 } from "../../../engine/contracts/types/messenger";
+import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import { attachRoleplayEntriesToThreads } from "../../../engine/contracts/types/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
@@ -39,6 +40,9 @@ type ImportCommitOptions = {
 };
 
 type RecordIdPrefix = "character" | "connection" | "persona";
+const GLOBAL_MACRO_VARIABLE_OWNER_ID = "global";
+const LEGACY_GLOBAL_MACRO_VARIABLE_OVERWRITE_WARNING =
+  "Imported global macro variables will overwrite same-name current global macro variables.";
 
 function createImportActionErrorResult(
   records: AppStorageRecords,
@@ -91,6 +95,102 @@ function remapImportedNullableReference(idMap: ReadonlyMap<string, string>, id: 
   return idMap.get(id) ?? null;
 }
 
+function remapLegacyGlobalMacroVariableState(state: MacroVariableScope): MacroVariableScope {
+  return {
+    ...state,
+    id: createRecordId("macro-variable-state"),
+    ownerId: GLOBAL_MACRO_VARIABLE_OWNER_ID,
+  };
+}
+
+function remapLegacyThreadMacroVariableState(
+  state: MacroVariableScope,
+  ownerId: string,
+): MacroVariableScope {
+  return {
+    ...state,
+    id: createRecordId("macro-variable-state"),
+    ownerId,
+  };
+}
+
+export function mergeLegacyImportMacroVariableStates(
+  importedStates: MacroVariableScope[],
+  currentStates: MacroVariableScope[],
+): MacroVariableScope[] {
+  const importedGlobalVariables = importedStates
+    .filter((state) => state.ownerKind === "global")
+    .reduce(
+      (variables, state) => ({
+        ...variables,
+        ...state.variables,
+      }),
+      {} as Record<string, string>,
+    );
+  const hasImportedGlobalVariables = Object.keys(importedGlobalVariables).length > 0;
+  const importedOwnerStates = importedStates.filter((state) => state.ownerKind !== "global");
+
+  if (!hasImportedGlobalVariables) {
+    return [...importedOwnerStates, ...currentStates];
+  }
+
+  const currentGlobalState = currentStates.find((state) => state.ownerKind === "global") ?? null;
+  if (!currentGlobalState) {
+    return [...importedStates, ...currentStates];
+  }
+
+  const mergedGlobalState: MacroVariableScope = {
+    ...currentGlobalState,
+    variables: {
+      ...currentGlobalState.variables,
+      ...importedGlobalVariables,
+    },
+    updatedAt:
+      importedStates.find((state) => state.ownerKind === "global")?.updatedAt ??
+      currentGlobalState.updatedAt,
+  };
+
+  return [
+    ...importedOwnerStates,
+    mergedGlobalState,
+    ...currentStates.filter((state) => state.id !== currentGlobalState.id),
+  ];
+}
+
+function hasLegacyGlobalMacroVariableNameCollision(
+  importedStates: MacroVariableScope[],
+  currentStates: MacroVariableScope[],
+) {
+  const importedGlobalVariables = importedStates
+    .filter((state) => state.ownerKind === "global")
+    .flatMap((state) => Object.keys(state.variables));
+  const currentGlobalState = currentStates.find((state) => state.ownerKind === "global") ?? null;
+
+  if (importedGlobalVariables.length === 0 || !currentGlobalState) {
+    return false;
+  }
+
+  return importedGlobalVariables.some((name) =>
+    Object.prototype.hasOwnProperty.call(currentGlobalState.variables, name),
+  );
+}
+
+export function getLegacyImportPreviewWarnings(
+  importWarnings: string[],
+  importedStates: MacroVariableScope[],
+  currentStates: MacroVariableScope[],
+) {
+  if (!hasLegacyGlobalMacroVariableNameCollision(importedStates, currentStates)) {
+    return importWarnings;
+  }
+
+  if (importWarnings.includes(LEGACY_GLOBAL_MACRO_VARIABLE_OVERWRITE_WARNING)) {
+    return importWarnings;
+  }
+
+  return [...importWarnings, LEGACY_GLOBAL_MACRO_VARIABLE_OVERWRITE_WARNING];
+}
+
 function remapLegacyMessageAuthor(
   author: MessengerMessageAuthor,
   characterIds: ReadonlyMap<string, string>,
@@ -125,15 +225,14 @@ export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegac
     data.providerConnections,
     "connection",
   );
-
-  return {
-    ...data,
-    characters,
-    personas,
-    providerConnections,
-    messengerThreads: data.messengerThreads.map((thread) => {
-      const id = createRecordId("messenger-thread");
-      return {
+  const globalMacroVariableStates = data.macroVariableStates
+    .filter((state) => state.ownerKind === "global")
+    .map(remapLegacyGlobalMacroVariableState);
+  const threadResults = data.messengerThreads.map((thread, index) => {
+    const id = createRecordId("messenger-thread");
+    const threadMacroVariableState = data.messengerThreadMacroVariableStates[index] ?? null;
+    return {
+      thread: {
         ...thread,
         id,
         characterIds: remapImportedReferences(characterIdMap, thread.characterIds),
@@ -148,8 +247,27 @@ export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegac
           threadId: id,
           author: remapLegacyMessageAuthor(message.author, characterIdMap, personaIdMap),
         })),
-      };
-    }),
+      },
+      macroVariableState: threadMacroVariableState
+        ? remapLegacyThreadMacroVariableState(threadMacroVariableState, id)
+        : null,
+    };
+  });
+  const messengerThreads = threadResults.map((result) => result.thread);
+  const macroVariableStates = [
+    ...globalMacroVariableStates,
+    ...threadResults.flatMap((result) =>
+      result.macroVariableState ? [result.macroVariableState] : [],
+    ),
+  ];
+
+  return {
+    ...data,
+    characters,
+    personas,
+    providerConnections,
+    macroVariableStates,
+    messengerThreads,
   };
 }
 
@@ -162,7 +280,7 @@ export function createLegacyImportDataFingerprint(data: DeKoiLegacyImportData) {
       personas: data.personas,
       lorebooks: [],
       loreRuntimeStates: [],
-      macroVariableStates: [],
+      macroVariableStates: data.macroVariableStates,
       providerConnections: data.providerConnections,
       messengerThreads: data.messengerThreads,
       rippleStates: [],
@@ -282,7 +400,10 @@ export function useAppImportExportActions({
         personas: [...data.personas, ...personas],
         lorebooks,
         loreRuntimeStates,
-        macroVariableStates,
+        macroVariableStates: mergeLegacyImportMacroVariableStates(
+          data.macroVariableStates,
+          macroVariableStates,
+        ),
         providerConnections: [...data.providerConnections, ...providerConnections],
         roleplayThreads,
         messengerThreads: [...data.messengerThreads, ...messengerThreads],

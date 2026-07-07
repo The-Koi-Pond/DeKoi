@@ -7,6 +7,7 @@ import {
   type MessengerThreadMode,
 } from "../../../engine/contracts/types/messenger";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
+import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   getProviderConnectionProviderOption,
@@ -32,6 +33,14 @@ const LEGACY_MESSENGER_THREADS_STORAGE_KEY = "dekoi:messenger-threads:v1";
 export interface DeKoiLegacyImportData {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
+  /** Native macro variable scopes converted from legacy global and thread variables. */
+  macroVariableStates: MacroVariableScope[];
+  /**
+   * Positional Messenger thread variable pairing used while imported thread IDs
+   * are remapped. Entries align with `messengerThreads`; null means the source
+   * thread had no convertible variables.
+   */
+  messengerThreadMacroVariableStates: (MacroVariableScope | null)[];
   providerConnections: ProviderConnectionRecord[];
   messengerThreads: MessengerThread[];
   sourceLabel: string;
@@ -40,6 +49,10 @@ export interface DeKoiLegacyImportData {
 interface DeKoiLegacyImportCounts {
   characters: number;
   personas: number;
+  /** Number of imported MacroVariableScope records. */
+  macroVariableStates: number;
+  /** Total variable keys across imported macro variable scopes. */
+  macroVariables: number;
   providerConnections: number;
   messengerThreads: number;
   messengerMessages: number;
@@ -57,8 +70,20 @@ export type DeKoiLegacyImportParseResult =
 type LegacyImportCandidates = {
   characters: unknown[];
   personas: unknown[];
+  globalVariableSources: LegacyVariableSource[];
   providerConnections: unknown[];
   messengerThreads: unknown[];
+};
+
+type LegacyVariableSource = {
+  variables: unknown;
+  createdAt: unknown;
+  updatedAt: unknown;
+};
+
+type LegacyThreadImport = {
+  thread: MessengerThread;
+  macroVariableStates: MacroVariableScope[];
 };
 
 const LEGACY_TOP_LEVEL_CANDIDATE_KEYS = [
@@ -71,9 +96,46 @@ function createLegacyImportCandidates(): LegacyImportCandidates {
   return {
     characters: [],
     personas: [],
+    globalVariableSources: [],
     providerConnections: [],
     messengerThreads: [],
   };
+}
+
+function readLegacyVariableValue(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (value === null) return "";
+  return null;
+}
+
+function normalizeLegacyVariables(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+
+  const variables: Record<string, string> = {};
+  for (const [rawName, rawValue] of Object.entries(value)) {
+    const name = rawName.trim();
+    const variableValue = readLegacyVariableValue(rawValue);
+    if (!name || variableValue === null) continue;
+    variables[name] = variableValue;
+  }
+  return variables;
+}
+
+function hasLegacyVariables(value: unknown) {
+  return Object.keys(normalizeLegacyVariables(value)).length > 0;
+}
+
+function addGlobalVariableSource(candidates: LegacyImportCandidates, value: unknown): boolean {
+  if (!isRecord(value) || !hasLegacyVariables(value.globalVariables)) return false;
+
+  candidates.globalVariableSources.push({
+    variables: value.globalVariables,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+  });
+  return true;
 }
 
 function migrateLegacyId(id: string) {
@@ -283,7 +345,7 @@ function normalizeLegacyMessage(
   };
 }
 
-function normalizeLegacyThread(value: unknown, index: number): MessengerThread | null {
+function normalizeLegacyThread(value: unknown, index: number): LegacyThreadImport | null {
   if (!isRecord(value)) return null;
 
   const sourceKind = value.kind;
@@ -301,7 +363,7 @@ function normalizeLegacyThread(value: unknown, index: number): MessengerThread |
         .filter((message): message is MessengerMessage => message !== null)
     : [];
 
-  return {
+  const thread: MessengerThread = {
     id,
     schemaVersion: 1,
     kind: "messenger",
@@ -317,6 +379,26 @@ function normalizeLegacyThread(value: unknown, index: number): MessengerThread |
     messages,
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
+  };
+  const variables = normalizeLegacyVariables(value.variables);
+  const macroVariableStates: MacroVariableScope[] =
+    Object.keys(variables).length === 0
+      ? []
+      : [
+          {
+            id: `macro-variable-state-imported-thread-${index + 1}`,
+            schemaVersion: 1,
+            ownerKind: "messenger-thread",
+            ownerId: thread.id,
+            variables,
+            createdAt: thread.createdAt,
+            updatedAt: thread.updatedAt,
+          },
+        ];
+
+  return {
+    thread,
+    macroVariableStates,
   };
 }
 
@@ -337,6 +419,9 @@ function collectCandidates(value: unknown) {
 
   if (Array.isArray(parsed)) {
     candidates.messengerThreads.push(...parsed);
+    for (const item of parsed) {
+      addGlobalVariableSource(candidates, item);
+    }
     return { candidates, sourceLabel };
   }
 
@@ -346,16 +431,27 @@ function collectCandidates(value: unknown) {
 
   if (parsed.kind === "bubbles" || parsed.kind === "messenger") {
     candidates.messengerThreads.push(parsed);
+    addGlobalVariableSource(candidates, parsed);
     return { candidates, sourceLabel };
+  }
+
+  if (addGlobalVariableSource(candidates, parsed)) {
+    sourceLabel = "Legacy chat variables JSON";
   }
 
   if (Array.isArray(parsed.threads)) {
     candidates.messengerThreads.push(...parsed.threads);
+    for (const thread of parsed.threads) {
+      addGlobalVariableSource(candidates, thread);
+    }
     sourceLabel = "Legacy DeKoi export";
   }
 
   if (Array.isArray(parsed.messengerThreads)) {
     candidates.messengerThreads.push(...parsed.messengerThreads);
+    for (const thread of parsed.messengerThreads) {
+      addGlobalVariableSource(candidates, thread);
+    }
     sourceLabel = "Legacy DeKoi export";
   }
 
@@ -374,16 +470,23 @@ function collectCandidates(value: unknown) {
 
   if (Array.isArray(legacyThreadList)) {
     candidates.messengerThreads.push(...legacyThreadList);
+    for (const thread of legacyThreadList) {
+      addGlobalVariableSource(candidates, thread);
+    }
     sourceLabel = "Legacy Bubbles export";
   }
 
   if (isRecord(legacySingleThread)) {
     candidates.messengerThreads.push(legacySingleThread);
+    addGlobalVariableSource(candidates, legacySingleThread);
     sourceLabel = "Legacy Bubbles export";
   }
 
   if (Array.isArray(messengerThreadList)) {
     candidates.messengerThreads.push(...messengerThreadList);
+    for (const thread of messengerThreadList) {
+      addGlobalVariableSource(candidates, thread);
+    }
     sourceLabel =
       sourceLabel === "Legacy Bubbles export" ? "Legacy Bubbles export" : "Legacy Messenger export";
   }
@@ -392,7 +495,13 @@ function collectCandidates(value: unknown) {
 }
 
 function countCandidates(candidates: LegacyImportCandidates) {
-  return Object.values(candidates).reduce((count, records) => count + records.length, 0);
+  return (
+    candidates.characters.length +
+    candidates.personas.length +
+    candidates.globalVariableSources.length +
+    candidates.providerConnections.length +
+    candidates.messengerThreads.length
+  );
 }
 
 function convertCollection<T>(
@@ -409,10 +518,65 @@ function convertCollection<T>(
   return records;
 }
 
+function convertThreadImports(candidates: unknown[], warnings: string[]): LegacyThreadImport[] {
+  const records = candidates
+    .map((candidate, index) => normalizeLegacyThread(candidate, index))
+    .filter((record): record is LegacyThreadImport => record !== null);
+  const skipped = candidates.length - records.length;
+  if (skipped > 0) {
+    warnings.push(`Skipped ${skipped} unsupported legacy thread record(s).`);
+  }
+  return records;
+}
+
+function mergeLegacyGlobalVariables(
+  sources: readonly LegacyVariableSource[],
+): Record<string, string> {
+  return sources.reduce(
+    (variables, source) => ({
+      ...variables,
+      ...normalizeLegacyVariables(source.variables),
+    }),
+    {} as Record<string, string>,
+  );
+}
+
+function normalizeLegacyGlobalVariableState(
+  sources: readonly LegacyVariableSource[],
+): MacroVariableScope | null {
+  const variables = mergeLegacyGlobalVariables(sources);
+  let createdAt: string | null = null;
+  let updatedAt: string | null = null;
+
+  for (const source of sources) {
+    const fallback = updatedAt ?? createdAt ?? new Date().toISOString();
+    createdAt ??= readTimestamp(source.createdAt, fallback);
+    updatedAt = readTimestamp(source.updatedAt, fallback);
+  }
+
+  if (Object.keys(variables).length === 0) return null;
+
+  const now = new Date().toISOString();
+  return {
+    id: "macro-variable-state-imported-global",
+    schemaVersion: 1,
+    ownerKind: "global",
+    ownerId: "global",
+    variables,
+    createdAt: createdAt ?? now,
+    updatedAt: updatedAt ?? createdAt ?? now,
+  };
+}
+
 function getLegacyImportCounts(data: DeKoiLegacyImportData): DeKoiLegacyImportCounts {
   return {
     characters: data.characters.length,
     personas: data.personas.length,
+    macroVariableStates: data.macroVariableStates.length,
+    macroVariables: data.macroVariableStates.reduce(
+      (count, state) => count + Object.keys(state.variables).length,
+      0,
+    ),
     providerConnections: data.providerConnections.length,
     messengerThreads: data.messengerThreads.length,
     messengerMessages: data.messengerThreads.reduce(
@@ -432,12 +596,20 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
   }
 
   const warnings: string[] = [];
-  const importedThreads = convertCollection(
-    candidates.messengerThreads,
-    normalizeLegacyThread,
-    "thread",
-    warnings,
+  const importedThreadRecords = convertThreadImports(candidates.messengerThreads, warnings);
+  const importedThreads = importedThreadRecords.map((record) => record.thread);
+  const importedThreadMacroVariableStates = importedThreadRecords.map(
+    (record) => record.macroVariableStates[0] ?? null,
   );
+  const importedMacroVariableStates = importedThreadMacroVariableStates.filter(
+    (state): state is MacroVariableScope => state !== null,
+  );
+  const importedGlobalMacroVariableState = normalizeLegacyGlobalVariableState(
+    candidates.globalVariableSources,
+  );
+  if (importedGlobalMacroVariableState) {
+    importedMacroVariableStates.unshift(importedGlobalMacroVariableState);
+  }
   const importedCharacters = convertCollection(
     candidates.characters,
     normalizeLegacyCharacter,
@@ -461,6 +633,7 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
     importedThreads.length +
       importedCharacters.length +
       importedPersonas.length +
+      importedMacroVariableStates.length +
       importedProviderConnections.length ===
     0
   ) {
@@ -473,6 +646,8 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
   const data: DeKoiLegacyImportData = {
     characters: importedCharacters,
     personas: importedPersonas,
+    macroVariableStates: importedMacroVariableStates,
+    messengerThreadMacroVariableStates: importedThreadMacroVariableStates,
     providerConnections: importedProviderConnections,
     messengerThreads: importedThreads,
     sourceLabel,
