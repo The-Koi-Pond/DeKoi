@@ -80,7 +80,7 @@ export const IDENTITY_MACRO_DEFINITIONS = [
     value: "user",
     syntax: "{{user}}",
     insertText: "{{user}}",
-    description: "Active persona name, or the user fallback.",
+    description: "Current user name.",
   },
   {
     kind: "literal",
@@ -90,7 +90,7 @@ export const IDENTITY_MACRO_DEFINITIONS = [
     value: "user",
     syntax: "{{userName}}",
     insertText: "{{userName}}",
-    description: "Compatibility alias for {{user}}.",
+    description: "Compatibility alias for the current user name.",
   },
   {
     kind: "literal",

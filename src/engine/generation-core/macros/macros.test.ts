@@ -190,6 +190,14 @@ describe("resolveMacros", () => {
     expect(syntaxes).not.toContain("{{original}}");
   });
 
+  it("describes user and persona macro outputs distinctly", () => {
+    const descriptionFor = (syntax: string) => SUPPORTED_MACROS.find((macro) => macro.syntax === syntax)?.description;
+
+    expect(descriptionFor("{{user}}")).toBe("Current user name.");
+    expect(descriptionFor("{{userName}}")).toBe("Compatibility alias for the current user name.");
+    expect(descriptionFor("{{persona}}")).toBe("Active persona name, or the user fallback.");
+  });
+
   it("keeps supported macro definitions executable by the resolver", () => {
     for (const definition of SUPPORTED_MACRO_DEFINITIONS) {
       const sample = supportedMacroSample(definition.id);
