@@ -1,10 +1,21 @@
 import type { MacroContext } from "../macro-types";
+import { VARIABLE_PREFIX_DEFINITIONS } from "../macro-definitions";
 
-const GETVAR_PREFIX = "getvar::";
-const SETVAR_PREFIX = "setvar::";
-const ADDVAR_PREFIX = "addvar::";
-const INCVAR_PREFIX = "incvar::";
-const DECVAR_PREFIX = "decvar::";
+type VariablePrefixId = (typeof VARIABLE_PREFIX_DEFINITIONS)[number]["id"];
+
+function readVariablePrefix(id: VariablePrefixId) {
+  const definition = VARIABLE_PREFIX_DEFINITIONS.find((candidate) => candidate.id === id);
+  if (definition === undefined) {
+    throw new Error(`Missing macro variable prefix definition: ${id}`);
+  }
+  return definition.prefix;
+}
+
+const GETVAR_PREFIX = readVariablePrefix("getvar");
+const SETVAR_PREFIX = readVariablePrefix("setvar");
+const ADDVAR_PREFIX = readVariablePrefix("addvar");
+const INCVAR_PREFIX = readVariablePrefix("incvar");
+const DECVAR_PREFIX = readVariablePrefix("decvar");
 
 function hasVariable(context: MacroContext, name: string) {
   return Object.prototype.hasOwnProperty.call(context.variables, name);

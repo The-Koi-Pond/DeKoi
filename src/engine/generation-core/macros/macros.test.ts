@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { SUPPORTED_MACRO_DEFINITIONS } from "./macro-definitions";
 import { findMacroSpanClose, mapMacroSpans } from "./macro-spans";
-import { resolveMacros, type MacroContext } from "./macro-engine";
+import { SUPPORTED_MACROS, resolveMacros, type MacroContext } from "./macro-engine";
 
 function macroContext(input: Partial<MacroContext> = {}): MacroContext {
   return {
@@ -71,6 +72,70 @@ function throwingRandom(): never {
   throw new Error("Random macro should not be evaluated");
 }
 
+function supportedMacroContext() {
+  return macroContext({
+    characterFields: characterMacroFields({
+      displayName: "Mara",
+      nickname: "Mar",
+      description: "Moon archivist.",
+      personality: "Dry and curious.",
+      scenario: "Testing the archive.",
+      firstMessage: "You're late.",
+      exampleMessages: "Mara: Obviously.",
+      systemPrompt: "Stay precise.",
+      postHistoryInstructions: "Keep the reply brief.",
+      creator: "DeKoi",
+      characterVersion: "contract",
+      creatorNotes: "No copied source material.",
+      characterNote: "Tracks lunar keys.",
+    }),
+    chatId: "thread-1",
+    idleDuration: "12 minutes",
+    lastGenerationType: "normal",
+    lastInput: "hello",
+    model: "local-model",
+    now: "2026-07-04T13:05:06.000Z",
+    personaFields: { displayName: "Alex" },
+    timeZone: "UTC",
+    variables: { name: "stored" },
+  });
+}
+
+function supportedMacroSample(id: string) {
+  switch (id) {
+    case "uppercase":
+      return { template: "{{uppercase}}mixed{{/uppercase}}", expected: "MIXED" };
+    case "lowercase":
+      return { template: "{{lowercase}}MIXED{{/lowercase}}", expected: "mixed" };
+    case "comment":
+      return { template: "A{{// comment}}B", expected: "AB" };
+    case "if":
+      return { template: "{{#if user}}yes{{else}}no{{/if}}", expected: "yes" };
+    case "random-two-options":
+      return { template: "{{random:A:B}}", expected: "A" };
+    case "random-options":
+      return { template: "{{random::A::B}}", expected: "A" };
+    case "random-weighted":
+      return { template: "{{random::A@2::B@0.5}}", expected: "A" };
+    case "roll":
+      return { template: "{{roll:2d6}}", expected: "2" };
+    case "getvar":
+      return { template: "{{getvar::name}}", expected: "stored" };
+    case "setvar":
+      return { template: "{{setvar::name::value}}{{getvar::name}}", expected: "value" };
+    case "addvar":
+      return { template: "{{setvar::name::2}}{{addvar::name::3}}{{getvar::name}}", expected: "5" };
+    case "incvar":
+      return { template: "{{setvar::name::2}}{{incvar::name}}{{getvar::name}}", expected: "3" };
+    case "decvar":
+      return { template: "{{setvar::name::2}}{{decvar::name}}{{getvar::name}}", expected: "1" };
+    case "variable-name":
+      return { template: "{{name}}", expected: "stored" };
+    default:
+      return null;
+  }
+}
+
 describe("macro balance helpers", () => {
   it("finds the end of a balanced macro span with nested macros", () => {
     const input = "a {{outer::{{inner}}}} z";
@@ -103,6 +168,59 @@ describe("macro balance helpers", () => {
 });
 
 describe("resolveMacros", () => {
+  it("exports a unique active macro catalog for editor UI", () => {
+    const ids = new Set(SUPPORTED_MACROS.map((macro) => macro.id));
+    const syntaxes = SUPPORTED_MACROS.map((macro) => macro.syntax);
+
+    expect(ids.size).toBe(SUPPORTED_MACROS.length);
+    expect(SUPPORTED_MACROS).toEqual(
+      SUPPORTED_MACRO_DEFINITIONS.map(({ category, description, id, insertText, syntax }) => ({
+        category,
+        description,
+        id,
+        insertText,
+        syntax,
+      })),
+    );
+    expect(syntaxes).toContain("{{user}}");
+    expect(syntaxes).toContain("{{char}}");
+    expect(syntaxes).toContain("{{#if condition}}...{{else}}...{{/if}}");
+    expect(syntaxes).toContain("{{setvar::name::value}}");
+    expect(syntaxes).not.toContain("{{agent::TYPE}}");
+    expect(syntaxes).not.toContain("{{original}}");
+  });
+
+  it("describes user and persona macro outputs distinctly", () => {
+    const descriptionFor = (syntax: string) =>
+      SUPPORTED_MACROS.find((macro) => macro.syntax === syntax)?.description;
+
+    expect(descriptionFor("{{user}}")).toBe("Current user name.");
+    expect(descriptionFor("{{userName}}")).toBe("Compatibility alias for the current user name.");
+    expect(descriptionFor("{{persona}}")).toBe("Active persona name, or the user fallback.");
+  });
+
+  it("keeps supported macro definitions executable by the resolver", () => {
+    for (const definition of SUPPORTED_MACRO_DEFINITIONS) {
+      const sample = supportedMacroSample(definition.id);
+      if (definition.kind === "pattern") {
+        expect(sample, `Missing resolver sample for ${definition.id}`).not.toBeNull();
+      }
+
+      const template = sample?.template ?? definition.syntax;
+      const expected = sample?.expected;
+      const result = resolveMacros(template, supportedMacroContext(), {
+        random: sequenceRandom([0]),
+        trimResult: false,
+      });
+
+      if (expected !== undefined) {
+        expect(result, definition.id).toBe(expected);
+      } else {
+        expect(result, definition.id).not.toBe(definition.syntax);
+      }
+    }
+  });
+
   it("resolves identity macros and character lists", () => {
     const context = macroContext({ characters: ["Mara", "Koi"] });
 

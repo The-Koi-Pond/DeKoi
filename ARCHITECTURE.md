@@ -183,9 +183,9 @@ architecture-level rules:
 - `src/engine` owns native record contracts under `contracts/types`,
   deterministic catalog/mode/lore-runtime/macro-variable/ripple actions,
   engine-local shared text/error helpers, and provider-neutral generation
-  assembly, including lorebook activation, the macro resolver under
-  `generation-core`, and Messenger/Roleplay prompt macro wiring under
-  `generation`.
+  assembly, including lorebook activation, the macro resolver and active editor
+  macro catalog under `generation-core`, and Messenger/Roleplay prompt macro
+  wiring under `generation`.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules

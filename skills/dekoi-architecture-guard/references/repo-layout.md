@@ -87,6 +87,12 @@ src/engine/generation-core/lorebook-activation-types.ts
   Mode-neutral lore activation, inclusion-group resolution, activation types,
   deterministic ordering, and budget helpers.
 
+src/engine/generation-core/macros/macro-engine.ts
+src/engine/generation-core/macros/macro-definitions.ts
+src/engine/generation-core/macros/macro-catalog.ts
+  Mode-neutral prompt macro resolver, active macro definitions, and editor-safe
+  supported macro metadata.
+
 src/engine/contracts/types/character.ts
 src/engine/catalog/character-actions.ts
 src/engine/contracts/types/persona.ts

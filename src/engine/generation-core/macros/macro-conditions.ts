@@ -2,6 +2,7 @@ import { applyBuiltins, renderUnknownMacro } from "./macro-builtins";
 import { applyFormatPostProcessors } from "./macro-builtins/format-macros";
 import { isRandomOptionMacroName, resolveRandomMacro } from "./macro-builtins/random-macros";
 import { isValidVariableName } from "./macro-builtins/variable-macros";
+import { KNOWN_NESTED_MACRO_NAMES, KNOWN_NESTED_MACRO_PREFIXES } from "./macro-definitions";
 import { findMacroSpanClose, mapMacroSpans, type MacroSpan } from "./macro-spans";
 import { restoreMacroState, snapshotMacroState } from "./macro-state";
 import type { MacroContext, ResolveMacroOptions } from "./macro-types";
@@ -10,16 +11,6 @@ const MAX_CONDITION_BLOCK_DEPTH = 64;
 const MAX_CONDITION_VALUE_PASSES = 16;
 const MAX_INLINE_MACRO_REPLACEMENT_DEPTH = MAX_CONDITION_VALUE_PASSES;
 const STRUCTURAL_MACRO_TOKEN_PATTERN = /{{\s*(?:#if(?:\s|})|\/\/)/;
-const KNOWN_NESTED_MACRO_PREFIXES = ["addvar::", "decvar::", "getvar::", "incvar::", "setvar::"];
-const KNOWN_NESTED_MACRO_NAMES = new Set([
-  "/lowercase",
-  "/trim",
-  "/uppercase",
-  "lowercase",
-  "random",
-  "trim",
-  "uppercase",
-]);
 
 type ConditionOperator = "==" | "!=" | "is" | "contains" | "includes";
 

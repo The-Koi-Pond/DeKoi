@@ -1,4 +1,5 @@
 import { findMacroSpanClose } from "../macro-spans";
+import { FORMAT_LITERAL_MACRO_DEFINITIONS, findLiteralMacroDefinition } from "../macro-definitions";
 
 const MAX_CASE_BLOCK_DEPTH = 64;
 const TRIM_MARKER = "\x00DEKOI_MACRO_TRIM\x00";
@@ -189,7 +190,10 @@ function applyTrimMarkers(input: string) {
 }
 
 export function resolveFormatMacro(name: string) {
-  switch (name) {
+  const definition = findLiteralMacroDefinition(FORMAT_LITERAL_MACRO_DEFINITIONS, name);
+  if (definition === null) return null;
+
+  switch (definition.value) {
     case "newline":
       return "\n";
     case "trim":
@@ -198,8 +202,6 @@ export function resolveFormatMacro(name: string) {
       return TRIM_START_MARKER;
     case "trimEnd":
       return TRIM_END_MARKER;
-    default:
-      return null;
   }
 }
 

@@ -87,3 +87,5 @@ export function resolveMacros(
 }
 
 export type { MacroContext, MacroVariableMutation, ResolveMacroOptions } from "./macro-types";
+export { SUPPORTED_MACRO_CATEGORIES, SUPPORTED_MACROS } from "./macro-catalog";
+export type { SupportedMacro, SupportedMacroCategory } from "./macro-catalog";
