@@ -191,7 +191,8 @@ describe("resolveMacros", () => {
   });
 
   it("describes user and persona macro outputs distinctly", () => {
-    const descriptionFor = (syntax: string) => SUPPORTED_MACROS.find((macro) => macro.syntax === syntax)?.description;
+    const descriptionFor = (syntax: string) =>
+      SUPPORTED_MACROS.find((macro) => macro.syntax === syntax)?.description;
 
     expect(descriptionFor("{{user}}")).toBe("Current user name.");
     expect(descriptionFor("{{userName}}")).toBe("Compatibility alias for the current user name.");
