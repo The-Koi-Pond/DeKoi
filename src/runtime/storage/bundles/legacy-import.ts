@@ -12,6 +12,7 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   getProviderConnectionProviderOption,
   normalizeProviderConnectionProvider,
+  type ProviderConnectionKind,
   type ProviderConnectionProvider,
   type ProviderConnectionRecord,
 } from "../../../engine/contracts/types/provider-connection";
@@ -237,9 +238,11 @@ function isLegacyLocalMockProviderConnection(value: Record<string, unknown>) {
   return value.kind === "mock" && /^local mock$/i.test(label) && /^mock adapter$/i.test(model);
 }
 
-function normalizeLegacyProviderKind(value: Record<string, unknown>) {
-  if (value.kind === "remote-runtime") return "remote-runtime";
-  if (isLegacyLocalMockProviderConnection(value)) return "remote-runtime";
+function normalizeLegacyProviderKind(
+  value: Record<string, unknown>,
+): ProviderConnectionKind | null {
+  if (value.kind === "remote-runtime" || value.kind === "provider") return "provider";
+  if (isLegacyLocalMockProviderConnection(value)) return "provider";
   return null;
 }
 

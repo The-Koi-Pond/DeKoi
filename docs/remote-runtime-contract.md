@@ -312,7 +312,7 @@ Request:
         "activePersonaId": "persona-xel",
         "lorebookIds": [],
         "presetId": null,
-        "providerConnectionId": "connection-remote-runtime",
+        "providerConnectionId": "connection-local-provider",
         "systemPromptMode": "default",
         "systemPrompt": "<default messenger system prompt>",
         "messages": [],
@@ -385,13 +385,13 @@ Request:
         "updatedAt": "2026-06-24T07:00:00.000Z"
       },
       "lorebooks": [],
-      "providerConnectionId": "connection-remote-runtime",
+      "providerConnectionId": "connection-local-provider",
       "providerConnection": {
-        "id": "connection-remote-runtime",
+        "id": "connection-local-provider",
         "schemaVersion": 1,
-        "kind": "remote-runtime",
+        "kind": "provider",
         "provider": "custom",
-        "label": "Local OpenAI-compatible runtime",
+        "label": "Local OpenAI-compatible provider",
         "baseUrl": "http://127.0.0.1:1234/v1",
         "model": "local-model",
         "summary": "",
@@ -432,7 +432,7 @@ Response:
 {
   "schemaVersion": 1,
   "requestId": "generation-request-example",
-  "providerKind": "remote-runtime",
+  "source": "remote-runtime",
   "createdAt": "2026-06-24T07:20:00.000Z",
   "messages": [
     {
@@ -446,6 +446,12 @@ Response:
 
 `messages[].characterId` must match a selected companion in the request. DeKoi
 drops unknown companion drafts and surfaces a warning.
+
+`source` identifies who produced the normalized generation response. Compatible
+remote HTTP runtimes return `"remote-runtime"`; DeKoi's built-in desktop and
+browser provider transport returns `"provider-transport"`. This field is
+generation response metadata and is separate from provider connection records,
+which use `kind: "provider"`.
 
 `request.warnings` contains non-fatal DeKoi-side context and lore activation
 warnings discovered before the runtime call, such as invalid or unsafe regex

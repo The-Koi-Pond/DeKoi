@@ -264,7 +264,7 @@ function generateReply(args) {
     return {
       schemaVersion: 1,
       requestId,
-      providerKind: "remote-runtime",
+      source: "remote-runtime",
       createdAt,
       messages: [],
       warnings: ["Fixture runtime found no selected companion."],
@@ -282,7 +282,7 @@ function generateReply(args) {
   return {
     schemaVersion: 1,
     requestId,
-    providerKind: "remote-runtime",
+    source: "remote-runtime",
     createdAt,
     messages: [
       {

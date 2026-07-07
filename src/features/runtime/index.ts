@@ -57,10 +57,9 @@ export {
 export {
   describeGenerationFailureNotice,
   describeGenerationReadinessFailure,
+  describeGenerationTransport,
   formatGenerationReadinessFailure,
   getGenerationConnectionReadiness,
-  getGenerationModeForConnection,
-  selectGenerationRuntime,
   type GenerationFailureRecoveryTarget,
 } from "./generation";
 export {
@@ -73,8 +72,4 @@ export type {
   LoreRuntimeStateOwnerKind,
 } from "../../engine/contracts/types/lore-runtime-state";
 export { generateRoleplayThreadTurn } from "./generation";
-export {
-  generateMessengerThreadReply,
-  getMessengerGenerationModeForConnection,
-  selectMessengerGenerationRuntime,
-} from "./generation";
+export { generateMessengerThreadReply } from "./generation";

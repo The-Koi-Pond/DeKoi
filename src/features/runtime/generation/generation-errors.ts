@@ -1,5 +1,5 @@
 import { errorMessage } from "../../../shared/errors";
-import type { GenerationConnectionReadinessFailureCode } from "./generation-runtime";
+import type { GenerationConnectionReadinessFailureCode } from "./generation-transport";
 
 export type GenerationFailureRecoveryTarget = "connections" | "new-connection";
 

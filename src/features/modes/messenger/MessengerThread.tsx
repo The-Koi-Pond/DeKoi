@@ -25,10 +25,9 @@ import {
 import {
   describeGenerationFailureNotice,
   describeGenerationReadinessFailure,
+  describeGenerationTransport,
   generateMessengerThreadReply,
   getGenerationConnectionReadiness,
-  getMessengerGenerationModeForConnection,
-  selectMessengerGenerationRuntime,
 } from "../../runtime";
 import { commitGenerationMacroVariableStates } from "../../../engine/macro-variables/macro-variable-actions";
 import {
@@ -179,12 +178,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     draft.trim().length > 0 &&
     !isGenerating &&
     !sendBlocker;
-  const threadConnection = getProviderConnectionById(
-    messengerThread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
-    nav.providerConnections,
-  );
-  const generationMode = getMessengerGenerationModeForConnection(threadConnection);
-  const generationRuntime = selectMessengerGenerationRuntime(generationMode);
+  const generationTransport = describeGenerationTransport();
   const activeEditingMessage = editingMessage?.threadId === activeThreadId ? editingMessage : null;
   const activeDeleteRequest =
     nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
@@ -386,8 +380,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     }
 
     const commitConnection = connectionReadiness.connection;
-    const sendMode = getMessengerGenerationModeForConnection(commitConnection);
-    const sendRuntime = selectMessengerGenerationRuntime(sendMode);
+    const sendTransport = describeGenerationTransport();
     const sendPersona = commitThread.activePersonaId
       ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
       : null;
@@ -419,7 +412,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     setGenerationState({
       threadId: commitThread.id,
       status: "generating",
-      message: `Generating through ${sendRuntime.label}.`,
+      message: `Generating through ${sendTransport.label}.`,
       action: null,
     });
 
@@ -432,7 +425,6 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         lorebooks: nav.lorebooks,
         loreRuntimeState: nav.getLoreRuntimeState("messenger-thread", threadWithUserMessage.id),
         macroVariableStates: nav.macroVariableStates,
-        mode: sendMode,
         now: sentAt,
         parameters: {
           temperature: nav.appSettings.defaultTemperature / 100,
@@ -845,7 +837,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
       <GenerationNotice
         action={generationNoticeAction}
-        fallbackMessage={`${generationRuntime.label} is replying through the provider path.`}
+        fallbackMessage={`${generationTransport.label} is replying through the provider path.`}
         message={generationStatusMessage}
         onAction={handleGenerationNoticeAction}
         onDismiss={dismissGenerationNotice}
@@ -861,7 +853,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           sendBlocker ||
           (isGenerating
             ? generationStatusMessage ||
-              `${generationRuntime.label} is replying through the provider-neutral path.`
+              `${generationTransport.label} is replying through the provider-neutral path.`
             : nav.appSettings.sendOnEnterSurface === MESSENGER
               ? "Enter sends. Shift+Enter adds a new line."
               : "Enter adds a new line. Use Send to release the message.")

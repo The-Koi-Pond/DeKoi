@@ -1,9 +1,9 @@
 import type {
   GeneratedMessageDraft,
   GenerationPromptMessage,
-  GenerationProviderKind,
   GenerationRequestBase,
   GenerationResponse,
+  GenerationResponseSource,
 } from "../../../engine/generation/generation";
 import {
   getProviderConnectionProviderOption,
@@ -33,8 +33,8 @@ function readString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
 }
 
-function isProviderKind(value: unknown): value is GenerationProviderKind {
-  return value === "remote-runtime" || value === "external-provider";
+function isGenerationResponseSource(value: unknown): value is GenerationResponseSource {
+  return value === "remote-runtime" || value === "provider-transport";
 }
 
 function normalizeDraft(value: unknown): GeneratedMessageDraft | null {
@@ -72,9 +72,10 @@ function normalizeProviderResponse(
     throw new Error("Provider returned a response for a different request.");
   }
 
-  const providerKind = isProviderKind(value.providerKind)
-    ? value.providerKind
-    : "external-provider";
+  if (!isGenerationResponseSource(value.source)) {
+    throw new Error("Provider returned an unsupported generation response source.");
+  }
+
   const createdAt = readString(value.createdAt) || new Date().toISOString();
   const messages = Array.isArray(value.messages)
     ? value.messages
@@ -85,7 +86,7 @@ function normalizeProviderResponse(
   return {
     schemaVersion: 1,
     requestId: requestId || request.id,
-    providerKind,
+    source: value.source,
     createdAt,
     messages,
     warnings: normalizeWarnings(value.warnings),
@@ -98,7 +99,7 @@ export function providerErrorMessage(error: unknown) {
 
 function assertProviderConnection(request: ProviderGenerationRequest) {
   const connection = request.providerConnection;
-  if (!connection || connection.kind !== "remote-runtime") {
+  if (!connection || connection.kind !== "provider") {
     throw new Error("Generation needs a configured provider connection.");
   }
 
@@ -423,7 +424,7 @@ function createProviderResponse(
     return {
       schemaVersion: 1,
       requestId: request.id,
-      providerKind: "external-provider",
+      source: "provider-transport",
       createdAt: new Date().toISOString(),
       messages: [],
       warnings: ["No companion is available for this generation request."],
@@ -435,7 +436,7 @@ function createProviderResponse(
     return {
       schemaVersion: 1,
       requestId: request.id,
-      providerKind: "external-provider",
+      source: "provider-transport",
       createdAt: new Date().toISOString(),
       messages: [],
       warnings: [result.warning ?? "Provider returned no text."],
@@ -445,7 +446,7 @@ function createProviderResponse(
   return {
     schemaVersion: 1,
     requestId: request.id,
-    providerKind: "external-provider",
+    source: "provider-transport",
     createdAt: new Date().toISOString(),
     messages: [{ characterId: targetCharacterId, body: strippedBody }],
     warnings: [],

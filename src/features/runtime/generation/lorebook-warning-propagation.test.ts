@@ -161,7 +161,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: request.targetCharacterId
           ? [{ characterId: request.targetCharacterId, body: "Generated." }]
@@ -194,7 +194,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [],
         warnings: ["Provider returned no text."],
@@ -223,7 +223,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [{ characterId: "missing-character", body: "Generated." }],
         warnings: [],
@@ -257,7 +257,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [],
         warnings: ["Provider returned no text."],
@@ -303,7 +303,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [
           { characterId: "character-1", body: "Generated." },
@@ -354,7 +354,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [],
         warnings: ["Provider returned no text."],
@@ -382,7 +382,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [{ characterId: "missing-character", body: "Generated." }],
         warnings: [],
@@ -415,7 +415,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [],
         warnings: ["Provider returned no text."],
@@ -459,7 +459,7 @@ describe("lorebook warning propagation", () => {
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
         requestId: request.id,
-        providerKind: "external-provider",
+        source: "provider-transport",
         createdAt: now,
         messages: [
           { characterId: "character-1", body: "Generated." },

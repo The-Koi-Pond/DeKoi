@@ -4,10 +4,7 @@ import {
 } from "../../../engine/contracts/types/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
 
-export type GenerationRuntimeMode = "remote-runtime";
-
-export interface GenerationRuntimeSnapshot {
-  mode: GenerationRuntimeMode;
+export interface GenerationTransportDescription {
   label: string;
 }
 
@@ -28,27 +25,10 @@ export type GenerationConnectionReadiness =
       code: GenerationConnectionReadinessFailureCode;
     };
 
-function isGenerationRuntimeMode(value: unknown): value is GenerationRuntimeMode {
-  return value === "remote-runtime";
-}
-
-export function selectGenerationRuntime(
-  mode: GenerationRuntimeMode = "remote-runtime",
-): GenerationRuntimeSnapshot {
-  if (!isGenerationRuntimeMode(mode)) {
-    throw new Error(`Unsupported generation runtime mode: ${String(mode)}.`);
-  }
-
+export function describeGenerationTransport(): GenerationTransportDescription {
   return {
-    mode,
     label: "Provider generation",
   };
-}
-
-export function getGenerationModeForConnection(
-  connection: ProviderConnectionRecord | null | undefined,
-): GenerationRuntimeMode {
-  return connection?.kind ?? "remote-runtime";
 }
 
 export function getGenerationConnectionReadiness(

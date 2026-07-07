@@ -213,6 +213,11 @@ owning runtime adapter for each collection. Native collection adapters read
 DeKoi field names only; old aliases such as `name`, `shortName`, `summary`,
 `url`, legacy provider labels, and removed provider kinds belong in the one-way
 legacy import adapter instead of durable load/save paths.
+Native provider connection rows and DeKoi storage bundles must use
+`kind: "provider"`. Rows with the old provider-connection kind
+`"remote-runtime"` are treated as stale local-development data on the native
+load path and are rejected rather than migrated in place. Use legacy import to
+convert those rows, or reset/recreate the provider-connections collection.
 
 Runtime collection adapters use the `StorageCollectionRepository` contract in
 `src/runtime/storage/storage-repository.ts`, re-exported through the runtime public
