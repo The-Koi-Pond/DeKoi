@@ -311,37 +311,32 @@ function emptyProviderWarning(payload: unknown) {
 }
 
 function openAiText(payload: unknown): ProviderTextResult {
+  if (isRecord(payload) && Array.isArray(payload.choices)) {
+    for (const choice of payload.choices) {
+      if (!isRecord(choice)) continue;
+
+      const text = isRecord(choice.message)
+        ? firstText(choice.message.content)
+        : firstText(choice.text);
+      if (text.trim()) return { text: text.trim() };
+    }
+
+    const firstChoice = payload.choices.find(isRecord);
+    const refusal = firstChoice ? firstRefusal(firstChoice) : "";
+    if (refusal) return { text: "", warning: `Provider refused the reply: ${refusal}` };
+
+    const finishReason = firstChoice ? readString(firstChoice.finish_reason).trim() : "";
+    return {
+      text: "",
+      warning: finishReason
+        ? `Provider returned no text (finish reason: ${finishReason}).`
+        : emptyProviderWarning(payload),
+    };
+  }
+
   const responseText = genericProviderText(payload);
   if (responseText.trim()) return { text: responseText.trim() };
-
-  if (!isRecord(payload)) {
-    return { text: "", warning: emptyProviderWarning(payload) };
-  }
-
-  if (!Array.isArray(payload.choices)) {
-    return { text: "", warning: emptyProviderWarning(payload) };
-  }
-
-  for (const choice of payload.choices) {
-    if (!isRecord(choice)) continue;
-
-    const text = isRecord(choice.message)
-      ? firstText(choice.message.content)
-      : firstText(choice.text);
-    if (text.trim()) return { text: text.trim() };
-  }
-
-  const firstChoice = payload.choices.find(isRecord);
-  const refusal = firstChoice ? firstRefusal(firstChoice) : "";
-  if (refusal) return { text: "", warning: `Provider refused the reply: ${refusal}` };
-
-  const finishReason = firstChoice ? readString(firstChoice.finish_reason).trim() : "";
-  return {
-    text: "",
-    warning: finishReason
-      ? `Provider returned no text (finish reason: ${finishReason}).`
-      : emptyProviderWarning(payload),
-  };
+  return { text: "", warning: emptyProviderWarning(payload) };
 }
 
 function anthropicText(payload: unknown): ProviderTextResult {

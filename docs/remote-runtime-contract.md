@@ -270,6 +270,13 @@ readable JSON. Empty or malformed successful bodies fail the request; non-2xx
 provider responses may be empty, but DeKoi still preserves the HTTP status in
 the surfaced error.
 
+For built-in direct generation, OpenAI-compatible response extraction is
+`choices`-first. When a successful response contains a `choices` array, DeKoi
+uses `choices[].message.content` or `choices[].text` and ignores generic
+top-level fields such as `message`, `text`, or `output_text`. The generic text
+extractor is used only when an OpenAI-compatible generation response has no
+`choices` array.
+
 For built-in `provider_connection_check`, OpenAI-compatible providers other
 than `custom` must return generated text in `choices[].message.content` or
 `choices[].text`; Anthropic must return text under `content`; Google must
@@ -466,12 +473,15 @@ runtime response warnings first, then unknown companion draft warnings, then
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
-browser OpenAI-compatible parsing preserve refusal text from either a top-level
-message refusal, a refusal content part, or a refusal nested under common
-content, parts, message, response, output, results, or data fields. The built-in
-adapters also surface provider-specific empty-response warnings for OpenAI-style
-`finish_reason`, Anthropic `stop_reason`, and Google `promptFeedback.blockReason`
-or candidate `finishReason` values.
+browser OpenAI-compatible parsing preserve refusal text inside the first choice,
+including a direct `refusal`, a message refusal, a refusal content part, or a
+refusal nested under common content, parts, message, response, output, results,
+or data fields. If an OpenAI-compatible response has a `choices` array but no
+generated text, DeKoi surfaces the choice `finish_reason` or empty-response
+warning instead of treating top-level metadata as generated text. The built-in
+adapters also surface provider-specific empty-response warnings for Anthropic
+`stop_reason`, Google `promptFeedback.blockReason`, and Google candidate
+`finishReason` values.
 
 Provider response extraction parity is guarded by
 `test-fixtures/provider-response-parity.json` with `schemaVersion: 1`. Update
