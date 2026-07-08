@@ -65,7 +65,7 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
     ).toEqual(["promptPresets"]);
   });
 
-  it("keeps app settings migrations when the collection had no dropped records", () => {
+  it("keeps the starter marker pair when both collections had no dropped records", () => {
     expect(
       appStorageAutoMigrationCollectionKeys({
         migrationCollectionKeys: ["appSettings", "promptPresets"],
@@ -107,13 +107,33 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
     ).toEqual([]);
   });
 
-  it("keeps independent app settings migrations when no preset seed is being saved", () => {
+  it("skips app settings starter marker migrations when no preset seed is being saved", () => {
     expect(
       appStorageAutoMigrationCollectionKeys({
         migrationCollectionKeys: ["appSettings"],
         droppedRecordCountByCollection: {},
       }),
-    ).toEqual(["appSettings"]);
+    ).toEqual([]);
+  });
+
+  it("keeps single thread repair migrations when the collection had no dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["roleplayThreads", "messengerThreads"],
+        droppedRecordCountByCollection: {},
+      }),
+    ).toEqual(["roleplayThreads", "messengerThreads"]);
+  });
+
+  it("skips single thread repair migrations when the repaired collection had dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["roleplayThreads", "messengerThreads"],
+        droppedRecordCountByCollection: {
+          roleplayThreads: 1,
+        },
+      }),
+    ).toEqual(["messengerThreads"]);
   });
 });
 

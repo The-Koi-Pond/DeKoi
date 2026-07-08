@@ -228,28 +228,37 @@ export function appStorageAutoMigrationCollectionKeys({
 }): AppStorageCollectionKey[] {
   const migrationCollectionKeySet = new Set(migrationCollectionKeys);
   const safeMigrationCollectionKeys: AppStorageCollectionKey[] = [];
+  const handledMigrationCollectionKeys = new Set<AppStorageCollectionKey>();
   const hasAppSettingsMigration = migrationCollectionKeySet.has("appSettings");
   const hasPromptPresetMigration = migrationCollectionKeySet.has("promptPresets");
   const appSettingsMigrationIsSafe = (droppedRecordCountByCollection.appSettings ?? 0) === 0;
   const promptPresetMigrationIsSafe = (droppedRecordCountByCollection.promptPresets ?? 0) === 0;
-  if (hasAppSettingsMigration && hasPromptPresetMigration) {
-    if (appSettingsMigrationIsSafe && promptPresetMigrationIsSafe) {
+  if (hasAppSettingsMigration) {
+    handledMigrationCollectionKeys.add("appSettings");
+    if (hasPromptPresetMigration) {
+      handledMigrationCollectionKeys.add("promptPresets");
+    }
+    if (hasPromptPresetMigration && appSettingsMigrationIsSafe && promptPresetMigrationIsSafe) {
       safeMigrationCollectionKeys.push("appSettings", "promptPresets");
     }
-  } else {
-    if (hasAppSettingsMigration && appSettingsMigrationIsSafe) {
-      safeMigrationCollectionKeys.push("appSettings");
-    }
-    if (hasPromptPresetMigration && promptPresetMigrationIsSafe) {
-      safeMigrationCollectionKeys.push("promptPresets");
-    }
+  } else if (hasPromptPresetMigration) {
+    handledMigrationCollectionKeys.add("promptPresets");
+    if (promptPresetMigrationIsSafe) safeMigrationCollectionKeys.push("promptPresets");
   }
   for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
     if (!group.every((collectionKey) => migrationCollectionKeySet.has(collectionKey))) continue;
+    for (const collectionKey of group) {
+      handledMigrationCollectionKeys.add(collectionKey);
+    }
     if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
       continue;
     }
     safeMigrationCollectionKeys.push(...group);
+  }
+  for (const collectionKey of migrationCollectionKeys) {
+    if (handledMigrationCollectionKeys.has(collectionKey)) continue;
+    if ((droppedRecordCountByCollection[collectionKey] ?? 0) > 0) continue;
+    safeMigrationCollectionKeys.push(collectionKey);
   }
   return safeMigrationCollectionKeys;
 }

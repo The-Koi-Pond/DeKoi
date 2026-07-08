@@ -377,12 +377,6 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     metadataResult.mode === "remote" &&
     allCollectionsLoadedCleanly &&
     loadedCollectionRecordCounts.every((count) => count === 0);
-  const remoteStorageHasSavedRecords =
-    metadataResult.mode === "remote" &&
-    allCollectionsLoadedCleanly &&
-    loadedCollectionRecordCounts.some((count) => count > 0);
-  const promptPresetCollectionExistsOnDesktop =
-    metadataResult.storageMetadata.promptPresets?.exists === true;
   const promptPresetCollectionMissingOnDesktop =
     metadataResult.storageMetadata.promptPresets?.exists === false;
   const appSettingsCanStorePromptPresetStarterMarker =
@@ -400,26 +394,31 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     appSettingsCanStorePromptPresetStarterMarker &&
     promptPresetSnapshot.status === "ready" &&
     !appSettingsSnapshot.settings.promptPresetStarterInitialized &&
-    (shouldSeedPromptPresets ||
-      promptPresetSnapshot.records.length > 0 ||
-      promptPresetCollectionExistsOnDesktop ||
-      remoteStorageHasSavedRecords);
+    shouldSeedPromptPresets;
   const appSettings = shouldInitializePromptPresetStarter
     ? {
         ...appSettingsSnapshot.settings,
         promptPresetStarterInitialized: true,
       }
     : appSettingsSnapshot.settings;
-  const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [
-    ...(shouldInitializePromptPresetStarter ? (["appSettings"] as const) : []),
-    ...(shouldSeedPromptPresets ? (["promptPresets"] as const) : []),
-    ...(roleplaySnapshot.hasLegacyEmbeddedEntries
-      ? (["roleplayThreads", "roleplayEntries"] as const)
-      : []),
-    ...(messengerSnapshot.hasLegacyEmbeddedMessages
-      ? (["messengerThreads", "messengerMessages"] as const)
-      : []),
-  ];
+  const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [];
+  const addMigrationCollectionKeys = (...collectionKeys: AppStorageMigrationCollectionKey[]) => {
+    for (const collectionKey of collectionKeys) {
+      if (!migrationCollectionKeys.includes(collectionKey)) {
+        migrationCollectionKeys.push(collectionKey);
+      }
+    }
+  };
+  if (shouldInitializePromptPresetStarter) addMigrationCollectionKeys("appSettings");
+  if (shouldSeedPromptPresets) addMigrationCollectionKeys("promptPresets");
+  if (repairedRoleplayThreads.clearedCount > 0) addMigrationCollectionKeys("roleplayThreads");
+  if (roleplaySnapshot.hasLegacyEmbeddedEntries) {
+    addMigrationCollectionKeys("roleplayThreads", "roleplayEntries");
+  }
+  if (repairedMessengerThreads.clearedCount > 0) addMigrationCollectionKeys("messengerThreads");
+  if (messengerSnapshot.hasLegacyEmbeddedMessages) {
+    addMigrationCollectionKeys("messengerThreads", "messengerMessages");
+  }
 
   const collectionSnapshots = [
     { collectionKey: "appSettings", snapshot: appSettingsSnapshot },

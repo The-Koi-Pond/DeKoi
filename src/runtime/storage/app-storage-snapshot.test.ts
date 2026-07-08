@@ -74,8 +74,22 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
     expect(snapshot.promptPresets).toEqual([]);
-    expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(true);
-    expect(snapshot.migrationCollectionKeys).toEqual(["appSettings"]);
+    expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(false);
+    expect(snapshot.migrationCollectionKeys).toEqual([]);
+  });
+
+  it("does not initialize the starter marker from a damaged prompt preset collection", async () => {
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings" }],
+      "prompt-presets": [{ id: "unreadable-preset" }],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.promptPresets).toEqual([]);
+    expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(false);
+    expect(snapshot.migrationCollectionKeys).toEqual([]);
+    expect(snapshot.droppedRecordCountByCollection.promptPresets).toBe(1);
   });
 
   it("does not migrate a saved empty remote collection after the marker exists", async () => {
@@ -138,6 +152,42 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.roleplayThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
       ["roleplay-thread-missing", null],
     ]);
+    expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
+  });
+
+  it("does not migrate thread preset IDs that resolve to loaded prompt presets", async () => {
+    const messengerThreadWithValidPreset = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-valid",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger valid",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+    };
+    const roleplayThreadWithValidPreset = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-valid",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Roleplay valid",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+    };
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
+      "prompt-presets": [STARTER_PROMPT_PRESET],
+      "messenger-threads": [messengerThreadWithValidPreset],
+      "roleplay-threads": [roleplayThreadWithValidPreset],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.messengerThreads[0]?.presetId).toBe(STARTER_PROMPT_PRESET.id);
+    expect(snapshot.roleplayThreads[0]?.presetId).toBe(STARTER_PROMPT_PRESET.id);
+    expect(snapshot.migrationCollectionKeys).toEqual([]);
   });
 });
 
