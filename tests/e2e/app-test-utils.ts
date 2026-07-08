@@ -5,7 +5,7 @@
  * storage/runtime shape; spec-specific setup should stay beside its spec.
  */
 import { Buffer } from "node:buffer";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 import { type AppStorageCollectionSignatures } from "../../src/app/use-app-storage-sync";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
 import {
@@ -28,6 +28,27 @@ export type RuntimeCall = {
   entity: StorageEntity | null;
 };
 export type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
+
+type FakeRemoteRuntimeState = {
+  calls: RuntimeCall[];
+  records: Map<StorageEntity, unknown[]>;
+};
+
+type RuntimeCommandContext = FakeRemoteRuntimeState & {
+  args: Record<string, unknown>;
+  entity: StorageEntity;
+};
+
+type RuntimeReplaceContext = RuntimeCommandContext & {
+  nextRecords: unknown[];
+  route: Route;
+};
+
+type FakeRemoteRuntimeOptions = {
+  onStorageList?: (context: RuntimeCommandContext) => Promise<void> | void;
+  /** Return true only when the hook has already fulfilled the replace route. */
+  onStorageReplace?: (context: RuntimeReplaceContext) => Promise<boolean | void> | boolean | void;
+};
 
 type EmptyAppStorageRecordsFixture = AppStorageRecords & {
   roleplayEntries: RoleplayEntry[];
@@ -59,6 +80,71 @@ function isStorageEntity(value: unknown): value is StorageEntity {
   return typeof value === "string" && STORAGE_ENTITY_SET.has(value);
 }
 
+function createRuntimeRecordMap(initialRecords: RuntimeRecords) {
+  const records = new Map<StorageEntity, unknown[]>();
+  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
+    if (isStorageEntity(entity)) {
+      records.set(entity, entityRecords);
+    }
+  }
+  return records;
+}
+
+function parseRuntimeRequest(route: Route) {
+  const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
+  const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
+  const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
+  const entity = isStorageEntity(args.entity) ? args.entity : null;
+  return { args, command, entity };
+}
+
+async function installFakeRemoteRuntime(
+  page: Page,
+  initialRecords: RuntimeRecords = {},
+  options: FakeRemoteRuntimeOptions = {},
+) {
+  const state: FakeRemoteRuntimeState = {
+    calls: [],
+    records: createRuntimeRecordMap(initialRecords),
+  };
+
+  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
+    const { args, command, entity } = parseRuntimeRequest(route);
+    state.calls.push({ command, entity });
+
+    if (command === "storage_list" && entity) {
+      await options.onStorageList?.({ ...state, args, entity });
+      await route.fulfill({ json: state.records.get(entity) ?? [] });
+      return;
+    }
+
+    if (command === "storage_replace" && entity) {
+      const nextRecords = Array.isArray(args.records) ? args.records : [];
+      const handled = await options.onStorageReplace?.({
+        ...state,
+        args,
+        entity,
+        nextRecords,
+        route,
+      });
+      if (handled) {
+        return;
+      }
+
+      state.records.set(entity, nextRecords);
+      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
+      return;
+    }
+
+    await route.fulfill({
+      status: 400,
+      json: { message: `Unexpected runtime command: ${command}` },
+    });
+  });
+
+  return state;
+}
+
 export function jsonFilePayload(name: string, value: unknown) {
   return {
     name,
@@ -67,107 +153,55 @@ export function jsonFilePayload(name: string, value: unknown) {
   };
 }
 
+/**
+ * Installs the shared fake remote runtime route for browser e2e specs.
+ *
+ * The fake records every invoke call, keeps accepted records in memory, returns
+ * arrays for `storage_list`, accepts whole-collection `storage_replace`, and
+ * rejects commands outside the e2e storage contract.
+ */
 export async function installRemoteRuntime(page: Page, initialRecords: RuntimeRecords = {}) {
-  const calls: RuntimeCall[] = [];
-  const records = new Map<StorageEntity, unknown[]>();
-  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
-    if (isStorageEntity(entity)) {
-      records.set(entity, entityRecords);
-    }
-  }
-
-  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
-    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
-    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
-    const entity = isStorageEntity(args.entity) ? args.entity : null;
-    calls.push({ command, entity });
-
-    if (command === "storage_list" && entity) {
-      await route.fulfill({ json: records.get(entity) ?? [] });
-      return;
-    }
-
-    if (command === "storage_replace" && entity) {
-      const nextRecords = Array.isArray(args.records) ? args.records : [];
-      records.set(entity, nextRecords);
-      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
-      return;
-    }
-
-    await route.fulfill({
-      status: 400,
-      json: { message: `Unexpected runtime command: ${command}` },
-    });
-  });
-
-  return { calls, records };
+  return installFakeRemoteRuntime(page, initialRecords);
 }
 
+/**
+ * Installs the shared fake runtime, but makes the first replace for one entity
+ * fail before later replaces fall back to the normal in-memory path.
+ */
 export async function installFailingRemoteRuntime(
   page: Page,
   failReplaceEntity: StorageEntity,
   initialRecords: RuntimeRecords = {},
 ) {
-  const calls: RuntimeCall[] = [];
-  const records = new Map<StorageEntity, unknown[]>();
-  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
-    if (isStorageEntity(entity)) {
-      records.set(entity, entityRecords);
-    }
-  }
   let failedOnce = false;
 
-  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
-    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
-    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
-    const entity = isStorageEntity(args.entity) ? args.entity : null;
-    calls.push({ command, entity });
-
-    if (command === "storage_list" && entity) {
-      await route.fulfill({ json: records.get(entity) ?? [] });
-      return;
-    }
-
-    if (command === "storage_replace" && entity) {
-      const nextRecords = Array.isArray(args.records) ? args.records : [];
+  return installFakeRemoteRuntime(page, initialRecords, {
+    onStorageReplace: async ({ entity, route }) => {
       if (entity === failReplaceEntity && !failedOnce) {
         failedOnce = true;
         await route.fulfill({
           status: 500,
           json: { message: `Simulated ${entity} replace failure.` },
         });
-        return;
+        return true;
       }
-
-      records.set(entity, nextRecords);
-      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
-      return;
-    }
-
-    await route.fulfill({
-      status: 400,
-      json: { message: `Unexpected runtime command: ${command}` },
-    });
+      return false;
+    },
   });
-
-  return { calls, records };
 }
 
+/**
+ * Installs the shared fake runtime and pauses the first replace for one entity.
+ *
+ * `waitForDeferredReplace` resolves after that replace reaches the route
+ * handler; `releaseDeferredReplace` lets it continue through the normal
+ * in-memory replace path.
+ */
 export async function installDeferredReplaceRemoteRuntime(
   page: Page,
   deferReplaceEntity: StorageEntity,
   initialRecords: RuntimeRecords = {},
 ) {
-  const calls: RuntimeCall[] = [];
-  const records = new Map<StorageEntity, unknown[]>();
-  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
-    if (isStorageEntity(entity)) {
-      records.set(entity, entityRecords);
-    }
-  }
-
   let deferredOnce = false;
   let releaseDeferredReplace: (() => void) | null = null;
   let deferredReplaceStarted: (() => void) | null = null;
@@ -175,20 +209,8 @@ export async function installDeferredReplaceRemoteRuntime(
     deferredReplaceStarted = resolve;
   });
 
-  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
-    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
-    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
-    const entity = isStorageEntity(args.entity) ? args.entity : null;
-    calls.push({ command, entity });
-
-    if (command === "storage_list" && entity) {
-      await route.fulfill({ json: records.get(entity) ?? [] });
-      return;
-    }
-
-    if (command === "storage_replace" && entity) {
-      const nextRecords = Array.isArray(args.records) ? args.records : [];
+  const runtime = await installFakeRemoteRuntime(page, initialRecords, {
+    onStorageReplace: async ({ entity }) => {
       if (entity === deferReplaceEntity && !deferredOnce) {
         deferredOnce = true;
         deferredReplaceStarted?.();
@@ -196,39 +218,29 @@ export async function installDeferredReplaceRemoteRuntime(
           releaseDeferredReplace = resolve;
         });
       }
-
-      records.set(entity, nextRecords);
-      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
-      return;
-    }
-
-    await route.fulfill({
-      status: 400,
-      json: { message: `Unexpected runtime command: ${command}` },
-    });
+      return false;
+    },
   });
 
   return {
-    calls,
-    records,
+    ...runtime,
     waitForDeferredReplace,
     releaseDeferredReplace: () => releaseDeferredReplace?.(),
   };
 }
 
+/**
+ * Installs the shared fake runtime and pauses the second list for one entity.
+ *
+ * `waitForDeferredList` resolves after that list reaches the route handler;
+ * `releaseDeferredList` lets it continue and return the current in-memory
+ * records.
+ */
 export async function installDeferredListRemoteRuntime(
   page: Page,
   deferListEntity: StorageEntity,
   initialRecords: RuntimeRecords = {},
 ) {
-  const calls: RuntimeCall[] = [];
-  const records = new Map<StorageEntity, unknown[]>();
-  for (const [entity, entityRecords] of Object.entries(initialRecords)) {
-    if (isStorageEntity(entity)) {
-      records.set(entity, entityRecords);
-    }
-  }
-
   let deferredListCount = 0;
   let releaseDeferredList: (() => void) | null = null;
   let deferredListStarted: (() => void) | null = null;
@@ -236,14 +248,8 @@ export async function installDeferredListRemoteRuntime(
     deferredListStarted = resolve;
   });
 
-  await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
-    const parsed = JSON.parse(route.request().postData() ?? "{}") as unknown;
-    const args = isRecord(parsed) && isRecord(parsed.args) ? parsed.args : {};
-    const command = isRecord(parsed) && typeof parsed.command === "string" ? parsed.command : "";
-    const entity = isStorageEntity(args.entity) ? args.entity : null;
-    calls.push({ command, entity });
-
-    if (command === "storage_list" && entity) {
+  const runtime = await installFakeRemoteRuntime(page, initialRecords, {
+    onStorageList: async ({ entity }) => {
       if (entity === deferListEntity) {
         deferredListCount += 1;
         if (deferredListCount === 2) {
@@ -253,27 +259,11 @@ export async function installDeferredListRemoteRuntime(
           });
         }
       }
-
-      await route.fulfill({ json: records.get(entity) ?? [] });
-      return;
-    }
-
-    if (command === "storage_replace" && entity) {
-      const nextRecords = Array.isArray(args.records) ? args.records : [];
-      records.set(entity, nextRecords);
-      await route.fulfill({ json: { ok: true, count: nextRecords.length } });
-      return;
-    }
-
-    await route.fulfill({
-      status: 400,
-      json: { message: `Unexpected runtime command: ${command}` },
-    });
+    },
   });
 
   return {
-    calls,
-    records,
+    ...runtime,
     waitForDeferredList,
     releaseDeferredList: () => releaseDeferredList?.(),
   };

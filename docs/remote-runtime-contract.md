@@ -27,6 +27,12 @@ Optional host and port:
 pnpm runtime:fixture -- --host 127.0.0.1 --port 7342
 ```
 
+This fixture is the standalone HTTP contract harness. Browser e2e specs use the
+separate Playwright fake runtime in `tests/e2e/app-test-utils.ts`, which
+intercepts `http://dekoi-runtime.test/api/invoke` in-process and can
+simulate normal, failing, and deferred storage commands without starting this
+server.
+
 ## Health
 
 DeKoi probes:
