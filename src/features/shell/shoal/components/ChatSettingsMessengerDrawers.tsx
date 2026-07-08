@@ -29,7 +29,6 @@ interface ChatSettingsMessengerDrawerNavigation {
   onCreateCompanion: () => void;
   onCreateConnection: () => void;
   onCreateLorebook: () => void;
-  onCreatePreset: () => void;
   onCreateMessengerThread: () => void;
   onUpdateAppSettings: ShoalRailProps["nav"]["updateAppSettings"];
 }
@@ -46,7 +45,6 @@ export function ChatSettingsMessengerDrawers({
     onCreateCompanion,
     onCreateConnection,
     onCreateLorebook,
-    onCreatePreset,
     onCreateMessengerThread,
     onUpdateAppSettings,
   } = navigation;
@@ -89,7 +87,6 @@ export function ChatSettingsMessengerDrawers({
         promptPresets={promptPresets}
         onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
-        onCreatePreset={onCreatePreset}
       />
 
       <ChatSettingsAdvancedDrawer

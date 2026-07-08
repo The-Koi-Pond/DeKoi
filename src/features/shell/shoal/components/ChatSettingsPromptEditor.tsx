@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import { createPortal } from "react-dom";
 
 interface ChatSettingsPromptEditorProps {
   open: boolean;
@@ -17,7 +18,7 @@ export function ChatSettingsPromptEditor({
 }: ChatSettingsPromptEditorProps) {
   if (!open) return null;
 
-  return (
+  const editor = (
     <div className="prompt-editor-backdrop" role="presentation" onClick={onClose}>
       <form
         className="prompt-editor-popover"
@@ -50,4 +51,8 @@ export function ChatSettingsPromptEditor({
       </form>
     </div>
   );
+
+  if (typeof document === "undefined") return editor;
+
+  return createPortal(editor, document.body);
 }

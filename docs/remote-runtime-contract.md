@@ -297,11 +297,12 @@ DeKoi owns generation macro resolution in app-side prompt assembly; see
 treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
 built-in macros in Messenger and Roleplay system prompts, selected prompt
-preset system prompts, Roleplay scene setup, persona and character context
-fields, post-history instructions, lorebook summaries and bodies, at-depth lore,
-and example dialogue. It also includes request-local variable macro side
-effects: DeKoi commits only the variable mutations that survive app-side prompt
-formatting, then sends the final `promptMessages`.
+preset system prompts, selected Messenger preset prompt sources, Roleplay scene
+setup, persona and character context fields, post-history instructions,
+lorebook summaries and bodies, at-depth lore, and example dialogue. It also
+includes request-local variable macro side effects: DeKoi commits only the
+variable mutations that survive app-side prompt formatting, then sends the
+final `promptMessages`.
 
 Request:
 
@@ -545,12 +546,15 @@ that prevents a saved empty `prompt-presets` collection from being seeded again
 after the starter preset is deleted.
 
 `prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
-`title`, optional `summary`, required non-empty `systemPrompt`, and optional
-sampling values under `sampling.temperature`, `sampling.topP`, and
-`sampling.maxTokens`. DeKoi drops invalid sampling fields during normalization.
-Preset sampling overrides request defaults, but generated requests cap
-`maxTokens` to the selected provider connection's positive `maxOutput` when one
-is configured.
+`title`, optional `summary`, required non-empty `systemPrompt`, optional
+`messengerPrompt`, and optional sampling values under `sampling.temperature`,
+`sampling.topP`, and `sampling.maxTokens`. DeKoi drops invalid sampling fields
+during normalization. Preset sampling overrides request defaults, but generated
+requests cap `maxTokens` to the selected provider connection's positive
+`maxOutput` when one is configured. Messenger uses `messengerPrompt` as its
+selected-preset source when present, then falls back to `systemPrompt`. A
+non-empty custom Messenger Prompt still overrides the selected preset at
+generation time.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.

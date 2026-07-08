@@ -280,13 +280,13 @@ Likely relationships:
 Current implementation:
 
 - Prompt presets are `schemaVersion: 1` catalog records with a title, optional
-  summary, required system prompt, and optional temperature, top-p, and
-  max-token sampling.
-- Messenger and Roleplay threads can select one prompt preset. Messenger custom
-  thread system prompts still win over a selected preset; otherwise the selected
-  preset replaces the default Messenger prompt. Roleplay uses the selected
-  preset as its system prelude, then still appends the Roleplay-owned
-  one-character output contract.
+  summary, required system prompt, optional Messenger Prompt Source, and
+  optional temperature, top-p, and max-token sampling.
+- Messenger and Roleplay threads can select one prompt preset. Messenger uses
+  the selected preset's Messenger Prompt Source when present, then falls back to
+  the preset system prompt; a non-empty custom thread Messenger Prompt still
+  wins over both. Roleplay uses the selected preset system prompt as its system
+  prelude, then still appends the Roleplay-owned one-character output contract.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 

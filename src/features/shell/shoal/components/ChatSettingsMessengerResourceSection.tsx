@@ -1,8 +1,10 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import { resolvePromptPresetMessengerPrompt } from "../../../../engine/contracts/types/prompt-presets";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
 import { ChatSettingsPresetDrawer } from "./ChatSettingsPresetDrawer";
-import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
+import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
+import { useChatSettingsPromptEditor } from "../hooks/use-chat-settings-prompt-editor";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
 import type { ShoalRailProps } from "../types";
@@ -18,7 +20,6 @@ interface ChatSettingsMessengerResourceSectionProps {
   promptPresets: ShoalRailProps["nav"]["promptPresets"];
   onCreateCompanion: () => void;
   onCreateLorebook: () => void;
-  onCreatePreset: () => void;
 }
 
 export function ChatSettingsMessengerResourceSection({
@@ -32,8 +33,25 @@ export function ChatSettingsMessengerResourceSection({
   promptPresets,
   onCreateCompanion,
   onCreateLorebook,
-  onCreatePreset,
 }: ChatSettingsMessengerResourceSectionProps) {
+  const selectedPromptSource = activeMessengerThreadRecord?.presetId
+    ? resolvePromptPresetMessengerPrompt(
+        promptPresets.find((preset) => preset.id === activeMessengerThreadRecord.presetId),
+      )
+    : null;
+  const {
+    activePromptEditor,
+    closePromptEditor,
+    openPromptEditor,
+    savePromptEditor,
+    updatePromptEditorValue,
+  } = useChatSettingsPromptEditor({
+    activeMessengerThread: activeMessengerThreadRecord,
+    activeMessengerThreadId,
+    sourcePrompt: selectedPromptSource,
+    onSaveCustomPrompt: actions.prompt.onSaveCustomPrompt,
+  });
+
   return (
     <>
       <ChatSettingsCompanionResourceDrawer
@@ -50,20 +68,23 @@ export function ChatSettingsMessengerResourceSection({
       <ChatSettingsPresetDrawer
         model={models.preset}
         promptPresets={promptPresets}
+        actionDisabled={!activeMessengerThreadRecord}
+        actionLabel="Edit"
+        fieldLabel="Prompt Source"
+        surfaceLabel="Messenger"
+        title="Prompt Preset"
         onClearMissingPreset={actions.preset.onClearMissingPreset}
-        onCreatePreset={onCreatePreset}
+        onPresetAction={openPromptEditor}
         onPresetChange={actions.preset.onPresetChange}
         onToggle={actions.drawers.onToggle}
       />
 
-      <ChatSettingsPromptControls
-        key={activeMessengerThreadId ?? "no-messenger-thread"}
-        activeMessengerThreadRecord={activeMessengerThreadRecord}
-        activeMessengerThreadId={activeMessengerThreadId}
-        model={models.prompt}
-        onSaveCustomPrompt={actions.prompt.onSaveCustomPrompt}
-        onSystemPromptModeChange={actions.prompt.onSystemPromptModeChange}
-        onToggle={actions.drawers.onToggle}
+      <ChatSettingsPromptEditor
+        open={activePromptEditor.open && !!activeMessengerThreadRecord}
+        value={activePromptEditor.value}
+        onClose={closePromptEditor}
+        onSave={savePromptEditor}
+        onValueChange={updatePromptEditorValue}
       />
 
       <ChatSettingsLorebookResourceDrawer

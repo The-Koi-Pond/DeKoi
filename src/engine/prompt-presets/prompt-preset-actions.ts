@@ -5,6 +5,7 @@ export interface PromptPresetInput {
   title: string;
   summary?: string | null;
   systemPrompt: string;
+  messengerPrompt?: string | null;
   sampling?: PromptPresetSampling | null;
 }
 
@@ -14,7 +15,7 @@ function cleanSamplingNumber(value: number | null | undefined, min: number, max:
   return Math.max(min, Math.min(max, value));
 }
 
-export function normalizePromptPresetSampling(
+function normalizePromptPresetSampling(
   value: PromptPresetSampling | null | undefined,
 ): PromptPresetSampling | null {
   if (!value) return null;
@@ -29,6 +30,49 @@ export function normalizePromptPresetSampling(
   if (topP !== null) sampling.topP = topP;
 
   return Object.keys(sampling).length > 0 ? sampling : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function readNullableString(value: unknown) {
+  const trimmed = readString(value).trim();
+  return trimmed ? trimmed : null;
+}
+
+function readTimestamp(value: unknown, fallback: string) {
+  const timestamp = readString(value).trim();
+  return timestamp && !Number.isNaN(Date.parse(timestamp)) ? timestamp : fallback;
+}
+
+export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord | null {
+  if (!isRecord(value)) return null;
+  if (value.schemaVersion !== 1) return null;
+
+  const id = readString(value.id).trim();
+  const systemPrompt = readString(value.systemPrompt).trim();
+  if (!id || !systemPrompt) return null;
+
+  const now = new Date().toISOString();
+  const title = readString(value.title).trim() || "Untitled preset";
+  const sampling = normalizePromptPresetSampling(isRecord(value.sampling) ? value.sampling : null);
+
+  return {
+    id,
+    schemaVersion: 1,
+    title,
+    summary: readNullableString(value.summary),
+    systemPrompt,
+    messengerPrompt: readNullableString(value.messengerPrompt),
+    sampling,
+    createdAt: readTimestamp(value.createdAt, now),
+    updatedAt: readTimestamp(value.updatedAt, now),
+  };
 }
 
 export function createPromptPresetRecord({
@@ -46,6 +90,7 @@ export function createPromptPresetRecord({
     title: cleanText(input.title, "Untitled preset"),
     summary: cleanNullableText(input.summary),
     systemPrompt: cleanText(input.systemPrompt, "Write the next response in character."),
+    messengerPrompt: cleanNullableText(input.messengerPrompt),
     sampling: normalizePromptPresetSampling(input.sampling),
     createdAt: now,
     updatedAt: now,
@@ -62,6 +107,10 @@ export function updatePromptPresetRecord(
     title: cleanText(input.title, record.title),
     summary: cleanNullableText(input.summary),
     systemPrompt: cleanText(input.systemPrompt, record.systemPrompt),
+    messengerPrompt:
+      input.messengerPrompt === undefined
+        ? record.messengerPrompt
+        : cleanNullableText(input.messengerPrompt),
     sampling: normalizePromptPresetSampling(input.sampling),
     updatedAt,
   };

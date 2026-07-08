@@ -26,12 +26,12 @@ import {
 import type { RippleState } from "../../../engine/contracts/types/ripples";
 import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import { normalizeAppSettings } from "../../../engine/contracts/types/app-settings";
+import { normalizePromptPresetRecord } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
 import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
-import { normalizePromptPresetRecord } from "../collections/prompt-preset-storage";
 import { normalizeLoreRuntimeState } from "../collections/lore-runtime-state-storage";
 import { normalizeMacroVariableScope } from "../collections/macro-variable-state-storage";
 import { normalizeMessengerThreads } from "../collections/messenger-storage";

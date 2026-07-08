@@ -11,12 +11,6 @@ export interface ChatSettingsCompanionResourceModel {
   summary: string;
 }
 
-export interface ChatSettingsPromptResourceModel {
-  activeMessengerThread: boolean;
-  open: boolean;
-  systemPromptMode: ChatSettingsViewModel["systemPromptMode"];
-}
-
 export interface ChatSettingsPresetResourceModel {
   activeThread: boolean;
   missingPresetId: string | null;
@@ -35,10 +29,7 @@ export interface ChatSettingsLorebookResourceModel {
 
 interface ChatSettingsResourceDrawerModelsInput {
   activeThread: boolean;
-  openDrawers: Pick<
-    Record<ChatSettingsDrawerId, boolean>,
-    "companions" | "lorebooks" | "preset" | "prompt"
-  >;
+  openDrawers: Pick<Record<ChatSettingsDrawerId, boolean>, "companions" | "lorebooks" | "preset">;
   viewModel: ChatSettingsViewModel;
 }
 
@@ -46,7 +37,6 @@ export interface ChatSettingsResourceDrawerModels {
   companion: ChatSettingsCompanionResourceModel;
   lorebook: ChatSettingsLorebookResourceModel;
   preset: ChatSettingsPresetResourceModel;
-  prompt: ChatSettingsPromptResourceModel;
 }
 
 export function getChatSettingsResourceDrawerModels({
@@ -77,11 +67,6 @@ export function getChatSettingsResourceDrawerModels({
       open: activeThread && openDrawers.preset,
       selectedPresetId: viewModel.selectedPresetId,
       summary: viewModel.presetDrawerSummary,
-    },
-    prompt: {
-      activeMessengerThread: activeThread,
-      open: activeThread && openDrawers.prompt,
-      systemPromptMode: viewModel.systemPromptMode,
     },
   };
 }

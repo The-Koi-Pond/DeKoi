@@ -1,5 +1,3 @@
-import type { PromptPresetRecord } from "./prompt-presets";
-
 type MessengerThreadKind = "messenger";
 export type MessengerThreadMode = "direct" | "group";
 export type MessengerMessageOrigin = "manual" | "generated" | "imported" | "placeholder" | "sample";
@@ -34,14 +32,14 @@ export function normalizeMessengerSystemPromptMode(value: unknown): MessengerSys
 
 export function resolveMessengerSystemPrompt(
   thread: MessengerThread,
-  promptPreset: PromptPresetRecord | null = null,
+  presetSystemPrompt: string | null = null,
 ) {
   if (thread.systemPromptMode === "custom" && thread.systemPrompt.trim()) {
     return thread.systemPrompt.trim();
   }
 
-  if (promptPreset?.systemPrompt.trim()) {
-    return promptPreset.systemPrompt.trim();
+  if (presetSystemPrompt?.trim()) {
+    return presetSystemPrompt.trim();
   }
 
   return DEFAULT_MESSENGER_SYSTEM_PROMPT;

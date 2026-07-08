@@ -92,6 +92,24 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.droppedRecordCountByCollection.promptPresets).toBe(1);
   });
 
+  it("preserves prompt preset Messenger prompt sources during load", async () => {
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
+      "prompt-presets": [
+        {
+          ...STARTER_PROMPT_PRESET,
+          id: "preset-with-messenger-source",
+          messengerPrompt: "Messenger source prompt.",
+        },
+      ],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.promptPresets).toHaveLength(1);
+    expect(snapshot.promptPresets[0]?.messengerPrompt).toBe("Messenger source prompt.");
+  });
+
   it("does not migrate a saved empty remote collection after the marker exists", async () => {
     mockRemoteStorage({
       "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],

@@ -32,7 +32,6 @@ export function ChatSettingsMessengerDrawerHost({
         onCreateCompanion: () => nav.setView({ kind: "companions", mode: "new" }),
         onCreateConnection: () => nav.setView({ kind: "connections", mode: "new" }),
         onCreateLorebook: () => nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
-        onCreatePreset: () => nav.setView({ kind: "presets", mode: "new" }),
         onCreateMessengerThread: nav.createMessengerThread,
         onUpdateAppSettings: nav.updateAppSettings,
       }}

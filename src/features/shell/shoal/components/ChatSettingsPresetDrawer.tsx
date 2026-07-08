@@ -5,21 +5,29 @@ import type { ChatSettingsDrawerId } from "../lib/chat-settings-drawers";
 import type { ChatSettingsPresetResourceModel } from "../lib/chat-settings-resource-drawer-models";
 
 interface ChatSettingsPresetDrawerProps {
+  actionDisabled?: boolean;
+  actionLabel?: string;
+  fieldLabel?: string;
   model: ChatSettingsPresetResourceModel;
   promptPresets: readonly PromptPresetRecord[];
   surfaceLabel?: string;
+  title?: string;
   onClearMissingPreset: () => void;
-  onCreatePreset: () => void;
+  onPresetAction: () => void;
   onPresetChange: (presetId: string) => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
 }
 
 export function ChatSettingsPresetDrawer({
+  actionDisabled = false,
+  actionLabel = "New",
+  fieldLabel = "Prompt preset",
   model,
   promptPresets,
   surfaceLabel = "Messenger",
+  title = `${surfaceLabel} Preset`,
   onClearMissingPreset,
-  onCreatePreset,
+  onPresetAction,
   onPresetChange,
   onToggle,
 }: ChatSettingsPresetDrawerProps) {
@@ -42,7 +50,7 @@ export function ChatSettingsPresetDrawer({
       drawerId="preset"
       open={model.open}
       summary={model.summary}
-      title={`${surfaceLabel} Preset`}
+      title={title}
       onToggle={onToggle}
     >
       {model.missingPresetId && (
@@ -51,7 +59,7 @@ export function ChatSettingsPresetDrawer({
         </ChatSettingsNotice>
       )}
       <div className="chat-settings-field">
-        <span id={`chat-settings-${surfaceLabel.toLowerCase()}-preset-label`}>Prompt preset</span>
+        <span id={`chat-settings-${surfaceLabel.toLowerCase()}-preset-label`}>{fieldLabel}</span>
         <div className="chat-settings-prompt-select">
           <ChatSettingsDropdown
             value={model.selectedPresetId ?? ""}
@@ -61,8 +69,13 @@ export function ChatSettingsPresetDrawer({
             disabled={!model.activeThread}
             onChange={onPresetChange}
           />
-          <button type="button" className="chat-settings-edit-button" onClick={onCreatePreset}>
-            New
+          <button
+            type="button"
+            className="chat-settings-edit-button"
+            disabled={actionDisabled}
+            onClick={onPresetAction}
+          >
+            {actionLabel}
           </button>
         </div>
       </div>
