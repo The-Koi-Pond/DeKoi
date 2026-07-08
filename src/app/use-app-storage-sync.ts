@@ -231,8 +231,17 @@ export function appStorageAutoMigrationCollectionKeys({
   const handledMigrationCollectionKeys = new Set<AppStorageCollectionKey>();
   const hasAppSettingsMigration = migrationCollectionKeySet.has("appSettings");
   const hasPromptPresetMigration = migrationCollectionKeySet.has("promptPresets");
-  const appSettingsMigrationIsSafe = (droppedRecordCountByCollection.appSettings ?? 0) === 0;
-  const promptPresetMigrationIsSafe = (droppedRecordCountByCollection.promptPresets ?? 0) === 0;
+  const collectionHadDroppedRecords = (collectionKey: AppStorageCollectionKey) =>
+    (droppedRecordCountByCollection[collectionKey] ?? 0) > 0;
+  const migrationCollectionIsSafe = (collectionKey: AppStorageCollectionKey) => {
+    if (collectionHadDroppedRecords(collectionKey)) return false;
+    const splitTranscriptGroup = APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS.find((group) =>
+      (group as readonly AppStorageCollectionKey[]).includes(collectionKey),
+    );
+    return !splitTranscriptGroup?.some(collectionHadDroppedRecords);
+  };
+  const appSettingsMigrationIsSafe = migrationCollectionIsSafe("appSettings");
+  const promptPresetMigrationIsSafe = migrationCollectionIsSafe("promptPresets");
   if (hasAppSettingsMigration) {
     handledMigrationCollectionKeys.add("appSettings");
     if (hasPromptPresetMigration) {
@@ -250,14 +259,12 @@ export function appStorageAutoMigrationCollectionKeys({
     for (const collectionKey of group) {
       handledMigrationCollectionKeys.add(collectionKey);
     }
-    if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
-      continue;
-    }
+    if (group.some(collectionHadDroppedRecords)) continue;
     safeMigrationCollectionKeys.push(...group);
   }
   for (const collectionKey of migrationCollectionKeys) {
     if (handledMigrationCollectionKeys.has(collectionKey)) continue;
-    if ((droppedRecordCountByCollection[collectionKey] ?? 0) > 0) continue;
+    if (!migrationCollectionIsSafe(collectionKey)) continue;
     safeMigrationCollectionKeys.push(collectionKey);
   }
   return safeMigrationCollectionKeys;

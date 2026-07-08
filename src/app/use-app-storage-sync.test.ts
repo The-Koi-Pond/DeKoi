@@ -135,6 +135,18 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
       }),
     ).toEqual(["messengerThreads"]);
   });
+
+  it("skips single thread repair migrations when their split transcript sibling had dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["roleplayThreads", "messengerThreads"],
+        droppedRecordCountByCollection: {
+          roleplayEntries: 1,
+          messengerMessages: 1,
+        },
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("shouldBlockAppSettingsPromptPresetStarterSave", () => {
