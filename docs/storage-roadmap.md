@@ -51,10 +51,20 @@ These are intentionally not current contracts:
 - Asset storage: add only when durable file bytes become product data. Collection
   rows should reference asset IDs or safe relative paths; bytes should live under
   a runtime-controlled asset root.
-- Database adapter: add only when collection JSON cannot satisfy a concrete
-  product need such as pagination, indexed search, full-text search,
-  transactional multi-collection writes, or multi-process concurrency. It goes
-  behind `src/runtime/storage/storage-repository-factory.ts`.
+- Transcript append path: when Messenger or Roleplay transcript storage paths
+  are next changed, stop rewriting the whole transcript collection for ordinary
+  appends. Prefer a repository-level append path or append-friendly adapter that
+  keeps the current `messenger-messages` and `roleplay-entries` record
+  contracts. Whole-collection replace is still appropriate for import, repair,
+  restore, and transcript-clear operations.
+- Database adapter: add only after append-friendly transcript writes exist and
+  collection JSON still cannot satisfy a concrete product need such as
+  pagination, indexed search, full-text search, transactional multi-collection
+  writes, or multi-process concurrency. Open this gate if any single Messenger
+  or Roleplay transcript collection reaches 25,000 rows, reaches 25 MB on disk,
+  spends more than 500 ms p95 in ordinary append/save work, spends more than 2 s
+  p95 in reload/assembly, or needs range reads, indexed search, or transcript
+  pagination. It goes behind `src/runtime/storage/storage-repository-factory.ts`.
 - Desktop storage split: move desktop storage into a dedicated capability
   module or crate once record repair, cleanup, or profile import makes
   `src-tauri/src/storage.rs` too broad.
