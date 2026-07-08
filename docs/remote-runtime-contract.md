@@ -303,12 +303,12 @@ DeKoi owns generation macro resolution in app-side prompt assembly; see
 treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
 built-in macros in Messenger and Roleplay system prompts, selected prompt
-preset system prompts, selected Messenger preset prompt sources, Roleplay scene
-setup, persona and character context fields, post-history instructions,
-lorebook summaries and bodies, at-depth lore, and example dialogue. It also
-includes request-local variable macro side effects: DeKoi commits only the
-variable mutations that survive app-side prompt formatting, then sends the
-final `promptMessages`.
+preset system prompts, selected Messenger preset prompt sources, prompt-preset
+static and choice variables, Roleplay scene setup, persona and character context
+fields, post-history instructions, lorebook summaries and bodies, at-depth lore,
+and example dialogue. It also includes request-local variable macro side
+effects: DeKoi commits only the variable mutations that survive app-side prompt
+formatting, then sends the final `promptMessages`.
 
 Request:
 
@@ -330,6 +330,7 @@ Request:
         "activePersonaId": "persona-xel",
         "lorebookIds": [],
         "presetId": null,
+        "presetChoiceSelections": {},
         "providerConnectionId": "connection-local-provider",
         "systemPromptMode": "default",
         "systemPrompt": "<default messenger system prompt>",
@@ -540,7 +541,9 @@ compatible runtimes should not expose those legacy fields in normal records.
 Messenger and Roleplay transcript storage is split. `messenger-threads` records
 omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
 live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
-`threadId`. DeKoi assembles thread records with their transcript items before
+`threadId`. Thread records may carry `presetChoiceSelections` when a prompt
+preset is selected; runtimes should preserve that object with the thread
+metadata. DeKoi assembles thread records with their transcript items before
 rendering or generating. Legacy embedded `messages` or `entries` may still be
 accepted on load or bundle import, but normal writes use the split collections.
 
@@ -553,14 +556,17 @@ after the starter preset is deleted.
 
 `prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
 `title`, optional `summary`, required non-empty `systemPrompt`, optional
-`messengerPrompt`, and optional sampling values under `sampling.temperature`,
-`sampling.topP`, and `sampling.maxTokens`. DeKoi drops invalid sampling fields
-during normalization. Preset sampling overrides request defaults, but generated
-requests cap `maxTokens` to the selected provider connection's positive
-`maxOutput` when one is configured. Messenger uses `messengerPrompt` as its
-selected-preset source when present, then falls back to `systemPrompt`. A
-non-empty custom Messenger Prompt still overrides the selected preset at
-generation time.
+`messengerPrompt`, normalized `parameters`, a `sampling` projection with
+`temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
+`choiceBlocks`, static `variableValues`, and `defaultChoices`. DeKoi drops
+invalid parameter and sampling fields during normalization. Current generated
+requests consume the sampling projection, and cap preset `maxTokens` to the
+selected provider connection's positive `maxOutput` when one is configured.
+Messenger uses `messengerPrompt` as its selected-preset source when present,
+then falls back to `systemPrompt`. A non-empty custom Messenger Prompt still
+overrides the selected preset at generation time. Remote runtimes should expose
+native prompt preset records in storage; packaged preset envelopes are only
+normalized by DeKoi bundle import.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.
@@ -593,13 +599,14 @@ state, a Messenger thread, or a Roleplay thread through `ownerKind` and
 thread-scoped records use `ownerKind: "messenger-thread"` or
 `"roleplay-thread"` and the owning thread ID. The `variables` object stores
 trimmed non-empty variable names with string values. Generation starts with
-global variables, overlays thread variables, and persists committed mutations
+global variables, overlays thread variables, then overlays prompt-preset static
+and choice variables for the active request. It persists committed mutations
 only after generation succeeds. New variables created during a thread generation
 are saved to the thread scope; existing global-only variables remain global.
 Deleting a thread or clearing its transcript removes matching thread-scoped
 macro variable state, bundle import skips orphaned thread-scoped states, and
-missing older bundle fields are treated as empty. Future preset-toggle
-variables are request inputs and are not persisted in this collection.
+missing older bundle fields are treated as empty. Prompt-preset variables are
+request inputs and are not persisted in this collection.
 When Pond Care commits a legacy import, DeKoi has already remapped imported
 thread scopes to converted Messenger thread IDs and merged imported global
 variables with existing globals; imported same-name globals take precedence.
@@ -706,10 +713,10 @@ not send dropped-record counts separately.
         "activePersonaId": null,
         "lorebookIds": [],
         "presetId": null,
+        "presetChoiceSelections": {},
         "providerConnectionId": null,
         "systemPromptMode": "default",
         "systemPrompt": "",
-        "messages": [],
         "createdAt": "2026-06-24T07:20:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
       }

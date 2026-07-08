@@ -1,5 +1,32 @@
-import type { PromptPresetRecord, PromptPresetSampling } from "../contracts/types/prompt-presets";
+import type {
+  PromptPresetChoiceBlock,
+  PromptPresetChoiceSelections,
+  PromptPresetGroup,
+  PromptPresetParameters,
+  PromptPresetRecord,
+  PromptPresetSampling,
+  PromptPresetSection,
+} from "../contracts/types/prompt-presets";
 import { cleanNullableText, cleanText } from "../shared/text";
+import {
+  normalizeChoiceSelectionRecord,
+  normalizePromptPresetChoiceBlocks,
+  normalizePromptPresetGroups,
+  normalizePromptPresetParameters,
+  normalizePromptPresetSampling,
+  normalizePromptPresetSections,
+  normalizeStringArray,
+  normalizeStringRecord,
+  normalizeUnknownArray,
+} from "./prompt-preset-normalization";
+
+export {
+  isPromptPresetChoiceBlockVisible,
+  normalizePromptPresetChoiceSelections,
+  normalizePromptPresetRecord,
+  normalizePromptPresetSections,
+  resolvePromptPresetChoiceVariables,
+} from "./prompt-preset-normalization";
 
 export interface PromptPresetInput {
   title: string;
@@ -7,72 +34,71 @@ export interface PromptPresetInput {
   systemPrompt: string;
   messengerPrompt?: string | null;
   sampling?: PromptPresetSampling | null;
+  parameters?: PromptPresetParameters | null;
+  choiceBlocks?: PromptPresetChoiceBlock[] | null;
+  sectionOrder?: string[] | null;
+  groupOrder?: string[] | null;
+  variableOrder?: string[] | null;
+  variableGroups?: unknown[] | null;
+  variableValues?: Record<string, string> | null;
+  defaultChoices?: PromptPresetChoiceSelections | null;
+  wrapFormat?: string | null;
+  isDefault?: boolean;
+  author?: string | null;
+  folderId?: string | null;
+  sections?: PromptPresetSection[] | null;
+  groups?: PromptPresetGroup[] | null;
 }
 
-function cleanSamplingNumber(value: number | null | undefined, min: number, max: number) {
-  if (value === null) return null;
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return Math.max(min, Math.min(max, value));
+type PromptPresetSamplingKey = keyof PromptPresetSampling;
+
+const PROMPT_PRESET_SAMPLING_KEYS: PromptPresetSamplingKey[] = ["maxTokens", "temperature", "topP"];
+
+function compactPromptPresetParameters(parameters: PromptPresetParameters) {
+  return Object.keys(parameters).length > 0 ? parameters : null;
 }
 
-function normalizePromptPresetSampling(
-  value: PromptPresetSampling | null | undefined,
-): PromptPresetSampling | null {
-  if (!value) return null;
-
-  const maxTokens = cleanSamplingNumber(value.maxTokens, 1, 131_072);
-  const temperature = cleanSamplingNumber(value.temperature, 0, 2);
-  const topP = cleanSamplingNumber(value.topP, 0, 1);
-
-  const sampling: PromptPresetSampling = {};
-  if (maxTokens !== null) sampling.maxTokens = Math.round(maxTokens);
-  if (temperature !== null) sampling.temperature = temperature;
-  if (topP !== null) sampling.topP = topP;
-
-  return Object.keys(sampling).length > 0 ? sampling : null;
+function recordPromptPresetParameters(record: PromptPresetRecord) {
+  return record.parameters ?? normalizePromptPresetParameters(record.sampling);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function hasOwnProperty(value: object, key: string) {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
-function readString(value: unknown) {
-  return typeof value === "string" ? value : "";
+function mergePromptPresetSamplingParameters(
+  record: PromptPresetRecord,
+  sampling: PromptPresetSampling | null,
+): PromptPresetParameters | null {
+  const parameters: PromptPresetParameters = { ...(recordPromptPresetParameters(record) ?? {}) };
+
+  if (sampling === null) {
+    for (const key of PROMPT_PRESET_SAMPLING_KEYS) {
+      delete parameters[key];
+    }
+    return compactPromptPresetParameters(parameters);
+  }
+
+  const normalizedSampling = normalizePromptPresetSampling(sampling);
+  for (const key of PROMPT_PRESET_SAMPLING_KEYS) {
+    if (!hasOwnProperty(sampling, key)) continue;
+
+    const value = normalizedSampling?.[key];
+    if (value === undefined) {
+      delete parameters[key];
+    } else {
+      parameters[key] = value;
+    }
+  }
+
+  return compactPromptPresetParameters(parameters);
 }
 
-function readNullableString(value: unknown) {
-  const trimmed = readString(value).trim();
-  return trimmed ? trimmed : null;
-}
-
-function readTimestamp(value: unknown, fallback: string) {
-  const timestamp = readString(value).trim();
-  return timestamp && !Number.isNaN(Date.parse(timestamp)) ? timestamp : fallback;
-}
-
-export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord | null {
-  if (!isRecord(value)) return null;
-  if (value.schemaVersion !== 1) return null;
-
-  const id = readString(value.id).trim();
-  const systemPrompt = readString(value.systemPrompt).trim();
-  if (!id || !systemPrompt) return null;
-
-  const now = new Date().toISOString();
-  const title = readString(value.title).trim() || "Untitled preset";
-  const sampling = normalizePromptPresetSampling(isRecord(value.sampling) ? value.sampling : null);
-
-  return {
-    id,
-    schemaVersion: 1,
-    title,
-    summary: readNullableString(value.summary),
-    systemPrompt,
-    messengerPrompt: readNullableString(value.messengerPrompt),
-    sampling,
-    createdAt: readTimestamp(value.createdAt, now),
-    updatedAt: readTimestamp(value.updatedAt, now),
-  };
+function updatePromptPresetParameters(record: PromptPresetRecord, input: PromptPresetInput) {
+  if (input.parameters !== undefined) return normalizePromptPresetParameters(input.parameters);
+  if (input.sampling !== undefined)
+    return mergePromptPresetSamplingParameters(record, input.sampling);
+  return recordPromptPresetParameters(record);
 }
 
 export function createPromptPresetRecord({
@@ -84,14 +110,34 @@ export function createPromptPresetRecord({
   input: PromptPresetInput;
   now: string;
 }): PromptPresetRecord {
+  const parameters =
+    normalizePromptPresetParameters(input.parameters) ??
+    normalizePromptPresetParameters(input.sampling);
+  const messengerPrompt = cleanNullableText(input.messengerPrompt);
+  const defaultChoices = normalizeChoiceSelectionRecord(input.defaultChoices);
+
   return {
     id,
     schemaVersion: 1,
     title: cleanText(input.title, "Untitled preset"),
     summary: cleanNullableText(input.summary),
     systemPrompt: cleanText(input.systemPrompt, "Write the next response in character."),
-    messengerPrompt: cleanNullableText(input.messengerPrompt),
-    sampling: normalizePromptPresetSampling(input.sampling),
+    messengerPrompt,
+    sampling: normalizePromptPresetSampling(parameters),
+    parameters,
+    sectionOrder: normalizeStringArray(input.sectionOrder),
+    groupOrder: normalizeStringArray(input.groupOrder),
+    variableOrder: normalizeStringArray(input.variableOrder),
+    variableGroups: normalizeUnknownArray(input.variableGroups),
+    variableValues: normalizeStringRecord(input.variableValues),
+    defaultChoices,
+    wrapFormat: cleanNullableText(input.wrapFormat),
+    isDefault: input.isDefault ?? false,
+    author: cleanNullableText(input.author),
+    folderId: cleanNullableText(input.folderId),
+    sections: normalizePromptPresetSections(input.sections),
+    groups: normalizePromptPresetGroups(input.groups),
+    choiceBlocks: normalizePromptPresetChoiceBlocks(input.choiceBlocks, defaultChoices),
     createdAt: now,
     updatedAt: now,
   };
@@ -102,16 +148,57 @@ export function updatePromptPresetRecord(
   input: PromptPresetInput,
   updatedAt: string,
 ): PromptPresetRecord {
+  const parameters = updatePromptPresetParameters(record, input);
+  const messengerPrompt =
+    input.messengerPrompt === undefined
+      ? record.messengerPrompt
+      : cleanNullableText(input.messengerPrompt);
+  const defaultChoices =
+    input.defaultChoices === undefined
+      ? record.defaultChoices
+      : normalizeChoiceSelectionRecord(input.defaultChoices);
+
   return {
     ...record,
     title: cleanText(input.title, record.title),
     summary: cleanNullableText(input.summary),
     systemPrompt: cleanText(input.systemPrompt, record.systemPrompt),
-    messengerPrompt:
-      input.messengerPrompt === undefined
-        ? record.messengerPrompt
-        : cleanNullableText(input.messengerPrompt),
-    sampling: normalizePromptPresetSampling(input.sampling),
+    messengerPrompt,
+    sampling: normalizePromptPresetSampling(parameters),
+    parameters,
+    sectionOrder:
+      input.sectionOrder === undefined
+        ? record.sectionOrder
+        : normalizeStringArray(input.sectionOrder),
+    groupOrder:
+      input.groupOrder === undefined ? record.groupOrder : normalizeStringArray(input.groupOrder),
+    variableOrder:
+      input.variableOrder === undefined
+        ? record.variableOrder
+        : normalizeStringArray(input.variableOrder),
+    variableGroups:
+      input.variableGroups === undefined
+        ? record.variableGroups
+        : normalizeUnknownArray(input.variableGroups),
+    variableValues:
+      input.variableValues === undefined
+        ? record.variableValues
+        : normalizeStringRecord(input.variableValues),
+    defaultChoices,
+    wrapFormat:
+      input.wrapFormat === undefined ? record.wrapFormat : cleanNullableText(input.wrapFormat),
+    isDefault: input.isDefault === undefined ? record.isDefault : input.isDefault,
+    author: input.author === undefined ? record.author : cleanNullableText(input.author),
+    folderId: input.folderId === undefined ? record.folderId : cleanNullableText(input.folderId),
+    sections:
+      input.sections === undefined
+        ? record.sections
+        : normalizePromptPresetSections(input.sections),
+    groups: input.groups === undefined ? record.groups : normalizePromptPresetGroups(input.groups),
+    choiceBlocks:
+      input.choiceBlocks === undefined
+        ? record.choiceBlocks
+        : normalizePromptPresetChoiceBlocks(input.choiceBlocks, defaultChoices),
     updatedAt,
   };
 }
@@ -125,6 +212,9 @@ export function duplicatePromptPresetRecord(
     ...record,
     id,
     title: `${record.title} Copy`,
+    sections: record.sections.map((section) => ({ ...section, presetId: id })),
+    groups: record.groups.map((group) => ({ ...group, presetId: id })),
+    choiceBlocks: record.choiceBlocks.map((choiceBlock) => ({ ...choiceBlock, presetId: id })),
     createdAt: now,
     updatedAt: now,
   };

@@ -117,6 +117,236 @@ describe("normalizeDeKoiStorageBundle", () => {
     );
   });
 
+  it("imports packaged prompt presets as native DeKoi records", () => {
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        promptPresets: [
+          {
+            type: "dekoi_preset",
+            version: 1,
+            exportedAt: now,
+            data: {
+              preset: {
+                id: "preset-standard",
+                name: "Standard Preset",
+                description: "Portable preset",
+                sectionOrder: ["section-role", "section-history", "section-output"],
+                groupOrder: ["group-context"],
+                variableOrder: ["choice-tone"],
+                variableGroups: [],
+                variableValues: { tone: "warm" },
+                defaultChoices: { tone: "warm prose" },
+                parameters: {
+                  temperature: 1,
+                  topP: 0.9,
+                  topK: 40,
+                  maxTokens: 2048,
+                  maxContext: 16000,
+                  strictRoleFormatting: true,
+                  stopSequences: ["STOP"],
+                },
+                conversationPrompt: "Conversation prompt.",
+                isDefault: true,
+                author: "Koi",
+                folderId: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+              groups: [
+                {
+                  id: "group-context",
+                  presetId: "preset-standard",
+                  name: "Context",
+                  order: 100,
+                  enabled: true,
+                  createdAt: now,
+                },
+              ],
+              sections: [
+                {
+                  id: "section-role",
+                  presetId: "preset-standard",
+                  identifier: "role",
+                  name: "Role",
+                  content: "You are {{tone}}.",
+                  role: "system",
+                  enabled: true,
+                  isMarker: false,
+                  groupId: null,
+                  markerConfig: null,
+                  injectionOrder: 0,
+                },
+                {
+                  id: "section-history",
+                  presetId: "preset-standard",
+                  identifier: "history",
+                  name: "Chat History",
+                  content: "",
+                  role: "system",
+                  enabled: true,
+                  isMarker: true,
+                  markerConfig: { type: "chat_history" },
+                  injectionOrder: 1,
+                },
+                {
+                  id: "section-output",
+                  presetId: "preset-standard",
+                  identifier: "output",
+                  name: "Output",
+                  content: "Write the next reply.",
+                  role: "system",
+                  enabled: true,
+                  isMarker: false,
+                  injectionOrder: 2,
+                },
+              ],
+              choiceBlocks: [
+                {
+                  id: "choice-tone",
+                  presetId: "preset-standard",
+                  variableName: "tone",
+                  question: "Choose tone.",
+                  options: [
+                    {
+                      id: "tone-warm",
+                      label: "Warm",
+                      value: "warm prose",
+                      description: "Gentle phrasing",
+                    },
+                    { id: "tone-cold", label: "Cold", value: "cold prose" },
+                  ],
+                  multiSelect: false,
+                  separator: ", ",
+                  randomPick: false,
+                  sortOrder: 10,
+                  createdAt: now,
+                },
+              ],
+            },
+          },
+          {
+            type: "marinara_preset",
+            version: 1,
+            exportedAt: now,
+            data: {
+              preset: {
+                id: "preset-db-row",
+                name: "DB Row Preset",
+                description: "Portable preset",
+                systemPrompt: "DB row prompt.",
+                variableGroups: JSON.stringify([]),
+                variableValues: JSON.stringify({ tone: "warm" }),
+                defaultChoices: JSON.stringify({ motifs: ["rain on glass", "neon signs"] }),
+                parameters: JSON.stringify({ temperature: 1, squashSystemMessages: true }),
+                conversationPrompt: "Conversation prompt.",
+                gamePrompt: "Game prompt.",
+                isDefault: "true",
+                author: "Koi",
+                createdAt: now,
+                updatedAt: now,
+              },
+              sections: [],
+              groups: [],
+              choiceBlocks: [
+                {
+                  id: "choice-motifs",
+                  presetId: "preset-db-row",
+                  variableName: "motifs",
+                  question: "Choose motifs.",
+                  options: JSON.stringify([
+                    { id: "rain", label: "Rain", value: "rain on glass" },
+                    { id: "neon", label: "Neon", value: "neon signs" },
+                  ]),
+                  multiSelect: "true",
+                  separator: " / ",
+                  randomPick: "false",
+                  displayMode: "listbox",
+                  optionSort: "manual",
+                  createdAt: now,
+                },
+              ],
+            },
+          },
+        ],
+        loreRuntimeStates: [],
+        macroVariableStates: [],
+        providerConnections: [],
+        messengerThreads: [],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    const [standardPreset, dbRowPreset] = result.preview.bundle.data.promptPresets;
+    expect(standardPreset).toMatchObject({
+      id: "preset-standard",
+      title: "Standard Preset",
+      summary: "Portable preset",
+      systemPrompt: "You are {{tone}}.\n\nWrite the next reply.",
+      messengerPrompt: "Conversation prompt.",
+      sampling: {
+        maxTokens: 2048,
+        temperature: 1,
+        topP: 0.9,
+      },
+      parameters: {
+        maxTokens: 2048,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        maxContext: 16000,
+        strictRoleFormatting: true,
+        stopSequences: ["STOP"],
+      },
+      defaultChoices: { tone: "warm prose" },
+      choiceBlocks: [
+        expect.objectContaining({
+          id: "choice-tone",
+          label: "Choose tone.",
+          defaultOptionId: "tone-warm",
+        }),
+      ],
+    });
+    expect(standardPreset).not.toHaveProperty("sourceType");
+    expect(standardPreset).not.toHaveProperty("conversationPrompt");
+
+    expect(dbRowPreset).toMatchObject({
+      id: "preset-db-row",
+      title: "DB Row Preset",
+      systemPrompt: "DB row prompt.",
+      messengerPrompt: "Conversation prompt.",
+      variableValues: { tone: "warm" },
+      defaultChoices: { motifs: ["rain on glass", "neon signs"] },
+      parameters: { temperature: 1, squashSystemMessages: true },
+      isDefault: true,
+      choiceBlocks: [
+        expect.objectContaining({
+          multiSelect: true,
+          displayMode: "listbox",
+          options: [
+            { id: "rain", label: "Rain", value: "rain on glass" },
+            { id: "neon", label: "Neon", value: "neon signs" },
+          ],
+        }),
+      ],
+    });
+    expect(dbRowPreset).not.toHaveProperty("sourceType");
+    expect(dbRowPreset).not.toHaveProperty("gamePrompt");
+  });
+
   it("clears imported thread preset IDs that do not resolve to valid prompt presets", () => {
     const messengerThreadWithValidPreset = {
       ...createMessengerThread({

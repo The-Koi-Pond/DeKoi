@@ -6,6 +6,7 @@ import {
 } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
+import type { PromptPresetChoiceSelections } from "../../contracts/types/prompt-presets";
 import { cleanTextArray } from "../../shared/text";
 
 export function createMessengerThread({
@@ -35,6 +36,7 @@ export function createMessengerThread({
     activePersonaId,
     lorebookIds,
     presetId: null,
+    presetChoiceSelections: {},
     providerConnectionId,
     systemPromptMode: "default",
     systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
@@ -166,10 +168,12 @@ export function setMessengerThreadPreset(
   thread: MessengerThread,
   presetId: string | null,
   updatedAt: string,
+  presetChoiceSelections: PromptPresetChoiceSelections = {},
 ): MessengerThread {
   return {
     ...thread,
     presetId: presetId?.trim() || null,
+    presetChoiceSelections,
     updatedAt,
   };
 }

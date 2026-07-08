@@ -12,6 +12,7 @@ import {
   createStorageRepository,
   type StorageMode,
 } from "../storage-repository-factory";
+import { normalizePromptPresetChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
@@ -106,6 +107,8 @@ function normalizeMessengerThreadWithDroppedCount(
       }
     }
 
+    const presetId = readNullableString(candidate.presetId);
+
     return {
       thread: {
         ...candidate,
@@ -116,7 +119,10 @@ function normalizeMessengerThreadWithDroppedCount(
           typeof candidate.providerConnectionId === "string"
             ? candidate.providerConnectionId
             : null,
-        presetId: readNullableString(candidate.presetId),
+        presetId,
+        presetChoiceSelections: presetId
+          ? normalizePromptPresetChoiceSelections(candidate.presetChoiceSelections)
+          : {},
         systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
         systemPrompt:
           typeof candidate.systemPrompt === "string"

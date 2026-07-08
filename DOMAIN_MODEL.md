@@ -274,25 +274,34 @@ Likely relationships:
 
 - A Messenger thread may use one active prompt preset.
 - A Roleplay thread may use one active prompt preset.
-- A Thread Preset may later hold chat-specific settings that should travel
-  with one saved thread instead of with reusable generation defaults.
+- Messenger and Roleplay threads may store per-thread choices for the selected
+  preset without changing the reusable preset record.
+- A future Thread Preset may hold broader chat-specific settings that should
+  travel with one saved thread instead of with reusable generation defaults.
 
 Current implementation:
 
 - Prompt presets are `schemaVersion: 1` catalog records with a title, optional
-  summary, required system prompt, optional Messenger Prompt Source, and
-  optional temperature, top-p, and max-token sampling.
+  summary, required system prompt, optional Messenger Prompt Source, normalized
+  parameters, a current generation sampling projection, static variable values,
+  ordered sections/groups, and choice blocks.
 - Messenger and Roleplay threads can select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still
   wins over both. Roleplay uses the selected preset system prompt as its system
   prelude, then still appends the Roleplay-owned one-character output contract.
+- Stored sections and groups are preserved for compatible imports and future
+  prompt-builder work; current generation uses the normalized system or
+  Messenger prompt text.
+- Per-thread preset choice selections become request-local prompt variables at
+  generation time. They are saved on the Messenger or Roleplay thread, not in
+  `MacroVariableScope`.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 
 Still evolving:
 
-- Whether prompt presets stay simple or split into advanced template parts.
+- UI for editing preset sections, groups, and choice blocks.
 - Whether Thread Presets become a separate saved record.
 
 ### Provider Connection
@@ -336,7 +345,8 @@ Likely relationships:
 - May have one active persona.
 - Contains many MessengerMessages.
 - May attach chat-specific lorebooks, choose an active prompt preset, and choose
-  a provider connection; media can attach later.
+  prompt-preset choice selections and a provider connection; media can attach
+  later.
 
 Important behavior:
 
@@ -400,7 +410,7 @@ Likely relationships:
 - Has one or more character participants.
 - May have one active persona.
 - May attach lorebooks and choose a provider connection.
-- May choose one active prompt preset.
+- May choose one active prompt preset and prompt-preset choice selections.
 - Contains RoleplayEntries.
 - May reference scene media later.
 
@@ -461,8 +471,8 @@ Current implementation:
   existing global-only keys stay global when mutated, and new keys are saved to
   the thread scope.
 - Thread deletion, transcript clearing, and bundle import orphan cleanup remove
-  thread-scoped macro variable state. Preset-toggle variables are request inputs,
-  not MacroVariableScope records.
+  thread-scoped macro variable state. Prompt-preset static and choice variables
+  are request inputs, not MacroVariableScope records.
 
 ### RippleState
 

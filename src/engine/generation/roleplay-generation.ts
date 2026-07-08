@@ -4,6 +4,7 @@ import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { AppSettings } from "../contracts/types/app-settings";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
+import { resolvePromptPresetChoiceVariables } from "../prompt-presets/prompt-preset-normalization";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import type {
@@ -156,6 +157,10 @@ export function createRoleplayGenerationContext({
     providerConnections,
     warningPrefix: "Roleplay thread",
   });
+  const presetChoiceVariables = resolvePromptPresetChoiceVariables({
+    preset: records.promptPreset,
+    selections: thread.presetChoiceSelections,
+  }).variables;
 
   return {
     activePersona: records.activePersona,
@@ -166,7 +171,7 @@ export function createRoleplayGenerationContext({
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
     promptPreset: records.promptPreset,
-    variables,
+    variables: { ...variables, ...presetChoiceVariables },
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,

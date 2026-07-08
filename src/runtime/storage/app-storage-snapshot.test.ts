@@ -143,6 +143,7 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
         title: "Messenger missing",
       }),
       presetId: "missing-preset",
+      presetChoiceSelections: { pacing: "slow" },
     };
     const roleplayThreadWithMissingPreset = {
       ...createRoleplayThread({
@@ -153,6 +154,7 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
         title: "Roleplay missing",
       }),
       presetId: "missing-preset",
+      presetChoiceSelections: { pacing: "slow" },
     };
     mockRemoteStorage({
       "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
@@ -170,6 +172,11 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.roleplayThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
       ["roleplay-thread-missing", null],
     ]);
+    expect(
+      snapshot.messengerThreads.find((thread) => thread.id === "messenger-thread-missing")
+        ?.presetChoiceSelections,
+    ).toEqual({});
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
     expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
   });
 

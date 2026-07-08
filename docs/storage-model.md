@@ -106,19 +106,25 @@ development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
 Prompt presets use `schemaVersion: 1`. Each record stores title, optional
-summary, required non-empty `systemPrompt`, optional `messengerPrompt`, and
-optional provider-ready sampling fields `temperature`, `topP`, and `maxTokens`.
-Invalid sampling fields are dropped during load. Preset `maxTokens` can
-override request parameters, but the final generation request is capped by the
-selected provider connection's positive `maxOutput` when one is configured. The
-bundled starter preset is ordinary user-editable data. A missing desktop
-`prompt-presets` collection is seeded on startup and saved through the normal
-collection save path. Remote runtime storage seeds the starter only when all
-collections load cleanly and empty, then records the one-time initialization in
-app settings. If remote storage already has any saved collection records, or if
-desktop storage already has an empty `prompt-presets` collection, DeKoi records
-the one-time marker without adding the starter so deleting the starter preset is
-respected.
+summary, required non-empty `systemPrompt`, optional `messengerPrompt`, optional
+normalized `parameters`, a provider-ready `sampling` projection, section/group
+ordering fields, `sections`, `groups`, `choiceBlocks`, static `variableValues`,
+and `defaultChoices`. The `parameters` object preserves normalized prompt-preset
+controls such as `temperature`, `topP`, `maxTokens`, `topK`, `minP`,
+`maxContext`, penalties, service/model effort strings, stop sequences, custom
+parameters, and provider-shaping booleans. Current provider requests consume the
+`sampling` projection (`temperature`, `topP`, and `maxTokens`) from the selected
+preset. Invalid parameter and sampling fields are dropped during load. Preset
+`maxTokens` can override request parameters, but the final generation request is
+capped by the selected provider connection's positive `maxOutput` when one is
+configured. The bundled starter preset is ordinary user-editable data. A missing
+desktop `prompt-presets` collection is seeded on startup and saved through the
+normal collection save path. Remote runtime storage seeds the starter only when
+all collections load cleanly and empty, then records the one-time initialization
+in app settings. If remote storage already has any saved collection records, or
+if desktop storage already has an empty `prompt-presets` collection, DeKoi
+records the one-time marker without adding the starter so deleting the starter
+preset is respected.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time.
@@ -126,6 +132,13 @@ In Roleplay, a selected prompt preset can replace the system prelude and
 sampling, but it cannot replace the stored-output shape. DeKoi always appends
 the target companion single-character post-history contract until Roleplay has a
 native narrator, scene-beat, or multi-character generated-output model.
+Stored sections and groups are preserved native preset structure, but current
+generation uses the normalized `systemPrompt` or `messengerPrompt`; independent
+generation-time section assembly is a later prompt-builder concern.
+Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
+prompt-preset choice variable name. Choice selections resolve with preset
+`variableValues`, defaults, visibility rules, multi-select separators, and
+random-pick blocks into request-local macro variables before prompt assembly.
 
 Current generation builds a generation-owned macro context, including the
 request-local variable map, at the mode boundary. It resolves current built-in
@@ -223,11 +236,13 @@ prompt assembly yet.
 Dynamic macro variables persist in `macro-variable-states`. Global state uses
 `ownerKind: "global"` with `ownerId: "global"`; Messenger and Roleplay states
 use their thread ID. Generation starts with global variables, overlays the
-thread variables, resolves macros, then persists only the committed mutation log
-after generation succeeds. Mutated keys target the scope that supplied them at
-generation start: thread keys stay thread-scoped, keys that belonged only to
-global state stay global, and new keys are saved to the thread scope. Future
-preset-toggle variables are request inputs and are not persisted by this
+thread variables, then overlays resolved prompt-preset static and choice
+variables for the active request. It resolves macros, then persists only the
+committed mutation log after generation succeeds. Mutated keys target the scope
+that supplied them at generation start: thread keys stay thread-scoped, keys
+that belonged only to global state stay global, and new keys are saved to the
+thread scope. Prompt-preset static and choice variables are request inputs from
+the preset and thread `presetChoiceSelections`; they are not persisted in this
 collection.
 
 Generic JSON reader helpers for storage/import normalization live in
@@ -485,26 +500,26 @@ actions to clear only the missing thread references.
 
 Current relationships:
 
-| From                    | Field                  | Points to                                                      | Cleanup expectation                                                                                                                   |
-| ----------------------- | ---------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `messenger-threads`     | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                              |
-| `messenger-threads`     | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                            |
-| `messenger-threads`     | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                    |
-| `messenger-threads`     | `presetId`             | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset. Non-empty custom Messenger Prompt overrides the selected preset at generation time. |
-| `messenger-threads`     | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                    |
-| `messenger-messages`    | `threadId`             | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                               |
-| `roleplay-threads`      | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                               |
-| `roleplay-threads`      | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                            |
-| `roleplay-threads`      | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                                     |
-| `roleplay-threads`      | `presetId`             | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset.                                                                                     |
-| `roleplay-threads`      | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                    |
-| `roleplay-entries`      | `threadId`             | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                                   |
-| `characters`            | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                                 |
-| `personas`              | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                                   |
-| `app-settings`          | `globalLorebookIds[]`  | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                         |
-| `lore-runtime-states`   | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                              |
-| `macro-variable-states` | `ownerId`              | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import.         |
-| `ripple-states`         | `ownerId`              | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                                  |
+| From                    | Field                                | Points to                                                      | Cleanup expectation                                                                                                                                                |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `messenger-threads`     | `characterIds[]`                     | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                                                           |
+| `messenger-threads`     | `activePersonaId`                    | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                         |
+| `messenger-threads`     | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                                                 |
+| `messenger-threads`     | `presetId`, `presetChoiceSelections` | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset and preset choice selections. Non-empty custom Messenger Prompt overrides the selected preset at generation time. |
+| `messenger-threads`     | `providerConnectionId`               | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                 |
+| `messenger-messages`    | `threadId`                           | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                                                            |
+| `roleplay-threads`      | `characterIds[]`                     | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                                                            |
+| `roleplay-threads`      | `activePersonaId`                    | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                         |
+| `roleplay-threads`      | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                                                                  |
+| `roleplay-threads`      | `presetId`, `presetChoiceSelections` | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset and preset choice selections.                                                                                     |
+| `roleplay-threads`      | `providerConnectionId`               | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                 |
+| `roleplay-entries`      | `threadId`                           | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                                                                |
+| `characters`            | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                                                              |
+| `personas`              | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                                                                |
+| `app-settings`          | `globalLorebookIds[]`                | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                                                      |
+| `lore-runtime-states`   | `ownerId`                            | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                                                           |
+| `macro-variable-states` | `ownerId`                            | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import.                                      |
+| `ripple-states`         | `ownerId`                            | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                                                               |
 
 ## Import And Export
 
@@ -525,7 +540,13 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   fields as empty, and skip thread-scoped states whose owner thread is not
   imported. Global macro variable state is not owner-filtered.
 - Include `prompt-presets` in native bundles and import missing older bundle
-  fields as empty without warnings.
+  fields as empty without warnings. Exported records stay DeKoi-native; bundle
+  import may also normalize packaged prompt preset envelopes with
+  `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
+  Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
+  becomes `messengerPrompt`, enabled non-marker sections can supply the native
+  `systemPrompt`, and source envelope fields do not survive on the native
+  record.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and
