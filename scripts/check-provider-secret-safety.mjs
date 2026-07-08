@@ -8,6 +8,23 @@ function readFile(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
+function readRustSources(relativePath) {
+  const absolutePath = path.join(root, relativePath);
+  if (!fs.existsSync(absolutePath)) return "";
+  const stat = fs.statSync(absolutePath);
+  if (stat.isFile()) return fs.readFileSync(absolutePath, "utf8");
+
+  return fs
+    .readdirSync(absolutePath, { withFileTypes: true })
+    .flatMap((entry) => {
+      const entryPath = path.join(relativePath, entry.name);
+      if (entry.isDirectory()) return readRustSources(entryPath);
+      if (entry.isFile() && entry.name.endsWith(".rs")) return readFile(entryPath);
+      return [];
+    })
+    .join("\n");
+}
+
 function fail(message) {
   console.error(`Provider secret safety check failed. ${message}`);
   process.exit(1);
@@ -200,24 +217,29 @@ if (!/Provider connections skipped secret field\(s\)/.test(bundleSource)) {
   fail("normalizeDeKoiStorageBundle must warn when imported provider secrets are skipped.");
 }
 
-const desktopRuntimeSource = readFile("src-tauri/src/runtime.rs");
-if (/provider_secret_read_for_scope\([^)]*true\)/.test(desktopRuntimeSource)) {
+const desktopProviderTransportSource = [
+  readFile("src-tauri/src/provider_transport.rs"),
+  readRustSources("src-tauri/src/provider_transport"),
+].join("\n");
+if (/provider_secret_read_for_scope\([^)]*true\)/.test(desktopProviderTransportSource)) {
   fail("Desktop runtime provider secret reads must not use unscoped fallback.");
 }
 
 if (
-  !/get\("status"\)/.test(desktopRuntimeSource) ||
-  !/status != "ready"/.test(desktopRuntimeSource) ||
-  !/return Ok\(String::new\(\)\);/.test(desktopRuntimeSource)
+  !/get\("status"\)/.test(desktopProviderTransportSource) ||
+  !/status != "ready"/.test(desktopProviderTransportSource) ||
+  !/return Ok\(String::new\(\)\);/.test(desktopProviderTransportSource)
 ) {
   fail("Desktop runtime must only read keyring secrets for ready connections.");
 }
 
 if (
-  !/provider_connection_requires_api_key\(provider\)/.test(desktopRuntimeSource) ||
-  !/Some\(secret\) if !secret\.trim\(\)\.is_empty\(\) => Ok\(secret\)/.test(desktopRuntimeSource) ||
+  !/provider_connection_requires_api_key\(provider\)/.test(desktopProviderTransportSource) ||
+  !/Some\(secret\) if !secret\.trim\(\)\.is_empty\(\) => Ok\(secret\)/.test(
+    desktopProviderTransportSource,
+  ) ||
   !/Provider connection needs an API key before it can make provider requests/.test(
-    desktopRuntimeSource,
+    desktopProviderTransportSource,
   )
 ) {
   fail("Required-key provider requests must fail when the stored desktop secret is missing.");

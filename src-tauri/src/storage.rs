@@ -1,3 +1,4 @@
+use crate::runtime_args::{read_string_field, runtime_args_object};
 use chrono::{SecondsFormat, Utc};
 use std::{
     collections::HashSet,
@@ -994,21 +995,6 @@ pub(crate) fn finish_runtime_collection_repair(
 
     let path = runtime_entity_path(app, entity)?;
     finish_collection_repair_at_path(&path, entity, true)
-}
-
-pub(crate) fn read_string_field<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
-    value
-        .get(key)
-        .and_then(|field| field.as_str())
-        .unwrap_or("")
-}
-
-pub(crate) fn runtime_args_object<'a>(
-    args: &'a serde_json::Value,
-    command: &str,
-) -> Result<&'a serde_json::Map<String, serde_json::Value>, String> {
-    args.as_object()
-        .ok_or_else(|| format!("{command} requires args."))
 }
 
 fn required_nonempty_str(

@@ -165,7 +165,16 @@ src-tauri/src/lib.rs
   Tauri setup and command registration.
 
 src-tauri/src/runtime.rs
-  Desktop runtime command execution and provider transport.
+  Desktop runtime command dispatch glue. Routes provider and storage runtime
+  commands to focused Rust capability modules.
+
+src-tauri/src/runtime_args.rs
+  Shared JSON runtime command argument helpers.
+
+src-tauri/src/provider_transport.rs
+src-tauri/src/provider_transport/
+  Desktop provider transport auth, endpoints, HTTP calls, connection checks,
+  model listing, and generation payloads.
 
 src-tauri/src/provider_response.rs
   Provider response text extraction and empty-response warning parsing shared by
