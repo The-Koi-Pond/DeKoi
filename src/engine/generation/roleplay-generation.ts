@@ -14,7 +14,7 @@ import {
   characterGenerationContext,
   cleanGenerationText,
   createGenerationMacroContext,
-  createGenerationRequestEnvelope,
+  createGenerationRequestAssemblyResult,
   exampleDialogueGenerationContext,
   finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
@@ -24,7 +24,9 @@ import {
   resolveGenerationMacros,
   resolveGenerationRecords,
   type GenerationMacroContext,
+  type GenerationPromptAssemblyResult,
   type GenerationRequestEnvelope,
+  type GenerationRequestAssemblyResult,
   type MacroVariableMutation,
   type LorebookSourceBuckets,
 } from "./generation";
@@ -55,13 +57,10 @@ type RoleplayGenerationPromptMessage = GenerationPromptMessage;
 export type RoleplayGenerationParameters = GenerationParameters;
 export type RoleplayGenerationResponse = GenerationResponse;
 
-export interface RoleplayGenerationRequestAssembly {
-  request: RoleplayGenerationRequest;
-  loreRuntimeState: LoreRuntimeState | null;
-  macroVariableMutations: MacroVariableMutation[];
-}
-
 export type RoleplayGenerationRequest = GenerationRequestEnvelope<RoleplayThread>;
+
+export type RoleplayGenerationRequestAssembly =
+  GenerationRequestAssemblyResult<RoleplayGenerationRequest>;
 
 export interface RoleplayGenerationContext {
   activePersona: PersonaRecord | null;
@@ -301,12 +300,7 @@ function createRoleplayPromptAssembly({
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
   variables?: Record<string, string>;
-}): {
-  loreRuntimeState: LoreRuntimeState | null;
-  macroVariableMutations: MacroVariableMutation[];
-  promptMessages: RoleplayGenerationPromptMessage[];
-  warnings: string[];
-} {
+}): GenerationPromptAssemblyResult {
   const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
@@ -427,18 +421,14 @@ export function createRoleplayGenerationRequestAssembly({
     variables: context.variables,
   });
 
-  return {
-    request: createGenerationRequestEnvelope({
-      context,
-      id,
-      now,
-      parameters,
-      promptMessages: promptAssembly.promptMessages,
-      promptWarnings: promptAssembly.warnings,
-      targetCompanion,
-      thread: context.requestThread,
-    }),
-    loreRuntimeState: promptAssembly.loreRuntimeState,
-    macroVariableMutations: promptAssembly.macroVariableMutations,
-  };
+  return createGenerationRequestAssemblyResult<RoleplayThread, RoleplayGenerationRequest>({
+    context,
+    createRequest: (request) => request,
+    id,
+    now,
+    parameters,
+    promptAssembly,
+    targetCompanion,
+    thread: context.requestThread,
+  });
 }

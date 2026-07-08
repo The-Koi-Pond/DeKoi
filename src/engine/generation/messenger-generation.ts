@@ -19,7 +19,7 @@ import {
   characterGenerationContext,
   cleanGenerationText,
   createGenerationMacroContext,
-  createGenerationRequestEnvelope,
+  createGenerationRequestAssemblyResult,
   finalizeLoreGenerationRuntimeState,
   formatLoreGenerationEntries,
   injectAtDepth,
@@ -28,7 +28,9 @@ import {
   resolveGenerationMacros,
   resolveGenerationRecords,
   type GenerationMacroContext,
+  type GenerationPromptAssemblyResult,
   type GenerationRequestEnvelope,
+  type GenerationRequestAssemblyResult,
   type MacroVariableMutation,
   type LorebookSourceBuckets,
 } from "./generation";
@@ -50,11 +52,8 @@ export type MessengerGenerationResponse = GenerationResponse;
 
 export type MessengerGenerationAdapter = GenerationAdapter<MessengerGenerationRequest>;
 
-export interface MessengerGenerationRequestAssembly {
-  request: MessengerGenerationRequest;
-  loreRuntimeState: LoreRuntimeState | null;
-  macroVariableMutations: MacroVariableMutation[];
-}
+export type MessengerGenerationRequestAssembly =
+  GenerationRequestAssemblyResult<MessengerGenerationRequest>;
 
 export interface MessengerGenerationContext {
   activePersona: PersonaRecord | null;
@@ -234,12 +233,7 @@ function createMessengerPromptAssembly({
   targetCompanion: CharacterRecord | null;
   userMessage: MessengerMessage;
   variables?: Record<string, string>;
-}): {
-  loreRuntimeState: LoreRuntimeState | null;
-  macroVariableMutations: MacroVariableMutation[];
-  promptMessages: MessengerGenerationPromptMessage[];
-  warnings: string[];
-} {
+}): GenerationPromptAssemblyResult {
   const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
@@ -356,21 +350,14 @@ export function createMessengerGenerationRequestAssembly({
     variables: context.variables,
   });
 
-  return {
-    request: {
-      ...createGenerationRequestEnvelope({
-        context,
-        id,
-        now,
-        parameters,
-        promptMessages: promptAssembly.promptMessages,
-        promptWarnings: promptAssembly.warnings,
-        targetCompanion,
-        thread: context.requestThread,
-      }),
-      userMessage,
-    },
-    loreRuntimeState: promptAssembly.loreRuntimeState,
-    macroVariableMutations: promptAssembly.macroVariableMutations,
-  };
+  return createGenerationRequestAssemblyResult<MessengerThread, MessengerGenerationRequest>({
+    context,
+    createRequest: (request) => ({ ...request, userMessage }),
+    id,
+    now,
+    parameters,
+    promptAssembly,
+    targetCompanion,
+    thread: context.requestThread,
+  });
 }
