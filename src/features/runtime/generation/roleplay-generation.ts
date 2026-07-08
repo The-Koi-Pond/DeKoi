@@ -22,6 +22,7 @@ import {
   providerErrorMessage,
   type ProviderGenerationRequest,
 } from "./provider-generation";
+import { resolveGenerationTimeZone } from "./generation-time-zone";
 
 export interface GenerateRoleplayThreadTurnInput {
   thread: RoleplayThread;
@@ -34,6 +35,11 @@ export interface GenerateRoleplayThreadTurnInput {
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
+  /**
+   * IANA time zone override for display macros; omitted or `null` auto-detects
+   * local time, falling back to resolver UTC when unavailable.
+   */
+  timeZone?: string | null;
   parameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -75,7 +81,9 @@ export async function generateRoleplayThreadTurn({
   personas,
   providerConnections,
   thread,
+  timeZone,
 }: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
+  const generationTimeZone = resolveGenerationTimeZone(timeZone);
   const result = await runGenerationWorkflow({
     appendRecords: appendRoleplayEntries,
     createContext: (variables) =>
@@ -105,6 +113,7 @@ export async function generateRoleplayThreadTurn({
         loreRuntimeState,
         now,
         parameters,
+        timeZone: generationTimeZone,
       }),
     existingLoreRuntimeState: loreRuntimeState,
     generateResponse: generateRoleplayResponse,

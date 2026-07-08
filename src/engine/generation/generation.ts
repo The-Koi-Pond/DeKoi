@@ -271,6 +271,7 @@ export interface GenerationMacroContextInput {
   targetCompanion?: CharacterRecord | null;
   targetNameFallback?: string;
   threadId?: string | null;
+  /** IANA time zone for display macros; omitted or `null` uses UTC. */
   timeZone?: string | null;
   userNameFallback?: string;
   /** Initial request-local variable state for prompt macro resolution. */

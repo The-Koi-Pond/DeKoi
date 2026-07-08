@@ -219,6 +219,7 @@ function createMessengerPromptAssembly({
   providerConnection,
   thread,
   targetCompanion,
+  timeZone,
   userMessage,
   variables,
 }: {
@@ -231,6 +232,7 @@ function createMessengerPromptAssembly({
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
+  timeZone?: string | null;
   userMessage: MessengerMessage;
   variables?: Record<string, string>;
 }): GenerationPromptAssemblyResult {
@@ -243,6 +245,7 @@ function createMessengerPromptAssembly({
     providerConnection,
     targetCompanion,
     threadId: thread.id,
+    timeZone,
     variables,
     variableMutations: macroVariableMutations,
   });
@@ -301,6 +304,7 @@ export function createMessengerGenerationRequest({
   loreRuntimeState,
   now,
   parameters,
+  timeZone,
   userMessage,
 }: {
   context: MessengerGenerationContext;
@@ -308,6 +312,8 @@ export function createMessengerGenerationRequest({
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
   parameters?: Partial<MessengerGenerationParameters>;
+  /** IANA time zone for display macros; omitted or `null` uses UTC. */
+  timeZone?: string | null;
   userMessage: MessengerMessage;
 }): MessengerGenerationRequest {
   return createMessengerGenerationRequestAssembly({
@@ -316,6 +322,7 @@ export function createMessengerGenerationRequest({
     loreRuntimeState,
     now,
     parameters,
+    timeZone,
     userMessage,
   }).request;
 }
@@ -326,6 +333,7 @@ export function createMessengerGenerationRequestAssembly({
   loreRuntimeState,
   now,
   parameters,
+  timeZone,
   userMessage,
 }: {
   context: MessengerGenerationContext;
@@ -333,6 +341,8 @@ export function createMessengerGenerationRequestAssembly({
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
   parameters?: Partial<MessengerGenerationParameters>;
+  /** IANA time zone for display macros; omitted or `null` uses UTC. */
+  timeZone?: string | null;
   userMessage: MessengerMessage;
 }): MessengerGenerationRequestAssembly {
   const targetCompanion = getNextMessengerCompanion(context.requestThread, context.companions);
@@ -346,6 +356,7 @@ export function createMessengerGenerationRequestAssembly({
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,
+    timeZone,
     userMessage,
     variables: context.variables,
   });
