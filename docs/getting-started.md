@@ -116,6 +116,11 @@ The committed Playwright specs live in `tests/e2e` and are split by workflow:
 app shell, provider generation, storage bundles, storage state, and transcript
 storage.
 
+Remote-runtime e2e coverage does not need the development fixture process. The
+shared helpers in `tests/e2e/app-test-utils.ts` install a Playwright route for
+`http://dekoi-runtime.test/api/invoke`, keep fake runtime storage in memory,
+and expose failing or deferred storage paths for race and recovery checks.
+
 Focused checks for narrow changes are mapped to change types in
 [AGENTS.md](../AGENTS.md) under Validation.
 
