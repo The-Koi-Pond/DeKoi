@@ -1,5 +1,5 @@
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
-import deKoiUniversalPreset from "./DeKoiUniversalPreset.json";
+import deKoiUniversalPreset from "./DeKoiUniversalPreset.json" with { type: "json" };
 import { normalizePromptPresetRecord } from "./prompt-preset-actions";
 
 // Starter content is DeKoi-owned prompt material; do not replace it with
