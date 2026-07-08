@@ -18,6 +18,7 @@ import {
   normalizeStringArray,
   normalizeStringRecord,
   normalizeUnknownArray,
+  prunePromptPresetDefaultChoices,
 } from "./prompt-preset-normalization";
 
 export {
@@ -114,7 +115,9 @@ export function createPromptPresetRecord({
     normalizePromptPresetParameters(input.parameters) ??
     normalizePromptPresetParameters(input.sampling);
   const messengerPrompt = cleanNullableText(input.messengerPrompt);
-  const defaultChoices = normalizeChoiceSelectionRecord(input.defaultChoices);
+  const rawDefaultChoices = normalizeChoiceSelectionRecord(input.defaultChoices);
+  const choiceBlocks = normalizePromptPresetChoiceBlocks(input.choiceBlocks, rawDefaultChoices);
+  const defaultChoices = prunePromptPresetDefaultChoices(rawDefaultChoices, choiceBlocks);
 
   return {
     id,
@@ -137,7 +140,7 @@ export function createPromptPresetRecord({
     folderId: cleanNullableText(input.folderId),
     sections: normalizePromptPresetSections(input.sections),
     groups: normalizePromptPresetGroups(input.groups),
-    choiceBlocks: normalizePromptPresetChoiceBlocks(input.choiceBlocks, defaultChoices),
+    choiceBlocks,
     createdAt: now,
     updatedAt: now,
   };
@@ -157,6 +160,14 @@ export function updatePromptPresetRecord(
     input.defaultChoices === undefined
       ? record.defaultChoices
       : normalizeChoiceSelectionRecord(input.defaultChoices);
+  const choiceBlocks =
+    input.choiceBlocks === undefined
+      ? record.choiceBlocks
+      : normalizePromptPresetChoiceBlocks(input.choiceBlocks, defaultChoices);
+  const prunedDefaultChoices =
+    input.defaultChoices === undefined && input.choiceBlocks === undefined
+      ? record.defaultChoices
+      : prunePromptPresetDefaultChoices(defaultChoices, choiceBlocks);
 
   return {
     ...record,
@@ -184,7 +195,7 @@ export function updatePromptPresetRecord(
       input.variableValues === undefined
         ? record.variableValues
         : normalizeStringRecord(input.variableValues),
-    defaultChoices,
+    defaultChoices: prunedDefaultChoices,
     wrapFormat:
       input.wrapFormat === undefined ? record.wrapFormat : cleanNullableText(input.wrapFormat),
     isDefault: input.isDefault === undefined ? record.isDefault : input.isDefault,
@@ -195,10 +206,7 @@ export function updatePromptPresetRecord(
         ? record.sections
         : normalizePromptPresetSections(input.sections),
     groups: input.groups === undefined ? record.groups : normalizePromptPresetGroups(input.groups),
-    choiceBlocks:
-      input.choiceBlocks === undefined
-        ? record.choiceBlocks
-        : normalizePromptPresetChoiceBlocks(input.choiceBlocks, defaultChoices),
+    choiceBlocks,
     updatedAt,
   };
 }

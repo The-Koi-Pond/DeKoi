@@ -119,6 +119,42 @@ describe("normalizePromptPresetRecord", () => {
     });
   });
 
+  it("drops default choices for skipped blocks and invalid option values", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Write with {{tone}}.",
+      defaultChoices: {
+        skipped: "ghost",
+        tone: ["warm prose", "missing", "tone-cold"],
+      },
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [
+            { id: "tone-warm", label: "Warm", value: "warm prose" },
+            { id: "tone-cold", label: "Cold", value: "cold prose" },
+          ],
+        },
+        {
+          id: "choice-skipped",
+          variableName: "skipped",
+          label: "Skipped",
+          options: [],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record?.defaultChoices).toEqual({
+      tone: ["warm prose", "tone-cold"],
+    });
+  });
+
   it("applies choice visibility rules to UI visibility and hidden defaults", () => {
     const record = normalizePromptPresetRecord({
       id: "preset-1",

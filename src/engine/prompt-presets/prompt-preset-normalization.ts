@@ -343,6 +343,37 @@ export function normalizePromptPresetChoiceBlocks(
   return blocks;
 }
 
+function choiceSelectionIsValid(block: PromptPresetChoiceBlock, value: string) {
+  return block.options.some((option) => option.id === value || option.value === value);
+}
+
+export function prunePromptPresetDefaultChoices(
+  defaultChoices: PromptPresetChoiceSelections,
+  choiceBlocks: PromptPresetChoiceBlock[],
+): PromptPresetChoiceSelections {
+  const blocksByVariableName = new Map(
+    choiceBlocks.map((block) => [block.variableName, block] as const),
+  );
+  const prunedChoices: PromptPresetChoiceSelections = {};
+
+  for (const [variableName, selection] of Object.entries(defaultChoices)) {
+    const block = blocksByVariableName.get(variableName);
+    if (!block) continue;
+
+    if (Array.isArray(selection)) {
+      const validSelections = selection.filter((value) => choiceSelectionIsValid(block, value));
+      if (validSelections.length > 0) prunedChoices[variableName] = validSelections;
+      continue;
+    }
+
+    if (choiceSelectionIsValid(block, selection)) {
+      prunedChoices[variableName] = selection;
+    }
+  }
+
+  return prunedChoices;
+}
+
 export function normalizePromptPresetChoiceSelections(
   value: unknown,
 ): PromptPresetChoiceSelections {
@@ -703,10 +734,12 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
   const variableOrder = normalizeStringArray(value.variableOrder);
   const variableGroups = normalizeUnknownArray(value.variableGroups);
   const variableValues = normalizeStringRecord(value.variableValues);
-  const defaultChoices = normalizeChoiceSelectionRecord(value.defaultChoices);
+  const rawDefaultChoices = normalizeChoiceSelectionRecord(value.defaultChoices);
   const sections = normalizePromptPresetSections(value.sections);
   const groups = normalizePromptPresetGroups(value.groups);
   const messengerPrompt = readNullableString(value.messengerPrompt);
+  const choiceBlocks = normalizePromptPresetChoiceBlocks(value.choiceBlocks, rawDefaultChoices);
+  const defaultChoices = prunePromptPresetDefaultChoices(rawDefaultChoices, choiceBlocks);
 
   return normalizePromptPresetRecordFromParts({
     id,
@@ -728,7 +761,7 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     folderId: readNullableString(value.folderId),
     sections,
     groups,
-    choiceBlocks: normalizePromptPresetChoiceBlocks(value.choiceBlocks, defaultChoices),
+    choiceBlocks,
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),
   });

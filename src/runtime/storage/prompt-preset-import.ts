@@ -37,6 +37,20 @@ function normalizeStringArray(value: unknown): string[] {
   return strings;
 }
 
+function normalizeUniqueStringArray(value: unknown): string[] {
+  const values = normalizeStringArray(value);
+  const uniqueValues: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    if (seen.has(value)) continue;
+    seen.add(value);
+    uniqueValues.push(value);
+  }
+
+  return uniqueValues;
+}
+
 function promptPresetSectionsInOrder(
   sections: ReturnType<typeof normalizePromptPresetSections>,
   sectionOrder: string[],
@@ -55,7 +69,7 @@ function promptPresetSectionsInOrder(
 }
 
 function systemPromptFromPackageSections(sectionsValue: unknown, sectionOrderValue: unknown) {
-  const sectionOrder = normalizeStringArray(sectionOrderValue);
+  const sectionOrder = normalizeUniqueStringArray(sectionOrderValue);
   const sections = normalizePromptPresetSections(sectionsValue);
 
   return promptPresetSectionsInOrder(sections, sectionOrder)
@@ -64,16 +78,24 @@ function systemPromptFromPackageSections(sectionsValue: unknown, sectionOrderVal
     .join("\n\n");
 }
 
+function stampPresetIdOnRows(value: unknown, presetId: string) {
+  const source = parseJsonIfString(value);
+  if (!Array.isArray(source)) return value;
+
+  return source.map((row) => (isRecord(row) ? { ...row, presetId } : row));
+}
+
 function normalizePromptPresetPackage(value: Record<string, unknown>): PromptPresetRecord | null {
   if (!isRecord(value.data) || !isRecord(value.data.preset)) return null;
 
   const preset = value.data.preset;
+  const id = readString(preset.id).trim() || readString(value.id).trim();
   const systemPrompt =
     readString(preset.systemPrompt).trim() ||
     systemPromptFromPackageSections(value.data.sections, preset.sectionOrder);
 
   return normalizePromptPresetRecord({
-    id: readString(preset.id).trim() || readString(value.id).trim(),
+    id,
     schemaVersion: 1,
     title: readString(preset.name).trim() || readString(preset.title).trim(),
     summary: readNullableString(preset.description) ?? readNullableString(preset.summary),
@@ -92,9 +114,9 @@ function normalizePromptPresetPackage(value: Record<string, unknown>): PromptPre
     isDefault: preset.isDefault,
     author: readNullableString(preset.author),
     folderId: readNullableString(preset.folderId),
-    sections: value.data.sections,
-    groups: value.data.groups,
-    choiceBlocks: value.data.choiceBlocks,
+    sections: stampPresetIdOnRows(value.data.sections, id),
+    groups: stampPresetIdOnRows(value.data.groups, id),
+    choiceBlocks: stampPresetIdOnRows(value.data.choiceBlocks, id),
     createdAt: preset.createdAt,
     updatedAt: preset.updatedAt,
   });
