@@ -1,8 +1,10 @@
 import { checkDesktopRuntimeHealth } from "./desktop-runtime";
+import { errorMessage } from "../errors";
 import {
   fetchRemoteRuntimeJson,
   remoteHeaders,
   REMOTE_RUNTIME_HEALTH_TIMEOUT_MS,
+  sanitizeRemoteRuntimeErrorDetail,
 } from "./remote-runtime-http";
 import type { RemoteRuntimeHealthCheck } from "./runtime-health";
 import { isDesktopRuntimeUrl, readRemoteRuntimeUrl, remoteRuntimeTarget } from "./runtime-target";
@@ -15,6 +17,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isSupportedRemoteRuntime(value: unknown): boolean {
   return typeof value === "string" && SUPPORTED_REMOTE_RUNTIME_MARKERS.has(value);
+}
+
+function remoteRuntimeHealthErrorMessage(error: unknown): string {
+  const detail = sanitizeRemoteRuntimeErrorDetail(
+    errorMessage(error, "Unknown remote runtime error."),
+  );
+  return `Remote runtime is unreachable. ${detail}`;
 }
 
 export async function checkRemoteRuntimeHealth(
@@ -73,7 +82,7 @@ export async function checkRemoteRuntimeHealth(
     }
 
     return { status: "ok", message: "Remote runtime is online." };
-  } catch {
-    return { status: "unreachable", message: "Remote runtime is unreachable." };
+  } catch (error) {
+    return { status: "unreachable", message: remoteRuntimeHealthErrorMessage(error) };
   }
 }

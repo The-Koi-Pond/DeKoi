@@ -50,6 +50,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+const AUTH_HEADER_DETAIL_PATTERN =
+  /((?:["']?\bauthorization\b["']?\s*(?::|=)\s*["']?)(?:Basic|Bearer)\s+)[^"',\s)]+/gi;
+const URL_USERINFO_PATTERN = /\b([a-z][a-z\d+.-]*:\/\/)[^/@\s]+@/gi;
+
+/**
+ * Redacts authorization tokens and URL userinfo from surfaced remote-runtime
+ * diagnostics.
+ */
+export function sanitizeRemoteRuntimeErrorDetail(detail: string): string {
+  return detail
+    .replace(AUTH_HEADER_DETAIL_PATTERN, "$1[redacted]")
+    .replace(URL_USERINFO_PATTERN, "$1[redacted]@");
+}
+
 /** Builds the surfaced runtime error, preferring a JSON message when available. */
 export function readRemoteRuntimeError(status: number, body: unknown): Error {
   const message =

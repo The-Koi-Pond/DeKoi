@@ -82,6 +82,9 @@ http://127.0.0.1:7341
 
 Use that URL in Pond Care > Data & Backup > Remote Runtime URL. The fixture
 keeps storage in memory, so records disappear when the fixture process stops.
+Pond Care's runtime check reports timeout or fetch failure detail for
+unreachable remote runtimes, with bearer/basic authorization details and URL
+userinfo redacted.
 
 ## Run Checks
 

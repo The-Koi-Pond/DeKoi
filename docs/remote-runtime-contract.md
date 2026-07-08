@@ -53,6 +53,10 @@ Remote HTTP health probes are intentionally short. DeKoi times them out after
 as unreachable with their status, treats malformed successful JSON as
 unreachable, and reports successful JSON with incompatible markers as an
 incompatible health response.
+Transport-level failures, including fetch failures and the 5 second timeout, are
+also reported as unreachable in Pond Care with sanitized error detail appended.
+DeKoi redacts bearer/basic Authorization header values and URL userinfo before
+surfacing that detail.
 
 ## Desktop Runtime
 
