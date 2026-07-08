@@ -27,6 +27,7 @@ interface DraftState {
   title: string;
   summary: string;
   systemPrompt: string;
+  messengerPrompt: string;
   maxTokens: string;
   temperature: string;
   topP: string;
@@ -36,6 +37,7 @@ const EMPTY_DRAFT: DraftState = {
   title: "",
   summary: "",
   systemPrompt: "",
+  messengerPrompt: "",
   maxTokens: "",
   temperature: "",
   topP: "",
@@ -52,6 +54,7 @@ function draftFromPreset(preset: PromptPresetRecord): DraftState {
     title: preset.title,
     summary: preset.summary ?? "",
     systemPrompt: preset.systemPrompt,
+    messengerPrompt: preset.messengerPrompt ?? "",
     maxTokens: preset.sampling?.maxTokens?.toString() ?? "",
     temperature: preset.sampling?.temperature?.toString() ?? "",
     topP: preset.sampling?.topP?.toString() ?? "",
@@ -63,6 +66,7 @@ function draftToInput(draft: DraftState): PromptPresetInput {
     title: draft.title.trim(),
     summary: draft.summary.trim() || null,
     systemPrompt: draft.systemPrompt.trim(),
+    messengerPrompt: draft.messengerPrompt.trim() || null,
     sampling: {
       maxTokens: optionalNumber(draft.maxTokens),
       temperature: optionalNumber(draft.temperature),
@@ -151,6 +155,17 @@ function PromptPresetEditor({
                 value={draft.systemPrompt}
                 onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
                 placeholder="System prompt used when this preset is selected."
+              />
+            </div>
+            <div className="catalog-editor-field">
+              <label htmlFor="preset-messenger-prompt">Messenger Prompt Source</label>
+              <CatalogMacroTextarea
+                id="preset-messenger-prompt"
+                className="pondinput pondtextarea"
+                rows={12}
+                value={draft.messengerPrompt}
+                onValueChange={(messengerPrompt) => setDraft({ ...draft, messengerPrompt })}
+                placeholder="Optional Messenger-specific prompt source. Empty uses System Prompt."
               />
             </div>
           </section>

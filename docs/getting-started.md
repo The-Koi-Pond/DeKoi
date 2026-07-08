@@ -114,17 +114,20 @@ Focused checks for narrow changes are mapped to change types in
 - Start with catalog records, then Messenger or Roleplay threads. Roleplay has
   native thread settings and send guards, but deeper scene-specific polish is
   still early.
-- In macro-resolved Companion and Persona multiline fields, and in Lorebook
-  entry body editors, use the Macros button to browse and insert currently
-  supported prompt macro syntax. Companion and Persona fields show an inline
-  preview while the field is active or the Macros browser is open; Lorebook entry
-  bodies remain insert-only because their preview needs active generation
-  context. Companion greeting fields stay plain text today.
+- In macro-resolved Companion, Persona, Prompt Preset, and Lorebook multiline
+  fields, use the Macros button to browse and insert currently supported prompt
+  macro syntax. Companion and Persona fields show an inline preview while the
+  field is active or the Macros browser is open; Prompt Preset fields and
+  Lorebook entry bodies remain insert-only because their preview needs active
+  generation context. Companion greeting fields stay plain text today.
 - Use Pond Care > Data & Backup to confirm the selected runtime path.
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.
-- Use the Presets catalog for reusable system prompts and sampling, then select
-  a prompt preset from Messenger or Roleplay thread settings.
+- Use the Presets catalog for reusable Messenger and Roleplay prompt sources
+  and sampling, then select a prompt preset from thread settings. Messenger uses
+  the preset's Messenger prompt source when present, falls back to the preset
+  system prompt, and lets a non-empty edited Messenger Prompt override both for
+  that thread.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

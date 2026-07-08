@@ -7,12 +7,14 @@ import {
 interface UseChatSettingsPromptEditorInput {
   activeMessengerThread: MessengerThread | null;
   activeMessengerThreadId: string | null;
+  sourcePrompt: string | null;
   onSaveCustomPrompt: (threadId: string, prompt: string) => void;
 }
 
 export function useChatSettingsPromptEditor({
   activeMessengerThread,
   activeMessengerThreadId,
+  sourcePrompt,
   onSaveCustomPrompt,
 }: UseChatSettingsPromptEditorInput) {
   const [promptEditor, setPromptEditor] = useState<{
@@ -41,7 +43,7 @@ export function useChatSettingsPromptEditor({
       value:
         activeMessengerThread.systemPromptMode === "custom"
           ? activeMessengerThread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT
-          : DEFAULT_MESSENGER_SYSTEM_PROMPT,
+          : sourcePrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
     });
   }
 

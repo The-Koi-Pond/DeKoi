@@ -455,7 +455,7 @@ test("chat settings drawer models align active state with open state", () => {
   expect(inactiveModels.identity.persona.open).toBe(false);
   expect(inactiveModels.resources.companion.open).toBe(false);
   expect(inactiveModels.resources.lorebook.open).toBe(false);
-  expect(inactiveModels.resources.prompt.open).toBe(false);
+  expect(inactiveModels.resources.preset.open).toBe(false);
 
   const activeMessengerThread = createMessengerThread({
     activePersonaId: null,
@@ -481,7 +481,7 @@ test("chat settings drawer models align active state with open state", () => {
   expect(activeModels.identity.persona.open).toBe(true);
   expect(activeModels.resources.companion.open).toBe(true);
   expect(activeModels.resources.lorebook.open).toBe(true);
-  expect(activeModels.resources.prompt.open).toBe(true);
+  expect(activeModels.resources.preset.open).toBe(true);
 });
 
 test("messenger thread reference summary flags missing settings before send", () => {

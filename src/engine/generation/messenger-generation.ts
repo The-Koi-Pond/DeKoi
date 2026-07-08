@@ -13,7 +13,10 @@ import type {
 } from "../generation-core/lorebook-activation";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
+import {
+  resolvePromptPresetMessengerPrompt,
+  type PromptPresetRecord,
+} from "../contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
   activateLoreGenerationEntriesWithWarnings,
@@ -224,8 +227,8 @@ function createMessengerPromptAssembly({
   loreInsertionStrategy,
   loreRuntimeState,
   now,
-  promptPreset,
   providerConnection,
+  promptPreset,
   thread,
   targetCompanion,
   timeZone,
@@ -238,8 +241,8 @@ function createMessengerPromptAssembly({
   loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
-  promptPreset: PromptPresetRecord | null;
   providerConnection: ProviderConnectionRecord | null;
+  promptPreset: PromptPresetRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
   timeZone?: string | null;
@@ -260,7 +263,7 @@ function createMessengerPromptAssembly({
     variableMutations: macroVariableMutations,
   });
   const selectedPrompt = resolveGenerationMacros(
-    resolveMessengerSystemPrompt(thread, promptPreset),
+    resolveMessengerSystemPrompt(thread, resolvePromptPresetMessengerPrompt(promptPreset)),
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
@@ -363,8 +366,8 @@ export function createMessengerGenerationRequestAssembly({
     loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
     now,
-    promptPreset: context.promptPreset,
     providerConnection: context.providerConnection,
+    promptPreset: context.promptPreset,
     thread: context.requestThread,
     targetCompanion,
     timeZone,

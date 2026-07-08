@@ -8,7 +8,6 @@ import {
 } from "../../../../engine/modes/messenger/messenger-actions";
 import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerSystemPromptMode,
   type MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
 import type {
@@ -76,7 +75,12 @@ export function useChatSettingsMessengerActions({
 
   function handleMessengerPresetChange(presetId: string) {
     updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadPreset(thread, presetId.trim() || null, updatedAt),
+      setMessengerThreadSystemPrompt(
+        setMessengerThreadPreset(thread, presetId.trim() || null, updatedAt),
+        "default",
+        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
+        updatedAt,
+      ),
     );
   }
 
@@ -117,17 +121,6 @@ export function useChatSettingsMessengerActions({
     );
   }
 
-  function handleMessengerSystemPromptModeChange(systemPromptMode: MessengerSystemPromptMode) {
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(
-        thread,
-        systemPromptMode,
-        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
-        updatedAt,
-      ),
-    );
-  }
-
   function saveCustomMessengerPrompt(threadId: string, prompt: string) {
     if (activeMessengerThread?.id !== threadId) return;
     updateActiveMessengerThread((thread, updatedAt) =>
@@ -142,7 +135,6 @@ export function useChatSettingsMessengerActions({
   };
   const promptActions: ChatSettingsMessengerPromptActions = {
     onSaveCustomPrompt: saveCustomMessengerPrompt,
-    onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
   };
   const presetActions: ChatSettingsThreadPresetActions = {
     onClearMissingPreset: clearMissingMessengerPreset,

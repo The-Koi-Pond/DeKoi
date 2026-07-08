@@ -1,7 +1,6 @@
 import type { AppSettings } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import {
@@ -19,7 +18,6 @@ import {
 import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 
 interface ChatSettingsViewModelInput {
-  activeMessengerThread?: MessengerThread | null;
   activeThread?: ChatSettingsThreadRecord | null;
   appSettings: AppSettings;
   characters: readonly CharacterRecord[];
@@ -31,7 +29,6 @@ interface ChatSettingsViewModelInput {
 }
 
 export function getChatSettingsViewModel({
-  activeMessengerThread = null,
   activeThread: explicitActiveThread,
   appSettings,
   characters,
@@ -41,7 +38,7 @@ export function getChatSettingsViewModel({
   providerConnections,
   threadLabel = "Messenger",
 }: ChatSettingsViewModelInput) {
-  const activeThread = explicitActiveThread ?? activeMessengerThread;
+  const activeThread = explicitActiveThread ?? null;
   const sanitizedProviderConnections = providerConnections.map((connection) =>
     sanitizeProviderConnectionRecord(connection),
   );
@@ -77,11 +74,16 @@ export function getChatSettingsViewModel({
     }),
     sanitizedProviderConnections,
     missingPresetId,
-    presetDrawerSummary: selectedPreset
-      ? selectedPreset.title
-      : missingPresetId
-        ? "Missing preset"
-        : "No preset",
+    presetDrawerSummary:
+      activeThread?.systemPromptMode === "custom"
+        ? selectedPreset
+          ? `Custom override (${selectedPreset.title})`
+          : "Custom override"
+        : selectedPreset
+          ? selectedPreset.title
+          : missingPresetId
+            ? "Missing preset"
+            : "No preset",
     selectedPresetId,
     systemPromptMode,
   };

@@ -47,7 +47,7 @@ export function ChatSettingsRoleplayResourceSection({
         promptPresets={promptPresets}
         surfaceLabel="Roleplay"
         onClearMissingPreset={actions.preset.onClearMissingPreset}
-        onCreatePreset={onCreatePreset}
+        onPresetAction={onCreatePreset}
         onPresetChange={actions.preset.onPresetChange}
         onToggle={actions.drawers.onToggle}
       />

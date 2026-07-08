@@ -75,7 +75,7 @@ function userMessage(threadId: string): MessengerMessage {
 }
 
 describe("prompt preset generation", () => {
-  it("uses a selected Messenger preset and caps preset max tokens to provider max output", () => {
+  it("uses a selected Messenger preset as the system prompt base", () => {
     const thread = {
       ...createMessengerThread({
         activePersonaId: null,
@@ -88,6 +88,8 @@ describe("prompt preset generation", () => {
       presetId: "preset-1",
     };
     const preset = promptPreset({
+      systemPrompt: "Roleplay-only preset for {{char}}.",
+      messengerPrompt: "Messenger preset for {{char}}.",
       sampling: {
         maxTokens: 8192,
         temperature: 1.2,
@@ -115,7 +117,8 @@ describe("prompt preset generation", () => {
     });
 
     expect(assembly.request.thread.presetId).toBe("preset-1");
-    expect(assembly.request.promptMessages[0]?.content).toContain("Preset prompt for Mara.");
+    expect(assembly.request.promptMessages[0]?.content).toContain("Messenger preset for Mara.");
+    expect(assembly.request.promptMessages[0]?.content).not.toContain("Roleplay-only preset");
     expect(assembly.request.parameters).toEqual({
       maxTokens: 2048,
       temperature: 1.2,
@@ -123,7 +126,7 @@ describe("prompt preset generation", () => {
     });
   });
 
-  it("keeps a custom Messenger prompt ahead of the selected preset", () => {
+  it("uses a custom Messenger prompt over a selected Messenger preset", () => {
     const thread = {
       ...createMessengerThread({
         activePersonaId: null,
@@ -152,9 +155,10 @@ describe("prompt preset generation", () => {
 
     expect(assembly.request.promptMessages[0]?.content).toContain("Custom prompt for Mara.");
     expect(assembly.request.promptMessages[0]?.content).not.toContain("Preset prompt");
+    expect(assembly.request.thread.presetId).toBe("preset-1");
   });
 
-  it("warns and falls back when a Messenger preset reference is missing", () => {
+  it("falls back to the default Messenger prompt when the selected preset is missing", () => {
     const thread = {
       ...createMessengerThread({
         activePersonaId: null,
@@ -182,6 +186,9 @@ describe("prompt preset generation", () => {
     expect(assembly.request.thread.presetId).toBeNull();
     expect(assembly.request.warnings).toContain(
       "Messenger thread references a missing prompt preset: missing-preset.",
+    );
+    expect(assembly.request.promptMessages[0]?.content).toContain(
+      "texting privately with the user in a casual DM conversation",
     );
   });
 

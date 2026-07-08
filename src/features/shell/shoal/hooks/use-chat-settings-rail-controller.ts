@@ -68,7 +68,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
   const chatSettingsViewModel = useMemo(
     () =>
       getChatSettingsViewModel({
-        activeMessengerThread,
+        activeThread: activeMessengerThread,
         appSettings: nav.appSettings,
         characters: nav.characters,
         lorebooks: nav.lorebooks,

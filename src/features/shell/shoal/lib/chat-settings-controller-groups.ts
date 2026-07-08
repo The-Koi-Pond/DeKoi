@@ -1,7 +1,4 @@
-import type {
-  MessengerSystemPromptMode,
-  MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
@@ -37,7 +34,6 @@ interface ChatSettingsResourceActions extends ChatSettingsThreadResourceActions 
 
 interface ChatSettingsPromptActions {
   onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-  onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
 }
 
 interface ChatSettingsPresetActions {

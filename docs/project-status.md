@@ -37,8 +37,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
 - Presets catalog controls expose prompt preset title, summary, system prompt,
-  optional temperature, `topP`, and max-token sampling, with create, edit,
-  duplicate, and delete actions plus an editable starter preset.
+  Messenger Prompt Source, optional temperature, `topP`, and max-token sampling,
+  with create, edit, duplicate, and delete actions plus an editable starter
+  preset.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
