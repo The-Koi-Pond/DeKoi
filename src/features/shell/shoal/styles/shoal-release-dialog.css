@@ -1,0 +1,102 @@
+.release-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 9, 12, 0.46);
+  backdrop-filter: blur(4px);
+}
+
+.release-dialog {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  width: min(360px, calc(100vw - 32px));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(244, 122, 53, 0.34);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(19, 36, 43, 0.98), rgba(9, 19, 23, 0.98));
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.035) inset;
+}
+
+.release-dialog-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(244, 122, 53, 0.38);
+  border-radius: 50%;
+  background: rgba(244, 122, 53, 0.12);
+  color: var(--koi-hot);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.release-dialog-copy {
+  min-width: 0;
+}
+
+.release-dialog-copy h2 {
+  margin: 1px 0 5px;
+  color: var(--foam);
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.release-dialog-copy p {
+  margin: 0;
+  color: var(--mist);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.release-dialog-copy b {
+  color: var(--foam);
+  font-weight: 650;
+}
+
+.release-dialog-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.release-dialog-actions button {
+  min-width: 78px;
+  height: 31px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 8px;
+  background: var(--shallow);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 11.5px;
+}
+
+.release-dialog-actions button:last-child {
+  border-color: rgba(244, 122, 53, 0.44);
+  background: rgba(244, 122, 53, 0.14);
+  color: var(--koi-hot);
+}
+
+.release-dialog-actions button:hover,
+.release-dialog-actions button:focus-visible {
+  border-color: var(--reed);
+  background: var(--raise);
+  color: var(--foam);
+  outline: none;
+}
+
+.release-dialog-actions button:last-child:hover,
+.release-dialog-actions button:last-child:focus-visible {
+  border-color: rgba(244, 122, 53, 0.72);
+  background: rgba(244, 122, 53, 0.22);
+  color: var(--koi-hot);
+}
