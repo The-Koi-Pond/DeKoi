@@ -8,7 +8,11 @@ import { Buffer } from "node:buffer";
 import { expect, type Page } from "@playwright/test";
 import { type AppStorageCollectionSignatures } from "../../src/app/use-app-storage-sync";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
-import { type MessengerThread } from "../../src/engine/contracts/types/messenger";
+import {
+  type MessengerMessage,
+  type MessengerThread,
+} from "../../src/engine/contracts/types/messenger";
+import { type RoleplayEntry } from "../../src/engine/contracts/types/roleplay";
 import { APP_STORAGE_COLLECTION_KEYS, type AppStorageRecords } from "../../src/features/runtime";
 import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/lib/chat-settings-drawers";
 import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
@@ -24,6 +28,11 @@ export type RuntimeCall = {
   entity: StorageEntity | null;
 };
 export type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
+
+type EmptyAppStorageRecordsFixture = AppStorageRecords & {
+  roleplayEntries: RoleplayEntry[];
+  messengerMessages: MessengerMessage[];
+};
 
 export function createChatSettingsViewModel(activeMessengerThread: MessengerThread | null) {
   return getChatSettingsViewModel({
@@ -327,7 +336,7 @@ export function createLegacyImportFixture() {
   };
 }
 
-export function createEmptyAppStorageRecords(): AppStorageRecords {
+export function createEmptyAppStorageRecords(): EmptyAppStorageRecordsFixture {
   return {
     appSettings: DEFAULT_APP_SETTINGS,
     characters: [],
@@ -338,7 +347,9 @@ export function createEmptyAppStorageRecords(): AppStorageRecords {
     macroVariableStates: [],
     providerConnections: [],
     roleplayThreads: [],
+    roleplayEntries: [],
     messengerThreads: [],
+    messengerMessages: [],
     rippleStates: [],
   };
 }
