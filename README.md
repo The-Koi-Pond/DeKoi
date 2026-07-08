@@ -44,6 +44,12 @@ Run fast unit tests:
 pnpm test
 ```
 
+Run browser end-to-end smoke tests:
+
+```sh
+pnpm test:ui
+```
+
 Run the full local check:
 
 ```sh

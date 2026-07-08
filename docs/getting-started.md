@@ -106,6 +106,16 @@ For fast engine and storage unit tests:
 pnpm test
 ```
 
+For Playwright browser end-to-end smoke tests:
+
+```sh
+pnpm test:ui
+```
+
+The committed Playwright specs live in `tests/e2e` and are split by workflow:
+app shell, provider generation, storage bundles, storage state, and transcript
+storage.
+
 Focused checks for narrow changes are mapped to change types in
 [AGENTS.md](../AGENTS.md) under Validation.
 
