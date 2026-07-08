@@ -19,6 +19,24 @@
       }
     },
     {
+      "name": "openai choice content wins over top-level metadata",
+      "provider": "openai",
+      "payload": {
+        "message": "success",
+        "choices": [
+          {
+            "message": {
+              "content": "Actual OpenAI reply"
+            },
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "expected": {
+        "text": "Actual OpenAI reply"
+      }
+    },
+    {
       "name": "openai choice content parts join with newlines",
       "provider": "openai",
       "payload": {
@@ -76,6 +94,22 @@
             "finish_reason": "length"
           }
         ]
+      },
+      "expected": {
+        "text": "",
+        "warning": "Provider returned no text (finish reason: length)."
+      }
+    },
+    {
+      "name": "openai finish reason wins over top-level metadata",
+      "provider": "openai",
+      "payload": {
+        "choices": [
+          {
+            "finish_reason": "length"
+          }
+        ],
+        "message": "success"
       },
       "expected": {
         "text": "",

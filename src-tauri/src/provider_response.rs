@@ -241,12 +241,15 @@ fn empty_provider_warning(payload: &serde_json::Value) -> String {
 }
 
 fn openai_text(payload: &serde_json::Value) -> String {
-    let response_text = generic_provider_text(payload);
-    if !response_text.trim().is_empty() {
-        return response_text.trim().to_string();
+    if payload
+        .get("choices")
+        .and_then(|choices| choices.as_array())
+        .is_some()
+    {
+        return openai_choice_text(payload);
     }
 
-    openai_choice_text(payload)
+    generic_provider_text(payload)
 }
 
 fn openai_choice_text(payload: &serde_json::Value) -> String {
