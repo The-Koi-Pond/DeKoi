@@ -23,4 +23,14 @@ describe("normalizeAppSettings", () => {
     expect(settings.globalLorebookIds).toEqual([]);
     expect(settings.loreInsertionStrategy).toBe(DEFAULT_APP_SETTINGS.loreInsertionStrategy);
   });
+
+  it("normalizes the prompt preset starter initialization marker", () => {
+    expect(
+      normalizeAppSettings({ promptPresetStarterInitialized: true }).promptPresetStarterInitialized,
+    ).toBe(true);
+    expect(
+      normalizeAppSettings({ promptPresetStarterInitialized: "true" })
+        .promptPresetStarterInitialized,
+    ).toBe(false);
+  });
 });

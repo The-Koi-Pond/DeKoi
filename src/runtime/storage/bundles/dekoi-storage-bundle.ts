@@ -17,6 +17,7 @@ import {
   type MessengerThreadRecord,
 } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
   getProviderConnectionProviderOption,
@@ -30,6 +31,7 @@ import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
 import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
+import { normalizePromptPresetRecord } from "../collections/prompt-preset-storage";
 import { normalizeLoreRuntimeState } from "../collections/lore-runtime-state-storage";
 import { normalizeMacroVariableScope } from "../collections/macro-variable-state-storage";
 import { normalizeMessengerThreads } from "../collections/messenger-storage";
@@ -37,6 +39,7 @@ import { normalizeMessengerMessageRecord } from "../collections/messenger-storag
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
+import { clearMissingPromptPresetIds } from "../prompt-preset-relationship-repair";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
@@ -47,6 +50,7 @@ interface DeKoiStorageBundleData {
   roleplayEntries: RoleplayEntry[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets: PromptPresetRecord[];
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
@@ -61,6 +65,7 @@ export interface DeKoiStorageBundleSourceData {
   roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets: PromptPresetRecord[];
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
@@ -82,6 +87,7 @@ export interface DeKoiStorageBundleCounts {
   roleplayEntries: number;
   personas: number;
   lorebooks: number;
+  promptPresets: number;
   lorebookEntries: number;
   loreRuntimeStates: number;
   loreRuntimeEntries: number;
@@ -269,6 +275,7 @@ export function getDeKoiStorageBundleCounts(
     roleplayEntries: roleplayEntryCount,
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
+    promptPresets: data.promptPresets.length,
     lorebookEntries: data.lorebooks.reduce((count, lorebook) => count + lorebook.entries.length, 0),
     loreRuntimeStates: data.loreRuntimeStates.length,
     loreRuntimeEntries: data.loreRuntimeStates.reduce(
@@ -293,6 +300,7 @@ export function createDeKoiStorageBundle({
   characters,
   roleplayThreads,
   lorebooks,
+  promptPresets,
   loreRuntimeStates,
   macroVariableStates,
   messengerThreads,
@@ -311,6 +319,7 @@ export function createDeKoiStorageBundle({
       roleplayEntries: extractRoleplayEntries(roleplayThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
+      promptPresets: cloneRecords(promptPresets),
       loreRuntimeStates: cloneRecords(loreRuntimeStates),
       macroVariableStates: cloneRecords(macroVariableStates),
       providerConnections: redactProviderConnectionSecrets(providerConnections),
@@ -404,6 +413,12 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       warnings,
       2,
     ),
+    promptPresets: normalizeOptionalList(
+      value.data.promptPresets,
+      "Prompt presets",
+      normalizePromptPresetRecord,
+      warnings,
+    ),
     loreRuntimeStates: normalizeOptionalList(
       value.data.loreRuntimeStates,
       "Lore runtime states",
@@ -443,6 +458,28 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
   } else if (data.messengerThreads.length !== value.data.messengerThreads.length) {
     warnings.push(
       `Messenger threads skipped ${value.data.messengerThreads.length - data.messengerThreads.length} invalid record(s).`,
+    );
+  }
+
+  const repairedRoleplayThreads = clearMissingPromptPresetIds(
+    data.roleplayThreads,
+    data.promptPresets,
+  );
+  if (repairedRoleplayThreads.clearedCount > 0) {
+    data.roleplayThreads = repairedRoleplayThreads.records;
+    warnings.push(
+      `Roleplay threads cleared ${repairedRoleplayThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+
+  const repairedMessengerThreads = clearMissingPromptPresetIds(
+    data.messengerThreads,
+    data.promptPresets,
+  );
+  if (repairedMessengerThreads.clearedCount > 0) {
+    data.messengerThreads = repairedMessengerThreads.records;
+    warnings.push(
+      `Messenger threads cleared ${repairedMessengerThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
     );
   }
 

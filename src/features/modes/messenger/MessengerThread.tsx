@@ -60,9 +60,12 @@ import "./messenger-thread.css";
 
 export type MessengerThreadNav = Pick<
   NavCatalogState,
-  "characters" | "lorebooks" | "personas" | "providerConnections"
+  "characters" | "lorebooks" | "personas" | "promptPresets" | "providerConnections"
 > &
-  Pick<NavMessengerThreadActions, "createMessengerThread" | "updateMessengerThread"> &
+  Pick<
+    NavMessengerThreadActions,
+    "createMessengerThread" | "updateMessengerThread" | "appendMessengerThreadMessages"
+  > &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavMacroVariableState, "macroVariableStates"> &
   Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
@@ -161,6 +164,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread: messengerThread,
       })
@@ -349,6 +353,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread: commitThread,
       }),
@@ -432,6 +437,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           topP: nav.appSettings.defaultTopP / 100,
         },
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread: threadWithUserMessage,
         userMessage,
@@ -481,7 +487,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           });
           return;
         }
-        nav.updateMessengerThread(result.thread);
+        nav.appendMessengerThreadMessages(threadWithUserMessage.id, result.generatedMessages);
         nav.updateMacroVariableStates((currentStates) =>
           commitGenerationMacroVariableStates({
             ...result.macroVariableCommit,

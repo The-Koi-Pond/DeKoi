@@ -289,12 +289,12 @@ DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
 treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
-built-in macros in Messenger and Roleplay system prompts, Roleplay scene setup,
-persona and character context fields, post-history instructions, lorebook
-summaries and bodies, at-depth lore, and example dialogue. It also includes
-request-local variable macro side effects: DeKoi commits only the variable
-mutations that survive app-side prompt formatting, then sends the final
-`promptMessages`.
+built-in macros in Messenger and Roleplay system prompts, selected prompt
+preset system prompts, Roleplay scene setup, persona and character context
+fields, post-history instructions, lorebook summaries and bodies, at-depth lore,
+and example dialogue. It also includes request-local variable macro side
+effects: DeKoi commits only the variable mutations that survive app-side prompt
+formatting, then sends the final `promptMessages`.
 
 Request:
 
@@ -494,6 +494,7 @@ Supported storage entities:
 - `roleplay-threads`
 - `roleplay-entries`
 - `lorebooks`
+- `prompt-presets`
 - `lore-runtime-states`
 - `macro-variable-states`
 - `messenger-threads`
@@ -529,7 +530,17 @@ accepted on load or bundle import, but normal writes use the split collections.
 `app-settings` records include `globalLorebookIds` and `loreInsertionStrategy`
 for generation-wide lore context. `globalLorebookIds` stores trimmed unique
 lorebook IDs; `loreInsertionStrategy` is `sorted-evenly`, `character-first`, or
-`global-first`.
+`global-first`. `promptPresetStarterInitialized` is a boolean one-time marker
+that prevents a saved empty `prompt-presets` collection from being seeded again
+after the starter preset is deleted.
+
+`prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
+`title`, optional `summary`, required non-empty `systemPrompt`, and optional
+sampling values under `sampling.temperature`, `sampling.topP`, and
+`sampling.maxTokens`. DeKoi drops invalid sampling fields during normalization.
+Preset sampling overrides request defaults, but generated requests cap
+`maxTokens` to the selected provider connection's positive `maxOutput` when one
+is configured.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.
@@ -650,10 +661,12 @@ Character filters and triggers are still not applied by DeKoi prompt assembly.
 ```
 
 Returns an array of records. An empty array is a successful empty collection;
-DeKoi does not replace it with local seed records. DeKoi treats a non-array
-response as a load error. For array responses, DeKoi normalizes each raw item,
-counts rejected items as dropped records, and surfaces that count through Pond
-Care; remote runtimes do not send dropped-record counts separately.
+collection adapters do not replace it with local seed records. The only
+app-level exception is first-run prompt preset seeding when every collection
+loads cleanly and empty. DeKoi treats a non-array response as a load error. For
+array responses, DeKoi normalizes each raw item, counts rejected items as
+dropped records, and surfaces that count through Pond Care; remote runtimes do
+not send dropped-record counts separately.
 
 `storage_replace`:
 

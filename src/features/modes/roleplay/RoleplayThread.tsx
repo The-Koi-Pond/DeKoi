@@ -48,9 +48,12 @@ import "./roleplay-thread.css";
 
 export type RoleplayThreadNav = Pick<
   NavCatalogState,
-  "characters" | "lorebooks" | "personas" | "providerConnections"
+  "characters" | "lorebooks" | "personas" | "promptPresets" | "providerConnections"
 > &
-  Pick<NavRoleplayThreadActions, "createRoleplayThread" | "updateRoleplayThread"> &
+  Pick<
+    NavRoleplayThreadActions,
+    "createRoleplayThread" | "updateRoleplayThread" | "appendRoleplayThreadEntries"
+  > &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavMacroVariableState, "macroVariableStates"> &
   Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
@@ -156,6 +159,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread,
       })
@@ -311,6 +315,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread: commitThread,
       }),
@@ -387,6 +392,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
           topP: nav.appSettings.defaultTopP / 100,
         },
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         thread: threadWithUserEntry,
       });
@@ -407,8 +413,8 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         return;
       }
 
-      if (result.generatedEntryCount > 0) {
-        nav.updateRoleplayThread(result.thread);
+      if (result.generatedEntries.length > 0) {
+        nav.appendRoleplayThreadEntries(threadWithUserEntry.id, result.generatedEntries);
         nav.updateMacroVariableStates((currentStates) =>
           commitGenerationMacroVariableStates({
             ...result.macroVariableCommit,
@@ -425,7 +431,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       );
 
       setGenerationState(
-        result.generatedEntryCount > 0
+        result.generatedEntries.length > 0
           ? {
               threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",

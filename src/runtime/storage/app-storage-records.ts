@@ -5,6 +5,7 @@ import type { LoreRuntimeState } from "../../engine/contracts/types/lore-runtime
 import type { MacroVariableScope } from "../../engine/contracts/types/macro-variables";
 import type { MessengerThread } from "../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../engine/contracts/types/ripples";
 import type { RoleplayThread } from "../../engine/contracts/types/roleplay";
@@ -14,6 +15,7 @@ export type AppStorageRecords = {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets: PromptPresetRecord[];
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
@@ -27,6 +29,7 @@ export type AppStorageCollectionKey =
   | "characters"
   | "personas"
   | "lorebooks"
+  | "promptPresets"
   | "loreRuntimeStates"
   | "macroVariableStates"
   | "providerConnections"
@@ -41,6 +44,7 @@ export const APP_STORAGE_COLLECTION_KEYS = [
   "characters",
   "personas",
   "lorebooks",
+  "promptPresets",
   "loreRuntimeStates",
   "macroVariableStates",
   "providerConnections",

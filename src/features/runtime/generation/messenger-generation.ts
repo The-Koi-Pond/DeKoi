@@ -17,6 +17,7 @@ import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runt
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { describeGenerationTransport } from "./generation-transport";
 import { runGenerationWorkflow } from "./generation-workflow";
@@ -31,6 +32,7 @@ export interface GenerateMessengerThreadReplyInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets?: PromptPresetRecord[];
   loreRuntimeState?: LoreRuntimeState | null;
   macroVariableStates?: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
@@ -71,6 +73,7 @@ export async function generateMessengerThreadReply({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
+  promptPresets = [],
   loreRuntimeState,
   macroVariableStates = [],
   now,
@@ -92,6 +95,7 @@ export async function generateMessengerThreadReply({
         fallbackProviderConnectionId,
         lorebooks,
         personas,
+        promptPresets,
         providerConnections,
         thread,
         variables,

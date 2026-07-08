@@ -34,6 +34,7 @@ export function BundleCounts({ counts }: BundleCountsProps) {
         { value: counts.roleplayThreads, label: "Roleplay threads" },
         { value: counts.roleplayEntries, label: "Roleplay turns" },
         { value: counts.lorebooks, label: "lorebooks" },
+        { value: counts.promptPresets, label: "prompt presets" },
         { value: counts.lorebookEntries, label: "lore entries" },
         { value: counts.loreRuntimeStates, label: "lore runtime states" },
         { value: counts.loreRuntimeEntries, label: "lore runtime entries" },

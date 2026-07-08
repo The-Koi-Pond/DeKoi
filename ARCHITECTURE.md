@@ -151,6 +151,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/prompt-presets  Prompt preset actions and starter preset records.
 src/engine/lore-runtime    Pure per-thread lore timer state actions.
 src/engine/macro-variables Pure owner-scoped macro variable state actions.
 src/engine/ripples         Ripple behavior and pure actions.
@@ -181,7 +182,7 @@ architecture-level rules:
 ## Current Shape
 
 - `src/engine` owns native record contracts under `contracts/types`,
-  deterministic catalog/mode/lore-runtime/macro-variable/ripple actions,
+  deterministic catalog/mode/prompt-preset/lore-runtime/macro-variable/ripple actions,
   engine-local shared text/error helpers, and provider-neutral generation
   assembly, including lorebook activation, the macro resolver and active editor
   macro catalog under `generation-core`, and Messenger/Roleplay prompt macro

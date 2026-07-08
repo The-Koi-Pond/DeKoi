@@ -49,6 +49,7 @@ adapters.
 | `roleplay-threads`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayThreadRecord`     | `src/runtime/storage/collections/roleplay-storage.ts`             |
 | `roleplay-entries`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayEntry`            | `src/runtime/storage/collections/roleplay-entry-storage.ts`       |
 | `lorebooks`             | `src/engine/contracts/types/lorebook.ts`            | `LorebookRecord`           | `src/runtime/storage/collections/lorebook-storage.ts`             |
+| `prompt-presets`        | `src/engine/contracts/types/prompt-presets.ts`      | `PromptPresetRecord`       | `src/runtime/storage/collections/prompt-preset-storage.ts`        |
 | `lore-runtime-states`   | `src/engine/contracts/types/lore-runtime-state.ts`  | `LoreRuntimeState`         | `src/runtime/storage/collections/lore-runtime-state-storage.ts`   |
 | `macro-variable-states` | `src/engine/contracts/types/macro-variables.ts`     | `MacroVariableScope`       | `src/runtime/storage/collections/macro-variable-state-storage.ts` |
 | `messenger-threads`     | `src/engine/contracts/types/messenger.ts`           | `MessengerThreadRecord`    | `src/runtime/storage/collections/messenger-storage.ts`            |
@@ -103,6 +104,24 @@ non-negative finite numbers, and intentionally rejects pre-v2 lorebook or entry
 records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
+
+Prompt presets use `schemaVersion: 1`. Each record stores title, optional
+summary, required non-empty `systemPrompt`, and optional provider-ready sampling
+fields `temperature`, `topP`, and `maxTokens`. Invalid sampling fields are
+dropped during load. Preset `maxTokens` can override request parameters, but the
+final generation request is capped by the selected provider connection's
+positive `maxOutput` when one is configured. The bundled starter preset is
+ordinary user-editable data. A missing desktop `prompt-presets` collection is
+seeded on startup and saved through the normal collection save path. Remote
+runtime storage seeds the starter only when all collections load cleanly and
+empty, then records the one-time initialization in app settings. If remote
+storage already has any saved collection records, or if desktop storage already
+has an empty `prompt-presets` collection, DeKoi records the one-time marker
+without adding the starter so deleting the starter preset is respected.
+In Roleplay, a selected prompt preset can replace the system prelude and
+sampling, but it cannot replace the stored-output shape. DeKoi always appends
+the target companion single-character post-history contract until Roleplay has a
+native narrator, scene-beat, or multi-character generated-output model.
 
 Current generation builds a generation-owned macro context, including the
 request-local variable map, at the mode boundary. It resolves current built-in
@@ -244,8 +263,8 @@ empty instead of being replaced with seed records.
 App-wide save orchestration in `src/app/use-app-storage-sync.ts` tracks dirty
 collections instead of fanning every save out to every collection. It debounces
 rapid state changes, schedules writes during idle time, sends one
-`storage_replace` per dirty collection, and serializes collection writes so a
-collection cannot have overlapping saves.
+`storage_replace` per dirty collection, serializes collection writes, and stops
+the save batch on the first failed collection write.
 The same app-sync owner exposes an explicit flush barrier for backup, export,
 import, reload, shutdown, and manual workflows. A flush cancels queued dispatch,
 records the current collection signatures, writes dirty saveable collections,
@@ -380,7 +399,10 @@ repair automatically.
 DeKoi bundle import is a two-step flow: preview first, then explicit commit after
 confirmation. Accepted DeKoi-native bundles are persisted through
 `replaceAppStorageSnapshot`, which replaces known collections in a fixed order
-instead of relying on React state changes and the autosave effect.
+instead of relying on React state changes and the autosave effect. When prompt
+presets and app settings are both replaced, `prompt-presets` is written before
+the app-settings starter marker, and replacement stops on the first failed
+collection write.
 The preview includes a fingerprint of the normalized bundle content. The Care UI
 checks the preview fingerprint again at commit time so a stale preview cannot
 commit different normalized data than the user reviewed.
@@ -464,11 +486,13 @@ Current relationships:
 | `messenger-threads`     | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                      |
 | `messenger-threads`     | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                    |
 | `messenger-threads`     | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                            |
+| `messenger-threads`     | `presetId`             | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset.                                                                             |
 | `messenger-threads`     | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                            |
 | `messenger-messages`    | `threadId`             | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                       |
 | `roleplay-threads`      | `characterIds[]`       | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                       |
 | `roleplay-threads`      | `activePersonaId`      | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                    |
 | `roleplay-threads`      | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                             |
+| `roleplay-threads`      | `presetId`             | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset.                                                                             |
 | `roleplay-threads`      | `providerConnectionId` | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                            |
 | `roleplay-entries`      | `threadId`             | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                           |
 | `characters`            | `lorebookIds[]`        | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                         |
@@ -496,6 +520,8 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
 - Include `macro-variable-states` in native bundles, import missing older bundle
   fields as empty, and skip thread-scoped states whose owner thread is not
   imported. Global macro variable state is not owner-filtered.
+- Include `prompt-presets` in native bundles and import missing older bundle
+  fields as empty without warnings.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and

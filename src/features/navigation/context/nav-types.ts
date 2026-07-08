@@ -1,6 +1,6 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import type { LoreEntryRecord, LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type {
   LoreRuntimeState,
@@ -8,9 +8,11 @@ import type {
 } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { LorebookEntryInput, LorebookInput } from "../../../engine/catalog/lorebook-actions";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
+import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
+import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
@@ -35,7 +37,8 @@ export type PondView =
   | { kind: "companions"; characterId?: string; mode?: "new" }
   | { kind: "connections"; connectionId?: ProviderConnectionId; mode?: "new" }
   | { kind: "personas"; personaId?: string; mode?: "new" }
-  | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" };
+  | { kind: "lorebooks"; lorebookId?: string; mode?: "new-lorebook" }
+  | { kind: "presets"; presetId?: string; mode?: "new" };
 
 export type SideRailView =
   "shoal" | "chat-settings" | "lorebooks" | "people" | "media" | "presets" | "connections";
@@ -50,6 +53,7 @@ export interface NavCatalogState {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets: PromptPresetRecord[];
   providerConnections: ProviderConnectionRecord[];
 }
 
@@ -145,6 +149,13 @@ export interface NavLorebookActions {
   deleteLorebook: (lorebookId: string) => void;
 }
 
+export interface NavPromptPresetActions {
+  createPromptPreset: (input: PromptPresetInput) => PromptPresetRecord;
+  updatePromptPreset: (presetId: string, input: PromptPresetInput) => void;
+  duplicatePromptPreset: (presetId: string) => PromptPresetRecord | null;
+  deletePromptPreset: (presetId: string) => void;
+}
+
 export interface NavProviderConnectionActions {
   createProviderConnection: (input: ProviderConnectionInput) => Promise<ProviderConnectionRecord>;
   updateProviderConnection: (connectionId: string, input: ProviderConnectionInput) => Promise<void>;
@@ -171,6 +182,7 @@ export interface RoleplayThreadCreateInput {
 export interface NavRoleplayThreadActions {
   createRoleplayThread: (input?: RoleplayThreadCreateInput) => RoleplayThread;
   updateRoleplayThread: (thread: RoleplayThread) => void;
+  appendRoleplayThreadEntries: (threadId: string, entries: RoleplayEntry[]) => void;
   renameRoleplayThread: (threadId: string, title: string) => void;
   clearRoleplayThreadEntries: (threadId: string) => void;
   deleteRoleplayThread: (threadId: string) => void;
@@ -179,6 +191,7 @@ export interface NavRoleplayThreadActions {
 export interface NavMessengerThreadActions {
   createMessengerThread: (input?: MessengerThreadCreateInput) => MessengerThread;
   updateMessengerThread: (thread: MessengerThread) => void;
+  appendMessengerThreadMessages: (threadId: string, messages: MessengerMessage[]) => void;
   renameMessengerThread: (threadId: string, title: string) => void;
   clearMessengerThreadMessages: (threadId: string) => void;
   deleteMessengerThread: (threadId: string) => void;
@@ -287,6 +300,7 @@ interface NavActions
     NavCharacterActions,
     NavPersonaActions,
     NavLorebookActions,
+    NavPromptPresetActions,
     NavProviderConnectionActions,
     NavRoleplayThreadActions,
     NavMessengerThreadActions,

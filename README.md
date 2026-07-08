@@ -11,7 +11,7 @@ DeKoi is an early seed. The current app proves the first native product surfaces
 Current highlights:
 
 - React and TypeScript app shell for the first DeKoi product loop.
-- Native Messenger, Roleplay, catalog, provider connection, and Ripple record concepts.
+- Native Messenger, Roleplay, catalog, prompt preset, provider connection, and Ripple record concepts.
 - Collection-backed storage contracts for desktop and compatible remote runtimes.
 - Optional Tauri desktop host for app-data storage, bundle file dialogs, provider-key secrets, and a desktop runtime bridge.
 - DeKoi-owned docs and naming rules.

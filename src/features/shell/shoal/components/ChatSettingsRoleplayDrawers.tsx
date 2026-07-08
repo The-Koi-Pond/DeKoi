@@ -22,12 +22,14 @@ interface ChatSettingsRoleplayDrawerCatalog {
   characters: ShoalRailProps["nav"]["characters"];
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   personas: ShoalRailProps["nav"]["personas"];
+  promptPresets: ShoalRailProps["nav"]["promptPresets"];
 }
 
 interface ChatSettingsRoleplayDrawerNavigation {
   onCreateCompanion: () => void;
   onCreateConnection: () => void;
   onCreateLorebook: () => void;
+  onCreatePreset: () => void;
   onCreateRoleplayThread: () => void;
   onUpdateAppSettings: ShoalRailProps["nav"]["updateAppSettings"];
 }
@@ -39,11 +41,12 @@ export function ChatSettingsRoleplayDrawers({
   settings,
   settingsLabel,
 }: ChatSettingsRoleplayDrawersProps) {
-  const { appSettings, characters, lorebooks, personas } = catalog;
+  const { appSettings, characters, lorebooks, personas, promptPresets } = catalog;
   const {
     onCreateCompanion,
     onCreateConnection,
     onCreateLorebook,
+    onCreatePreset,
     onCreateRoleplayThread,
     onUpdateAppSettings,
   } = navigation;
@@ -76,8 +79,10 @@ export function ChatSettingsRoleplayDrawers({
         companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}
         models={resources}
+        promptPresets={promptPresets}
         onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
+        onCreatePreset={onCreatePreset}
       />
 
       <ChatSettingsAdvancedDrawer

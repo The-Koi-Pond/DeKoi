@@ -4,8 +4,9 @@ Status: Slice 7 dynamic variable persistence, Slice 9a active-macro editor
 metadata, and the Slice 9b catalog live-preview pass are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
-context fields, post-history instructions, lorebook summaries, activated lore
-entry bodies, at-depth lore messages, and example dialogue.
+context fields, selected prompt preset system prompts, post-history
+instructions, lorebook summaries, activated lore entry bodies, at-depth lore
+messages, and example dialogue.
 
 ## Boundary
 
@@ -37,19 +38,20 @@ implements them.
 
 Catalog multiline text editors expose a Macros browser for the macro-resolved
 text areas wired in this slice: Companion and Persona descriptive fields, system
-prompts, post-history instructions, notes, Companion example dialogue, and
-Lorebook entry bodies. Companion first-message, alternate-greeting, and
-group-only greeting fields remain plain text today. The browser searches
-supported syntax, category labels, and descriptions, then inserts the selected
-macro text at the current textarea selection. Companion and Persona editors also
-show live previews when a field is focused or its Macros browser is open, the
-field contains macro syntax, and the catalog draft supplies a local macro
-context. Companion previews resolve the draft companion identity and character
-fields. Persona previews resolve the draft persona identity and generic
-`{{char}}` selected-companion fallback, but do not fabricate target-companion
-field values; blank persona drafts preserve `{{persona}}` literally until a
-display name exists. Lorebook entry bodies still expose insertion only in
-catalog because they need an active generation context to preview accurately.
+prompts, post-history instructions, notes, Companion example dialogue, Prompt
+Preset system prompts, and Lorebook entry bodies. Companion first-message,
+alternate-greeting, and group-only greeting fields remain plain text today. The
+browser searches supported syntax, category labels, and descriptions, then
+inserts the selected macro text at the current textarea selection. Companion and
+Persona editors also show live previews when a field is focused or its Macros
+browser is open, the field contains macro syntax, and the catalog draft
+supplies a local macro context. Companion previews resolve the draft companion
+identity and character fields. Persona previews resolve the draft persona
+identity and generic `{{char}}` selected-companion fallback, but do not
+fabricate target-companion field values; blank persona drafts preserve
+`{{persona}}` literally until a display name exists. Prompt Preset system
+prompts and Lorebook entry bodies still expose insertion only in catalog
+because they need an active generation context to preview accurately.
 
 The resolver does not read storage, call providers, or touch runtime adapters.
 Variable macros can mutate `context.variables` and optionally append to

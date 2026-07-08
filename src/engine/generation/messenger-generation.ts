@@ -13,6 +13,7 @@ import type {
 } from "../generation-core/lorebook-activation";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
+import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
   activateLoreGenerationEntriesWithWarnings,
@@ -63,6 +64,7 @@ export interface MessengerGenerationContext {
   loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
+  promptPreset: PromptPresetRecord | null;
   requestThread: MessengerThread;
   variables: Record<string, string>;
   warnings: string[];
@@ -73,6 +75,7 @@ export interface MessengerGenerationContextInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets?: PromptPresetRecord[];
   appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
@@ -85,6 +88,7 @@ export function createMessengerGenerationContext({
   fallbackProviderConnectionId = null,
   lorebooks,
   personas,
+  promptPresets = [],
   providerConnections = [],
   thread,
   variables = {},
@@ -98,6 +102,8 @@ export function createMessengerGenerationContext({
     lorebookIds: thread.lorebookIds,
     lorebooks,
     personas,
+    promptPresetId: thread.presetId,
+    promptPresets,
     providerConnectionId: thread.providerConnectionId,
     providerConnections,
     warningPrefix: "Messenger thread",
@@ -111,12 +117,14 @@ export function createMessengerGenerationContext({
     loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
+    promptPreset: records.promptPreset,
     variables,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
       characterIds: records.companions.map((companion) => companion.id),
       lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
+      presetId: records.promptPreset?.id ?? null,
       mode: records.companions.length > 1 ? "group" : "direct",
       providerConnectionId: records.providerConnectionId,
     },
@@ -216,6 +224,7 @@ function createMessengerPromptAssembly({
   loreInsertionStrategy,
   loreRuntimeState,
   now,
+  promptPreset,
   providerConnection,
   thread,
   targetCompanion,
@@ -229,6 +238,7 @@ function createMessengerPromptAssembly({
   loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
+  promptPreset: PromptPresetRecord | null;
   providerConnection: ProviderConnectionRecord | null;
   thread: MessengerThread;
   targetCompanion: CharacterRecord | null;
@@ -250,7 +260,7 @@ function createMessengerPromptAssembly({
     variableMutations: macroVariableMutations,
   });
   const selectedPrompt = resolveGenerationMacros(
-    resolveMessengerSystemPrompt(thread),
+    resolveMessengerSystemPrompt(thread, promptPreset),
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
@@ -353,6 +363,7 @@ export function createMessengerGenerationRequestAssembly({
     loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
     now,
+    promptPreset: context.promptPreset,
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,

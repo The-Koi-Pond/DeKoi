@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { getThreadReferenceSummary, type ThreadReferenceRecord } from "./thread-reference-summary";
 
@@ -21,11 +22,16 @@ function providerConnection(id: string): ProviderConnectionRecord {
   return { id } as ProviderConnectionRecord;
 }
 
+function promptPreset(id: string): PromptPresetRecord {
+  return { id } as PromptPresetRecord;
+}
+
 function thread(input: Partial<ThreadReferenceRecord> = {}): ThreadReferenceRecord {
   return {
     activePersonaId: null,
     characterIds: [],
     lorebookIds: [],
+    presetId: null,
     providerConnectionId: "connection",
     ...input,
   };
@@ -44,6 +50,7 @@ describe("getThreadReferenceSummary", () => {
         lorebook("saved-persona-lore"),
       ],
       personas: [persona("persona", ["saved-persona-lore", "missing-persona-lore"])],
+      promptPresets: [],
       providerConnections: [providerConnection("connection")],
       thread: thread({
         activePersonaId: "persona",
@@ -53,5 +60,31 @@ describe("getThreadReferenceSummary", () => {
     });
 
     expect(summary.missingLorebookCount).toBe(4);
+  });
+
+  it("does not warn when the selected prompt preset exists", () => {
+    const summary = getThreadReferenceSummary({
+      characters: [],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [promptPreset("preset-1")],
+      providerConnections: [providerConnection("connection")],
+      thread: thread({ presetId: "preset-1" }),
+    });
+
+    expect(summary.hasMissingPreset).toBe(false);
+  });
+
+  it("warns when the selected prompt preset is missing", () => {
+    const summary = getThreadReferenceSummary({
+      characters: [],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [promptPreset("preset-1")],
+      providerConnections: [providerConnection("connection")],
+      thread: thread({ presetId: "missing-preset" }),
+    });
+
+    expect(summary.hasMissingPreset).toBe(true);
   });
 });

@@ -2,6 +2,7 @@ import {
   setMessengerThreadLorebooks,
   setMessengerThreadParticipants,
   setMessengerThreadPersona,
+  setMessengerThreadPreset,
   setMessengerThreadProviderConnection,
   setMessengerThreadSystemPrompt,
 } from "../../../../engine/modes/messenger/messenger-actions";
@@ -14,6 +15,7 @@ import type {
   ChatSettingsMessengerIdentityActions,
   ChatSettingsMessengerPromptActions,
   ChatSettingsMessengerThreadResourceActions,
+  ChatSettingsThreadPresetActions,
 } from "../lib/chat-settings-controller-groups";
 import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
@@ -69,6 +71,18 @@ export function useChatSettingsMessengerActions({
         toggleSelectedId(thread.lorebookIds, lorebookId),
         updatedAt,
       ),
+    );
+  }
+
+  function handleMessengerPresetChange(presetId: string) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadPreset(thread, presetId.trim() || null, updatedAt),
+    );
+  }
+
+  function clearMissingMessengerPreset() {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadPreset(thread, null, updatedAt),
     );
   }
 
@@ -130,6 +144,10 @@ export function useChatSettingsMessengerActions({
     onSaveCustomPrompt: saveCustomMessengerPrompt,
     onSystemPromptModeChange: handleMessengerSystemPromptModeChange,
   };
+  const presetActions: ChatSettingsThreadPresetActions = {
+    onClearMissingPreset: clearMissingMessengerPreset,
+    onPresetChange: handleMessengerPresetChange,
+  };
   const resourceActions: ChatSettingsMessengerThreadResourceActions = {
     clearMissingCompanions: clearMissingMessengerCompanions,
     clearMissingLorebooks: clearMissingMessengerLorebooks,
@@ -139,6 +157,7 @@ export function useChatSettingsMessengerActions({
 
   return {
     identityActions,
+    presetActions,
     promptActions,
     resourceActions,
   };

@@ -2,6 +2,7 @@ import {
   useCharacterActions,
   useLorebookActions,
   usePersonaActions,
+  usePromptPresetActions,
   useProviderConnectionActions,
 } from "../features/catalog";
 import { useRoleplayThreadActions, useMessengerThreadActions } from "../features/modes";
@@ -31,6 +32,8 @@ export function useAppController(): NavContextType {
     setPersonas,
     lorebooks,
     setLorebooks,
+    promptPresets,
+    setPromptPresets,
     loreRuntimeStates,
     setLoreRuntimeStates,
     macroVariableStates,
@@ -88,6 +91,7 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    promptPresets,
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
@@ -99,6 +103,7 @@ export function useAppController(): NavContextType {
     setCharacters,
     setPersonas,
     setLorebooks,
+    setPromptPresets,
     setLoreRuntimeStates,
     setMacroVariableStates,
     setProviderConnections,
@@ -134,6 +139,7 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    promptPresets,
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
@@ -184,6 +190,14 @@ export function useAppController(): NavContextType {
     setMessengerThreads,
   });
 
+  const { createPromptPreset, updatePromptPreset, duplicatePromptPreset, deletePromptPreset } =
+    usePromptPresetActions({
+      promptPresets,
+      setPromptPresets,
+      setRoleplayThreads,
+      setMessengerThreads,
+    });
+
   const {
     createProviderConnection,
     updateProviderConnection,
@@ -200,6 +214,7 @@ export function useAppController(): NavContextType {
   const {
     createRoleplayThread,
     updateRoleplayThread,
+    appendRoleplayThreadEntries,
     renameRoleplayThread,
     clearRoleplayThreadEntries,
     deleteRoleplayThread,
@@ -221,6 +236,7 @@ export function useAppController(): NavContextType {
   const {
     createMessengerThread,
     updateMessengerThread,
+    appendMessengerThreadMessages,
     renameMessengerThread,
     clearMessengerThreadMessages,
     deleteMessengerThread,
@@ -255,6 +271,7 @@ export function useAppController(): NavContextType {
     characters,
     personas,
     lorebooks,
+    promptPresets,
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
@@ -290,18 +307,24 @@ export function useAppController(): NavContextType {
     createLorebook,
     updateLorebook,
     deleteLorebook,
+    createPromptPreset,
+    updatePromptPreset,
+    duplicatePromptPreset,
+    deletePromptPreset,
     createProviderConnection,
     updateProviderConnection,
     duplicateProviderConnection,
     deleteProviderConnection,
     createRoleplayThread,
     updateRoleplayThread,
+    appendRoleplayThreadEntries,
     renameRoleplayThread,
     clearRoleplayThreadEntries,
     deleteRoleplayThread,
     openRoleplayThread,
     createMessengerThread,
     updateMessengerThread,
+    appendMessengerThreadMessages,
     renameMessengerThread,
     clearMessengerThreadMessages,
     deleteMessengerThread,

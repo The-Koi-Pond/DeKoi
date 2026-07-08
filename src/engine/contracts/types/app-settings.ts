@@ -32,6 +32,7 @@ export interface AppSettings {
   defaultTopP: number;
   globalLorebookIds: string[];
   loreInsertionStrategy: LoreInsertionStrategy;
+  promptPresetStarterInitialized: boolean;
 }
 
 export type ShoalSortMode = "freshest" | "oldest" | "title";
@@ -57,6 +58,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultTopP: 95,
   globalLorebookIds: [],
   loreInsertionStrategy: "sorted-evenly",
+  promptPresetStarterInitialized: false,
 };
 
 function isSurfaceId(value: unknown): value is SurfaceId {
@@ -170,5 +172,9 @@ export function normalizeAppSettings(value: unknown): AppSettings {
     loreInsertionStrategy: isLoreInsertionStrategy(parsed.loreInsertionStrategy)
       ? parsed.loreInsertionStrategy
       : DEFAULT_APP_SETTINGS.loreInsertionStrategy,
+    promptPresetStarterInitialized:
+      typeof parsed.promptPresetStarterInitialized === "boolean"
+        ? parsed.promptPresetStarterInitialized
+        : DEFAULT_APP_SETTINGS.promptPresetStarterInitialized,
   };
 }

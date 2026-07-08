@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { ShoalTopBar } from "./ShoalTopBar";
+import type { ShoalNav } from "../types";
 
 export interface StaticCatalogRailProps {
   chatSettingsOpen: boolean;
-  nav: {
-    selectedSurface: string;
-  };
+  nav: Pick<ShoalNav, "selectedSurface">;
   onOpenChatSettings: () => void;
   onToggleShoal: () => void;
   shoalClosed: boolean;

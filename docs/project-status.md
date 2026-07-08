@@ -6,8 +6,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 - React and TypeScript app shell built with Vite.
 - Native product records for Messenger, Roleplay, companions, personas,
-  lorebooks, lore runtime states, macro variable scopes, provider connections,
-  and Ripples.
+  lorebooks, prompt presets, lore runtime states, macro variable scopes,
+  provider connections, and Ripples.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
   trigger, filter, timing, match-source, and budget fields.
@@ -36,16 +36,20 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   per-entry probability, inclusion groups, group weight, insertion-order group
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
+- Presets catalog controls expose prompt preset title, summary, system prompt,
+  optional temperature, `topP`, and max-token sampling, with create, edit,
+  duplicate, and delete actions plus an editable starter preset.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
 - Collection-backed storage entity registry and Rust allowlist checks, including
-  split Messenger message and Roleplay entry collections and per-thread lore
-  runtime states plus global and per-thread macro variable states.
+  prompt presets, split Messenger message and Roleplay entry collections,
+  per-thread lore runtime states, and global and per-thread macro variable
+  states.
 - DeKoi-native bundle import and export paths through the desktop host, with
   preview, explicit confirmation, pre-import backup, and commit-path collection
-  replacement, including lore runtime state and macro variable state cleanup for
-  missing owner threads.
+  replacement, including prompt presets plus lore runtime state and macro
+  variable state cleanup for missing owner threads.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage, provider checks,
   model listing, and generation commands.
@@ -66,15 +70,16 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   browse and insert supported macro syntax. Companion and Persona macro editors
   show scratch live previews where their local draft context is available.
 - Messenger and Roleplay settings surface no-active-thread, empty-catalog, and
-  missing connection/persona/companion/lorebook states, including lorebooks
-  referenced through chat, persona, companion, or global sources, with narrow
-  recovery actions through mode-native records.
+  missing connection/persona/companion/lorebook/prompt-preset states, including
+  lorebooks referenced through chat, persona, companion, or global sources, with
+  narrow recovery actions through mode-native records.
 - Messenger and Roleplay thread surfaces expose thread settings, pre-send
   missing-reference notices, and touch-friendly confirmation-aware edit/delete
   message or entry actions.
 - Roleplay thread settings now update thread name, connection, persona,
-  companions, and lorebooks through Roleplay-native records, while exposing the
-  shared advanced generation drawer in the Roleplay settings rail.
+  companions, lorebooks, and prompt preset through Roleplay-native records,
+  while exposing the shared advanced generation drawer in the Roleplay settings
+  rail.
 - Desktop collection metadata checks and explicit storage reload from Pond Care,
   with reload blocked while local saves are pending.
 - Pond Care storage repair for malformed desktop collections, using explicit
@@ -110,7 +115,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   activation behavior and advanced UI for those fields are not implemented yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
-- Media and preset rails are placeholder-only.
+- Media rails are placeholder-only.
 - Legacy import is an explicit one-way adapter into native DeKoi records;
   automatic browser-storage migration remains out of scope.
 - Storage is collection-backed first; a database may replace the implementation later only behind the same record contracts.

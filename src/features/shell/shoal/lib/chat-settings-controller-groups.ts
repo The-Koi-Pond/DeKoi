@@ -40,13 +40,20 @@ interface ChatSettingsPromptActions {
   onSystemPromptModeChange: (mode: MessengerSystemPromptMode) => void;
 }
 
+interface ChatSettingsPresetActions {
+  onClearMissingPreset: () => void;
+  onPresetChange: (presetId: string) => void;
+}
+
 export type ChatSettingsMessengerIdentityActions = ChatSettingsIdentityActions;
 export type ChatSettingsMessengerThreadResourceActions = ChatSettingsThreadResourceActions;
 export type ChatSettingsMessengerPromptActions = ChatSettingsPromptActions;
+export type ChatSettingsThreadPresetActions = ChatSettingsPresetActions;
 
 export interface ChatSettingsMessengerActionGroup {
   drawers: ChatSettingsDrawerActions;
   identity: ChatSettingsIdentityActions;
+  preset: ChatSettingsPresetActions;
   prompt: ChatSettingsPromptActions;
   resources: ChatSettingsResourceActions;
 }
@@ -62,5 +69,6 @@ export interface ChatSettingsRoleplaySettings {
 export interface ChatSettingsRoleplayActionGroup {
   drawers: ChatSettingsDrawerActions;
   identity: ChatSettingsIdentityActions;
+  preset: ChatSettingsPresetActions;
   resources: ChatSettingsResourceActions;
 }

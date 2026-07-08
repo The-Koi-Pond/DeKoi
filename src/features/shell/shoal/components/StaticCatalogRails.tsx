@@ -1,6 +1,11 @@
 import { MediaCatalogRailBody } from "./MediaCatalogRailBody";
 import { PresetsCatalogRailBody } from "./PresetsCatalogRailBody";
 import { StaticCatalogRailShell, type StaticCatalogRailProps } from "./StaticCatalogRailShell";
+import type { ShoalNav } from "../types";
+
+type PresetsCatalogRailProps = Omit<StaticCatalogRailProps, "nav"> & {
+  nav: Pick<ShoalNav, "promptPresets" | "selectedSurface" | "setView" | "view">;
+};
 
 export function MediaCatalogRail({
   chatSettingsOpen,
@@ -29,7 +34,7 @@ export function PresetsCatalogRail({
   onOpenChatSettings,
   onToggleShoal,
   shoalClosed,
-}: StaticCatalogRailProps) {
+}: PresetsCatalogRailProps) {
   return (
     <StaticCatalogRailShell
       ariaLabel="Catalog — presets"
@@ -39,7 +44,7 @@ export function PresetsCatalogRail({
       onToggleShoal={onToggleShoal}
       shoalClosed={shoalClosed}
     >
-      <PresetsCatalogRailBody />
+      <PresetsCatalogRailBody nav={nav} />
     </StaticCatalogRailShell>
   );
 }

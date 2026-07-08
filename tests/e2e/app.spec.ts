@@ -384,6 +384,7 @@ function createEmptyAppStorageRecords(): AppStorageRecords {
     characters: [],
     personas: [],
     lorebooks: [],
+    promptPresets: [],
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: [],
@@ -404,7 +405,7 @@ function expectReloadAfterPartialReplace(calls: RuntimeCall[], callsBeforeImport
   const replaceEntities = importCalls
     .filter((call) => call.command === "storage_replace")
     .map((call) => call.entity);
-  expect(replaceEntities.slice(0, 2)).toEqual(["app-settings", "characters"]);
+  expect(replaceEntities.slice(0, 3)).toEqual(["prompt-presets", "app-settings", "characters"]);
 
   const failedReplaceIndex = importCalls.findIndex(
     (call) => call.command === "storage_replace" && call.entity === "characters",
@@ -515,6 +516,7 @@ test("messenger thread reference summary flags missing settings before send", ()
     characters: [],
     lorebooks: [],
     personas: [],
+    promptPresets: [],
     providerConnections: [],
     thread: activeMessengerThread,
   });
@@ -542,6 +544,7 @@ test("messenger thread reference summary flags missing settings before send", ()
     characters: [],
     lorebooks: [],
     personas: [],
+    promptPresets: [],
     providerConnections: [readyProviderConnection],
     thread: {
       ...activeMessengerThread,
@@ -585,6 +588,7 @@ test("roleplay thread reference summary flags missing settings before send", () 
     characters: [],
     lorebooks: [],
     personas: [],
+    promptPresets: [],
     providerConnections: [],
     thread: activeRoleplayThread,
   });
@@ -612,6 +616,7 @@ test("roleplay thread reference summary flags missing settings before send", () 
     characters: [],
     lorebooks: [],
     personas: [],
+    promptPresets: [],
     providerConnections: [readyProviderConnection],
     thread: {
       ...activeRoleplayThread,
@@ -1292,6 +1297,7 @@ test("storage bundles export split transcripts and migrate embedded transcripts"
     roleplayThreads: [roleplayWithEntry],
     personas: [],
     lorebooks: [],
+    promptPresets: [],
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: [],
@@ -1482,6 +1488,7 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
     characters: [],
     lorebooks: [],
     personas: [],
+    promptPresets: [],
     providerConnections: [upgradedConnection],
     thread,
   });

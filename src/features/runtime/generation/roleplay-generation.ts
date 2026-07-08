@@ -4,12 +4,13 @@ import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
   appendRoleplayEntries,
   createGeneratedRoleplayEntry,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequestAssembly,
@@ -30,6 +31,7 @@ export interface GenerateRoleplayThreadTurnInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets?: PromptPresetRecord[];
   loreRuntimeState?: LoreRuntimeState | null;
   macroVariableStates?: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
@@ -53,6 +55,7 @@ export interface GenerateRoleplayThreadTurnResult {
   loreRuntimeState: LoreRuntimeState | null;
   macroVariableCommit: MacroVariableStateCommit;
   warnings: string[];
+  generatedEntries: RoleplayEntry[];
   generatedEntryCount: number;
 }
 
@@ -74,6 +77,7 @@ export async function generateRoleplayThreadTurn({
   createId,
   fallbackProviderConnectionId = null,
   lorebooks,
+  promptPresets = [],
   loreRuntimeState,
   macroVariableStates = [],
   now,
@@ -93,6 +97,7 @@ export async function generateRoleplayThreadTurn({
         fallbackProviderConnectionId,
         lorebooks,
         personas,
+        promptPresets,
         providerConnections,
         thread,
         variables,
@@ -130,6 +135,7 @@ export async function generateRoleplayThreadTurn({
     loreRuntimeState: result.loreRuntimeState,
     macroVariableCommit: result.macroVariableCommit,
     warnings: result.warnings,
+    generatedEntries: result.generatedRecords,
     generatedEntryCount: result.generatedRecords.length,
   };
 }

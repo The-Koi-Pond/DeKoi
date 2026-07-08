@@ -25,6 +25,8 @@ export function appStorageCollectionSignature(
       return JSON.stringify(snapshot.personas) ?? "null";
     case "lorebooks":
       return JSON.stringify(snapshot.lorebooks) ?? "null";
+    case "promptPresets":
+      return JSON.stringify(snapshot.promptPresets) ?? "null";
     case "loreRuntimeStates":
       return JSON.stringify(snapshot.loreRuntimeStates) ?? "null";
     case "macroVariableStates":
@@ -59,6 +61,8 @@ export function appStorageCollectionCount(
       return snapshot.personas.length;
     case "lorebooks":
       return snapshot.lorebooks.length;
+    case "promptPresets":
+      return snapshot.promptPresets.length;
     case "loreRuntimeStates":
       return snapshot.loreRuntimeStates.length;
     case "macroVariableStates":
@@ -93,6 +97,8 @@ export function appStorageCollectionSource(
       return snapshot.personas;
     case "lorebooks":
       return snapshot.lorebooks;
+    case "promptPresets":
+      return snapshot.promptPresets;
     case "loreRuntimeStates":
       return snapshot.loreRuntimeStates;
     case "macroVariableStates":

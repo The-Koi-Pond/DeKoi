@@ -110,6 +110,7 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
       characterIds: readStringArray(value.characterIds),
       activePersonaId: readNullableString(value.activePersonaId),
       lorebookIds: readStringArray(value.lorebookIds),
+      presetId: readNullableString(value.presetId),
       providerConnectionId: readNullableString(value.providerConnectionId),
       entries,
       createdAt: readTimestamp(value.createdAt, now),

@@ -26,11 +26,13 @@ export function ChatSettingsRoleplayDrawerHost({
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
       }}
       navigation={{
         onCreateCompanion: () => nav.setView({ kind: "companions", mode: "new" }),
         onCreateConnection: () => nav.setView({ kind: "connections", mode: "new" }),
         onCreateLorebook: () => nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
+        onCreatePreset: () => nav.setView({ kind: "presets", mode: "new" }),
         onCreateRoleplayThread: nav.createRoleplayThread,
         onUpdateAppSettings: nav.updateAppSettings,
       }}
