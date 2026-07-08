@@ -228,17 +228,21 @@ export function appStorageAutoMigrationCollectionKeys({
 }): AppStorageCollectionKey[] {
   const migrationCollectionKeySet = new Set(migrationCollectionKeys);
   const safeMigrationCollectionKeys: AppStorageCollectionKey[] = [];
-  if (
-    migrationCollectionKeySet.has("appSettings") &&
-    (droppedRecordCountByCollection.appSettings ?? 0) === 0
-  ) {
-    safeMigrationCollectionKeys.push("appSettings");
-  }
-  if (
-    migrationCollectionKeySet.has("promptPresets") &&
-    (droppedRecordCountByCollection.promptPresets ?? 0) === 0
-  ) {
-    safeMigrationCollectionKeys.push("promptPresets");
+  const hasAppSettingsMigration = migrationCollectionKeySet.has("appSettings");
+  const hasPromptPresetMigration = migrationCollectionKeySet.has("promptPresets");
+  const appSettingsMigrationIsSafe = (droppedRecordCountByCollection.appSettings ?? 0) === 0;
+  const promptPresetMigrationIsSafe = (droppedRecordCountByCollection.promptPresets ?? 0) === 0;
+  if (hasAppSettingsMigration && hasPromptPresetMigration) {
+    if (appSettingsMigrationIsSafe && promptPresetMigrationIsSafe) {
+      safeMigrationCollectionKeys.push("appSettings", "promptPresets");
+    }
+  } else {
+    if (hasAppSettingsMigration && appSettingsMigrationIsSafe) {
+      safeMigrationCollectionKeys.push("appSettings");
+    }
+    if (hasPromptPresetMigration && promptPresetMigrationIsSafe) {
+      safeMigrationCollectionKeys.push("promptPresets");
+    }
   }
   for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
     if (!group.every((collectionKey) => migrationCollectionKeySet.has(collectionKey))) continue;
@@ -248,6 +252,19 @@ export function appStorageAutoMigrationCollectionKeys({
     safeMigrationCollectionKeys.push(...group);
   }
   return safeMigrationCollectionKeys;
+}
+
+export function shouldBlockAppSettingsPromptPresetStarterSave({
+  pendingAppSettingsPromptPresetStarterInitialized,
+  savedAppSettingsPromptPresetStarterInitialized,
+}: {
+  pendingAppSettingsPromptPresetStarterInitialized: boolean | null | undefined;
+  savedAppSettingsPromptPresetStarterInitialized: boolean;
+}) {
+  return (
+    pendingAppSettingsPromptPresetStarterInitialized === true &&
+    !savedAppSettingsPromptPresetStarterInitialized
+  );
 }
 
 export function appStorageDroppedRecordSaveBlockCollectionKeys(
@@ -514,6 +531,7 @@ export function useAppStorageSync({
   const activeSaveSignatures = useRef<PartialAppStorageCollectionSignatures>({});
   const pendingSaves = useRef<SaveQueueEntries>({});
   const saveErrors = useRef<SaveErrorMessages>({});
+  const savedAppSettingsPromptPresetStarterInitialized = useRef(false);
   const saveQueueRunning = useRef<number | null>(null);
   const activeSavePromise = useRef<ActiveSavePromise | null>(null);
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -649,6 +667,9 @@ export function useAppStorageSync({
         }
       }
       savedSignatures.current = createLoadedAppStorageSignatures(snapshot, migrationCollectionKeys);
+      savedAppSettingsPromptPresetStarterInitialized.current =
+        snapshot.appSettings.promptPresetStarterInitialized &&
+        !migrationCollectionKeys.includes("appSettings");
       unsavedSignatures.current = createMigrationAppStorageSignatures(
         snapshot,
         migrationCollectionKeys,
@@ -666,6 +687,8 @@ export function useAppStorageSync({
   const applyReplacedAppStorageRecords = useCallback(
     (records: AppStorageRecords) => {
       applyAppStorageRecords(records);
+      savedAppSettingsPromptPresetStarterInitialized.current =
+        records.appSettings.promptPresetStarterInitialized;
       droppedRecordSaveBlockedCollectionKeys.current = new Set();
       setDroppedRecordCountByCollection({});
     },
@@ -768,6 +791,10 @@ export function useAppStorageSync({
               if (unsavedSignatures.current[collectionKey] === entry.signature) {
                 delete unsavedSignatures.current[collectionKey];
               }
+              if (collectionKey === "appSettings") {
+                savedAppSettingsPromptPresetStarterInitialized.current =
+                  entry.snapshot.appSettings.promptPresetStarterInitialized;
+              }
               delete saveErrors.current[collectionKey];
             } else {
               if (!unsavedSignatures.current[collectionKey]) {
@@ -776,7 +803,15 @@ export function useAppStorageSync({
               saveErrors.current[collectionKey] = storageResult.message;
               if (collectionKey === "promptPresets") {
                 const pendingAppSettingsSave = pendingSaves.current.appSettings;
-                if (pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized) {
+                if (
+                  pendingAppSettingsSave &&
+                  shouldBlockAppSettingsPromptPresetStarterSave({
+                    pendingAppSettingsPromptPresetStarterInitialized:
+                      pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized,
+                    savedAppSettingsPromptPresetStarterInitialized:
+                      savedAppSettingsPromptPresetStarterInitialized.current,
+                  })
+                ) {
                   delete pendingSaves.current.appSettings;
                   unsavedSignatures.current.appSettings = pendingAppSettingsSave.signature;
                   saveErrors.current.appSettings = storageResult.message;
@@ -796,7 +831,15 @@ export function useAppStorageSync({
             saveErrors.current[collectionKey] = message;
             if (collectionKey === "promptPresets") {
               const pendingAppSettingsSave = pendingSaves.current.appSettings;
-              if (pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized) {
+              if (
+                pendingAppSettingsSave &&
+                shouldBlockAppSettingsPromptPresetStarterSave({
+                  pendingAppSettingsPromptPresetStarterInitialized:
+                    pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized,
+                  savedAppSettingsPromptPresetStarterInitialized:
+                    savedAppSettingsPromptPresetStarterInitialized.current,
+                })
+              ) {
                 delete pendingSaves.current.appSettings;
                 unsavedSignatures.current.appSettings = pendingAppSettingsSave.signature;
                 saveErrors.current.appSettings = message;
@@ -1676,6 +1719,10 @@ export function useAppStorageSync({
                 collectionKeys: migrationCollectionKeys,
               });
               savedSignatures.current = reconciledSignatures.savedSignatures ?? committedSignatures;
+              if (migrationCollectionKeys.includes("appSettings")) {
+                savedAppSettingsPromptPresetStarterInitialized.current =
+                  snapshot.appSettings.promptPresetStarterInitialized;
+              }
               unsavedSignatures.current = reconciledSignatures.unsavedSignatures;
               for (const collectionKey of migrationCollectionKeys) {
                 delete saveErrors.current[collectionKey];

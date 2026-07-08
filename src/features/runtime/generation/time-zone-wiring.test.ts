@@ -124,6 +124,7 @@ function roleplayThread(entry: RoleplayEntry): RoleplayThread {
     characterIds: ["character-1"],
     activePersonaId: null,
     lorebookIds: [],
+    presetId: null,
     providerConnectionId: null,
     entries: [entry],
     createdAt: now,

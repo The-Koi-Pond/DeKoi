@@ -58,6 +58,7 @@ import {
 import { appStorageCollectionCount } from "./app-storage-collection-projection";
 import { getHostStorageMode, loadHostStorageMetadata } from "./storage-repository-factory";
 import { STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
+import { clearMissingPromptPresetIds } from "./prompt-preset-relationship-repair";
 import {
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
@@ -393,6 +394,8 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const promptPresets = shouldSeedPromptPresets
     ? [STARTER_PROMPT_PRESET]
     : promptPresetSnapshot.records;
+  const repairedRoleplayThreads = clearMissingPromptPresetIds(roleplayThreads, promptPresets);
+  const repairedMessengerThreads = clearMissingPromptPresetIds(messengerThreads, promptPresets);
   const shouldInitializePromptPresetStarter =
     appSettingsCanStorePromptPresetStarterMarker &&
     promptPresetSnapshot.status === "ready" &&
@@ -448,8 +451,8 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loreRuntimeStates: loreRuntimeStateSnapshot.states,
     macroVariableStates: macroVariableStateSnapshot.states,
     providerConnections: providerConnectionSnapshot.records,
-    roleplayThreads,
-    messengerThreads,
+    roleplayThreads: repairedRoleplayThreads.records,
+    messengerThreads: repairedMessengerThreads.records,
     rippleStates: rippleSnapshot.states,
     migrationCollectionKeys,
     storageMetadata: metadataResult.storageMetadata,

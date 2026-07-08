@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { invokeRemote } from "../../shared/api/remote-runtime";
 import { RUNTIME_COMMANDS } from "../../shared/api/runtime-commands";
 import { DEFAULT_APP_SETTINGS } from "../../engine/contracts/types/app-settings";
+import { createMessengerThread } from "../../engine/modes/messenger/messenger-actions";
+import { createRoleplayThread } from "../../engine/modes/roleplay/roleplay-actions";
 import { STARTER_PROMPT_PRESET } from "../../engine/prompt-presets/starter-preset";
 import {
   APP_STORAGE_COLLECTION_KEYS,
@@ -87,6 +89,55 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.promptPresets).toEqual([]);
     expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(true);
     expect(snapshot.migrationCollectionKeys).toEqual([]);
+  });
+
+  it("clears thread preset IDs that do not resolve to loaded prompt presets", async () => {
+    const messengerThreadWithValidPreset = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-valid",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger valid",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+    };
+    const messengerThreadWithMissingPreset = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-missing",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger missing",
+      }),
+      presetId: "missing-preset",
+    };
+    const roleplayThreadWithMissingPreset = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-missing",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Roleplay missing",
+      }),
+      presetId: "missing-preset",
+    };
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
+      "prompt-presets": [STARTER_PROMPT_PRESET],
+      "messenger-threads": [messengerThreadWithValidPreset, messengerThreadWithMissingPreset],
+      "roleplay-threads": [roleplayThreadWithMissingPreset],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.messengerThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
+      ["messenger-thread-valid", STARTER_PROMPT_PRESET.id],
+      ["messenger-thread-missing", null],
+    ]);
+    expect(snapshot.roleplayThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
+      ["roleplay-thread-missing", null],
+    ]);
   });
 });
 

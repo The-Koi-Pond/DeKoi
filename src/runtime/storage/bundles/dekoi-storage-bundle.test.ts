@@ -8,7 +8,9 @@ import {
 } from "./dekoi-storage-bundle";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import { createMessengerThread } from "../../../engine/modes/messenger/messenger-actions";
+import { createRoleplayThread } from "../../../engine/modes/roleplay/roleplay-actions";
 import { createPersonaRecord } from "../../../engine/catalog/persona-actions";
+import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 
 const now = "2026-06-24T07:00:00.000Z";
 
@@ -112,6 +114,83 @@ describe("normalizeDeKoiStorageBundle", () => {
     expect(result.preview.bundle.data.promptPresets).toEqual([]);
     expect(result.preview.warnings).not.toContain(
       "Prompt presets was missing or not an array; imported as empty.",
+    );
+  });
+
+  it("clears imported thread preset IDs that do not resolve to valid prompt presets", () => {
+    const messengerThreadWithValidPreset = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-valid",
+        now,
+        title: "Messenger valid",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+    };
+    const messengerThreadWithMissingPreset = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-missing",
+        now,
+        title: "Messenger missing",
+      }),
+      presetId: "skipped-preset",
+    };
+    const roleplayThreadWithMissingPreset = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-missing",
+        now,
+        title: "Roleplay missing",
+      }),
+      presetId: "skipped-preset",
+    };
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [roleplayThreadWithMissingPreset],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        promptPresets: [STARTER_PROMPT_PRESET, { id: "skipped-preset" }],
+        loreRuntimeStates: [],
+        macroVariableStates: [],
+        providerConnections: [],
+        messengerThreads: [messengerThreadWithValidPreset, messengerThreadWithMissingPreset],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.promptPresets.map((preset) => preset.id)).toEqual([
+      STARTER_PROMPT_PRESET.id,
+    ]);
+    expect(
+      result.preview.bundle.data.messengerThreads.map((thread) => [thread.id, thread.presetId]),
+    ).toEqual([
+      ["messenger-thread-valid", STARTER_PROMPT_PRESET.id],
+      ["messenger-thread-missing", null],
+    ]);
+    expect(
+      result.preview.bundle.data.roleplayThreads.map((thread) => [thread.id, thread.presetId]),
+    ).toEqual([["roleplay-thread-missing", null]]);
+    expect(result.preview.warnings).toContain("Prompt presets skipped 1 invalid record(s).");
+    expect(result.preview.warnings).toContain(
+      "Messenger threads cleared 1 preset reference(s) without an imported prompt preset.",
+    );
+    expect(result.preview.warnings).toContain(
+      "Roleplay threads cleared 1 preset reference(s) without an imported prompt preset.",
     );
   });
 

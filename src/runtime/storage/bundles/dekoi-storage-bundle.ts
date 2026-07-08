@@ -39,6 +39,7 @@ import { normalizeMessengerMessageRecord } from "../collections/messenger-storag
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
+import { clearMissingPromptPresetIds } from "../prompt-preset-relationship-repair";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
@@ -457,6 +458,28 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
   } else if (data.messengerThreads.length !== value.data.messengerThreads.length) {
     warnings.push(
       `Messenger threads skipped ${value.data.messengerThreads.length - data.messengerThreads.length} invalid record(s).`,
+    );
+  }
+
+  const repairedRoleplayThreads = clearMissingPromptPresetIds(
+    data.roleplayThreads,
+    data.promptPresets,
+  );
+  if (repairedRoleplayThreads.clearedCount > 0) {
+    data.roleplayThreads = repairedRoleplayThreads.records;
+    warnings.push(
+      `Roleplay threads cleared ${repairedRoleplayThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+
+  const repairedMessengerThreads = clearMissingPromptPresetIds(
+    data.messengerThreads,
+    data.promptPresets,
+  );
+  if (repairedMessengerThreads.clearedCount > 0) {
+    data.messengerThreads = repairedMessengerThreads.records;
+    warnings.push(
+      `Messenger threads cleared ${repairedMessengerThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
     );
   }
 

@@ -5,6 +5,7 @@ import {
   appStorageDroppedRecordSaveBlockCollectionKeys,
   orderedAppStorageCollectionKeys,
   partitionAppStorageDirtyCollectionKeys,
+  shouldBlockAppSettingsPromptPresetStarterSave,
 } from "./use-app-storage-sync";
 
 describe("appStorageAutoMigrationCollectionKeys", () => {
@@ -73,7 +74,7 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
     ).toEqual(["appSettings", "promptPresets"]);
   });
 
-  it("skips app settings migrations when the collection had dropped records", () => {
+  it("skips the starter marker pair when app settings had dropped records", () => {
     expect(
       appStorageAutoMigrationCollectionKeys({
         migrationCollectionKeys: ["appSettings", "promptPresets"],
@@ -81,7 +82,7 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
           appSettings: 1,
         },
       }),
-    ).toEqual(["promptPresets"]);
+    ).toEqual([]);
   });
 
   it("skips prompt preset seed migrations when the collection had dropped records", () => {
@@ -93,6 +94,55 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
         },
       }),
     ).toEqual([]);
+  });
+
+  it("skips the starter marker pair when prompt presets had dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["appSettings", "promptPresets"],
+        droppedRecordCountByCollection: {
+          promptPresets: 1,
+        },
+      }),
+    ).toEqual([]);
+  });
+
+  it("keeps independent app settings migrations when no preset seed is being saved", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["appSettings"],
+        droppedRecordCountByCollection: {},
+      }),
+    ).toEqual(["appSettings"]);
+  });
+});
+
+describe("shouldBlockAppSettingsPromptPresetStarterSave", () => {
+  it("blocks the initial starter marker save when prompt presets fail first", () => {
+    expect(
+      shouldBlockAppSettingsPromptPresetStarterSave({
+        pendingAppSettingsPromptPresetStarterInitialized: true,
+        savedAppSettingsPromptPresetStarterInitialized: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not block later app settings saves after the marker was already saved", () => {
+    expect(
+      shouldBlockAppSettingsPromptPresetStarterSave({
+        pendingAppSettingsPromptPresetStarterInitialized: true,
+        savedAppSettingsPromptPresetStarterInitialized: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("does not block app settings saves that are not committing the marker", () => {
+    expect(
+      shouldBlockAppSettingsPromptPresetStarterSave({
+        pendingAppSettingsPromptPresetStarterInitialized: false,
+        savedAppSettingsPromptPresetStarterInitialized: false,
+      }),
+    ).toBe(false);
   });
 });
 
