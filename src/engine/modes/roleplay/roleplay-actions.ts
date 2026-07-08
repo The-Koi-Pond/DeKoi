@@ -1,6 +1,7 @@
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { RoleplayEntry, RoleplayThread } from "../../contracts/types/roleplay";
 import type { PersonaRecord } from "../../contracts/types/persona";
+import type { PromptPresetChoiceSelections } from "../../contracts/types/prompt-presets";
 import { cleanText, cleanTextArray } from "../../shared/text";
 
 export function createRoleplayThread({
@@ -31,6 +32,7 @@ export function createRoleplayThread({
     activePersonaId,
     lorebookIds: cleanTextArray(lorebookIds),
     presetId: null,
+    presetChoiceSelections: {},
     providerConnectionId,
     entries: [],
     createdAt: now,
@@ -276,10 +278,12 @@ export function setRoleplayThreadPreset(
   thread: RoleplayThread,
   presetId: string | null,
   updatedAt: string,
+  presetChoiceSelections: PromptPresetChoiceSelections = {},
 ): RoleplayThread {
   return {
     ...thread,
     presetId: presetId?.trim() || null,
+    presetChoiceSelections,
     updatedAt,
   };
 }

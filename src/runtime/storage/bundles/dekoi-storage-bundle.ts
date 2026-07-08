@@ -26,7 +26,6 @@ import {
 import type { RippleState } from "../../../engine/contracts/types/ripples";
 import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import { normalizeAppSettings } from "../../../engine/contracts/types/app-settings";
-import { normalizePromptPresetRecord } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
 import { normalizeRoleplayThread } from "../collections/roleplay-storage";
@@ -40,6 +39,7 @@ import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
 import { clearMissingPromptPresetIds } from "../prompt-preset-relationship-repair";
+import { normalizePromptPresetImportRecord } from "../prompt-preset-import";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
@@ -416,7 +416,7 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     promptPresets: normalizeOptionalList(
       value.data.promptPresets,
       "Prompt presets",
-      normalizePromptPresetRecord,
+      normalizePromptPresetImportRecord,
       warnings,
     ),
     loreRuntimeStates: normalizeOptionalList(

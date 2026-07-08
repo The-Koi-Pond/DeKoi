@@ -12,6 +12,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
+import { normalizePromptPresetChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { createStorageRepository } from "../storage-repository-factory";
 import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
@@ -99,6 +100,8 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
     }
   }
 
+  const presetId = readNullableString(value.presetId);
+
   return {
     thread: {
       id,
@@ -110,7 +113,10 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
       characterIds: readStringArray(value.characterIds),
       activePersonaId: readNullableString(value.activePersonaId),
       lorebookIds: readStringArray(value.lorebookIds),
-      presetId: readNullableString(value.presetId),
+      presetId,
+      presetChoiceSelections: presetId
+        ? normalizePromptPresetChoiceSelections(value.presetChoiceSelections)
+        : {},
       providerConnectionId: readNullableString(value.providerConnectionId),
       entries,
       createdAt: readTimestamp(value.createdAt, now),

@@ -5,8 +5,9 @@ metadata, and the Slice 9b catalog live-preview pass are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
 context fields, selected prompt preset system prompts, selected Messenger
-preset prompt sources, post-history instructions, lorebook summaries, activated
-lore entry bodies, at-depth lore messages, and example dialogue.
+preset prompt sources, prompt-preset static and choice variables, post-history
+instructions, lorebook summaries, activated lore entry bodies, at-depth lore
+messages, and example dialogue.
 
 ## Boundary
 
@@ -326,13 +327,16 @@ storage. Messenger and Roleplay generation build a request-local variable map
 from global `MacroVariableScope` state overlaid with the active thread scope,
 then record committed prompt-order mutations for the caller.
 
-Mode generation commits those mutations only after provider generation succeeds
+Before macro resolution, selected prompt presets overlay static `variableValues`
+and resolved per-thread `presetChoiceSelections` into the request-local variable
+map. Those preset variables can override stored global or thread macro variables
+for the current request, but they are not persisted in `macro-variable-states`.
+Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the
 scope that supplied them at generation start: thread keys stay thread-scoped,
 keys that existed only in global state stay global, and new keys are saved to
 the thread scope. Deleting or clearing a thread removes its thread-scoped macro
-variable state. Preset-toggle variables are request inputs and are not persisted
-in `macro-variable-states`.
+variable state.
 
 Legacy import can seed the same storage collection from old `globalVariables`
 and Messenger thread `variables`. Import-time behavior does not change resolver

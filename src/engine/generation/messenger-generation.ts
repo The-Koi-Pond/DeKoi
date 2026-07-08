@@ -17,6 +17,7 @@ import {
   resolvePromptPresetMessengerPrompt,
   type PromptPresetRecord,
 } from "../contracts/types/prompt-presets";
+import { resolvePromptPresetChoiceVariables } from "../prompt-presets/prompt-preset-normalization";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
   activateLoreGenerationEntriesWithWarnings,
@@ -111,6 +112,10 @@ export function createMessengerGenerationContext({
     providerConnections,
     warningPrefix: "Messenger thread",
   });
+  const presetChoiceVariables = resolvePromptPresetChoiceVariables({
+    preset: records.promptPreset,
+    selections: thread.presetChoiceSelections,
+  }).variables;
 
   return {
     activePersona: records.activePersona,
@@ -121,7 +126,7 @@ export function createMessengerGenerationContext({
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
     promptPreset: records.promptPreset,
-    variables,
+    variables: { ...variables, ...presetChoiceVariables },
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,

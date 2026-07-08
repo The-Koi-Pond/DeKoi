@@ -139,10 +139,12 @@ Focused checks for narrow changes are mapped to change types in
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources
-  and sampling, then select a prompt preset from thread settings. Messenger uses
-  the preset's Messenger prompt source when present, falls back to the preset
-  system prompt, and lets a non-empty edited Messenger Prompt override both for
-  that thread.
+  and current sampling controls, then select a prompt preset from thread
+  settings. Messenger uses the preset's Messenger prompt source when present,
+  falls back to the preset system prompt, and lets a non-empty edited Messenger
+  Prompt override both for that thread. Imported compatible presets may also
+  carry sections, groups, choice blocks, and per-thread choice selections that
+  feed request-local prompt variables during generation.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

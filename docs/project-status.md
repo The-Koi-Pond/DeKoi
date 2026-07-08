@@ -39,7 +39,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Presets catalog controls expose prompt preset title, summary, system prompt,
   Messenger Prompt Source, optional temperature, `topP`, and max-token sampling,
   with create, edit, duplicate, and delete actions plus an editable starter
-  preset.
+  preset. Native prompt preset records also normalize richer parameters,
+  sections, groups, choice blocks, static variable values, and defaults for
+  compatible import and future editor work.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
@@ -49,7 +51,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   states.
 - DeKoi-native bundle import and export paths through the desktop host, with
   preview, explicit confirmation, pre-import backup, and commit-path collection
-  replacement, including prompt presets plus lore runtime state and macro
+  replacement, including native prompt presets, compatible packaged prompt
+  preset import, preset-reference repair, lore runtime state cleanup, and macro
   variable state cleanup for missing owner threads.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage, provider checks,
@@ -114,6 +117,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   scene-specific semantics, media, and visual-novel presentation remain early.
 - Lorebook triggers and character filters are normalized and stored, but
   activation behavior and advanced UI for those fields are not implemented yet.
+- Prompt preset sections, groups, rich parameters, and choice blocks are
+  normalized and can be imported, but generation-time section assembly and UI
+  editing for preset choice variables are not implemented yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.

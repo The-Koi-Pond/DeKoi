@@ -1,7 +1,11 @@
-import type { PromptPresetRecord } from "../../engine/contracts/types/prompt-presets";
+import type {
+  PromptPresetChoiceSelections,
+  PromptPresetRecord,
+} from "../../engine/contracts/types/prompt-presets";
 
 type RecordWithPromptPreset = {
   presetId: string | null;
+  presetChoiceSelections?: PromptPresetChoiceSelections;
 };
 
 export function clearMissingPromptPresetIds<T extends RecordWithPromptPreset>(
@@ -18,6 +22,7 @@ export function clearMissingPromptPresetIds<T extends RecordWithPromptPreset>(
     return {
       ...record,
       presetId: null,
+      presetChoiceSelections: {},
     };
   });
 
