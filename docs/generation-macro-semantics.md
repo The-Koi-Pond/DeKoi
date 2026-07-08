@@ -184,10 +184,15 @@ snapshot shared by every time macro in the resolver call. `context.now` accepts
 a `Date`, string, or number handled by the ECMAScript `Date` constructor.
 Display macros format with `Intl.DateTimeFormat` using the DeKoi default locale
 `en-US`. They use normalized `context.timeZone` when valid and `UTC` when no
-time zone is passed. Invalid time zones leave `{{time}}`, `{{date}}`,
-`{{weekday}}`, and `{{timezone}}` visible, while `{{isotime}}` does not depend
-on the time zone. Invalid `context.now` values leave `{{time}}`, `{{date}}`,
-`{{weekday}}`, and `{{isotime}}` visible, while `{{timezone}}` can still resolve.
+time zone is passed to the resolver. Messenger and Roleplay runtime generation
+auto-detect the current local time zone when their `timeZone` input is omitted
+or `null`, then pass that primitive string into engine prompt assembly. Explicit
+string inputs are preserved for override callers. If local time-zone detection
+is unavailable, the runtime passes `null` and the engine resolver uses its UTC
+fallback. Invalid time zones leave `{{time}}`, `{{date}}`, `{{weekday}}`, and
+`{{timezone}}` visible, while `{{isotime}}` does not depend on the time zone.
+Invalid `context.now` values leave `{{time}}`, `{{date}}`, `{{weekday}}`, and
+`{{isotime}}` visible, while `{{timezone}}` can still resolve.
 
 | Macro          | Value                                                       |
 | -------------- | ----------------------------------------------------------- |

@@ -22,6 +22,7 @@ import { describeGenerationTransport } from "./generation-transport";
 import { runGenerationWorkflow } from "./generation-workflow";
 import type { MacroVariableStateCommit } from "../../../engine/macro-variables/macro-variable-actions";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
+import { resolveGenerationTimeZone } from "./generation-time-zone";
 
 export interface GenerateMessengerThreadReplyInput {
   thread: MessengerThread;
@@ -35,6 +36,11 @@ export interface GenerateMessengerThreadReplyInput {
   providerConnections: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
   now: string;
+  /**
+   * IANA time zone override for display macros; omitted or `null` auto-detects
+   * local time, falling back to resolver UTC when unavailable.
+   */
+  timeZone?: string | null;
   parameters?: {
     temperature?: number;
     maxTokens?: number;
@@ -72,9 +78,11 @@ export async function generateMessengerThreadReply({
   personas,
   providerConnections,
   thread,
+  timeZone,
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const generationTransport = describeGenerationTransport();
+  const generationTimeZone = resolveGenerationTimeZone(timeZone);
   const result = await runGenerationWorkflow({
     appendRecords: appendMessengerMessages,
     createContext: (variables) =>
@@ -104,6 +112,7 @@ export async function generateMessengerThreadReply({
         loreRuntimeState,
         now,
         parameters,
+        timeZone: generationTimeZone,
         userMessage,
       }),
     existingLoreRuntimeState: loreRuntimeState,

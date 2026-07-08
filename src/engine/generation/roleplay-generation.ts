@@ -288,6 +288,7 @@ function createRoleplayPromptAssembly({
   providerConnection,
   thread,
   targetCompanion,
+  timeZone,
   variables,
 }: {
   activePersona: PersonaRecord | null;
@@ -299,6 +300,7 @@ function createRoleplayPromptAssembly({
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
+  timeZone?: string | null;
   variables?: Record<string, string>;
 }): GenerationPromptAssemblyResult {
   const macroVariableMutations: MacroVariableMutation[] = [];
@@ -311,6 +313,7 @@ function createRoleplayPromptAssembly({
     targetCompanion,
     targetNameFallback: "the selected character",
     threadId: thread.id,
+    timeZone,
     variables,
     variableMutations: macroVariableMutations,
   });
@@ -378,12 +381,15 @@ export function createRoleplayGenerationRequest({
   loreRuntimeState,
   now,
   parameters,
+  timeZone,
 }: {
   context: RoleplayGenerationContext;
   id: string;
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
   parameters?: Partial<RoleplayGenerationParameters>;
+  /** IANA time zone for display macros; omitted or `null` uses UTC. */
+  timeZone?: string | null;
 }): RoleplayGenerationRequest {
   return createRoleplayGenerationRequestAssembly({
     context,
@@ -391,6 +397,7 @@ export function createRoleplayGenerationRequest({
     loreRuntimeState,
     now,
     parameters,
+    timeZone,
   }).request;
 }
 
@@ -400,12 +407,15 @@ export function createRoleplayGenerationRequestAssembly({
   loreRuntimeState,
   now,
   parameters,
+  timeZone,
 }: {
   context: RoleplayGenerationContext;
   id: string;
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
   parameters?: Partial<RoleplayGenerationParameters>;
+  /** IANA time zone for display macros; omitted or `null` uses UTC. */
+  timeZone?: string | null;
 }): RoleplayGenerationRequestAssembly {
   const targetCompanion = getNextRoleplayCompanion(context.requestThread, context.companions);
   const promptAssembly = createRoleplayPromptAssembly({
@@ -418,6 +428,7 @@ export function createRoleplayGenerationRequestAssembly({
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,
+    timeZone,
     variables: context.variables,
   });
 

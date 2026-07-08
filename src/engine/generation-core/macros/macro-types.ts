@@ -51,7 +51,7 @@ export interface MacroContext {
    * resolver call.
    */
   now?: MacroTimeSource | null;
-  /** IANA time zone for display time macros; omitted values default to UTC. */
+  /** IANA time zone for display time macros; omitted or `null` defaults to UTC. */
   timeZone?: string | null;
 }
 
