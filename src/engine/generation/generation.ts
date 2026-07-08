@@ -155,6 +155,59 @@ export function createGenerationRequestEnvelope<Thread>({
   };
 }
 
+export interface GenerationPromptAssemblyResult {
+  loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
+  promptMessages: GenerationPromptMessage[];
+  warnings: string[];
+}
+
+export interface GenerationRequestAssemblyResult<Request extends GenerationRequestBase> {
+  request: Request;
+  loreRuntimeState: LoreRuntimeState | null;
+  macroVariableMutations: MacroVariableMutation[];
+}
+
+export function createGenerationRequestAssemblyResult<
+  Thread,
+  Request extends GenerationRequestBase,
+>({
+  context,
+  createRequest,
+  id,
+  now,
+  parameters,
+  promptAssembly,
+  targetCompanion,
+  thread,
+}: {
+  context: GenerationRecordContext;
+  createRequest: (envelope: GenerationRequestEnvelope<Thread>) => Request;
+  id: string;
+  now: string;
+  parameters?: Partial<GenerationParameters>;
+  promptAssembly: GenerationPromptAssemblyResult;
+  targetCompanion: CharacterRecord | null;
+  thread: Thread;
+}): GenerationRequestAssemblyResult<Request> {
+  return {
+    request: createRequest(
+      createGenerationRequestEnvelope({
+        context,
+        id,
+        now,
+        parameters,
+        promptMessages: promptAssembly.promptMessages,
+        promptWarnings: promptAssembly.warnings,
+        targetCompanion,
+        thread,
+      }),
+    ),
+    loreRuntimeState: promptAssembly.loreRuntimeState,
+    macroVariableMutations: promptAssembly.macroVariableMutations,
+  };
+}
+
 export interface ResolveGenerationRecordsInput {
   activePersonaId: string | null;
   characterIds: string[];

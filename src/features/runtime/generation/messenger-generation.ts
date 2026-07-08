@@ -18,16 +18,9 @@ import type { MacroVariableScope } from "../../../engine/contracts/types/macro-v
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
-import { createGeneratedDraftRecords } from "./generated-draft-records";
 import { describeGenerationTransport } from "./generation-transport";
-import {
-  compactGenerationLoreRuntimeState,
-  createGenerationLoreRuntimeState,
-} from "./lore-runtime-state";
-import {
-  buildGenerationMacroVariableState,
-  type MacroVariableStateCommit,
-} from "../../../engine/macro-variables/macro-variable-actions";
+import { runGenerationWorkflow } from "./generation-workflow";
+import type { MacroVariableStateCommit } from "../../../engine/macro-variables/macro-variable-actions";
 import { providerMessengerGenerationAdapter } from "./provider-messenger-generation";
 
 export interface GenerateMessengerThreadReplyInput {
@@ -82,40 +75,20 @@ export async function generateMessengerThreadReply({
   userMessage,
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const generationTransport = describeGenerationTransport();
-  const macroVariableSelection = buildGenerationMacroVariableState({
-    macroVariableStates,
-    ownerId: thread.id,
-    ownerKind: "messenger-thread",
-  });
-  const context = createMessengerGenerationContext({
-    appSettings,
-    characters,
-    fallbackProviderConnectionId,
-    lorebooks,
-    personas,
-    providerConnections,
-    thread,
-    variables: macroVariableSelection.variables,
-  });
-  const generationLoreRuntimeState = createGenerationLoreRuntimeState({
+  const result = await runGenerationWorkflow({
+    appendRecords: appendMessengerMessages,
+    createContext: (variables) =>
+      createMessengerGenerationContext({
+        appSettings,
+        characters,
+        fallbackProviderConnectionId,
+        lorebooks,
+        personas,
+        providerConnections,
+        thread,
+        variables,
+      }),
     createId,
-    existingState: loreRuntimeState,
-    now,
-    ownerId: thread.id,
-    ownerKind: "messenger-thread",
-  });
-  const requestAssembly = createMessengerGenerationRequestAssembly({
-    context,
-    id: createId("messenger-generation-request"),
-    loreRuntimeState: generationLoreRuntimeState,
-    now,
-    parameters,
-    userMessage,
-  });
-  const request = requestAssembly.request;
-  const response = await generateMessengerResponse(request);
-  const draftRecords = createGeneratedDraftRecords({
-    companions: context.companions,
     createRecord: ({ body, companion, id, now }) =>
       createGeneratedCompanionMessage({
         body,
@@ -124,31 +97,32 @@ export async function generateMessengerThreadReply({
         now,
         thread,
       }),
-    nextId: () => createId("messenger-message"),
-    response,
+    createRequestAssembly: ({ context, id, loreRuntimeState }) =>
+      createMessengerGenerationRequestAssembly({
+        context,
+        id,
+        loreRuntimeState,
+        now,
+        parameters,
+        userMessage,
+      }),
+    existingLoreRuntimeState: loreRuntimeState,
+    generateResponse: generateMessengerResponse,
+    macroVariableStates,
+    now,
+    ownerKind: "messenger-thread",
+    recordIdPrefix: "messenger-message",
+    requestIdPrefix: "messenger-generation-request",
+    thread,
   });
-  const generatedMessages = draftRecords.records;
-  const warnings = [...response.warnings, ...draftRecords.warnings, ...request.warnings];
-  const variableMutations =
-    generatedMessages.length > 0 ? requestAssembly.macroVariableMutations : [];
 
   return {
-    thread:
-      generatedMessages.length > 0 ? appendMessengerMessages(thread, generatedMessages) : thread,
-    response,
-    generatedMessages,
-    loreRuntimeState: compactGenerationLoreRuntimeState(
-      requestAssembly.loreRuntimeState,
-      response.createdAt,
-    ),
-    macroVariableCommit: {
-      variableMutations,
-      now: response.createdAt,
-      ownerId: thread.id,
-      ownerKind: "messenger-thread",
-      selection: macroVariableSelection,
-    },
+    thread: result.thread,
+    response: result.response,
+    generatedMessages: result.generatedRecords,
+    loreRuntimeState: result.loreRuntimeState,
+    macroVariableCommit: result.macroVariableCommit,
     runtimeLabel: generationTransport.label,
-    warnings,
+    warnings: result.warnings,
   };
 }
