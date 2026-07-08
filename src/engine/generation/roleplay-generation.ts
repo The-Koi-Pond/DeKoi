@@ -3,6 +3,7 @@ import type { LorebookRecord, LoreInsertionStrategy } from "../contracts/types/l
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { AppSettings } from "../contracts/types/app-settings";
 import type { PersonaRecord } from "../contracts/types/persona";
+import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
 import type {
@@ -70,6 +71,7 @@ export interface RoleplayGenerationContext {
   loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
+  promptPreset: PromptPresetRecord | null;
   requestThread: RoleplayThread;
   variables: Record<string, string>;
   warnings: string[];
@@ -80,6 +82,7 @@ export interface RoleplayGenerationContextInput {
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
+  promptPresets?: PromptPresetRecord[];
   appSettings?: Pick<AppSettings, "globalLorebookIds" | "loreInsertionStrategy"> | null;
   providerConnections?: ProviderConnectionRecord[];
   fallbackProviderConnectionId?: string | null;
@@ -133,6 +136,7 @@ export function createRoleplayGenerationContext({
   fallbackProviderConnectionId = null,
   lorebooks,
   personas,
+  promptPresets = [],
   providerConnections = [],
   thread,
   variables = {},
@@ -146,6 +150,8 @@ export function createRoleplayGenerationContext({
     lorebookIds: thread.lorebookIds,
     lorebooks,
     personas,
+    promptPresetId: thread.presetId,
+    promptPresets,
     providerConnectionId: thread.providerConnectionId,
     providerConnections,
     warningPrefix: "Roleplay thread",
@@ -159,12 +165,14 @@ export function createRoleplayGenerationContext({
     loreInsertionStrategy: records.loreInsertionStrategy,
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
+    promptPreset: records.promptPreset,
     variables,
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
       characterIds: records.companions.map((companion) => companion.id),
       lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
+      presetId: records.promptPreset?.id ?? null,
       providerConnectionId: records.providerConnectionId,
     },
     warnings: records.warnings,
@@ -236,9 +244,11 @@ function buildRoleplaySystemPrompt({
 function resolveRoleplayPromptPrelude(
   thread: RoleplayThread,
   macroContext: GenerationMacroContext,
+  promptPreset: PromptPresetRecord | null,
 ) {
+  const selectedPrompt = promptPreset?.systemPrompt.trim() || DEFAULT_ROLEPLAY_SYSTEM_PROMPT;
   return {
-    selectedPrompt: resolveGenerationMacros(DEFAULT_ROLEPLAY_SYSTEM_PROMPT, macroContext),
+    selectedPrompt: resolveGenerationMacros(selectedPrompt, macroContext),
     sceneLines: [
       thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : "",
       thread.sceneText ? resolveGenerationMacros(thread.sceneText, macroContext) : "",
@@ -265,14 +275,15 @@ function buildPostHistoryPrompt({
     : "";
 
   return [
-    `Continue the scene as ${targetName}.`,
-    `Write only ${targetName}'s next turn. Do not write ${userName}'s response.`,
     targetPostHistoryInstructions.trim()
       ? `Character post-history instructions: ${targetPostHistoryInstructions}`
       : "",
     personaPostHistoryInstructions.trim()
       ? `Persona post-history instructions: ${personaPostHistoryInstructions}`
       : "",
+    `Continue the scene as ${targetName}.`,
+    `Write only ${targetName}'s next turn as one character entry. Do not write ${userName}'s response, narrator text, scene-beat text, or other characters' lines.`,
+    "Do not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
   ]
     .filter((line) => line.trim())
     .join("\n");
@@ -285,6 +296,7 @@ function createRoleplayPromptAssembly({
   loreInsertionStrategy,
   loreRuntimeState,
   now,
+  promptPreset,
   providerConnection,
   thread,
   targetCompanion,
@@ -297,6 +309,7 @@ function createRoleplayPromptAssembly({
   loreInsertionStrategy: LoreInsertionStrategy;
   loreRuntimeState?: LoreRuntimeState | null;
   now: string;
+  promptPreset: PromptPresetRecord | null;
   providerConnection: ProviderConnectionRecord | null;
   thread: RoleplayThread;
   targetCompanion: CharacterRecord | null;
@@ -317,7 +330,7 @@ function createRoleplayPromptAssembly({
     variables,
     variableMutations: macroVariableMutations,
   });
-  const prelude = resolveRoleplayPromptPrelude(thread, macroContext);
+  const prelude = resolveRoleplayPromptPrelude(thread, macroContext, promptPreset);
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
@@ -356,21 +369,24 @@ function createRoleplayPromptAssembly({
     targetCompanion,
   });
   const finalLoreRuntimeState = finalizeLoreGenerationRuntimeState(loreActivation);
+  const promptMessages: RoleplayGenerationPromptMessage[] = [
+    {
+      role: "system",
+      content: systemPrompt,
+    },
+    ...transcriptWithDepthLore,
+  ];
+  if (postHistoryPrompt) {
+    promptMessages.push({
+      role: "user",
+      content: postHistoryPrompt,
+    });
+  }
 
   return {
     loreRuntimeState: finalLoreRuntimeState,
     macroVariableMutations,
-    promptMessages: [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      ...transcriptWithDepthLore,
-      {
-        role: "user",
-        content: postHistoryPrompt,
-      },
-    ],
+    promptMessages,
     warnings: loreActivation.warnings,
   };
 }
@@ -425,6 +441,7 @@ export function createRoleplayGenerationRequestAssembly({
     loreInsertionStrategy: context.loreInsertionStrategy,
     loreRuntimeState,
     now,
+    promptPreset: context.promptPreset,
     providerConnection: context.providerConnection,
     thread: context.requestThread,
     targetCompanion,

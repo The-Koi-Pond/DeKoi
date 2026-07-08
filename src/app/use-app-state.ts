@@ -21,6 +21,7 @@ export function useAppState() {
   const [characters, setCharacters] = useState(initialStorageRecords.characters);
   const [personas, setPersonas] = useState(initialStorageRecords.personas);
   const [lorebooks, setLorebooks] = useState(initialStorageRecords.lorebooks);
+  const [promptPresets, setPromptPresets] = useState(initialStorageRecords.promptPresets);
   const [loreRuntimeStates, setLoreRuntimeStates] = useState(
     initialStorageRecords.loreRuntimeStates,
   );
@@ -64,6 +65,8 @@ export function useAppState() {
     setPersonas,
     lorebooks,
     setLorebooks,
+    promptPresets,
+    setPromptPresets,
     loreRuntimeStates,
     setLoreRuntimeStates,
     macroVariableStates,

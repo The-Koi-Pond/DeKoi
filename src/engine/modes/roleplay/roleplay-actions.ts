@@ -30,6 +30,7 @@ export function createRoleplayThread({
     characterIds: cleanTextArray(characterIds),
     activePersonaId,
     lorebookIds: cleanTextArray(lorebookIds),
+    presetId: null,
     providerConnectionId,
     entries: [],
     createdAt: now,
@@ -269,6 +270,27 @@ export function setRoleplayThreadProviderConnection(
     providerConnectionId: providerConnectionId?.trim() || null,
     updatedAt,
   };
+}
+
+export function setRoleplayThreadPreset(
+  thread: RoleplayThread,
+  presetId: string | null,
+  updatedAt: string,
+): RoleplayThread {
+  return {
+    ...thread,
+    presetId: presetId?.trim() || null,
+    updatedAt,
+  };
+}
+
+export function removeRoleplayThreadPreset(
+  thread: RoleplayThread,
+  presetId: string,
+  updatedAt: string,
+): RoleplayThread {
+  if (thread.presetId !== presetId) return thread;
+  return setRoleplayThreadPreset(thread, null, updatedAt);
 }
 
 export function replaceRoleplayThreadProviderConnection(

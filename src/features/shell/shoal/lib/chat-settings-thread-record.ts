@@ -4,6 +4,7 @@ export interface ChatSettingsThreadRecord {
   characterIds: string[];
   activePersonaId: string | null;
   lorebookIds: string[];
+  presetId: string | null;
   providerConnectionId: string | null;
   systemPromptMode?: "default" | "custom";
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   appStorageAutoMigrationCollectionKeys,
   appStorageDroppedRecordSaveBlockCollectionKeys,
+  orderedAppStorageCollectionKeys,
   partitionAppStorageDirtyCollectionKeys,
 } from "./use-app-storage-sync";
 
@@ -53,6 +54,46 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
       }),
     ).toEqual(["messengerThreads", "messengerMessages"]);
   });
+
+  it("keeps prompt preset seed migrations when the collection had no dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["promptPresets"],
+        droppedRecordCountByCollection: {},
+      }),
+    ).toEqual(["promptPresets"]);
+  });
+
+  it("keeps app settings migrations when the collection had no dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["appSettings", "promptPresets"],
+        droppedRecordCountByCollection: {},
+      }),
+    ).toEqual(["appSettings", "promptPresets"]);
+  });
+
+  it("skips app settings migrations when the collection had dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["appSettings", "promptPresets"],
+        droppedRecordCountByCollection: {
+          appSettings: 1,
+        },
+      }),
+    ).toEqual(["promptPresets"]);
+  });
+
+  it("skips prompt preset seed migrations when the collection had dropped records", () => {
+    expect(
+      appStorageAutoMigrationCollectionKeys({
+        migrationCollectionKeys: ["promptPresets"],
+        droppedRecordCountByCollection: {
+          promptPresets: 1,
+        },
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("appStorageDroppedRecordSaveBlockCollectionKeys", () => {
@@ -80,6 +121,21 @@ describe("appStorageDroppedRecordSaveBlockCollectionKeys", () => {
         roleplayEntries: 1,
       }),
     ).toEqual(["roleplayThreads", "roleplayEntries"]);
+  });
+});
+
+describe("orderedAppStorageCollectionKeys", () => {
+  it("saves prompt preset starter records before the app-settings marker", () => {
+    expect(orderedAppStorageCollectionKeys(["appSettings", "promptPresets", "characters"])).toEqual(
+      ["promptPresets", "appSettings", "characters"],
+    );
+  });
+
+  it("keeps normal collection order when the prompt preset marker dependency is absent", () => {
+    expect(orderedAppStorageCollectionKeys(["characters", "appSettings"])).toEqual([
+      "appSettings",
+      "characters",
+    ]);
   });
 });
 

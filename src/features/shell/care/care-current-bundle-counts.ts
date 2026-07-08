@@ -7,6 +7,7 @@ export function getCurrentCareBundleCounts(nav: CareDrawerNav) {
     characters: nav.characters,
     roleplayThreads: nav.roleplayThreads,
     lorebooks: nav.lorebooks,
+    promptPresets: nav.promptPresets,
     loreRuntimeStates: nav.loreRuntimeStates,
     macroVariableStates: nav.macroVariableStates,
     messengerThreads: nav.messengerThreads,

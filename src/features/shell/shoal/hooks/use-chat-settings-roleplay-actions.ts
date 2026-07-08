@@ -2,11 +2,13 @@ import {
   setRoleplayThreadLorebooks,
   setRoleplayThreadParticipants,
   setRoleplayThreadPersona,
+  setRoleplayThreadPreset,
   setRoleplayThreadProviderConnection,
 } from "../../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type {
   ChatSettingsIdentityActions,
+  ChatSettingsThreadPresetActions,
   ChatSettingsThreadResourceActions,
 } from "../lib/chat-settings-controller-groups";
 import { toggleSelectedId } from "../lib/toggle-selected-id";
@@ -66,6 +68,18 @@ export function useChatSettingsRoleplayActions({
     );
   }
 
+  function handleRoleplayPresetChange(presetId: string) {
+    updateActiveRoleplayThread((thread, updatedAt) =>
+      setRoleplayThreadPreset(thread, presetId.trim() || null, updatedAt),
+    );
+  }
+
+  function clearMissingRoleplayPreset() {
+    updateActiveRoleplayThread((thread, updatedAt) =>
+      setRoleplayThreadPreset(thread, null, updatedAt),
+    );
+  }
+
   function resolveMissingRoleplayConnection(connectionId: string | null) {
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadProviderConnection(thread, connectionId, updatedAt),
@@ -102,6 +116,10 @@ export function useChatSettingsRoleplayActions({
     onPersonaChange: handleRoleplayPersonaChange,
     onResolveMissingConnection: resolveMissingRoleplayConnection,
   };
+  const presetActions: ChatSettingsThreadPresetActions = {
+    onClearMissingPreset: clearMissingRoleplayPreset,
+    onPresetChange: handleRoleplayPresetChange,
+  };
   const resourceActions: ChatSettingsThreadResourceActions = {
     clearMissingCompanions: clearMissingRoleplayCompanions,
     clearMissingLorebooks: clearMissingRoleplayLorebooks,
@@ -111,6 +129,7 @@ export function useChatSettingsRoleplayActions({
 
   return {
     identityActions,
+    presetActions,
     resourceActions,
   };
 }

@@ -1,21 +1,24 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
+import { ChatSettingsPresetDrawer } from "./ChatSettingsPresetDrawer";
 import { ChatSettingsPromptControls } from "./ChatSettingsPromptControls";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
-  actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "prompt" | "resources">;
+  actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "preset" | "prompt" | "resources">;
   activeMessengerThreadId: string | null;
   activeMessengerThreadRecord: MessengerThread | null;
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   models: ChatSettingsResourceDrawerModels;
+  promptPresets: ShoalRailProps["nav"]["promptPresets"];
   onCreateCompanion: () => void;
   onCreateLorebook: () => void;
+  onCreatePreset: () => void;
 }
 
 export function ChatSettingsMessengerResourceSection({
@@ -26,8 +29,10 @@ export function ChatSettingsMessengerResourceSection({
   companionSelectorOpen,
   lorebooks,
   models,
+  promptPresets,
   onCreateCompanion,
   onCreateLorebook,
+  onCreatePreset,
 }: ChatSettingsMessengerResourceSectionProps) {
   return (
     <>
@@ -40,6 +45,15 @@ export function ChatSettingsMessengerResourceSection({
         onSelectorOpenChange={actions.resources.onSelectorOpenChange}
         onToggle={actions.drawers.onToggle}
         onToggleCompanion={actions.resources.onToggleCompanion}
+      />
+
+      <ChatSettingsPresetDrawer
+        model={models.preset}
+        promptPresets={promptPresets}
+        onClearMissingPreset={actions.preset.onClearMissingPreset}
+        onCreatePreset={onCreatePreset}
+        onPresetChange={actions.preset.onPresetChange}
+        onToggle={actions.drawers.onToggle}
       />
 
       <ChatSettingsPromptControls

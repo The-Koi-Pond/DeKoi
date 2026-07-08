@@ -162,6 +162,27 @@ export function setMessengerThreadProviderConnection(
   };
 }
 
+export function setMessengerThreadPreset(
+  thread: MessengerThread,
+  presetId: string | null,
+  updatedAt: string,
+): MessengerThread {
+  return {
+    ...thread,
+    presetId: presetId?.trim() || null,
+    updatedAt,
+  };
+}
+
+export function removeMessengerThreadPreset(
+  thread: MessengerThread,
+  presetId: string,
+  updatedAt: string,
+): MessengerThread {
+  if (thread.presetId !== presetId) return thread;
+  return setMessengerThreadPreset(thread, null, updatedAt);
+}
+
 export function setMessengerThreadSystemPrompt(
   thread: MessengerThread,
   systemPromptMode: MessengerSystemPromptMode,

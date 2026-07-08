@@ -27,6 +27,7 @@ export interface RoleplayThread {
   characterIds: string[];
   activePersonaId: string | null;
   lorebookIds: string[];
+  presetId: string | null;
   providerConnectionId: string | null;
   entries: RoleplayEntry[];
   createdAt: string;

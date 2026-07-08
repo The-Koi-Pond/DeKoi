@@ -228,6 +228,18 @@ export function appStorageAutoMigrationCollectionKeys({
 }): AppStorageCollectionKey[] {
   const migrationCollectionKeySet = new Set(migrationCollectionKeys);
   const safeMigrationCollectionKeys: AppStorageCollectionKey[] = [];
+  if (
+    migrationCollectionKeySet.has("appSettings") &&
+    (droppedRecordCountByCollection.appSettings ?? 0) === 0
+  ) {
+    safeMigrationCollectionKeys.push("appSettings");
+  }
+  if (
+    migrationCollectionKeySet.has("promptPresets") &&
+    (droppedRecordCountByCollection.promptPresets ?? 0) === 0
+  ) {
+    safeMigrationCollectionKeys.push("promptPresets");
+  }
   for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
     if (!group.every((collectionKey) => migrationCollectionKeySet.has(collectionKey))) continue;
     if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
@@ -364,9 +376,21 @@ function changedAppStorageCollectionKeys(
   );
 }
 
-function orderedAppStorageCollectionKeys(collectionKeys: Iterable<AppStorageCollectionKey>) {
+export function orderedAppStorageCollectionKeys(
+  collectionKeys: Iterable<AppStorageCollectionKey>,
+): AppStorageCollectionKey[] {
   const collectionKeySet = new Set(collectionKeys);
-  return APP_STORAGE_COLLECTION_KEYS.filter((collectionKey) => collectionKeySet.has(collectionKey));
+  const orderedCollectionKeys = APP_STORAGE_COLLECTION_KEYS.filter((collectionKey) =>
+    collectionKeySet.has(collectionKey),
+  );
+  if (!collectionKeySet.has("appSettings") || !collectionKeySet.has("promptPresets")) {
+    return orderedCollectionKeys;
+  }
+
+  return [
+    "promptPresets",
+    ...orderedCollectionKeys.filter((collectionKey) => collectionKey !== "promptPresets"),
+  ];
 }
 
 function asNonEmptyAppStorageCollectionKeys(collectionKeys: readonly AppStorageCollectionKey[]) {
@@ -432,6 +456,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setCharacters: StateSetter<AppStorageRecords["characters"]>;
   setPersonas: StateSetter<AppStorageRecords["personas"]>;
   setLorebooks: StateSetter<AppStorageRecords["lorebooks"]>;
+  setPromptPresets: StateSetter<AppStorageRecords["promptPresets"]>;
   setLoreRuntimeStates: StateSetter<AppStorageRecords["loreRuntimeStates"]>;
   setMacroVariableStates: StateSetter<AppStorageRecords["macroVariableStates"]>;
   setProviderConnections: StateSetter<AppStorageRecords["providerConnections"]>;
@@ -450,6 +475,7 @@ export function useAppStorageSync({
   characters,
   personas,
   lorebooks,
+  promptPresets,
   loreRuntimeStates,
   macroVariableStates,
   providerConnections,
@@ -462,6 +488,7 @@ export function useAppStorageSync({
   setCharacters,
   setPersonas,
   setLorebooks,
+  setPromptPresets,
   setLoreRuntimeStates,
   setMacroVariableStates,
   setProviderConnections,
@@ -505,6 +532,7 @@ export function useAppStorageSync({
     characters,
     personas,
     lorebooks,
+    promptPresets,
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
@@ -558,6 +586,7 @@ export function useAppStorageSync({
       setCharacters(records.characters);
       setPersonas(records.personas);
       setLorebooks(records.lorebooks);
+      setPromptPresets(records.promptPresets);
       setLoreRuntimeStates(records.loreRuntimeStates);
       setMacroVariableStates(records.macroVariableStates);
       setProviderConnections(records.providerConnections);
@@ -573,6 +602,7 @@ export function useAppStorageSync({
       setMacroVariableStates,
       setMessengerThreads,
       setPersonas,
+      setPromptPresets,
       setProviderConnections,
       setRippleStates,
       setRoleplayThreads,
@@ -585,6 +615,7 @@ export function useAppStorageSync({
       characters,
       personas,
       lorebooks,
+      promptPresets,
       loreRuntimeStates,
       macroVariableStates,
       providerConnections,
@@ -600,6 +631,7 @@ export function useAppStorageSync({
     macroVariableStates,
     messengerThreads,
     personas,
+    promptPresets,
     providerConnections,
     rippleStates,
     roleplayThreads,
@@ -702,7 +734,9 @@ export function useAppStorageSync({
     function drainSaveQueue() {
       if (saveQueueRunning.current === storageGeneration.current) return;
 
-      const collectionKey = APP_STORAGE_COLLECTION_KEYS.find((key) => pendingSaves.current[key]);
+      const collectionKey = orderedAppStorageCollectionKeys(APP_STORAGE_COLLECTION_KEYS).find(
+        (key) => pendingSaves.current[key],
+      );
       if (!collectionKey) return;
 
       const entry = pendingSaves.current[collectionKey];
@@ -740,6 +774,14 @@ export function useAppStorageSync({
                 unsavedSignatures.current[collectionKey] = entry.signature;
               }
               saveErrors.current[collectionKey] = storageResult.message;
+              if (collectionKey === "promptPresets") {
+                const pendingAppSettingsSave = pendingSaves.current.appSettings;
+                if (pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized) {
+                  delete pendingSaves.current.appSettings;
+                  unsavedSignatures.current.appSettings = pendingAppSettingsSave.signature;
+                  saveErrors.current.appSettings = storageResult.message;
+                }
+              }
             }
 
             refreshSaveStatus(entry.generation, storageResult);
@@ -750,7 +792,16 @@ export function useAppStorageSync({
             if (!unsavedSignatures.current[collectionKey]) {
               unsavedSignatures.current[collectionKey] = entry.signature;
             }
-            saveErrors.current[collectionKey] = errorMessage(error, "Storage save failed.");
+            const message = errorMessage(error, "Storage save failed.");
+            saveErrors.current[collectionKey] = message;
+            if (collectionKey === "promptPresets") {
+              const pendingAppSettingsSave = pendingSaves.current.appSettings;
+              if (pendingAppSettingsSave?.snapshot.appSettings.promptPresetStarterInitialized) {
+                delete pendingSaves.current.appSettings;
+                unsavedSignatures.current.appSettings = pendingAppSettingsSave.signature;
+                saveErrors.current.appSettings = message;
+              }
+            }
             refreshSaveStatus(entry.generation);
           },
         )
@@ -1587,9 +1638,9 @@ export function useAppStorageSync({
       const migrationCollectionKeys = asNonEmptyAppStorageCollectionKeys(
         appStorageAutoMigrationCollectionKeys(snapshot),
       );
-      const shouldMigrateLegacyTranscripts =
+      const shouldSaveAutoMigrations =
         snapshot.storageResult.status === "ready" && migrationCollectionKeys !== null;
-      if (shouldMigrateLegacyTranscripts) {
+      if (shouldSaveAutoMigrations) {
         applyLoadedAppStorageSnapshot(snapshot, { storageReady: false });
       } else {
         applyLoadedAppStorageSnapshot(snapshot);
@@ -1599,10 +1650,10 @@ export function useAppStorageSync({
       setMessengerStorageStatus(snapshot.storageResult.status);
       setMessengerStorageMessage(snapshot.storageResult.message);
 
-      if (!shouldMigrateLegacyTranscripts) return;
+      if (!shouldSaveAutoMigrations) return;
 
       setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Migrating legacy transcripts into split storage.");
+      setMessengerStorageMessage("Saving storage migrations.");
       const migrationSavePromise = saveAppStorageCollections(
         snapshot,
         migrationCollectionKeys,
@@ -1705,6 +1756,7 @@ export function useAppStorageSync({
       characters,
       personas,
       lorebooks,
+      promptPresets,
       loreRuntimeStates,
       macroVariableStates,
       providerConnections,
@@ -1810,6 +1862,7 @@ export function useAppStorageSync({
     macroVariableStates,
     messengerThreads,
     personas,
+    promptPresets,
     providerConnections,
     remoteRuntimeUrl,
     rippleStates,

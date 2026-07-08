@@ -3,6 +3,7 @@ import type { CharacterRecord } from "../../../../engine/contracts/types/charact
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import {
   sanitizeProviderConnectionRecord,
   type ProviderConnectionRecord,
@@ -24,6 +25,7 @@ interface ChatSettingsViewModelInput {
   characters: readonly CharacterRecord[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
+  promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
   threadLabel?: string;
 }
@@ -35,6 +37,7 @@ export function getChatSettingsViewModel({
   characters,
   lorebooks,
   personas,
+  promptPresets,
   providerConnections,
   threadLabel = "Messenger",
 }: ChatSettingsViewModelInput) {
@@ -43,6 +46,12 @@ export function getChatSettingsViewModel({
     sanitizeProviderConnectionRecord(connection),
   );
   const systemPromptMode = activeThread?.systemPromptMode ?? "default";
+  const selectedPresetId = activeThread?.presetId ?? null;
+  const selectedPreset =
+    selectedPresetId !== null
+      ? (promptPresets.find((preset) => preset.id === selectedPresetId) ?? null)
+      : null;
+  const missingPresetId = selectedPresetId && !selectedPreset ? selectedPresetId : null;
 
   return {
     ...getConnectionSettingsViewModel({
@@ -67,6 +76,13 @@ export function getChatSettingsViewModel({
       threadLabel,
     }),
     sanitizedProviderConnections,
+    missingPresetId,
+    presetDrawerSummary: selectedPreset
+      ? selectedPreset.title
+      : missingPresetId
+        ? "Missing preset"
+        : "No preset",
+    selectedPresetId,
     systemPromptMode,
   };
 }

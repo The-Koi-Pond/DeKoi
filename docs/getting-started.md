@@ -120,6 +120,8 @@ Focused checks for narrow changes are mapped to change types in
 - Use Pond Care > Data & Backup to confirm the selected runtime path.
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.
+- Use the Presets catalog for reusable system prompts and sampling, then select
+  a prompt preset from Messenger or Roleplay thread settings.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

@@ -2,6 +2,7 @@ import type { AppSettings } from "../../../../engine/contracts/types/app-setting
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import {
@@ -26,6 +27,7 @@ export function getRoleplayThreadReferenceSummary({
   characters,
   lorebooks,
   personas,
+  promptPresets,
   providerConnections,
   thread,
 }: {
@@ -33,6 +35,7 @@ export function getRoleplayThreadReferenceSummary({
   characters: readonly CharacterRecord[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
+  promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
   thread: RoleplayThread;
 }): RoleplayThreadReferenceSummary {
@@ -42,6 +45,7 @@ export function getRoleplayThreadReferenceSummary({
     globalLorebookIds: appSettings.globalLorebookIds,
     lorebooks,
     personas,
+    promptPresets,
     providerConnections,
     thread,
   });

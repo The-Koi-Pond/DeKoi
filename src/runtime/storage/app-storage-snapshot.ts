@@ -19,6 +19,10 @@ import {
   saveLorebookRecordsToStorage,
 } from "./collections/lorebook-storage";
 import {
+  loadPromptPresetRecordsFromStorage,
+  savePromptPresetRecordsToStorage,
+} from "./collections/prompt-preset-storage";
+import {
   loadLoreRuntimeStatesFromStorage,
   saveLoreRuntimeStatesToStorage,
 } from "./collections/lore-runtime-state-storage";
@@ -59,6 +63,7 @@ import {
   type AppStorageCollectionKey,
   type AppStorageRecords,
 } from "./app-storage-records";
+import { STARTER_PROMPT_PRESET } from "../../engine/prompt-presets/starter-preset";
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
@@ -90,7 +95,12 @@ export type AppStorageSnapshot = AppStorageRecords & {
 };
 
 type AppStorageMigrationCollectionKey =
-  "roleplayThreads" | "roleplayEntries" | "messengerThreads" | "messengerMessages";
+  | "appSettings"
+  | "promptPresets"
+  | "roleplayThreads"
+  | "roleplayEntries"
+  | "messengerThreads"
+  | "messengerMessages";
 
 type AppStorageCollectionLoadResult = StorageResult & {
   droppedRecordCount: number;
@@ -101,6 +111,7 @@ export const APP_STORAGE_COLLECTION_ENTITIES = {
   characters: STORAGE_ENTITIES.characters,
   personas: STORAGE_ENTITIES.personas,
   lorebooks: STORAGE_ENTITIES.lorebooks,
+  promptPresets: STORAGE_ENTITIES.promptPresets,
   loreRuntimeStates: STORAGE_ENTITIES.loreRuntimeStates,
   macroVariableStates: STORAGE_ENTITIES.macroVariableStates,
   providerConnections: STORAGE_ENTITIES.providerConnections,
@@ -140,6 +151,7 @@ export const APP_STORAGE_COLLECTION_LABELS = {
   characters: "Characters",
   personas: "Personas",
   lorebooks: "Lorebooks",
+  promptPresets: "Prompt presets",
   loreRuntimeStates: "Lore runtime states",
   macroVariableStates: "Macro variable states",
   providerConnections: "Provider connections",
@@ -278,6 +290,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     characterSnapshot,
     personaSnapshot,
     lorebookSnapshot,
+    promptPresetSnapshot,
     loreRuntimeStateSnapshot,
     macroVariableStateSnapshot,
     providerConnectionSnapshot,
@@ -292,6 +305,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loadCharacterRecordsFromStorage(rawUrl),
     loadPersonaRecordsFromStorage(rawUrl),
     loadLorebookRecordsFromStorage(rawUrl),
+    loadPromptPresetRecordsFromStorage(rawUrl),
     loadLoreRuntimeStatesFromStorage(rawUrl),
     loadMacroVariableStatesFromStorage(rawUrl),
     loadProviderConnectionRecordsFromStorage(rawUrl),
@@ -310,7 +324,92 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     messengerSnapshot.threads,
     messengerMessageSnapshot.records,
   );
+  const loadedCollectionRecordCounts = [
+    appSettingsSnapshot.records.length,
+    characterSnapshot.records.length,
+    personaSnapshot.records.length,
+    lorebookSnapshot.records.length,
+    promptPresetSnapshot.records.length,
+    loreRuntimeStateSnapshot.states.length,
+    macroVariableStateSnapshot.states.length,
+    providerConnectionSnapshot.records.length,
+    roleplaySnapshot.records.length,
+    roleplayEntrySnapshot.records.length,
+    messengerSnapshot.threads.length,
+    messengerMessageSnapshot.records.length,
+    rippleSnapshot.states.length,
+  ];
+  const loadedCollectionStatuses = [
+    appSettingsSnapshot.status,
+    characterSnapshot.status,
+    personaSnapshot.status,
+    lorebookSnapshot.status,
+    promptPresetSnapshot.status,
+    loreRuntimeStateSnapshot.status,
+    macroVariableStateSnapshot.status,
+    providerConnectionSnapshot.status,
+    roleplaySnapshot.status,
+    roleplayEntrySnapshot.status,
+    messengerSnapshot.status,
+    messengerMessageSnapshot.status,
+    rippleSnapshot.status,
+  ];
+  const loadedCollectionDroppedCounts = [
+    appSettingsSnapshot.droppedRecordCount,
+    characterSnapshot.droppedRecordCount,
+    personaSnapshot.droppedRecordCount,
+    lorebookSnapshot.droppedRecordCount,
+    promptPresetSnapshot.droppedRecordCount,
+    loreRuntimeStateSnapshot.droppedRecordCount,
+    macroVariableStateSnapshot.droppedRecordCount,
+    providerConnectionSnapshot.droppedRecordCount,
+    roleplaySnapshot.droppedRecordCount,
+    roleplayEntrySnapshot.droppedRecordCount,
+    messengerSnapshot.droppedRecordCount,
+    messengerMessageSnapshot.droppedRecordCount,
+    rippleSnapshot.droppedRecordCount,
+  ];
+  const allCollectionsLoadedCleanly =
+    loadedCollectionStatuses.every((status) => status === "ready") &&
+    loadedCollectionDroppedCounts.every((count) => count === 0);
+  const remoteStorageLooksLikeFirstRun =
+    metadataResult.mode === "remote" &&
+    allCollectionsLoadedCleanly &&
+    loadedCollectionRecordCounts.every((count) => count === 0);
+  const remoteStorageHasSavedRecords =
+    metadataResult.mode === "remote" &&
+    allCollectionsLoadedCleanly &&
+    loadedCollectionRecordCounts.some((count) => count > 0);
+  const promptPresetCollectionExistsOnDesktop =
+    metadataResult.storageMetadata.promptPresets?.exists === true;
+  const promptPresetCollectionMissingOnDesktop =
+    metadataResult.storageMetadata.promptPresets?.exists === false;
+  const appSettingsCanStorePromptPresetStarterMarker =
+    appSettingsSnapshot.status === "ready" && appSettingsSnapshot.droppedRecordCount === 0;
+  const shouldSeedPromptPresets =
+    promptPresetSnapshot.status === "ready" &&
+    promptPresetSnapshot.records.length === 0 &&
+    (promptPresetCollectionMissingOnDesktop || remoteStorageLooksLikeFirstRun);
+  const promptPresets = shouldSeedPromptPresets
+    ? [STARTER_PROMPT_PRESET]
+    : promptPresetSnapshot.records;
+  const shouldInitializePromptPresetStarter =
+    appSettingsCanStorePromptPresetStarterMarker &&
+    promptPresetSnapshot.status === "ready" &&
+    !appSettingsSnapshot.settings.promptPresetStarterInitialized &&
+    (shouldSeedPromptPresets ||
+      promptPresetSnapshot.records.length > 0 ||
+      promptPresetCollectionExistsOnDesktop ||
+      remoteStorageHasSavedRecords);
+  const appSettings = shouldInitializePromptPresetStarter
+    ? {
+        ...appSettingsSnapshot.settings,
+        promptPresetStarterInitialized: true,
+      }
+    : appSettingsSnapshot.settings;
   const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [
+    ...(shouldInitializePromptPresetStarter ? (["appSettings"] as const) : []),
+    ...(shouldSeedPromptPresets ? (["promptPresets"] as const) : []),
     ...(roleplaySnapshot.hasLegacyEmbeddedEntries
       ? (["roleplayThreads", "roleplayEntries"] as const)
       : []),
@@ -324,6 +423,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     { collectionKey: "characters", snapshot: characterSnapshot },
     { collectionKey: "personas", snapshot: personaSnapshot },
     { collectionKey: "lorebooks", snapshot: lorebookSnapshot },
+    { collectionKey: "promptPresets", snapshot: promptPresetSnapshot },
     { collectionKey: "loreRuntimeStates", snapshot: loreRuntimeStateSnapshot },
     { collectionKey: "macroVariableStates", snapshot: macroVariableStateSnapshot },
     { collectionKey: "providerConnections", snapshot: providerConnectionSnapshot },
@@ -340,10 +440,11 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const storageResult = mergeStorageResults(collectionSnapshots.map(({ snapshot }) => snapshot));
 
   return {
-    appSettings: appSettingsSnapshot.settings,
+    appSettings,
     characters: characterSnapshot.records,
     personas: personaSnapshot.records,
     lorebooks: lorebookSnapshot.records,
+    promptPresets,
     loreRuntimeStates: loreRuntimeStateSnapshot.states,
     macroVariableStates: macroVariableStateSnapshot.states,
     providerConnections: providerConnectionSnapshot.records,
@@ -355,6 +456,19 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     droppedRecordCountByCollection,
     storageResult,
   };
+}
+
+function orderedAppStorageSaveCollectionKeys(
+  collectionKeys: NonEmptyAppStorageCollectionKeys,
+): NonEmptyAppStorageCollectionKeys {
+  if (!collectionKeys.includes("appSettings") || !collectionKeys.includes("promptPresets")) {
+    return collectionKeys;
+  }
+
+  return [
+    "promptPresets",
+    ...collectionKeys.filter((collectionKey) => collectionKey !== "promptPresets"),
+  ];
 }
 
 async function saveAppStorageCollection(
@@ -371,6 +485,8 @@ async function saveAppStorageCollection(
       return savePersonaRecordsToStorage(snapshot.personas, rawUrl);
     case "lorebooks":
       return saveLorebookRecordsToStorage(snapshot.lorebooks, rawUrl);
+    case "promptPresets":
+      return savePromptPresetRecordsToStorage(snapshot.promptPresets, rawUrl);
     case "loreRuntimeStates":
       return saveLoreRuntimeStatesToStorage(snapshot.loreRuntimeStates, rawUrl);
     case "macroVariableStates":
@@ -395,12 +511,16 @@ export async function saveAppStorageCollections(
   collectionKeys: NonEmptyAppStorageCollectionKeys,
   rawUrl: string,
 ): Promise<AppStorageSaveResult> {
-  const collectionResults = await Promise.all(
-    collectionKeys.map(async (collectionKey) => ({
-      collectionKey,
-      result: await saveAppStorageCollection(snapshot, collectionKey, rawUrl),
-    })),
-  );
+  const orderedCollectionKeys = orderedAppStorageSaveCollectionKeys(collectionKeys);
+  const collectionResults: {
+    collectionKey: AppStorageCollectionKey;
+    result: StorageResult;
+  }[] = [];
+  for (const collectionKey of orderedCollectionKeys) {
+    const result = await saveAppStorageCollection(snapshot, collectionKey, rawUrl);
+    collectionResults.push({ collectionKey, result });
+    if (result.status === "error") break;
+  }
   const storageMetadata: AppStorageMetadata = {};
   for (const { collectionKey, result } of collectionResults) {
     if (result.status === "ready" && result.metadata) {
@@ -425,8 +545,9 @@ export async function replaceAppStorageSnapshot(
   const storageMetadata: AppStorageMetadata = {};
   const rollbackMessage =
     "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
+  const collectionKeys = orderedAppStorageSaveCollectionKeys(APP_STORAGE_COLLECTION_KEYS);
 
-  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+  for (const collectionKey of collectionKeys) {
     let result: StorageResult;
     try {
       result = await saveAppStorageCollection(records, collectionKey, rawUrl);

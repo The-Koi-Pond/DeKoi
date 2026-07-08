@@ -53,6 +53,7 @@ export {
   type DeKoiLegacyImportPreview,
 } from "./storage/bundles/legacy-import";
 export { loadLorebookRecords } from "./storage/collections/lorebook-storage";
+export { loadPromptPresetRecords } from "./storage/collections/prompt-preset-storage";
 export {
   loadInitialMessengerThreads,
   type MessengerStorageMode,

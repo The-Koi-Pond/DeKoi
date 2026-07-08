@@ -5,7 +5,7 @@ import type { CharacterRecord } from "../../../../engine/contracts/types/charact
 import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { RoleplayEntry, RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { RippleState } from "../../../../engine/contracts/types/ripples";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 import { useRoleplayThreadActions } from "./use-roleplay-thread-actions";
@@ -23,6 +23,28 @@ function providerConnection(id: string): ProviderConnectionRecord {
   return { id } as ProviderConnectionRecord;
 }
 
+function roleplayEntry(id: string): RoleplayEntry {
+  return { id, body: `Entry ${id}` } as RoleplayEntry;
+}
+
+function roleplayThread(input: Partial<RoleplayThread> = {}): RoleplayThread {
+  return {
+    id: "roleplay-thread-1",
+    schemaVersion: 1,
+    kind: "roleplay",
+    title: "Roleplay",
+    characterIds: ["character-1"],
+    activePersonaId: null,
+    lorebookIds: [],
+    presetId: null,
+    providerConnectionId: null,
+    entries: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...input,
+  } as RoleplayThread;
+}
+
 function createStateSetter<T>(state: { current: T }): StateSetter<T> {
   return (nextState) => {
     state.current =
@@ -32,8 +54,8 @@ function createStateSetter<T>(state: { current: T }): StateSetter<T> {
   };
 }
 
-function captureRoleplayThreadActions() {
-  const roleplayThreads = { current: [] as RoleplayThread[] };
+function captureRoleplayThreadActions(initialRoleplayThreads: RoleplayThread[] = []) {
+  const roleplayThreads = { current: initialRoleplayThreads };
   const loreRuntimeStates = { current: [] as LoreRuntimeState[] };
   const macroVariableStates = { current: [] as MacroVariableScope[] };
   const rippleStates = { current: [] as RippleState[] };
@@ -94,5 +116,28 @@ describe("useRoleplayThreadActions", () => {
     });
 
     expect(thread.lorebookIds).toEqual(["explicit-lore"]);
+  });
+
+  it("appends generated Roleplay entries to the latest thread state", () => {
+    const userEntry = roleplayEntry("user-entry");
+    const generatedEntry = roleplayEntry("generated-entry");
+    const currentThread = roleplayThread({
+      entries: [userEntry],
+      presetId: null,
+      title: "Edited while generating",
+    });
+    const { actions, roleplayThreads } = captureRoleplayThreadActions([currentThread]);
+
+    actions.appendRoleplayThreadEntries(currentThread.id, [generatedEntry]);
+
+    expect(roleplayThreads.current[0]).toMatchObject({
+      id: currentThread.id,
+      presetId: null,
+      title: "Edited while generating",
+    });
+    expect(roleplayThreads.current[0]?.entries.map((entry) => entry.id)).toEqual([
+      "user-entry",
+      "generated-entry",
+    ]);
   });
 });

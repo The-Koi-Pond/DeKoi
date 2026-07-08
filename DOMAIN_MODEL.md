@@ -183,7 +183,7 @@ Likely relationships:
 
 - Can appear in many Messenger threads.
 - Can appear in many Roleplay threads.
-- Can reference lorebooks; presets and media can attach later.
+- Can reference lorebooks; media can attach later.
 
 Not fully settled yet:
 
@@ -274,16 +274,26 @@ Likely relationships:
 
 - A Messenger thread may use one active prompt preset.
 - A Roleplay thread may use one active prompt preset.
-- Prompt presets may be global or copied into a thread later if needed.
 - A Thread Preset may later hold chat-specific settings that should travel
   with one saved thread instead of with reusable generation defaults.
 
-Not fully settled yet:
+Current implementation:
 
-- Exact parameters.
-- Prompt-template format.
-- Whether prompt presets stay simple at first or split into advanced template
-  parts.
+- Prompt presets are `schemaVersion: 1` catalog records with a title, optional
+  summary, required system prompt, and optional temperature, top-p, and
+  max-token sampling.
+- Messenger and Roleplay threads can select one prompt preset. Messenger custom
+  thread system prompts still win over a selected preset; otherwise the selected
+  preset replaces the default Messenger prompt. Roleplay uses the selected
+  preset as its system prelude, then still appends the Roleplay-owned
+  one-character output contract.
+- DeKoi seeds an editable starter preset on first run and treats later edits or
+  deletion as user-owned data.
+
+Still evolving:
+
+- Whether prompt presets stay simple or split into advanced template parts.
+- Whether Thread Presets become a separate saved record.
 
 ### Provider Connection
 
@@ -325,8 +335,8 @@ Likely relationships:
 - Has one or more character participants.
 - May have one active persona.
 - Contains many MessengerMessages.
-- May attach chat-specific lorebooks and choose a provider connection; presets
-  and media can attach later.
+- May attach chat-specific lorebooks, choose an active prompt preset, and choose
+  a provider connection; media can attach later.
 
 Important behavior:
 
@@ -390,14 +400,15 @@ Likely relationships:
 - Has one or more character participants.
 - May have one active persona.
 - May attach lorebooks and choose a provider connection.
+- May choose one active prompt preset.
 - Contains RoleplayEntries.
 - May reference scene media later.
 
 Important behavior:
 
-- Thread settings update Roleplay participants, persona, lorebooks, and
-  provider connection through Roleplay-owned actions instead of Messenger
-  records.
+- Thread settings update Roleplay participants, persona, lorebooks, prompt
+  preset, and provider connection through Roleplay-owned actions instead of
+  Messenger records.
 - Durable storage keeps RoleplayEntries in a separate collection keyed by thread
   ID, while UI and generation receive assembled RoleplayThread objects.
 

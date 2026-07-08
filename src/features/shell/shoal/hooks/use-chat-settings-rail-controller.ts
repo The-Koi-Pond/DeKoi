@@ -38,21 +38,25 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     : null;
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
-  const { identityActions, promptActions, resourceActions } = useChatSettingsMessengerActions({
-    activeMessengerThread,
-    characters: nav.characters,
-    lorebooks: nav.lorebooks,
-    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-    onUpdateMessengerThread: nav.updateMessengerThread,
-  });
-  const { identityActions: roleplayIdentityActions, resourceActions: roleplayResourceActions } =
-    useChatSettingsRoleplayActions({
-      activeRoleplayThread,
+  const { identityActions, presetActions, promptActions, resourceActions } =
+    useChatSettingsMessengerActions({
+      activeMessengerThread,
       characters: nav.characters,
       lorebooks: nav.lorebooks,
       onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-      onUpdateRoleplayThread: nav.updateRoleplayThread,
+      onUpdateMessengerThread: nav.updateMessengerThread,
     });
+  const {
+    identityActions: roleplayIdentityActions,
+    presetActions: roleplayPresetActions,
+    resourceActions: roleplayResourceActions,
+  } = useChatSettingsRoleplayActions({
+    activeRoleplayThread,
+    characters: nav.characters,
+    lorebooks: nav.lorebooks,
+    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
+    onUpdateRoleplayThread: nav.updateRoleplayThread,
+  });
 
   function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {
     setOpenDrawers((current) => ({
@@ -69,6 +73,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         threadLabel: "Messenger",
       }),
@@ -78,6 +83,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
       nav.characters,
       nav.lorebooks,
       nav.personas,
+      nav.promptPresets,
       nav.providerConnections,
     ],
   );
@@ -89,6 +95,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
+        promptPresets: nav.promptPresets,
         providerConnections: nav.providerConnections,
         threadLabel: "Roleplay",
       }),
@@ -98,6 +105,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
       nav.characters,
       nav.lorebooks,
       nav.personas,
+      nav.promptPresets,
       nav.providerConnections,
     ],
   );
@@ -113,6 +121,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
       onToggle: toggleChatSettingsDrawer,
     },
     identity: identityActions,
+    preset: presetActions,
     prompt: promptActions,
     resources: {
       ...resourceActions,
@@ -131,6 +140,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
       onToggle: toggleChatSettingsDrawer,
     },
     identity: roleplayIdentityActions,
+    preset: roleplayPresetActions,
     resources: {
       ...roleplayResourceActions,
       onSelectorOpenChange: setCompanionSelectorOpen,

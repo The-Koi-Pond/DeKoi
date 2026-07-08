@@ -4,6 +4,7 @@ import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-r
 import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import {
+  appendMessengerMessages,
   clearMessengerMessages,
   createMessengerThread as buildMessengerThread,
   deleteMessengerThread as deleteMessengerThreadRecord,
@@ -105,6 +106,19 @@ export function useMessengerThreadActions({
     [setMessengerThreads],
   );
 
+  const appendMessengerThreadMessages = useCallback(
+    (threadId: string, messages: MessengerThread["messages"]) => {
+      if (messages.length === 0) return;
+
+      setMessengerThreads((currentThreads) =>
+        currentThreads.map((thread) =>
+          thread.id === threadId ? appendMessengerMessages(thread, messages) : thread,
+        ),
+      );
+    },
+    [setMessengerThreads],
+  );
+
   const renameMessengerThread = useCallback(
     (threadId: string, title: string) => {
       const trimmedTitle = title.trim();
@@ -159,6 +173,7 @@ export function useMessengerThreadActions({
   return {
     createMessengerThread,
     updateMessengerThread,
+    appendMessengerThreadMessages,
     renameMessengerThread,
     clearMessengerThreadMessages,
     deleteMessengerThread,

@@ -3,6 +3,7 @@ import type { CharacterRecord } from "../../../../engine/contracts/types/charact
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import {
   getThreadReferenceNotices,
@@ -26,6 +27,7 @@ export function getMessengerThreadReferenceSummary({
   characters,
   lorebooks,
   personas,
+  promptPresets,
   providerConnections,
   thread,
 }: {
@@ -33,6 +35,7 @@ export function getMessengerThreadReferenceSummary({
   characters: readonly CharacterRecord[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
+  promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
   thread: MessengerThread;
 }): MessengerThreadReferenceSummary {
@@ -42,6 +45,7 @@ export function getMessengerThreadReferenceSummary({
     globalLorebookIds: appSettings.globalLorebookIds,
     lorebooks,
     personas,
+    promptPresets,
     providerConnections,
     thread,
   });

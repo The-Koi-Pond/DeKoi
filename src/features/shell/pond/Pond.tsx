@@ -15,6 +15,8 @@ import {
   type LorebooksSurfaceNav,
   PersonasSurface,
   type PersonasSurfaceNav,
+  PromptPresetsSurface,
+  type PromptPresetsSurfaceNav,
 } from "../../catalog";
 import "./Pond.css";
 
@@ -30,6 +32,7 @@ export type PondNav = Pick<NavViewState, "view"> &
   LorebooksSurfaceNav &
   MessengerThreadNav &
   PersonasSurfaceNav &
+  PromptPresetsSurfaceNav &
   PondHomeNav;
 
 export function Pond({ nav, onOpenShoal }: PondProps) {
@@ -40,9 +43,11 @@ export function Pond({ nav, onOpenShoal }: PondProps) {
   const inConnections = nav.view.kind === "connections";
   const inPersonas = nav.view.kind === "personas";
   const inLorebooks = nav.view.kind === "lorebooks";
+  const inPresets = nav.view.kind === "presets";
   if (inCompanions) return <CompanionsSurface nav={nav} />;
   if (inConnections) return <ConnectionsSurface nav={nav} />;
   if (inPersonas) return <PersonasSurface nav={nav} />;
+  if (inPresets) return <PromptPresetsSurface nav={nav} />;
   if (inLorebooks) {
     const key =
       nav.view.kind === "lorebooks"

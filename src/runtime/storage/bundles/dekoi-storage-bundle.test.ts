@@ -33,6 +33,7 @@ describe("normalizeDeKoiStorageBundle", () => {
             entries: [],
           },
         ],
+        promptPresets: [],
         loreRuntimeStates: [],
         macroVariableStates: [],
         providerConnections: [],
@@ -83,6 +84,37 @@ describe("normalizeDeKoiStorageBundle", () => {
     );
   });
 
+  it("imports missing prompt presets as empty for older storage bundles", () => {
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        loreRuntimeStates: [],
+        macroVariableStates: [],
+        providerConnections: [],
+        messengerThreads: [],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.promptPresets).toEqual([]);
+    expect(result.preview.warnings).not.toContain(
+      "Prompt presets was missing or not an array; imported as empty.",
+    );
+  });
+
   it("skips lore runtime states whose owner thread is not imported", () => {
     const thread = createMessengerThread({
       activePersonaId: null,
@@ -102,6 +134,7 @@ describe("normalizeDeKoiStorageBundle", () => {
         roleplayEntries: [],
         personas: [],
         lorebooks: [],
+        promptPresets: [],
         loreRuntimeStates: [
           {
             id: "lore-runtime-state-imported",
@@ -193,6 +226,7 @@ describe("normalizeDeKoiStorageBundle", () => {
         roleplayEntries: [],
         personas: [],
         lorebooks: [],
+        promptPresets: [],
         loreRuntimeStates: [],
         macroVariableStates: [
           {
@@ -264,6 +298,7 @@ describe("normalizeDeKoiStorageBundle", () => {
       roleplayThreads: [],
       personas: [persona],
       lorebooks: [],
+      promptPresets: [],
       loreRuntimeStates: [],
       macroVariableStates: [],
       providerConnections: [],

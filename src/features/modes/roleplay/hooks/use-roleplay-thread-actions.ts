@@ -130,6 +130,19 @@ export function useRoleplayThreadActions({
     [setRoleplayThreads],
   );
 
+  const appendRoleplayThreadEntries = useCallback(
+    (threadId: string, entries: RoleplayThread["entries"]) => {
+      if (entries.length === 0) return;
+
+      setRoleplayThreads((currentThreads) =>
+        currentThreads.map((thread) =>
+          thread.id === threadId ? appendRoleplayEntries(thread, entries) : thread,
+        ),
+      );
+    },
+    [setRoleplayThreads],
+  );
+
   const renameRoleplayThread = useCallback(
     (threadId: string, title: string) => {
       const trimmedTitle = title.trim();
@@ -192,6 +205,7 @@ export function useRoleplayThreadActions({
   return {
     createRoleplayThread,
     updateRoleplayThread,
+    appendRoleplayThreadEntries,
     renameRoleplayThread,
     clearRoleplayThreadEntries,
     deleteRoleplayThread,

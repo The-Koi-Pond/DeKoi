@@ -15,6 +15,7 @@ import {
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
+import { readNullableString } from "../storage-json";
 
 export type MessengerStorageMode = StorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
@@ -115,6 +116,7 @@ function normalizeMessengerThreadWithDroppedCount(
           typeof candidate.providerConnectionId === "string"
             ? candidate.providerConnectionId
             : null,
+        presetId: readNullableString(candidate.presetId),
         systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
         systemPrompt:
           typeof candidate.systemPrompt === "string"

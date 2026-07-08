@@ -16,7 +16,10 @@ import type { AppStorageRepairStrategy } from "../../runtime";
 
 export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavCareState, "careOpen" | "careTab"> &
-  Pick<NavCatalogState, "characters" | "lorebooks" | "personas" | "providerConnections"> &
+  Pick<
+    NavCatalogState,
+    "characters" | "lorebooks" | "personas" | "promptPresets" | "providerConnections"
+  > &
   Pick<NavLoreRuntimeState, "loreRuntimeStates"> &
   Pick<NavMacroVariableState, "macroVariableStates"> &
   Pick<NavRippleState, "rippleStates"> &

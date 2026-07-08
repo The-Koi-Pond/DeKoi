@@ -8,6 +8,7 @@ import type {
 } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../contracts/types/persona";
+import type { PromptPresetRecord, PromptPresetSampling } from "../contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { AppSettings } from "../contracts/types/app-settings";
 import {
@@ -94,6 +95,7 @@ export interface GenerationRecordContext {
   loreInsertionStrategy: LoreInsertionStrategy;
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
+  promptPreset: PromptPresetRecord | null;
   warnings: string[];
 }
 
@@ -118,7 +120,7 @@ export interface GenerationRequestEnvelope<Thread> extends GenerationRequestBase
  * Warning order is preserved as context warnings followed by prompt warnings;
  * runtime workflows merge provider and dropped-draft warnings in their results.
  */
-export function createGenerationRequestEnvelope<Thread>({
+function createGenerationRequestEnvelope<Thread>({
   context,
   id,
   now,
@@ -150,7 +152,11 @@ export function createGenerationRequestEnvelope<Thread>({
     targetCharacterId: targetCompanion?.id ?? null,
     targetCharacterName: targetCompanion?.displayName ?? null,
     promptMessages,
-    parameters: createGenerationParameters(parameters, context.providerConnection),
+    parameters: createGenerationParameters(
+      parameters,
+      context.providerConnection,
+      context.promptPreset?.sampling,
+    ),
     warnings: [...context.warnings, ...promptWarnings],
   };
 }
@@ -212,6 +218,8 @@ export interface ResolveGenerationRecordsInput {
   activePersonaId: string | null;
   characterIds: string[];
   lorebookIds: string[];
+  promptPresetId?: string | null;
+  promptPresets?: PromptPresetRecord[];
   providerConnectionId: string | null;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
@@ -1633,11 +1641,26 @@ export function exampleDialogueGenerationContext(
 function createGenerationParameters(
   parameters: Partial<GenerationParameters> | undefined,
   providerConnection: ProviderConnectionRecord | null,
+  promptPresetSampling: PromptPresetSampling | null | undefined,
 ): GenerationParameters {
+  const presetTemperature =
+    promptPresetSampling?.temperature === undefined ? null : promptPresetSampling.temperature;
+  const presetMaxTokens =
+    promptPresetSampling?.maxTokens === undefined ? null : promptPresetSampling.maxTokens;
+  const presetTopP = promptPresetSampling?.topP === undefined ? null : promptPresetSampling.topP;
+  const providerMaxOutput =
+    typeof providerConnection?.maxOutput === "number" && providerConnection.maxOutput > 0
+      ? providerConnection.maxOutput
+      : null;
+  const requestedMaxTokens = presetMaxTokens ?? parameters?.maxTokens ?? providerMaxOutput ?? 1024;
+
   return {
-    temperature: parameters?.temperature ?? 0.8,
-    maxTokens: parameters?.maxTokens ?? providerConnection?.maxOutput ?? 1024,
-    topP: parameters?.topP ?? 0.95,
+    temperature: presetTemperature ?? parameters?.temperature ?? 0.8,
+    maxTokens:
+      providerMaxOutput === null
+        ? requestedMaxTokens
+        : Math.min(requestedMaxTokens, providerMaxOutput),
+    topP: presetTopP ?? parameters?.topP ?? 0.95,
   };
 }
 
@@ -1650,6 +1673,8 @@ export function resolveGenerationRecords({
   lorebookIds,
   lorebooks,
   personas,
+  promptPresetId = null,
+  promptPresets = [],
   providerConnectionId,
   providerConnections = [],
   warningPrefix,
@@ -1657,6 +1682,7 @@ export function resolveGenerationRecords({
   const characterById = new Map(characters.map((character) => [character.id, character]));
   const personaById = new Map(personas.map((persona) => [persona.id, persona]));
   const lorebookById = new Map(lorebooks.map((lorebook) => [lorebook.id, lorebook]));
+  const promptPresetById = new Map(promptPresets.map((preset) => [preset.id, preset]));
   const connectionIds = new Set(providerConnections.map((connection) => connection.id));
   const warnings: string[] = [];
 
@@ -1726,6 +1752,11 @@ export function resolveGenerationRecords({
     selectedProviderConnectionId = providerConnection?.id ?? null;
   }
 
+  const promptPreset = promptPresetId ? (promptPresetById.get(promptPresetId) ?? null) : null;
+  if (promptPresetId && !promptPreset) {
+    warnings.push(createGenerationWarning(warningPrefix, "prompt preset", promptPresetId));
+  }
+
   return {
     activePersona,
     companions,
@@ -1734,6 +1765,7 @@ export function resolveGenerationRecords({
     loreInsertionStrategy: appSettings?.loreInsertionStrategy ?? "sorted-evenly",
     providerConnectionId: selectedProviderConnectionId,
     providerConnection,
+    promptPreset,
     warnings,
   };
 }

@@ -15,6 +15,7 @@ export type {
   NavMessengerThreadActions,
   MessengerThreadCreateInput,
   NavPersonaActions,
+  NavPromptPresetActions,
   NavProviderConnectionActions,
   NavRippleState,
   NavSettingsActions,

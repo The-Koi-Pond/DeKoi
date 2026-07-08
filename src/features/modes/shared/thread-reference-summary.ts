@@ -1,6 +1,7 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { cleanTextArray } from "../../../shared/text";
 
@@ -8,6 +9,7 @@ export interface ThreadReferenceRecord {
   activePersonaId: string | null;
   characterIds: string[];
   lorebookIds: string[];
+  presetId: string | null;
   providerConnectionId: string | null;
 }
 
@@ -15,6 +17,7 @@ export interface ThreadReferenceSummary {
   availableCompanionCount: number;
   hasMissingConnection: boolean;
   hasMissingPersona: boolean;
+  hasMissingPreset: boolean;
   hasNoConnectionAvailable: boolean;
   missingCompanionCount: number;
   missingLorebookCount: number;
@@ -76,6 +79,7 @@ export function getThreadReferenceSummary({
   globalLorebookIds = [],
   lorebooks,
   personas,
+  promptPresets,
   providerConnections,
   thread,
 }: {
@@ -84,12 +88,14 @@ export function getThreadReferenceSummary({
   globalLorebookIds?: readonly string[];
   lorebooks: readonly LorebookRecord[];
   personas: readonly PersonaRecord[];
+  promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
   thread: ThreadReferenceRecord;
 }): ThreadReferenceSummary {
   const characterIds = new Set(characters.map((character) => character.id));
   const lorebookIds = new Set(lorebooks.map((lorebook) => lorebook.id));
   const personaIds = new Set(personas.map((persona) => persona.id));
+  const presetIds = new Set(promptPresets.map((preset) => preset.id));
   const connectionIds = new Set(providerConnections.map((connection) => connection.id));
   const explicitConnectionId = thread.providerConnectionId?.trim() ?? "";
   const fallbackConnectionId = fallbackProviderConnectionId?.trim() ?? "";
@@ -102,6 +108,7 @@ export function getThreadReferenceSummary({
     hasMissingConnection:
       explicitConnectionId.length > 0 && !connectionIds.has(explicitConnectionId),
     hasMissingPersona: !!thread.activePersonaId && !personaIds.has(thread.activePersonaId),
+    hasMissingPreset: !!thread.presetId && !presetIds.has(thread.presetId),
     hasNoConnectionAvailable: !hasFallbackConnection,
     missingCompanionCount: countMissingIds(thread.characterIds, characterIds),
     missingLorebookCount: countMissingIds(
@@ -159,6 +166,14 @@ export function getThreadReferenceNotices(
     notices.push({
       id: "missing-persona",
       message: `The selected persona is no longer saved. New messages will send as Anonymous until you update the ${threadNoun}.`,
+      tone: "warning",
+    });
+  }
+
+  if (summary.hasMissingPreset) {
+    notices.push({
+      id: "missing-preset",
+      message: `The selected prompt preset is no longer saved. ${labels.surfaceLabel} will use the default prompt until you update the ${threadNoun}.`,
       tone: "warning",
     });
   }

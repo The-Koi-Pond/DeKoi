@@ -11,7 +11,7 @@ import type {
 
 export type ShoalNav = Pick<
   NavCatalogState,
-  "characters" | "lorebooks" | "personas" | "providerConnections"
+  "characters" | "lorebooks" | "personas" | "promptPresets" | "providerConnections"
 > &
   Pick<
     NavRoleplayThreadActions,
