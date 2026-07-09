@@ -127,14 +127,18 @@ records the one-time marker without adding the starter so deleting the starter
 preset is respected.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
-Prompt still overrides both at generation time.
+Prompt still overrides both at generation time. Messenger does not consume
+prompt preset sections for prompt assembly.
 In Roleplay, a selected prompt preset can replace the system prelude and
-sampling, but it cannot replace the stored-output shape. DeKoi always appends
-the target companion single-character post-history contract until Roleplay has a
-native narrator, scene-beat, or multi-character generated-output model.
-Stored sections and groups are preserved native preset structure, but current
-generation uses the normalized `systemPrompt` or `messengerPrompt`; independent
-generation-time section assembly is a later prompt-builder concern.
+sampling, but it cannot replace the stored-output shape. If the preset has
+sections, Roleplay assembles provider messages from enabled sections and
+adjacent enabled groups instead of the fallback system prelude. Marker sections
+expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
+`world_info_after`, `persona`, `character`, `dialogue_examples`, and
+`chat_history`; depth sections insert around the `chat_history` marker or
+transcript by depth from the newest item. DeKoi still appends the target
+companion single-character post-history contract until Roleplay has a native
+narrator, scene-beat, or multi-character generated-output model.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 prompt-preset choice variable name. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, multi-select separators, and
@@ -200,9 +204,9 @@ newest transcript item. Kept lore summaries and bodies commit variable
 mutations only when that prompt-position text is formatted; dropped,
 macro-empty, unselected, or preview-only text does not commit variables or
 sample final random output. At-depth role defaults to `system`; Anthropic and
-Google provider
-connections convert at-depth system lore to `user` because those providers
-hoist system messages. Lorebook budgets apply per lorebook, using
+Google provider connections convert at-depth system lore, and later Roleplay
+sectioned-preset system messages, to `user` because those providers hoist
+system messages. Lorebook budgets apply per lorebook, using
 `budgetTokens` first or `budgetPercent` against provider `maxContext` when
 known. Percent budgets are left unapplied when context size is unknown. Budget
 trimming spends budget on direct activations before recursive activations, then
@@ -242,8 +246,10 @@ committed mutation log after generation succeeds. Mutated keys target the scope
 that supplied them at generation start: thread keys stay thread-scoped, keys
 that belonged only to global state stay global, and new keys are saved to the
 thread scope. Prompt-preset static and choice variables are request inputs from
-the preset and thread `presetChoiceSelections`; they are not persisted in this
-collection.
+the preset and thread `presetChoiceSelections`; they are resolved once before
+prompt assembly and are not persisted in this collection. Mutations targeting
+those request-local names can affect later prompt text in the same request, but
+they are skipped when `macro-variable-states` are committed.
 
 Generic JSON reader helpers for storage/import normalization live in
 `src/runtime/storage/storage-json.ts`. Product-specific normalization stays in the

@@ -41,7 +41,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   with create, edit, duplicate, and delete actions plus an editable starter
   preset. Native prompt preset records also normalize richer parameters,
   sections, groups, choice blocks, static variable values, and defaults for
-  compatible import and future editor work.
+  compatible import. Roleplay generation consumes section/group assembly when
+  present; Messenger keeps the Messenger Prompt Source/system prompt path.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
@@ -117,9 +118,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   scene-specific semantics, media, and visual-novel presentation remain early.
 - Lorebook triggers and character filters are normalized and stored, but
   activation behavior and advanced UI for those fields are not implemented yet.
-- Prompt preset sections, groups, rich parameters, and choice blocks are
-  normalized and can be imported, but generation-time section assembly and UI
-  editing for preset choice variables are not implemented yet.
+- Prompt preset section/group and choice-block UI editing is not implemented
+  yet. Messenger still uses the simple Messenger Prompt Source/system prompt
+  path; Roleplay section assembly is engine-only for compatible imported
+  records.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.

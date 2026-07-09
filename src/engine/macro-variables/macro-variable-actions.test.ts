@@ -138,6 +138,41 @@ describe("macro variable generation state", () => {
     ]);
   });
 
+  it("does not persist mutations for ephemeral request variables", () => {
+    const selection = buildGenerationMacroVariableState({
+      macroVariableStates: [],
+      ownerKind: "messenger-thread",
+      ownerId: "thread-1",
+    });
+
+    const committedStates = commitGenerationMacroVariableStates({
+      variableMutations: [
+        { kind: "set", name: "pacing", value: "slow" },
+        { kind: "set", name: "mood", value: "settled" },
+      ],
+      ephemeralVariableNames: ["pacing"],
+      createId: (prefix) => `${prefix}-new`,
+      macroVariableStates: [],
+      now: "2026-07-06T01:00:00.000Z",
+      ownerExists: true,
+      ownerKind: "messenger-thread",
+      ownerId: "thread-1",
+      selection,
+    });
+
+    expect(committedStates).toEqual([
+      {
+        id: "macro-variable-state-new",
+        schemaVersion: 1,
+        ownerKind: "messenger-thread",
+        ownerId: "thread-1",
+        variables: { mood: "settled" },
+        createdAt: "2026-07-06T01:00:00.000Z",
+        updatedAt: "2026-07-06T01:00:00.000Z",
+      },
+    ]);
+  });
+
   it("does not create a first owner scope when the owner was removed before commit", () => {
     const selection = buildGenerationMacroVariableState({
       macroVariableStates: [],

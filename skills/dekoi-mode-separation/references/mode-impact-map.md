@@ -90,6 +90,9 @@ Allowed shared homes:
   importing generic frontend/shared code.
 - `src/engine/generation-core`: mode-neutral activation and prompt-selection
   primitives shared by Messenger and Roleplay.
+- `src/engine/prompt-presets`: prompt preset normalization and
+  provider-message assembly helpers; concrete modes still supply their own
+  marker expansions, transcripts, and tail prompts.
 - `src/features/modes/shared`: shared mode UI and mode-safe helpers such as
   `ChatComposer` and reference-summary helpers.
 - `src/features/runtime/generation/generated-draft-records.ts`: shared

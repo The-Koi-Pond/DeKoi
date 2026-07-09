@@ -143,8 +143,9 @@ Focused checks for narrow changes are mapped to change types in
   settings. Messenger uses the preset's Messenger prompt source when present,
   falls back to the preset system prompt, and lets a non-empty edited Messenger
   Prompt override both for that thread. Imported compatible presets may also
-  carry sections, groups, choice blocks, and per-thread choice selections that
-  feed request-local prompt variables during generation.
+  carry sections, groups, choice blocks, and per-thread choice selections.
+  Roleplay generation consumes imported section/group structure when present;
+  choice selections feed request-local prompt variables during generation.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

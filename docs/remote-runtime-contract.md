@@ -304,10 +304,11 @@ treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
 built-in macros in Messenger and Roleplay system prompts, selected prompt
 preset system prompts, selected Messenger preset prompt sources, prompt-preset
-static and choice variables, Roleplay scene setup, persona and character context
-fields, post-history instructions, lorebook summaries and bodies, at-depth lore,
-and example dialogue. It also includes request-local variable macro side
-effects: DeKoi commits only the variable mutations that survive app-side prompt
+static and choice variables, selected Roleplay prompt preset sections and
+markers, Roleplay scene setup, persona and character context fields,
+post-history instructions, lorebook summaries and bodies, at-depth lore, and
+example dialogue. It also includes request-local variable macro side effects:
+DeKoi commits only the variable mutations that survive app-side prompt
 formatting, then sends the final `promptMessages`.
 
 Request:
@@ -564,9 +565,14 @@ requests consume the sampling projection, and cap preset `maxTokens` to the
 selected provider connection's positive `maxOutput` when one is configured.
 Messenger uses `messengerPrompt` as its selected-preset source when present,
 then falls back to `systemPrompt`. A non-empty custom Messenger Prompt still
-overrides the selected preset at generation time. Remote runtimes should expose
-native prompt preset records in storage; packaged preset envelopes are only
-normalized by DeKoi bundle import.
+overrides the selected preset at generation time and Messenger does not consume
+prompt preset sections. Roleplay consumes enabled sections and adjacent enabled
+groups for prompt assembly when a selected preset has sections; otherwise it
+uses `systemPrompt` as the fallback prelude. Roleplay marker sections expand
+scene, lore, persona, character, example-dialogue, and chat-history context,
+and depth sections are anchored to the chat history marker or transcript.
+Remote runtimes should expose native prompt preset records in storage; packaged
+preset envelopes are only normalized by DeKoi bundle import.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.
@@ -670,7 +676,9 @@ remaining cooldown. Percent budgets apply only when the selected provider
 connection has `maxContext`; otherwise DeKoi leaves the activated lore in place
 instead of silently dropping it. Runtimes should preserve the provided
 `promptMessages` roles and content, including at-depth system lore that DeKoi
-has already converted to `user` for Anthropic or Google provider connections.
+has already converted to `user` for Anthropic or Google provider connections
+and later Roleplay sectioned-preset system messages that would otherwise be
+hoisted out of stream order.
 Secondary-key logic is already applied before the runtime receives
 `promptMessages`.
 Character filters and triggers are still not applied by DeKoi prompt assembly.
