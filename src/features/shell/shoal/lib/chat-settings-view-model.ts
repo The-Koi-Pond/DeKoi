@@ -74,6 +74,7 @@ export function getChatSettingsViewModel({
     }),
     sanitizedProviderConnections,
     missingPresetId,
+    presetChoiceSelections: activeThread?.presetChoiceSelections ?? {},
     presetDrawerSummary:
       activeThread?.systemPromptMode === "custom"
         ? selectedPreset

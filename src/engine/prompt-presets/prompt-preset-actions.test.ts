@@ -5,7 +5,9 @@ import {
   duplicatePromptPresetRecord,
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetRecord,
+  resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
+  updatePromptPresetChoiceSelections,
   updatePromptPresetRecord,
 } from "./prompt-preset-actions";
 
@@ -258,6 +260,345 @@ describe("normalizePromptPresetRecord", () => {
         motifs: "rain on glass / neon signs",
       },
       variableNames: ["baseTone", "motifs"],
+    });
+  });
+
+  it("builds ordered visible choice controls for thread settings UI", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{boundary}} and {{motifs}}.",
+      variableOrder: ["choice-motifs", "choice-boundary", "choice-hidden"],
+      defaultChoices: {
+        motifs: ["rain", "neon"],
+      },
+      choiceBlocks: [
+        {
+          id: "choice-boundary",
+          variableName: "boundary",
+          label: "Boundary",
+          defaultOptionId: "sfw",
+          options: [
+            { id: "sfw", label: "SFW", value: "SFW" },
+            { id: "adult", label: "Adult", value: "Adult" },
+          ],
+        },
+        {
+          id: "choice-hidden",
+          variableName: "hiddenTone",
+          label: "Hidden tone",
+          defaultOptionId: "soft",
+          options: [
+            { id: "soft", label: "Soft", value: "soft" },
+            { id: "direct", label: "Direct", value: "direct" },
+          ],
+          visibilityRule: {
+            variableName: "boundary",
+            values: ["Adult"],
+          },
+        },
+        {
+          id: "choice-motifs",
+          variableName: "motifs",
+          label: "Motifs",
+          options: [
+            { id: "rain", label: "Rain", value: "rain" },
+            { id: "neon", label: "Neon", value: "neon" },
+            { id: "static", label: "Static", value: "static" },
+          ],
+          multiSelect: true,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    expect(
+      resolvePromptPresetChoiceControls({
+        preset: record,
+        selections: {
+          boundary: "SFW",
+          hiddenTone: "direct",
+          motifs: ["static", "missing"],
+        },
+      }),
+    ).toEqual([
+      {
+        id: "choice-motifs",
+        variableName: "motifs",
+        label: "Motifs",
+        multiSelect: true,
+        defaultLabel: "Preset default: Rain, Neon",
+        selectedOptionIds: ["static"],
+        selectedValues: ["static"],
+        options: [
+          {
+            id: "rain",
+            label: "Rain",
+            value: "rain",
+            selection: { kind: "option", optionId: "rain" },
+          },
+          {
+            id: "neon",
+            label: "Neon",
+            value: "neon",
+            selection: { kind: "option", optionId: "neon" },
+          },
+          {
+            id: "static",
+            label: "Static",
+            value: "static",
+            selection: { kind: "option", optionId: "static" },
+          },
+        ],
+      },
+      {
+        id: "choice-boundary",
+        variableName: "boundary",
+        label: "Boundary",
+        multiSelect: false,
+        defaultLabel: "Preset default: SFW",
+        selectedOptionIds: ["sfw"],
+        selectedValues: ["SFW"],
+        options: [
+          { id: "sfw", label: "SFW", value: "SFW", selection: { kind: "option", optionId: "sfw" } },
+          {
+            id: "adult",
+            label: "Adult",
+            value: "Adult",
+            selection: { kind: "option", optionId: "adult" },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps option identity when a selected choice value is empty", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{tone}}.",
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          defaultOptionId: "loud",
+          options: [
+            { id: "none", label: "None", value: "" },
+            { id: "loud", label: "Loud", value: "loud" },
+          ],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    expect(
+      resolvePromptPresetChoiceControls({
+        preset: record,
+        selections: { tone: "none" },
+      }),
+    ).toEqual([
+      {
+        id: "choice-tone",
+        variableName: "tone",
+        label: "Tone",
+        multiSelect: false,
+        defaultLabel: "Preset default: Loud",
+        selectedOptionIds: ["none"],
+        selectedValues: [""],
+        options: [
+          { id: "none", label: "None", value: "", selection: { kind: "option", optionId: "none" } },
+          {
+            id: "loud",
+            label: "Loud",
+            value: "loud",
+            selection: { kind: "option", optionId: "loud" },
+          },
+        ],
+      },
+    ]);
+    expect(
+      resolvePromptPresetChoiceVariables({
+        preset: record,
+        selections: { tone: "none" },
+      }),
+    ).toEqual({
+      variables: {
+        tone: "",
+      },
+      variableNames: ["tone"],
+    });
+  });
+
+  it("resolves non-empty value-based selections before option ids", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{tone}}.",
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [
+            { id: "soft", label: "Soft", value: "quiet" },
+            { id: "quiet", label: "Loud", value: "loud" },
+          ],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    expect(
+      resolvePromptPresetChoiceControls({
+        preset: record,
+        selections: { tone: "quiet" },
+      })[0]?.selectedOptionIds,
+    ).toEqual(["soft"]);
+    expect(
+      resolvePromptPresetChoiceVariables({
+        preset: record,
+        selections: { tone: "quiet" },
+      }).variables,
+    ).toEqual({ tone: "quiet" });
+  });
+
+  it("resolves control selections as option ids", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{tone}}.",
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          defaultOptionId: "loud",
+          options: [
+            { id: "none", label: "None", value: "" },
+            { id: "loud", label: "Loud", value: "loud" },
+          ],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    const noneSelection = resolvePromptPresetChoiceControls({ preset: record, selections: {} })
+      .flatMap((control) => control.options)
+      .find((option) => option.id === "none")?.selection;
+
+    expect(noneSelection).toEqual({ kind: "option", optionId: "none" });
+    expect(
+      resolvePromptPresetChoiceVariables({
+        preset: record,
+        selections: { tone: noneSelection ?? "" },
+      }),
+    ).toEqual({
+      variables: {
+        tone: "",
+      },
+      variableNames: ["tone"],
+    });
+  });
+
+  it("deduplicates generated values without collapsing selected option ids", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{tags}}.",
+      choiceBlocks: [
+        {
+          id: "choice-tags",
+          variableName: "tags",
+          label: "Tags",
+          multiSelect: true,
+          options: [
+            { id: "left", label: "Left", value: "shared" },
+            { id: "right", label: "Right", value: "shared" },
+            { id: "sharp", label: "Sharp", value: "sharp" },
+          ],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    const selections = {
+      tags: [
+        { kind: "option" as const, optionId: "left" },
+        { kind: "option" as const, optionId: "right" },
+        { kind: "option" as const, optionId: "sharp" },
+      ],
+    };
+
+    expect(
+      resolvePromptPresetChoiceControls({
+        preset: record,
+        selections,
+      })[0]?.selectedOptionIds,
+    ).toEqual(["left", "right", "sharp"]);
+    expect(
+      resolvePromptPresetChoiceVariables({
+        preset: record,
+        selections,
+      }),
+    ).toEqual({
+      variables: {
+        tags: "shared, sharp",
+      },
+      variableNames: ["tags"],
+    });
+  });
+
+  it("updates prompt preset choice selections without mutating the input record", () => {
+    const selections = {
+      motifs: ["rain", "neon"],
+      tone: "soft",
+    };
+
+    expect(updatePromptPresetChoiceSelections(selections, " tone ", " ")).toEqual({
+      motifs: ["rain", "neon"],
+    });
+    expect(updatePromptPresetChoiceSelections(selections, " motifs ", [" static ", ""])).toEqual({
+      motifs: ["static"],
+      tone: "soft",
+    });
+    expect(
+      updatePromptPresetChoiceSelections(selections, " tone ", {
+        kind: "option",
+        optionId: " none ",
+      }),
+    ).toEqual({
+      motifs: ["rain", "neon"],
+      tone: { kind: "option", optionId: "none" },
+    });
+    expect(selections).toEqual({
+      motifs: ["rain", "neon"],
+      tone: "soft",
     });
   });
 

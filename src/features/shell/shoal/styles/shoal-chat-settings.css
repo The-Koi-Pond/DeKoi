@@ -488,6 +488,13 @@
   min-width: 0;
 }
 
+.chat-settings-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .chat-settings-edit-button {
   height: 34px;
   padding: 0 11px;

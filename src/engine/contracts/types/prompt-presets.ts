@@ -55,7 +55,22 @@ export interface PromptPresetChoiceBlock {
   visibilityRule?: PromptPresetVisibilityRule | null;
 }
 
-export type PromptPresetChoiceSelection = string | string[];
+/**
+ * Selects a prompt-preset choice by stable option id when the option value is
+ * empty or duplicated.
+ */
+export interface PromptPresetChoiceOptionSelection {
+  kind: "option";
+  optionId: string;
+}
+
+/**
+ * String selections resolve by option value, then option id. Object selections
+ * preserve option identity; arrays represent multi-select choices.
+ */
+export type PromptPresetChoiceSelectionValue = string | PromptPresetChoiceOptionSelection;
+export type PromptPresetChoiceSelection =
+  PromptPresetChoiceSelectionValue | PromptPresetChoiceSelectionValue[];
 export type PromptPresetChoiceSelections = Record<string, PromptPresetChoiceSelection>;
 
 export type PromptPresetSectionRole = "system" | "user" | "assistant";

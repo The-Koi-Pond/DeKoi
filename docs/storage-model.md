@@ -125,6 +125,12 @@ in app settings. If remote storage already has any saved collection records, or
 if desktop storage already has an empty `prompt-presets` collection, DeKoi
 records the one-time marker without adding the starter so deleting the starter
 preset is respected.
+Prompt preset `defaultChoices` and thread `presetChoiceSelections` share the
+same selection shape: a non-empty string resolved first as an option value and
+then as an option ID, an object selection such as
+`{ "kind": "option", "optionId": "tone-soft" }`, or an array of those values
+for multi-select blocks. Use the object form when an option value is empty or
+when multiple options intentionally produce the same value.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
@@ -143,6 +149,8 @@ Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 prompt-preset choice variable name. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, multi-select separators, and
 random-pick blocks into request-local macro variables before prompt assembly.
+Changing or clearing a thread's selected prompt preset clears its stored choice
+selections; re-selecting the same preset preserves them.
 
 Current generation builds a generation-owned macro context, including the
 request-local variable map, at the mode boundary. It resolves current built-in

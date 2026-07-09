@@ -10,11 +10,14 @@ interface ChatSettingsPresetDrawerProps {
   fieldLabel?: string;
   model: ChatSettingsPresetResourceModel;
   promptPresets: readonly PromptPresetRecord[];
+  secondaryActionDisabled?: boolean;
+  secondaryActionLabel?: string;
   surfaceLabel?: string;
   title?: string;
   onClearMissingPreset: () => void;
   onPresetAction: () => void;
   onPresetChange: (presetId: string) => void;
+  onSecondaryAction?: () => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
 }
 
@@ -24,11 +27,14 @@ export function ChatSettingsPresetDrawer({
   fieldLabel = "Prompt preset",
   model,
   promptPresets,
+  secondaryActionDisabled = false,
+  secondaryActionLabel,
   surfaceLabel = "Messenger",
   title = `${surfaceLabel} Preset`,
   onClearMissingPreset,
   onPresetAction,
   onPresetChange,
+  onSecondaryAction,
   onToggle,
 }: ChatSettingsPresetDrawerProps) {
   const options: ChatSettingsDropdownOption[] = [
@@ -69,14 +75,26 @@ export function ChatSettingsPresetDrawer({
             disabled={!model.activeThread}
             onChange={onPresetChange}
           />
-          <button
-            type="button"
-            className="chat-settings-edit-button"
-            disabled={actionDisabled}
-            onClick={onPresetAction}
-          >
-            {actionLabel}
-          </button>
+          <div className="chat-settings-prompt-actions">
+            <button
+              type="button"
+              className="chat-settings-edit-button"
+              disabled={actionDisabled}
+              onClick={onPresetAction}
+            >
+              {actionLabel}
+            </button>
+            {secondaryActionLabel && onSecondaryAction && (
+              <button
+                type="button"
+                className="chat-settings-edit-button"
+                disabled={secondaryActionDisabled}
+                onClick={onSecondaryAction}
+              >
+                {secondaryActionLabel}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </ChatSettingsDrawer>
