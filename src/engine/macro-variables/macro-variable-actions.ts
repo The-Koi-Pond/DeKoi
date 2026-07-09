@@ -18,6 +18,8 @@ export type MacroVariableStateSelection = {
 
 export type MacroVariableStateCommit = {
   variableMutations: MacroVariableMutation[];
+  /** Request-local variable names whose prompt mutations must not persist. */
+  ephemeralVariableNames?: string[];
   now: string;
   ownerKind: MacroVariableThreadOwnerKind;
   ownerId: string;
@@ -130,6 +132,7 @@ function applyMacroVariableMutation(
 
 export function commitGenerationMacroVariableStates({
   createId,
+  ephemeralVariableNames = [],
   macroVariableStates,
   now,
   ownerExists,
@@ -139,6 +142,7 @@ export function commitGenerationMacroVariableStates({
   variableMutations,
 }: {
   createId: MacroVariableStateCreateId;
+  ephemeralVariableNames?: MacroVariableStateCommit["ephemeralVariableNames"];
   macroVariableStates: MacroVariableScope[];
   now: MacroVariableStateCommit["now"];
   ownerExists: boolean;
@@ -168,8 +172,11 @@ export function commitGenerationMacroVariableStates({
   };
   let globalTouched = false;
   let ownerTouched = false;
+  const ephemeralVariableNameSet = new Set(ephemeralVariableNames);
 
   for (const mutation of variableMutations) {
+    if (ephemeralVariableNameSet.has(mutation.name)) continue;
+
     const targetsGlobal = !ownerKeys.has(mutation.name) && globalKeys.has(mutation.name);
     if (targetsGlobal) {
       if (!selection.globalScope || currentGlobalScope) {

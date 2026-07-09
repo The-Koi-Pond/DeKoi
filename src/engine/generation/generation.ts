@@ -355,6 +355,28 @@ export function resolveGenerationMacros(
   return resolveMacros(value, macroContext, options);
 }
 
+/**
+ * Resolves request-local prompt preset variables before prompt text reads them.
+ * Variable mutations inside those values stay scratch-only.
+ */
+export function resolveGenerationMacroVariableValues(
+  macroContext: GenerationMacroContext,
+  variableNames: readonly string[],
+) {
+  const seen = new Set<string>();
+  for (const variableName of variableNames) {
+    if (seen.has(variableName)) continue;
+    seen.add(variableName);
+
+    const value = macroContext.variables[variableName];
+    if (value === undefined) continue;
+    macroContext.variables[variableName] = resolveMacros(
+      value,
+      createScratchMacroContext(macroContext),
+    );
+  }
+}
+
 function resolveGenerationMacrosDiscardingVariables(
   value: string | null | undefined,
   macroContext: GenerationMacroContext,
@@ -933,6 +955,32 @@ function discardPendingGenerationMacroCommit(
   }
 
   commit.consumedContexts.add(macroContext);
+}
+
+function discardFreshPendingGenerationMacroCommit(
+  commit: PendingGenerationMacroCommit | null | undefined,
+  macroContext: GenerationMacroContext,
+) {
+  if (!commit || commit.consumedContexts.has(macroContext)) return;
+  commit.consumedContexts.add(macroContext);
+}
+
+/**
+ * Marks activated lore entries as settled when a sectioned prompt preset omits
+ * the marker that would have rendered them into the provider prompt.
+ */
+export function settleUnrenderedLoreGenerationEntries(
+  entries: ActivatedLoreEntry[],
+  macroContext: GenerationMacroContext,
+) {
+  for (const entry of entries) {
+    const macroCommit = loreGenerationMacroCommit(entry);
+    if (!macroCommit) continue;
+
+    discardFreshPendingGenerationMacroCommit(macroCommit.summary, macroContext);
+    discardFreshPendingGenerationMacroCommit(macroCommit.entry, macroContext);
+    settleLoreGenerationFormattingEntry(entry);
+  }
 }
 
 function approximateResolvedLoreEntryTokens(entry: ActivatedLoreEntry) {
@@ -1525,7 +1573,8 @@ function atDepthInsertionIndex(messageCount: number, depth: number | null) {
   return Math.max(0, Math.min(messageCount, messageCount - safeDepth));
 }
 
-function providerHoistsSystemMessages(
+/** Returns true when the provider path lifts system messages out of stream order. */
+export function providerHoistsSystemMessages(
   providerConnection: ProviderConnectionRecord | null | undefined,
 ) {
   return providerConnection?.provider === "anthropic" || providerConnection?.provider === "google";

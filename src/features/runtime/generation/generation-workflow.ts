@@ -24,6 +24,8 @@ type ThreadGenerationOwnerKind = MacroVariableThreadOwnerKind & LoreRuntimeState
 
 interface GenerationWorkflowContext {
   companions: CharacterRecord[];
+  /** Request-local prompt variables whose mutations should be ignored on commit. */
+  ephemeralVariableNames?: readonly string[];
 }
 
 interface GeneratedWorkflowRecordInput {
@@ -136,6 +138,7 @@ export async function runGenerationWorkflow<
     ),
     macroVariableCommit: {
       variableMutations,
+      ephemeralVariableNames: [...(context.ephemeralVariableNames ?? [])],
       now: response.createdAt,
       ownerId: thread.id,
       ownerKind,

@@ -75,6 +75,13 @@ src/engine/generation/roleplay-generation.ts
 src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.
 
+src/engine/prompt-presets/prompt-preset-actions.ts
+src/engine/prompt-presets/prompt-preset-normalization.ts
+src/engine/prompt-presets/prompt-preset-assembler.ts
+src/engine/prompt-presets/starter-preset.ts
+  Prompt preset actions, normalization, starter records, and provider-message
+  assembly helpers.
+
 src/engine/shared/errors.ts
 src/engine/shared/text.ts
   Engine-local shared formatting and string cleanup helpers. Keep behavior
@@ -129,6 +136,7 @@ src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
 src/engine/modes           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
+src/engine/prompt-presets  Prompt preset actions, normalization, and assembly.
 src/engine/macro-variables Owner-scoped macro variable state actions.
 src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports only when real adapters need them.

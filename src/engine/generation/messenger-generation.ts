@@ -31,6 +31,7 @@ import {
   namedGenerationBlock,
   personaGenerationContext,
   resolveGenerationMacros,
+  resolveGenerationMacroVariableValues,
   resolveGenerationRecords,
   type GenerationMacroContext,
   type GenerationPromptAssemblyResult,
@@ -70,6 +71,7 @@ export interface MessengerGenerationContext {
   providerConnection: ProviderConnectionRecord | null;
   promptPreset: PromptPresetRecord | null;
   requestThread: MessengerThread;
+  ephemeralVariableNames: string[];
   variables: Record<string, string>;
   warnings: string[];
 }
@@ -115,7 +117,7 @@ export function createMessengerGenerationContext({
   const presetChoiceVariables = resolvePromptPresetChoiceVariables({
     preset: records.promptPreset,
     selections: thread.presetChoiceSelections,
-  }).variables;
+  });
 
   return {
     activePersona: records.activePersona,
@@ -126,13 +128,18 @@ export function createMessengerGenerationContext({
     providerConnectionId: records.providerConnectionId,
     providerConnection: records.providerConnection,
     promptPreset: records.promptPreset,
-    variables: { ...variables, ...presetChoiceVariables },
+    ephemeralVariableNames: presetChoiceVariables.variableNames,
+    variables: {
+      ...variables,
+      ...presetChoiceVariables.variables,
+    },
     requestThread: {
       ...thread,
       activePersonaId: records.activePersona?.id ?? null,
       characterIds: records.companions.map((companion) => companion.id),
       lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
       presetId: records.promptPreset?.id ?? null,
+      presetChoiceSelections: records.promptPreset ? (thread.presetChoiceSelections ?? {}) : {},
       mode: records.companions.length > 1 ? "group" : "direct",
       providerConnectionId: records.providerConnectionId,
     },
@@ -239,6 +246,7 @@ function createMessengerPromptAssembly({
   timeZone,
   userMessage,
   variables,
+  variableNames,
 }: {
   activePersona: PersonaRecord | null;
   companions: CharacterRecord[];
@@ -253,6 +261,7 @@ function createMessengerPromptAssembly({
   timeZone?: string | null;
   userMessage: MessengerMessage;
   variables?: Record<string, string>;
+  variableNames?: string[];
 }): GenerationPromptAssemblyResult {
   const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
@@ -267,6 +276,7 @@ function createMessengerPromptAssembly({
     variables,
     variableMutations: macroVariableMutations,
   });
+  resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
   const selectedPrompt = resolveGenerationMacros(
     resolveMessengerSystemPrompt(thread, resolvePromptPresetMessengerPrompt(promptPreset)),
     macroContext,
@@ -300,18 +310,19 @@ function createMessengerPromptAssembly({
     activatedLoreEntries.filter((entry) => entry.entry.insertionPosition === "at-depth"),
     { macroContext, providerConnection },
   );
+  const promptMessages = [
+    {
+      role: "system" as const,
+      content: systemPrompt,
+    },
+    ...transcriptWithDepthLore,
+  ];
   const finalLoreRuntimeState = finalizeLoreGenerationRuntimeState(loreActivation);
 
   return {
     loreRuntimeState: finalLoreRuntimeState,
     macroVariableMutations,
-    promptMessages: [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      ...transcriptWithDepthLore,
-    ],
+    promptMessages,
     warnings: loreActivation.warnings,
   };
 }
@@ -378,6 +389,7 @@ export function createMessengerGenerationRequestAssembly({
     timeZone,
     userMessage,
     variables: context.variables,
+    variableNames: context.ephemeralVariableNames,
   });
 
   return createGenerationRequestAssemblyResult<MessengerThread, MessengerGenerationRequest>({

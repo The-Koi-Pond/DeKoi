@@ -5,9 +5,10 @@ metadata, and the Slice 9b catalog live-preview pass are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
 context fields, selected prompt preset system prompts, selected Messenger
-preset prompt sources, prompt-preset static and choice variables, post-history
-instructions, lorebook summaries, activated lore entry bodies, at-depth lore
-messages, and example dialogue.
+preset prompt sources, selected Roleplay prompt preset sections and markers,
+prompt-preset static and choice variables, post-history instructions, lorebook
+summaries, activated lore entry bodies, at-depth lore messages, and example
+dialogue.
 
 ## Boundary
 
@@ -320,6 +321,14 @@ earlier prompt-order mutations, random lore is sampled only when kept text is
 emitted, and dropped or macro-empty lore does not commit variables or start
 timers.
 
+Roleplay prompt preset sections resolve macros in final provider-message order
+when the selected preset has sections. The `chat_history` marker anchors the
+transcript and prompt preset depth sections, while known Roleplay markers expand
+scene, lore, persona, character, and example-dialogue blocks. Sectioned presets
+that omit a non-depth lore marker do not emit that lore text, so no prompt
+mutations from the omitted text commit. Messenger does not consume preset
+sections; it continues to render its Messenger prompt source/system prompt path.
+
 ## Slice 7 Dynamic Variable Persistence
 
 The resolver still treats variables as caller-owned context and never reads
@@ -327,10 +336,14 @@ storage. Messenger and Roleplay generation build a request-local variable map
 from global `MacroVariableScope` state overlaid with the active thread scope,
 then record committed prompt-order mutations for the caller.
 
-Before macro resolution, selected prompt presets overlay static `variableValues`
-and resolved per-thread `presetChoiceSelections` into the request-local variable
-map. Those preset variables can override stored global or thread macro variables
-for the current request, but they are not persisted in `macro-variable-states`.
+Before prompt text resolves, selected prompt presets overlay static
+`variableValues` and resolved per-thread `presetChoiceSelections` into the
+request-local variable map, then resolve those preset-supplied variable values
+once with a scratch macro context. Those preset variables can override stored
+global or thread macro variables for the current request, but they are not
+persisted in `macro-variable-states`. Mutations targeting those request-local
+names can affect later prompt text in the same request, but they are ignored
+when macro variable state is committed.
 Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the
 scope that supplied them at generation start: thread keys stay thread-scoped,

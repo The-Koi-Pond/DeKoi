@@ -288,11 +288,10 @@ Current implementation:
 - Messenger and Roleplay threads can select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still
-  wins over both. Roleplay uses the selected preset system prompt as its system
-  prelude, then still appends the Roleplay-owned one-character output contract.
-- Stored sections and groups are preserved for compatible imports and future
-  prompt-builder work; current generation uses the normalized system or
-  Messenger prompt text.
+  wins over both. Messenger does not consume preset sections. Roleplay uses
+  sections and groups when the selected preset has them, otherwise it uses the
+  selected preset system prompt as its system prelude, then still appends the
+  Roleplay-owned one-character output contract.
 - Per-thread preset choice selections become request-local prompt variables at
   generation time. They are saved on the Messenger or Roleplay thread, not in
   `MacroVariableScope`.
