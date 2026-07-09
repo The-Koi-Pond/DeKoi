@@ -1749,6 +1749,26 @@ def fallback_change_summary(base, files):
     ]
 
 
+def append_unique_pre_merge_check(review_obj, check):
+    checks = review_obj.setdefault("pre_merge_checks", [])
+    key = (check.get("name"), check.get("status"), check.get("type"), check.get("detail"))
+    if key in {
+        (item.get("name"), item.get("status"), item.get("type"), item.get("detail"))
+        for item in checks
+    }:
+        return
+    checks.append(check)
+
+
+def schema_repair_failure_detail(remaining_gaps, repair_error):
+    issue = "; ".join(remaining_gaps[:3]) or repair_error
+    return (
+        "Bunny's model review JSON stayed incomplete after schema repair"
+        + (f": {issue}." if issue else ".")
+        + " Rerun after fixing the review output path."
+    )
+
+
 def normalize_review_object(review_obj, base, files):
     if not isinstance(review_obj, dict):
         review_obj = {}
@@ -1777,6 +1797,26 @@ def normalize_review_object(review_obj, base, files):
     for key in ("findings", "nitpicks", "pre_merge_checks"):
         if not isinstance(review_obj.get(key), list):
             review_obj[key] = []
+    if remaining_gaps or repair_error:
+        append_unique_pre_merge_check(
+            review_obj,
+            {
+                "name": "Review Failed",
+                "status": "fail",
+                "type": "Review Limitation",
+                "detail": schema_repair_failure_detail(remaining_gaps, repair_error),
+            },
+        )
+    elif used_fallback:
+        append_unique_pre_merge_check(
+            review_obj,
+            {
+                "name": "Review Output",
+                "status": "warn",
+                "type": "Review Limitation",
+                "detail": "Bunny had to rebuild the loot summary from diff metadata; inspect diagnostics before treating this as a complete model-authored review.",
+            },
+        )
     if used_fallback:
         note = (
             "Bunny rebuilt the loot summary from git diff metadata because the final model output omitted `change_summary`."
@@ -1938,11 +1978,20 @@ def merge_review_objects(reviews):
         "what_i_checked": [],
     }
     seen_findings = set()
+    schema_repair_errors = []
     for review in reviews:
         for key in ("change_summary", "open_questions", "what_i_checked"):
             for item in review.get(key, []):
                 if item not in merged[key]:
                     merged[key].append(item)
+        for key in ("_schema_repair_gaps", "_schema_repair_remaining_gaps"):
+            for item in normalize_text_list(review.get(key)):
+                merged.setdefault(key, [])
+                if item not in merged[key]:
+                    merged[key].append(item)
+        repair_error = str(review.get("_schema_repair_error") or "").strip()
+        if repair_error and repair_error not in schema_repair_errors:
+            schema_repair_errors.append(repair_error)
         for check in review.get("pre_merge_checks", []):
             key = (check.get("name"), check.get("status"), check.get("type"), check.get("detail"))
             if key not in {
@@ -1962,6 +2011,8 @@ def merge_review_objects(reviews):
                 seen_findings.add(key)
                 merged[key_name].append(finding)
     merged["nitpicks"] = merged["nitpicks"][:2]
+    if schema_repair_errors:
+        merged["_schema_repair_error"] = "; ".join(schema_repair_errors[:3])
     return merged
 
 

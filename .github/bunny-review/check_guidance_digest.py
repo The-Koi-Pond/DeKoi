@@ -198,6 +198,95 @@ def run_semantic_repair_case(module):
     return stats["model_calls"]
 
 
+def run_chunk_schema_repair_case(module):
+    incomplete_chunk = {
+        "findings": [],
+        "nitpicks": [],
+        "pre_merge_checks": [],
+        "open_questions": [],
+        "what_i_checked": [],
+        "_schema_repair_gaps": [
+            "change_summary must be a non-empty list of summary strings",
+        ],
+        "_schema_repair_remaining_gaps": [
+            "change_summary must be a non-empty list of summary strings",
+            "what_i_checked must include review context or proof notes",
+        ],
+    }
+    clean_chunk = {
+        "change_summary": [
+            "Wah, one chunk counted its loot, but another chunk failed the review schema machine."
+        ],
+        "findings": [],
+        "nitpicks": [],
+        "pre_merge_checks": [],
+        "open_questions": [],
+        "what_i_checked": [
+            "Aha, this clean chunk checked its focused files."
+        ],
+    }
+    merged = module.merge_review_objects([incomplete_chunk, clean_chunk])
+    assert merged["_schema_repair_remaining_gaps"], "chunk merge must keep unrepaired schema gaps"
+    normalized = module.normalize_review_object(merged, "HEAD~1", ["src/example.ts"])
+    normalized["head_commit_message"] = "Test review head"
+    module.REPO_ROOT = REPO_ROOT
+    failed_controls = [
+        item
+        for item in normalized["pre_merge_checks"]
+        if item.get("name") == "Review Failed" and item.get("status") == "fail"
+    ]
+    assert failed_controls, "unrepaired chunk schema gaps must fail the review control"
+    assert "change_summary must be a non-empty list" in failed_controls[0]["detail"]
+    renormalized = module.normalize_review_object(normalized, "HEAD~1", ["src/example.ts"])
+    renormalized_failed_controls = [
+        item
+        for item in renormalized["pre_merge_checks"]
+        if item.get("name") == "Review Failed" and item.get("status") == "fail"
+    ]
+    assert len(renormalized_failed_controls) == 1, "normalization must not duplicate review-failed controls"
+    rendered = module.render_walkthrough(normalized, [], [], [], "", "0" * 40)
+    assert "Bunny Merge Signal: Review Incomplete" in rendered
+    assert "Bunny's schema repair remained incomplete" in rendered
+
+    error_chunk = {
+        "findings": [],
+        "nitpicks": [],
+        "pre_merge_checks": [],
+        "open_questions": [],
+        "what_i_checked": [],
+        "_schema_repair_error": "provider returned invalid JSON",
+    }
+    error_merged = module.merge_review_objects([clean_chunk, error_chunk])
+    assert error_merged["_schema_repair_error"] == "provider returned invalid JSON"
+    error_normalized = module.normalize_review_object(error_merged, "HEAD~1", ["src/example.ts"])
+    error_failed_controls = [
+        item
+        for item in error_normalized["pre_merge_checks"]
+        if item.get("name") == "Review Failed" and item.get("status") == "fail"
+    ]
+    assert error_failed_controls, "chunk schema repair errors must fail the review control"
+    assert "provider returned invalid JSON" in error_failed_controls[0]["detail"]
+
+    with tempfile.TemporaryDirectory(prefix="bunny-chunk-schema-status-") as tmp:
+        review = pathlib.Path(tmp) / "review.json"
+        control = pathlib.Path(tmp) / "bunny-ci-control.json"
+        review.write_text(json.dumps(normalized), encoding="utf-8")
+        control.write_text(json.dumps({"failed": [], "missing": [], "pending": []}), encoding="utf-8")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            module.status_state(
+                SimpleNamespace(
+                    review_json=str(review),
+                    ci_control=str(control),
+                    draft="false",
+                    job_status="success",
+                )
+            )
+        text = output.getvalue()
+        assert "state=failure" in text
+        assert "Bunny Review posted a failure or skipped report" in text
+
+
 def run_json_repair_format_case(module):
     repaired = {
         "change_summary": ["Wah, the no-JSON response got repaired into a proper review object."],
@@ -404,6 +493,7 @@ def main():
     module = load_bunny_review()
     packet_len = run_packet_case(module)
     repair_calls = run_semantic_repair_case(module)
+    run_chunk_schema_repair_case(module)
     run_json_repair_format_case(module)
     run_model_key_case(module)
     run_failure_redaction_case(module)
@@ -416,6 +506,7 @@ def main():
         "patch_overview_dedup=true "
         "packet_budget_chunking=true "
         "summary_fallback=true "
+        "chunk_schema_repair_failure=true "
         "semantic_repair=true "
         "json_response_format=true "
         "no_json_repair=true "
