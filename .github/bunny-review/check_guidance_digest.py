@@ -123,6 +123,12 @@ def run_packet_case(module):
             changed,
         )
         assert review_obj["change_summary"], "missing model summary should get a fallback"
+        fallback_failures = [
+            item
+            for item in review_obj["pre_merge_checks"]
+            if item.get("name") == "Review Failed" and item.get("status") == "fail"
+        ]
+        assert fallback_failures, "fallback model summary must mark the review incomplete"
         rendered = module.render_walkthrough(
             review_obj,
             [],
@@ -187,13 +193,10 @@ def run_semantic_repair_case(module):
     )
 
     assert len(completions.calls) == 1, "semantic schema gap should trigger one repair call"
-    response_format = completions.calls[0].get("response_format")
-    assert response_format["type"] == "json_schema"
-    schema = response_format["json_schema"]["schema"]
-    assert "findings" in schema["required"], "strict review schema must require findings"
+    assert "response_format" not in completions.calls[0]
     repair_prompt = completions.calls[0]["messages"][-1]["content"]
-    assert "FINAL_REVIEW followed" not in repair_prompt
-    assert "Do not include FINAL_REVIEW" in repair_prompt
+    assert "FINAL_REVIEW followed" in repair_prompt
+    assert "Ensure change_summary and what_i_checked are non-empty" in repair_prompt
     assert parsed["change_summary"] == repaired["change_summary"]
     assert parsed["_schema_repair_gaps"], "repair diagnostics should be retained"
     normalized = module.normalize_review_object(parsed, "HEAD~1", ["src/example.ts"])
@@ -229,25 +232,24 @@ def run_chunk_schema_repair_case(module):
         ],
     }
     merged = module.merge_review_objects([incomplete_chunk, clean_chunk])
-    assert merged["_schema_repair_remaining_gaps"], "chunk merge must keep unrepaired schema gaps"
+    assert "_schema_repair_gaps" not in merged
+    assert "_schema_repair_remaining_gaps" not in merged
     normalized = module.normalize_review_object(merged, "HEAD~1", ["src/example.ts"])
     normalized["head_commit_message"] = "Test review head"
     module.REPO_ROOT = REPO_ROOT
-    assert (
-        "_schema_repair_remaining_gaps" not in normalized
-    ), "normalization should clear stale schema gaps once required fields are present"
+    assert "_schema_repair_remaining_gaps" not in normalized
     failed_controls = [
         item
         for item in normalized["pre_merge_checks"]
         if item.get("name") == "Review Failed" and item.get("status") == "fail"
     ]
-    assert not failed_controls, "stale schema gaps must not leave a failing review control"
+    assert not failed_controls, "chunk schema metadata must not become final review control state"
     warning_controls = [
         item
         for item in normalized["pre_merge_checks"]
         if item.get("name") == "Review Output" and item.get("status") == "warn"
     ]
-    assert warning_controls, "cleared schema gaps should remain visible as a warning"
+    assert not warning_controls, "chunk schema metadata must not become final review warning state"
     renormalized = module.normalize_review_object(normalized, "HEAD~1", ["src/example.ts"])
     renormalized_failed_controls = [
         item
@@ -258,7 +260,6 @@ def run_chunk_schema_repair_case(module):
     rendered = module.render_walkthrough(normalized, [], [], [], "", "0" * 40)
     assert "Bunny Merge Signal: Review Incomplete" not in rendered
     assert "Bunny's schema repair remained incomplete" not in rendered
-    assert "Bunny cleared stale schema repair gaps" in rendered
 
     error_chunk = {
         "findings": [],
@@ -269,55 +270,14 @@ def run_chunk_schema_repair_case(module):
         "_schema_repair_error": "provider returned invalid JSON",
     }
     error_merged = module.merge_review_objects([clean_chunk, error_chunk])
-    assert error_merged["_schema_repair_error"] == "provider returned invalid JSON"
+    assert "_schema_repair_error" not in error_merged
     error_normalized = module.normalize_review_object(error_merged, "HEAD~1", ["src/example.ts"])
     error_failed_controls = [
         item
         for item in error_normalized["pre_merge_checks"]
         if item.get("name") == "Review Failed" and item.get("status") == "fail"
     ]
-    assert error_failed_controls, "chunk schema repair errors must fail the review control"
-    assert "provider returned invalid JSON" in error_failed_controls[0]["detail"]
-
-    with tempfile.TemporaryDirectory(prefix="bunny-chunk-schema-status-") as tmp:
-        review = pathlib.Path(tmp) / "review.json"
-        control = pathlib.Path(tmp) / "bunny-ci-control.json"
-        stale_status_review = dict(normalized)
-        stale_status_review["_schema_repair_remaining_gaps"] = [
-            "change_summary must be a non-empty list of summary strings",
-            "what_i_checked must include review context or proof notes",
-            "findings is missing",
-            "nitpicks is missing",
-            "pre_merge_checks is missing",
-            "open_questions is missing",
-        ]
-        stale_status_review["pre_merge_checks"] = [
-            *normalized["pre_merge_checks"],
-            {
-                "name": "Review Failed",
-                "status": "fail",
-                "type": "Review Limitation",
-                "detail": module.schema_repair_failure_detail(
-                    stale_status_review["_schema_repair_remaining_gaps"],
-                    "",
-                ),
-            },
-        ]
-        review.write_text(json.dumps(stale_status_review), encoding="utf-8")
-        control.write_text(json.dumps({"failed": [], "missing": [], "pending": []}), encoding="utf-8")
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            module.status_state(
-                SimpleNamespace(
-                    review_json=str(review),
-                    ci_control=str(control),
-                    draft="false",
-                    job_status="success",
-                )
-            )
-        text = output.getvalue()
-        assert "state=success" in text
-        assert "Bunny Review posted a failure or skipped report" not in text
+    assert not error_failed_controls, "private chunk repair errors should not poison merged review status"
 
 
 def run_json_repair_format_case(module):
@@ -357,44 +317,10 @@ def run_json_repair_format_case(module):
         stats,
     )
     assert parsed["change_summary"] == repaired["change_summary"]
-    response_format = completions.calls[0].get("response_format")
-    assert response_format["type"] == "json_schema"
-    assert response_format["json_schema"]["name"] == "bunny_review"
+    assert "response_format" not in completions.calls[0]
     repair_prompt = completions.calls[0]["messages"][-1]["content"]
-    assert "FINAL_REVIEW followed" not in repair_prompt
-    assert "Do not include FINAL_REVIEW" in repair_prompt
-
-    class RejectingSchemaCompletions:
-        def __init__(self):
-            self.calls = []
-
-        def create(self, **kwargs):
-            self.calls.append(kwargs)
-            if kwargs.get("response_format", {}).get("type") == "json_schema":
-                raise RuntimeError("unsupported response_format type: json_schema")
-            return SimpleNamespace(
-                usage=None,
-                choices=[
-                    SimpleNamespace(
-                        message=SimpleNamespace(
-                            content=json.dumps(repaired)
-                        )
-                    )
-                ],
-            )
-
-    rejecting_schema = RejectingSchemaCompletions()
-    client = SimpleNamespace(chat=SimpleNamespace(completions=rejecting_schema))
-    parsed = module.extract_json_or_repair(
-        client,
-        [{"role": "system", "content": "prompt"}, {"role": "user", "content": "packet"}],
-        "Still no JSON.",
-        module.build_stats("packet"),
-    )
-    assert parsed["change_summary"] == repaired["change_summary"]
-    assert len(rejecting_schema.calls) == 2
-    assert rejecting_schema.calls[0]["response_format"]["type"] == "json_schema"
-    assert rejecting_schema.calls[1]["response_format"] == {"type": "json_object"}
+    assert "FINAL_REVIEW followed" in repair_prompt
+    assert "Do not include prose" in repair_prompt
 
     class RejectingCompletions:
         def __init__(self):
@@ -424,10 +350,8 @@ def run_json_repair_format_case(module):
         module.build_stats("packet"),
     )
     assert parsed["change_summary"] == repaired["change_summary"]
-    assert len(rejecting.calls) == 3
-    assert "response_format" in rejecting.calls[0]
-    assert "response_format" in rejecting.calls[1]
-    assert "response_format" not in rejecting.calls[2]
+    assert len(rejecting.calls) == 1
+    assert "response_format" not in rejecting.calls[0]
 
 
 def run_model_key_case(module):
@@ -492,7 +416,16 @@ def run_status_case(module):
         review = root / "review.json"
         control = root / "bunny-ci-control.json"
         review.write_text(
-            json.dumps({"findings": [], "pre_merge_checks": []}),
+            json.dumps(
+                {
+                    "change_summary": ["Wah, status fixture has a real model summary."],
+                    "findings": [],
+                    "nitpicks": [],
+                    "pre_merge_checks": [],
+                    "open_questions": [],
+                    "what_i_checked": ["Bunny checked the status fixture."],
+                }
+            ),
             encoding="utf-8",
         )
         control.write_text(
@@ -589,11 +522,11 @@ def main():
         "patch_overview_dedup=true "
         "packet_budget_chunking=true "
         "summary_fallback=true "
-        "stale_schema_repair_metadata_cleared=true "
+        "summary_fallback_fails_review=true "
+        "chunk_schema_repair_metadata_private=true "
         "semantic_repair=true "
-        "json_response_format=true "
+        "plain_json_repair=true "
         "no_json_repair=true "
-        "response_format_fallback=true "
         "render_voice=true "
         "model_key_fallback=true "
         "model_base_url_fallback=true "

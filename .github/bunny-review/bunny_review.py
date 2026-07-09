@@ -638,192 +638,17 @@ def print_telemetry(stats):
     )
 
 
-def json_response_format_enabled():
-    return str(os.environ.get("BUNNY_JSON_RESPONSE_FORMAT", "auto")).strip().lower() not in {
-        "0",
-        "false",
-        "no",
-        "off",
-        "disabled",
-    }
-
-
-def review_json_schema_response_format():
-    text_list = {"type": "array", "items": {"type": "string"}}
-    finding_contract = {
-        "type": "object",
-        "additionalProperties": False,
-        "required": [
-            "invariant",
-            "related_failure_paths",
-            "adjacent_traps",
-            "acceptable_fix_shapes",
-            "expected_proof",
-        ],
-        "properties": {
-            "invariant": {"type": "string"},
-            "related_failure_paths": text_list,
-            "adjacent_traps": text_list,
-            "acceptable_fix_shapes": text_list,
-            "expected_proof": text_list,
-        },
-    }
-    finding_item = {
-        "type": "object",
-        "additionalProperties": False,
-        "required": [
-            "severity",
-            "path",
-            "line",
-            "title",
-            "body",
-            "fix_hint",
-            "repair_contract",
-        ],
-        "properties": {
-            "severity": {
-                "type": "string",
-                "enum": ["blocking", "high", "medium", "low"],
-            },
-            "path": {"type": "string"},
-            "line": {"type": "integer"},
-            "title": {"type": "string"},
-            "body": {"type": "string"},
-            "fix_hint": {"type": "string"},
-            "repair_contract": finding_contract,
-        },
-    }
-    nitpick_item = {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["path", "line", "title", "body", "fix_hint"],
-        "properties": {
-            "path": {"type": "string"},
-            "line": {"type": "integer"},
-            "title": {"type": "string"},
-            "body": {"type": "string"},
-            "fix_hint": {"type": "string"},
-        },
-    }
-    pre_merge_item = {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["name", "status", "type", "detail"],
-        "properties": {
-            "name": {"type": "string"},
-            "status": {"type": "string", "enum": ["pass", "warn", "fail", "unknown"]},
-            "type": {
-                "type": "string",
-                "enum": [
-                    "Proof Gap",
-                    "Review Limitation",
-                    "CI Timing",
-                    "Non-blocking Coverage",
-                ],
-            },
-            "detail": {"type": "string"},
-        },
-    }
-    return {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "bunny_review",
-            "strict": True,
-            "schema": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": [
-                    "change_summary",
-                    "findings",
-                    "nitpicks",
-                    "pre_merge_checks",
-                    "open_questions",
-                    "what_i_checked",
-                ],
-                "properties": {
-                    "change_summary": text_list,
-                    "findings": {"type": "array", "items": finding_item},
-                    "nitpicks": {"type": "array", "items": nitpick_item},
-                    "pre_merge_checks": {"type": "array", "items": pre_merge_item},
-                    "open_questions": text_list,
-                    "what_i_checked": text_list,
-                },
-            },
-        },
-    }
-
-
-def response_format_retryable(exc):
-    message = str(exc).lower()
-    return any(
-        marker in message
-        for marker in (
-            "response_format",
-            "json_object",
-            "json_schema",
-            "structured output",
-            "unsupported parameter",
-            "unknown parameter",
-            "extra inputs are not permitted",
-        )
+def model_call(client, messages, stats):
+    resp = client.chat.completions.create(
+        model=os.environ.get("LLM_MODEL", "gpt-5.5"),
+        messages=messages,
+        timeout=MODEL_REQUEST_TIMEOUT,
     )
-
-
-def json_response_format_options(force_json):
-    if not force_json or not json_response_format_enabled():
-        return [None]
-    return [review_json_schema_response_format(), {"type": "json_object"}, None]
-
-
-def response_format_name(response_format):
-    if not response_format:
-        return "plain text"
-    return response_format.get("type") or "response_format"
-
-
-def model_call(client, messages, stats, *, force_json=False):
-    base_kwargs = {
-        "model": os.environ.get("LLM_MODEL", "gpt-5.5"),
-        "messages": messages,
-        "timeout": MODEL_REQUEST_TIMEOUT,
-    }
-    resp = None
-    response_options = json_response_format_options(force_json)
-    for index, response_format in enumerate(response_options):
-        kwargs = dict(base_kwargs)
-        if response_format:
-            kwargs["response_format"] = response_format
-        try:
-            resp = client.chat.completions.create(**kwargs)
-            break
-        except Exception as exc:
-            if not response_format or not response_format_retryable(exc):
-                raise
-            next_name = (
-                response_format_name(response_options[index + 1])
-                if index + 1 < len(response_options)
-                else "plain text"
-            )
-            print(
-                "Bunny warning: "
-                f"{response_format_name(response_format)} response_format was not accepted; "
-                f"retrying with {next_name}.",
-                flush=True,
-            )
-    if resp is None:
-        raise RuntimeError("model call did not return a response")
     stats["model_calls"] += 1
     add_usage(stats, getattr(resp, "usage", None))
     if isinstance(resp, str):
         return resp
     return resp.choices[0].message.content or ""
-
-
-def final_review_json_instruction():
-    return (
-        "Reply only with one JSON object matching the required Bunny Review schema. "
-        "Do not include FINAL_REVIEW, prose, Markdown, or another context request."
-    )
 
 
 def review_contract_gaps(review_obj):
@@ -861,12 +686,12 @@ def semantic_repair_review_object(client, messages, review_obj, gaps, stats):
                 "Re-evaluate proof gaps from the packet; add a Proof Gap check only when "
                 "the diff has realistic behavior risk without focused proof. "
                 "Ensure change_summary and what_i_checked are non-empty. "
-                + final_review_json_instruction()
+                "Reply only with FINAL_REVIEW followed by one JSON object matching the required schema."
             ),
         },
     ]
     try:
-        repaired = extract_json(model_call(client, repair_messages, stats, force_json=True))
+        repaired = extract_json(model_call(client, repair_messages, stats))
     except Exception as exc:
         review_obj["_schema_repair_gaps"] = gaps
         review_obj["_schema_repair_error"] = " ".join(str(exc).split())
@@ -891,11 +716,12 @@ def extract_json_or_repair(client, messages, content, stats):
                 "role": "user",
                 "content": (
                     "The previous response did not contain a JSON object. "
-                    + final_review_json_instruction()
+                    "Reply only with FINAL_REVIEW followed by one JSON object matching the required "
+                    "Bunny Review schema. Do not include prose, Markdown, or another context request."
                 ),
             },
         ]
-        parsed = extract_json(model_call(client, repair_messages, stats, force_json=True))
+        parsed = extract_json(model_call(client, repair_messages, stats))
     gaps = review_contract_gaps(parsed)
     if gaps:
         return semantic_repair_review_object(client, messages, parsed, gaps, stats)
@@ -920,12 +746,12 @@ def review_packet_with_model(client, skill, triage_content, stats):
             "role": "user",
             "content": (
                 "Here is the bounded extra context you requested. "
-                "Do not request more context. " + final_review_json_instruction()
+                "Do not request more context. Produce only the final JSON review object."
                 + f"\n\n# Extra Context\n{extra_context}"
             ),
         },
     ]
-    final_response = model_call(client, final_messages, stats, force_json=True)
+    final_response = model_call(client, final_messages, stats)
     return extract_json_or_repair(client, final_messages, final_response, stats)
 
 
@@ -939,15 +765,14 @@ def skeptical_review_pass(client, skill, triage_content, stats):
         "contract drift, and proof that covers only the happy path. Report only concrete "
         "actionable findings that cite added or changed diff lines. If there are no "
         "findings from this specialist lens, return the same JSON schema with empty "
-        "findings and nitpicks arrays and mention the skeptical audit in what_i_checked. "
-        + final_review_json_instruction()
+        "findings and nitpicks arrays and mention the skeptical audit in what_i_checked."
     )
     messages = [
         {"role": "system", "content": skill},
         {"role": "user", "content": triage_content},
         {"role": "user", "content": audit_prompt},
     ]
-    response = model_call(client, messages, stats, force_json=True)
+    response = model_call(client, messages, stats)
     return extract_json_or_repair(client, messages, response, stats)
 
 
@@ -965,7 +790,7 @@ def judge_review_pass(client, skill, triage_content, broad_review, skeptical_rev
         "finding and nitpick must be actionable and cite an added or changed diff line. Combine useful "
         "change_summary, nitpicks, pre_merge_checks, "
         "open_questions, and what_i_checked entries without repeating yourself. "
-        + final_review_json_instruction()
+        "Reply only with FINAL_REVIEW followed by the final JSON object."
         + f"\n\n# Broad Review JSON\n{json.dumps(broad_review, indent=2, sort_keys=True)}"
         f"\n\n# Skeptical Review JSON\n{json.dumps(skeptical_review, indent=2, sort_keys=True)}"
     )
@@ -974,7 +799,7 @@ def judge_review_pass(client, skill, triage_content, broad_review, skeptical_rev
         {"role": "user", "content": triage_content},
         {"role": "user", "content": judge_prompt},
     ]
-    response = model_call(client, messages, stats, force_json=True)
+    response = model_call(client, messages, stats)
     return extract_json_or_repair(client, messages, response, stats)
 
 
@@ -1899,28 +1724,6 @@ def append_unique_pre_merge_check(review_obj, check):
     checks.append(check)
 
 
-def is_schema_repair_failed_check(item):
-    if not isinstance(item, dict):
-        return False
-    return (
-        str(item.get("name", "")).strip().lower() == "review failed"
-        and status_meta(item.get("status"))["label"] == "FAIL"
-        and control_type(item) == "Review Limitation"
-        and str(item.get("detail", "")).startswith(
-            "Bunny's model review JSON stayed incomplete after schema repair"
-        )
-    )
-
-
-def schema_repair_failure_detail(remaining_gaps, repair_error):
-    issue = "; ".join(remaining_gaps[:3]) or repair_error
-    return (
-        "Bunny's model review JSON stayed incomplete after schema repair"
-        + (f": {issue}." if issue else ".")
-        + " Rerun after fixing the review output path."
-    )
-
-
 def normalize_review_object(review_obj, base, files):
     if not isinstance(review_obj, dict):
         review_obj = {}
@@ -1932,7 +1735,7 @@ def normalize_review_object(review_obj, base, files):
     review_obj["open_questions"] = normalize_text_list(review_obj.get("open_questions"))
     review_obj["what_i_checked"] = normalize_text_list(review_obj.get("what_i_checked"))
     repaired_gaps = normalize_text_list(review_obj.get("_schema_repair_gaps"))
-    declared_remaining_gaps = normalize_text_list(review_obj.get("_schema_repair_remaining_gaps"))
+    remaining_gaps = normalize_text_list(review_obj.get("_schema_repair_remaining_gaps"))
     repair_error = str(review_obj.get("_schema_repair_error") or "").strip()
     if repaired_gaps:
         note = (
@@ -1948,59 +1751,26 @@ def normalize_review_object(review_obj, base, files):
         review_obj["what_i_checked"].append(
             "Bunny normalized the review output before rendering because the model omitted review context notes."
         )
-    remaining_gaps = review_contract_gaps(review_obj)
-    if remaining_gaps:
-        review_obj["_schema_repair_remaining_gaps"] = remaining_gaps
-    else:
-        review_obj.pop("_schema_repair_remaining_gaps", None)
     if remaining_gaps or repair_error:
         detail = "; ".join(remaining_gaps[:3]) or repair_error
         note = f"Bunny's schema repair remained incomplete, so renderer fallbacks may appear: {detail}"
         if note not in review_obj["what_i_checked"]:
             review_obj["what_i_checked"].insert(0, note)
+    if used_fallback:
         append_unique_pre_merge_check(
             review_obj,
             {
                 "name": "Review Failed",
                 "status": "fail",
                 "type": "Review Limitation",
-                "detail": schema_repair_failure_detail(remaining_gaps, repair_error),
+                "detail": (
+                    "Bunny's model review JSON omitted `change_summary` after repair, "
+                    "so the renderer used git diff metadata instead of a model-authored "
+                    "loot summary. Treat this review as incomplete and rerun after fixing "
+                    "the review output path."
+                ),
             },
         )
-    else:
-        review_obj["pre_merge_checks"] = [
-            item
-            for item in review_obj["pre_merge_checks"]
-            if not is_schema_repair_failed_check(item)
-        ]
-        if declared_remaining_gaps:
-            note = (
-                "Bunny cleared stale schema repair gaps after normalization produced the required review fields: "
-                + "; ".join(declared_remaining_gaps[:3])
-            )
-            if note not in review_obj["what_i_checked"]:
-                review_obj["what_i_checked"].insert(0, note)
-        if declared_remaining_gaps and not used_fallback:
-            append_unique_pre_merge_check(
-                review_obj,
-                {
-                    "name": "Review Output",
-                    "status": "warn",
-                    "type": "Review Limitation",
-                    "detail": "Bunny repaired missing top-level review fields before rendering; inspect diagnostics if the review looks too thin.",
-                },
-            )
-    if used_fallback:
-        append_unique_pre_merge_check(
-            review_obj,
-            {
-                "name": "Review Output",
-                "status": "warn",
-                "type": "Review Limitation",
-                "detail": "Bunny had to rebuild the loot summary from diff metadata; inspect diagnostics before treating this as a complete model-authored review.",
-            },
-        )
-    if used_fallback:
         note = (
             "Bunny rebuilt the loot summary from git diff metadata because the final model output omitted `change_summary`."
         )
@@ -2161,20 +1931,11 @@ def merge_review_objects(reviews):
         "what_i_checked": [],
     }
     seen_findings = set()
-    schema_repair_errors = []
     for review in reviews:
         for key in ("change_summary", "open_questions", "what_i_checked"):
             for item in review.get(key, []):
                 if item not in merged[key]:
                     merged[key].append(item)
-        for key in ("_schema_repair_gaps", "_schema_repair_remaining_gaps"):
-            for item in normalize_text_list(review.get(key)):
-                merged.setdefault(key, [])
-                if item not in merged[key]:
-                    merged[key].append(item)
-        repair_error = str(review.get("_schema_repair_error") or "").strip()
-        if repair_error and repair_error not in schema_repair_errors:
-            schema_repair_errors.append(repair_error)
         for check in review.get("pre_merge_checks", []):
             key = (check.get("name"), check.get("status"), check.get("type"), check.get("detail"))
             if key not in {
@@ -2194,8 +1955,6 @@ def merge_review_objects(reviews):
                 seen_findings.add(key)
                 merged[key_name].append(finding)
     merged["nitpicks"] = merged["nitpicks"][:2]
-    if schema_repair_errors:
-        merged["_schema_repair_error"] = "; ".join(schema_repair_errors[:3])
     return merged
 
 
