@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import type {
   NavCatalogState,
@@ -9,7 +8,17 @@ import type {
 } from "../../navigation";
 import { CatalogMacroTextarea } from "../shared/CatalogMacroTextarea";
 import { CatalogSurfaceBanner } from "../shared/CatalogSurfaceBanner";
+import {
+  canSavePromptPresetDraft,
+  draftFromPromptPreset,
+  EMPTY_PROMPT_PRESET_DRAFT,
+  promptPresetDraftsMatch,
+  promptPresetDraftToInput,
+  type PromptPresetDraftState,
+} from "./prompt-preset-draft";
+import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
 import "../shared/CatalogSurface.css";
+import "./PromptPresetsSurface.css";
 
 interface PromptPresetsSurfaceProps {
   nav: PromptPresetsSurfaceNav;
@@ -23,65 +32,9 @@ export type PromptPresetsSurfaceNav = Pick<NavCatalogState, "promptPresets"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
-interface DraftState {
-  title: string;
-  summary: string;
-  systemPrompt: string;
-  messengerPrompt: string;
-  maxTokens: string;
-  temperature: string;
-  topP: string;
-}
-
-const EMPTY_DRAFT: DraftState = {
-  title: "",
-  summary: "",
-  systemPrompt: "",
-  messengerPrompt: "",
-  maxTokens: "",
-  temperature: "",
-  topP: "",
-};
-
-function optionalNumber(value: string) {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function draftFromPreset(preset: PromptPresetRecord): DraftState {
-  return {
-    title: preset.title,
-    summary: preset.summary ?? "",
-    systemPrompt: preset.systemPrompt,
-    messengerPrompt: preset.messengerPrompt ?? "",
-    maxTokens: preset.sampling?.maxTokens?.toString() ?? "",
-    temperature: preset.sampling?.temperature?.toString() ?? "",
-    topP: preset.sampling?.topP?.toString() ?? "",
-  };
-}
-
-function draftToInput(draft: DraftState): PromptPresetInput {
-  return {
-    title: draft.title.trim(),
-    summary: draft.summary.trim() || null,
-    systemPrompt: draft.systemPrompt.trim(),
-    messengerPrompt: draft.messengerPrompt.trim() || null,
-    sampling: {
-      maxTokens: optionalNumber(draft.maxTokens),
-      temperature: optionalNumber(draft.temperature),
-      topP: optionalNumber(draft.topP),
-    },
-  };
-}
-
-function draftsMatch(left: DraftState, right: DraftState) {
-  return JSON.stringify(draftToInput(left)) === JSON.stringify(draftToInput(right));
-}
-
 interface PromptPresetEditorProps {
   editingId: string | null;
-  initialDraft: DraftState;
+  initialDraft: PromptPresetDraftState;
   onBack: () => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -96,13 +49,17 @@ function PromptPresetEditor({
   onDuplicate,
   onSave,
 }: PromptPresetEditorProps) {
-  const [draft, setDraft] = useState<DraftState>(initialDraft);
-  const hasPendingChanges = !draftsMatch(draft, initialDraft);
-  const canSave = draft.title.trim().length > 0 && draft.systemPrompt.trim().length > 0;
+  const [draft, setDraft] = useState<PromptPresetDraftState>(initialDraft);
+  const hasPendingChanges = !promptPresetDraftsMatch(draft, initialDraft);
+  const canSave = canSavePromptPresetDraft(draft);
+  const systemPromptHint =
+    draft.sections.length > 0
+      ? "Roleplay sections are present, so Roleplay uses those sections instead of System Prompt. System Prompt remains the fallback when Roleplay has no sections."
+      : "Roleplay uses System Prompt when no Roleplay sections are present. Messenger uses Messenger Prompt Source, or System Prompt when that source is empty.";
 
   function handleSave() {
     if (!canSave) return;
-    onSave(draftToInput(draft));
+    onSave(promptPresetDraftToInput(draft));
   }
 
   return (
@@ -150,12 +107,16 @@ function PromptPresetEditor({
               <label htmlFor="preset-system-prompt">System Prompt</label>
               <CatalogMacroTextarea
                 id="preset-system-prompt"
+                aria-describedby="preset-system-prompt-hint"
                 className="pondinput pondtextarea"
                 rows={16}
                 value={draft.systemPrompt}
                 onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
                 placeholder="System prompt used when this preset is selected."
               />
+              <p className="catalog-field-hint" id="preset-system-prompt-hint">
+                {systemPromptHint}
+              </p>
             </div>
             <div className="catalog-editor-field">
               <label htmlFor="preset-messenger-prompt">Messenger Prompt Source</label>
@@ -169,6 +130,8 @@ function PromptPresetEditor({
               />
             </div>
           </section>
+
+          <PromptPresetStructureEditor draft={draft} onDraftChange={setDraft} />
 
           <section className="catalog-editor-section" aria-labelledby="preset-sampling-heading">
             <h4 id="preset-sampling-heading">Sampling</h4>
@@ -239,7 +202,9 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
   const isCreating = nav.view.kind === "presets" && nav.view.mode === "new";
   const editingId = activePreset?.id ?? null;
   const showEditor = isCreating || activePreset !== null;
-  const initialDraft = activePreset ? draftFromPreset(activePreset) : EMPTY_DRAFT;
+  const initialDraft = activePreset
+    ? draftFromPromptPreset(activePreset)
+    : EMPTY_PROMPT_PRESET_DRAFT;
 
   function handleSave(input: PromptPresetInput) {
     if (editingId) {

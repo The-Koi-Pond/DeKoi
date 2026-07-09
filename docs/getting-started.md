@@ -138,14 +138,19 @@ Focused checks for narrow changes are mapped to change types in
 - Use Pond Care > Data & Backup to confirm the selected runtime path.
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.
-- Use the Presets catalog for reusable Messenger and Roleplay prompt sources
-  and current sampling controls, then select a prompt preset from thread
-  settings. Messenger uses the preset's Messenger prompt source when present,
-  falls back to the preset system prompt, and lets a non-empty edited Messenger
-  Prompt override both for that thread. Imported compatible data may also carry
-  prompt preset sections, groups, choice blocks, and saved thread choice
-  selections. Roleplay generation consumes imported section/group structure
-  when present.
+- Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
+  current sampling controls, and structured Roleplay section/group editing,
+  then select a prompt preset from thread settings. Roleplay sections can be
+  ordered, grouped, enabled or disabled, assigned provider roles, wrapped, and
+  placed at transcript depth; marker sections insert saved Roleplay context,
+  including conversation history through an enabled Chat History marker.
+  Messenger uses the preset's Messenger prompt source when present, falls back
+  to the preset system prompt, and lets a non-empty edited Messenger Prompt
+  override both for that thread. Compatible data may also carry choice blocks,
+  static variables, default choices, richer parameters, and metadata that the
+  catalog edit flow preserves even when those fields do not have visible
+  definition editors yet. Roleplay generation consumes saved section/group
+  structure when present.
   In Roleplay settings, Prompt Preset > Edit opens Preset Variables for the
   selected preset; New remains the secondary action for creating another
   preset. Choice selections feed request-local prompt variables during

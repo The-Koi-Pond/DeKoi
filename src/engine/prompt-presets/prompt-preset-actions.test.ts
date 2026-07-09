@@ -35,6 +35,43 @@ describe("normalizePromptPresetRecord", () => {
     expect(record?.updatedAt).toBe(now);
   });
 
+  it("normalizes XML tag names only for non-marker sections", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Write the next response.",
+      sections: [
+        {
+          id: "section-marker",
+          identifier: "world_info_before",
+          name: "World Info Before",
+          content: "",
+          role: "system",
+          enabled: true,
+          isMarker: true,
+          markerConfig: { type: "world_info_before" },
+          xmlTagName: "legacy_before",
+        },
+        {
+          id: "section-role",
+          identifier: "role",
+          name: "Role",
+          content: "Stay in character.",
+          role: "system",
+          enabled: true,
+          isMarker: false,
+          xmlTagName: "role_tag",
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record?.sections[0]).not.toHaveProperty("xmlTagName");
+    expect(record?.sections[1]?.xmlTagName).toBe("role_tag");
+  });
+
   it("normalizes choice blocks and falls back to the first valid option as default", () => {
     const record = normalizePromptPresetRecord({
       id: "preset-1",

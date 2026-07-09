@@ -3,6 +3,7 @@ import {
   normalizePromptPresetRecord,
   normalizePromptPresetSections,
 } from "../../engine/prompt-presets/prompt-preset-actions";
+import { promptPresetSectionsInOrder } from "../../engine/prompt-presets/prompt-preset-section-policy";
 import { isRecord } from "./storage-json";
 
 function parseJsonIfString(value: unknown): unknown {
@@ -49,23 +50,6 @@ function normalizeUniqueStringArray(value: unknown): string[] {
   }
 
   return uniqueValues;
-}
-
-function promptPresetSectionsInOrder(
-  sections: ReturnType<typeof normalizePromptPresetSections>,
-  sectionOrder: string[],
-) {
-  const sectionById = new Map(sections.map((section) => [section.id, section]));
-  const orderedSections = sectionOrder.flatMap((sectionId) => {
-    const section = sectionById.get(sectionId);
-    return section ? [section] : [];
-  });
-  const orderedIds = new Set(orderedSections.map((section) => section.id));
-  const remainingSections = sections
-    .filter((section) => !orderedIds.has(section.id))
-    .sort((left, right) => (left.injectionOrder ?? 0) - (right.injectionOrder ?? 0));
-
-  return [...orderedSections, ...remainingSections];
 }
 
 function systemPromptFromPackageSections(sectionsValue: unknown, sectionOrderValue: unknown) {

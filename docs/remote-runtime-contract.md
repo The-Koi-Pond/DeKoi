@@ -565,18 +565,23 @@ after the starter preset is deleted.
 `title`, optional `summary`, required non-empty `systemPrompt`, optional
 `messengerPrompt`, normalized `parameters`, a `sampling` projection with
 `temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
-`choiceBlocks`, static `variableValues`, and `defaultChoices`. DeKoi drops
-invalid parameter and sampling fields during normalization. Current generated
-requests consume the sampling projection, and cap preset `maxTokens` to the
-selected provider connection's positive `maxOutput` when one is configured.
-Messenger uses `messengerPrompt` as its selected-preset source when present,
-then falls back to `systemPrompt`. A non-empty custom Messenger Prompt still
-overrides the selected preset at generation time and Messenger does not consume
-prompt preset sections. Roleplay consumes enabled sections and adjacent enabled
-groups for prompt assembly when a selected preset has sections; otherwise it
-uses `systemPrompt` as the fallback prelude. Roleplay marker sections expand
-scene, lore, persona, character, example-dialogue, and chat-history context,
-and depth sections are anchored to the chat history marker or transcript.
+`choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
+default/author/folder metadata. DeKoi drops invalid parameter and sampling
+fields during normalization. Current generated requests consume the sampling
+projection, and cap preset `maxTokens` to the selected provider connection's
+positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
+as its selected-preset source when present, then falls back to `systemPrompt`.
+A non-empty custom Messenger Prompt still overrides the selected preset at
+generation time and Messenger does not consume prompt preset sections. Roleplay
+consumes enabled sections and adjacent enabled groups for prompt assembly when a
+selected preset has sections; otherwise it uses `systemPrompt` as the fallback
+prelude. Roleplay marker sections expand scene, lore, persona, character,
+example-dialogue, and chat-history context, with transcript history included
+only by an enabled `chat_history` marker. Depth sections are anchored to that
+marker when present, or to the sectioned prompt message stream when it is
+absent. If a sectioned preset materializes no messages after filtering,
+Roleplay falls back to `systemPrompt` without automatically including
+transcript history.
 Remote runtimes should expose native prompt preset records in storage; packaged
 preset envelopes are only normalized by DeKoi bundle import.
 

@@ -7,6 +7,12 @@ import type {
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { GenerationMacroContext, GenerationPromptMessage } from "../generation/generation";
 import { providerHoistsSystemMessages, resolveGenerationMacros } from "../generation/generation";
+import {
+  promptPresetSectionIsEnabled,
+  promptPresetSectionMarkerType,
+  promptPresetSectionsInOrder,
+  promptPresetSectionUsesDepthInsertion,
+} from "./prompt-preset-section-policy";
 
 type PromptPresetWrapFormat = "xml" | "markdown" | "none";
 
@@ -114,38 +120,6 @@ function wrapGroup(content: string, groupName: string, format: PromptPresetWrapF
   return `# ${nameToMarkdownHeading(groupName)}\n${trimmed}`;
 }
 
-function sectionsInOrder(preset: PromptPresetRecord) {
-  const sectionById = new Map(preset.sections.map((section) => [section.id, section]));
-  const orderedIds = new Set<string>();
-  const orderedSections = preset.sectionOrder.flatMap((sectionId) => {
-    if (orderedIds.has(sectionId)) return [];
-
-    const section = sectionById.get(sectionId);
-    if (section) orderedIds.add(sectionId);
-    return section ? [section] : [];
-  });
-  const remainingSections = preset.sections
-    .filter((section) => !orderedIds.has(section.id))
-    .sort((left, right) => (left.injectionOrder ?? 0) - (right.injectionOrder ?? 0));
-
-  return [...orderedSections, ...remainingSections];
-}
-
-function promptPresetSectionIsEnabled(
-  section: PromptPresetSection,
-  groupById: Map<string, PromptPresetGroup>,
-) {
-  if (!section.enabled) return false;
-  if (!section.groupId) return true;
-
-  const group = groupById.get(section.groupId);
-  return group?.enabled !== false;
-}
-
-function markerType(section: PromptPresetSection) {
-  return section.markerConfig?.type?.trim() || section.identifier.trim();
-}
-
 function sectionWrapFormat(
   section: PromptPresetSection,
   preset: PromptPresetRecord,
@@ -153,14 +127,6 @@ function sectionWrapFormat(
   if (section.wrapInXml === false) return "none";
   if (section.wrapInXml === true) return "xml";
   return normalizeWrapFormat(preset.wrapFormat);
-}
-
-function sectionUsesDepthInsertion(section: PromptPresetSection) {
-  return (
-    section.injectionPosition === "depth" ||
-    section.injectionPosition === "at-depth" ||
-    section.injectionPosition === "at_depth"
-  );
 }
 
 function sectionInjectionDepth(section: PromptPresetSection) {
@@ -174,7 +140,7 @@ function providerFacingSectionRole(
   rewriteHoistedSystemRole: boolean,
 ) {
   if (!rewriteHoistedSystemRole) return role;
-  if (!sectionUsesDepthInsertion(section)) return role;
+  if (!promptPresetSectionUsesDepthInsertion(section)) return role;
   return role === "system" && providerHoistsSystemMessages(providerConnection) ? "user" : role;
 }
 
@@ -216,7 +182,7 @@ function prepareSection({
     providerConnection,
     rewriteHoistedSystemRole,
   );
-  const type = markerType(section);
+  const type = promptPresetSectionMarkerType(section);
 
   if (section.isMarker && type === "chat_history") {
     return {
@@ -234,7 +200,8 @@ function prepareSection({
 
   const wrapFormat = sectionWrapFormat(section, preset);
   const wrapperName = section.isMarker && type === "chat_summary" ? "Chat Summary" : section.name;
-  const sectionName = wrapFormat === "xml" ? (section.xmlTagName ?? wrapperName) : wrapperName;
+  const sectionName =
+    wrapFormat === "xml" && !section.isMarker ? (section.xmlTagName ?? wrapperName) : wrapperName;
 
   return {
     id: section.id,
@@ -577,14 +544,12 @@ function collapseToSingleUserMessage(messages: GenerationPromptMessage[]) {
   return content ? [{ role: "user" as const, content }] : [];
 }
 
-function fallbackMessages({
+function fallbackSystemPromptMessages({
   fallbackSystemPrompt,
   macroContext,
-  transcriptMessages,
 }: {
   fallbackSystemPrompt: PromptPresetFallbackSystemPrompt;
   macroContext: GenerationMacroContext;
-  transcriptMessages: PromptPresetTranscriptMessages;
 }) {
   const systemPrompt =
     typeof fallbackSystemPrompt === "function" ? fallbackSystemPrompt() : fallbackSystemPrompt;
@@ -594,6 +559,20 @@ function fallbackMessages({
       role: "system" as const,
       content: resolveGenerationMacros(systemPrompt, macroContext).trim(),
     },
+  ].filter((message) => message.content.trim());
+}
+
+function fallbackMessages({
+  fallbackSystemPrompt,
+  macroContext,
+  transcriptMessages,
+}: {
+  fallbackSystemPrompt: PromptPresetFallbackSystemPrompt;
+  macroContext: GenerationMacroContext;
+  transcriptMessages: PromptPresetTranscriptMessages;
+}) {
+  return [
+    ...fallbackSystemPromptMessages({ fallbackSystemPrompt, macroContext }),
     ...transcriptMessages(),
   ].filter((message) => message.content.trim());
 }
@@ -642,7 +621,7 @@ export function assemblePromptPresetMessages({
   const depthSections: PreparedPromptPresetSection[] = [];
   const singleUserMessage = preset.parameters?.singleUserMessage === true;
 
-  for (const section of sectionsInOrder(preset)) {
+  for (const section of promptPresetSectionsInOrder(preset.sections, preset.sectionOrder)) {
     if (!promptPresetSectionIsEnabled(section, groupById)) continue;
 
     const prepared = prepareSection({
@@ -657,7 +636,7 @@ export function assemblePromptPresetMessages({
 
     if (
       !prepared.isChatHistory &&
-      sectionUsesDepthInsertion(section) &&
+      promptPresetSectionUsesDepthInsertion(section) &&
       sectionInjectionDepth(section) >= 0
     ) {
       depthSections.push(prepared);
@@ -688,7 +667,7 @@ export function assemblePromptPresetMessages({
 
   messages = trimMessages(messages);
   if (messages.length === 0) {
-    messages = fallbackMessages({ fallbackSystemPrompt, macroContext, transcriptMessages });
+    messages = fallbackSystemPromptMessages({ fallbackSystemPrompt, macroContext });
   }
   messages = trimMessages([...messages, ...resolveTailMessages(tailMessages)]);
 
