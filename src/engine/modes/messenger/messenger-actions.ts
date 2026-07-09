@@ -6,7 +6,11 @@ import {
 } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
-import type { PromptPresetChoiceSelections } from "../../contracts/types/prompt-presets";
+import type {
+  PromptPresetChoiceSelection,
+  PromptPresetChoiceSelections,
+} from "../../contracts/types/prompt-presets";
+import { updatePromptPresetChoiceSelections } from "../../prompt-presets/prompt-preset-normalization";
 import { cleanTextArray } from "../../shared/text";
 
 export function createMessengerThread({
@@ -168,12 +172,35 @@ export function setMessengerThreadPreset(
   thread: MessengerThread,
   presetId: string | null,
   updatedAt: string,
-  presetChoiceSelections: PromptPresetChoiceSelections = {},
+  presetChoiceSelections?: PromptPresetChoiceSelections,
 ): MessengerThread {
+  const cleanPresetId = presetId?.trim() || null;
+  if (cleanPresetId === thread.presetId && presetChoiceSelections === undefined) return thread;
+
   return {
     ...thread,
-    presetId: presetId?.trim() || null,
-    presetChoiceSelections,
+    presetId: cleanPresetId,
+    presetChoiceSelections: presetChoiceSelections ?? {},
+    updatedAt,
+  };
+}
+
+export function setMessengerThreadPresetChoiceSelection(
+  thread: MessengerThread,
+  variableName: string,
+  selection: PromptPresetChoiceSelection,
+  updatedAt: string,
+): MessengerThread {
+  const cleanVariableName = variableName.trim();
+  if (!cleanVariableName) return thread;
+
+  return {
+    ...thread,
+    presetChoiceSelections: updatePromptPresetChoiceSelections(
+      thread.presetChoiceSelections ?? {},
+      cleanVariableName,
+      selection,
+    ),
     updatedAt,
   };
 }

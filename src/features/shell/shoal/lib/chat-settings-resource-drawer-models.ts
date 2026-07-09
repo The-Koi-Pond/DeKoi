@@ -1,5 +1,6 @@
 import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
+import type { PromptPresetChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 
 export interface ChatSettingsCompanionResourceModel {
   activeMessengerThread: boolean;
@@ -15,6 +16,7 @@ export interface ChatSettingsPresetResourceModel {
   activeThread: boolean;
   missingPresetId: string | null;
   open: boolean;
+  presetChoiceSelections: PromptPresetChoiceSelections;
   selectedPresetId: string | null;
   summary: string;
 }
@@ -65,6 +67,7 @@ export function getChatSettingsResourceDrawerModels({
       activeThread,
       missingPresetId: viewModel.missingPresetId,
       open: activeThread && openDrawers.preset,
+      presetChoiceSelections: viewModel.presetChoiceSelections,
       selectedPresetId: viewModel.selectedPresetId,
       summary: viewModel.presetDrawerSummary,
     },

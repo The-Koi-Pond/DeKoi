@@ -292,15 +292,18 @@ Current implementation:
   sections and groups when the selected preset has them, otherwise it uses the
   selected preset system prompt as its system prelude, then still appends the
   Roleplay-owned one-character output contract.
-- Per-thread preset choice selections become request-local prompt variables at
-  generation time. They are saved on the Messenger or Roleplay thread, not in
-  `MacroVariableScope`.
+- Prompt-preset static `variableValues` and per-thread preset choice selections
+  become request-local prompt variables at generation time. Choice selections
+  are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
+- Roleplay thread settings can choose values for the selected preset's choice
+  blocks without editing the reusable preset record; switching to another
+  preset clears those thread-level choices.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 
 Still evolving:
 
-- UI for editing preset sections, groups, and choice blocks.
+- UI for editing preset sections, groups, and choice-block definitions.
 - Whether Thread Presets become a separate saved record.
 
 ### Provider Connection
@@ -418,6 +421,8 @@ Important behavior:
 - Thread settings update Roleplay participants, persona, lorebooks, prompt
   preset, and provider connection through Roleplay-owned actions instead of
   Messenger records.
+- Thread settings expose preset-variable choices for the selected prompt
+  preset. Choosing the preset default removes the thread override.
 - Durable storage keeps RoleplayEntries in a separate collection keyed by thread
   ID, while UI and generation receive assembled RoleplayThread objects.
 

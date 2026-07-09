@@ -1,6 +1,8 @@
 import type {
   PromptPresetChoiceBlock,
+  PromptPresetChoiceOptionSelection,
   PromptPresetChoiceSelection,
+  PromptPresetChoiceSelectionValue,
   PromptPresetChoiceSelections,
   PromptPresetGroup,
   PromptPresetParameters,
@@ -182,21 +184,47 @@ function normalizeBooleanRecord(value: unknown): Record<string, boolean> | null 
   return Object.keys(record).length > 0 ? record : null;
 }
 
-function normalizeChoiceSelection(value: unknown): PromptPresetChoiceSelection | null {
+function createPromptPresetChoiceOptionSelection(
+  optionId: string,
+): PromptPresetChoiceOptionSelection | null {
+  const cleanOptionId = optionId.trim();
+  return cleanOptionId ? { kind: "option", optionId: cleanOptionId } : null;
+}
+
+function normalizeChoiceSelectionValue(value: unknown): PromptPresetChoiceSelectionValue | null {
   if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
   }
 
+  if (isRecord(value) && value.kind === "option") {
+    return createPromptPresetChoiceOptionSelection(readTrimmedString(value.optionId));
+  }
+
+  return null;
+}
+
+function choiceSelectionValueKey(value: PromptPresetChoiceSelectionValue) {
+  return typeof value === "string" ? `value:${value}` : `option:${value.optionId}`;
+}
+
+function normalizeChoiceSelection(value: unknown): PromptPresetChoiceSelection | null {
+  const singleSelection = normalizeChoiceSelectionValue(value);
+  if (singleSelection !== null) return singleSelection;
+
   if (!Array.isArray(value)) return null;
 
-  const selections: string[] = [];
+  const selections: PromptPresetChoiceSelectionValue[] = [];
   const seen = new Set<string>();
   for (const item of value) {
-    const trimmed = readTrimmedString(item);
-    if (!trimmed || seen.has(trimmed)) continue;
-    seen.add(trimmed);
-    selections.push(trimmed);
+    const selection = normalizeChoiceSelectionValue(item);
+    if (selection === null) continue;
+
+    const key = choiceSelectionValueKey(selection);
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    selections.push(selection);
   }
 
   return selections.length > 0 ? selections : null;
@@ -250,6 +278,24 @@ function normalizeChoiceOptions(value: unknown): PromptPresetChoiceBlock["option
   return options;
 }
 
+function findChoiceSelectionOption(
+  options: PromptPresetChoiceBlock["options"],
+  selection: PromptPresetChoiceSelectionValue,
+) {
+  if (typeof selection !== "string") {
+    return options.find((option) => option.id === selection.optionId) ?? null;
+  }
+
+  const trimmed = selection.trim();
+  if (!trimmed && selection.length > 0) return null;
+
+  const optionByValue = options.find((option) => option.value === trimmed);
+  if (optionByValue) return optionByValue;
+  if (!trimmed) return null;
+
+  return options.find((option) => option.id === trimmed) ?? null;
+}
+
 function normalizeVisibilityRule(value: unknown): PromptPresetVisibilityRule | null {
   if (!isRecord(value)) return null;
 
@@ -287,10 +333,8 @@ export function normalizePromptPresetChoiceBlocks(
       ? defaultChoiceValue[0]
       : defaultChoiceValue;
     const defaultOptionByChoice =
-      typeof firstDefaultChoice === "string"
-        ? options.find(
-            (option) => option.value === firstDefaultChoice || option.id === firstDefaultChoice,
-          )
+      firstDefaultChoice !== undefined
+        ? findChoiceSelectionOption(options, firstDefaultChoice)
         : null;
     const defaultOptionId = defaultOptionByChoice?.id ?? readTrimmedString(item.defaultOptionId);
     const normalizedDefaultOptionId = options.some((option) => option.id === defaultOptionId)
@@ -343,8 +387,11 @@ export function normalizePromptPresetChoiceBlocks(
   return blocks;
 }
 
-function choiceSelectionIsValid(block: PromptPresetChoiceBlock, value: string) {
-  return block.options.some((option) => option.id === value || option.value === value);
+function choiceSelectionIsValid(
+  block: PromptPresetChoiceBlock,
+  value: PromptPresetChoiceSelectionValue,
+) {
+  return findChoiceSelectionOption(block.options, value) !== null;
 }
 
 export function prunePromptPresetDefaultChoices(
@@ -380,6 +427,25 @@ export function normalizePromptPresetChoiceSelections(
   return normalizeChoiceSelectionRecord(value);
 }
 
+export interface PromptPresetChoiceControlOption {
+  id: string;
+  label: string;
+  value: string;
+  selection: PromptPresetChoiceOptionSelection;
+  description?: string | null;
+}
+
+export interface PromptPresetChoiceControl {
+  id: string;
+  variableName: string;
+  label: string;
+  multiSelect: boolean;
+  defaultLabel: string;
+  selectedOptionIds: string[];
+  selectedValues: string[];
+  options: PromptPresetChoiceControlOption[];
+}
+
 function getPromptPresetChoiceBlocksInOrder(preset: PromptPresetRecord) {
   if (preset.variableOrder.length === 0) return preset.choiceBlocks;
 
@@ -391,28 +457,51 @@ function getPromptPresetChoiceBlocksInOrder(preset: PromptPresetRecord) {
   });
 }
 
+function choiceSelectionOptions(
+  block: PromptPresetChoiceBlock,
+  selection: PromptPresetChoiceSelection | null | undefined,
+): PromptPresetChoiceBlock["options"] {
+  const candidates = Array.isArray(selection)
+    ? selection
+    : selection === null || selection === undefined
+      ? []
+      : [selection];
+  const seen = new Set<string>();
+  const options: PromptPresetChoiceBlock["options"] = [];
+
+  for (const candidate of candidates) {
+    const option = findChoiceSelectionOption(block.options, candidate);
+    if (!option || seen.has(option.id)) continue;
+
+    seen.add(option.id);
+    options.push(option);
+  }
+
+  return options;
+}
+
 function choiceSelectionValues(
   block: PromptPresetChoiceBlock,
   selection: PromptPresetChoiceSelection | null | undefined,
 ): string[] {
-  const candidates = Array.isArray(selection) ? selection : selection ? [selection] : [];
   const values: string[] = [];
-  const seen = new Set<string>();
+  const seenValues = new Set<string>();
 
-  for (const candidate of candidates) {
-    const trimmed = candidate.trim();
-    if (!trimmed) continue;
+  for (const option of choiceSelectionOptions(block, selection)) {
+    if (seenValues.has(option.value)) continue;
 
-    const option =
-      block.options.find((currentOption) => currentOption.value === trimmed) ??
-      block.options.find((currentOption) => currentOption.id === trimmed);
-    if (!option || seen.has(option.value)) continue;
-
-    seen.add(option.value);
+    seenValues.add(option.value);
     values.push(option.value);
   }
 
   return values;
+}
+
+function choiceSelectionOptionIds(
+  block: PromptPresetChoiceBlock,
+  selection: PromptPresetChoiceSelection | null | undefined,
+): string[] {
+  return choiceSelectionOptions(block, selection).map((option) => option.id);
 }
 
 function choiceOptionValues(block: PromptPresetChoiceBlock) {
@@ -425,7 +514,7 @@ function defaultChoiceSelection(
 ): PromptPresetChoiceSelection | null {
   const presetDefault = preset.defaultChoices[block.variableName];
   if (presetDefault !== undefined) return presetDefault;
-  if (block.defaultOptionId) return block.defaultOptionId;
+  if (block.defaultOptionId) return createPromptPresetChoiceOptionSelection(block.defaultOptionId);
   return block.options[0]?.value ?? null;
 }
 
@@ -453,6 +542,15 @@ function resolvePromptPresetChoiceValues({
       : [];
 }
 
+function defaultChoiceLabel(preset: PromptPresetRecord, block: PromptPresetChoiceBlock) {
+  if (block.randomPick) return "Preset default: random";
+
+  const labels = choiceSelectionOptions(block, defaultChoiceSelection(preset, block)).map(
+    (option) => option.label,
+  );
+  return labels.length > 0 ? `Preset default: ${labels.join(", ")}` : "Preset default";
+}
+
 export function isPromptPresetChoiceBlockVisible({
   block,
   preset,
@@ -477,6 +575,74 @@ export function isPromptPresetChoiceBlockVisible({
   if (selectedControllerValues.length === 0) return false;
 
   return selectedControllerValues.some((value) => block.visibilityRule?.values.includes(value));
+}
+
+export function resolvePromptPresetChoiceControls({
+  preset,
+  selections,
+}: {
+  preset: PromptPresetRecord | null | undefined;
+  selections?: PromptPresetChoiceSelections | null;
+}): PromptPresetChoiceControl[] {
+  if (!preset) return [];
+
+  const normalizedSelections = selections ?? {};
+  return getPromptPresetChoiceBlocksInOrder(preset).flatMap((block) => {
+    if (
+      !isPromptPresetChoiceBlockVisible({
+        block,
+        preset,
+        selections: normalizedSelections,
+      })
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: block.id,
+        variableName: block.variableName,
+        label: block.label,
+        multiSelect: block.multiSelect === true && block.randomPick !== true,
+        defaultLabel: defaultChoiceLabel(preset, block),
+        selectedOptionIds: choiceSelectionOptionIds(
+          block,
+          normalizedSelections[block.variableName],
+        ),
+        selectedValues: choiceSelectionValues(block, normalizedSelections[block.variableName]),
+        options: block.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+          selection: createPromptPresetChoiceOptionSelection(option.id) ?? {
+            kind: "option",
+            optionId: option.id,
+          },
+          ...(option.description ? { description: option.description } : {}),
+        })),
+      },
+    ];
+  });
+}
+
+export function updatePromptPresetChoiceSelections(
+  selections: PromptPresetChoiceSelections,
+  variableName: string,
+  selection: PromptPresetChoiceSelection,
+): PromptPresetChoiceSelections {
+  const cleanVariableName = variableName.trim();
+  if (!cleanVariableName) return selections;
+
+  const cleanSelection = normalizeChoiceSelection(selection);
+  const nextSelections = { ...selections };
+
+  if (cleanSelection !== null) {
+    nextSelections[cleanVariableName] = cleanSelection;
+  } else {
+    delete nextSelections[cleanVariableName];
+  }
+
+  return nextSelections;
 }
 
 function normalizeSectionRole(value: unknown): PromptPresetSectionRole {

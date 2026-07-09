@@ -1,7 +1,11 @@
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { RoleplayEntry, RoleplayThread } from "../../contracts/types/roleplay";
 import type { PersonaRecord } from "../../contracts/types/persona";
-import type { PromptPresetChoiceSelections } from "../../contracts/types/prompt-presets";
+import type {
+  PromptPresetChoiceSelection,
+  PromptPresetChoiceSelections,
+} from "../../contracts/types/prompt-presets";
+import { updatePromptPresetChoiceSelections } from "../../prompt-presets/prompt-preset-normalization";
 import { cleanText, cleanTextArray } from "../../shared/text";
 
 export function createRoleplayThread({
@@ -278,12 +282,35 @@ export function setRoleplayThreadPreset(
   thread: RoleplayThread,
   presetId: string | null,
   updatedAt: string,
-  presetChoiceSelections: PromptPresetChoiceSelections = {},
+  presetChoiceSelections?: PromptPresetChoiceSelections,
 ): RoleplayThread {
+  const cleanPresetId = presetId?.trim() || null;
+  if (cleanPresetId === thread.presetId && presetChoiceSelections === undefined) return thread;
+
   return {
     ...thread,
-    presetId: presetId?.trim() || null,
-    presetChoiceSelections,
+    presetId: cleanPresetId,
+    presetChoiceSelections: presetChoiceSelections ?? {},
+    updatedAt,
+  };
+}
+
+export function setRoleplayThreadPresetChoiceSelection(
+  thread: RoleplayThread,
+  variableName: string,
+  selection: PromptPresetChoiceSelection,
+  updatedAt: string,
+): RoleplayThread {
+  const cleanVariableName = variableName.trim();
+  if (!cleanVariableName) return thread;
+
+  return {
+    ...thread,
+    presetChoiceSelections: updatePromptPresetChoiceSelections(
+      thread.presetChoiceSelections ?? {},
+      cleanVariableName,
+      selection,
+    ),
     updatedAt,
   };
 }

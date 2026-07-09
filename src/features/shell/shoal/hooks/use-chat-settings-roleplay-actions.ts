@@ -3,9 +3,11 @@ import {
   setRoleplayThreadParticipants,
   setRoleplayThreadPersona,
   setRoleplayThreadPreset,
+  setRoleplayThreadPresetChoiceSelection,
   setRoleplayThreadProviderConnection,
 } from "../../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { PromptPresetChoiceSelection } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsIdentityActions,
   ChatSettingsThreadPresetActions,
@@ -33,7 +35,9 @@ export function useChatSettingsRoleplayActions({
     updater: (thread: RoleplayThread, updatedAt: string) => RoleplayThread,
   ) {
     if (!activeRoleplayThread) return;
-    onUpdateRoleplayThread(updater(activeRoleplayThread, new Date().toISOString()));
+    const updatedThread = updater(activeRoleplayThread, new Date().toISOString());
+    if (updatedThread === activeRoleplayThread) return;
+    onUpdateRoleplayThread(updatedThread);
   }
 
   function handleRoleplayConnectionChange(connectionId: string) {
@@ -71,6 +75,15 @@ export function useChatSettingsRoleplayActions({
   function handleRoleplayPresetChange(presetId: string) {
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadPreset(thread, presetId.trim() || null, updatedAt),
+    );
+  }
+
+  function handleRoleplayPresetChoiceChange(
+    variableName: string,
+    selection: PromptPresetChoiceSelection,
+  ) {
+    updateActiveRoleplayThread((thread, updatedAt) =>
+      setRoleplayThreadPresetChoiceSelection(thread, variableName, selection, updatedAt),
     );
   }
 
@@ -118,6 +131,7 @@ export function useChatSettingsRoleplayActions({
   };
   const presetActions: ChatSettingsThreadPresetActions = {
     onClearMissingPreset: clearMissingRoleplayPreset,
+    onPresetChoiceChange: handleRoleplayPresetChoiceChange,
     onPresetChange: handleRoleplayPresetChange,
   };
   const resourceActions: ChatSettingsThreadResourceActions = {

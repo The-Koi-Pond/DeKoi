@@ -26,8 +26,11 @@ export {
   normalizePromptPresetChoiceSelections,
   normalizePromptPresetRecord,
   normalizePromptPresetSections,
+  resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
+  updatePromptPresetChoiceSelections,
 } from "./prompt-preset-normalization";
+export type { PromptPresetChoiceControl } from "./prompt-preset-normalization";
 
 export interface PromptPresetInput {
   title: string;

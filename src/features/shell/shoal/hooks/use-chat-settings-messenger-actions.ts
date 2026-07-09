@@ -3,6 +3,7 @@ import {
   setMessengerThreadParticipants,
   setMessengerThreadPersona,
   setMessengerThreadPreset,
+  setMessengerThreadPresetChoiceSelection,
   setMessengerThreadProviderConnection,
   setMessengerThreadSystemPrompt,
 } from "../../../../engine/modes/messenger/messenger-actions";
@@ -10,6 +11,7 @@ import {
   DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
+import type { PromptPresetChoiceSelection } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsMessengerIdentityActions,
   ChatSettingsMessengerPromptActions,
@@ -84,6 +86,15 @@ export function useChatSettingsMessengerActions({
     );
   }
 
+  function handleMessengerPresetChoiceChange(
+    variableName: string,
+    selection: PromptPresetChoiceSelection,
+  ) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      setMessengerThreadPresetChoiceSelection(thread, variableName, selection, updatedAt),
+    );
+  }
+
   function clearMissingMessengerPreset() {
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadPreset(thread, null, updatedAt),
@@ -138,6 +149,7 @@ export function useChatSettingsMessengerActions({
   };
   const presetActions: ChatSettingsThreadPresetActions = {
     onClearMissingPreset: clearMissingMessengerPreset,
+    onPresetChoiceChange: handleMessengerPresetChoiceChange,
     onPresetChange: handleMessengerPresetChange,
   };
   const resourceActions: ChatSettingsMessengerThreadResourceActions = {
