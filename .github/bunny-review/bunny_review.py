@@ -648,6 +648,111 @@ def json_response_format_enabled():
     }
 
 
+def review_json_schema_response_format():
+    text_list = {"type": "array", "items": {"type": "string"}}
+    finding_contract = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "invariant",
+            "related_failure_paths",
+            "adjacent_traps",
+            "acceptable_fix_shapes",
+            "expected_proof",
+        ],
+        "properties": {
+            "invariant": {"type": "string"},
+            "related_failure_paths": text_list,
+            "adjacent_traps": text_list,
+            "acceptable_fix_shapes": text_list,
+            "expected_proof": text_list,
+        },
+    }
+    finding_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "severity",
+            "path",
+            "line",
+            "title",
+            "body",
+            "fix_hint",
+            "repair_contract",
+        ],
+        "properties": {
+            "severity": {
+                "type": "string",
+                "enum": ["blocking", "high", "medium", "low"],
+            },
+            "path": {"type": "string"},
+            "line": {"type": "integer"},
+            "title": {"type": "string"},
+            "body": {"type": "string"},
+            "fix_hint": {"type": "string"},
+            "repair_contract": finding_contract,
+        },
+    }
+    nitpick_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["path", "line", "title", "body", "fix_hint"],
+        "properties": {
+            "path": {"type": "string"},
+            "line": {"type": "integer"},
+            "title": {"type": "string"},
+            "body": {"type": "string"},
+            "fix_hint": {"type": "string"},
+        },
+    }
+    pre_merge_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "status", "type", "detail"],
+        "properties": {
+            "name": {"type": "string"},
+            "status": {"type": "string", "enum": ["pass", "warn", "fail", "unknown"]},
+            "type": {
+                "type": "string",
+                "enum": [
+                    "Proof Gap",
+                    "Review Limitation",
+                    "CI Timing",
+                    "Non-blocking Coverage",
+                ],
+            },
+            "detail": {"type": "string"},
+        },
+    }
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "bunny_review",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "change_summary",
+                    "findings",
+                    "nitpicks",
+                    "pre_merge_checks",
+                    "open_questions",
+                    "what_i_checked",
+                ],
+                "properties": {
+                    "change_summary": text_list,
+                    "findings": {"type": "array", "items": finding_item},
+                    "nitpicks": {"type": "array", "items": nitpick_item},
+                    "pre_merge_checks": {"type": "array", "items": pre_merge_item},
+                    "open_questions": text_list,
+                    "what_i_checked": text_list,
+                },
+            },
+        },
+    }
+
+
 def response_format_retryable(exc):
     message = str(exc).lower()
     return any(
@@ -655,6 +760,8 @@ def response_format_retryable(exc):
         for marker in (
             "response_format",
             "json_object",
+            "json_schema",
+            "structured output",
             "unsupported parameter",
             "unknown parameter",
             "extra inputs are not permitted",
@@ -662,25 +769,49 @@ def response_format_retryable(exc):
     )
 
 
+def json_response_format_options(force_json):
+    if not force_json or not json_response_format_enabled():
+        return [None]
+    return [review_json_schema_response_format(), {"type": "json_object"}, None]
+
+
+def response_format_name(response_format):
+    if not response_format:
+        return "plain text"
+    return response_format.get("type") or "response_format"
+
+
 def model_call(client, messages, stats, *, force_json=False):
-    kwargs = {
+    base_kwargs = {
         "model": os.environ.get("LLM_MODEL", "gpt-5.5"),
         "messages": messages,
         "timeout": MODEL_REQUEST_TIMEOUT,
     }
-    if force_json and json_response_format_enabled():
-        kwargs["response_format"] = {"type": "json_object"}
-    try:
-        resp = client.chat.completions.create(**kwargs)
-    except Exception as exc:
-        if "response_format" not in kwargs or not response_format_retryable(exc):
-            raise
-        kwargs.pop("response_format", None)
-        print(
-            "Bunny warning: JSON response_format was not accepted; retrying without it.",
-            flush=True,
-        )
-        resp = client.chat.completions.create(**kwargs)
+    resp = None
+    response_options = json_response_format_options(force_json)
+    for index, response_format in enumerate(response_options):
+        kwargs = dict(base_kwargs)
+        if response_format:
+            kwargs["response_format"] = response_format
+        try:
+            resp = client.chat.completions.create(**kwargs)
+            break
+        except Exception as exc:
+            if not response_format or not response_format_retryable(exc):
+                raise
+            next_name = (
+                response_format_name(response_options[index + 1])
+                if index + 1 < len(response_options)
+                else "plain text"
+            )
+            print(
+                "Bunny warning: "
+                f"{response_format_name(response_format)} response_format was not accepted; "
+                f"retrying with {next_name}.",
+                flush=True,
+            )
+    if resp is None:
+        raise RuntimeError("model call did not return a response")
     stats["model_calls"] += 1
     add_usage(stats, getattr(resp, "usage", None))
     if isinstance(resp, str):
@@ -1211,15 +1342,23 @@ def finding_summary(findings):
 
 def has_failed_review_check(pre_merge):
     return any(
-        str(item.get("name", "")).strip().lower() == "review failed"
+        isinstance(item, dict)
+        and str(item.get("name", "")).strip().lower() == "review failed"
         and status_meta(item.get("status"))["label"] == "FAIL"
         for item in pre_merge
     )
 
 
 def has_incomplete_review_check(pre_merge):
-    names = {"review failed", "review skipped"}
-    return any(str(item.get("name", "")).strip().lower() in names for item in pre_merge)
+    for item in pre_merge:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip().lower()
+        if name == "review skipped":
+            return True
+        if name == "review failed" and status_meta(item.get("status"))["label"] == "FAIL":
+            return True
+    return False
 
 
 def merge_signal(review_obj, findings, nitpicks, pre_merge):
@@ -1760,6 +1899,19 @@ def append_unique_pre_merge_check(review_obj, check):
     checks.append(check)
 
 
+def is_schema_repair_failed_check(item):
+    if not isinstance(item, dict):
+        return False
+    return (
+        str(item.get("name", "")).strip().lower() == "review failed"
+        and status_meta(item.get("status"))["label"] == "FAIL"
+        and control_type(item) == "Review Limitation"
+        and str(item.get("detail", "")).startswith(
+            "Bunny's model review JSON stayed incomplete after schema repair"
+        )
+    )
+
+
 def schema_repair_failure_detail(remaining_gaps, repair_error):
     issue = "; ".join(remaining_gaps[:3]) or repair_error
     return (
@@ -1780,7 +1932,7 @@ def normalize_review_object(review_obj, base, files):
     review_obj["open_questions"] = normalize_text_list(review_obj.get("open_questions"))
     review_obj["what_i_checked"] = normalize_text_list(review_obj.get("what_i_checked"))
     repaired_gaps = normalize_text_list(review_obj.get("_schema_repair_gaps"))
-    remaining_gaps = normalize_text_list(review_obj.get("_schema_repair_remaining_gaps"))
+    declared_remaining_gaps = normalize_text_list(review_obj.get("_schema_repair_remaining_gaps"))
     repair_error = str(review_obj.get("_schema_repair_error") or "").strip()
     if repaired_gaps:
         note = (
@@ -1789,15 +1941,23 @@ def normalize_review_object(review_obj, base, files):
         )
         if note not in review_obj["what_i_checked"]:
             review_obj["what_i_checked"].insert(0, note)
+    for key in ("findings", "nitpicks", "pre_merge_checks"):
+        if not isinstance(review_obj.get(key), list):
+            review_obj[key] = []
+    if not review_obj["what_i_checked"]:
+        review_obj["what_i_checked"].append(
+            "Bunny normalized the review output before rendering because the model omitted review context notes."
+        )
+    remaining_gaps = review_contract_gaps(review_obj)
+    if remaining_gaps:
+        review_obj["_schema_repair_remaining_gaps"] = remaining_gaps
+    else:
+        review_obj.pop("_schema_repair_remaining_gaps", None)
     if remaining_gaps or repair_error:
         detail = "; ".join(remaining_gaps[:3]) or repair_error
         note = f"Bunny's schema repair remained incomplete, so renderer fallbacks may appear: {detail}"
         if note not in review_obj["what_i_checked"]:
             review_obj["what_i_checked"].insert(0, note)
-    for key in ("findings", "nitpicks", "pre_merge_checks"):
-        if not isinstance(review_obj.get(key), list):
-            review_obj[key] = []
-    if remaining_gaps or repair_error:
         append_unique_pre_merge_check(
             review_obj,
             {
@@ -1807,7 +1967,30 @@ def normalize_review_object(review_obj, base, files):
                 "detail": schema_repair_failure_detail(remaining_gaps, repair_error),
             },
         )
-    elif used_fallback:
+    else:
+        review_obj["pre_merge_checks"] = [
+            item
+            for item in review_obj["pre_merge_checks"]
+            if not is_schema_repair_failed_check(item)
+        ]
+        if declared_remaining_gaps:
+            note = (
+                "Bunny cleared stale schema repair gaps after normalization produced the required review fields: "
+                + "; ".join(declared_remaining_gaps[:3])
+            )
+            if note not in review_obj["what_i_checked"]:
+                review_obj["what_i_checked"].insert(0, note)
+        if declared_remaining_gaps and not used_fallback:
+            append_unique_pre_merge_check(
+                review_obj,
+                {
+                    "name": "Review Output",
+                    "status": "warn",
+                    "type": "Review Limitation",
+                    "detail": "Bunny repaired missing top-level review fields before rendering; inspect diagnostics if the review looks too thin.",
+                },
+            )
+    if used_fallback:
         append_unique_pre_merge_check(
             review_obj,
             {
@@ -2837,9 +3020,9 @@ def truthy(value):
 
 def load_review_for_status(path):
     try:
-        return json.loads(pathlib.Path(path).read_text("utf-8"))
-    except Exception:
-        return {}
+        return json.loads(pathlib.Path(path).read_text("utf-8")), ""
+    except Exception as exc:
+        return {}, " ".join(str(exc).split())
 
 
 def load_ci_control_for_status(path):
@@ -2847,6 +3030,17 @@ def load_ci_control_for_status(path):
         return json.loads(pathlib.Path(path).read_text("utf-8"))
     except Exception:
         return {}
+
+
+def normalize_review_for_status(review_obj):
+    if not isinstance(review_obj, dict):
+        return {}
+    base = str(review_obj.get("review_base") or "HEAD~1")
+    try:
+        files = changed_files(base)
+    except Exception:
+        files = []
+    return normalize_review_object(review_obj, base, files)
 
 
 def status_state(args):
@@ -2858,7 +3052,12 @@ def status_state(args):
         print("state=failure")
         print("description=Bunny Review did not produce review.json; inspect the trusted workflow run.")
         return
-    review_obj = load_review_for_status(args.review_json)
+    raw_review_obj, load_error = load_review_for_status(args.review_json)
+    if load_error:
+        print("state=failure")
+        print("description=Bunny Review produced unreadable review.json; inspect the trusted workflow run.")
+        return
+    review_obj = normalize_review_for_status(raw_review_obj)
     pre_merge = review_obj.get("pre_merge_checks") if isinstance(review_obj, dict) else []
     findings = status_findings(review_obj)
     if has_incomplete_review_check(pre_merge or []):
