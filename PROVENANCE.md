@@ -31,6 +31,30 @@ Generic AI-character-chat ecosystem terms such as `persona`, `lorebook`,
 `character card`, and `preset` are shared vocabulary, not prior-project product
 language. They are fine.
 
+## Interoperable Exchange Formats
+
+The one-way legacy-import rule does not prohibit portable file-format
+compatibility. Prompt preset packages are an interoperability boundary, not a
+legacy application record model.
+
+- DeKoi may import and export prompt preset packages that use established
+  ecosystem field names and package mechanics when those details are necessary
+  for compatibility.
+- Compatibility adapters are written clean-room from DeKoi requirements,
+  approved team-owned fixtures, and independently documented file behavior.
+- Portable package envelopes stop at the import/export boundary. DeKoi storage,
+  engine records, UI state, and generation continue to use DeKoi-native
+  `PromptPresetRecord` data.
+- Format compatibility does not permit copying third-party implementation code,
+  UI layouts, documentation wording, or prompt content.
+- Team-authored prompt packages from the old De-Koi tree may be retained intact
+  with attribution when the maintainer has approved them as DeKoi source
+  material.
+
+This distinction lets DeKoi-built presets round-trip through compatible tools
+without turning another application's internal schema or implementation into
+DeKoi's product model.
+
 ## The Practical Test
 
 Before bringing something over, answer two questions:
