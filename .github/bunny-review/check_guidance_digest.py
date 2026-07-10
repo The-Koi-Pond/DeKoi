@@ -655,14 +655,11 @@ def run_model_key_case(module):
         assert provider_configs[0]["fallback_to_openai_direct"] is False
 
         os.environ["OPENAI_API_KEY"] = "openai-key"
-        provider_fallback_configs = module.model_client_configs()
-        assert len(provider_fallback_configs) == 2
-        assert provider_fallback_configs[0]["api_key"] == "provider-key"
-        assert provider_fallback_configs[0]["base_url"] == "https://provider.example/v1"
-        assert provider_fallback_configs[0]["fallback_to_openai_direct"] is True
-        assert provider_fallback_configs[1]["api_key"] == "openai-key"
-        assert provider_fallback_configs[1]["base_url"] is None
-        assert provider_fallback_configs[1]["fallback_to_openai_direct"] is False
+        provider_configs = module.model_client_configs()
+        assert len(provider_configs) == 1
+        assert provider_configs[0]["api_key"] == "provider-key"
+        assert provider_configs[0]["base_url"] == "https://provider.example/v1"
+        assert provider_configs[0]["fallback_to_openai_direct"] is False
 
         os.environ.pop("LLM_API_KEY", None)
         os.environ["OPENAI_API_KEY"] = "openai-key"
