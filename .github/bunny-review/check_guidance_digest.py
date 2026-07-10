@@ -354,6 +354,173 @@ def run_json_repair_format_case(module):
     assert "response_format" not in rejecting.calls[0]
 
 
+def run_model_transport_case(module):
+    messages = [
+        {"role": "system", "content": "prompt"},
+        {"role": "user", "content": "packet"},
+    ]
+    response_text = "FINAL_REVIEW\n" + json.dumps(
+        {
+            "change_summary": ["Wah, Responses paid out a complete review."],
+            "findings": [],
+            "nitpicks": [],
+            "pre_merge_checks": [],
+            "open_questions": [],
+            "what_i_checked": ["Bunny checked the Responses transport."],
+        }
+    )
+
+    class FakeResponses:
+        def __init__(self, response):
+            self.response = response
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            return self.response
+
+    class FakeCompletions:
+        def __init__(self):
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            return SimpleNamespace(
+                usage=SimpleNamespace(
+                    prompt_tokens=7,
+                    completion_tokens=5,
+                    total_tokens=12,
+                    completion_tokens_details=SimpleNamespace(reasoning_tokens=2),
+                ),
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content="chat review"))
+                ],
+            )
+
+    old_model = os.environ.get("LLM_MODEL")
+    old_wire = os.environ.get("BUNNY_LLM_WIRE_API")
+    try:
+        os.environ["LLM_MODEL"] = "gpt-5.6-terra"
+        os.environ.pop("BUNNY_LLM_WIRE_API", None)
+        responses = FakeResponses(
+            SimpleNamespace(
+                status="completed",
+                output_text=response_text,
+                output=[],
+                usage=SimpleNamespace(
+                    input_tokens=11,
+                    output_tokens=13,
+                    total_tokens=24,
+                    output_tokens_details=SimpleNamespace(reasoning_tokens=3),
+                ),
+            )
+        )
+        completions = FakeCompletions()
+        client = SimpleNamespace(
+            responses=responses,
+            chat=SimpleNamespace(completions=completions),
+        )
+        stats = module.build_stats("packet")
+        content = module.model_call(client, messages, stats)
+        assert content == response_text
+        assert len(responses.calls) == 1
+        assert not completions.calls, "GPT-5.x must not use Chat Completions in auto mode"
+        assert responses.calls[0]["model"] == "gpt-5.6-terra"
+        assert responses.calls[0]["input"] == messages
+        assert responses.calls[0]["store"] is False
+        assert stats["wire_api"] == "responses"
+        assert stats["prompt_tokens"] == 11
+        assert stats["completion_tokens"] == 13
+        assert stats["reasoning_tokens"] == 3
+        assert stats["total_tokens"] == 24
+
+        os.environ["LLM_MODEL"] = "gpt-4.1"
+        responses = FakeResponses(None)
+        completions = FakeCompletions()
+        client = SimpleNamespace(
+            responses=responses,
+            chat=SimpleNamespace(completions=completions),
+        )
+        stats = module.build_stats("packet")
+        content = module.model_call(client, messages, stats)
+        assert content == "chat review"
+        assert len(completions.calls) == 1
+        assert not responses.calls, "GPT-4.x must retain Chat Completions in auto mode"
+        assert completions.calls[0]["messages"] == messages
+        assert stats["wire_api"] == "chat_completions"
+        assert stats["prompt_tokens"] == 7
+        assert stats["completion_tokens"] == 5
+        assert stats["reasoning_tokens"] == 2
+        assert stats["total_tokens"] == 12
+
+        os.environ["LLM_MODEL"] = "gpt-5.6-terra"
+        os.environ["BUNNY_LLM_WIRE_API"] = "chat_completions"
+        responses = FakeResponses(None)
+        completions = FakeCompletions()
+        client = SimpleNamespace(
+            responses=responses,
+            chat=SimpleNamespace(completions=completions),
+        )
+        content = module.model_call(client, messages, module.build_stats("packet"))
+        assert content == "chat review"
+        assert len(completions.calls) == 1
+        assert not responses.calls, "explicit wire override must win over model routing"
+
+        os.environ.pop("BUNNY_LLM_WIRE_API", None)
+        os.environ["LLM_MODEL"] = "gpt-5.5"
+        incomplete = FakeResponses(
+            SimpleNamespace(
+                status="incomplete",
+                incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+                output_text="partial review",
+                usage=None,
+            )
+        )
+        client = SimpleNamespace(
+            responses=incomplete,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        try:
+            module.model_call(client, messages, module.build_stats("packet"))
+        except RuntimeError as exc:
+            assert "incomplete (max_output_tokens)" in str(exc)
+        else:
+            raise AssertionError("incomplete Responses output must fail explicitly")
+
+        refusal = FakeResponses(
+            SimpleNamespace(
+                status="completed",
+                output_text="",
+                output=[
+                    SimpleNamespace(
+                        type="message",
+                        content=[SimpleNamespace(type="refusal", refusal="no")],
+                    )
+                ],
+                usage=None,
+            )
+        )
+        client = SimpleNamespace(
+            responses=refusal,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        try:
+            module.model_call(client, messages, module.build_stats("packet"))
+        except RuntimeError as exc:
+            assert "refused to produce review output" in str(exc)
+        else:
+            raise AssertionError("refusal-only Responses output must fail explicitly")
+    finally:
+        if old_model is None:
+            os.environ.pop("LLM_MODEL", None)
+        else:
+            os.environ["LLM_MODEL"] = old_model
+        if old_wire is None:
+            os.environ.pop("BUNNY_LLM_WIRE_API", None)
+        else:
+            os.environ["BUNNY_LLM_WIRE_API"] = old_wire
+
+
 def run_model_key_case(module):
     old_llm = os.environ.get("LLM_API_KEY")
     old_openai = os.environ.get("OPENAI_API_KEY")
@@ -508,9 +675,18 @@ def run_command_mode_case(module):
 def main():
     module = load_bunny_review()
     packet_len = run_packet_case(module)
-    repair_calls = run_semantic_repair_case(module)
-    run_chunk_schema_repair_case(module)
-    run_json_repair_format_case(module)
+    old_wire = os.environ.get("BUNNY_LLM_WIRE_API")
+    try:
+        os.environ["BUNNY_LLM_WIRE_API"] = "chat_completions"
+        repair_calls = run_semantic_repair_case(module)
+        run_chunk_schema_repair_case(module)
+        run_json_repair_format_case(module)
+    finally:
+        if old_wire is None:
+            os.environ.pop("BUNNY_LLM_WIRE_API", None)
+        else:
+            os.environ["BUNNY_LLM_WIRE_API"] = old_wire
+    run_model_transport_case(module)
     run_model_key_case(module)
     run_failure_redaction_case(module)
     run_status_case(module)
@@ -526,6 +702,9 @@ def main():
         "chunk_schema_repair_metadata_private=true "
         "semantic_repair=true "
         "plain_json_repair=true "
+        "responses_transport=true "
+        "responses_incomplete_fails=true "
+        "responses_refusal_fails=true "
         "no_json_repair=true "
         "render_voice=true "
         "model_key_fallback=true "

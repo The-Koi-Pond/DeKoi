@@ -597,12 +597,16 @@ def usage_value(usage, *path):
 
 
 def add_usage(totals, usage):
-    totals["prompt_tokens"] += usage_value(usage, "prompt_tokens")
-    totals["completion_tokens"] += usage_value(usage, "completion_tokens")
+    totals["prompt_tokens"] += usage_value(
+        usage, "prompt_tokens"
+    ) or usage_value(usage, "input_tokens")
+    totals["completion_tokens"] += usage_value(
+        usage, "completion_tokens"
+    ) or usage_value(usage, "output_tokens")
     totals["total_tokens"] += usage_value(usage, "total_tokens")
     totals["reasoning_tokens"] += usage_value(
         usage, "completion_tokens_details", "reasoning_tokens"
-    )
+    ) or usage_value(usage, "output_tokens_details", "reasoning_tokens")
 
 
 def build_stats(review_packet):
@@ -617,6 +621,7 @@ def build_stats(review_packet):
         "completion_tokens": 0,
         "reasoning_tokens": 0,
         "total_tokens": 0,
+        "wire_api": "",
     }
 
 
@@ -633,21 +638,97 @@ def print_telemetry(stats):
         f"prompt_tokens={stats['prompt_tokens']}; "
         f"completion_tokens={stats['completion_tokens']}; "
         f"reasoning_tokens={stats['reasoning_tokens']}; "
-        f"total_tokens={stats['total_tokens']}",
+        f"total_tokens={stats['total_tokens']}; "
+        f"wire_api={stats['wire_api'] or 'unknown'}",
         flush=True,
     )
 
 
+def model_name():
+    return os.environ.get("LLM_MODEL", "gpt-5.5").strip()
+
+
+def model_wire_api():
+    configured = os.environ.get("BUNNY_LLM_WIRE_API", "auto").strip().lower()
+    aliases = {
+        "chat": "chat_completions",
+        "chat-completions": "chat_completions",
+        "chat_completions": "chat_completions",
+        "responses": "responses",
+    }
+    if configured != "auto":
+        if configured not in aliases:
+            raise ValueError(
+                "BUNNY_LLM_WIRE_API must be auto, responses, or chat_completions"
+            )
+        return aliases[configured]
+    normalized_model = model_name().rsplit("/", 1)[-1].lower()
+    return "responses" if normalized_model.startswith("gpt-5") else "chat_completions"
+
+
+def object_value(value, key, default=None):
+    if isinstance(value, dict):
+        return value.get(key, default)
+    return getattr(value, key, default)
+
+
+def responses_output_text(resp):
+    output_text = object_value(resp, "output_text", "") or ""
+    if output_text:
+        return output_text
+    parts = []
+    for item in object_value(resp, "output", []) or []:
+        if object_value(item, "type") != "message":
+            continue
+        for content in object_value(item, "content", []) or []:
+            if object_value(content, "type") == "output_text":
+                text = object_value(content, "text", "")
+                if text:
+                    parts.append(text)
+    return "".join(parts)
+
+
+def responses_has_refusal(resp):
+    for item in object_value(resp, "output", []) or []:
+        for content in object_value(item, "content", []) or []:
+            if object_value(content, "type") == "refusal":
+                return True
+    return False
+
+
 def model_call(client, messages, stats):
-    resp = client.chat.completions.create(
-        model=os.environ.get("LLM_MODEL", "gpt-5.5"),
-        messages=messages,
-        timeout=MODEL_REQUEST_TIMEOUT,
-    )
+    wire_api = model_wire_api()
+    stats["wire_api"] = wire_api
+    if wire_api == "responses":
+        resp = client.responses.create(
+            model=model_name(),
+            input=messages,
+            store=False,
+            timeout=MODEL_REQUEST_TIMEOUT,
+        )
+    else:
+        resp = client.chat.completions.create(
+            model=model_name(),
+            messages=messages,
+            timeout=MODEL_REQUEST_TIMEOUT,
+        )
     stats["model_calls"] += 1
-    add_usage(stats, getattr(resp, "usage", None))
+    add_usage(stats, object_value(resp, "usage"))
     if isinstance(resp, str):
         return resp
+    if wire_api == "responses":
+        status = str(object_value(resp, "status", "") or "").strip().lower()
+        if status and status != "completed":
+            details = object_value(resp, "incomplete_details")
+            reason = object_value(details, "reason", "") if details else ""
+            suffix = f" ({reason})" if reason else ""
+            raise RuntimeError(f"Responses API returned {status}{suffix}")
+        output_text = responses_output_text(resp)
+        if output_text:
+            return output_text
+        if responses_has_refusal(resp):
+            raise RuntimeError("Responses API refused to produce review output")
+        raise RuntimeError("Responses API completed without text output")
     return resp.choices[0].message.content or ""
 
 

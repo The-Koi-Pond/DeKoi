@@ -112,6 +112,8 @@ assert.match(reviewWorkflow, /DEKOI_BUNNY_LLM_API_KEY/);
 assert.match(reviewWorkflow, /DE_KOI_BUNNY_LLM_API_KEY/);
 assert.match(reviewWorkflow, /DEKOI_BUNNY_LLM_MODEL/);
 assert.match(reviewWorkflow, /DE_KOI_BUNNY_LLM_MODEL/);
+assert.match(reviewWorkflow, /DEKOI_BUNNY_LLM_WIRE_API/);
+assert.match(reviewWorkflow, /DE_KOI_BUNNY_LLM_WIRE_API/);
 
 const autoWorkflow = read(".github/workflows/bunny-review-auto.yml");
 assert.match(autoWorkflow, /DEKOI_PR_SYNC_AUTOMATION/);
