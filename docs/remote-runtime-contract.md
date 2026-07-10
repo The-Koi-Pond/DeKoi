@@ -544,12 +544,13 @@ omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
 live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
 `threadId`. Thread records may carry `presetChoiceSelections` when a prompt
 preset is selected; runtimes should preserve that object with the thread
-metadata. Each selection is a non-empty string resolved by DeKoi as option
-value then option ID, an option object such as
-`{ "kind": "option", "optionId": "tone-soft" }`, or an array of those values
-for multi-select blocks. The same shape is used by prompt preset
-`defaultChoices`; runtimes should round-trip object selections so empty or
-duplicate option values keep their option identity. DeKoi assembles thread
+metadata. Thread selections are keyed by stable choice-block ID. Each value is
+an option object such as `{ "kind": "option", "optionId": "tone-soft" }`, or
+an ordered array of those objects for multi-select blocks. DeKoi prunes unknown
+block and option IDs when loading a thread. Prompt preset `defaultChoices`
+separately retain the compatible package shape keyed by variable name, including
+string values. Runtimes should round-trip native thread option objects so empty
+or duplicate option values keep their option identity. DeKoi assembles thread
 records with their transcript items before rendering or generating. Legacy
 embedded `messages` or `entries` may still be accepted on load or bundle
 import, but normal writes use the split collections.

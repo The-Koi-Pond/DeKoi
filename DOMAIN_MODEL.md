@@ -286,10 +286,11 @@ Current implementation:
   parameters, a current generation sampling projection, static variable values,
   ordered sections/groups, and choice blocks.
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
-  sections, section roles, enabled state, wrapping, and depth placement. Its
-  edit flow preserves compatible choice blocks, static variable values, default
-  choices, richer parameters, default/folder/author metadata, and Messenger
-  Prompt Source even where dedicated controls are not exposed.
+  sections, section roles, enabled state, wrapping, depth placement, choice
+  blocks, options, reusable defaults, presentation, and conditional visibility.
+  Its edit flow preserves static variable values, richer parameters,
+  default/folder/author metadata, and Messenger Prompt Source even where
+  dedicated controls are not exposed.
 - Messenger and Roleplay threads can select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still
@@ -300,6 +301,8 @@ Current implementation:
 - Prompt-preset static `variableValues` and per-thread preset choice selections
   become request-local prompt variables at generation time. Choice selections
   are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
+  Thread selections use stable choice-block and option IDs; loading prunes IDs
+  that are no longer valid for the selected preset.
 - Roleplay thread settings can choose values for the selected preset's choice
   blocks without editing the reusable preset record; switching to another
   preset clears those thread-level choices.
@@ -308,7 +311,7 @@ Current implementation:
 
 Still evolving:
 
-- UI for editing choice-block definitions and advanced compatible metadata.
+- UI for editing advanced compatible parameters, static variables, and metadata.
 - Whether Thread Presets become a separate saved record.
 
 ### Provider Connection

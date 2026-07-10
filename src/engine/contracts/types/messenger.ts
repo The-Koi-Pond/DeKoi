@@ -1,4 +1,4 @@
-import type { PromptPresetChoiceSelections } from "./prompt-presets";
+import type { PromptPresetThreadChoiceSelections } from "./prompt-presets";
 
 type MessengerThreadKind = "messenger";
 export type MessengerThreadMode = "direct" | "group";
@@ -88,7 +88,7 @@ export interface MessengerThread {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetChoiceSelections;
+  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
   providerConnectionId: string | null;
   systemPromptMode: MessengerSystemPromptMode;
   systemPrompt: string;

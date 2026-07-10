@@ -12,7 +12,7 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
-import { normalizePromptPresetChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
+import { normalizePromptPresetThreadChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { createStorageRepository } from "../storage-repository-factory";
 import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
@@ -115,7 +115,7 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
       lorebookIds: readStringArray(value.lorebookIds),
       presetId,
       presetChoiceSelections: presetId
-        ? normalizePromptPresetChoiceSelections(value.presetChoiceSelections)
+        ? normalizePromptPresetThreadChoiceSelections(value.presetChoiceSelections)
         : {},
       providerConnectionId: readNullableString(value.providerConnectionId),
       entries,

@@ -10,6 +10,8 @@ import type {
   PromptPresetSampling,
   PromptPresetSection,
   PromptPresetSectionRole,
+  PromptPresetThreadChoiceSelection,
+  PromptPresetThreadChoiceSelections,
   PromptPresetVisibilityRule,
 } from "../contracts/types/prompt-presets";
 
@@ -423,13 +425,65 @@ export function prunePromptPresetDefaultChoices(
   return prunedChoices;
 }
 
-export function normalizePromptPresetChoiceSelections(
-  value: unknown,
-): PromptPresetChoiceSelections {
-  return normalizeChoiceSelectionRecord(value);
+function normalizeThreadChoiceSelection(value: unknown): PromptPresetThreadChoiceSelection | null {
+  if (isRecord(value) && value.kind === "option") {
+    return createPromptPresetChoiceOptionSelection(readTrimmedString(value.optionId));
+  }
+  if (!Array.isArray(value)) return null;
+
+  const selections: PromptPresetChoiceOptionSelection[] = [];
+  const seenOptionIds = new Set<string>();
+  for (const item of value) {
+    if (!isRecord(item) || item.kind !== "option") continue;
+    const selection = createPromptPresetChoiceOptionSelection(readTrimmedString(item.optionId));
+    if (!selection || seenOptionIds.has(selection.optionId)) continue;
+    seenOptionIds.add(selection.optionId);
+    selections.push(selection);
+  }
+  return selections.length > 0 ? selections : null;
 }
 
-export interface PromptPresetChoiceControlOption {
+export function normalizePromptPresetThreadChoiceSelections(
+  value: unknown,
+): PromptPresetThreadChoiceSelections {
+  const source = parseJsonIfString(value);
+  if (!isRecord(source)) return {};
+
+  const selections: PromptPresetThreadChoiceSelections = {};
+  for (const [rawBlockId, rawSelection] of Object.entries(source)) {
+    const blockId = rawBlockId.trim();
+    const selection = normalizeThreadChoiceSelection(rawSelection);
+    if (blockId && selection) selections[blockId] = selection;
+  }
+  return selections;
+}
+
+export function prunePromptPresetThreadChoiceSelections(
+  preset: PromptPresetRecord,
+  value: unknown,
+): PromptPresetThreadChoiceSelections {
+  const selections = normalizePromptPresetThreadChoiceSelections(value);
+  const pruned: PromptPresetThreadChoiceSelections = {};
+
+  for (const block of preset.choiceBlocks) {
+    const selection = selections[block.id];
+    const candidates = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
+    const validOptionIds = new Set(block.options.map((option) => option.id));
+    const validSelections = candidates.filter((candidate) =>
+      validOptionIds.has(candidate.optionId),
+    );
+    if (validSelections.length === 0) continue;
+
+    pruned[block.id] =
+      block.multiSelect === true && block.randomPick !== true
+        ? validSelections
+        : validSelections[0]!;
+  }
+
+  return pruned;
+}
+
+interface PromptPresetChoiceControlOption {
   id: string;
   label: string;
   value: string;
@@ -442,10 +496,31 @@ export interface PromptPresetChoiceControl {
   variableName: string;
   label: string;
   multiSelect: boolean;
+  displayMode: "auto" | "buttons" | "listbox";
   defaultLabel: string;
   selectedOptionIds: string[];
   selectedValues: string[];
   options: PromptPresetChoiceControlOption[];
+}
+
+function choiceControlOptions(block: PromptPresetChoiceBlock) {
+  const options = block.options.map((option) => ({
+    id: option.id,
+    label: option.label,
+    value: option.value,
+    selection: createPromptPresetChoiceOptionSelection(option.id) ?? {
+      kind: "option" as const,
+      optionId: option.id,
+    },
+    ...(option.description ? { description: option.description } : {}),
+  }));
+  if (block.optionSort !== "alphabetical") return options;
+
+  return options.sort(
+    (left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: "base" }) ||
+      left.label.localeCompare(right.label),
+  );
 }
 
 function getPromptPresetChoiceBlocksInOrder(preset: PromptPresetRecord) {
@@ -560,7 +635,7 @@ export function isPromptPresetChoiceBlockVisible({
 }: {
   block: PromptPresetChoiceBlock;
   preset: PromptPresetRecord;
-  selections?: PromptPresetChoiceSelections | null;
+  selections?: PromptPresetThreadChoiceSelections | null;
 }) {
   if (!block.visibilityRule) return true;
 
@@ -572,7 +647,7 @@ export function isPromptPresetChoiceBlockVisible({
   const selectedControllerValues = resolvePromptPresetChoiceValues({
     block: controller,
     preset,
-    selection: selections?.[controller.variableName],
+    selection: selections?.[controller.id],
   });
   if (selectedControllerValues.length === 0) return false;
 
@@ -584,11 +659,11 @@ export function resolvePromptPresetChoiceControls({
   selections,
 }: {
   preset: PromptPresetRecord | null | undefined;
-  selections?: PromptPresetChoiceSelections | null;
+  selections?: PromptPresetThreadChoiceSelections | null;
 }): PromptPresetChoiceControl[] {
   if (!preset) return [];
 
-  const normalizedSelections = selections ?? {};
+  const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
   return getPromptPresetChoiceBlocksInOrder(preset).flatMap((block) => {
     if (
       !isPromptPresetChoiceBlockVisible({
@@ -606,45 +681,30 @@ export function resolvePromptPresetChoiceControls({
         variableName: block.variableName,
         label: block.label,
         multiSelect: block.multiSelect === true && block.randomPick !== true,
+        displayMode: block.displayMode ?? "auto",
         defaultLabel: defaultChoiceLabel(preset, block),
-        selectedOptionIds: choiceSelectionOptionIds(
-          block,
-          normalizedSelections[block.variableName],
-        ),
-        selectedValues: choiceSelectionValues(block, normalizedSelections[block.variableName]),
-        options: block.options.map((option) => ({
-          id: option.id,
-          label: option.label,
-          value: option.value,
-          selection: createPromptPresetChoiceOptionSelection(option.id) ?? {
-            kind: "option",
-            optionId: option.id,
-          },
-          ...(option.description ? { description: option.description } : {}),
-        })),
+        selectedOptionIds: choiceSelectionOptionIds(block, normalizedSelections[block.id]),
+        selectedValues: choiceSelectionValues(block, normalizedSelections[block.id]),
+        options: choiceControlOptions(block),
       },
     ];
   });
 }
 
 export function updatePromptPresetChoiceSelections(
-  selections: PromptPresetChoiceSelections,
-  variableName: string,
-  selection: PromptPresetChoiceSelection,
-): PromptPresetChoiceSelections {
-  const cleanVariableName = variableName.trim();
-  if (!cleanVariableName) return selections;
+  preset: PromptPresetRecord,
+  selections: PromptPresetThreadChoiceSelections,
+  blockId: string,
+  selection: PromptPresetThreadChoiceSelection | null,
+): PromptPresetThreadChoiceSelections {
+  const nextSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
+  const cleanBlockId = blockId.trim();
+  if (!preset.choiceBlocks.some((block) => block.id === cleanBlockId)) return nextSelections;
 
-  const cleanSelection = normalizeChoiceSelection(selection);
-  const nextSelections = { ...selections };
-
-  if (cleanSelection !== null) {
-    nextSelections[cleanVariableName] = cleanSelection;
-  } else {
-    delete nextSelections[cleanVariableName];
-  }
-
-  return nextSelections;
+  const cleanSelection = normalizeThreadChoiceSelection(selection);
+  if (cleanSelection) nextSelections[cleanBlockId] = cleanSelection;
+  else delete nextSelections[cleanBlockId];
+  return prunePromptPresetThreadChoiceSelections(preset, nextSelections);
 }
 
 function normalizeSectionRole(value: unknown): PromptPresetSectionRole {
@@ -845,28 +905,25 @@ export function resolvePromptPresetChoiceVariables({
   selections,
 }: {
   preset: PromptPresetRecord | null | undefined;
-  selections?: PromptPresetChoiceSelections | null;
+  selections?: PromptPresetThreadChoiceSelections | null;
 }) {
   const variables: Record<string, string> = { ...(preset?.variableValues ?? {}) };
   const variableNames: string[] = [];
   if (!preset) return { variables, variableNames };
 
   variableNames.push(...Object.keys(preset.variableValues));
-  const normalizedSelections = selections ?? {};
+  const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
   for (const block of getPromptPresetChoiceBlocksInOrder(preset)) {
     const visible = isPromptPresetChoiceBlockVisible({
       block,
       preset,
       selections: normalizedSelections,
     });
-    const hasSelection = Object.prototype.hasOwnProperty.call(
-      normalizedSelections,
-      block.variableName,
-    );
+    const hasSelection = Object.prototype.hasOwnProperty.call(normalizedSelections, block.id);
     const selectedValues = resolvePromptPresetChoiceValues({
       block,
       preset,
-      selection: visible && hasSelection ? normalizedSelections[block.variableName] : null,
+      selection: visible && hasSelection ? normalizedSelections[block.id] : null,
       useRandomOptions: visible && block.randomPick === true && !hasSelection,
     });
     if (selectedValues.length === 0) continue;

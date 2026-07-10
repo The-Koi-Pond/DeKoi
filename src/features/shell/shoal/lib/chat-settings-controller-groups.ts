@@ -1,5 +1,5 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { PromptPresetChoiceSelection } from "../../../../engine/contracts/types/prompt-presets";
+import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
@@ -39,7 +39,7 @@ interface ChatSettingsPromptActions {
 
 interface ChatSettingsPresetActions {
   onClearMissingPreset: () => void;
-  onPresetChoiceChange: (variableName: string, selection: PromptPresetChoiceSelection) => void;
+  onPresetChoiceChange: (selections: PromptPresetThreadChoiceSelections) => void;
   onPresetChange: (presetId: string) => void;
 }
 

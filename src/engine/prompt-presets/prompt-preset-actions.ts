@@ -25,9 +25,10 @@ import {
 export {
   DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   isPromptPresetChoiceBlockVisible,
-  normalizePromptPresetChoiceSelections,
+  normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetRecord,
   normalizePromptPresetSections,
+  prunePromptPresetThreadChoiceSelections,
   resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
   updatePromptPresetChoiceSelections,

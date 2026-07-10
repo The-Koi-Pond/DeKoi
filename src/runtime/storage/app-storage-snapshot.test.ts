@@ -133,6 +133,10 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
         title: "Messenger valid",
       }),
       presetId: STARTER_PROMPT_PRESET.id,
+      presetChoiceSelections: {
+        "removed-choice": { kind: "option", optionId: "removed-option" },
+        tone: "legacy-value",
+      },
     };
     const messengerThreadWithMissingPreset = {
       ...createMessengerThread({
@@ -172,6 +176,10 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.roleplayThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
       ["roleplay-thread-missing", null],
     ]);
+    expect(
+      snapshot.messengerThreads.find((thread) => thread.id === "messenger-thread-valid")
+        ?.presetChoiceSelections,
+    ).toEqual({});
     expect(
       snapshot.messengerThreads.find((thread) => thread.id === "messenger-thread-missing")
         ?.presetChoiceSelections,

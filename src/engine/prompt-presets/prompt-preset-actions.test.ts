@@ -5,6 +5,8 @@ import {
   duplicatePromptPresetRecord,
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetRecord,
+  normalizePromptPresetThreadChoiceSelections,
+  prunePromptPresetThreadChoiceSelections,
   resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
   updatePromptPresetChoiceSelections,
@@ -147,7 +149,10 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { pacing: "slow burn", tone: "missing" },
+        selections: {
+          "choice-pacing": { kind: "option", optionId: "slow" },
+          "choice-tone": { kind: "option", optionId: "missing" },
+        },
       }),
     ).toEqual({
       variables: {
@@ -238,13 +243,19 @@ describe("normalizePromptPresetRecord", () => {
         isPromptPresetChoiceBlockVisible({
           block: toneBlock,
           preset: record,
-          selections: { boundary: "SFW", tone: "direct" },
+          selections: {
+            "choice-boundary": { kind: "option", optionId: "sfw" },
+            "choice-tone": { kind: "option", optionId: "direct" },
+          },
         }),
     ).toBe(false);
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { boundary: "SFW", tone: "direct" },
+        selections: {
+          "choice-boundary": { kind: "option", optionId: "sfw" },
+          "choice-tone": { kind: "option", optionId: "direct" },
+        },
       }).variables,
     ).toEqual({
       boundary: "SFW",
@@ -255,7 +266,7 @@ describe("normalizePromptPresetRecord", () => {
         isPromptPresetChoiceBlockVisible({
           block: toneBlock,
           preset: record,
-          selections: { boundary: "Adult" },
+          selections: { "choice-boundary": { kind: "option", optionId: "adult" } },
         }),
     ).toBe(true);
   });
@@ -289,7 +300,12 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { motifs: ["rain on glass", "neon signs"] },
+        selections: {
+          "choice-motifs": [
+            { kind: "option", optionId: "rain" },
+            { kind: "option", optionId: "neon" },
+          ],
+        },
       }),
     ).toEqual({
       variables: {
@@ -358,9 +374,12 @@ describe("normalizePromptPresetRecord", () => {
       resolvePromptPresetChoiceControls({
         preset: record,
         selections: {
-          boundary: "SFW",
-          hiddenTone: "direct",
-          motifs: ["static", "missing"],
+          "choice-boundary": { kind: "option", optionId: "sfw" },
+          "choice-hidden": { kind: "option", optionId: "direct" },
+          "choice-motifs": [
+            { kind: "option", optionId: "static" },
+            { kind: "option", optionId: "missing" },
+          ],
         },
       }),
     ).toEqual([
@@ -369,6 +388,7 @@ describe("normalizePromptPresetRecord", () => {
         variableName: "motifs",
         label: "Motifs",
         multiSelect: true,
+        displayMode: "auto",
         defaultLabel: "Preset default: Rain, Neon",
         selectedOptionIds: ["static"],
         selectedValues: ["static"],
@@ -398,6 +418,7 @@ describe("normalizePromptPresetRecord", () => {
         variableName: "boundary",
         label: "Boundary",
         multiSelect: false,
+        displayMode: "auto",
         defaultLabel: "Preset default: SFW",
         selectedOptionIds: ["sfw"],
         selectedValues: ["SFW"],
@@ -442,7 +463,7 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceControls({
         preset: record,
-        selections: { tone: "none" },
+        selections: { "choice-tone": { kind: "option", optionId: "none" } },
       }),
     ).toEqual([
       {
@@ -450,6 +471,7 @@ describe("normalizePromptPresetRecord", () => {
         variableName: "tone",
         label: "Tone",
         multiSelect: false,
+        displayMode: "auto",
         defaultLabel: "Preset default: Loud",
         selectedOptionIds: ["none"],
         selectedValues: [""],
@@ -467,7 +489,7 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { tone: "none" },
+        selections: { "choice-tone": { kind: "option", optionId: "none" } },
       }),
     ).toEqual({
       variables: {
@@ -475,6 +497,41 @@ describe("normalizePromptPresetRecord", () => {
       },
       variableNames: ["tone"],
     });
+  });
+
+  it("projects choice display mode and alphabetical option order without changing identity", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{tone}}.",
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          displayMode: "buttons",
+          optionSort: "alphabetical",
+          options: [
+            { id: "zebra", label: "Zebra", value: "zebra" },
+            { id: "alpha", label: "alpha", value: "alpha" },
+          ],
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    const [control] = resolvePromptPresetChoiceControls({ preset: record, selections: {} });
+
+    expect(control?.displayMode).toBe("buttons");
+    expect(control?.options.map((option) => [option.id, option.label])).toEqual([
+      ["alpha", "alpha"],
+      ["zebra", "Zebra"],
+    ]);
   });
 
   it("resolves non-empty value-based selections before option ids", () => {
@@ -504,13 +561,13 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceControls({
         preset: record,
-        selections: { tone: "quiet" },
+        selections: { "choice-tone": { kind: "option", optionId: "soft" } },
       })[0]?.selectedOptionIds,
     ).toEqual(["soft"]);
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { tone: "quiet" },
+        selections: { "choice-tone": { kind: "option", optionId: "soft" } },
       }).variables,
     ).toEqual({ tone: "quiet" });
   });
@@ -548,7 +605,7 @@ describe("normalizePromptPresetRecord", () => {
     expect(
       resolvePromptPresetChoiceVariables({
         preset: record,
-        selections: { tone: noneSelection ?? "" },
+        selections: noneSelection ? { "choice-tone": noneSelection } : {},
       }),
     ).toEqual({
       variables: {
@@ -585,7 +642,7 @@ describe("normalizePromptPresetRecord", () => {
     if (!record) throw new Error("Expected prompt preset record.");
 
     const selections = {
-      tags: [
+      "choice-tags": [
         { kind: "option" as const, optionId: "left" },
         { kind: "option" as const, optionId: "right" },
         { kind: "option" as const, optionId: "sharp" },
@@ -612,30 +669,64 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("updates prompt preset choice selections without mutating the input record", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-selections",
+      now,
+      input: {
+        title: "Selections",
+        systemPrompt: "Use choices.",
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [
+              { id: "soft", label: "Soft", value: "soft" },
+              { id: "none", label: "None", value: "" },
+            ],
+          },
+          {
+            id: "choice-motifs",
+            variableName: "motifs",
+            label: "Motifs",
+            multiSelect: true,
+            options: [
+              { id: "rain", label: "Rain", value: "rain" },
+              { id: "neon", label: "Neon", value: "neon" },
+              { id: "static", label: "Static", value: "static" },
+            ],
+          },
+        ],
+      },
+    });
     const selections = {
-      motifs: ["rain", "neon"],
-      tone: "soft",
+      "choice-motifs": [
+        { kind: "option" as const, optionId: "rain" },
+        { kind: "option" as const, optionId: "neon" },
+      ],
+      "choice-tone": { kind: "option" as const, optionId: "soft" },
     };
 
-    expect(updatePromptPresetChoiceSelections(selections, " tone ", " ")).toEqual({
-      motifs: ["rain", "neon"],
-    });
-    expect(updatePromptPresetChoiceSelections(selections, " motifs ", [" static ", ""])).toEqual({
-      motifs: ["static"],
-      tone: "soft",
+    expect(updatePromptPresetChoiceSelections(preset, selections, " choice-tone ", null)).toEqual({
+      "choice-motifs": [
+        { kind: "option", optionId: "rain" },
+        { kind: "option", optionId: "neon" },
+      ],
     });
     expect(
-      updatePromptPresetChoiceSelections(selections, " tone ", {
-        kind: "option",
-        optionId: " none ",
-      }),
+      updatePromptPresetChoiceSelections(preset, selections, " choice-motifs ", [
+        { kind: "option", optionId: " static " },
+      ]),
     ).toEqual({
-      motifs: ["rain", "neon"],
-      tone: { kind: "option", optionId: "none" },
+      "choice-motifs": [{ kind: "option", optionId: "static" }],
+      "choice-tone": { kind: "option", optionId: "soft" },
     });
     expect(selections).toEqual({
-      motifs: ["rain", "neon"],
-      tone: "soft",
+      "choice-motifs": [
+        { kind: "option", optionId: "rain" },
+        { kind: "option", optionId: "neon" },
+      ],
+      "choice-tone": { kind: "option", optionId: "soft" },
     });
   });
 
@@ -819,5 +910,77 @@ describe("duplicatePromptPresetRecord", () => {
     expect(record.choiceBlocks.map((choiceBlock) => choiceBlock.presetId)).toEqual([
       "preset-original",
     ]);
+  });
+});
+
+describe("native thread prompt preset choices", () => {
+  it("keeps only stable block and option ids with the block's effective cardinality", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-native-choices",
+      now,
+      input: {
+        title: "Native choices",
+        systemPrompt: "Use the selected choices.",
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [
+              { id: "tone-warm", label: "Warm", value: "warm" },
+              { id: "tone-dry", label: "Dry", value: "dry" },
+            ],
+          },
+          {
+            id: "choice-tags",
+            variableName: "tags",
+            label: "Tags",
+            multiSelect: true,
+            options: [
+              { id: "tag-vivid", label: "Vivid", value: "vivid" },
+              { id: "tag-brief", label: "Brief", value: "brief" },
+            ],
+          },
+          {
+            id: "choice-random",
+            variableName: "random",
+            label: "Random",
+            multiSelect: true,
+            randomPick: true,
+            options: [
+              { id: "random-first", label: "First", value: "first" },
+              { id: "random-second", label: "Second", value: "second" },
+            ],
+          },
+        ],
+      },
+    });
+    const normalized = normalizePromptPresetThreadChoiceSelections({
+      " choice-tone ": [
+        { kind: "option", optionId: " tone-dry " },
+        { kind: "option", optionId: "missing" },
+        { kind: "option", optionId: "tone-warm" },
+      ],
+      "choice-tags": [
+        { kind: "option", optionId: "tag-brief" },
+        { kind: "option", optionId: "missing" },
+        { kind: "option", optionId: "tag-vivid" },
+      ],
+      "choice-unknown": { kind: "option", optionId: "unknown" },
+      "choice-random": [
+        { kind: "option", optionId: "random-second" },
+        { kind: "option", optionId: "random-first" },
+      ],
+      tone: "legacy-value",
+    });
+
+    expect(prunePromptPresetThreadChoiceSelections(preset, normalized)).toEqual({
+      "choice-tone": { kind: "option", optionId: "tone-dry" },
+      "choice-tags": [
+        { kind: "option", optionId: "tag-brief" },
+        { kind: "option", optionId: "tag-vivid" },
+      ],
+      "choice-random": { kind: "option", optionId: "random-second" },
+    });
   });
 });

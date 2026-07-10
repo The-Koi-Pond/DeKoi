@@ -146,11 +146,11 @@ Focused checks for narrow changes are mapped to change types in
   including conversation history through an enabled Chat History marker.
   Messenger uses the preset's Messenger prompt source when present, falls back
   to the preset system prompt, and lets a non-empty edited Messenger Prompt
-  override both for that thread. Compatible data may also carry choice blocks,
-  static variables, default choices, richer parameters, and metadata that the
-  catalog edit flow preserves even when those fields do not have visible
-  definition editors yet. Roleplay generation consumes saved section/group
-  structure when present.
+  override both for that thread. The catalog can also define reusable choice
+  blocks, options, defaults, presentation settings, and conditional visibility.
+  Compatible data may carry static variables, richer parameters, and metadata
+  that the catalog preserves even when those fields do not have visible editors
+  yet. Roleplay generation consumes saved section/group structure when present.
   In Roleplay settings, Prompt Preset > Edit opens Preset Variables for the
   selected preset; New remains the secondary action for creating another
   preset. Choice selections feed request-local prompt variables during

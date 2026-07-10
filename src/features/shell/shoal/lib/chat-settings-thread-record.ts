@@ -1,4 +1,4 @@
-import type { PromptPresetChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
+import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 
 export interface ChatSettingsThreadRecord {
   id: string;
@@ -7,7 +7,7 @@ export interface ChatSettingsThreadRecord {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetChoiceSelections;
+  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
   providerConnectionId: string | null;
   systemPromptMode?: "default" | "custom";
 }

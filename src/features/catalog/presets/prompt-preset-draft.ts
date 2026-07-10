@@ -13,8 +13,14 @@ import {
   promptPresetSectionMarkerType,
   promptPresetSectionsInOrder,
 } from "../../../engine/prompt-presets/prompt-preset-section-policy";
+import {
+  choiceDraftFromPromptPreset,
+  promptPresetChoiceDraftToInput,
+  validatePromptPresetChoiceDraft,
+  type PromptPresetChoiceDraftState,
+} from "./prompt-preset-choice-draft";
 
-export interface PromptPresetDraftState {
+export interface PromptPresetDraftState extends PromptPresetChoiceDraftState {
   title: string;
   summary: string;
   systemPrompt: string;
@@ -23,9 +29,13 @@ export interface PromptPresetDraftState {
   temperature: string;
   topP: string;
   wrapFormat: string;
+  variableOrderTemplate: PromptPresetVariableOrderTemplateEntry[];
   sections: PromptPresetSection[];
   groups: PromptPresetGroup[];
 }
+
+type PromptPresetVariableOrderTemplateEntry =
+  { kind: "choice"; id: string } | { kind: "compatible"; id: string };
 
 export const EMPTY_PROMPT_PRESET_DRAFT: PromptPresetDraftState = {
   title: "",
@@ -36,8 +46,12 @@ export const EMPTY_PROMPT_PRESET_DRAFT: PromptPresetDraftState = {
   temperature: "",
   topP: "",
   wrapFormat: "",
+  variableOrderTemplate: [],
   sections: [],
   groups: [],
+  choiceBlocks: [],
+  defaultOptionIdsByBlockId: {},
+  visibilityControllerIdsByBlockId: {},
 };
 
 let draftIdCounter = 0;
@@ -222,7 +236,8 @@ export function updatePromptPresetDraftSectionMarkerType(
 export function canSavePromptPresetDraft(draft: PromptPresetDraftState) {
   return (
     draft.title.trim().length > 0 &&
-    (draft.systemPrompt.trim().length > 0 || draft.sections.length > 0)
+    (draft.systemPrompt.trim().length > 0 || draft.sections.length > 0) &&
+    validatePromptPresetChoiceDraft(draft).length === 0
   );
 }
 
@@ -232,8 +247,37 @@ function cleanDraftSystemPrompt(systemPrompt: string, sections: readonly PromptP
   return DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT;
 }
 
+function createVariableOrderTemplate(preset: PromptPresetRecord) {
+  const choiceBlockIds = new Set(preset.choiceBlocks.map((block) => block.id));
+  return preset.variableOrder.map((id): PromptPresetVariableOrderTemplateEntry =>
+    choiceBlockIds.has(id) ? { kind: "choice", id } : { kind: "compatible", id },
+  );
+}
+
+function mergeVariableOrder(
+  template: readonly PromptPresetVariableOrderTemplateEntry[],
+  choiceBlockIds: readonly string[],
+) {
+  const originalChoiceIds = new Set(
+    template.flatMap((entry) => (entry.kind === "choice" ? [entry.id] : [])),
+  );
+  const currentChoiceIds = new Set(choiceBlockIds);
+  const reorderedOriginalChoices = choiceBlockIds.filter((id) => originalChoiceIds.has(id));
+  let reorderedIndex = 0;
+  const variableOrder = template.flatMap((entry) => {
+    if (entry.kind === "compatible") return [entry.id];
+    if (!currentChoiceIds.has(entry.id)) return [];
+    const id = reorderedOriginalChoices[reorderedIndex];
+    reorderedIndex += 1;
+    return id ? [id] : [];
+  });
+  variableOrder.push(...choiceBlockIds.filter((id) => !originalChoiceIds.has(id)));
+  return variableOrder;
+}
+
 export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetDraftState {
   return {
+    ...choiceDraftFromPromptPreset(preset),
     title: preset.title,
     summary: preset.summary ?? "",
     systemPrompt: preset.systemPrompt,
@@ -242,6 +286,7 @@ export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetD
     temperature: preset.sampling?.temperature?.toString() ?? "",
     topP: preset.sampling?.topP?.toString() ?? "",
     wrapFormat: preset.wrapFormat ?? "",
+    variableOrderTemplate: createVariableOrderTemplate(preset),
     sections: cloneSections(promptPresetSectionsInOrder(preset.sections, preset.sectionOrder)),
     groups: cloneGroups(rowsInOrder(preset.groups, preset.groupOrder)),
   };
@@ -256,8 +301,11 @@ export function promptPresetDraftToInput(draft: PromptPresetDraftState): PromptP
   const sections = cleanSections(draft.sections);
   const groups = cleanGroups(draft.groups);
   const systemPrompt = cleanDraftSystemPrompt(draft.systemPrompt, sections);
+  const choiceInput = promptPresetChoiceDraftToInput(draft);
 
   return {
+    ...choiceInput,
+    variableOrder: mergeVariableOrder(draft.variableOrderTemplate, choiceInput.variableOrder ?? []),
     title: draft.title.trim(),
     summary: draft.summary.trim() || null,
     systemPrompt,

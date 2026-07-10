@@ -72,6 +72,9 @@ export type PromptPresetChoiceSelectionValue = string | PromptPresetChoiceOption
 export type PromptPresetChoiceSelection =
   PromptPresetChoiceSelectionValue | PromptPresetChoiceSelectionValue[];
 export type PromptPresetChoiceSelections = Record<string, PromptPresetChoiceSelection>;
+export type PromptPresetThreadChoiceSelection =
+  PromptPresetChoiceOptionSelection | PromptPresetChoiceOptionSelection[];
+export type PromptPresetThreadChoiceSelections = Record<string, PromptPresetThreadChoiceSelection>;
 
 export type PromptPresetSectionRole = "system" | "user" | "assistant";
 

@@ -12,7 +12,7 @@ import {
   createStorageRepository,
   type StorageMode,
 } from "../storage-repository-factory";
-import { normalizePromptPresetChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
+import { normalizePromptPresetThreadChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
@@ -121,7 +121,7 @@ function normalizeMessengerThreadWithDroppedCount(
             : null,
         presetId,
         presetChoiceSelections: presetId
-          ? normalizePromptPresetChoiceSelections(candidate.presetChoiceSelections)
+          ? normalizePromptPresetThreadChoiceSelections(candidate.presetChoiceSelections)
           : {},
         systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
         systemPrompt:
