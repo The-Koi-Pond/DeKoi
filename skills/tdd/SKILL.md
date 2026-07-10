@@ -5,22 +5,23 @@ description: "Guide DeKoi changes through behavior-first red-green-refactor cycl
 
 # Test-Driven Development
 
-Use this skill for deliberate test-first work in DeKoi. It complements
-`.github/agents/dekoi-workflow.md`, `skills/dekoi-architecture-guard`,
-`skills/dekoi-mode-separation`, and `skills/bugfix-discipline`. Repo rules about
-durable tests still win.
+Use this skill for deliberate test-first work in DeKoi. The Proof And Test
+Discipline section of `.github/agents/dekoi-workflow.md` owns durable-test
+eligibility; this skill owns the red-green-refactor procedure.
 
 This is a local DeKoi port of Xel-authored TDD guidance from the previous repo.
 It is safe to reuse here, with current DeKoi docs and checks.
 
 ## DeKoi Gate
 
-Before writing a durable test, state `Durable test rationale` unless the user
-explicitly asked for tests:
+For a new durable test, record once in the plan or final receipt:
 
 - the regression or risky invariant being protected
 - why session proof is insufficient
-- why this test is narrow
+- why the test is narrow
+
+Do not pause the implementation merely to announce a required phrase. Updating
+relevant existing tests remains the default when behavior changes.
 
 Temporary uncommitted tests and harnesses are allowed for proof. Commit tests
 when they protect a known regression, risky behavior, or nearby stable test
@@ -69,19 +70,10 @@ Bad tests:
 
 ## Current Validation Commands
 
-- Full repo gate: `pnpm check`.
-- Fast unit tests: `pnpm test`.
-- Unit test watch mode: `pnpm test:watch`.
-- Browser UI smoke: `pnpm test:ui`.
-- Browser UI rerun without rebuilding first: `pnpm test:ui:run`.
-- Build/type behavior: `pnpm build`.
-- Lint: `pnpm lint`.
-- Source boundaries: `pnpm check:frontend-boundaries`.
-- Storage contracts: `pnpm check:storage-contracts`.
-- Provider secret safety: `pnpm check:provider-secret-safety`.
-- Runtime command contracts: `pnpm check:runtime-contracts`.
-- Desktop command contracts: `pnpm check:desktop-contracts`.
-- Rust/Tauri compile check: `pnpm check:rust`.
+Choose from the root `AGENTS.md` validation map; `package.json` scripts are the
+source of truth. Use `pnpm test` or `pnpm test:watch` for fast red-green loops,
+then run the matching lane check. Use `pnpm check` for shipping or broad risky
+changes.
 
 ## Refactor Check
 

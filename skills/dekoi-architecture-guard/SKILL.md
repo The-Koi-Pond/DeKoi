@@ -23,9 +23,10 @@ Read these references only when needed:
 - `references/dependency-boundaries.md` for import direction and placement
   decisions.
 
-Also keep these current repo files in force when relevant:
+Also read these current repo files only when relevant:
 
-- `.github/agents/dekoi-workflow.md` for proof and workflow gates.
+- The matching section of `.github/agents/dekoi-workflow.md` for proof or risky
+  workflow gates.
 - `ARCHITECTURE.md` for source lanes, dependency direction, storage direction,
   and current seed owners.
 - `DOMAIN_MODEL.md` for public/internal naming and legacy import boundaries.

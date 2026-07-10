@@ -1,4 +1,4 @@
 interface:
   display_name: "Bunny Style Review"
-  short_description: "Local branch reviews with failure-path lenses."
-  default_prompt: "Use $bunny-style-review, or say bunny, to review this local branch, PR, or diff for bugs, regressions, edge cases, and actionable nitpicks."
+  short_description: "High-signal local reviews with false-positive control."
+  default_prompt: "Use $bunny-style-review to run a high-confidence local review of the selected diff in Chill mode unless I request Assertive feedback."

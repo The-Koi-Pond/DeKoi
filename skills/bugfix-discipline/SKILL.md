@@ -1,6 +1,6 @@
 ---
 name: bugfix-discipline
-description: "Guide DeKoi bug fixes through feedback-loop-first diagnosis and root-cause repair with clear impact areas, focused validation, and no band-aid patches. Use for regressions, broken UI actions, failing checks, provider or runtime bugs, storage bugs, import/export bugs, generation bugs, Messenger or Roleplay behavior bugs, performance regressions, or any fix that could affect dependent modules."
+description: "Guide nontrivial DeKoi bug fixes through feedback-loop-first diagnosis and root-cause repair with clear impact areas, focused validation, and no band-aid patches. Use for regressions needing diagnosis, broken UI actions with unclear ownership, failing checks, provider or runtime bugs, storage bugs, import/export bugs, generation bugs, Messenger or Roleplay behavior bugs, performance regressions, or any fix that could affect dependent modules. Skip tiny mechanical corrections with an obvious owner and proof path."
 ---
 
 # Bugfix Discipline
@@ -21,22 +21,16 @@ checks.
 Read `references/impact-brief-template.md` when preparing a fix plan or final
 summary for a nontrivial bug.
 
-Also read:
+Load only matching supporting guidance:
 
-- `.github/agents/dekoi-workflow.md` for the current repo workflow lane.
-- `skills/dekoi-architecture-guard/SKILL.md` if the fix changes imports,
-  owners, adapters, runtime wrappers, storage boundaries, Rust commands, or file
-  layout.
-- `skills/dekoi-mode-separation/SKILL.md` if the fix touches Messenger,
-  Roleplay, shared generation, prompts, ripple state, shared mode UI/helpers,
-  or mode-owned storage behavior.
-- `ARCHITECTURE.md` if the fix changes imports, owners, adapters, runtime
-  commands, Rust commands, storage boundaries, or file layout.
-- `DOMAIN_MODEL.md` if the fix touches Messenger, Roleplay, catalog,
-  provider, prompt/generation, import compatibility, or product-language
-  boundaries.
-- `PRODUCT.md` and `DESIGN.md` if the bug is user-visible UI, onboarding,
-  settings, interaction, copy, or visual polish.
+- Architecture or boundary changes: `skills/dekoi-architecture-guard/SKILL.md`
+  and the architecture docs it routes to.
+- Messenger, Roleplay, or shared-mode behavior:
+  `skills/dekoi-mode-separation/SKILL.md` and relevant domain docs.
+- User-visible UI or interaction: `PRODUCT.md`, `DESIGN.md`, and the matching UI
+  proof/design skill.
+- Risky behavior or PR/shipping work: read only the matching section of
+  `.github/agents/dekoi-workflow.md`.
 
 ## Workflow
 
@@ -112,27 +106,10 @@ command, provider transport, or capability.
 
 ## Verification
 
-Use the smallest checks that prove the local fix, but escalate when shared paths
-changed:
-
-- TypeScript, shared UI, engine behavior, or import graph changes: `pnpm build`
-  and, when relevant, `pnpm lint`.
-- Engine actions, storage normalization, parsers, or other fast pure TypeScript
-  behavior with unit coverage: `pnpm test`.
-- Feature boundary changes: `pnpm check:frontend-boundaries`.
-- Storage contracts, import/export, bundle handling, or persistence changes:
-  `pnpm check:storage-contracts`.
-- Provider connection record, bundle secret redaction, desktop provider secret,
-  or editor key handling changes: `pnpm check:provider-secret-safety`.
-- Runtime command names, fixture server, or remote-runtime wrapper changes:
-  `pnpm check:runtime-contracts`.
-- Desktop command names, Tauri command registration, or privileged host
-  capability shape changes: `pnpm check:desktop-contracts`.
-- Rust implementation, Tauri host behavior, provider secrets, file dialogs, or
-  native capabilities: `pnpm check:rust`.
-- Docs, skills, GitHub guidance, Bunny Review, or workflow behavior:
-  `pnpm check:bunny-review`.
-- Shipping, PR handoff, or broad shared behavior: `pnpm check`.
+Use the validation map in root `AGENTS.md`; `package.json` scripts are the source
+of truth. Run the smallest check that proves the owner-side fix, then broaden
+when shared paths changed. Use `pnpm check` for shipping, PR handoff, risky
+cross-lane work, or broad shared behavior.
 
 Before declaring done, re-run the original feedback loop or closest
 representative proof, remove temporary debug instrumentation, and name any path

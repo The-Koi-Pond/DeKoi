@@ -28,27 +28,34 @@ then follow these repo rules and the matching local skill.
 - Name the owner/lane before editing: engine, feature UI, runtime storage,
   shared API wrapper, shared UI/helper, Tauri command, Rust capability, docs, or
   workflow.
-- Load `skills/dekoi-architecture-guard/SKILL.md` before edits that affect
-  imports, file layout, shared APIs, runtime adapters, Tauri/HTTP boundaries,
-  Rust capabilities, storage, providers, import/export, or cross-feature
-  behavior.
-- Load `skills/dekoi-mode-separation/SKILL.md` before edits that affect
-  Messenger, Roleplay, shared generation, shared mode UI/helpers, prompt
-  routing, ripple state, or mode storage.
-- Load `skills/bugfix-discipline/SKILL.md` for nontrivial bug fixes,
-  regressions, failing checks, storage/provider/import/generation/runtime
-  issues, or fixes that could affect dependent modules.
-- Keep `.github/agents/dekoi-workflow.md` in force for proof, PR, issue, review,
-  and risky-work discipline.
+- Load only the matching workflow surface:
+  - Architecture or boundary changes: `skills/dekoi-architecture-guard/SKILL.md`.
+  - Messenger, Roleplay, or shared-mode changes:
+    `skills/dekoi-mode-separation/SKILL.md`.
+  - Nontrivial bugs or regressions: `skills/bugfix-discipline/SKILL.md`.
+  - Deliberate test-first or durable regression guards: `skills/tdd/SKILL.md`.
+  - Proof, feature, issue, PR, risky-work, or durable-notes policy: read only
+    the matching section of `.github/agents/dekoi-workflow.md`.
+
+## Early Development
+
+DeKoi has no real users or production data yet. Prefer the cleanest current
+DeKoi-native schema, storage shape, UI flow, prompt, and internal contract over
+compatibility layers or migration ceremony unless the user or a current contract
+explicitly promises compatibility.
+
+It is acceptable to invalidate local development data when that materially
+simplifies the correct design. Still prevent silent corruption, fake success,
+unclear errors, and broken current contracts. State the reset or rebuild step
+whenever a change invalidates local data.
 
 ## Proof And Tests
 
-`.github/agents/dekoi-workflow.md` is the single home for proof, test, PR,
-issue, review, and risky-work discipline; see its Proof And Test Discipline
-section. The short version: use the cheapest proof that actually proves the
-claim, keep scratch tests local and uncommitted, and add durable test artifacts
-only with a stated `Durable test rationale`. Co-located `*.test.*` files are
-allowed when they are the narrowest durable guard for pure logic or contracts.
+`.github/agents/dekoi-workflow.md` is the single home for proof and durable-test
+policy. Use the cheapest proof that proves the claim. Update relevant existing
+tests when behavior changes. Add a new durable test only when it protects a
+regression, risky invariant, or nearby stable contract more cheaply than repeated
+manual proof; record that reason once in the final receipt.
 
 ## Validation
 
@@ -75,6 +82,16 @@ Run checks that match the change:
 Ordinary local bugfixes should run the focused proof and matching lane check.
 Use the full gate when the work is risky, cross-lane, PR/shipping related, or
 otherwise needs the baseline.
+
+Treat `package.json` scripts as the command source of truth. Update this matrix
+when a durable validation command changes.
+
+## Follow-Up Register
+
+Use `scratch/TODO.md` only for real out-of-scope follow-up. At task start, search
+it by touched owner, path, feature, or risk keyword with `rg`; read only matching
+items. Before finishing, update or remove matching items that the work addressed
+or invalidated. Do not use the register to defer a current-scope bug.
 
 ## Current Map
 
