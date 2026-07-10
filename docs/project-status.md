@@ -40,7 +40,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   Messenger Prompt Source, optional temperature, `topP`, max-token sampling,
   Roleplay section groups, ordered sections, markers, section roles, enabled
   state, wrapping, and depth placement, with create, edit, duplicate, and delete
-  actions plus an editable starter preset. Native prompt preset records also
+  actions, plus an editable starter preset. Native prompt preset records also
   normalize richer parameters, choice blocks, static variable values, and
   defaults for compatible import; the catalog edit flow preserves those
   advanced compatible fields even where dedicated definition editors are not

@@ -5,7 +5,6 @@ import type {
 } from "../../../engine/contracts/types/prompt-presets";
 import {
   PROMPT_PRESET_MARKER_TYPES,
-  normalizePromptPresetMarkerType,
   promptPresetHasEnabledMarker,
   promptPresetSectionMarkerType,
   promptPresetSectionUsesDepthInsertion,
@@ -17,6 +16,7 @@ import {
   movePromptPresetDraftSection,
   removePromptPresetDraftGroup,
   updatePromptPresetDraftSectionKind,
+  updatePromptPresetDraftSectionMarkerType,
   type PromptPresetDraftState,
 } from "./prompt-preset-draft";
 
@@ -303,14 +303,11 @@ function PromptPresetSectionCard({
               id={`preset-section-marker-${section.id}`}
               className="pondinput"
               value={promptPresetSectionMarkerType(section)}
-              onChange={(event) => {
-                const markerType = normalizePromptPresetMarkerType(event.target.value);
-                onUpdate(section.id, (currentSection) => ({
-                  ...currentSection,
-                  identifier: markerType,
-                  markerConfig: { type: markerType },
-                }));
-              }}
+              onChange={(event) =>
+                onUpdate(section.id, (currentSection) =>
+                  updatePromptPresetDraftSectionMarkerType(currentSection, event.target.value),
+                )
+              }
             >
               {PROMPT_PRESET_MARKER_TYPES.map((markerType) => (
                 <option value={markerType} key={markerType}>

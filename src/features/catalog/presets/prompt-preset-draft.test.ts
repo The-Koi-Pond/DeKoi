@@ -14,6 +14,7 @@ import {
   promptPresetDraftToInput,
   removePromptPresetDraftGroup,
   updatePromptPresetDraftSectionKind,
+  updatePromptPresetDraftSectionMarkerType,
 } from "./prompt-preset-draft";
 
 const now = "2026-07-08T00:00:00.000Z";
@@ -317,7 +318,7 @@ describe("prompt preset draft conversion", () => {
     expect(promptPresetDraftToInput(draft).sections?.[0]?.injectionDepth).toBe(0);
   });
 
-  it("preserves section content while toggling marker state before save", () => {
+  it("preserves section content and identity while toggling marker state before save", () => {
     const section = {
       ...createPromptPresetDraftSection("section"),
       content: "Do not lose this draft text.",
@@ -329,12 +330,13 @@ describe("prompt preset draft conversion", () => {
 
     expect(marker).toMatchObject({
       content: "Do not lose this draft text.",
-      identifier: "chat_history",
+      identifier: "role",
       isMarker: true,
       markerConfig: { type: "chat_history" },
     });
     expect(restoredSection).toMatchObject({
       content: "Do not lose this draft text.",
+      identifier: "role",
       isMarker: false,
       markerConfig: null,
     });
@@ -344,7 +346,50 @@ describe("prompt preset draft conversion", () => {
       sections: [marker],
     });
 
-    expect(savedMarkerInput.sections?.[0]?.content).toBe("");
+    expect(savedMarkerInput.sections?.[0]).toMatchObject({
+      content: "",
+      identifier: "chat_history",
+      markerConfig: { type: "chat_history" },
+    });
+
+    const savedRestoredInput = promptPresetDraftToInput({
+      ...draftFromPromptPreset(promptPresetRecord()),
+      sections: [restoredSection],
+    });
+
+    expect(savedRestoredInput.sections?.[0]?.identifier).toBe("role");
+  });
+
+  it("preserves section identity while selecting a marker type", () => {
+    const section = {
+      ...createPromptPresetDraftSection("section"),
+      identifier: "role",
+    };
+    const marker = updatePromptPresetDraftSectionMarkerType(
+      updatePromptPresetDraftSectionKind(section, "marker"),
+      "chat_summary",
+    );
+    const restoredSection = updatePromptPresetDraftSectionKind(marker, "section");
+
+    expect(marker).toMatchObject({
+      identifier: "role",
+      markerConfig: { type: "chat_summary" },
+    });
+    expect(restoredSection).toMatchObject({
+      identifier: "role",
+      isMarker: false,
+      markerConfig: null,
+    });
+
+    const savedMarkerInput = promptPresetDraftToInput({
+      ...draftFromPromptPreset(promptPresetRecord()),
+      sections: [marker],
+    });
+
+    expect(savedMarkerInput.sections?.[0]).toMatchObject({
+      identifier: "chat_summary",
+      markerConfig: { type: "chat_summary" },
+    });
   });
 
   it("normalizes unsupported marker types before save", () => {

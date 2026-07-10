@@ -204,9 +204,18 @@ export function updatePromptPresetDraftSectionKind(
 
   return {
     ...section,
-    identifier: isMarker ? markerType : section.identifier,
     isMarker,
     markerConfig: isMarker ? { type: markerType } : null,
+  };
+}
+
+export function updatePromptPresetDraftSectionMarkerType(
+  section: PromptPresetSection,
+  markerType: string,
+): PromptPresetSection {
+  return {
+    ...section,
+    markerConfig: { type: normalizePromptPresetMarkerType(markerType) },
   };
 }
 
