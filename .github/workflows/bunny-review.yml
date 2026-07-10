@@ -126,6 +126,8 @@ jobs:
           LLM_BASE_URL: ${{ vars.DEKOI_BUNNY_LLM_BASE_URL || vars.DE_KOI_BUNNY_LLM_BASE_URL || secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.DEKOI_BUNNY_LLM_MODEL || vars.DE_KOI_BUNNY_LLM_MODEL || 'gpt-5.5' }}
           BUNNY_LLM_WIRE_API: ${{ vars.DEKOI_BUNNY_LLM_WIRE_API || vars.DE_KOI_BUNNY_LLM_WIRE_API || 'auto' }}
+          BUNNY_RESPONSES_REASONING_EFFORT: ${{ vars.DEKOI_BUNNY_RESPONSES_REASONING_EFFORT || vars.DE_KOI_BUNNY_RESPONSES_REASONING_EFFORT || 'low' }}
+          BUNNY_RESPONSES_MAX_OUTPUT_TOKENS: ${{ vars.DEKOI_BUNNY_RESPONSES_MAX_OUTPUT_TOKENS || vars.DE_KOI_BUNNY_RESPONSES_MAX_OUTPUT_TOKENS || '16000' }}
           BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS: ${{ inputs.model_request_timeout_seconds || vars.DEKOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || vars.DE_KOI_BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS || '120' }}
           CI_STATUS: CI checks are still running; final CI results will be appended before posting.
           BUNNY_REVIEW_PROMPT_PATH: /tmp/bunny-review-tool/.github/bunny-review/reviewer-prompt.md

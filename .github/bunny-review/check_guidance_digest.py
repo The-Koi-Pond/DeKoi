@@ -437,6 +437,8 @@ def run_model_transport_case(module):
         assert responses.calls[0]["model"] == "gpt-5.6-terra"
         assert responses.calls[0]["input"] == messages
         assert responses.calls[0]["store"] is False
+        assert responses.calls[0]["reasoning"] == {"effort": "low"}
+        assert responses.calls[0]["max_output_tokens"] == 16_000
         assert stats["wire_api"] == "responses"
         assert stats["prompt_tokens"] == 11
         assert stats["completion_tokens"] == 13

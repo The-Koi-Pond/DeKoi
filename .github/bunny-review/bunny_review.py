@@ -38,6 +38,8 @@ MAX_CONTRACT_STATE_ENTRIES = 12
 MAX_CONTRACT_STATE_TEXT_CHARS = 320
 MAX_CONTRACT_STATE_LIST_ITEMS = 3
 DEFAULT_MODEL_REQUEST_TIMEOUT = 120
+DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS = 16_000
+DEFAULT_RESPONSES_REASONING_EFFORT = "low"
 MODEL_MAX_RETRIES = 1
 EMPTY_RESPONSE_RETRY_INSTRUCTION = (
     "The previous Responses API attempt completed without visible review text. "
@@ -78,9 +80,33 @@ def positive_int_env(name, default):
     return value
 
 
+def choice_env(name, default, allowed):
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    if raw not in allowed:
+        expected = ", ".join(sorted(allowed))
+        print(
+            f"Bunny config warning: {name}={raw!r} must be one of {expected}; "
+            f"using {default!r}.",
+            flush=True,
+        )
+        return default
+    return raw
+
+
 MODEL_REQUEST_TIMEOUT = positive_int_env(
     "BUNNY_MODEL_REQUEST_TIMEOUT_SECONDS",
     DEFAULT_MODEL_REQUEST_TIMEOUT,
+)
+RESPONSES_MAX_OUTPUT_TOKENS = positive_int_env(
+    "BUNNY_RESPONSES_MAX_OUTPUT_TOKENS",
+    DEFAULT_RESPONSES_MAX_OUTPUT_TOKENS,
+)
+RESPONSES_REASONING_EFFORT = choice_env(
+    "BUNNY_RESPONSES_REASONING_EFFORT",
+    DEFAULT_RESPONSES_REASONING_EFFORT,
+    {"none", "minimal", "low", "medium", "high", "xhigh"},
 )
 
 
@@ -646,7 +672,9 @@ def print_telemetry(stats):
         f"reasoning_tokens={stats['reasoning_tokens']}; "
         f"total_tokens={stats['total_tokens']}; "
         f"wire_api={stats['wire_api'] or 'unknown'}; "
-        f"empty_response_retries={stats['empty_response_retries']}",
+        f"empty_response_retries={stats['empty_response_retries']}; "
+        f"responses_reasoning_effort={RESPONSES_REASONING_EFFORT}; "
+        f"responses_max_output_tokens={RESPONSES_MAX_OUTPUT_TOKENS}",
         flush=True,
     )
 
@@ -742,6 +770,8 @@ def model_call(client, messages, stats):
                 model=model_name(),
                 input=response_input,
                 store=False,
+                reasoning={"effort": RESPONSES_REASONING_EFFORT},
+                max_output_tokens=RESPONSES_MAX_OUTPUT_TOKENS,
                 timeout=MODEL_REQUEST_TIMEOUT,
             )
             stats["model_calls"] += 1
