@@ -2465,14 +2465,24 @@ def model_client_configs():
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     base_url = os.environ.get("LLM_BASE_URL", "").strip() or None
     if provider_key:
-        return [
+        configs = [
             {
                 "api_key": provider_key,
                 "base_url": base_url,
                 "label": "provider-specific Bunny key",
-                "fallback_to_openai_direct": False,
+                "fallback_to_openai_direct": bool(openai_key and base_url),
             }
         ]
+        if openai_key and base_url:
+            configs.append(
+                {
+                    "api_key": openai_key,
+                    "base_url": None,
+                    "label": "OPENAI_API_KEY direct fallback",
+                    "fallback_to_openai_direct": False,
+                }
+            )
+        return configs
     if not openai_key:
         return []
     configs = [
