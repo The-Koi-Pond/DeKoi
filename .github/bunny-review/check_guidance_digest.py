@@ -379,6 +379,15 @@ def run_model_transport_case(module):
             self.calls.append(kwargs)
             return self.response
 
+    class SequencedResponses:
+        def __init__(self, responses):
+            self.responses = list(responses)
+            self.calls = []
+
+        def create(self, **kwargs):
+            self.calls.append(kwargs)
+            return self.responses[len(self.calls) - 1]
+
     class FakeCompletions:
         def __init__(self):
             self.calls = []
@@ -510,6 +519,113 @@ def run_model_transport_case(module):
             assert "refused to produce review output" in str(exc)
         else:
             raise AssertionError("refusal-only Responses output must fail explicitly")
+
+        compatible_visible_text = FakeResponses(
+            SimpleNamespace(
+                status="completed",
+                output_text="",
+                output=[
+                    SimpleNamespace(
+                        type="message",
+                        content=[SimpleNamespace(type="text", text=response_text)],
+                    )
+                ],
+                usage=None,
+            )
+        )
+        client = SimpleNamespace(
+            responses=compatible_visible_text,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        content = module.model_call(client, messages, module.build_stats("packet"))
+        assert content == response_text
+        assert len(compatible_visible_text.calls) == 1
+
+        empty_then_text = SequencedResponses(
+            [
+                SimpleNamespace(
+                    status="completed",
+                    output_text="",
+                    output=[SimpleNamespace(type="reasoning", content=[])],
+                    usage=SimpleNamespace(
+                        input_tokens=17,
+                        output_tokens=19,
+                        total_tokens=36,
+                    ),
+                ),
+                SimpleNamespace(
+                    status="completed",
+                    output_text=response_text,
+                    output=[],
+                    usage=SimpleNamespace(
+                        input_tokens=23,
+                        output_tokens=29,
+                        total_tokens=52,
+                    ),
+                ),
+            ]
+        )
+        client = SimpleNamespace(
+            responses=empty_then_text,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        stats = module.build_stats("packet")
+        content = module.model_call(client, messages, stats)
+        assert content == response_text
+        assert len(empty_then_text.calls) == 2
+        assert empty_then_text.calls[0]["input"] == messages
+        retry_input = empty_then_text.calls[1]["input"]
+        assert retry_input[:-1] == messages
+        assert retry_input[-1]["role"] == "user"
+        assert "visible review text" in retry_input[-1]["content"]
+        assert stats["model_calls"] == 2
+        assert stats["prompt_tokens"] == 40
+        assert stats["completion_tokens"] == 48
+        assert stats["total_tokens"] == 88
+        assert stats["empty_response_retries"] == 1
+
+        empty_string_then_text = SequencedResponses(
+            [
+                "",
+                SimpleNamespace(
+                    status="completed",
+                    output_text=response_text,
+                    output=[],
+                    usage=None,
+                ),
+            ]
+        )
+        client = SimpleNamespace(
+            responses=empty_string_then_text,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        content = module.model_call(client, messages, module.build_stats("packet"))
+        assert content == response_text
+        assert len(empty_string_then_text.calls) == 2
+
+        empty_twice = FakeResponses(
+            SimpleNamespace(
+                status="completed",
+                output_text="",
+                output=[SimpleNamespace(type="reasoning", content=[])],
+                usage=None,
+            )
+        )
+        client = SimpleNamespace(
+            responses=empty_twice,
+            chat=SimpleNamespace(completions=FakeCompletions()),
+        )
+        try:
+            module.model_call(client, messages, module.build_stats("packet"))
+        except RuntimeError as exc:
+            detail = str(exc)
+            assert "without text output after retry" in detail
+            assert "output_types=reasoning" in detail
+            assert "content_types=none" in detail
+            assert "choices=absent" in detail
+        else:
+            raise AssertionError("repeated empty Responses output must fail explicitly")
+        assert len(empty_twice.calls) == 2
     finally:
         if old_model is None:
             os.environ.pop("LLM_MODEL", None)
@@ -703,6 +819,9 @@ def main():
         "semantic_repair=true "
         "plain_json_repair=true "
         "responses_transport=true "
+        "responses_compatible_text=true "
+        "responses_empty_retry=true "
+        "responses_empty_shape_diagnostic=true "
         "responses_incomplete_fails=true "
         "responses_refusal_fails=true "
         "no_json_repair=true "

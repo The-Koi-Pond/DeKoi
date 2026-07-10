@@ -39,6 +39,11 @@ MAX_CONTRACT_STATE_TEXT_CHARS = 320
 MAX_CONTRACT_STATE_LIST_ITEMS = 3
 DEFAULT_MODEL_REQUEST_TIMEOUT = 120
 MODEL_MAX_RETRIES = 1
+EMPTY_RESPONSE_RETRY_INSTRUCTION = (
+    "The previous Responses API attempt completed without visible review text. "
+    "Return the requested review now as visible review text using the required "
+    "FINAL_REVIEW marker and JSON contract. Do not return reasoning without a final answer."
+)
 SECRET_VALUE_RE = re.compile(
     r"(?i)(api[_-]?key|token|secret|password|passwd|authorization|bearer|client[_-]?secret)"
     r"(\s*[:=]\s*|\s+)([^\s'\"`;&|]+)"
@@ -622,6 +627,7 @@ def build_stats(review_packet):
         "reasoning_tokens": 0,
         "total_tokens": 0,
         "wire_api": "",
+        "empty_response_retries": 0,
     }
 
 
@@ -639,7 +645,8 @@ def print_telemetry(stats):
         f"completion_tokens={stats['completion_tokens']}; "
         f"reasoning_tokens={stats['reasoning_tokens']}; "
         f"total_tokens={stats['total_tokens']}; "
-        f"wire_api={stats['wire_api'] or 'unknown'}",
+        f"wire_api={stats['wire_api'] or 'unknown'}; "
+        f"empty_response_retries={stats['empty_response_retries']}",
         flush=True,
     )
 
@@ -681,7 +688,7 @@ def responses_output_text(resp):
         if object_value(item, "type") != "message":
             continue
         for content in object_value(item, "content", []) or []:
-            if object_value(content, "type") == "output_text":
+            if object_value(content, "type") in {"output_text", "text"}:
                 text = object_value(content, "text", "")
                 if text:
                     parts.append(text)
@@ -696,39 +703,89 @@ def responses_has_refusal(resp):
     return False
 
 
+def response_type_name(value):
+    raw = str(value or "missing").strip().lower()
+    return re.sub(r"[^a-z0-9_.-]", "?", raw)[:48] or "missing"
+
+
+def responses_output_shape(resp):
+    output_types = set()
+    content_types = set()
+    for item in object_value(resp, "output", []) or []:
+        output_types.add(response_type_name(object_value(item, "type")))
+        for content in object_value(item, "content", []) or []:
+            content_types.add(response_type_name(object_value(content, "type")))
+    output_summary = ",".join(sorted(output_types)) or "none"
+    content_summary = ",".join(sorted(content_types)) or "none"
+    choices_state = "present" if object_value(resp, "choices", None) else "absent"
+    return (
+        f"output_types={output_summary}; "
+        f"content_types={content_summary}; "
+        f"choices={choices_state}"
+    )
+
+
 def model_call(client, messages, stats):
     wire_api = model_wire_api()
     stats["wire_api"] = wire_api
     if wire_api == "responses":
-        resp = client.responses.create(
-            model=model_name(),
-            input=messages,
-            store=False,
-            timeout=MODEL_REQUEST_TIMEOUT,
-        )
-    else:
-        resp = client.chat.completions.create(
-            model=model_name(),
-            messages=messages,
-            timeout=MODEL_REQUEST_TIMEOUT,
-        )
+        response_inputs = [
+            messages,
+            [
+                *messages,
+                {"role": "user", "content": EMPTY_RESPONSE_RETRY_INSTRUCTION},
+            ],
+        ]
+        empty_shapes = []
+        for attempt, response_input in enumerate(response_inputs):
+            resp = client.responses.create(
+                model=model_name(),
+                input=response_input,
+                store=False,
+                timeout=MODEL_REQUEST_TIMEOUT,
+            )
+            stats["model_calls"] += 1
+            add_usage(stats, object_value(resp, "usage"))
+            if isinstance(resp, str) and resp.strip():
+                return resp
+            status = str(object_value(resp, "status", "") or "").strip().lower()
+            if status and status != "completed":
+                details = object_value(resp, "incomplete_details")
+                reason = object_value(details, "reason", "") if details else ""
+                suffix = f" ({reason})" if reason else ""
+                raise RuntimeError(f"Responses API returned {status}{suffix}")
+            output_text = responses_output_text(resp)
+            if output_text:
+                return output_text
+            if responses_has_refusal(resp):
+                raise RuntimeError("Responses API refused to produce review output")
+            empty_shapes.append(responses_output_shape(resp))
+            if attempt == 0:
+                stats["empty_response_retries"] += 1
+                print(
+                    "Bunny warning: Responses API completed without visible text; "
+                    "retrying once with an explicit final-output instruction.",
+                    flush=True,
+                )
+                continue
+            shape_detail = " | ".join(
+                f"attempt_{index + 1}: {shape}"
+                for index, shape in enumerate(empty_shapes)
+            )
+            raise RuntimeError(
+                "Responses API completed without text output after retry "
+                f"({shape_detail})"
+            )
+
+    resp = client.chat.completions.create(
+        model=model_name(),
+        messages=messages,
+        timeout=MODEL_REQUEST_TIMEOUT,
+    )
     stats["model_calls"] += 1
     add_usage(stats, object_value(resp, "usage"))
     if isinstance(resp, str):
         return resp
-    if wire_api == "responses":
-        status = str(object_value(resp, "status", "") or "").strip().lower()
-        if status and status != "completed":
-            details = object_value(resp, "incomplete_details")
-            reason = object_value(details, "reason", "") if details else ""
-            suffix = f" ({reason})" if reason else ""
-            raise RuntimeError(f"Responses API returned {status}{suffix}")
-        output_text = responses_output_text(resp)
-        if output_text:
-            return output_text
-        if responses_has_refusal(resp):
-            raise RuntimeError("Responses API refused to produce review output")
-        raise RuntimeError("Responses API completed without text output")
     return resp.choices[0].message.content or ""
 
 
