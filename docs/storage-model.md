@@ -109,15 +109,16 @@ Prompt presets use `schemaVersion: 1`. Each record stores title, optional
 summary, required non-empty `systemPrompt`, optional `messengerPrompt`, optional
 normalized `parameters`, a provider-ready `sampling` projection, section/group
 ordering fields, `sections`, `groups`, `choiceBlocks`, static `variableValues`,
-and `defaultChoices`. The `parameters` object preserves normalized prompt-preset
-controls such as `temperature`, `topP`, `maxTokens`, `topK`, `minP`,
-`maxContext`, penalties, service/model effort strings, stop sequences, custom
-parameters, and provider-shaping booleans. Current provider requests consume the
-`sampling` projection (`temperature`, `topP`, and `maxTokens`) from the selected
-preset. Invalid parameter and sampling fields are dropped during load. Preset
-`maxTokens` can override request parameters, but the final generation request is
-capped by the selected provider connection's positive `maxOutput` when one is
-configured. The bundled starter preset is ordinary user-editable data. A missing
+`defaultChoices`, and optional default/author/folder metadata. The `parameters`
+object preserves normalized prompt-preset controls such as `temperature`,
+`topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties, service/model
+effort strings, stop sequences, custom parameters, and provider-shaping
+booleans. Current provider requests consume the `sampling` projection
+(`temperature`, `topP`, and `maxTokens`) from the selected preset. Invalid
+parameter and sampling fields are dropped during load. Preset `maxTokens` can
+override request parameters, but the final generation request is capped by the
+selected provider connection's positive `maxOutput` when one is configured. The
+bundled starter preset is ordinary user-editable data. A missing
 desktop `prompt-presets` collection is seeded on startup and saved through the
 normal collection save path. Remote runtime storage seeds the starter only when
 all collections load cleanly and empty, then records the one-time initialization
@@ -141,10 +142,14 @@ sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
 `world_info_after`, `persona`, `character`, `dialogue_examples`, and
-`chat_history`; depth sections insert around the `chat_history` marker or
-transcript by depth from the newest item. DeKoi still appends the target
-companion single-character post-history contract until Roleplay has a native
-narrator, scene-beat, or multi-character generated-output model.
+`chat_history`; sectioned presets include transcript history only through an
+enabled `chat_history` marker. Depth sections insert around the `chat_history`
+marker when present, or around the sectioned prompt message stream by depth from
+the newest item. If a sectioned preset leaves no materialized messages after
+enabled/group/content filtering, Roleplay falls back to the selected system
+prompt without automatically replaying transcript history. DeKoi still appends
+the target companion single-character post-history contract until Roleplay has a
+native narrator, scene-beat, or multi-character generated-output model.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 prompt-preset choice variable name. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, multi-select separators, and
@@ -559,8 +564,9 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
   Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
   becomes `messengerPrompt`, enabled non-marker sections can supply the native
-  `systemPrompt`, and source envelope fields do not survive on the native
-  record.
+  `systemPrompt`, and packaged `isDefault`, `author`, and `folderId` metadata
+  are preserved when present. Source envelope fields do not survive on the
+  native record.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and

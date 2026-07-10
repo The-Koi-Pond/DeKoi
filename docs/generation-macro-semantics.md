@@ -323,10 +323,13 @@ timers.
 
 Roleplay prompt preset sections resolve macros in final provider-message order
 when the selected preset has sections. The `chat_history` marker anchors the
-transcript and prompt preset depth sections, while known Roleplay markers expand
-scene, lore, persona, character, and example-dialogue blocks. Sectioned presets
-that omit a non-depth lore marker do not emit that lore text, so no prompt
-mutations from the omitted text commit. Messenger does not consume preset
+transcript and prompt preset depth sections, and sectioned presets include
+transcript history only when that marker is enabled. Known Roleplay markers
+expand scene, lore, persona, character, and example-dialogue blocks. Sectioned
+presets that omit a non-depth lore marker do not emit that lore text, so no
+prompt mutations from the omitted text commit. If enabled section/group
+filtering leaves no materialized messages, Roleplay falls back to the selected
+system prompt without transcript history. Messenger does not consume preset
 sections; it continues to render its Messenger prompt source/system prompt path.
 
 ## Slice 7 Dynamic Variable Persistence

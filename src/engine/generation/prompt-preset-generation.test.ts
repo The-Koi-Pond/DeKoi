@@ -580,6 +580,104 @@ describe("prompt preset generation", () => {
     ]);
   });
 
+  it("omits Roleplay transcript when structured sections have no chat history marker", () => {
+    const thread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: ["character-1"],
+        id: "roleplay-thread-1",
+        now,
+        title: "Test scene",
+      }),
+      entries: [roleplayEntry("entry-1", "Open the airlock.")],
+      presetId: "preset-1",
+    };
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [
+        promptPreset({
+          systemPrompt: "Fallback prompt.",
+          sectionOrder: ["section-role"],
+          sections: [
+            {
+              id: "section-role",
+              identifier: "role",
+              name: "Role",
+              content: "Structured role for {{char}}.",
+              role: "system",
+              enabled: true,
+              isMarker: false,
+            },
+          ],
+        }),
+      ],
+      thread,
+    });
+
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = assembly.request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
+    expect(promptText).toContain("Structured role for Mara.");
+    expect(promptText).not.toContain("Alex: Open the airlock.");
+  });
+
+  it("does not re-add Roleplay transcript when structured sections render empty", () => {
+    const thread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: ["character-1"],
+        id: "roleplay-thread-1",
+        now,
+        title: "Test scene",
+      }),
+      entries: [roleplayEntry("entry-1", "Open the airlock.")],
+      presetId: "preset-1",
+    };
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [
+        promptPreset({
+          systemPrompt: "Fallback prompt for {{char}}.",
+          sectionOrder: ["section-role"],
+          sections: [
+            {
+              id: "section-role",
+              identifier: "role",
+              name: "Role",
+              content: "   ",
+              role: "system",
+              enabled: true,
+              isMarker: false,
+            },
+          ],
+        }),
+      ],
+      thread,
+    });
+
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = assembly.request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
+    expect(promptText).toContain("Fallback prompt for Mara.");
+    expect(promptText).not.toContain("Alex: Open the airlock.");
+  });
+
   it("anchors depth-injected prompt preset sections to the chat history marker", () => {
     const thread = {
       ...createRoleplayThread({
@@ -1041,6 +1139,7 @@ describe("prompt preset generation", () => {
               role: "system",
               enabled: true,
               isMarker: true,
+              xmlTagName: "legacy_before",
             },
             {
               id: "section-after",
@@ -1076,6 +1175,7 @@ describe("prompt preset generation", () => {
     expect(beforeBlock).not.toContain("Cycle slowly.");
     expect(afterBlock).toContain("Station Manual / After rule: Cycle slowly.");
     expect(afterBlock).not.toContain("Check suit seals.");
+    expect(promptText).not.toContain("legacy_before");
   });
 
   it("combines Roleplay lorebook marker world info before and after", () => {

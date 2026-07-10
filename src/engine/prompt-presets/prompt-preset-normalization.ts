@@ -13,6 +13,8 @@ import type {
   PromptPresetVisibilityRule,
 } from "../contracts/types/prompt-presets";
 
+export const DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT = "Write the next response in character.";
+
 function cleanSamplingNumber(value: number | null | undefined, min: number, max: number) {
   if (value === null) return null;
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -705,7 +707,7 @@ export function normalizePromptPresetSections(value: unknown): PromptPresetSecti
     if (typeof item.wrapInXml === "boolean" || typeof item.wrapInXml === "string") {
       section.wrapInXml = readBooleanLike(item.wrapInXml, false);
     }
-    if (xmlTagName !== null) section.xmlTagName = xmlTagName;
+    if (!section.isMarker && xmlTagName !== null) section.xmlTagName = xmlTagName;
     if (typeof item.forbidOverrides === "boolean" || typeof item.forbidOverrides === "string") {
       section.forbidOverrides = readBooleanLike(item.forbidOverrides, false);
     }
@@ -809,7 +811,7 @@ function normalizePromptPresetRecordFromParts({
   const normalizedParameters = parameters ?? null;
   const sampling = normalizePromptPresetSampling(normalizedParameters);
   const resolvedMessengerPrompt = messengerPrompt?.trim() || null;
-  const resolvedSystemPrompt = systemPrompt.trim() || "Write the next response in character.";
+  const resolvedSystemPrompt = systemPrompt.trim() || DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT;
 
   return {
     id,

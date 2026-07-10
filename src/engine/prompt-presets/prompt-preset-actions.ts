@@ -9,6 +9,7 @@ import type {
 } from "../contracts/types/prompt-presets";
 import { cleanNullableText, cleanText } from "../shared/text";
 import {
+  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   normalizeChoiceSelectionRecord,
   normalizePromptPresetChoiceBlocks,
   normalizePromptPresetGroups,
@@ -22,6 +23,7 @@ import {
 } from "./prompt-preset-normalization";
 
 export {
+  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetChoiceSelections,
   normalizePromptPresetRecord,
@@ -127,7 +129,7 @@ export function createPromptPresetRecord({
     schemaVersion: 1,
     title: cleanText(input.title, "Untitled preset"),
     summary: cleanNullableText(input.summary),
-    systemPrompt: cleanText(input.systemPrompt, "Write the next response in character."),
+    systemPrompt: cleanText(input.systemPrompt, DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT),
     messengerPrompt,
     sampling: normalizePromptPresetSampling(parameters),
     parameters,

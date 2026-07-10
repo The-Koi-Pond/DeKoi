@@ -37,14 +37,17 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
 - Presets catalog controls expose prompt preset title, summary, system prompt,
-  Messenger Prompt Source, optional temperature, `topP`, and max-token sampling,
-  with create, edit, duplicate, and delete actions plus an editable starter
-  preset. Native prompt preset records also normalize richer parameters,
-  sections, groups, choice blocks, static variable values, and defaults for
-  compatible import. Roleplay generation consumes section/group assembly when
-  present, and Roleplay thread settings can edit selected preset choice values
-  through a Preset Variables popup without changing the preset catalog record.
-  Messenger keeps the Messenger Prompt Source/system prompt path.
+  Messenger Prompt Source, optional temperature, `topP`, max-token sampling,
+  Roleplay section groups, ordered sections, markers, section roles, enabled
+  state, wrapping, and depth placement, with create, edit, duplicate, and delete
+  actions, plus an editable starter preset. Native prompt preset records also
+  normalize richer parameters, choice blocks, static variable values, and
+  defaults for compatible import; the catalog edit flow preserves those
+  advanced compatible fields even where dedicated definition editors are not
+  exposed yet. Roleplay generation consumes section/group assembly when present,
+  and Roleplay thread settings can edit selected preset choice values through a
+  Preset Variables popup without changing the preset catalog record. Messenger
+  keeps the Messenger Prompt Source/system prompt path.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
@@ -120,11 +123,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   scene-specific semantics, media, and visual-novel presentation remain early.
 - Lorebook triggers and character filters are normalized and stored, but
   activation behavior and advanced UI for those fields are not implemented yet.
-- Prompt preset section/group and choice-block catalog editing is not
-  implemented yet. The Roleplay Preset Variables popup only selects values for
-  existing choice blocks. Messenger still uses the simple Messenger Prompt
-  Source/system prompt path; Roleplay section assembly is engine-only for
-  compatible imported records.
+- Prompt preset choice-block definition editing is not implemented yet. The
+  Roleplay Preset Variables popup only selects values for existing choice
+  blocks, while the Presets catalog preserves compatible choice blocks, static
+  variables, default choices, richer parameters, and metadata during ordinary
+  prompt preset edits.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.

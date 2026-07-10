@@ -285,6 +285,11 @@ Current implementation:
   summary, required system prompt, optional Messenger Prompt Source, normalized
   parameters, a current generation sampling projection, static variable values,
   ordered sections/groups, and choice blocks.
+- The Presets catalog edits Roleplay section groups, ordered sections, marker
+  sections, section roles, enabled state, wrapping, and depth placement. Its
+  edit flow preserves compatible choice blocks, static variable values, default
+  choices, richer parameters, default/folder/author metadata, and Messenger
+  Prompt Source even where dedicated controls are not exposed.
 - Messenger and Roleplay threads can select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still
@@ -303,7 +308,7 @@ Current implementation:
 
 Still evolving:
 
-- UI for editing preset sections, groups, and choice-block definitions.
+- UI for editing choice-block definitions and advanced compatible metadata.
 - Whether Thread Presets become a separate saved record.
 
 ### Provider Connection
