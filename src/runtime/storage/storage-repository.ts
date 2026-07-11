@@ -41,6 +41,7 @@ export type StorageRecordNormalization<T extends StorageRecord> = {
   record: T | null;
   /** Additional rejected records represented by this raw value. */
   droppedRecordCount?: number;
+  normalizationChanged?: boolean;
 };
 
 export type StorageRecordNormalizerResult<T extends StorageRecord> =
@@ -73,16 +74,17 @@ function isStorageRecordNormalization<T extends StorageRecord>(
  */
 export function normalizeStorageRecordResult<T extends StorageRecord>(
   result: StorageRecordNormalizerResult<T>,
-): { record: T | null; droppedRecordCount: number } {
+): { record: T | null; droppedRecordCount: number; normalizationChanged: boolean } {
   if (isStorageRecordNormalization(result)) {
     const droppedRecordCount = result.droppedRecordCount ?? 0;
     return {
       record: result.record,
       droppedRecordCount: droppedRecordCount > 0 ? Math.floor(droppedRecordCount) : 0,
+      normalizationChanged: result.normalizationChanged === true,
     };
   }
 
-  return { record: result, droppedRecordCount: 0 };
+  return { record: result, droppedRecordCount: 0, normalizationChanged: false };
 }
 
 export type StorageRecordsSnapshot<T extends StorageRecord> = {
@@ -95,6 +97,7 @@ export type StorageRecordsSnapshot<T extends StorageRecord> = {
    * warning so the loss is not silent (mirrors the corrupt-file philosophy).
    */
   droppedRecordCount: number;
+  normalizationChangedRecordIds: string[];
 } & StorageResult;
 
 export interface StorageCollectionRepository<T extends StorageRecord> {

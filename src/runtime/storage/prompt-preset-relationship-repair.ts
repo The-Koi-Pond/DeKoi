@@ -5,6 +5,7 @@ import type {
 import { prunePromptPresetThreadChoiceSelections } from "../../engine/prompt-presets/prompt-preset-normalization";
 
 type RecordWithPromptPreset = {
+  id: string;
   presetId: string | null;
   presetChoiceSelections?: PromptPresetThreadChoiceSelections;
 };
@@ -46,6 +47,7 @@ function choiceSelectionsMatch(
 export function repairPromptPresetRelationships<T extends RecordWithPromptPreset>(
   records: readonly T[],
   promptPresets: readonly PromptPresetRecord[],
+  normalizedChoiceSelectionRecordIds: ReadonlySet<string> = new Set(),
 ): {
   records: T[];
   clearedPresetReferenceCount: number;
@@ -59,15 +61,20 @@ export function repairPromptPresetRelationships<T extends RecordWithPromptPreset
     if (!record.presetId) return record;
     const preset = promptPresetsById.get(record.presetId);
     if (preset) {
+      const choicesWereNormalized = normalizedChoiceSelectionRecordIds.has(record.id);
       const selections = prunePromptPresetThreadChoiceSelections(
         preset,
         record.presetChoiceSelections,
       );
-      if (choiceSelectionsMatch(selections, record.presetChoiceSelections ?? {})) {
+      const choicesWerePruned = !choiceSelectionsMatch(
+        selections,
+        record.presetChoiceSelections ?? {},
+      );
+      if (!choicesWereNormalized && !choicesWerePruned) {
         return record;
       }
       repairedChoiceSelectionCount += 1;
-      return { ...record, presetChoiceSelections: selections };
+      return choicesWerePruned ? { ...record, presetChoiceSelections: selections } : record;
     }
 
     clearedPresetReferenceCount += 1;

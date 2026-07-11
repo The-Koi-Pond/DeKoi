@@ -91,6 +91,7 @@ type LoadedHostRecords<T extends StorageRecord> = {
   records: T[];
   /** Raw records rejected by the normalizer; absent from `records`. */
   droppedRecordCount: number;
+  normalizationChangedRecordIds: string[];
 };
 
 async function loadHostRecords<T extends StorageRecord>(
@@ -112,17 +113,21 @@ async function loadHostRecords<T extends StorageRecord>(
 
   let droppedRecordCount = 0;
   const normalizedRecords: T[] = [];
+  const normalizationChangedRecordIds: string[] = [];
   for (const rawRecord of records) {
     const normalized = normalizeStorageRecordResult(normalizeRecord(rawRecord));
     droppedRecordCount += normalized.droppedRecordCount;
     if (normalized.record) {
       normalizedRecords.push(normalized.record);
+      if (normalized.normalizationChanged) {
+        normalizationChangedRecordIds.push(normalized.record.id);
+      }
     } else {
       droppedRecordCount += 1;
     }
   }
 
-  return { records: normalizedRecords, droppedRecordCount };
+  return { records: normalizedRecords, droppedRecordCount, normalizationChangedRecordIds };
 }
 
 function normalizeOutgoingRecords<T extends StorageRecord>(
@@ -358,6 +363,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
     return {
       records: seedRecords,
       droppedRecordCount: 0,
+      normalizationChangedRecordIds: [],
       mode,
       status: "error",
       message: HOST_STORAGE_UNAVAILABLE_MESSAGE,
@@ -365,10 +371,15 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
   }
 
   try {
-    const { records, droppedRecordCount } = await loadHostRecords(entity, normalizeRecord, rawUrl);
+    const { records, droppedRecordCount, normalizationChangedRecordIds } = await loadHostRecords(
+      entity,
+      normalizeRecord,
+      rawUrl,
+    );
     return {
       records,
       droppedRecordCount,
+      normalizationChangedRecordIds,
       mode,
       status: "ready",
       message:
@@ -378,6 +389,7 @@ async function loadHostRecordsSnapshot<T extends StorageRecord>({
     return {
       records: seedRecords,
       droppedRecordCount: 0,
+      normalizationChangedRecordIds: [],
       mode,
       status: "error",
       message: `Host storage unavailable. ${errorMessage(error, "Unknown storage error.")}`,

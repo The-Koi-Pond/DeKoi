@@ -388,8 +388,16 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const promptPresets = shouldSeedPromptPresets
     ? [STARTER_PROMPT_PRESET]
     : promptPresetSnapshot.records;
-  const repairedRoleplayThreads = repairPromptPresetRelationships(roleplayThreads, promptPresets);
-  const repairedMessengerThreads = repairPromptPresetRelationships(messengerThreads, promptPresets);
+  const repairedRoleplayThreads = repairPromptPresetRelationships(
+    roleplayThreads,
+    promptPresets,
+    new Set(roleplaySnapshot.normalizationChangedRecordIds),
+  );
+  const repairedMessengerThreads = repairPromptPresetRelationships(
+    messengerThreads,
+    promptPresets,
+    new Set(messengerSnapshot.normalizationChangedRecordIds),
+  );
   const shouldInitializePromptPresetStarter =
     appSettingsCanStorePromptPresetStarterMarker &&
     promptPresetSnapshot.status === "ready" &&

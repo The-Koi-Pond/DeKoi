@@ -12,7 +12,7 @@ import {
   createStorageRepository,
   type StorageMode,
 } from "../storage-repository-factory";
-import { normalizePromptPresetThreadChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
+import { normalizePromptPresetThreadChoiceSelectionsWithChange } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
@@ -25,6 +25,7 @@ export type MessengerStorageSnapshot = {
   threads: MessengerThread[];
   hasLegacyEmbeddedMessages: boolean;
   droppedRecordCount: number;
+  normalizationChangedRecordIds: string[];
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
   message: string;
@@ -34,9 +35,10 @@ type MessengerThreadStorageRecord = MessengerThreadRecord & {
   messages?: MessengerMessage[];
 };
 
-type NormalizedMessengerThread = {
+export type NormalizedMessengerThread = {
   thread: MessengerThread;
   droppedRecordCount: number;
+  presetChoiceSelectionsChanged: boolean;
 };
 
 function migrateLegacyId(id: string) {
@@ -80,7 +82,7 @@ export function normalizeMessengerMessageRecord(
   } as MessengerMessage;
 }
 
-function normalizeMessengerThreadWithDroppedCount(
+export function normalizeMessengerThreadWithMetadata(
   value: unknown,
 ): NormalizedMessengerThread | null {
   if (!value || typeof value !== "object") return null;
@@ -108,6 +110,9 @@ function normalizeMessengerThreadWithDroppedCount(
     }
 
     const presetId = readNullableString(candidate.presetId);
+    const normalizedPresetChoiceSelections = presetId
+      ? normalizePromptPresetThreadChoiceSelectionsWithChange(candidate.presetChoiceSelections)
+      : { selections: {}, changed: false };
 
     return {
       thread: {
@@ -120,9 +125,7 @@ function normalizeMessengerThreadWithDroppedCount(
             ? candidate.providerConnectionId
             : null,
         presetId,
-        presetChoiceSelections: presetId
-          ? normalizePromptPresetThreadChoiceSelections(candidate.presetChoiceSelections)
-          : {},
+        presetChoiceSelections: normalizedPresetChoiceSelections.selections,
         systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
         systemPrompt:
           typeof candidate.systemPrompt === "string"
@@ -131,21 +134,11 @@ function normalizeMessengerThreadWithDroppedCount(
         messages,
       } as MessengerThread,
       droppedRecordCount,
+      presetChoiceSelectionsChanged: normalizedPresetChoiceSelections.changed,
     };
   }
 
   return null;
-}
-
-function normalizeMessengerThread(value: unknown): MessengerThread | null {
-  return normalizeMessengerThreadWithDroppedCount(value)?.thread ?? null;
-}
-
-export function normalizeMessengerThreads(value: unknown): MessengerThread[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map(normalizeMessengerThread)
-    .filter((thread): thread is MessengerThread => thread !== null);
 }
 
 export function loadInitialMessengerThreads(): MessengerThread[] {
@@ -155,7 +148,7 @@ export function loadInitialMessengerThreads(): MessengerThread[] {
 function normalizeMessengerThreadStorageRecord(
   value: unknown,
 ): StorageRecordNormalization<MessengerThreadStorageRecord> | null {
-  const normalized = normalizeMessengerThreadWithDroppedCount(value);
+  const normalized = normalizeMessengerThreadWithMetadata(value);
   if (!normalized) return null;
 
   const { thread } = normalized;
@@ -163,6 +156,7 @@ function normalizeMessengerThreadStorageRecord(
   return {
     record: thread.messages.length > 0 ? { ...record, messages: thread.messages } : record,
     droppedRecordCount: normalized.droppedRecordCount,
+    normalizationChanged: normalized.presetChoiceSelectionsChanged,
   };
 }
 
@@ -184,6 +178,7 @@ export async function loadMessengerThreadsFromStorage(
     threads: attachMessengerMessagesToThreads(snapshot.records, []),
     hasLegacyEmbeddedMessages,
     droppedRecordCount: snapshot.droppedRecordCount,
+    normalizationChangedRecordIds: snapshot.normalizationChangedRecordIds,
     mode: snapshot.mode,
     status: snapshot.status,
     message: snapshot.mode === "unavailable" ? HOST_STORAGE_UNAVAILABLE_MESSAGE : snapshot.message,
@@ -194,7 +189,10 @@ export async function saveMessengerThreadsToStorage(
   threads: MessengerThread[],
   rawUrl = readRemoteRuntimeUrl(),
 ): Promise<
-  Omit<MessengerStorageSnapshot, "threads" | "hasLegacyEmbeddedMessages" | "droppedRecordCount">
+  Omit<
+    MessengerStorageSnapshot,
+    "threads" | "hasLegacyEmbeddedMessages" | "droppedRecordCount" | "normalizationChangedRecordIds"
+  >
 > {
   const result = await messengerThreadRepository.save(threads.map(toMessengerThreadRecord), rawUrl);
 

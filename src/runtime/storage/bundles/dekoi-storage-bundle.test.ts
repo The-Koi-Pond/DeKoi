@@ -487,6 +487,64 @@ describe("normalizeDeKoiStorageBundle", () => {
     );
   });
 
+  it("reports normalized legacy choice selections for valid presets in both thread modes", () => {
+    const messengerThread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-legacy-choices",
+        now,
+        title: "Messenger legacy choices",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+      presetChoiceSelections: { pacing: "slow" },
+    };
+    const roleplayThread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-legacy-choices",
+        now,
+        title: "Roleplay legacy choices",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+      presetChoiceSelections: { pacing: "slow" },
+    };
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [roleplayThread],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        promptPresets: [STARTER_PROMPT_PRESET],
+        loreRuntimeStates: [],
+        macroVariableStates: [],
+        providerConnections: [],
+        messengerThreads: [messengerThread],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(result.preview.bundle.data.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(result.preview.warnings).toContain(
+      "Messenger threads pruned stale preset choice selections from 1 thread(s).",
+    );
+    expect(result.preview.warnings).toContain(
+      "Roleplay threads pruned stale preset choice selections from 1 thread(s).",
+    );
+  });
+
   it("skips lore runtime states whose owner thread is not imported", () => {
     const thread = createMessengerThread({
       activePersonaId: null,

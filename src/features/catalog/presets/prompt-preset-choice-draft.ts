@@ -736,6 +736,7 @@ function cleanChoiceBlock(block: PromptPresetChoiceBlock, defaultOptionIds: read
   const question = block.question?.trim();
   if (question) cleanedBlock.question = question;
   else delete cleanedBlock.question;
+  if (!block.separator?.trim()) delete cleanedBlock.separator;
   return cleanedBlock;
 }
 

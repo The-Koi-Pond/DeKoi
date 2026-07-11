@@ -26,6 +26,7 @@ export {
   DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetThreadChoiceSelections,
+  normalizePromptPresetThreadChoiceSelectionsWithChange,
   normalizePromptPresetRecord,
   normalizePromptPresetSections,
   prunePromptPresetThreadChoiceSelections,

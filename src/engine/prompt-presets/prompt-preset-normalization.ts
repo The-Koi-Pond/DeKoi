@@ -135,7 +135,7 @@ function readNullableString(value: unknown) {
 }
 
 function readNullableRawString(value: unknown) {
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 function readTrimmedString(value: unknown) {
@@ -443,8 +443,50 @@ function normalizeThreadChoiceSelection(value: unknown): PromptPresetThreadChoic
 export function normalizePromptPresetThreadChoiceSelections(
   value: unknown,
 ): PromptPresetThreadChoiceSelections {
+  return normalizePromptPresetThreadChoiceSelectionsWithChange(value).selections;
+}
+
+function threadChoiceSelectionMatchesSource(
+  selection: PromptPresetThreadChoiceSelection,
+  source: unknown,
+): boolean {
+  if (Array.isArray(selection)) {
+    return (
+      Array.isArray(source) &&
+      source.length === selection.length &&
+      selection.every((item, index) => threadChoiceSelectionMatchesSource(item, source[index]))
+    );
+  }
+  if (!isRecord(source) || Array.isArray(source)) return false;
+  const keys = Object.keys(source);
+  return keys.length === 2 && source.kind === "option" && source.optionId === selection.optionId;
+}
+
+function threadChoiceSelectionsMatchSource(
+  selections: PromptPresetThreadChoiceSelections,
+  source: unknown,
+) {
+  if (!isRecord(source)) return false;
+  const sourceEntries = Object.entries(source);
+  const selectionBlockIds = Object.keys(selections);
+  return (
+    sourceEntries.length === selectionBlockIds.length &&
+    sourceEntries.every(
+      ([blockId, selection]) =>
+        Object.prototype.hasOwnProperty.call(selections, blockId) &&
+        threadChoiceSelectionMatchesSource(selections[blockId]!, selection),
+    )
+  );
+}
+
+export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unknown): {
+  selections: PromptPresetThreadChoiceSelections;
+  changed: boolean;
+} {
   const source = parseJsonIfString(value);
-  if (!isRecord(source)) return {};
+  if (!isRecord(source)) {
+    return { selections: {}, changed: value !== undefined };
+  }
 
   const selections: PromptPresetThreadChoiceSelections = {};
   for (const [rawBlockId, rawSelection] of Object.entries(source)) {
@@ -452,7 +494,10 @@ export function normalizePromptPresetThreadChoiceSelections(
     const selection = normalizeThreadChoiceSelection(rawSelection);
     if (blockId && selection) selections[blockId] = selection;
   }
-  return selections;
+  return {
+    selections,
+    changed: typeof value === "string" || !threadChoiceSelectionsMatchSource(selections, source),
+  };
 }
 
 export function prunePromptPresetThreadChoiceSelections(

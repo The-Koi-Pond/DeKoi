@@ -6,6 +6,7 @@ import {
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetRecord,
   normalizePromptPresetThreadChoiceSelections,
+  normalizePromptPresetThreadChoiceSelectionsWithChange,
   prunePromptPresetThreadChoiceSelections,
   resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
@@ -35,6 +36,28 @@ describe("normalizePromptPresetRecord", () => {
 
     expect(record?.createdAt).toBe(now);
     expect(record?.updatedAt).toBe(now);
+  });
+
+  it("removes whitespace-only choice separators", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-whitespace-separator",
+      schemaVersion: 1,
+      title: "Whitespace separator",
+      systemPrompt: "Write the next response.",
+      choiceBlocks: [
+        {
+          id: "choice-tags",
+          variableName: "tags",
+          label: "Tags",
+          options: [{ id: "tag-vivid", label: "Vivid", value: "vivid" }],
+          separator: "   ",
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record?.choiceBlocks[0]).not.toHaveProperty("separator");
   });
 
   it("normalizes XML tag names only for non-marker sections", () => {
@@ -941,6 +964,17 @@ describe("duplicatePromptPresetRecord", () => {
 });
 
 describe("native thread prompt preset choices", () => {
+  it("reports when legacy selections change during normalization", () => {
+    expect(normalizePromptPresetThreadChoiceSelectionsWithChange({ pacing: "slow" })).toEqual({
+      selections: {},
+      changed: true,
+    });
+    expect(normalizePromptPresetThreadChoiceSelectionsWithChange({})).toEqual({
+      selections: {},
+      changed: false,
+    });
+  });
+
   it("keeps only stable block and option ids with the block's effective cardinality", () => {
     const preset = createPromptPresetRecord({
       id: "preset-native-choices",

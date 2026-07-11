@@ -139,6 +139,20 @@ describe("prompt preset choice drafts", () => {
     expect(tone?.options[0]).not.toHaveProperty("description");
   });
 
+  it("removes an empty choice separator during serialization", () => {
+    const draft = choiceDraftFromPromptPreset(promptPresetRecord());
+    const withEmptySeparator = updatePromptPresetChoiceBlock(draft, "choice-tone", (block) => ({
+      ...block,
+      separator: "   ",
+    }));
+
+    const tone = promptPresetChoiceDraftToInput(withEmptySeparator).choiceBlocks?.find(
+      (block) => block.id === "choice-tone",
+    );
+
+    expect(tone).not.toHaveProperty("separator");
+  });
+
   it("renames dependent visibility rules without losing the block default", () => {
     const draft = choiceDraftFromPromptPreset(
       promptPresetRecord({
