@@ -12,11 +12,11 @@ import {
   createStorageRepository,
   type StorageMode,
 } from "../storage-repository-factory";
-import { normalizePromptPresetThreadChoiceSelectionsWithChange } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
 import { readNullableString } from "../storage-json";
+import { normalizePromptPresetThreadChoiceSelectionsForPreset } from "../prompt-preset-relationship-repair";
 
 export type MessengerStorageMode = StorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
@@ -110,9 +110,10 @@ export function normalizeMessengerThreadWithMetadata(
     }
 
     const presetId = readNullableString(candidate.presetId);
-    const normalizedPresetChoiceSelections = presetId
-      ? normalizePromptPresetThreadChoiceSelectionsWithChange(candidate.presetChoiceSelections)
-      : { selections: {}, changed: false };
+    const normalizedPresetChoiceSelections = normalizePromptPresetThreadChoiceSelectionsForPreset(
+      presetId,
+      candidate.presetChoiceSelections,
+    );
 
     return {
       thread: {

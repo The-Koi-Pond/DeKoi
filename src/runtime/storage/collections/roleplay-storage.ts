@@ -12,10 +12,10 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
-import { normalizePromptPresetThreadChoiceSelectionsWithChange } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { createStorageRepository } from "../storage-repository-factory";
 import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
+import { normalizePromptPresetThreadChoiceSelectionsForPreset } from "../prompt-preset-relationship-repair";
 
 type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
@@ -105,9 +105,10 @@ export function normalizeRoleplayThreadWithMetadata(
   }
 
   const presetId = readNullableString(value.presetId);
-  const normalizedPresetChoiceSelections = presetId
-    ? normalizePromptPresetThreadChoiceSelectionsWithChange(value.presetChoiceSelections)
-    : { selections: {}, changed: false };
+  const normalizedPresetChoiceSelections = normalizePromptPresetThreadChoiceSelectionsForPreset(
+    presetId,
+    value.presetChoiceSelections,
+  );
 
   return {
     thread: {

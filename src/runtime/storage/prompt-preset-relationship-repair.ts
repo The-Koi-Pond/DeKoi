@@ -2,7 +2,10 @@ import type {
   PromptPresetRecord,
   PromptPresetThreadChoiceSelections,
 } from "../../engine/contracts/types/prompt-presets";
-import { prunePromptPresetThreadChoiceSelections } from "../../engine/prompt-presets/prompt-preset-normalization";
+import {
+  normalizePromptPresetThreadChoiceSelectionsWithChange,
+  prunePromptPresetThreadChoiceSelections,
+} from "../../engine/prompt-presets/prompt-preset-normalization";
 
 type RecordWithPromptPreset = {
   id: string;
@@ -44,6 +47,22 @@ function choiceSelectionsMatch(
   );
 }
 
+export function normalizePromptPresetThreadChoiceSelectionsForPreset(
+  presetId: string | null,
+  value: unknown,
+): {
+  selections: PromptPresetThreadChoiceSelections;
+  changed: boolean;
+} {
+  const normalized = normalizePromptPresetThreadChoiceSelectionsWithChange(value);
+  if (presetId) return normalized;
+
+  return {
+    selections: {},
+    changed: normalized.changed || Object.keys(normalized.selections).length > 0,
+  };
+}
+
 export function repairPromptPresetRelationships<T extends RecordWithPromptPreset>(
   records: readonly T[],
   promptPresets: readonly PromptPresetRecord[],
@@ -58,7 +77,12 @@ export function repairPromptPresetRelationships<T extends RecordWithPromptPreset
   let repairedChoiceSelectionCount = 0;
 
   const repairedRecords = records.map((record) => {
-    if (!record.presetId) return record;
+    if (!record.presetId) {
+      if (normalizedChoiceSelectionRecordIds.has(record.id)) {
+        repairedChoiceSelectionCount += 1;
+      }
+      return record;
+    }
     const preset = promptPresetsById.get(record.presetId);
     if (preset) {
       const choicesWereNormalized = normalizedChoiceSelectionRecordIds.has(record.id);

@@ -259,6 +259,43 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
     expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
   });
+
+  it("migrates orphaned choice selections without preset references in both thread modes", async () => {
+    const messengerThread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-orphaned-choices",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger orphaned choices",
+      }),
+      presetChoiceSelections: {
+        "choice-tone": { kind: "option", optionId: "tone-warm" },
+      },
+    };
+    const roleplayThread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-orphaned-choices",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Roleplay orphaned choices",
+      }),
+      presetChoiceSelections: { pacing: "slow" },
+    };
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
+      "prompt-presets": [STARTER_PROMPT_PRESET],
+      "messenger-threads": [messengerThread],
+      "roleplay-threads": [roleplayThread],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
+  });
 });
 
 describe("saveAppStorageCollections prompt preset marker ordering", () => {
