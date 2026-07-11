@@ -226,7 +226,7 @@ jobs:
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: Rust dependency policy report
-        run: cargo deny --manifest-path src-tauri/Cargo.toml check --config deny.toml
+        run: cargo deny --manifest-path src-tauri/Cargo.toml check
       - name: Unused Rust dependency report
         run: cargo machete src-tauri
         continue-on-error: true
