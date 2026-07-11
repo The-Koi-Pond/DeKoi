@@ -353,6 +353,54 @@ describe("normalizePromptPresetRecord", () => {
     });
   });
 
+  it("keeps every member of malformed visibility cycles hidden", () => {
+    const cycles = [
+      [
+        { id: "a", controllerId: "b" },
+        { id: "b", controllerId: "a" },
+      ],
+      [
+        { id: "a", controllerId: "c" },
+        { id: "b", controllerId: "a" },
+        { id: "c", controllerId: "b" },
+      ],
+    ];
+
+    for (const cycle of cycles) {
+      const record = normalizePromptPresetRecord({
+        id: "preset-cycle",
+        schemaVersion: 1,
+        title: "Cyclic Preset",
+        systemPrompt: "Use cyclic choices.",
+        choiceBlocks: cycle.map(({ id, controllerId }) => ({
+          id: `choice-${id}`,
+          variableName: id,
+          label: id.toUpperCase(),
+          defaultOptionId: `${id}-on`,
+          options: [{ id: `${id}-on`, label: "On", value: `${id}-on` }],
+          visibilityRule: {
+            variableName: controllerId,
+            values: [`${controllerId}-on`],
+          },
+        })),
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      expect(record).not.toBeNull();
+      if (!record) throw new Error("Expected prompt preset record.");
+      const selections = Object.fromEntries(
+        cycle.map(({ id }) => [`choice-${id}`, { kind: "option" as const, optionId: `${id}-on` }]),
+      );
+
+      expect(resolvePromptPresetChoiceControls({ preset: record, selections })).toEqual([]);
+      expect(resolvePromptPresetChoiceVariables({ preset: record, selections })).toEqual({
+        variables: {},
+        variableNames: [],
+      });
+    }
+  });
+
   it("resolves preset variables and multi-select choice values", () => {
     const record = normalizePromptPresetRecord({
       id: "preset-1",

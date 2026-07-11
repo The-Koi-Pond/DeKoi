@@ -667,6 +667,44 @@ interface ResolvedPromptPresetChoiceState {
   visible: boolean;
 }
 
+function promptPresetVisibilityCycleBlockIds(preset: PromptPresetRecord) {
+  const blocksByVariableName = new Map(
+    preset.choiceBlocks.map((block) => [block.variableName, block] as const),
+  );
+  const controllerIdByBlockId = new Map<string, string>();
+  for (const block of preset.choiceBlocks) {
+    if (!block.visibilityRule) continue;
+    const controller = blocksByVariableName.get(block.visibilityRule.variableName);
+    if (controller) controllerIdByBlockId.set(block.id, controller.id);
+  }
+
+  const cycleBlockIds = new Set<string>();
+  const processedBlockIds = new Set<string>();
+  for (const block of preset.choiceBlocks) {
+    if (processedBlockIds.has(block.id)) continue;
+
+    const path: string[] = [];
+    const pathIndexByBlockId = new Map<string, number>();
+    let currentBlockId: string | undefined = block.id;
+    while (currentBlockId && !processedBlockIds.has(currentBlockId)) {
+      const cycleStartIndex = pathIndexByBlockId.get(currentBlockId);
+      if (cycleStartIndex !== undefined) {
+        for (const cycleBlockId of path.slice(cycleStartIndex)) {
+          cycleBlockIds.add(cycleBlockId);
+        }
+        break;
+      }
+
+      pathIndexByBlockId.set(currentBlockId, path.length);
+      path.push(currentBlockId);
+      currentBlockId = controllerIdByBlockId.get(currentBlockId);
+    }
+    for (const pathBlockId of path) processedBlockIds.add(pathBlockId);
+  }
+
+  return cycleBlockIds;
+}
+
 function resolvePromptPresetChoiceStates(
   preset: PromptPresetRecord,
   selections?: PromptPresetThreadChoiceSelections | null,
@@ -677,16 +715,20 @@ function resolvePromptPresetChoiceStates(
   );
   const statesByBlockId = new Map<string, ResolvedPromptPresetChoiceState>();
   const resolvingBlockIds = new Set<string>();
+  const cycleBlockIds = promptPresetVisibilityCycleBlockIds(preset);
 
   function resolveBlock(block: PromptPresetChoiceBlock): ResolvedPromptPresetChoiceState {
     const resolved = statesByBlockId.get(block.id);
     if (resolved) return resolved;
 
+    if (cycleBlockIds.has(block.id)) {
+      const cycleState = { visible: false, values: [] };
+      statesByBlockId.set(block.id, cycleState);
+      return cycleState;
+    }
+
     if (resolvingBlockIds.has(block.id)) {
-      return {
-        visible: false,
-        values: resolvePromptPresetChoiceValues({ block, preset, selection: null }),
-      };
+      return { visible: false, values: [] };
     }
 
     resolvingBlockIds.add(block.id);
