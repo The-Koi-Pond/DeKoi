@@ -28,17 +28,17 @@ import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import { normalizeAppSettings } from "../../../engine/contracts/types/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
-import { normalizeRoleplayThread } from "../collections/roleplay-storage";
+import { normalizeRoleplayThreadWithMetadata } from "../collections/roleplay-storage";
 import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
 import { normalizeLoreRuntimeState } from "../collections/lore-runtime-state-storage";
 import { normalizeMacroVariableScope } from "../collections/macro-variable-state-storage";
-import { normalizeMessengerThreads } from "../collections/messenger-storage";
+import { normalizeMessengerThreadWithMetadata } from "../collections/messenger-storage";
 import { normalizeMessengerMessageRecord } from "../collections/messenger-storage";
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
-import { clearMissingPromptPresetIds } from "../prompt-preset-relationship-repair";
+import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
 import { normalizePromptPresetImportRecord } from "../prompt-preset-import";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
@@ -352,10 +352,17 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
   const providerConnectionSecretFieldCount = Array.isArray(rawProviderConnections)
     ? rawProviderConnections.filter(hasProviderConnectionSecretField).length
     : 0;
+  const normalizedRoleplayChoiceSelectionRecordIds = new Set<string>();
   const normalizedRoleplayThreads = normalizeList(
     value.data.roleplayThreads,
     "Roleplay threads",
-    normalizeRoleplayThread,
+    (thread) => {
+      const normalized = normalizeRoleplayThreadWithMetadata(thread);
+      if (normalized?.presetChoiceSelectionsChanged) {
+        normalizedRoleplayChoiceSelectionRecordIds.add(normalized.thread.id);
+      }
+      return normalized?.thread ?? null;
+    },
     warnings,
   );
   const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(toRoleplayThreadRecord);
@@ -376,7 +383,17 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     extractRoleplayEntries(normalizedRoleplayThreads),
     validRoleplaySplitEntries,
   );
-  const normalizedMessengerThreads = normalizeMessengerThreads(value.data.messengerThreads);
+  const normalizedMessengerChoiceSelectionRecordIds = new Set<string>();
+  const normalizedMessengerThreads = Array.isArray(value.data.messengerThreads)
+    ? value.data.messengerThreads.flatMap((thread) => {
+        const normalized = normalizeMessengerThreadWithMetadata(thread);
+        if (!normalized) return [];
+        if (normalized.presetChoiceSelectionsChanged) {
+          normalizedMessengerChoiceSelectionRecordIds.add(normalized.thread.id);
+        }
+        return [normalized.thread];
+      })
+    : [];
   const finalMessengerThreadRecords = normalizedMessengerThreads.map(toMessengerThreadRecord);
   const normalizedMessengerMessages = normalizeOptionalList(
     value.data.messengerMessages,
@@ -461,25 +478,37 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     );
   }
 
-  const repairedRoleplayThreads = clearMissingPromptPresetIds(
+  const repairedRoleplayThreads = repairPromptPresetRelationships(
     data.roleplayThreads,
     data.promptPresets,
+    normalizedRoleplayChoiceSelectionRecordIds,
   );
-  if (repairedRoleplayThreads.clearedCount > 0) {
-    data.roleplayThreads = repairedRoleplayThreads.records;
+  data.roleplayThreads = repairedRoleplayThreads.records;
+  if (repairedRoleplayThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Roleplay threads cleared ${repairedRoleplayThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+      `Roleplay threads cleared ${repairedRoleplayThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+  if (repairedRoleplayThreads.repairedChoiceSelectionCount > 0) {
+    warnings.push(
+      `Roleplay threads pruned stale preset choice selections from ${repairedRoleplayThreads.repairedChoiceSelectionCount} thread(s).`,
     );
   }
 
-  const repairedMessengerThreads = clearMissingPromptPresetIds(
+  const repairedMessengerThreads = repairPromptPresetRelationships(
     data.messengerThreads,
     data.promptPresets,
+    normalizedMessengerChoiceSelectionRecordIds,
   );
-  if (repairedMessengerThreads.clearedCount > 0) {
-    data.messengerThreads = repairedMessengerThreads.records;
+  data.messengerThreads = repairedMessengerThreads.records;
+  if (repairedMessengerThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Messenger threads cleared ${repairedMessengerThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+      `Messenger threads cleared ${repairedMessengerThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+  if (repairedMessengerThreads.repairedChoiceSelectionCount > 0) {
+    warnings.push(
+      `Messenger threads pruned stale preset choice selections from ${repairedMessengerThreads.repairedChoiceSelectionCount} thread(s).`,
     );
   }
 

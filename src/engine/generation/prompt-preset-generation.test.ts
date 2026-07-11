@@ -401,7 +401,7 @@ describe("prompt preset generation", () => {
       }),
       presetId: "preset-1",
       presetChoiceSelections: {
-        pacing: "slow pacing",
+        "choice-pacing": { kind: "option" as const, optionId: "slow" },
       },
     };
     const context = createMessengerGenerationContext({

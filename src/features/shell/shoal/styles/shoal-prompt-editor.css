@@ -154,6 +154,13 @@
   text-transform: uppercase;
 }
 
+.preset-variables-question {
+  margin: 0;
+  color: var(--mist);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .preset-variables-empty {
   margin: 0;
   color: var(--mist-dim);
@@ -190,6 +197,67 @@
   border-color: var(--jade);
   color: var(--foam);
   outline: none;
+}
+
+.preset-variables-button-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.preset-variables-button-list button {
+  display: grid;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--reed-soft);
+  border-radius: 10px;
+  background: var(--shallow);
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.preset-variable-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.preset-variable-option-copy > span,
+.preset-variable-option-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-variable-option-copy small {
+  color: var(--mist-dim);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.preset-variables-button-list button:hover,
+.preset-variables-button-list button:focus-visible,
+.preset-variables-button-list button.selected {
+  border-color: var(--jade);
+  background: rgba(39, 179, 170, 0.12);
+  color: var(--foam);
+  outline: none;
+}
+
+.preset-variables-listbox {
+  min-height: 88px;
+  max-height: 184px;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.preset-variables-listbox option {
+  padding: 5px 7px;
+  border-radius: 6px;
 }
 
 .preset-variables-check-list {
@@ -229,9 +297,6 @@
   accent-color: var(--jade);
 }
 
-.preset-variables-check span {
+.preset-variables-check > span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

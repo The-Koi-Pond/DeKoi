@@ -6,11 +6,8 @@ import {
 } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
-import type {
-  PromptPresetChoiceSelection,
-  PromptPresetChoiceSelections,
-} from "../../contracts/types/prompt-presets";
-import { updatePromptPresetChoiceSelections } from "../../prompt-presets/prompt-preset-normalization";
+import type { PromptPresetThreadChoiceSelections } from "../../contracts/types/prompt-presets";
+import { normalizePromptPresetThreadChoiceSelections } from "../../prompt-presets/prompt-preset-normalization";
 import { cleanTextArray } from "../../shared/text";
 
 export function createMessengerThread({
@@ -172,7 +169,7 @@ export function setMessengerThreadPreset(
   thread: MessengerThread,
   presetId: string | null,
   updatedAt: string,
-  presetChoiceSelections?: PromptPresetChoiceSelections,
+  presetChoiceSelections?: PromptPresetThreadChoiceSelections,
 ): MessengerThread {
   const cleanPresetId = presetId?.trim() || null;
   if (cleanPresetId === thread.presetId && presetChoiceSelections === undefined) return thread;
@@ -185,22 +182,14 @@ export function setMessengerThreadPreset(
   };
 }
 
-export function setMessengerThreadPresetChoiceSelection(
+export function setMessengerThreadPresetChoiceSelections(
   thread: MessengerThread,
-  variableName: string,
-  selection: PromptPresetChoiceSelection,
+  selections: PromptPresetThreadChoiceSelections,
   updatedAt: string,
 ): MessengerThread {
-  const cleanVariableName = variableName.trim();
-  if (!cleanVariableName) return thread;
-
   return {
     ...thread,
-    presetChoiceSelections: updatePromptPresetChoiceSelections(
-      thread.presetChoiceSelections ?? {},
-      cleanVariableName,
-      selection,
-    ),
+    presetChoiceSelections: normalizePromptPresetThreadChoiceSelections(selections),
     updatedAt,
   };
 }

@@ -58,7 +58,7 @@ import {
 import { appStorageCollectionCount } from "./app-storage-collection-projection";
 import { getHostStorageMode, loadHostStorageMetadata } from "./storage-repository-factory";
 import { STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
-import { clearMissingPromptPresetIds } from "./prompt-preset-relationship-repair";
+import { repairPromptPresetRelationships } from "./prompt-preset-relationship-repair";
 import {
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
@@ -388,8 +388,16 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const promptPresets = shouldSeedPromptPresets
     ? [STARTER_PROMPT_PRESET]
     : promptPresetSnapshot.records;
-  const repairedRoleplayThreads = clearMissingPromptPresetIds(roleplayThreads, promptPresets);
-  const repairedMessengerThreads = clearMissingPromptPresetIds(messengerThreads, promptPresets);
+  const repairedRoleplayThreads = repairPromptPresetRelationships(
+    roleplayThreads,
+    promptPresets,
+    new Set(roleplaySnapshot.normalizationChangedRecordIds),
+  );
+  const repairedMessengerThreads = repairPromptPresetRelationships(
+    messengerThreads,
+    promptPresets,
+    new Set(messengerSnapshot.normalizationChangedRecordIds),
+  );
   const shouldInitializePromptPresetStarter =
     appSettingsCanStorePromptPresetStarterMarker &&
     promptPresetSnapshot.status === "ready" &&
@@ -411,11 +419,21 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   };
   if (shouldInitializePromptPresetStarter) addMigrationCollectionKeys("appSettings");
   if (shouldSeedPromptPresets) addMigrationCollectionKeys("promptPresets");
-  if (repairedRoleplayThreads.clearedCount > 0) addMigrationCollectionKeys("roleplayThreads");
+  if (
+    repairedRoleplayThreads.clearedPresetReferenceCount > 0 ||
+    repairedRoleplayThreads.repairedChoiceSelectionCount > 0
+  ) {
+    addMigrationCollectionKeys("roleplayThreads");
+  }
   if (roleplaySnapshot.hasLegacyEmbeddedEntries) {
     addMigrationCollectionKeys("roleplayThreads", "roleplayEntries");
   }
-  if (repairedMessengerThreads.clearedCount > 0) addMigrationCollectionKeys("messengerThreads");
+  if (
+    repairedMessengerThreads.clearedPresetReferenceCount > 0 ||
+    repairedMessengerThreads.repairedChoiceSelectionCount > 0
+  ) {
+    addMigrationCollectionKeys("messengerThreads");
+  }
   if (messengerSnapshot.hasLegacyEmbeddedMessages) {
     addMigrationCollectionKeys("messengerThreads", "messengerMessages");
   }

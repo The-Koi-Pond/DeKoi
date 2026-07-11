@@ -12,24 +12,29 @@ import {
   readStringArray,
   readTimestamp,
 } from "../storage-json";
-import { normalizePromptPresetChoiceSelections } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { createStorageRepository } from "../storage-repository-factory";
 import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
+import { normalizePromptPresetThreadChoiceSelectionsForPreset } from "../prompt-preset-relationship-repair";
 
 type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
 };
 
-type NormalizedRoleplayThread = {
+/** Roleplay thread plus normalization metadata used by load and bundle import. */
+export type NormalizedRoleplayThread = {
   thread: RoleplayThread;
   droppedRecordCount: number;
+  /** Whether native preset choice selections changed shape or were cleared. */
+  presetChoiceSelectionsChanged: boolean;
 };
 
 export type RoleplayStorageSnapshot = {
   records: RoleplayThread[];
   hasLegacyEmbeddedEntries: boolean;
   droppedRecordCount: number;
+  /** Thread IDs whose accepted choice selections changed during normalization. */
+  normalizationChangedRecordIds: string[];
   mode: StorageResult["mode"];
   status: StorageResult["status"];
   message: string;
@@ -78,7 +83,10 @@ export function normalizeRoleplayEntryRecord(
   };
 }
 
-function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRoleplayThread | null {
+/** Normalizes one Roleplay thread without discarding repair metadata. */
+export function normalizeRoleplayThreadWithMetadata(
+  value: unknown,
+): NormalizedRoleplayThread | null {
   if (!isRecord(value)) return null;
   if (value.schemaVersion !== 1) return null;
 
@@ -101,6 +109,10 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
   }
 
   const presetId = readNullableString(value.presetId);
+  const normalizedPresetChoiceSelections = normalizePromptPresetThreadChoiceSelectionsForPreset(
+    presetId,
+    value.presetChoiceSelections,
+  );
 
   return {
     thread: {
@@ -114,20 +126,15 @@ function normalizeRoleplayThreadWithDroppedCount(value: unknown): NormalizedRole
       activePersonaId: readNullableString(value.activePersonaId),
       lorebookIds: readStringArray(value.lorebookIds),
       presetId,
-      presetChoiceSelections: presetId
-        ? normalizePromptPresetChoiceSelections(value.presetChoiceSelections)
-        : {},
+      presetChoiceSelections: normalizedPresetChoiceSelections.selections,
       providerConnectionId: readNullableString(value.providerConnectionId),
       entries,
       createdAt: readTimestamp(value.createdAt, now),
       updatedAt: readTimestamp(value.updatedAt, now),
     },
     droppedRecordCount,
+    presetChoiceSelectionsChanged: normalizedPresetChoiceSelections.changed,
   };
-}
-
-export function normalizeRoleplayThread(value: unknown): RoleplayThread | null {
-  return normalizeRoleplayThreadWithDroppedCount(value)?.thread ?? null;
 }
 
 export function loadRoleplayThreads() {
@@ -137,7 +144,7 @@ export function loadRoleplayThreads() {
 function normalizeRoleplayThreadStorageRecord(
   value: unknown,
 ): StorageRecordNormalization<RoleplayThreadStorageRecord> | null {
-  const normalized = normalizeRoleplayThreadWithDroppedCount(value);
+  const normalized = normalizeRoleplayThreadWithMetadata(value);
   if (!normalized) return null;
 
   const { thread } = normalized;
@@ -145,6 +152,7 @@ function normalizeRoleplayThreadStorageRecord(
   return {
     record: thread.entries.length > 0 ? { ...record, entries: thread.entries } : record,
     droppedRecordCount: normalized.droppedRecordCount,
+    normalizationChanged: normalized.presetChoiceSelectionsChanged,
   };
 }
 

@@ -126,12 +126,23 @@ in app settings. If remote storage already has any saved collection records, or
 if desktop storage already has an empty `prompt-presets` collection, DeKoi
 records the one-time marker without adding the starter so deleting the starter
 preset is respected.
-Prompt preset `defaultChoices` and thread `presetChoiceSelections` share the
-same selection shape: a non-empty string resolved first as an option value and
-then as an option ID, an object selection such as
-`{ "kind": "option", "optionId": "tone-soft" }`, or an array of those values
-for multi-select blocks. Use the object form when an option value is empty or
-when multiple options intentionally produce the same value.
+Choice blocks carry stable block IDs, unique variable names, optional questions,
+options with stable IDs and optional descriptions, reusable defaults,
+multi-select separators, display and sort modes, optional ordering/timestamp
+metadata and preset linkage, and value-based visibility rules. Blank optional question,
+description, and separator text is omitted when the catalog saves. The catalog
+uses `variableOrder` for displayed choice order while preserving compatible
+non-choice slots in their existing positions as choices move, appear, or are
+removed.
+Prompt preset `defaultChoices` remain compatible package data keyed by variable
+name and may use option values or IDs. Native thread `presetChoiceSelections`
+are deliberately narrower: they are keyed by stable choice-block ID and store
+stable option-ID objects such as
+`{ "kind": "option", "optionId": "tone-soft" }`, or ordered arrays of those
+objects for multi-select blocks. Duplicate IDs are removed in first-seen order.
+On load, malformed selections, selections without an active preset, and unknown
+block or option IDs are pruned and the affected thread collection is queued for
+rewrite. DeKoi does not create aliases or tombstones for renamed or removed IDs.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
@@ -151,9 +162,15 @@ prompt without automatically replaying transcript history. DeKoi still appends
 the target companion single-character post-history contract until Roleplay has a
 native narrator, scene-beat, or multi-character generated-output model.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
-prompt-preset choice variable name. Choice selections resolve with preset
-`variableValues`, defaults, visibility rules, multi-select separators, and
-random-pick blocks into request-local macro variables before prompt assembly.
+stable prompt-preset choice-block ID. Choice selections resolve with preset
+`variableValues`, defaults, visibility rules, and multi-select separators into
+request-local macro variables before prompt assembly.
+Visibility rules refer to another block's variable name and allowed option
+values. The catalog requires a valid controller and at least one controller
+value, rejects dependency cycles, and allows nested acyclic chains. Settings UI
+and generation use the same recursive resolution; a hidden block ignores its
+thread override and contributes its preset default. Choice blocks never choose
+random options; use random variable macros when prompt randomness is required.
 Changing or clearing a thread's selected prompt preset clears its stored choice
 selections; re-selecting the same preset preserves them.
 
@@ -300,7 +317,8 @@ empty instead of being replaced with seed records.
 
 App-wide save orchestration in `src/app/use-app-storage-sync.ts` tracks dirty
 collections instead of fanning every save out to every collection. It debounces
-rapid state changes, schedules writes during idle time, sends one
+rapid state changes, schedules writes during idle time with a one-second deadline
+so a continuously busy page cannot postpone them indefinitely, sends one
 `storage_replace` per dirty collection, serializes collection writes, and stops
 the save batch on the first failed collection write.
 The same app-sync owner exposes an explicit flush barrier for backup, export,
@@ -567,6 +585,9 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   `systemPrompt`, and packaged `isDefault`, `author`, and `folderId` metadata
   are preserved when present. Source envelope fields do not survive on the
   native record.
+- Prune malformed or stale thread preset-choice selections during preview.
+  Preview warnings count those repaired threads separately from threads whose
+  missing imported preset reference was cleared.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and

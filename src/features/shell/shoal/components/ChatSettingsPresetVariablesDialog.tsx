@@ -1,13 +1,15 @@
 import { createPortal } from "react-dom";
 import type {
-  PromptPresetChoiceSelection,
-  PromptPresetChoiceSelections,
   PromptPresetRecord,
+  PromptPresetThreadChoiceSelection,
+  PromptPresetThreadChoiceSelections,
 } from "../../../../engine/contracts/types/prompt-presets";
 import {
   resolvePromptPresetChoiceControls,
+  updatePromptPresetChoiceSelections,
   type PromptPresetChoiceControl,
 } from "../../../../engine/prompt-presets/prompt-preset-actions";
+import { reconcileSelectedOptionIds } from "../lib/preset-choice-selection-order";
 import { ChatSettingsDropdown, type ChatSettingsDropdownOption } from "./ChatSettingsDropdown";
 
 const DEFAULT_CHOICE_OPTION_VALUE = "__dekoi-preset-default__";
@@ -15,9 +17,9 @@ const DEFAULT_CHOICE_OPTION_VALUE = "__dekoi-preset-default__";
 interface ChatSettingsPresetVariablesDialogProps {
   open: boolean;
   preset: PromptPresetRecord | null;
-  presetChoiceSelections: PromptPresetChoiceSelections;
+  presetChoiceSelections: PromptPresetThreadChoiceSelections;
   onClose: () => void;
-  onPresetChoiceChange: (variableName: string, selection: PromptPresetChoiceSelection) => void;
+  onPresetChoiceChange: (selections: PromptPresetThreadChoiceSelections) => void;
 }
 
 function defaultChoiceOptionValue(control: PromptPresetChoiceControl) {
@@ -35,6 +37,7 @@ function choiceOptions(
   return [
     { label: control.defaultLabel, value: defaultOptionValue },
     ...control.options.map((option) => ({
+      description: option.description ?? undefined,
       label: option.label,
       value: option.id,
     })),
@@ -60,6 +63,186 @@ function selectionsFromOptionIds(control: PromptPresetChoiceControl, optionIds: 
   return optionIds.flatMap((optionId) => selectionByOptionId.get(optionId) ?? []);
 }
 
+type PresetChoiceChangeHandler = (
+  blockId: string,
+  selection: PromptPresetThreadChoiceSelection | null,
+) => void;
+
+interface PresetVariableControlProps {
+  control: PromptPresetChoiceControl;
+  fieldId: string;
+  onPresetChoiceChange: PresetChoiceChangeHandler;
+}
+
+function PresetVariableOptionCopy({
+  option,
+}: {
+  option: PromptPresetChoiceControl["options"][number];
+}) {
+  return (
+    <span className="preset-variable-option-copy">
+      <span>{option.label}</span>
+      {option.description && <small>{option.description}</small>}
+    </span>
+  );
+}
+
+function PresetVariableDefaultRow({
+  control,
+  onPresetChoiceChange,
+}: Pick<PresetVariableControlProps, "control" | "onPresetChoiceChange">) {
+  return (
+    <div className="preset-variables-default-row">
+      <small>{control.defaultLabel}</small>
+      <button type="button" onClick={() => onPresetChoiceChange(control.id, null)}>
+        Use default
+      </button>
+    </div>
+  );
+}
+
+function PresetVariableButtons({
+  control,
+  fieldId,
+  onPresetChoiceChange,
+}: PresetVariableControlProps) {
+  return (
+    <>
+      <PresetVariableDefaultRow control={control} onPresetChoiceChange={onPresetChoiceChange} />
+      <div className="preset-variables-button-list" role="group" aria-labelledby={fieldId}>
+        {control.options.map((option) => {
+          const selected = control.selectedOptionIds.includes(option.id);
+          return (
+            <button
+              type="button"
+              className={selected ? "selected" : undefined}
+              aria-pressed={selected}
+              key={option.id}
+              onClick={() =>
+                onPresetChoiceChange(
+                  control.id,
+                  control.multiSelect
+                    ? selectionsFromOptionIds(
+                        control,
+                        toggleSelectedOptionId(control.selectedOptionIds, option.id),
+                      )
+                    : option.selection,
+                )
+              }
+            >
+              <PresetVariableOptionCopy option={option} />
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function PresetVariableMultiSelectListbox({
+  control,
+  fieldId,
+  onPresetChoiceChange,
+}: PresetVariableControlProps) {
+  return (
+    <>
+      <PresetVariableDefaultRow control={control} onPresetChoiceChange={onPresetChoiceChange} />
+      <select
+        multiple
+        aria-labelledby={fieldId}
+        className="pondinput preset-variables-listbox"
+        value={control.selectedOptionIds}
+        onChange={(event) =>
+          onPresetChoiceChange(
+            control.id,
+            selectionsFromOptionIds(
+              control,
+              reconcileSelectedOptionIds(
+                control.selectedOptionIds,
+                [...event.target.selectedOptions].map((option) => option.value),
+              ),
+            ),
+          )
+        }
+      >
+        {control.options.map((option) => (
+          <option value={option.id} key={option.id}>
+            {option.description ? `${option.label} — ${option.description}` : option.label}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
+function PresetVariableCheckboxes({
+  control,
+  fieldId,
+  onPresetChoiceChange,
+}: PresetVariableControlProps) {
+  return (
+    <>
+      <PresetVariableDefaultRow control={control} onPresetChoiceChange={onPresetChoiceChange} />
+      <div className="preset-variables-check-list" role="group" aria-labelledby={fieldId}>
+        {control.options.map((option) => (
+          <label className="preset-variables-check" key={option.id}>
+            <input
+              type="checkbox"
+              checked={control.selectedOptionIds.includes(option.id)}
+              onChange={() =>
+                onPresetChoiceChange(
+                  control.id,
+                  selectionsFromOptionIds(
+                    control,
+                    toggleSelectedOptionId(control.selectedOptionIds, option.id),
+                  ),
+                )
+              }
+            />
+            <PresetVariableOptionCopy option={option} />
+          </label>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function PresetVariableDropdown({
+  control,
+  fieldId,
+  onPresetChoiceChange,
+}: PresetVariableControlProps) {
+  const defaultOptionValue = defaultChoiceOptionValue(control);
+  const selectedOptionValue = control.selectedOptionIds[0] ?? defaultOptionValue;
+
+  return (
+    <ChatSettingsDropdown
+      value={selectedOptionValue}
+      labelledBy={fieldId}
+      menuId={`${fieldId}-menu`}
+      options={choiceOptions(control, defaultOptionValue)}
+      onChange={(value) =>
+        onPresetChoiceChange(
+          control.id,
+          value === defaultOptionValue
+            ? null
+            : (control.options.find((option) => option.id === value)?.selection ?? null),
+        )
+      }
+    />
+  );
+}
+
+function PresetVariableControl(props: PresetVariableControlProps) {
+  const { control } = props;
+  if (control.displayMode === "buttons") return <PresetVariableButtons {...props} />;
+  if (control.multiSelect && control.displayMode === "listbox") {
+    return <PresetVariableMultiSelectListbox {...props} />;
+  }
+  if (control.multiSelect) return <PresetVariableCheckboxes {...props} />;
+  return <PresetVariableDropdown {...props} />;
+}
+
 export function ChatSettingsPresetVariablesDialog({
   open,
   preset,
@@ -73,6 +256,11 @@ export function ChatSettingsPresetVariablesDialog({
     preset,
     selections: presetChoiceSelections,
   });
+  const handlePresetChoiceChange: PresetChoiceChangeHandler = (blockId, selection) => {
+    onPresetChoiceChange(
+      updatePromptPresetChoiceSelections(preset, presetChoiceSelections, blockId, selection),
+    );
+  };
 
   const dialog = (
     <div className="prompt-editor-backdrop" role="presentation" onClick={onClose}>
@@ -93,64 +281,17 @@ export function ChatSettingsPresetVariablesDialog({
           {choiceControls.length === 0 && <p className="preset-variables-empty">No variables</p>}
           {choiceControls.map((control) => {
             const fieldId = dialogFieldId(preset, control);
-            const defaultOptionValue = defaultChoiceOptionValue(control);
-            const selectedOptionValue = control.selectedOptionIds[0] ?? defaultOptionValue;
             return (
               <div className="preset-variables-field" key={control.id}>
                 <span id={fieldId}>{control.label}</span>
-                {control.multiSelect ? (
-                  <>
-                    <div className="preset-variables-default-row">
-                      <small>{control.defaultLabel}</small>
-                      <button
-                        type="button"
-                        onClick={() => onPresetChoiceChange(control.variableName, [])}
-                      >
-                        Use default
-                      </button>
-                    </div>
-                    <div
-                      className="preset-variables-check-list"
-                      role="group"
-                      aria-labelledby={fieldId}
-                    >
-                      {control.options.map((option) => (
-                        <label className="preset-variables-check" key={option.id}>
-                          <input
-                            type="checkbox"
-                            checked={control.selectedOptionIds.includes(option.id)}
-                            onChange={() =>
-                              onPresetChoiceChange(
-                                control.variableName,
-                                selectionsFromOptionIds(
-                                  control,
-                                  toggleSelectedOptionId(control.selectedOptionIds, option.id),
-                                ),
-                              )
-                            }
-                          />
-                          <span>{option.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <ChatSettingsDropdown
-                    value={selectedOptionValue}
-                    labelledBy={fieldId}
-                    menuId={`${fieldId}-menu`}
-                    options={choiceOptions(control, defaultOptionValue)}
-                    onChange={(value) =>
-                      onPresetChoiceChange(
-                        control.variableName,
-                        value === defaultOptionValue
-                          ? ""
-                          : (control.options.find((option) => option.id === value)?.selection ??
-                              ""),
-                      )
-                    }
-                  />
+                {control.question && (
+                  <p className="preset-variables-question">{control.question}</p>
                 )}
+                <PresetVariableControl
+                  control={control}
+                  fieldId={fieldId}
+                  onPresetChoiceChange={handlePresetChoiceChange}
+                />
               </div>
             );
           })}

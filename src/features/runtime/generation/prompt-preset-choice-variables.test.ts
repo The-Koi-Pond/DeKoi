@@ -118,7 +118,7 @@ function messengerThread(message: MessengerMessage): MessengerThread {
     lorebookIds: [],
     presetId: "preset-1",
     presetChoiceSelections: {
-      tone: "urgent",
+      "choice-tone": { kind: "option", optionId: "urgent" },
     },
     providerConnectionId: null,
     systemPromptMode: "default",
@@ -158,7 +158,7 @@ function roleplayThread(entry: RoleplayEntry): RoleplayThread {
     lorebookIds: [],
     presetId: "preset-1",
     presetChoiceSelections: {
-      tone: "urgent",
+      "choice-tone": { kind: "option", optionId: "urgent" },
     },
     providerConnectionId: null,
     entries: [entry],

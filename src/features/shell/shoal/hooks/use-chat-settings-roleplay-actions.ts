@@ -3,11 +3,11 @@ import {
   setRoleplayThreadParticipants,
   setRoleplayThreadPersona,
   setRoleplayThreadPreset,
-  setRoleplayThreadPresetChoiceSelection,
+  setRoleplayThreadPresetChoiceSelections,
   setRoleplayThreadProviderConnection,
 } from "../../../../engine/modes/roleplay/roleplay-actions";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
-import type { PromptPresetChoiceSelection } from "../../../../engine/contracts/types/prompt-presets";
+import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsIdentityActions,
   ChatSettingsThreadPresetActions,
@@ -78,12 +78,9 @@ export function useChatSettingsRoleplayActions({
     );
   }
 
-  function handleRoleplayPresetChoiceChange(
-    variableName: string,
-    selection: PromptPresetChoiceSelection,
-  ) {
+  function handleRoleplayPresetChoiceChange(selections: PromptPresetThreadChoiceSelections) {
     updateActiveRoleplayThread((thread, updatedAt) =>
-      setRoleplayThreadPresetChoiceSelection(thread, variableName, selection, updatedAt),
+      setRoleplayThreadPresetChoiceSelections(thread, selections, updatedAt),
     );
   }
 

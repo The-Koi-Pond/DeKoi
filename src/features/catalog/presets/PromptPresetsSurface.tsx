@@ -16,6 +16,7 @@ import {
   promptPresetDraftToInput,
   type PromptPresetDraftState,
 } from "./prompt-preset-draft";
+import { PromptPresetChoiceEditor } from "./PromptPresetChoiceEditor";
 import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
 import "../shared/CatalogSurface.css";
 import "./PromptPresetsSurface.css";
@@ -132,6 +133,8 @@ function PromptPresetEditor({
           </section>
 
           <PromptPresetStructureEditor draft={draft} onDraftChange={setDraft} />
+
+          <PromptPresetChoiceEditor draft={draft} onDraftChange={setDraft} />
 
           <section className="catalog-editor-section" aria-labelledby="preset-sampling-heading">
             <h4 id="preset-sampling-heading">Sampling</h4>

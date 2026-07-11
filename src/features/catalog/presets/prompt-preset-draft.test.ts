@@ -145,14 +145,16 @@ describe("prompt preset draft conversion", () => {
 
     expect(input.title).toBe("Edited Preset");
     expect(input).not.toHaveProperty("parameters");
-    expect(input).not.toHaveProperty("variableOrder");
     expect(input).not.toHaveProperty("variableGroups");
     expect(input).not.toHaveProperty("variableValues");
-    expect(input).not.toHaveProperty("defaultChoices");
-    expect(input).not.toHaveProperty("choiceBlocks");
     expect(input).not.toHaveProperty("isDefault");
     expect(input).not.toHaveProperty("author");
     expect(input).not.toHaveProperty("folderId");
+    expect(input.variableOrder).toEqual(["choice-tone"]);
+    expect(input.defaultChoices).toEqual({
+      tone: { kind: "option", optionId: "warm" },
+    });
+    expect(input.choiceBlocks).toEqual(record.choiceBlocks);
     expect(updated).toMatchObject({
       title: "Edited Preset",
       parameters: { topK: 40, temperature: 0.8 },
@@ -551,5 +553,110 @@ describe("prompt preset draft conversion", () => {
     const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
 
     expect(updated.systemPrompt).toBe(DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT);
+  });
+
+  it("preserves compatible variable-order slots while choices move or disappear", () => {
+    const record = promptPresetRecord({
+      variableOrder: [
+        "compatible-before",
+        "choice-tone",
+        "compatible-middle",
+        "choice-style",
+        "compatible-after",
+      ],
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
+        },
+        {
+          id: "choice-style",
+          variableName: "style",
+          label: "Style",
+          options: [{ id: "style-direct", label: "Direct", value: "direct" }],
+        },
+      ],
+    });
+    const draft = draftFromPromptPreset(record);
+
+    expect(
+      promptPresetDraftToInput({
+        ...draft,
+        choiceBlocks: [draft.choiceBlocks[1]!, draft.choiceBlocks[0]!],
+      }).variableOrder,
+    ).toEqual([
+      "compatible-before",
+      "choice-style",
+      "compatible-middle",
+      "choice-tone",
+      "compatible-after",
+    ]);
+    expect(
+      promptPresetDraftToInput({
+        ...draft,
+        choiceBlocks: [draft.choiceBlocks[1]!],
+      }).variableOrder,
+    ).toEqual(["compatible-before", "choice-style", "compatible-middle", "compatible-after"]);
+  });
+
+  it("preserves displayed choice order when a new choice moves between existing choices", () => {
+    const record = promptPresetRecord({
+      variableOrder: [
+        "compatible-before",
+        "choice-tone",
+        "compatible-middle",
+        "choice-style",
+        "compatible-after",
+      ],
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
+        },
+        {
+          id: "choice-style",
+          variableName: "style",
+          label: "Style",
+          options: [{ id: "style-direct", label: "Direct", value: "direct" }],
+        },
+      ],
+    });
+    const draft = draftFromPromptPreset(record);
+    const newChoice = {
+      id: "choice-format",
+      variableName: "format",
+      label: "Format",
+      options: [{ id: "format-plain", label: "Plain", value: "plain" }],
+    };
+    const input = promptPresetDraftToInput({
+      ...draft,
+      choiceBlocks: [draft.choiceBlocks[1]!, newChoice, draft.choiceBlocks[0]!],
+      defaultOptionIdsByBlockId: {
+        ...draft.defaultOptionIdsByBlockId,
+        [newChoice.id]: [newChoice.options[0]!.id],
+      },
+    });
+
+    expect(input.variableOrder).toEqual([
+      "compatible-before",
+      "choice-style",
+      "compatible-middle",
+      "choice-format",
+      "choice-tone",
+      "compatible-after",
+    ]);
+
+    const reopened = draftFromPromptPreset(
+      updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z"),
+    );
+    expect(reopened.choiceBlocks.map((block) => block.id)).toEqual([
+      "choice-style",
+      "choice-format",
+      "choice-tone",
+    ]);
   });
 });

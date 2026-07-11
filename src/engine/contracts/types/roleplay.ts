@@ -1,4 +1,4 @@
-import type { PromptPresetChoiceSelections } from "./prompt-presets";
+import type { PromptPresetThreadChoiceSelections } from "./prompt-presets";
 
 type RoleplayThreadKind = "roleplay";
 type RoleplayThreadMode = "scene";
@@ -30,7 +30,7 @@ export interface RoleplayThread {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetChoiceSelections;
+  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
   providerConnectionId: string | null;
   entries: RoleplayEntry[];
   createdAt: string;

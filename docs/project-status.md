@@ -42,12 +42,16 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   state, wrapping, and depth placement, with create, edit, duplicate, and delete
   actions, plus an editable starter preset. Native prompt preset records also
   normalize richer parameters, choice blocks, static variable values, and
-  defaults for compatible import; the catalog edit flow preserves those
-  advanced compatible fields even where dedicated definition editors are not
-  exposed yet. Roleplay generation consumes section/group assembly when present,
-  and Roleplay thread settings can edit selected preset choice values through a
-  Preset Variables popup without changing the preset catalog record. Messenger
-  keeps the Messenger Prompt Source/system prompt path.
+  defaults for compatible import. The catalog edits choice-block definitions,
+  options, defaults, presentation settings, and conditional visibility while
+  preserving other advanced compatible fields that do not have dedicated
+  controls yet. Roleplay generation consumes section/group assembly when
+  present. Both Messenger and Roleplay generation consume stable-ID choice
+  values, while Roleplay thread settings can edit them through a Preset Variables
+  popup without changing the preset catalog record. Questions and option
+  descriptions remain visible across the supported dropdown, checkbox, button,
+  and list presentations. Messenger keeps the Messenger Prompt Source/system
+  prompt path.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
@@ -123,11 +127,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   scene-specific semantics, media, and visual-novel presentation remain early.
 - Lorebook triggers and character filters are normalized and stored, but
   activation behavior and advanced UI for those fields are not implemented yet.
-- Prompt preset choice-block definition editing is not implemented yet. The
-  Roleplay Preset Variables popup only selects values for existing choice
-  blocks, while the Presets catalog preserves compatible choice blocks, static
-  variables, default choices, richer parameters, and metadata during ordinary
-  prompt preset edits.
+- Prompt preset advanced compatible parameters, static variable values, and
+  metadata do not all have dedicated catalog controls yet. Choice-block
+  definitions and their reusable defaults are editable in the Presets catalog;
+  the Roleplay Preset Variables popup selects thread-specific values. Messenger
+  also consumes stable-ID thread choice values when they are present.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.
