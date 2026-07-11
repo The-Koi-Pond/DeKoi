@@ -94,6 +94,7 @@ const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
   "Reload blocked because DeKoi still has unsaved storage changes. Wait for saving to finish before reloading.";
 const STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE =
   "Reload will discard local changes that have not been saved yet. Select Reload records again to confirm.";
+const STORAGE_SAVE_IDLE_TIMEOUT_MS = 1_000;
 const APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS = [
   ["roleplayThreads", "roleplayEntries"],
   ["messengerThreads", "messengerMessages"],
@@ -1890,17 +1891,20 @@ export function useAppStorageSync({
     let idleHandle: IdleHandle | undefined;
 
     const timer = setTimeout(() => {
-      idleHandle = requestIdle(() => {
-        queuedSaveIdleHandle.current = null;
-        enqueueAppStorageCollectionSaves({
-          snapshot,
-          collectionKeys: saveableDirtyCollectionKeys,
-          rawUrl: remoteRuntimeUrl,
-          generation: storageGeneration.current,
-          signatures: nextSignatures,
-        });
-        drainSaveQueue();
-      });
+      idleHandle = requestIdle(
+        () => {
+          queuedSaveIdleHandle.current = null;
+          enqueueAppStorageCollectionSaves({
+            snapshot,
+            collectionKeys: saveableDirtyCollectionKeys,
+            rawUrl: remoteRuntimeUrl,
+            generation: storageGeneration.current,
+            signatures: nextSignatures,
+          });
+          drainSaveQueue();
+        },
+        { timeout: STORAGE_SAVE_IDLE_TIMEOUT_MS },
+      );
       queuedSaveTimer.current = null;
       queuedSaveIdleHandle.current = idleHandle;
     }, 150);

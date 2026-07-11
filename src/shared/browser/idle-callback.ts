@@ -2,7 +2,7 @@
 export type IdleHandle = number;
 
 type WindowWithIdleCallbacks = Window & {
-  requestIdleCallback?: (cb: () => void) => number;
+  requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
   cancelIdleCallback?: (handle: number) => void;
 };
 
@@ -10,10 +10,10 @@ function browserWindow(): WindowWithIdleCallbacks | null {
   return typeof window === "undefined" ? null : window;
 }
 
-export function requestIdle(cb: () => void): IdleHandle {
+export function requestIdle(cb: () => void, options?: { timeout: number }): IdleHandle {
   const currentWindow = browserWindow();
   if (currentWindow?.requestIdleCallback) {
-    return currentWindow.requestIdleCallback(cb);
+    return currentWindow.requestIdleCallback(cb, options);
   }
 
   return globalThis.setTimeout(cb, 1) as unknown as IdleHandle;
