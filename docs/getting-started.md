@@ -153,12 +153,13 @@ Focused checks for narrow changes are mapped to change types in
   visibility cycles. Compatible data may carry static variables, richer
   parameters, and metadata that the catalog preserves even when those fields do
   not have visible editors yet. Roleplay generation consumes saved section/group
-  structure when present. In Messenger or Roleplay settings, Prompt Preset >
-  Edit opens Preset Variables for the selected preset; New remains the secondary
-  action for creating another preset. Questions and option descriptions appear
-  with the choices. Ordered multi-select choices and nested visibility feed
-  request-local prompt variables during generation, and using the preset default
-  removes the thread override.
+  structure when present. Both Messenger and Roleplay generation consume stored
+  stable-ID choices. In Roleplay settings, Prompt Preset > Edit opens Preset
+  Variables for the selected preset; New remains the secondary action for
+  creating another preset. Questions and option descriptions appear with the
+  choices. Ordered multi-select choices and nested visibility feed request-local
+  prompt variables during generation, and using the preset default removes the
+  thread override.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

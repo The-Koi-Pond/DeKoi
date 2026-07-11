@@ -304,8 +304,9 @@ Current implementation:
   are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
   Thread selections use stable choice-block and option IDs; loading prunes IDs
   that are no longer valid for the selected preset.
-- Messenger and Roleplay thread settings can choose values for the selected
-  preset's choice blocks without editing the reusable preset record. Questions
+- Both Messenger and Roleplay consume stored stable-ID choices during
+  generation. Roleplay thread settings currently expose Preset Variables for
+  editing those choices without changing the reusable preset record. Questions
   and option descriptions remain visible there, and nested acyclic visibility
   resolves the same way in settings and generation. Switching to another preset
   clears those thread-level choices.

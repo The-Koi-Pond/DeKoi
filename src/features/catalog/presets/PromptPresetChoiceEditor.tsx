@@ -467,7 +467,8 @@ export function PromptPresetChoiceEditor({ draft, onDraftChange }: PromptPresetC
         <div>
           <h4 id="preset-choices-heading">Choice Definitions</h4>
           <p className="catalog-field-hint">
-            Reusable choices become variables in Roleplay prompts and appear in thread settings.
+            Reusable stable-ID choices feed Messenger and Roleplay prompts; thread values are
+            currently editable in Roleplay's Preset Variables popup.
           </p>
         </div>
         <button
