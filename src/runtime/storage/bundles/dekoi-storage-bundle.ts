@@ -38,7 +38,7 @@ import { normalizeMessengerMessageRecord } from "../collections/messenger-storag
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
-import { clearMissingPromptPresetIds } from "../prompt-preset-relationship-repair";
+import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
 import { normalizePromptPresetImportRecord } from "../prompt-preset-import";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
@@ -461,25 +461,35 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     );
   }
 
-  const repairedRoleplayThreads = clearMissingPromptPresetIds(
+  const repairedRoleplayThreads = repairPromptPresetRelationships(
     data.roleplayThreads,
     data.promptPresets,
   );
-  if (repairedRoleplayThreads.clearedCount > 0) {
-    data.roleplayThreads = repairedRoleplayThreads.records;
+  data.roleplayThreads = repairedRoleplayThreads.records;
+  if (repairedRoleplayThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Roleplay threads cleared ${repairedRoleplayThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+      `Roleplay threads cleared ${repairedRoleplayThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+  if (repairedRoleplayThreads.repairedChoiceSelectionCount > 0) {
+    warnings.push(
+      `Roleplay threads pruned stale preset choice selections from ${repairedRoleplayThreads.repairedChoiceSelectionCount} thread(s).`,
     );
   }
 
-  const repairedMessengerThreads = clearMissingPromptPresetIds(
+  const repairedMessengerThreads = repairPromptPresetRelationships(
     data.messengerThreads,
     data.promptPresets,
   );
-  if (repairedMessengerThreads.clearedCount > 0) {
-    data.messengerThreads = repairedMessengerThreads.records;
+  data.messengerThreads = repairedMessengerThreads.records;
+  if (repairedMessengerThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Messenger threads cleared ${repairedMessengerThreads.clearedCount} preset reference(s) without an imported prompt preset.`,
+      `Messenger threads cleared ${repairedMessengerThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+    );
+  }
+  if (repairedMessengerThreads.repairedChoiceSelectionCount > 0) {
+    warnings.push(
+      `Messenger threads pruned stale preset choice selections from ${repairedMessengerThreads.repairedChoiceSelectionCount} thread(s).`,
     );
   }
 

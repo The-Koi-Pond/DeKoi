@@ -729,40 +729,6 @@ describe("normalizePromptPresetRecord", () => {
       "choice-tone": { kind: "option", optionId: "soft" },
     });
   });
-
-  it("randomizes unselected randomPick choices before default fallback", () => {
-    const record = normalizePromptPresetRecord({
-      id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tone}}.",
-      choiceBlocks: [
-        {
-          id: "choice-tone",
-          variableName: "tone",
-          label: "Tone",
-          defaultOptionId: "calm",
-          randomPick: true,
-          options: [
-            { id: "calm", label: "Calm", value: "calm" },
-            { id: "bright", label: "Bright", value: "bright" },
-            { id: "sharp", label: "Sharp", value: "sharp" },
-          ],
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    });
-    const random = vi.spyOn(Math, "random").mockReturnValue(0.8);
-
-    expect(
-      resolvePromptPresetChoiceVariables({
-        preset: record,
-        selections: {},
-      }).variables,
-    ).toEqual({ tone: "sharp" });
-    random.mockRestore();
-  });
 });
 
 describe("updatePromptPresetRecord", () => {
@@ -941,17 +907,6 @@ describe("native thread prompt preset choices", () => {
               { id: "tag-brief", label: "Brief", value: "brief" },
             ],
           },
-          {
-            id: "choice-random",
-            variableName: "random",
-            label: "Random",
-            multiSelect: true,
-            randomPick: true,
-            options: [
-              { id: "random-first", label: "First", value: "first" },
-              { id: "random-second", label: "Second", value: "second" },
-            ],
-          },
         ],
       },
     });
@@ -967,10 +922,6 @@ describe("native thread prompt preset choices", () => {
         { kind: "option", optionId: "tag-vivid" },
       ],
       "choice-unknown": { kind: "option", optionId: "unknown" },
-      "choice-random": [
-        { kind: "option", optionId: "random-second" },
-        { kind: "option", optionId: "random-first" },
-      ],
       tone: "legacy-value",
     });
 
@@ -980,7 +931,6 @@ describe("native thread prompt preset choices", () => {
         { kind: "option", optionId: "tag-brief" },
         { kind: "option", optionId: "tag-vivid" },
       ],
-      "choice-random": { kind: "option", optionId: "random-second" },
     });
   });
 });

@@ -334,10 +334,9 @@ function ChoiceBlockCard({
                   type={block.multiSelect ? "checkbox" : "radio"}
                   name={`preset-choice-default-${block.id}`}
                   checked={isDefault}
-                  disabled={block.randomPick === true}
                   onChange={(event) => onSetDefault(block.id, option.id, event.target.checked)}
                 />
-                <span>{block.randomPick ? "Random default enabled" : "Preset default"}</span>
+                <span>Preset default</span>
               </label>
             </div>
           );
@@ -355,7 +354,6 @@ function ChoiceBlockCard({
             <input
               type="checkbox"
               checked={block.multiSelect === true}
-              disabled={block.randomPick === true}
               onChange={(event) =>
                 onUpdate(block.id, (currentBlock) => ({
                   ...currentBlock,
@@ -364,20 +362,6 @@ function ChoiceBlockCard({
               }
             />
             <span>Allow multiple selections</span>
-          </label>
-          <label className="catalog-checkbox-control">
-            <input
-              type="checkbox"
-              checked={block.randomPick === true}
-              onChange={(event) =>
-                onUpdate(block.id, (currentBlock) => ({
-                  ...currentBlock,
-                  randomPick: event.target.checked,
-                  multiSelect: event.target.checked ? false : currentBlock.multiSelect,
-                }))
-              }
-            />
-            <span>Choose a random option by default</span>
           </label>
           <div className="catalog-editor-field">
             <label htmlFor={`preset-choice-display-${block.id}`}>Display</label>
@@ -414,7 +398,7 @@ function ChoiceBlockCard({
               <option value="alphabetical">Alphabetical</option>
             </select>
           </div>
-          {block.multiSelect && !block.randomPick && (
+          {block.multiSelect && (
             <div className="catalog-editor-field">
               <label htmlFor={`preset-choice-separator-${block.id}`}>Separator</label>
               <input

@@ -47,7 +47,6 @@ export interface PromptPresetChoiceBlock {
   defaultOptionId?: string | null;
   multiSelect?: boolean;
   separator?: string | null;
-  randomPick?: boolean;
   displayMode?: "auto" | "buttons" | "listbox" | null;
   optionSort?: "manual" | "alphabetical" | null;
   sortOrder?: number | null;

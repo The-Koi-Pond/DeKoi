@@ -152,8 +152,8 @@ the target companion single-character post-history contract until Roleplay has a
 native narrator, scene-beat, or multi-character generated-output model.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 stable prompt-preset choice-block ID. Choice selections resolve with preset
-`variableValues`, defaults, visibility rules, multi-select separators, and
-random-pick blocks into request-local macro variables before prompt assembly.
+`variableValues`, defaults, visibility rules, and multi-select separators into
+request-local macro variables before prompt assembly.
 Changing or clearing a thread's selected prompt preset clears its stored choice
 selections; re-selecting the same preset preserves them.
 

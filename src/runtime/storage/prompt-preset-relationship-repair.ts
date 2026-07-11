@@ -9,12 +9,17 @@ type RecordWithPromptPreset = {
   presetChoiceSelections?: PromptPresetThreadChoiceSelections;
 };
 
-export function clearMissingPromptPresetIds<T extends RecordWithPromptPreset>(
+export function repairPromptPresetRelationships<T extends RecordWithPromptPreset>(
   records: readonly T[],
   promptPresets: readonly PromptPresetRecord[],
-): { records: T[]; clearedCount: number } {
+): {
+  records: T[];
+  clearedPresetReferenceCount: number;
+  repairedChoiceSelectionCount: number;
+} {
   const promptPresetsById = new Map(promptPresets.map((preset) => [preset.id, preset] as const));
-  let clearedCount = 0;
+  let clearedPresetReferenceCount = 0;
+  let repairedChoiceSelectionCount = 0;
 
   const repairedRecords = records.map((record) => {
     if (!record.presetId) return record;
@@ -27,11 +32,11 @@ export function clearMissingPromptPresetIds<T extends RecordWithPromptPreset>(
       if (JSON.stringify(selections) === JSON.stringify(record.presetChoiceSelections ?? {})) {
         return record;
       }
-      clearedCount += 1;
+      repairedChoiceSelectionCount += 1;
       return { ...record, presetChoiceSelections: selections };
     }
 
-    clearedCount += 1;
+    clearedPresetReferenceCount += 1;
     return {
       ...record,
       presetId: null,
@@ -41,6 +46,7 @@ export function clearMissingPromptPresetIds<T extends RecordWithPromptPreset>(
 
   return {
     records: repairedRecords,
-    clearedCount,
+    clearedPresetReferenceCount,
+    repairedChoiceSelectionCount,
   };
 }

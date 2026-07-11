@@ -10,6 +10,7 @@ import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settin
 import { createMessengerThread } from "../../../engine/modes/messenger/messenger-actions";
 import { createRoleplayThread } from "../../../engine/modes/roleplay/roleplay-actions";
 import { createPersonaRecord } from "../../../engine/catalog/persona-actions";
+import { createPromptPresetRecord } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 
 const now = "2026-06-24T07:00:00.000Z";
@@ -226,7 +227,6 @@ describe("normalizeDeKoiStorageBundle", () => {
                   ],
                   multiSelect: false,
                   separator: ", ",
-                  randomPick: false,
                   sortOrder: 10,
                   createdAt: now,
                 },
@@ -268,7 +268,6 @@ describe("normalizeDeKoiStorageBundle", () => {
                   ]),
                   multiSelect: "true",
                   separator: " / ",
-                  randomPick: "false",
                   displayMode: "listbox",
                   optionSort: "manual",
                   createdAt: now,
@@ -421,6 +420,70 @@ describe("normalizeDeKoiStorageBundle", () => {
     );
     expect(result.preview.warnings).toContain(
       "Roleplay threads cleared 1 preset reference(s) without an imported prompt preset.",
+    );
+  });
+
+  it("reports stale choice pruning separately from missing preset references", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-with-choices",
+      now,
+      input: {
+        title: "Preset with choices",
+        systemPrompt: "Use {{tone}}.",
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    });
+    const thread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-stale-choice",
+        now,
+        title: "Stale choice",
+      }),
+      presetId: preset.id,
+      presetChoiceSelections: {
+        "choice-tone": { kind: "option" as const, optionId: "tone-removed" },
+      },
+    };
+    const result = normalizeDeKoiStorageBundle({
+      kind: DEKOI_STORAGE_BUNDLE_KIND,
+      schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,
+      exportedAt: now,
+      data: {
+        appSettings: {},
+        characters: [],
+        roleplayThreads: [],
+        roleplayEntries: [],
+        personas: [],
+        lorebooks: [],
+        promptPresets: [preset],
+        loreRuntimeStates: [],
+        macroVariableStates: [],
+        providerConnections: [],
+        messengerThreads: [thread],
+        messengerMessages: [],
+        rippleStates: [],
+      },
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    expect(result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(result.preview.warnings).toContain(
+      "Messenger threads pruned stale preset choice selections from 1 thread(s).",
+    );
+    expect(result.preview.warnings).not.toContain(
+      "Messenger threads cleared 1 preset reference(s) without an imported prompt preset.",
     );
   });
 

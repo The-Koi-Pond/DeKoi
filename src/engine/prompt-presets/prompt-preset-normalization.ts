@@ -376,9 +376,6 @@ export function normalizePromptPresetChoiceBlocks(
       block.multiSelect = readBooleanLike(item.multiSelect, false);
     }
     if (separator !== null) block.separator = separator;
-    if (typeof item.randomPick === "boolean" || typeof item.randomPick === "string") {
-      block.randomPick = readBooleanLike(item.randomPick, false);
-    }
     if (displayMode !== null) block.displayMode = displayMode;
     if (optionSort !== null) block.optionSort = optionSort;
     if (sortOrder !== null) block.sortOrder = sortOrder;
@@ -474,10 +471,7 @@ export function prunePromptPresetThreadChoiceSelections(
     );
     if (validSelections.length === 0) continue;
 
-    pruned[block.id] =
-      block.multiSelect === true && block.randomPick !== true
-        ? validSelections
-        : validSelections[0]!;
+    pruned[block.id] = block.multiSelect === true ? validSelections : validSelections[0]!;
   }
 
   return pruned;
@@ -581,10 +575,6 @@ function choiceSelectionOptionIds(
   return choiceSelectionOptions(block, selection).map((option) => option.id);
 }
 
-function choiceOptionValues(block: PromptPresetChoiceBlock) {
-  return block.options.map((option) => option.value);
-}
-
 function defaultChoiceSelection(
   preset: PromptPresetRecord,
   block: PromptPresetChoiceBlock,
@@ -599,17 +589,13 @@ function resolvePromptPresetChoiceValues({
   block,
   preset,
   selection,
-  useRandomOptions = false,
 }: {
   block: PromptPresetChoiceBlock;
   preset: PromptPresetRecord;
   selection: PromptPresetChoiceSelection | null | undefined;
-  useRandomOptions?: boolean;
 }) {
   const selectedValues = choiceSelectionValues(block, selection);
   if (selectedValues.length > 0) return selectedValues;
-
-  if (useRandomOptions) return choiceOptionValues(block);
 
   const defaultValues = choiceSelectionValues(block, defaultChoiceSelection(preset, block));
   return defaultValues.length > 0
@@ -620,8 +606,6 @@ function resolvePromptPresetChoiceValues({
 }
 
 function defaultChoiceLabel(preset: PromptPresetRecord, block: PromptPresetChoiceBlock) {
-  if (block.randomPick) return "Preset default: random";
-
   const labels = choiceSelectionOptions(block, defaultChoiceSelection(preset, block)).map(
     (option) => option.label,
   );
@@ -680,7 +664,7 @@ export function resolvePromptPresetChoiceControls({
         id: block.id,
         variableName: block.variableName,
         label: block.label,
-        multiSelect: block.multiSelect === true && block.randomPick !== true,
+        multiSelect: block.multiSelect === true,
         displayMode: block.displayMode ?? "auto",
         defaultLabel: defaultChoiceLabel(preset, block),
         selectedOptionIds: choiceSelectionOptionIds(block, normalizedSelections[block.id]),
@@ -924,16 +908,12 @@ export function resolvePromptPresetChoiceVariables({
       block,
       preset,
       selection: visible && hasSelection ? normalizedSelections[block.id] : null,
-      useRandomOptions: visible && block.randomPick === true && !hasSelection,
     });
     if (selectedValues.length === 0) continue;
 
-    variables[block.variableName] =
-      block.multiSelect && !block.randomPick
-        ? selectedValues.join(block.separator ?? ", ")
-        : ((block.randomPick
-            ? selectedValues[Math.floor(Math.random() * selectedValues.length)]
-            : selectedValues[0]) ?? "");
+    variables[block.variableName] = block.multiSelect
+      ? selectedValues.join(block.separator ?? ", ")
+      : (selectedValues[0] ?? "");
     variableNames.push(block.variableName);
   }
 
