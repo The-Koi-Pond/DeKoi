@@ -47,6 +47,7 @@ function choiceSelectionsMatch(
   );
 }
 
+/** Clears orphaned selections while retaining normalization-change metadata. */
 export function normalizePromptPresetThreadChoiceSelectionsForPreset(
   presetId: string | null,
   value: unknown,
@@ -63,6 +64,7 @@ export function normalizePromptPresetThreadChoiceSelectionsForPreset(
   };
 }
 
+/** Separately counts missing-preset repairs and stale choice-selection repairs. */
 export function repairPromptPresetRelationships<T extends RecordWithPromptPreset>(
   records: readonly T[],
   promptPresets: readonly PromptPresetRecord[],

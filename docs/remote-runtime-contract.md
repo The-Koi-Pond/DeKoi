@@ -550,7 +550,9 @@ an ordered array of those objects for multi-select blocks. DeKoi prunes unknown
 block and option IDs when loading a thread. Prompt preset `defaultChoices`
 separately retain the compatible package shape keyed by variable name, including
 string values. Runtimes should round-trip native thread option objects so empty
-or duplicate option values keep their option identity. DeKoi assembles thread
+or duplicate option values keep their option identity. Native loading does not
+create aliases or tombstones for removed IDs; repaired thread rows are written
+back through the normal collection path. DeKoi assembles thread
 records with their transcript items before rendering or generating. Legacy
 embedded `messages` or `entries` may still be accepted on load or bundle
 import, but normal writes use the split collections.
@@ -583,6 +585,14 @@ marker when present, or to the sectioned prompt message stream when it is
 absent. If a sectioned preset materializes no messages after filtering,
 Roleplay falls back to `systemPrompt` without automatically including
 transcript history.
+Choice blocks contain stable IDs and variable names, optional questions,
+stable-ID options with optional descriptions, reusable defaults, multi-select
+and separator settings, `auto`/`buttons`/`listbox` display modes,
+manual/alphabetical option ordering, optional ordering/timestamp metadata and
+preset linkage, and value-based visibility rules. Runtimes must round-trip those fields and all
+`variableOrder` entries; the catalog preserves compatibility-only order slots
+while reordering choice-block slots. Choice evaluation is deterministic and does
+not support `randomPick`.
 Remote runtimes should expose native prompt preset records in storage; packaged
 preset envelopes are only normalized by DeKoi bundle import.
 

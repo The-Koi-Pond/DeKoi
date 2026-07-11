@@ -41,6 +41,7 @@ export type StorageRecordNormalization<T extends StorageRecord> = {
   record: T | null;
   /** Additional rejected records represented by this raw value. */
   droppedRecordCount?: number;
+  /** The accepted record changed shape and should be rewritten by its owner. */
   normalizationChanged?: boolean;
 };
 
@@ -97,6 +98,7 @@ export type StorageRecordsSnapshot<T extends StorageRecord> = {
    * warning so the loss is not silent (mirrors the corrupt-file philosophy).
    */
   droppedRecordCount: number;
+  /** IDs accepted with normalized changes so app orchestration can rewrite them. */
   normalizationChangedRecordIds: string[];
 } & StorageResult;
 

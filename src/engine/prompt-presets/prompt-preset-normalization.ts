@@ -440,6 +440,7 @@ function normalizeThreadChoiceSelection(value: unknown): PromptPresetThreadChoic
   return selections.length > 0 ? selections : null;
 }
 
+/** Normalizes the native block-ID/option-ID thread selection shape. */
 export function normalizePromptPresetThreadChoiceSelections(
   value: unknown,
 ): PromptPresetThreadChoiceSelections {
@@ -479,6 +480,7 @@ function threadChoiceSelectionsMatchSource(
   );
 }
 
+/** Also reports whether normalization changed the supplied durable value. */
 export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unknown): {
   selections: PromptPresetThreadChoiceSelections;
   changed: boolean;
@@ -500,6 +502,7 @@ export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unk
   };
 }
 
+/** Removes selections that do not resolve to a block and option in the preset. */
 export function prunePromptPresetThreadChoiceSelections(
   preset: PromptPresetRecord,
   value: unknown,
@@ -530,6 +533,7 @@ interface PromptPresetChoiceControlOption {
   description?: string | null;
 }
 
+/** UI-ready projection shared by Messenger and Roleplay thread settings. */
 export interface PromptPresetChoiceControl {
   id: string;
   variableName: string;
@@ -762,6 +766,7 @@ export function resolvePromptPresetChoiceControls({
   });
 }
 
+/** Updates one block selection, then re-prunes the complete native selection map. */
 export function updatePromptPresetChoiceSelections(
   preset: PromptPresetRecord,
   selections: PromptPresetThreadChoiceSelections,

@@ -21,9 +21,11 @@ type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
 };
 
+/** Roleplay thread plus normalization metadata used by load and bundle import. */
 export type NormalizedRoleplayThread = {
   thread: RoleplayThread;
   droppedRecordCount: number;
+  /** Whether native preset choice selections changed shape or were cleared. */
   presetChoiceSelectionsChanged: boolean;
 };
 
@@ -31,6 +33,7 @@ export type RoleplayStorageSnapshot = {
   records: RoleplayThread[];
   hasLegacyEmbeddedEntries: boolean;
   droppedRecordCount: number;
+  /** Thread IDs whose accepted choice selections changed during normalization. */
   normalizationChangedRecordIds: string[];
   mode: StorageResult["mode"];
   status: StorageResult["status"];
@@ -80,6 +83,7 @@ export function normalizeRoleplayEntryRecord(
   };
 }
 
+/** Normalizes one Roleplay thread without discarding repair metadata. */
 export function normalizeRoleplayThreadWithMetadata(
   value: unknown,
 ): NormalizedRoleplayThread | null {

@@ -71,8 +71,10 @@ export type PromptPresetChoiceSelectionValue = string | PromptPresetChoiceOption
 export type PromptPresetChoiceSelection =
   PromptPresetChoiceSelectionValue | PromptPresetChoiceSelectionValue[];
 export type PromptPresetChoiceSelections = Record<string, PromptPresetChoiceSelection>;
+/** Native thread selections use stable option IDs; arrays preserve multi-select order. */
 export type PromptPresetThreadChoiceSelection =
   PromptPresetChoiceOptionSelection | PromptPresetChoiceOptionSelection[];
+/** Maps stable choice-block IDs to native thread selections. */
 export type PromptPresetThreadChoiceSelections = Record<string, PromptPresetThreadChoiceSelection>;
 
 export type PromptPresetSectionRole = "system" | "user" | "assistant";

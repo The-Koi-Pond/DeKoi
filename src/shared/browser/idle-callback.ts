@@ -10,6 +10,7 @@ function browserWindow(): WindowWithIdleCallbacks | null {
   return typeof window === "undefined" ? null : window;
 }
 
+/** Schedules idle work and forwards an optional browser deadline; non-browser runtimes use a timer. */
 export function requestIdle(cb: () => void, options?: { timeout: number }): IdleHandle {
   const currentWindow = browserWindow();
   if (currentWindow?.requestIdleCallback) {

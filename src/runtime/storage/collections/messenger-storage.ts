@@ -25,6 +25,7 @@ export type MessengerStorageSnapshot = {
   threads: MessengerThread[];
   hasLegacyEmbeddedMessages: boolean;
   droppedRecordCount: number;
+  /** Thread IDs whose accepted choice selections changed during normalization. */
   normalizationChangedRecordIds: string[];
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
@@ -35,9 +36,11 @@ type MessengerThreadStorageRecord = MessengerThreadRecord & {
   messages?: MessengerMessage[];
 };
 
+/** Messenger thread plus normalization metadata used by load and bundle import. */
 export type NormalizedMessengerThread = {
   thread: MessengerThread;
   droppedRecordCount: number;
+  /** Whether native preset choice selections changed shape or were cleared. */
   presetChoiceSelectionsChanged: boolean;
 };
 
@@ -82,6 +85,7 @@ export function normalizeMessengerMessageRecord(
   } as MessengerMessage;
 }
 
+/** Normalizes one Messenger thread without discarding repair metadata. */
 export function normalizeMessengerThreadWithMetadata(
   value: unknown,
 ): NormalizedMessengerThread | null {
