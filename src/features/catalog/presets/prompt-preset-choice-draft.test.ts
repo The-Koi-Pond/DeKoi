@@ -476,4 +476,65 @@ describe("prompt preset choice drafts", () => {
       "visibility-controller-missing",
     ]);
   });
+
+  it("rejects visibility dependency cycles while allowing arbitrary acyclic chains", () => {
+    const acyclicDraft = {
+      choiceBlocks: [
+        {
+          id: "choice-a",
+          variableName: "a",
+          label: "A",
+          options: [{ id: "a-on", label: "On", value: "on" }],
+          visibilityRule: { variableName: "b", values: ["on"] },
+        },
+        {
+          id: "choice-b",
+          variableName: "b",
+          label: "B",
+          options: [{ id: "b-on", label: "On", value: "on" }],
+          visibilityRule: { variableName: "c", values: ["on"] },
+        },
+        {
+          id: "choice-c",
+          variableName: "c",
+          label: "C",
+          options: [{ id: "c-on", label: "On", value: "on" }],
+        },
+      ],
+      defaultOptionIdsByBlockId: {},
+      visibilityControllerIdsByBlockId: {
+        "choice-a": "choice-b",
+        "choice-b": "choice-c",
+      },
+    };
+
+    expect(
+      validatePromptPresetChoiceDraft(acyclicDraft).filter(
+        (issue) => issue.code === "visibility-cycle",
+      ),
+    ).toEqual([]);
+
+    const cyclicDraft = {
+      ...acyclicDraft,
+      choiceBlocks: acyclicDraft.choiceBlocks.map((block) =>
+        block.id === "choice-c"
+          ? { ...block, visibilityRule: { variableName: "a", values: ["on"] } }
+          : block,
+      ),
+      visibilityControllerIdsByBlockId: {
+        ...acyclicDraft.visibilityControllerIdsByBlockId,
+        "choice-c": "choice-a",
+      },
+    };
+
+    expect(
+      validatePromptPresetChoiceDraft(cyclicDraft)
+        .filter((issue) => issue.code === "visibility-cycle")
+        .map((issue) => [issue.blockId, issue.message]),
+    ).toEqual([
+      ["choice-a", "Visibility choices cannot depend on each other in a cycle."],
+      ["choice-b", "Visibility choices cannot depend on each other in a cycle."],
+      ["choice-c", "Visibility choices cannot depend on each other in a cycle."],
+    ]);
+  });
 });

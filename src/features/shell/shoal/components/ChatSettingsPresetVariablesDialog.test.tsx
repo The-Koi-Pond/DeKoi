@@ -55,6 +55,7 @@ describe("ChatSettingsPresetVariablesDialog", () => {
         id: "choice-tone",
         variableName: "tone",
         label: "Tone",
+        question: "How should the reply feel?",
         displayMode: "buttons",
         optionSort: "alphabetical",
         options: [
@@ -65,6 +66,8 @@ describe("ChatSettingsPresetVariablesDialog", () => {
     );
 
     expect(markup).toContain('class="preset-variables-button-list"');
+    expect(markup).toContain('id="preset-variable-preset-1-choice-tone">Tone</span>');
+    expect(markup).toContain('<p class="preset-variables-question">How should the reply feel?</p>');
     expect(markup).toContain('aria-pressed="false"');
     expect(markup.indexOf(">alpha</button>")).toBeLessThan(markup.indexOf(">Zebra</button>"));
   });

@@ -598,6 +598,65 @@ describe("prompt preset draft conversion", () => {
         ...draft,
         choiceBlocks: [draft.choiceBlocks[1]!],
       }).variableOrder,
-    ).toEqual(["compatible-before", "compatible-middle", "choice-style", "compatible-after"]);
+    ).toEqual(["compatible-before", "choice-style", "compatible-middle", "compatible-after"]);
+  });
+
+  it("preserves displayed choice order when a new choice moves between existing choices", () => {
+    const record = promptPresetRecord({
+      variableOrder: [
+        "compatible-before",
+        "choice-tone",
+        "compatible-middle",
+        "choice-style",
+        "compatible-after",
+      ],
+      choiceBlocks: [
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
+        },
+        {
+          id: "choice-style",
+          variableName: "style",
+          label: "Style",
+          options: [{ id: "style-direct", label: "Direct", value: "direct" }],
+        },
+      ],
+    });
+    const draft = draftFromPromptPreset(record);
+    const newChoice = {
+      id: "choice-format",
+      variableName: "format",
+      label: "Format",
+      options: [{ id: "format-plain", label: "Plain", value: "plain" }],
+    };
+    const input = promptPresetDraftToInput({
+      ...draft,
+      choiceBlocks: [draft.choiceBlocks[1]!, newChoice, draft.choiceBlocks[0]!],
+      defaultOptionIdsByBlockId: {
+        ...draft.defaultOptionIdsByBlockId,
+        [newChoice.id]: [newChoice.options[0]!.id],
+      },
+    });
+
+    expect(input.variableOrder).toEqual([
+      "compatible-before",
+      "choice-style",
+      "compatible-middle",
+      "choice-format",
+      "choice-tone",
+      "compatible-after",
+    ]);
+
+    const reopened = draftFromPromptPreset(
+      updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z"),
+    );
+    expect(reopened.choiceBlocks.map((block) => block.id)).toEqual([
+      "choice-style",
+      "choice-format",
+      "choice-tone",
+    ]);
   });
 });

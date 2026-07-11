@@ -22,7 +22,8 @@ export interface PromptPresetChoiceDraftIssue {
     | "option-required"
     | "option-label-required"
     | "visibility-controller-missing"
-    | "visibility-values-required";
+    | "visibility-values-required"
+    | "visibility-cycle";
   message: string;
 }
 
@@ -386,11 +387,50 @@ export function setPromptPresetChoiceVisibilityValue(
   }));
 }
 
+function visibilityCycleBlockIds(draft: PromptPresetChoiceDraftState) {
+  const blockIds = new Set(draft.choiceBlocks.map((block) => block.id));
+  const controllerIdByBlockId = new Map<string, string>();
+  for (const block of draft.choiceBlocks) {
+    if (!block.visibilityRule) continue;
+    const controllerId = draft.visibilityControllerIdsByBlockId[block.id];
+    if (controllerId && controllerId !== block.id && blockIds.has(controllerId)) {
+      controllerIdByBlockId.set(block.id, controllerId);
+    }
+  }
+
+  const cycleBlockIds = new Set<string>();
+  const processedBlockIds = new Set<string>();
+  for (const block of draft.choiceBlocks) {
+    if (processedBlockIds.has(block.id)) continue;
+
+    const path: string[] = [];
+    const pathIndexByBlockId = new Map<string, number>();
+    let currentBlockId: string | undefined = block.id;
+    while (currentBlockId && !processedBlockIds.has(currentBlockId)) {
+      const cycleStartIndex = pathIndexByBlockId.get(currentBlockId);
+      if (cycleStartIndex !== undefined) {
+        for (const cycleBlockId of path.slice(cycleStartIndex)) {
+          cycleBlockIds.add(cycleBlockId);
+        }
+        break;
+      }
+
+      pathIndexByBlockId.set(currentBlockId, path.length);
+      path.push(currentBlockId);
+      currentBlockId = controllerIdByBlockId.get(currentBlockId);
+    }
+    for (const pathBlockId of path) processedBlockIds.add(pathBlockId);
+  }
+
+  return cycleBlockIds;
+}
+
 export function validatePromptPresetChoiceDraft(
   draft: PromptPresetChoiceDraftState,
 ): PromptPresetChoiceDraftIssue[] {
   const issues: PromptPresetChoiceDraftIssue[] = [];
   const seenVariableNames = new Set<string>();
+  const cycleBlockIds = visibilityCycleBlockIds(draft);
   for (const block of draft.choiceBlocks) {
     const variableName = block.variableName.trim();
     if (!variableName) {
@@ -456,6 +496,13 @@ export function validatePromptPresetChoiceDraft(
           });
         }
       }
+    }
+    if (cycleBlockIds.has(block.id)) {
+      issues.push({
+        blockId: block.id,
+        code: "visibility-cycle",
+        message: "Visibility choices cannot depend on each other in a cycle.",
+      });
     }
   }
 

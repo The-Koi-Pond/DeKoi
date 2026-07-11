@@ -489,6 +489,7 @@ export interface PromptPresetChoiceControl {
   id: string;
   variableName: string;
   label: string;
+  question?: string;
   multiSelect: boolean;
   displayMode: "auto" | "buttons" | "listbox";
   defaultLabel: string;
@@ -664,6 +665,7 @@ export function resolvePromptPresetChoiceControls({
         id: block.id,
         variableName: block.variableName,
         label: block.label,
+        ...(block.question?.trim() ? { question: block.question.trim() } : {}),
         multiSelect: block.multiSelect === true,
         displayMode: block.displayMode ?? "auto",
         defaultLabel: defaultChoiceLabel(preset, block),

@@ -258,20 +258,31 @@ function mergeVariableOrder(
   template: readonly PromptPresetVariableOrderTemplateEntry[],
   choiceBlockIds: readonly string[],
 ) {
-  const originalChoiceIds = new Set(
-    template.flatMap((entry) => (entry.kind === "choice" ? [entry.id] : [])),
+  const lastChoiceSlotIndex = template.reduce(
+    (lastIndex, entry, index) => (entry.kind === "choice" ? index : lastIndex),
+    -1,
   );
-  const currentChoiceIds = new Set(choiceBlockIds);
-  const reorderedOriginalChoices = choiceBlockIds.filter((id) => originalChoiceIds.has(id));
-  let reorderedIndex = 0;
-  const variableOrder = template.flatMap((entry) => {
-    if (entry.kind === "compatible") return [entry.id];
-    if (!currentChoiceIds.has(entry.id)) return [];
-    const id = reorderedOriginalChoices[reorderedIndex];
-    reorderedIndex += 1;
-    return id ? [id] : [];
+  const variableOrder: string[] = [];
+  let choiceIndex = 0;
+
+  template.forEach((entry, templateIndex) => {
+    if (entry.kind === "compatible") {
+      variableOrder.push(entry.id);
+      return;
+    }
+
+    const choiceBlockId = choiceBlockIds[choiceIndex];
+    if (choiceBlockId) {
+      variableOrder.push(choiceBlockId);
+      choiceIndex += 1;
+    }
+    if (templateIndex === lastChoiceSlotIndex) {
+      variableOrder.push(...choiceBlockIds.slice(choiceIndex));
+      choiceIndex = choiceBlockIds.length;
+    }
   });
-  variableOrder.push(...choiceBlockIds.filter((id) => !originalChoiceIds.has(id)));
+
+  if (lastChoiceSlotIndex === -1) variableOrder.push(...choiceBlockIds);
   return variableOrder;
 }
 

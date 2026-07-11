@@ -9,6 +9,40 @@ type RecordWithPromptPreset = {
   presetChoiceSelections?: PromptPresetThreadChoiceSelections;
 };
 
+function choiceSelectionMatches(
+  left: PromptPresetThreadChoiceSelections[string],
+  right: PromptPresetThreadChoiceSelections[string],
+) {
+  const leftIsArray = Array.isArray(left);
+  if (leftIsArray !== Array.isArray(right)) return false;
+  const leftSelections = leftIsArray ? left : [left];
+  const rightSelections = Array.isArray(right) ? right : [right];
+  return (
+    leftSelections.length === rightSelections.length &&
+    leftSelections.every(
+      (selection, index) =>
+        selection.kind === rightSelections[index]?.kind &&
+        selection.optionId === rightSelections[index]?.optionId,
+    )
+  );
+}
+
+function choiceSelectionsMatch(
+  left: PromptPresetThreadChoiceSelections,
+  right: PromptPresetThreadChoiceSelections,
+) {
+  const leftBlockIds = Object.keys(left);
+  const rightBlockIds = Object.keys(right);
+  return (
+    leftBlockIds.length === rightBlockIds.length &&
+    leftBlockIds.every(
+      (blockId) =>
+        Object.prototype.hasOwnProperty.call(right, blockId) &&
+        choiceSelectionMatches(left[blockId]!, right[blockId]!),
+    )
+  );
+}
+
 export function repairPromptPresetRelationships<T extends RecordWithPromptPreset>(
   records: readonly T[],
   promptPresets: readonly PromptPresetRecord[],
@@ -29,7 +63,7 @@ export function repairPromptPresetRelationships<T extends RecordWithPromptPreset
         preset,
         record.presetChoiceSelections,
       );
-      if (JSON.stringify(selections) === JSON.stringify(record.presetChoiceSelections ?? {})) {
+      if (choiceSelectionsMatch(selections, record.presetChoiceSelections ?? {})) {
         return record;
       }
       repairedChoiceSelectionCount += 1;

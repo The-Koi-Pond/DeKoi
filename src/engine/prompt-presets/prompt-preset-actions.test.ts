@@ -510,6 +510,7 @@ describe("normalizePromptPresetRecord", () => {
           id: "choice-tone",
           variableName: "tone",
           label: "Tone",
+          question: "How should the reply feel?",
           displayMode: "buttons",
           optionSort: "alphabetical",
           options: [
@@ -527,6 +528,7 @@ describe("normalizePromptPresetRecord", () => {
 
     const [control] = resolvePromptPresetChoiceControls({ preset: record, selections: {} });
 
+    expect(control?.question).toBe("How should the reply feel?");
     expect(control?.displayMode).toBe("buttons");
     expect(control?.options.map((option) => [option.id, option.label])).toEqual([
       ["alpha", "alpha"],

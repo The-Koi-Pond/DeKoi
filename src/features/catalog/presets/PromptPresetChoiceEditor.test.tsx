@@ -12,16 +12,16 @@ describe("PromptPresetChoiceEditor", () => {
           ...EMPTY_PROMPT_PRESET_DRAFT,
           choiceBlocks: [
             {
-              id: "choice-first",
+              id: "a-b",
               variableName: "first",
               label: "First",
-              options: [{ id: "yes", label: "Yes", value: "yes" }],
+              options: [{ id: "c", label: "Yes", value: "yes" }],
             },
             {
-              id: "choice-second",
+              id: "a",
               variableName: "second",
               label: "Second",
-              options: [{ id: "yes", label: "Yes", value: "yes" }],
+              options: [{ id: "b-c", label: "Yes", value: "yes" }],
             },
           ],
         }}
@@ -29,10 +29,10 @@ describe("PromptPresetChoiceEditor", () => {
       />,
     );
     const ids = [...markup.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+    const labelledIds = [...markup.matchAll(/\sfor="([^"]+)"/g)].map((match) => match[1]);
 
     expect(new Set(ids).size).toBe(ids.length);
-    expect(markup).toContain('for="preset-choice-option-label-choice-first-yes"');
-    expect(markup).toContain('for="preset-choice-option-label-choice-second-yes"');
+    expect(labelledIds.every((id) => ids.includes(id))).toBe(true);
   });
 
   it("renders visibility controls from the stable controller ID", () => {

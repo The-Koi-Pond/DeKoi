@@ -73,6 +73,17 @@ function readOptionSort(value: string): PromptPresetChoiceBlock["optionSort"] {
   return value === "alphabetical" ? "alphabetical" : "manual";
 }
 
+function domIdSegment(value: string) {
+  return value
+    .split("")
+    .map((character) => character.charCodeAt(0).toString(16).padStart(4, "0"))
+    .join("");
+}
+
+function choiceOptionFieldId(field: string, blockId: string, optionId: string) {
+  return `preset-choice-option-${field}-${domIdSegment(blockId)}-${domIdSegment(optionId)}`;
+}
+
 function ChoiceVisibilityEditor({
   block,
   choiceDraft,
@@ -243,6 +254,9 @@ function ChoiceBlockCard({
       <div className="catalog-choice-options">
         {block.options.map((option, optionIndex) => {
           const isDefault = defaultOptionIds.includes(option.id);
+          const labelFieldId = choiceOptionFieldId("label", block.id, option.id);
+          const valueFieldId = choiceOptionFieldId("value", block.id, option.id);
+          const descriptionFieldId = choiceOptionFieldId("description", block.id, option.id);
           return (
             <div className="catalog-choice-option" key={option.id}>
               <div className="catalog-choice-option-head">
@@ -276,11 +290,9 @@ function ChoiceBlockCard({
               </div>
               <div className="catalog-editor-grid compact">
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-label-${block.id}-${option.id}`}>
-                    Option Label
-                  </label>
+                  <label htmlFor={labelFieldId}>Option Label</label>
                   <input
-                    id={`preset-choice-option-label-${block.id}-${option.id}`}
+                    id={labelFieldId}
                     className="pondinput"
                     type="text"
                     value={option.label}
@@ -293,11 +305,9 @@ function ChoiceBlockCard({
                   />
                 </div>
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-value-${block.id}-${option.id}`}>
-                    Value
-                  </label>
+                  <label htmlFor={valueFieldId}>Value</label>
                   <input
-                    id={`preset-choice-option-value-${block.id}-${option.id}`}
+                    id={valueFieldId}
                     className="pondinput"
                     type="text"
                     value={option.value}
@@ -311,11 +321,9 @@ function ChoiceBlockCard({
                   />
                 </div>
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-description-${block.id}-${option.id}`}>
-                    Description
-                  </label>
+                  <label htmlFor={descriptionFieldId}>Description</label>
                   <input
-                    id={`preset-choice-option-description-${block.id}-${option.id}`}
+                    id={descriptionFieldId}
                     className="pondinput"
                     type="text"
                     value={option.description ?? ""}

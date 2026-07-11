@@ -270,6 +270,9 @@ export function ChatSettingsPresetVariablesDialog({
             return (
               <div className="preset-variables-field" key={control.id}>
                 <span id={fieldId}>{control.label}</span>
+                {control.question && (
+                  <p className="preset-variables-question">{control.question}</p>
+                )}
                 <PresetVariableControl
                   control={control}
                   fieldId={fieldId}
