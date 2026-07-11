@@ -83,9 +83,8 @@ function ChoiceVisibilityEditor({
   "block" | "choiceDraft" | "onSetVisibilityController" | "onSetVisibilityValue"
 >) {
   const controllers = choiceDraft.choiceBlocks.filter((candidate) => candidate.id !== block.id);
-  const controller = controllers.find(
-    (candidate) => candidate.variableName === block.visibilityRule?.variableName,
-  );
+  const controllerId = choiceDraft.visibilityControllerIdsByBlockId[block.id];
+  const controller = controllers.find((candidate) => candidate.id === controllerId);
   const controllerValues = controller ? promptPresetChoiceVisibilityOptions(controller) : [];
 
   return (
@@ -277,9 +276,11 @@ function ChoiceBlockCard({
               </div>
               <div className="catalog-editor-grid compact">
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-label-${option.id}`}>Option Label</label>
+                  <label htmlFor={`preset-choice-option-label-${block.id}-${option.id}`}>
+                    Option Label
+                  </label>
                   <input
-                    id={`preset-choice-option-label-${option.id}`}
+                    id={`preset-choice-option-label-${block.id}-${option.id}`}
                     className="pondinput"
                     type="text"
                     value={option.label}
@@ -292,9 +293,11 @@ function ChoiceBlockCard({
                   />
                 </div>
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-value-${option.id}`}>Value</label>
+                  <label htmlFor={`preset-choice-option-value-${block.id}-${option.id}`}>
+                    Value
+                  </label>
                   <input
-                    id={`preset-choice-option-value-${option.id}`}
+                    id={`preset-choice-option-value-${block.id}-${option.id}`}
                     className="pondinput"
                     type="text"
                     value={option.value}
@@ -308,11 +311,11 @@ function ChoiceBlockCard({
                   />
                 </div>
                 <div className="catalog-editor-field">
-                  <label htmlFor={`preset-choice-option-description-${option.id}`}>
+                  <label htmlFor={`preset-choice-option-description-${block.id}-${option.id}`}>
                     Description
                   </label>
                   <input
-                    id={`preset-choice-option-description-${option.id}`}
+                    id={`preset-choice-option-description-${block.id}-${option.id}`}
                     className="pondinput"
                     type="text"
                     value={option.description ?? ""}

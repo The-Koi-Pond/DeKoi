@@ -506,6 +506,7 @@ export function updatePromptPresetChoiceOption(
   const currentValueStillExists = nextControllerOptions.some(
     (option) => option.id !== optionId && option.value.trim() === currentValue,
   );
+  const clearedVisibilityBlockIds = new Set<string>();
   const nextBlocks = draft.choiceBlocks.map((block) => {
     if (block.id === blockId) {
       return {
@@ -515,7 +516,6 @@ export function updatePromptPresetChoiceOption(
     }
     if (
       !currentValue ||
-      !nextValue ||
       currentValue === nextValue ||
       currentValueStillExists ||
       draft.visibilityControllerIdsByBlockId[block.id] !== controller.id ||
@@ -525,22 +525,40 @@ export function updatePromptPresetChoiceOption(
       return block;
     }
 
-    return {
-      ...block,
-      visibilityRule: {
-        ...block.visibilityRule,
-        values: [
+    const values = nextValue
+      ? [
           ...new Set(
             block.visibilityRule.values.map((value) =>
               value.trim() === currentValue ? nextValue : value.trim(),
             ),
           ),
-        ],
+        ]
+      : block.visibilityRule.values.filter((value) => value.trim() !== currentValue);
+    if (values.length === 0) {
+      clearedVisibilityBlockIds.add(block.id);
+      const nextBlock = { ...block };
+      delete nextBlock.visibilityRule;
+      return nextBlock;
+    }
+
+    return {
+      ...block,
+      visibilityRule: {
+        ...block.visibilityRule,
+        values,
       },
     };
   });
 
-  return { ...draft, choiceBlocks: nextBlocks };
+  return {
+    ...draft,
+    choiceBlocks: nextBlocks,
+    visibilityControllerIdsByBlockId: Object.fromEntries(
+      Object.entries(draft.visibilityControllerIdsByBlockId).filter(
+        ([dependentBlockId]) => !clearedVisibilityBlockIds.has(dependentBlockId),
+      ),
+    ),
+  };
 }
 
 export function removePromptPresetChoiceOption(

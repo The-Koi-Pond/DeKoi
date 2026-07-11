@@ -222,6 +222,16 @@ describe("prompt preset choice drafts", () => {
     );
     expect(renamedValue.choiceBlocks[1]?.visibilityRule?.values).toEqual(["cozy", "dry"]);
 
+    const clearedValue = updatePromptPresetChoiceOption(
+      draft,
+      "choice-tone",
+      "tone-warm",
+      (option) => ({ ...option, value: "" }),
+    );
+    expect(clearedValue.choiceBlocks[1]?.visibilityRule?.values).toEqual(["dry"]);
+    expect(clearedValue.visibilityControllerIdsByBlockId["choice-style"]).toBe("choice-tone");
+    expect(validatePromptPresetChoiceDraft(clearedValue)).toEqual([]);
+
     const removedDefault = removePromptPresetChoiceOption(renamedValue, "choice-tone", "tone-warm");
     const input = promptPresetChoiceDraftToInput(removedDefault);
 
@@ -280,13 +290,11 @@ describe("prompt preset choice drafts", () => {
       "tone-warm-b",
       (option) => ({ ...option, value: " " }),
     );
-    expect(lastDuplicateBlanked.choiceBlocks[1]?.visibilityRule?.values).toEqual(["warm"]);
-    expect(validatePromptPresetChoiceDraft(lastDuplicateBlanked)).toEqual([
-      expect.objectContaining({
-        blockId: "choice-style",
-        code: "visibility-values-required",
-      }),
-    ]);
+    expect(lastDuplicateBlanked.choiceBlocks[1]).not.toHaveProperty("visibilityRule");
+    expect(lastDuplicateBlanked.visibilityControllerIdsByBlockId).not.toHaveProperty(
+      "choice-style",
+    );
+    expect(validatePromptPresetChoiceDraft(lastDuplicateBlanked)).toEqual([]);
 
     const staleValue = {
       ...draft,
