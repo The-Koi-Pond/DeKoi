@@ -206,6 +206,7 @@
 }
 
 .preset-variables-button-list button {
+  display: grid;
   min-height: 34px;
   padding: 6px 10px;
   border: 1px solid var(--reed-soft);
@@ -215,6 +216,26 @@
   cursor: pointer;
   font-family: var(--ui);
   font-size: 12px;
+  line-height: 1.25;
+}
+
+.preset-variable-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.preset-variable-option-copy > span,
+.preset-variable-option-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-variable-option-copy small {
+  color: var(--mist-dim);
+  font-size: 10px;
+  font-weight: 400;
   line-height: 1.25;
 }
 
@@ -276,9 +297,6 @@
   accent-color: var(--jade);
 }
 
-.preset-variables-check span {
+.preset-variables-check > span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

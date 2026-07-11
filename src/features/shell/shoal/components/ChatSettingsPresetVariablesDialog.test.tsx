@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
+import type {
+  PromptPresetRecord,
+  PromptPresetThreadChoiceSelections,
+} from "../../../../engine/contracts/types/prompt-presets";
 import { reconcileSelectedOptionIds } from "../lib/preset-choice-selection-order";
 import { ChatSettingsPresetVariablesDialog } from "./ChatSettingsPresetVariablesDialog";
 
@@ -27,12 +30,15 @@ function promptPreset(choiceBlock: PromptPresetRecord["choiceBlocks"][number]): 
   };
 }
 
-function renderDialog(preset: PromptPresetRecord) {
+function renderDialog(
+  preset: PromptPresetRecord,
+  presetChoiceSelections: PromptPresetThreadChoiceSelections = {},
+) {
   return renderToStaticMarkup(
     <ChatSettingsPresetVariablesDialog
       open
       preset={preset}
-      presetChoiceSelections={{}}
+      presetChoiceSelections={presetChoiceSelections}
       onClose={vi.fn()}
       onPresetChoiceChange={vi.fn()}
     />,
@@ -69,7 +75,7 @@ describe("ChatSettingsPresetVariablesDialog", () => {
     expect(markup).toContain('id="preset-variable-preset-1-choice-tone">Tone</span>');
     expect(markup).toContain('<p class="preset-variables-question">How should the reply feel?</p>');
     expect(markup).toContain('aria-pressed="false"');
-    expect(markup.indexOf(">alpha</button>")).toBeLessThan(markup.indexOf(">Zebra</button>"));
+    expect(markup.indexOf(">alpha</span>")).toBeLessThan(markup.indexOf(">Zebra</span>"));
   });
 
   it("renders multi-select listbox presentation", () => {
@@ -107,5 +113,39 @@ describe("ChatSettingsPresetVariablesDialog", () => {
 
     expect(markup).not.toContain("preset-variables-listbox");
     expect(markup).not.toContain(' multiple=""');
+  });
+
+  it("renders option descriptions for every choice presentation", () => {
+    const presentations = [
+      { displayMode: "buttons" as const, multiSelect: false },
+      { displayMode: "listbox" as const, multiSelect: true },
+      { displayMode: "auto" as const, multiSelect: true },
+      { displayMode: "auto" as const, multiSelect: false },
+    ];
+
+    for (const presentation of presentations) {
+      const preset = promptPreset({
+        id: `choice-${presentation.displayMode}-${presentation.multiSelect}`,
+        variableName: "tone",
+        label: "Tone",
+        ...presentation,
+        options: [
+          {
+            id: "warm",
+            label: "Warm",
+            value: "warm",
+            description: "Gentle and reassuring.",
+          },
+        ],
+      });
+      const markup = renderDialog(
+        preset,
+        presentation.multiSelect
+          ? {}
+          : { [preset.choiceBlocks[0]!.id]: { kind: "option", optionId: "warm" } },
+      );
+
+      expect(markup).toContain("Gentle and reassuring.");
+    }
   });
 });

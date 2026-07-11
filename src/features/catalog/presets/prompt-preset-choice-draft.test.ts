@@ -101,6 +101,44 @@ describe("prompt preset choice drafts", () => {
     });
   });
 
+  it("keeps one default selected for multi-select choices", () => {
+    const draft = choiceDraftFromPromptPreset(promptPresetRecord());
+    const oneDefault = setPromptPresetChoiceDefault(draft, "choice-tags", "tag-concise", false);
+    const attemptedEmptyDefault = setPromptPresetChoiceDefault(
+      oneDefault,
+      "choice-tags",
+      "tag-vivid",
+      false,
+    );
+
+    expect(attemptedEmptyDefault.defaultOptionIdsByBlockId["choice-tags"]).toEqual(["tag-vivid"]);
+    expect(promptPresetChoiceDraftToInput(attemptedEmptyDefault).defaultChoices?.tags).toEqual({
+      kind: "option",
+      optionId: "tag-vivid",
+    });
+  });
+
+  it("normalizes optional question and option descriptions during serialization", () => {
+    const draft = choiceDraftFromPromptPreset(promptPresetRecord());
+    const withWhitespaceQuestion = updatePromptPresetChoiceBlock(draft, "choice-tone", (block) => ({
+      ...block,
+      question: "   ",
+    }));
+    const withWhitespaceDescription = updatePromptPresetChoiceOption(
+      withWhitespaceQuestion,
+      "choice-tone",
+      "tone-warm",
+      (option) => ({ ...option, description: "   " }),
+    );
+
+    const tone = promptPresetChoiceDraftToInput(withWhitespaceDescription).choiceBlocks?.find(
+      (block) => block.id === "choice-tone",
+    );
+
+    expect(tone).not.toHaveProperty("question");
+    expect(tone?.options[0]).not.toHaveProperty("description");
+  });
+
   it("renames dependent visibility rules without losing the block default", () => {
     const draft = choiceDraftFromPromptPreset(
       promptPresetRecord({

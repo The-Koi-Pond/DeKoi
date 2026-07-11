@@ -271,6 +271,65 @@ describe("normalizePromptPresetRecord", () => {
     ).toBe(true);
   });
 
+  it("uses hidden controller defaults consistently for nested visibility", () => {
+    const record = normalizePromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 1,
+      title: "Preset One",
+      systemPrompt: "Use {{boundary}}, {{tone}}, and {{style}}.",
+      choiceBlocks: [
+        {
+          id: "choice-boundary",
+          variableName: "boundary",
+          label: "Boundary",
+          defaultOptionId: "sfw",
+          options: [
+            { id: "sfw", label: "SFW", value: "SFW" },
+            { id: "adult", label: "Adult", value: "Adult" },
+          ],
+        },
+        {
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          defaultOptionId: "none",
+          options: [
+            { id: "none", label: "None", value: "none" },
+            { id: "direct", label: "Direct", value: "direct" },
+          ],
+          visibilityRule: { variableName: "boundary", values: ["Adult"] },
+        },
+        {
+          id: "choice-style",
+          variableName: "style",
+          label: "Style",
+          defaultOptionId: "plain",
+          options: [{ id: "plain", label: "Plain", value: "plain" }],
+          visibilityRule: { variableName: "tone", values: ["direct"] },
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) throw new Error("Expected prompt preset record.");
+
+    const selections = {
+      "choice-boundary": { kind: "option" as const, optionId: "sfw" },
+      "choice-tone": { kind: "option" as const, optionId: "direct" },
+    };
+
+    expect(
+      resolvePromptPresetChoiceControls({ preset: record, selections }).map(({ id }) => id),
+    ).toEqual(["choice-boundary"]);
+    expect(resolvePromptPresetChoiceVariables({ preset: record, selections }).variables).toEqual({
+      boundary: "SFW",
+      tone: "none",
+      style: "plain",
+    });
+  });
+
   it("resolves preset variables and multi-select choice values", () => {
     const record = normalizePromptPresetRecord({
       id: "preset-1",

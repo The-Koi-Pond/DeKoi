@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 
 export interface ChatSettingsDropdownOption {
+  description?: string;
   disabled?: boolean;
   label: string;
   value: string;
@@ -81,7 +82,7 @@ export function ChatSettingsDropdown({
     >
       <button
         type="button"
-        className="chat-settings-select-button"
+        className={`chat-settings-select-button${selectedOption?.description ? " has-description" : ""}`}
         aria-controls={resolvedMenuId}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -89,7 +90,10 @@ export function ChatSettingsDropdown({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
-        <span>{selectedOption?.label ?? "Choose"}</span>
+        <span className="chat-settings-select-copy">
+          <span>{selectedOption?.label ?? "Choose"}</span>
+          {selectedOption?.description && <span>{selectedOption.description}</span>}
+        </span>
       </button>
       {open && !disabled && (
         <div
@@ -109,6 +113,7 @@ export function ChatSettingsDropdown({
               onClick={() => selectValue(option.value)}
             >
               <span>{option.label}</span>
+              {option.description && <small>{option.description}</small>}
             </button>
           ))}
         </div>

@@ -277,6 +277,7 @@ export function setPromptPresetChoiceDefault(
     : selected
       ? [optionId]
       : [];
+  if (block.multiSelect && nextDefaults.length === 0) return draft;
 
   return {
     ...draft,
@@ -707,19 +708,24 @@ export function removePromptPresetChoiceBlock(
 }
 
 function cleanChoiceBlock(block: PromptPresetChoiceBlock, defaultOptionIds: readonly string[]) {
-  const options = block.options.map((option) => ({
-    ...option,
-    id: option.id.trim(),
-    label: option.label.trim(),
-    value: option.value.trim(),
-    ...(option.description?.trim() ? { description: option.description.trim() } : {}),
-  }));
+  const options = block.options.map((option) => {
+    const cleanedOption = {
+      ...option,
+      id: option.id.trim(),
+      label: option.label.trim(),
+      value: option.value.trim(),
+    };
+    const description = option.description?.trim();
+    if (description) cleanedOption.description = description;
+    else delete cleanedOption.description;
+    return cleanedOption;
+  });
   const validDefaultOptionIds = defaultOptionIds.filter((optionId) =>
     options.some((option) => option.id === optionId),
   );
   const firstDefaultOptionId = validDefaultOptionIds[0] ?? options[0]?.id ?? null;
 
-  return {
+  const cleanedBlock = {
     ...block,
     id: block.id.trim(),
     variableName: block.variableName.trim(),
@@ -727,6 +733,10 @@ function cleanChoiceBlock(block: PromptPresetChoiceBlock, defaultOptionIds: read
     options,
     defaultOptionId: firstDefaultOptionId,
   } satisfies PromptPresetChoiceBlock;
+  const question = block.question?.trim();
+  if (question) cleanedBlock.question = question;
+  else delete cleanedBlock.question;
+  return cleanedBlock;
 }
 
 function defaultChoiceSelection(optionIds: readonly string[]) {

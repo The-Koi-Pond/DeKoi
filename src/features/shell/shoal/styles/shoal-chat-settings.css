@@ -228,10 +228,32 @@
   font-size: 12px;
 }
 
-.chat-settings-select-button > span {
+.chat-settings-select-button.has-description {
+  min-height: 42px;
+  height: auto;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.chat-settings-select-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  text-align: left;
+}
+
+.chat-settings-select-copy > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chat-settings-select-copy > span + span,
+.chat-settings-option small {
+  color: var(--mist-dim);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.25;
 }
 
 .chat-settings-select-button small {
@@ -306,6 +328,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chat-settings-option small {
+  margin-top: 2px;
 }
 
 .chat-settings-option:hover:not(:disabled),

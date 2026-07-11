@@ -37,6 +37,7 @@ function choiceOptions(
   return [
     { label: control.defaultLabel, value: defaultOptionValue },
     ...control.options.map((option) => ({
+      description: option.description ?? undefined,
       label: option.label,
       value: option.id,
     })),
@@ -71,6 +72,19 @@ interface PresetVariableControlProps {
   control: PromptPresetChoiceControl;
   fieldId: string;
   onPresetChoiceChange: PresetChoiceChangeHandler;
+}
+
+function PresetVariableOptionCopy({
+  option,
+}: {
+  option: PromptPresetChoiceControl["options"][number];
+}) {
+  return (
+    <span className="preset-variable-option-copy">
+      <span>{option.label}</span>
+      {option.description && <small>{option.description}</small>}
+    </span>
+  );
 }
 
 function PresetVariableDefaultRow({
@@ -116,7 +130,7 @@ function PresetVariableButtons({
                 )
               }
             >
-              {option.label}
+              <PresetVariableOptionCopy option={option} />
             </button>
           );
         })}
@@ -153,7 +167,7 @@ function PresetVariableMultiSelectListbox({
       >
         {control.options.map((option) => (
           <option value={option.id} key={option.id}>
-            {option.label}
+            {option.description ? `${option.label} — ${option.description}` : option.label}
           </option>
         ))}
       </select>
@@ -185,7 +199,7 @@ function PresetVariableCheckboxes({
                 )
               }
             />
-            <span>{option.label}</span>
+            <PresetVariableOptionCopy option={option} />
           </label>
         ))}
       </div>

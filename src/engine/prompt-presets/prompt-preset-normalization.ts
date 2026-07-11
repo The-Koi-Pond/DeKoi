@@ -613,6 +613,62 @@ function defaultChoiceLabel(preset: PromptPresetRecord, block: PromptPresetChoic
   return labels.length > 0 ? `Preset default: ${labels.join(", ")}` : "Preset default";
 }
 
+interface ResolvedPromptPresetChoiceState {
+  values: string[];
+  visible: boolean;
+}
+
+function resolvePromptPresetChoiceStates(
+  preset: PromptPresetRecord,
+  selections?: PromptPresetThreadChoiceSelections | null,
+) {
+  const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
+  const blocksByVariableName = new Map(
+    preset.choiceBlocks.map((block) => [block.variableName, block] as const),
+  );
+  const statesByBlockId = new Map<string, ResolvedPromptPresetChoiceState>();
+  const resolvingBlockIds = new Set<string>();
+
+  function resolveBlock(block: PromptPresetChoiceBlock): ResolvedPromptPresetChoiceState {
+    const resolved = statesByBlockId.get(block.id);
+    if (resolved) return resolved;
+
+    if (resolvingBlockIds.has(block.id)) {
+      return {
+        visible: false,
+        values: resolvePromptPresetChoiceValues({ block, preset, selection: null }),
+      };
+    }
+
+    resolvingBlockIds.add(block.id);
+    let visible = true;
+    if (block.visibilityRule) {
+      const controller = blocksByVariableName.get(block.visibilityRule.variableName);
+      const controllerState = controller ? resolveBlock(controller) : null;
+      visible =
+        controllerState?.values.some((value) => block.visibilityRule?.values.includes(value)) ??
+        false;
+    }
+
+    const hasSelection =
+      visible && Object.prototype.hasOwnProperty.call(normalizedSelections, block.id);
+    const state = {
+      visible,
+      values: resolvePromptPresetChoiceValues({
+        block,
+        preset,
+        selection: hasSelection ? normalizedSelections[block.id] : null,
+      }),
+    };
+    resolvingBlockIds.delete(block.id);
+    statesByBlockId.set(block.id, state);
+    return state;
+  }
+
+  for (const block of getPromptPresetChoiceBlocksInOrder(preset)) resolveBlock(block);
+  return { normalizedSelections, statesByBlockId };
+}
+
 export function isPromptPresetChoiceBlockVisible({
   block,
   preset,
@@ -622,21 +678,10 @@ export function isPromptPresetChoiceBlockVisible({
   preset: PromptPresetRecord;
   selections?: PromptPresetThreadChoiceSelections | null;
 }) {
-  if (!block.visibilityRule) return true;
-
-  const controller = preset.choiceBlocks.find(
-    (choiceBlock) => choiceBlock.variableName === block.visibilityRule?.variableName,
+  return (
+    resolvePromptPresetChoiceStates(preset, selections).statesByBlockId.get(block.id)?.visible ??
+    false
   );
-  if (!controller) return false;
-
-  const selectedControllerValues = resolvePromptPresetChoiceValues({
-    block: controller,
-    preset,
-    selection: selections?.[controller.id],
-  });
-  if (selectedControllerValues.length === 0) return false;
-
-  return selectedControllerValues.some((value) => block.visibilityRule?.values.includes(value));
 }
 
 export function resolvePromptPresetChoiceControls({
@@ -648,17 +693,12 @@ export function resolvePromptPresetChoiceControls({
 }): PromptPresetChoiceControl[] {
   if (!preset) return [];
 
-  const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
+  const { normalizedSelections, statesByBlockId } = resolvePromptPresetChoiceStates(
+    preset,
+    selections,
+  );
   return getPromptPresetChoiceBlocksInOrder(preset).flatMap((block) => {
-    if (
-      !isPromptPresetChoiceBlockVisible({
-        block,
-        preset,
-        selections: normalizedSelections,
-      })
-    ) {
-      return [];
-    }
+    if (!statesByBlockId.get(block.id)?.visible) return [];
 
     return [
       {
@@ -898,19 +938,9 @@ export function resolvePromptPresetChoiceVariables({
   if (!preset) return { variables, variableNames };
 
   variableNames.push(...Object.keys(preset.variableValues));
-  const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
+  const { statesByBlockId } = resolvePromptPresetChoiceStates(preset, selections);
   for (const block of getPromptPresetChoiceBlocksInOrder(preset)) {
-    const visible = isPromptPresetChoiceBlockVisible({
-      block,
-      preset,
-      selections: normalizedSelections,
-    });
-    const hasSelection = Object.prototype.hasOwnProperty.call(normalizedSelections, block.id);
-    const selectedValues = resolvePromptPresetChoiceValues({
-      block,
-      preset,
-      selection: visible && hasSelection ? normalizedSelections[block.id] : null,
-    });
+    const selectedValues = statesByBlockId.get(block.id)?.values ?? [];
     if (selectedValues.length === 0) continue;
 
     variables[block.variableName] = block.multiSelect
