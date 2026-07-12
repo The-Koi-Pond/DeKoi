@@ -169,8 +169,8 @@ Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
 prompt preset sections for prompt assembly.
-In Roleplay, a selected prompt preset can replace the system prelude and
-sampling, but it cannot replace the stored-output shape. If the preset has
+In Roleplay, a selected prompt preset can replace the system prelude, sampling,
+and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
@@ -527,9 +527,10 @@ pnpm check:storage-contracts
 ```
 
 The check fails if the TypeScript registry, TypeScript semantic alias map, Rust
-allowlist, or documented collection table drift. It also verifies each
-documented native owner file exists and names the documented record type, and
-that each documented runtime adapter uses the expected repository entity alias.
+allowlist, documented collection table, or approved Universal V2 starter
+package bytes drift. It also verifies each documented native owner file exists
+and names the documented record type, and that each documented runtime adapter
+uses the expected repository entity alias.
 
 ## Record Rules
 
