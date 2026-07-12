@@ -503,6 +503,38 @@ describe("prompt preset generation", () => {
     expect(promptText).not.toContain("Write only Mara's next turn as one character entry.");
   });
 
+  it("preserves the single-character Roleplay contract without a selected preset", () => {
+    const thread = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "roleplay-thread-1",
+      now,
+      title: "Test scene",
+    });
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [],
+      thread,
+    });
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = assembly.request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
+    expect(promptText).toContain("Continue the scene as Mara.");
+    expect(promptText).toContain(
+      "Write only Mara's next turn as one character entry. Do not write the user's dialogue, intent, decisions, deliberate actions, response, narrator text, scene-beat text, or other characters' lines.",
+    );
+    expect(promptText).not.toContain("selected preset");
+    expect(promptText).not.toContain("Continue the scene with Mara as the primary character.");
+  });
+
   it("assembles prompt preset sections around the chat history marker", () => {
     const thread = {
       ...createRoleplayThread({
