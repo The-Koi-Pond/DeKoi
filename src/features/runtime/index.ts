@@ -20,6 +20,8 @@ export {
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
+  promptPresetPersistenceSignatures,
+  saveStagedPromptPresetToStorage,
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
@@ -53,6 +55,15 @@ export {
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
+} from "./storage";
+export {
+  downloadPromptPresetBrowserFile,
+  getPromptPresetFileHost,
+  readPromptPresetBrowserFile,
+  readPromptPresetDesktopFile,
+  writePromptPresetDesktopFile,
+  type PromptPresetFileExportResult,
+  type PromptPresetFileImportResult,
 } from "./storage";
 export {
   describeGenerationFailureNotice,

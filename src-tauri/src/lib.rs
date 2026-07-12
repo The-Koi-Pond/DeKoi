@@ -34,6 +34,8 @@ pub fn run() {
             host::dekoi_host_status,
             file_dialog::dekoi_file_export_bundle,
             file_dialog::dekoi_file_import_bundle,
+            file_dialog::dekoi_file_export_prompt_preset,
+            file_dialog::dekoi_file_import_prompt_preset,
             secrets::dekoi_provider_secret_delete,
             secrets::dekoi_provider_secret_status,
             secrets::dekoi_provider_secret_write,

@@ -47,10 +47,10 @@ Desktop collection records are stored under:
 ```
 
 Desktop collection files must be JSON arrays. If a collection file is empty,
-invalid, non-array JSON, or missing while `.json.bak`, `.json.tmp`, or
-`.json.pre-repair` recovery artifacts exist, desktop storage reports a
-recoverable error and blocks normal autosave overwrite. Collection writes keep a
-`.json.bak` sibling as a recovery aid. Pond Care can explicitly repair one
+invalid, non-array JSON, or missing while `.json.bak`, legacy `.json.tmp`,
+unique `.json.write-*.tmp`, or `.json.pre-repair` recovery artifacts exist,
+desktop storage reports a recoverable error and blocks normal autosave
+overwrite. Collection writes keep a `.json.bak` sibling as a recovery aid. Pond Care can explicitly repair one
 malformed desktop collection at a time by restoring a valid backup or, when no
 restorable backup exists, replacing it with an empty collection. The malformed
 bytes remain in `.json.pre-repair` until the user finishes the repair.
@@ -159,7 +159,11 @@ Focused checks for narrow changes are mapped to change types in
   creating another preset. Questions and option descriptions appear with the
   choices. Ordered multi-select choices and nested visibility feed request-local
   prompt variables during generation, and using the preset default removes the
-  thread override.
+  thread override. The Presets catalog can import a compatible `.json` or
+  `.marinara.json` package as a new preset and export the selected saved preset
+  as `Preset Name.json`. These single-preset files are separate from Pond Care
+  backups. Browser imports without a configured storage target are session-only
+  and show that warning in the catalog.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

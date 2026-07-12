@@ -224,9 +224,19 @@ export function duplicatePromptPresetRecord(
   now: string,
 ): PromptPresetRecord {
   return {
+    ...createImportedPromptPresetRecord(record, id, now),
+    title: `${record.title} Copy`,
+  };
+}
+
+export function createImportedPromptPresetRecord(
+  record: PromptPresetRecord,
+  id: string,
+  now: string,
+): PromptPresetRecord {
+  return {
     ...record,
     id,
-    title: `${record.title} Copy`,
     sections: record.sections.map((section) => ({ ...section, presetId: id })),
     groups: record.groups.map((group) => ({ ...group, presetId: id })),
     choiceBlocks: record.choiceBlocks.map((choiceBlock) => ({ ...choiceBlock, presetId: id })),

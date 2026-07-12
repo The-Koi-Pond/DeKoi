@@ -4,7 +4,19 @@ import { StaticCatalogRailShell, type StaticCatalogRailProps } from "./StaticCat
 import type { ShoalNav } from "../types";
 
 type PresetsCatalogRailProps = Omit<StaticCatalogRailProps, "nav"> & {
-  nav: Pick<ShoalNav, "promptPresets" | "selectedSurface" | "setView" | "view">;
+  nav: Pick<
+    ShoalNav,
+    | "exportPromptPresetFile"
+    | "importPromptPresetFile"
+    | "openPromptPresetFile"
+    | "promptPresetFileHost"
+    | "promptPresetFileStatus"
+    | "promptPresets"
+    | "selectedSurface"
+    | "setPromptPresetFileStatus"
+    | "setView"
+    | "view"
+  >;
 };
 
 export function MediaCatalogRail({
@@ -44,7 +56,7 @@ export function PresetsCatalogRail({
       onToggleShoal={onToggleShoal}
       shoalClosed={shoalClosed}
     >
-      <PresetsCatalogRailBody nav={nav} />
+      <PresetsCatalogRailBody nav={nav} originActive={!shoalClosed} />
     </StaticCatalogRailShell>
   );
 }

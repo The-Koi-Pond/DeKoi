@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createPromptPresetRecord,
+  createImportedPromptPresetRecord,
   duplicatePromptPresetRecord,
   isPromptPresetChoiceBlockVisible,
   normalizePromptPresetRecord,
@@ -1008,6 +1009,66 @@ describe("duplicatePromptPresetRecord", () => {
     expect(record.choiceBlocks.map((choiceBlock) => choiceBlock.presetId)).toEqual([
       "preset-original",
     ]);
+  });
+});
+
+describe("createImportedPromptPresetRecord", () => {
+  it("keeps portable content while assigning one fresh native preset identity", () => {
+    const record = createPromptPresetRecord({
+      id: "preset-package-id",
+      now,
+      input: {
+        title: "Portable Preset",
+        systemPrompt: "Write the next response.",
+        sections: [
+          {
+            id: "section-system",
+            presetId: "preset-package-id",
+            identifier: "system",
+            name: "System",
+            content: "Write clearly.",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+        groups: [{ id: "group-core", presetId: "preset-package-id", name: "Core" }],
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            presetId: "preset-package-id",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    });
+
+    const imported = createImportedPromptPresetRecord(
+      record,
+      "prompt-preset-imported",
+      "2026-07-11T01:00:00.000Z",
+    );
+
+    expect(imported).toMatchObject({
+      id: "prompt-preset-imported",
+      title: "Portable Preset",
+      createdAt: "2026-07-11T01:00:00.000Z",
+      updatedAt: "2026-07-11T01:00:00.000Z",
+    });
+    expect(imported.sections).toEqual([
+      expect.objectContaining({ id: "section-system", presetId: "prompt-preset-imported" }),
+    ]);
+    expect(imported.groups).toEqual([
+      expect.objectContaining({ id: "group-core", presetId: "prompt-preset-imported" }),
+    ]);
+    expect(imported.choiceBlocks).toEqual([
+      expect.objectContaining({ id: "choice-tone", presetId: "prompt-preset-imported" }),
+    ]);
+    expect(record.sections[0]?.presetId).toBe("preset-package-id");
+    expect(record.groups[0]?.presetId).toBe("preset-package-id");
+    expect(record.choiceBlocks[0]?.presetId).toBe("preset-package-id");
   });
 });
 

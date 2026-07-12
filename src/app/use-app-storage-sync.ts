@@ -8,8 +8,10 @@ import {
   changedAppStorageMetadataKeys,
   loadAppStorageMetadata,
   loadAppStorageSnapshot,
+  promptPresetPersistenceSignatures,
   replaceAppStorageSnapshot,
   saveAppStorageCollections,
+  saveStagedPromptPresetToStorage,
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
   type AppStorageMetadata,
@@ -26,6 +28,20 @@ export type AppStorageCollectionSignatures = Record<AppStorageCollectionKey, str
 export type PartialAppStorageCollectionSignatures = Partial<
   Record<AppStorageCollectionKey, string>
 >;
+
+export function isAppStorageTargetCurrent({
+  expectedGeneration,
+  expectedRawUrl,
+  currentGeneration,
+  currentRawUrl,
+}: {
+  expectedGeneration: number;
+  expectedRawUrl: string;
+  currentGeneration: number;
+  currentRawUrl: string;
+}) {
+  return expectedGeneration === currentGeneration && expectedRawUrl === currentRawUrl;
+}
 
 type SaveQueueEntry = {
   snapshot: AppStorageRecords;
@@ -64,6 +80,11 @@ export type AppStorageFlushResult = SaveStatusResult & {
   dirtyCollectionKeys: AppStorageCollectionKey[];
   savedCollectionKeys: AppStorageCollectionKey[];
   failedCollectionKeys: AppStorageCollectionKey[];
+};
+
+type AppStoragePromptPresetSaveResult = SaveStatusResult & {
+  saved: boolean;
+  blocked: boolean;
 };
 
 export type AppStorageImportRecoveryState = {
@@ -540,6 +561,8 @@ export function useAppStorageSync({
     EMPTY_IMPORT_RECOVERY_STATE,
   );
   const storageGeneration = useRef(0);
+  const currentStorageRawUrl = useRef(remoteRuntimeUrl);
+  currentStorageRawUrl.current = remoteRuntimeUrl;
   const currentStorageMode = useRef<MessengerStorageMode>("unavailable");
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
   const loadedStorageMetadata = useRef<AppStorageMetadata>({});
@@ -554,6 +577,10 @@ export function useAppStorageSync({
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
   const importCommitRunning = useRef(false);
+  const promptPresetImportRollback = useRef<{
+    rawUrl: string;
+    snapshot: AppStorageRecords;
+  } | null>(null);
   const lastPreImportRecovery = useRef<{
     records: AppStorageRecords;
     createdAt: string;
@@ -658,6 +685,10 @@ export function useAppStorageSync({
       messengerThreads,
       rippleStates,
     };
+    const rollback = promptPresetImportRollback.current;
+    if (rollback && rollback.rawUrl === remoteRuntimeUrl) {
+      rollback.snapshot = currentAppStorageRecords.current;
+    }
   }, [
     appSettings,
     characters,
@@ -668,6 +699,7 @@ export function useAppStorageSync({
     personas,
     promptPresets,
     providerConnections,
+    remoteRuntimeUrl,
     rippleStates,
     roleplayThreads,
   ]);
@@ -902,13 +934,29 @@ export function useAppStorageSync({
         };
       }
 
-      if (!storageReady || !savedSignatures.current) {
+      if (!savedSignatures.current) {
         return {
           mode: currentStorageMode.current,
           status: "error",
           message: "Storage flush skipped because app storage is not ready yet.",
           flushed: false,
           blocked: true,
+          dirtyCollectionKeys: [],
+          savedCollectionKeys: [],
+          failedCollectionKeys: [],
+        };
+      }
+
+      if (!storageReady) {
+        const unavailable = currentStorageMode.current === "unavailable";
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: unavailable
+            ? "Storage is unavailable."
+            : "Storage flush skipped because app storage is not ready yet.",
+          flushed: false,
+          blocked: !unavailable,
           dirtyCollectionKeys: [],
           savedCollectionKeys: [],
           failedCollectionKeys: [],
@@ -1088,6 +1136,143 @@ export function useAppStorageSync({
       refreshSaveStatus,
       remoteRuntimeUrl,
       storageReady,
+    ],
+  );
+
+  const savePromptPresetImport = useCallback(
+    async (
+      preset: AppStorageRecords["promptPresets"][number],
+    ): Promise<AppStoragePromptPresetSaveResult> => {
+      const createFailure = (message: string, blocked: boolean) => ({
+        mode: currentStorageMode.current,
+        status: "error" as const,
+        message,
+        saved: false,
+        blocked,
+      });
+
+      if (importCommitRunning.current) {
+        return createFailure(
+          "Prompt preset save blocked because another import is already in progress.",
+          true,
+        );
+      }
+      if (!savedSignatures.current || !storageReady) {
+        return createFailure("Prompt preset save blocked because app storage is not ready.", true);
+      }
+      if (droppedRecordSaveBlockedCollectionKeys.current.has("promptPresets")) {
+        return createFailure(DROPPED_RECORD_SAVE_BLOCK_MESSAGE, true);
+      }
+
+      importCommitRunning.current = true;
+      const generation = storageGeneration.current;
+      const rawUrl = remoteRuntimeUrl;
+      promptPresetImportRollback.current = {
+        rawUrl,
+        snapshot: currentAppStorageRecords.current,
+      };
+      const isCommitCurrent = () =>
+        isAppStorageTargetCurrent({
+          expectedGeneration: generation,
+          expectedRawUrl: rawUrl,
+          currentGeneration: storageGeneration.current,
+          currentRawUrl: currentStorageRawUrl.current,
+        });
+      let result: AppStoragePromptPresetSaveResult;
+
+      try {
+        cancelQueuedSaveDispatch();
+        drainSaveQueue();
+        await waitForActiveSaveToSettle();
+
+        if (!isCommitCurrent()) {
+          result = createFailure(
+            "Prompt preset save was interrupted because the storage target changed.",
+            true,
+          );
+        } else {
+          const initialSnapshot = currentAppStorageRecords.current;
+
+          setMessengerStorageStatus("saving");
+          setMessengerStorageMessage("Saving imported prompt preset...");
+          const storageTransaction = await saveStagedPromptPresetToStorage({
+            preset,
+            initialSnapshot,
+            getRollbackSnapshot: () =>
+              promptPresetImportRollback.current?.snapshot ?? initialSnapshot,
+            isCommitCurrent,
+            rawUrl,
+          });
+
+          if (!isCommitCurrent()) {
+            result = createFailure(storageTransaction.message, true);
+          } else {
+            const persisted = storageTransaction.persisted;
+            if (persisted) {
+              mergeLoadedStorageMetadata(persisted.result.storageMetadata);
+              const { persistedSignature, currentSignature, hasUnsavedChanges } =
+                promptPresetPersistenceSignatures(
+                  persisted.snapshot,
+                  currentAppStorageRecords.current,
+                );
+              savedSignatures.current = {
+                ...savedSignatures.current,
+                promptPresets: persistedSignature,
+              };
+              delete pendingSaves.current.promptPresets;
+              delete saveErrors.current.promptPresets;
+              if (hasUnsavedChanges) {
+                // A catalog edit landed while the staged import was saving. Keep it dirty;
+                // publishing the imported preset triggers the normal coalesced save path.
+                unsavedSignatures.current.promptPresets = currentSignature;
+              } else {
+                delete unsavedSignatures.current.promptPresets;
+              }
+            } else if (!storageTransaction.saved) {
+              unsavedSignatures.current.promptPresets = appStorageCollectionSignature(
+                currentAppStorageRecords.current,
+                "promptPresets",
+              );
+            }
+
+            if (storageTransaction.saved && persisted) {
+              refreshSaveStatus(generation, persisted.result);
+              result = {
+                ...persisted.result,
+                saved: true,
+                blocked: false,
+              };
+            } else {
+              result = createFailure(storageTransaction.message, false);
+              refreshSaveStatus(generation, result);
+            }
+          }
+        }
+      } catch (error) {
+        result = createFailure(errorMessage(error), false);
+        refreshSaveStatus(generation, result);
+      } finally {
+        promptPresetImportRollback.current = null;
+        importCommitRunning.current = false;
+      }
+
+      if (!result.saved && isCommitCurrent()) {
+        await flushAppStorageSaves({ reason: "import" });
+      }
+
+      return result;
+    },
+    [
+      cancelQueuedSaveDispatch,
+      drainSaveQueue,
+      flushAppStorageSaves,
+      mergeLoadedStorageMetadata,
+      refreshSaveStatus,
+      remoteRuntimeUrl,
+      setMessengerStorageMessage,
+      setMessengerStorageStatus,
+      storageReady,
+      waitForActiveSaveToSettle,
     ],
   );
 
@@ -1949,6 +2134,7 @@ export function useAppStorageSync({
     importRecoveryState,
     reloadAppStorage,
     restoreLastPreImportBackup,
+    savePromptPresetImport,
     storageHasUnsavedChanges,
   };
 }

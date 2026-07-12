@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import type {
   NavCatalogState,
@@ -17,6 +17,7 @@ import {
   type PromptPresetDraftState,
 } from "./prompt-preset-draft";
 import { PromptPresetChoiceEditor } from "./PromptPresetChoiceEditor";
+import { PromptPresetFileActions } from "./PromptPresetFileActions";
 import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
 import "../shared/CatalogSurface.css";
 import "./PromptPresetsSurface.css";
@@ -28,8 +29,16 @@ interface PromptPresetsSurfaceProps {
 export type PromptPresetsSurfaceNav = Pick<NavCatalogState, "promptPresets"> &
   Pick<
     NavPromptPresetActions,
-    "createPromptPreset" | "deletePromptPreset" | "duplicatePromptPreset" | "updatePromptPreset"
+    | "createPromptPreset"
+    | "deletePromptPreset"
+    | "duplicatePromptPreset"
+    | "updatePromptPreset"
+    | "importPromptPresetFile"
+    | "openPromptPresetFile"
+    | "exportPromptPresetFile"
+    | "setPromptPresetFileStatus"
   > &
+  Pick<NavCatalogState, "promptPresetFileHost" | "promptPresetFileStatus"> &
   Pick<NavViewActions, "setView"> &
   Pick<NavViewState, "view">;
 
@@ -40,6 +49,10 @@ interface PromptPresetEditorProps {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onSave: (input: PromptPresetInput) => void;
+  fileActions: Omit<
+    ComponentProps<typeof PromptPresetFileActions>,
+    "visibility" | "selectedPresetId" | "exportBlockedReason"
+  >;
 }
 
 function PromptPresetEditor({
@@ -49,6 +62,7 @@ function PromptPresetEditor({
   onDelete,
   onDuplicate,
   onSave,
+  fileActions,
 }: PromptPresetEditorProps) {
   const [draft, setDraft] = useState<PromptPresetDraftState>(initialDraft);
   const hasPendingChanges = !promptPresetDraftsMatch(draft, initialDraft);
@@ -191,6 +205,19 @@ function PromptPresetEditor({
               </button>
             </section>
           )}
+
+          {editingId ? (
+            <PromptPresetFileActions
+              {...fileActions}
+              visibility="editor"
+              selectedPresetId={editingId}
+              exportBlockedReason={
+                hasPendingChanges ? "Save changes before exporting this preset." : undefined
+              }
+            />
+          ) : (
+            <PromptPresetFileActions {...fileActions} visibility="status" />
+          )}
         </div>
       </div>
     </>
@@ -236,6 +263,18 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
     if (preset) nav.setView({ kind: "presets", presetId: preset.id });
   }
 
+  const fileActions = {
+    host: nav.promptPresetFileHost,
+    importPromptPresetFile: nav.importPromptPresetFile,
+    openPromptPresetFile: nav.openPromptPresetFile,
+    exportPromptPresetFile: nav.exportPromptPresetFile,
+    navigationContext: nav.view,
+    originActive: true,
+    status: nav.promptPresetFileStatus,
+    onImportedPresetReady: (presetId: string) => nav.setView({ kind: "presets", presetId }),
+    onStatusChange: nav.setPromptPresetFileStatus,
+  };
+
   return (
     <main className="pond catalog-surface">
       {showEditor ? (
@@ -247,12 +286,14 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
           onDelete={editingId ? handleDelete : undefined}
           onDuplicate={editingId ? handleDuplicate : undefined}
           onSave={handleSave}
+          fileActions={fileActions}
         />
       ) : (
         <>
           <CatalogSurfaceBanner icon="≡" onBack={handleBack} title="Presets" />
           <div className="pond-inner catalog-inner catalog-editor-only">
             <div className="catalog-empty">Pick a preset from The Shoal or create a new one.</div>
+            <PromptPresetFileActions {...fileActions} visibility="list" />
           </div>
         </>
       )}

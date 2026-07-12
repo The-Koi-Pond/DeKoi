@@ -725,12 +725,14 @@ dependencies = [
  "keyring",
  "reqwest 0.12.28",
  "rfd",
+ "rustix",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-single-instance",
  "tauri-plugin-window-state",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

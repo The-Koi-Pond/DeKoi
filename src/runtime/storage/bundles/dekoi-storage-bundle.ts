@@ -39,7 +39,7 @@ import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
 import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
-import { normalizePromptPresetImportRecord } from "../prompt-preset-import";
+import { normalizePromptPresetImportRecord } from "../../../engine/prompt-presets/prompt-preset-package";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;

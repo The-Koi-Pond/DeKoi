@@ -292,6 +292,9 @@ Current implementation:
   static variable values, richer parameters, default/folder/author metadata,
   compatibility-only variable-order slots, and Messenger Prompt Source even
   where dedicated controls are not exposed.
+- The Presets catalog imports one compatible prompt-preset package as a fresh
+  native record and exports one selected saved record as a stable DeKoi-owned
+  `.json` package. Standalone preset files are not full storage bundles.
 - Messenger and Roleplay threads can select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still

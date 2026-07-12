@@ -55,6 +55,11 @@ export {
 export { loadLorebookRecords } from "./storage/collections/lorebook-storage";
 export { loadPromptPresetRecords } from "./storage/collections/prompt-preset-storage";
 export {
+  createPromptPresetFileExport,
+  parsePromptPresetFileText,
+  type PromptPresetFileParseResult,
+} from "./storage/prompt-presets/prompt-preset-file";
+export {
   loadInitialMessengerThreads,
   type MessengerStorageMode,
   type MessengerStorageStatus,

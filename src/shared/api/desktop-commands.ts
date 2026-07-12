@@ -1,6 +1,8 @@
 export const DESKTOP_COMMANDS = {
   fileExportBundle: "dekoi_file_export_bundle",
   fileImportBundle: "dekoi_file_import_bundle",
+  fileExportPromptPreset: "dekoi_file_export_prompt_preset",
+  fileImportPromptPreset: "dekoi_file_import_prompt_preset",
   hostStatus: "dekoi_host_status",
   providerSecretDelete: "dekoi_provider_secret_delete",
   providerSecretStatus: "dekoi_provider_secret_status",
@@ -20,6 +22,8 @@ export const DESKTOP_COMMAND_ALLOWLIST = [
   DESKTOP_COMMANDS.hostStatus,
   DESKTOP_COMMANDS.fileExportBundle,
   DESKTOP_COMMANDS.fileImportBundle,
+  DESKTOP_COMMANDS.fileExportPromptPreset,
+  DESKTOP_COMMANDS.fileImportPromptPreset,
   DESKTOP_COMMANDS.providerSecretDelete,
   DESKTOP_COMMANDS.providerSecretStatus,
   DESKTOP_COMMANDS.providerSecretWrite,

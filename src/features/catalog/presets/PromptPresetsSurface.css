@@ -215,6 +215,31 @@
   font-size: 11.5px;
 }
 
+.preset-file-actions {
+  margin-top: 16px;
+}
+
+.preset-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preset-file-note {
+  margin: -4px 0 0;
+}
+
+.preset-file-status {
+  margin: 10px 0 0;
+  color: var(--mist);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 @media (max-width: 720px) {
   .catalog-section-heading-row,
   .catalog-preset-block-head,

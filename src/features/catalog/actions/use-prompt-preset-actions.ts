@@ -5,6 +5,7 @@ import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import { removeRoleplayThreadPreset } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import {
+  createImportedPromptPresetRecord,
   createPromptPresetRecord,
   deletePromptPresetRecord,
   duplicatePromptPresetRecord,
@@ -71,6 +72,19 @@ export function usePromptPresetActions({
     [promptPresets, setPromptPresets],
   );
 
+  const prepareImportedPromptPreset = useCallback((record: PromptPresetRecord) => {
+    const now = currentIsoTimestamp();
+    return createImportedPromptPresetRecord(record, createRecordId("prompt-preset"), now);
+  }, []);
+
+  const addImportedPromptPreset = useCallback(
+    (record: PromptPresetRecord) => {
+      setPromptPresets((currentPresets) => [record, ...currentPresets]);
+      return record;
+    },
+    [setPromptPresets],
+  );
+
   const deletePromptPreset = useCallback(
     (presetId: string) => {
       const now = currentIsoTimestamp();
@@ -89,6 +103,8 @@ export function usePromptPresetActions({
     createPromptPreset,
     updatePromptPreset,
     duplicatePromptPreset,
+    prepareImportedPromptPreset,
+    addImportedPromptPreset,
     deletePromptPreset,
   };
 }
