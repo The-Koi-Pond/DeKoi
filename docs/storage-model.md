@@ -126,6 +126,28 @@ in app settings. If remote storage already has any saved collection records, or
 if desktop storage already has an empty `prompt-presets` collection, DeKoi
 records the one-time marker without adding the starter so deleting the starter
 preset is respected.
+
+### Development reset for a changed starter preset
+
+The bundled starter is ordinary stored data, so an existing development store
+does not automatically receive a newly changed starter. To inspect the current
+Universal V2 starter:
+
+- **Desktop/local app:** stop DeKoi, remove the local
+  `<app-data>/collections/prompt-presets.json` collection file, then restart
+  DeKoi. A missing desktop prompt-preset collection is seeded on startup. This
+  intentionally deletes the local development prompt presets; preserve or
+  export them first if they matter.
+- **Remote runtime:** reset or rebuild the _entire_ development data store using
+  the runtime/deployment's data-management procedure so that every DeKoi
+  collection is absent/empty, then restart the runtime and DeKoi. Remote
+  first-run seeding requires all collections to load cleanly and empty; deleting
+  only the remote `prompt-presets` collection does not trigger reseeding.
+
+There is no supported partial remote reset that preserves the other collections
+while re-running first-run seeding. Full resets intentionally destroy local
+development data.
+
 Choice blocks carry stable block IDs, unique variable names, optional questions,
 options with stable IDs and optional descriptions, reusable defaults,
 multi-select separators, display and sort modes, optional ordering/timestamp

@@ -1620,9 +1620,10 @@ describe("prompt preset generation", () => {
       .map((message) => message.content)
       .join("\n\n");
 
-    expect(promptText).toContain("output only Mara's natural next response or action.");
+    expect(promptText).toContain("Continue the scene as Mara.");
     expect(promptText).toContain("Write only Mara's next turn as one character entry.");
-    expect(promptText).not.toContain("Portray the world and every character");
-    expect(promptText).not.toContain("multi-character exchanges");
+    expect(promptText).toContain(
+      "Do not write the user's response, narrator text, scene-beat text, or other characters' lines.",
+    );
   });
 });

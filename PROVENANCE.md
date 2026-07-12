@@ -50,6 +50,8 @@ legacy application record model.
 - Team-authored prompt packages from the old De-Koi tree may be retained intact
   with attribution when the maintainer has approved them as DeKoi source
   material.
+- The bundled Universal V2 starter package is Chai-authored, team-owned prompt
+  material retained intact at `src/engine/prompt-presets/DeKoiUniversalPreset.json`.
 
 This distinction lets DeKoi-built presets round-trip through compatible tools
 without turning another application's internal schema or implementation into

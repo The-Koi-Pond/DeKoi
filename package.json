@@ -13,7 +13,7 @@
     "check:line-endings": "node scripts/check-line-endings.mjs",
     "check:agent-routing": "node --test scripts/check-agent-routing.test.mjs && node scripts/check-agent-routing.mjs",
     "check:desktop-contracts": "node scripts/check-desktop-contracts.mjs",
-    "check:storage-contracts": "node scripts/check-storage-contracts.mjs",
+    "check:storage-contracts": "node scripts/check-storage-contracts.mjs && node scripts/check-starter-preset-integrity.mjs",
     "check:provider-secret-safety": "node scripts/check-provider-secret-safety.mjs",
     "check:runtime-contracts": "node scripts/check-runtime-contracts.mjs",
     "check:frontend-boundaries": "node scripts/check-frontend-boundaries.mjs",
