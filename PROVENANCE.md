@@ -55,8 +55,31 @@ legacy application record model.
 
 ### Universal V2 provenance review
 
-This record preserves two distinct pieces of source evidence rather than using
-maintainer approval as evidence of authorship:
+This checked-in record is the reviewable primary-attestation evidence for the
+package. It preserves who made and received the attestation, its exact claim,
+its complete scope, and the immutable artifact it covers; maintainer approval
+is recorded separately and is not used as evidence of authorship.
+
+| Evidence field          | Recorded evidence                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evidence type           | Primary author attestation supplied with the source package                                                                                                                                       |
+| Attestor                | Chai, the package author                                                                                                                                                                          |
+| Recipient and custodian | The De-Koi team; retained by DeKoi maintainer Xel with the approved team-owned source material                                                                                                    |
+| Attested claim          | Chai independently authored all prompt prose, choice text, package structure, and metadata enumerated below for the team; no Marinara prompt text or structure was copied, adapted, or translated |
+| Artifact covered        | Git blob `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, 40,225 bytes, SHA-256 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`                                                     |
+| Scope evidence          | The complete source-level inventory below; every prompt section, choice block, Messenger field, and metadata surface is accounted for                                                             |
+| Permission evidence     | Xel's maintainer approval to retain and distribute the attested team-owned package in DeKoi                                                                                                       |
+
+Reviewers can reproduce the evidence check without trusting a package label:
+
+1. Hash `src/engine/prompt-presets/DeKoiUniversalPreset.json` and verify the
+   byte count, Git blob, and SHA-256 above.
+2. Compare every package surface with the complete attestation inventory below;
+   no unlisted prompt or metadata surface may inherit this attestation.
+3. Run `pnpm check:storage-contracts`, which rejects an artifact that differs
+   from the reviewed bytes.
+
+The two source statements recorded by the custodian are:
 
 - Chai supplied the Universal V2 source package to the De-Koi team with the
   source-level attestation that Chai independently authored its prompt prose,
