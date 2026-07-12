@@ -53,6 +53,29 @@ legacy application record model.
 - The bundled Universal V2 starter package is Chai-authored, team-owned prompt
   material retained intact at `src/engine/prompt-presets/DeKoiUniversalPreset.json`.
 
+### Universal V2 provenance review
+
+The maintainer approved Chai's complete Universal V2 package as DeKoi source
+material. Chai independently authored its prompt prose, choice text, package
+structure, and metadata for the De-Koi team; no Marinara prompt text was copied
+or adapted into the package. The description's "audit of Marinara's Universal
+Preset" records the benchmark used to identify problems, not a source for the
+resulting wording or structure.
+
+This approval covers all 14 prompt sections (role, five context/marker rows,
+context contract, world autonomy, agency boundaries, erotic tone, style,
+pacing, examples, history, and output), the context group, all 11 choice
+blocks and their options, default and visibility selections, generation
+parameters, Messenger prompt, and package metadata. The compatibility envelope
+is retained only as an import fixture; DeKoi normalizes it into a native editable
+record before storage or generation.
+
+The approved artifact is exactly 40,225 bytes with SHA-256
+`975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`.
+`pnpm check:storage-contracts` guards that identity so prompt or metadata changes
+require a new maintainer provenance review rather than silently inheriting this
+approval.
+
 This distinction lets DeKoi-built presets round-trip through compatible tools
 without turning another application's internal schema or implementation into
 DeKoi's product model.
