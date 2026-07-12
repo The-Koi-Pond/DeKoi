@@ -394,9 +394,10 @@ function buildPostHistoryPrompt({
     personaPostHistoryInstructions.trim()
       ? `Persona post-history instructions: ${personaPostHistoryInstructions}`
       : "",
-    `Continue the scene as ${targetName}.`,
-    `Write only ${targetName}'s next turn as one character entry. Do not write ${userName}'s response, narrator text, scene-beat text, or other characters' lines.`,
-    "Do not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
+    `Continue the scene with ${targetName} as the primary character.`,
+    `Never write ${userName}'s dialogue, intent, decisions, or deliberate actions.`,
+    "Follow the selected preset's output behavior for narration and other characters.",
+    "Do not include metadata, markdown fences, or out-of-world notes.",
   ]
     .filter((line) => line.trim())
     .join("\n");

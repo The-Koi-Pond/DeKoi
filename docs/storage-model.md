@@ -181,8 +181,9 @@ marker when present, or around the sectioned prompt message stream by depth from
 the newest item. If a sectioned preset leaves no materialized messages after
 enabled/group/content filtering, Roleplay falls back to the selected system
 prompt without automatically replaying transcript history. DeKoi still appends
-the target companion single-character post-history contract until Roleplay has a
-native narrator, scene-beat, or multi-character generated-output model.
+a Roleplay post-history contract that keeps the target
+companion primary, protects the user's dialogue and agency, and leaves narration
+and other-character output behavior to the selected preset.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 stable prompt-preset choice-block ID. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, and multi-select separators into

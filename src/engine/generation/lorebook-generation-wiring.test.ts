@@ -3618,7 +3618,7 @@ describe("generation lorebook activation wiring", () => {
       "Alex: First turn.",
       "Alex: Newest turn.",
       expect.stringContaining("Roleplay at-depth lore."),
-      expect.stringContaining("Continue the scene as Mara."),
+      expect.stringContaining("Continue the scene with Mara as the primary character."),
     ]);
     expect(request.promptMessages[3].role).toBe("system");
   });
@@ -3787,7 +3787,7 @@ describe("generation lorebook activation wiring", () => {
     expect(promptText).toContain("After roleplay lore for Alex using test-model.");
     expect(promptText).toContain("Depth roleplay lore sees roleplay-thread-1 and Open the gate.");
     expect(promptText).not.toContain("Comment Only:");
-    expect(postHistoryPrompt).toContain("Continue the scene as Mara.");
+    expect(postHistoryPrompt).toContain("Continue the scene with Mara as the primary character.");
     expect(postHistoryPrompt).toContain(
       "Character post-history instructions: Character says Open the gate. to Alex.",
     );
