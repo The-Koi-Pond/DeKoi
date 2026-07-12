@@ -130,16 +130,135 @@ function safeRead(p) {
   }
 }
 
+export function listMarkdownSections(markdown) {
+  if (!markdown) return [];
+  return markdown
+    .split(/\r?\n/)
+    .map((line) => /^(#{1,6})\s+(.+?)\s*$/.exec(line))
+    .filter(Boolean)
+    .map((match) => ({ level: match[1].length, heading: match[2] }));
+}
+
+export function selectMarkdownSections(markdown, requestedHeadings) {
+  if (!markdown || requestedHeadings.length === 0) return null;
+  const lines = markdown.split(/\r?\n/);
+  const requested = new Set(requestedHeadings.map(normalizeHeading));
+  const found = new Set();
+  const selected = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = /^(#{1,6})\s+(.+?)\s*$/.exec(lines[index]);
+    if (!match || !requested.has(normalizeHeading(match[2]))) continue;
+
+    found.add(normalizeHeading(match[2]));
+    const level = match[1].length;
+    let end = index + 1;
+    while (end < lines.length) {
+      const next = /^(#{1,6})\s+/.exec(lines[end]);
+      if (next && next[1].length <= level) break;
+      end += 1;
+    }
+    selected.push(lines.slice(index, end).join("\n").trimEnd());
+  }
+
+  const missing = [...requested].filter((heading) => !found.has(heading));
+  if (missing.length > 0) {
+    throw new Error(`Missing or mismatched Markdown heading(s): ${missing.join(", ")}`);
+  }
+  return `${selected.join("\n\n")}\n`;
+}
+
+function normalizeHeading(heading) {
+  return heading.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function parseCliArgs(args) {
+  const options = {
+    listSections: false,
+    productAll: false,
+    productSections: [],
+    designSections: [],
+  };
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--list-sections") options.listSections = true;
+    else if (arg === "--product-all") options.productAll = true;
+    else if (arg === "--product-section" || arg === "--design-section") {
+      const value = args[index + 1];
+      if (!value) throw new Error(`${arg} requires an exact heading`);
+      const target = arg === "--product-section" ? options.productSections : options.designSections;
+      target.push(value);
+      index += 1;
+    } else if (arg === "--help" || arg === "-h") {
+      options.help = true;
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+  return options;
+}
+
 // ---------------------------------------------------------------------------
 // CLI mode — print the context as JSON
 // ---------------------------------------------------------------------------
 
 function cli() {
   const result = loadContext(process.cwd());
+  const options = parseCliArgs(process.argv.slice(2));
+  if (options.help) {
+    console.log(`Usage: node load-context.mjs [options]
+
+Without options, emits the historical full context JSON.
+
+Options:
+  --list-sections             List PRODUCT.md and DESIGN.md headings only
+  --product-all               Include the complete PRODUCT.md
+  --product-section HEADING   Include one exact PRODUCT.md section (repeatable)
+  --design-section HEADING    Include one exact DESIGN.md section (repeatable)
+  -h, --help                  Show this help`);
+    return;
+  }
+  if (options.listSections) {
+    console.log(
+      JSON.stringify(
+        {
+          productPath: result.productPath,
+          designPath: result.designPath,
+          productSections: listMarkdownSections(result.product),
+          designSections: listMarkdownSections(result.design),
+          contextDir: result.contextDir,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  if (options.productAll || options.productSections.length || options.designSections.length) {
+    console.log(
+      JSON.stringify(
+        {
+          ...result,
+          product: options.productAll
+            ? result.product
+            : selectMarkdownSections(result.product, options.productSections),
+          design: selectMarkdownSections(result.design, options.designSections),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   console.log(JSON.stringify(result, null, 2));
 }
 
 const _running = process.argv[1];
 if (_running?.endsWith("load-context.mjs") || _running?.endsWith("load-context.mjs/")) {
-  cli();
+  try {
+    cli();
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  }
 }

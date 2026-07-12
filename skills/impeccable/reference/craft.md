@@ -7,12 +7,19 @@ Build a feature with impeccable UX and UI quality through a structured process: 
 Craft cannot build until all of these are true:
 
 1. PRODUCT context is valid and current.
-2. The shape design brief is explicitly confirmed by the user for this task, unless the user already provided a confirmed brief.
+2. The task is sufficiently shaped to implement without inventing consequential
+   product or visual direction.
 3. Implementation references from the brief are loaded.
 4. The shape visual probe decision is recorded: generated, skipped with reason, or already resolved.
 5. The north-star mock decision is recorded: generated, skipped with reason, or not applicable.
 
-PRODUCT.md and `teach` answers do **not** satisfy the shape gate. They are project context only. A compact self-authored brief does not satisfy the shape gate either. `shape=pass` requires a separate user response approving the shape brief or an already-confirmed brief supplied by the user.
+For a clear, reversible, well-specified UI request, record `shape=not_required`
+and proceed using the request plus relevant product/design evidence. Require a
+separate user confirmation only when unresolved direction would materially
+change product behavior, information architecture, destructive behavior,
+expensive assets, or a broad visual-system commitment. PRODUCT.md and `teach`
+answers remain project context; they do not authorize an unresolved product
+decision.
 
 Invalid image-skip reasons include: "the final implementation will be semantic HTML/CSS/SVG", "the diagram should stay editable", "a raster mock would not be used directly", or "the product is fictional." Generated probes and mocks are direction artifacts; they are not implementation assets.
 
@@ -31,11 +38,17 @@ Do not let generated mockups replace interface structure, copy, accessibility, r
 
 ## Step 1: Shape the Design
 
-Run $impeccable shape, passing along whatever feature description the user provided.
+Run $impeccable shape when the material direction described by the build gate is
+unresolved. Otherwise write a concise internal shape summary and proceed.
 
-Wait for the design brief to be fully confirmed by the user before proceeding. The brief is your blueprint, and every implementation decision should trace back to it.
+When shape is required, wait for the consequential choices to be confirmed.
+When it is not required, treat the user's well-specified request as the brief
+and trace implementation decisions to it and the loaded design sections.
 
-If this craft run resumed after `teach` created PRODUCT.md, run shape now. Do not treat the teach interview, PRODUCT.md, or a summary of project context as a substitute for shape. Shape is task-specific and must cover scope, content/states, visual direction, constraints, anti-goals, probes when applicable, and explicit brief confirmation.
+If this craft run resumed after `teach` created PRODUCT.md, re-evaluate the
+build gate. Do not treat the teach interview or PRODUCT.md as authorization for
+an unresolved product choice, but do not require shape when the original
+request is already clear, reversible, and sufficiently specified.
 
 If the user has already run $impeccable shape and has a confirmed design brief, skip this step and use the existing brief.
 

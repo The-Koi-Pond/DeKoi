@@ -10,7 +10,9 @@ Use this as DeKoi's creative frontend builder lens. It helps choose the visual d
 ## DeKoi Order
 
 1. Keep root instructions, `.github/agents/dekoi-workflow.md`, and the matching workflow card in force.
-2. Load `PRODUCT.md` and `DESIGN.md` before choosing visual direction.
+2. Load `PRODUCT.md` and only the relevant `DESIGN.md` sections before choosing
+   visual direction. Use the section-routing commands below; do not read the
+   complete `DESIGN.md` unless the task truly spans most of the design system.
 3. Load `skills/impeccable/SKILL.md` after the first design pass when critique, accessibility, responsive behavior, hardening, polish, or live iteration matters.
 4. Load `ARCHITECTURE.md` for ownership/import/shared API questions.
 5. Load `DOMAIN_MODEL.md` for Messenger, Roleplay, catalog, provider, prompt, generation, or shared surface naming.
@@ -20,6 +22,30 @@ Use this as DeKoi's creative frontend builder lens. It helps choose the visual d
 - `frontend-design`: decide the concept, hierarchy, density, layout, motion direction, and first implementation shape.
 - `impeccable`: audit and harden product fit, accessibility, responsive behavior, UX copy, edge states, visual consistency, and AI-slop risk.
 - Browser or Tauri proof: prove UI behavior in browser/native paths when needed.
+
+## Design Context Routing
+
+List available headings without emitting either document:
+
+```bash
+node skills/impeccable/scripts/load-context.mjs --list-sections
+```
+
+For a normal UI task, load the short `PRODUCT.md`, the three core design
+sections, and only the affected surface/aspect sections:
+
+```bash
+node skills/impeccable/scripts/load-context.mjs --product-all \
+  --design-section "1. What DeKoi Is, In Design Terms" \
+  --design-section "2. Experience Pillars" \
+  --design-section "3. Visual Direction" \
+  --design-section "<relevant exact heading>"
+```
+
+Add sections for the actual change: layout, conversation surfaces, components,
+motion, color, typography, voice, or accessibility. Reuse already-loaded
+sections in the same session. If a heading is missing, stop and select from
+`--list-sections`; never silently fall back to the whole file.
 
 ## Design Direction
 

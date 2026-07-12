@@ -108,11 +108,10 @@ Scale by semantic risk, not file or line count:
 
 Cluster broad diffs by owner or contract and separate mechanical/generated noise
 from semantic changes. Delegate independent read-only clusters only when it
-reduces latency or context pollution. Use the `delegate` skill: a mapper for
-relationships, a quality reviewer for complex integration, and a Sol risk
-reviewer only for high-risk decisions. The root verifies, integrates, and
-deduplicates all findings. Do not invoke Ultracode unless the user explicitly
-asks for the heavy-duty orchestration mode.
+reduces latency or context pollution. Use native registered roles directly: a
+mapper for relationships, a quality reviewer for complex integration, and a
+risk reviewer only for high-risk decisions. The root verifies, integrates, and
+deduplicates all findings. Workers remain read-only and must not spawn workers.
 
 ## Review Protocol
 

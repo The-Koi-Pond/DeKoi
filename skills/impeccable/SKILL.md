@@ -13,14 +13,14 @@ In DeKoi, this skill adds UI critique, hardening, polish, and product-fit judgme
 
 Before any design work or file edits, pass these gates. Skipping them produces generic output that ignores the project.
 
-| Gate     | Required check                                                                                                  | If fail                                                                                                                   |
-| -------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Context  | The PRODUCT.md / DESIGN.md loader result is known from `node skills/impeccable/scripts/load-context.mjs`.       | Run the loader before continuing.                                                                                         |
-| Product  | PRODUCT.md exists and is not empty or placeholder (`[TODO]` markers, <200 chars).                               | Run `$impeccable teach`, refresh context, then resume. Never synthesize PRODUCT.md from the user's original prompt alone. |
-| Command  | The matching command reference is loaded when a sub-command is used.                                            | Load the reference before continuing.                                                                                     |
-| Craft    | `$impeccable craft` has a user-confirmed shape brief for this task. `teach` / PRODUCT.md never counts as shape. | Run `$impeccable shape` and wait for explicit brief confirmation.                                                         |
-| Image    | Required visual probes / mocks are generated or skipped with a reason.                                          | Resolve the image-generation gate in `shape.md` or `craft.md` before code.                                                |
-| Mutation | All active gates above pass.                                                                                    | Do not edit project files yet.                                                                                            |
+| Gate     | Required check                                                                                      | If fail                                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Context  | The relevant PRODUCT.md / DESIGN.md context is known from the section-selecting loader route below. | List headings, then load core plus task-relevant sections.                                                                |
+| Product  | PRODUCT.md exists and is not empty or placeholder (`[TODO]` markers, <200 chars).                   | Run `$impeccable teach`, refresh context, then resume. Never synthesize PRODUCT.md from the user's original prompt alone. |
+| Command  | The matching command reference is loaded when a sub-command is used.                                | Load the reference before continuing.                                                                                     |
+| Craft    | The task has enough shape to implement without inventing consequential product or visual direction. | Run `$impeccable shape`; require confirmation only for material ambiguity or costly/irreversible direction.               |
+| Image    | Required visual probes / mocks are generated or skipped with a reason.                              | Resolve the image-generation gate in `shape.md` or `craft.md` before code.                                                |
+| Mutation | All active gates above pass.                                                                        | Do not edit project files yet.                                                                                            |
 
 Codex-style agents must state this before editing files:
 
@@ -28,7 +28,12 @@ Codex-style agents must state this before editing files:
 IMPECCABLE_PREFLIGHT: context=pass product=pass command_reference=pass shape=pass|not_required image_gate=pass|skipped:<reason> mutation=open
 ```
 
-For `$impeccable craft`, `shape=pass` is only valid after a separate user response approving the shape design brief, or when the user provided an already-confirmed brief in the request. Do not mark `shape=pass` after writing PRODUCT.md, summarizing assumptions, or drafting an unconfirmed brief yourself.
+For `$impeccable craft`, use `shape=not_required` when the request and existing
+product/design guidance already specify a reversible UI change well enough to
+proceed. Use `shape=pass` for a confirmed brief. Require a separate user answer
+only when unresolved direction would materially change product behavior,
+information architecture, destructive behavior, expensive assets, or a broad
+visual-system commitment. Do not manufacture ambiguity to force a shape round.
 
 Other harnesses should follow the same checklist when they can expose this state.
 
@@ -39,19 +44,36 @@ Two files, case-insensitive. The loader looks at the project root by default and
 - **PRODUCT.md**: required. Users, brand, tone, anti-references, strategic principles.
 - **DESIGN.md**: optional, strongly recommended. Colors, typography, elevation, components.
 
-Load both in one call:
+List headings first without loading document bodies:
 
 ```bash
-node skills/impeccable/scripts/load-context.mjs
+node skills/impeccable/scripts/load-context.mjs --list-sections
 ```
 
-Consume the full JSON output. Never pipe through `head`, `tail`, `grep`, or `jq`. The output's `contextDir` field tells you where the files were resolved from.
+Then load the complete short `PRODUCT.md`, the core DeKoi design sections, and
+only task-relevant `DESIGN.md` sections:
+
+```bash
+node skills/impeccable/scripts/load-context.mjs --product-all \
+  --design-section "1. What DeKoi Is, In Design Terms" \
+  --design-section "2. Experience Pillars" \
+  --design-section "3. Visual Direction" \
+  --design-section "<relevant exact heading>"
+```
+
+Add exact sections for affected layout, conversation, component, motion, color,
+type, voice, or accessibility concerns. Do not emit full `DESIGN.md` unless the
+task genuinely spans most of the design system. The output's `contextDir` field
+tells you where the files were resolved from.
 
 If the output is already in this session's conversation history, don't re-run. Exceptions requiring a fresh load: you just ran `$impeccable teach` or `$impeccable document` (they rewrite the files), or the user manually edited one.
 
 `$impeccable live` already warms context via `live.mjs`. If you've run `live.mjs`, don't also run `load-context.mjs` this session.
 
-If PRODUCT.md is missing, empty, or placeholder (`[TODO]` markers, <200 chars): run `$impeccable teach`, then resume the user's original task with the fresh context. If the original task was `$impeccable craft`, resume into `$impeccable shape` before any implementation work.
+If PRODUCT.md is missing, empty, or placeholder (`[TODO]` markers, <200 chars):
+run `$impeccable teach`, then resume the user's original task with fresh
+section-selected context. If the original task was `$impeccable craft`, run
+shape only when the build gate still identifies a material unresolved choice.
 
 If DESIGN.md is missing: nudge once per session (_"Run `$impeccable document` for more on-brand output"_), then proceed.
 

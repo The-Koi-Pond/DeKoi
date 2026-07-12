@@ -152,7 +152,7 @@ behavior, prompt/provider transport, auth/credentials/filesystem/external
 services, destructive or bulk operations, compatibility promises, or injected
 user-controlled rendering.
 
-Give the root or Sol risk reviewer a focused packet:
+Use this focused proof packet:
 
 - core claim and risk type
 - owner path and entrypoints
@@ -166,11 +166,6 @@ Give the root or Sol risk reviewer a focused packet:
 
 Untested rows remain explicit risks. Do not invite broad repo sweeps when the
 packet can identify the decision boundary.
-
-Use a separate Sol risk reviewer for security, data integrity, concurrency,
-irreversible behavior, or an ambiguous high-risk decision. For other resolved
-risky work, the Sol root may apply the packet directly without another model
-call.
 
 Apply relevant bug-class proof:
 
@@ -191,8 +186,9 @@ updates, and untyped shared API drift.
 
 ## Durable Notes Lane
 
-- Use `skills/grill-with-docs/SKILL.md` when requirements, terminology, owner,
-  proof, or durable documentation placement needs sharpening.
+- When requirements, terminology, owner, proof, or durable documentation
+  placement needs sharpening, inspect the relevant product and repository docs
+  before asking one focused question.
 - Durable product or architecture decisions belong in relevant docs, an issue,
   or a PR—not an ad hoc status ledger.
 - Search `scratch/TODO.md` by owner/path/feature/risk and update only matching

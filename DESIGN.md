@@ -4,6 +4,9 @@
 root design notes. The machine-readable companion contract is [`DESIGN.json`](./DESIGN.json); when
 the two disagree, fix the disagreement — do not pick a favorite.
 
+This document defines intended design contracts; it is not evidence that every described surface
+or refinement is already implemented. Verify implementation status in current source and tests.
+
 **North star:** _Keep a pond, not a platform._ DeKoi should feel like a small lantern-lit studio
 built over dark water: every story lives in the user's own files, every control feels shaped by
 hand, koi and ripples move only in open water, and dense creative work always happens on calm,
@@ -677,28 +680,3 @@ matters.
 - Don't hide errors in toasts or bury retry behind menus — failures live inline with their turn.
 - Don't let compact density shrink type below the scale minimums.
 - Don't ship hover-only affordances without focus and touch equivalents.
-
----
-
-## 14. Implementation Plan (staged, not for this change)
-
-1. **Stage 1 — Token adoption & cleanup.** Keep `pond-tokens.css` aligned with the color,
-   spacing, radius, type, motion, opacity, and elevation contracts; replace repeated raw
-   spacing/radius values with tokens opportunistically; re-cut any stray non-token state colors
-   to jade/amber/koi; verify `DESIGN.json` values match CSS one-to-one.
-2. **Stage 2 — Hero & shell consistency.** Refine the living mark (ring spacing, koi drawing,
-   wake subtlety, designed reduced-motion still); normalize waterline/bank/shoal/tide materials
-   and borders to the material stack; give the care drawer its floating shadow + scrim overlay
-   behavior at narrow widths.
-3. **Stage 3 — Conversation differentiation.** Implement Messenger grouping/gutter rhythm and
-   quiet action pills; implement Roleplay scene header, speaker lines, narration/OOC/ripple-seam
-   variants, staged avatars; raise message body type to the §5 scale; unify pending/error turn
-   treatments.
-4. **Stage 4 — Catalog, settings, storage, provider polish.** Apply density rules to Companions/
-   Personas/Lorebooks/Presets/Agents/Media catalogs; rebuild Connections forms to labeled-field
-   standards with secret-safe affordances; bring Data & Backup logs to readable-row +
-   inline-action standards with honest destructive confirms.
-5. **Stage 5 — Accessibility & motion audit.** Contrast pass on every token pairing in use;
-   keyboard walk of shell + both thread surfaces; touch-target audit at coarse pointer; reduced-
-   motion visual QA of hero, caustics, and celebratory ripples; screen-reader pass on status,
-   alerts, avatars, and the living mark.

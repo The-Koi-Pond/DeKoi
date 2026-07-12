@@ -12,7 +12,6 @@ Owner paths:
 - `src/engine/generation/messenger-generation.ts`
 - `src/features/modes/messenger`
 - `src/features/runtime/generation/messenger-generation.ts`
-- `src/features/runtime/generation/mock-messenger-generation.ts`
 - `src/features/runtime/generation/provider-messenger-generation.ts`
 
 Owns:
