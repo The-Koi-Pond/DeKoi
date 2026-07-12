@@ -922,11 +922,17 @@ export function useAppStorageSync({
   );
 
   const flushAppStorageSaves = useCallback(
-    async (options?: { reason?: AppStorageFlushReason }): Promise<AppStorageFlushResult> => {
+    async (options?: {
+      reason?: AppStorageFlushReason;
+      allowActiveTransaction?: boolean;
+    }): Promise<AppStorageFlushResult> => {
       const reason = options?.reason ?? "manual";
       const generation = storageGeneration.current;
 
-      if (storageTransactionCoordinator.hasActiveTransaction()) {
+      if (
+        storageTransactionCoordinator.hasActiveTransaction() &&
+        !options?.allowActiveTransaction
+      ) {
         return {
           mode: currentStorageMode.current,
           status: "error",
@@ -1195,7 +1201,8 @@ export function useAppStorageSync({
             delete unsavedSignatures.current.promptPresets;
           },
           refreshSaveStatus,
-          flushFailureSaves: () => flushAppStorageSaves({ reason: "import" }),
+          flushFailureSaves: () =>
+            flushAppStorageSaves({ reason: "import", allowActiveTransaction: true }),
         },
       });
     },

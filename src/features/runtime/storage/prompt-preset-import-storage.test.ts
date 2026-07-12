@@ -434,5 +434,46 @@ describe("runPromptPresetImportStorageTransaction", () => {
     expect(result).toMatchObject({ saved: false, blocked: false, message: "Staged save failed." });
     expect(harness.events).toContain("persisted-signature");
     expect(harness.events.indexOf("status")).toBeLessThan(harness.events.indexOf("flush"));
+    expect(harness.coordinator.hasActiveTransaction()).toBe(false);
+  });
+
+  it("holds exclusivity through failure cleanup and releases it when cleanup throws", async () => {
+    const snapshot = appStorageRecords([promptPreset("prompt-preset-existing")]);
+    const harness = transactionHarness(snapshot);
+    harness.ports.flushFailureSaves = async () => {
+      harness.events.push("flush");
+      expect(harness.coordinator.hasActiveTransaction()).toBe(true);
+      expect(harness.coordinator.tryBegin("bundle-import")).toBeNull();
+      throw new Error("cleanup failed");
+    };
+
+    await expect(
+      runPromptPresetImportStorageTransaction({
+        preset: promptPreset("prompt-preset-imported"),
+        coordinator: harness.coordinator,
+        ports: harness.ports,
+        saveCollection: vi.fn().mockResolvedValue(storageResult("error", "Save failed.")),
+      }),
+    ).rejects.toThrow("cleanup failed");
+
+    expect(harness.coordinator.hasActiveTransaction()).toBe(false);
+  });
+
+  it("releases exclusivity when status publication throws", async () => {
+    const harness = transactionHarness(appStorageRecords([]));
+    harness.ports.refreshSaveStatus = () => {
+      throw new Error("status publication failed");
+    };
+
+    await expect(
+      runPromptPresetImportStorageTransaction({
+        preset: promptPreset("prompt-preset-imported"),
+        coordinator: harness.coordinator,
+        ports: harness.ports,
+        saveCollection: vi.fn().mockResolvedValue(storageResult("ready", "Saved.")),
+      }),
+    ).rejects.toThrow("status publication failed");
+
+    expect(harness.coordinator.hasActiveTransaction()).toBe(false);
   });
 });

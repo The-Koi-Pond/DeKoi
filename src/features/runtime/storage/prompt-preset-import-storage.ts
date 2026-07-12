@@ -188,75 +188,80 @@ export async function runPromptPresetImportStorageTransaction({
     );
   }
 
-  let result: PromptPresetImportSaveResult;
-
   try {
-    ports.cancelQueuedSaveDispatch();
-    ports.drainSaveQueue();
-    await ports.waitForActiveSaveToSettle();
+    let result: PromptPresetImportSaveResult;
 
-    if (!transaction.isTargetCurrent()) {
-      result = createFailure(
-        "Prompt preset save was interrupted because the storage target changed.",
-        true,
-      );
-    } else {
-      const initialSnapshot = transaction.getLatestSnapshot();
-      ports.publishSaving("Saving imported prompt preset...");
-      const storageTransaction = await saveStagedPromptPresetToStorage({
-        preset,
-        initialSnapshot,
-        getRollbackSnapshot: transaction.getRollbackSnapshot,
-        isCommitCurrent: transaction.isTargetCurrent,
-        rawUrl: transaction.target.rawUrl,
-        saveCollection,
-      });
+    try {
+      ports.cancelQueuedSaveDispatch();
+      ports.drainSaveQueue();
+      await ports.waitForActiveSaveToSettle();
 
       if (!transaction.isTargetCurrent()) {
-        result = createFailure(storageTransaction.message, true);
+        result = createFailure(
+          "Prompt preset save was interrupted because the storage target changed.",
+          true,
+        );
       } else {
-        const persisted = storageTransaction.persisted;
-        if (persisted) {
-          ports.mergeStorageMetadata(persisted.result.storageMetadata);
-          const { persistedSignature, currentSignature, hasUnsavedChanges } =
-            promptPresetPersistenceSignatures(persisted.snapshot, transaction.getLatestSnapshot());
-          ports.setPersistedPromptPresetSignature(persistedSignature);
-          ports.clearPendingPromptPresetSave();
-          ports.clearPromptPresetSaveError();
-          if (hasUnsavedChanges) {
-            ports.setUnsavedPromptPresetSignature(currentSignature);
-          } else {
-            ports.clearUnsavedPromptPresetSignature();
-          }
-        } else if (!storageTransaction.saved) {
-          ports.setUnsavedPromptPresetSignature(
-            appStorageCollectionSignature(transaction.getLatestSnapshot(), "promptPresets"),
-          );
-        }
+        const initialSnapshot = transaction.getLatestSnapshot();
+        ports.publishSaving("Saving imported prompt preset...");
+        const storageTransaction = await saveStagedPromptPresetToStorage({
+          preset,
+          initialSnapshot,
+          getRollbackSnapshot: transaction.getRollbackSnapshot,
+          isCommitCurrent: transaction.isTargetCurrent,
+          rawUrl: transaction.target.rawUrl,
+          saveCollection,
+        });
 
-        if (storageTransaction.saved && persisted) {
-          ports.refreshSaveStatus(transaction.target.generation, persisted.result);
-          result = {
-            ...persisted.result,
-            saved: true,
-            blocked: false,
-          };
+        if (!transaction.isTargetCurrent()) {
+          result = createFailure(storageTransaction.message, true);
         } else {
-          result = createFailure(storageTransaction.message, false);
-          ports.refreshSaveStatus(transaction.target.generation, result);
+          const persisted = storageTransaction.persisted;
+          if (persisted) {
+            ports.mergeStorageMetadata(persisted.result.storageMetadata);
+            const { persistedSignature, currentSignature, hasUnsavedChanges } =
+              promptPresetPersistenceSignatures(
+                persisted.snapshot,
+                transaction.getLatestSnapshot(),
+              );
+            ports.setPersistedPromptPresetSignature(persistedSignature);
+            ports.clearPendingPromptPresetSave();
+            ports.clearPromptPresetSaveError();
+            if (hasUnsavedChanges) {
+              ports.setUnsavedPromptPresetSignature(currentSignature);
+            } else {
+              ports.clearUnsavedPromptPresetSignature();
+            }
+          } else if (!storageTransaction.saved) {
+            ports.setUnsavedPromptPresetSignature(
+              appStorageCollectionSignature(transaction.getLatestSnapshot(), "promptPresets"),
+            );
+          }
+
+          if (storageTransaction.saved && persisted) {
+            ports.refreshSaveStatus(transaction.target.generation, persisted.result);
+            result = {
+              ...persisted.result,
+              saved: true,
+              blocked: false,
+            };
+          } else {
+            result = createFailure(storageTransaction.message, false);
+            ports.refreshSaveStatus(transaction.target.generation, result);
+          }
         }
       }
+    } catch (error) {
+      result = createFailure(errorMessage(error), false);
+      ports.refreshSaveStatus(transaction.target.generation, result);
     }
-  } catch (error) {
-    result = createFailure(errorMessage(error), false);
-    ports.refreshSaveStatus(transaction.target.generation, result);
+
+    if (!result.saved && transaction.isTargetCurrent()) {
+      await ports.flushFailureSaves();
+    }
+
+    return result;
   } finally {
     transaction.finish();
   }
-
-  if (!result.saved && transaction.isTargetCurrent()) {
-    await ports.flushFailureSaves();
-  }
-
-  return result;
 }
