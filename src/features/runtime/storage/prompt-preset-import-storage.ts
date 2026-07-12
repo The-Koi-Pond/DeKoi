@@ -208,10 +208,8 @@ export async function runPromptPresetImportStorageTransaction({
   try {
     const activeTarget = ports.captureTarget();
     target = activeTarget;
-    const rollback = ports.trackRollbackSnapshot(
-      activeTarget.rawUrl,
-      ports.getCurrentSnapshot(),
-    );
+    const rollbackSnapshot = ports.getCurrentSnapshot();
+    const rollback = ports.trackRollbackSnapshot(activeTarget.rawUrl, rollbackSnapshot);
     stopTrackingRollback = rollback.stop;
     ports.cancelQueuedSaveDispatch();
     ports.drainSaveQueue();
