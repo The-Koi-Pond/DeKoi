@@ -458,7 +458,7 @@ describe("prompt preset generation", () => {
     expect(context.ephemeralVariableNames).toEqual(["pacing", "tone"]);
   });
 
-  it("constrains a selected Roleplay preset to target-character output", () => {
+  it("preserves preset-controlled Roleplay output while protecting user agency", () => {
     const thread = {
       ...createRoleplayThread({
         activePersonaId: null,
@@ -493,10 +493,46 @@ describe("prompt preset generation", () => {
     expect(promptText).toContain(
       "Roleplay preset for Mara. Write the whole scene beat and include any relevant non-user character.",
     );
+    expect(promptText).toContain("Continue the scene with Mara as the primary character.");
+    expect(promptText).toContain(
+      "Never write the user's dialogue, intent, decisions, or deliberate actions.",
+    );
+    expect(promptText).toContain(
+      "Follow the selected preset's output behavior for narration and other characters.",
+    );
+    expect(promptText).not.toContain("Write only Mara's next turn as one character entry.");
+  });
+
+  it("preserves the single-character Roleplay contract without a selected preset", () => {
+    const thread = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "roleplay-thread-1",
+      now,
+      title: "Test scene",
+    });
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [],
+      thread,
+    });
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = assembly.request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
     expect(promptText).toContain("Continue the scene as Mara.");
-    expect(promptText).toContain("Write only Mara's next turn as one character entry.");
-    expect(promptText).toContain("Do not write the user's response");
-    expect(promptText).toContain("narrator text, scene-beat text, or other characters' lines.");
+    expect(promptText).toContain(
+      "Write only Mara's next turn as one character entry. Do not write the user's dialogue, intent, decisions, deliberate actions, response, narrator text, scene-beat text, or other characters' lines.",
+    );
+    expect(promptText).not.toContain("selected preset");
+    expect(promptText).not.toContain("Continue the scene with Mara as the primary character.");
   });
 
   it("assembles prompt preset sections around the chat history marker", () => {
@@ -576,7 +612,7 @@ describe("prompt preset generation", () => {
       "<role>\n    Structured role for Mara.\n</role>",
       "Alex: Open the airlock.",
       "<output>\n    Structured output instruction.\n</output>",
-      "Continue the scene as Mara.\nWrite only Mara's next turn as one character entry. Do not write the user's response, narrator text, scene-beat text, or other characters' lines.\nDo not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
+      "Continue the scene with Mara as the primary character.\nNever write the user's dialogue, intent, decisions, or deliberate actions.\nFollow the selected preset's output behavior for narration and other characters.\nDo not include metadata, markdown fences, or out-of-world notes.",
     ]);
   });
 
@@ -1441,7 +1477,7 @@ describe("prompt preset generation", () => {
         "<role>\n    Structured role.\n</role>",
         "Alex: Open the airlock.",
         "<output>\n    Post-history output rules.\n</output>",
-        "Continue the scene as Mara.\nWrite only Mara's next turn as one character entry. Do not write the user's response, narrator text, scene-beat text, or other characters' lines.\nDo not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
+        "Continue the scene with Mara as the primary character.\nNever write the user's dialogue, intent, decisions, or deliberate actions.\nFollow the selected preset's output behavior for narration and other characters.\nDo not include metadata, markdown fences, or out-of-world notes.",
       ]);
     },
   );
@@ -1505,7 +1541,9 @@ describe("prompt preset generation", () => {
     expect(assembly.request.promptMessages[0]?.content).toContain("[SYSTEM]");
     expect(assembly.request.promptMessages[0]?.content).toContain("Structured role.");
     expect(assembly.request.promptMessages[0]?.content).toContain("Alex: Open the airlock.");
-    expect(assembly.request.promptMessages[0]?.content).toContain("Continue the scene as Mara.");
+    expect(assembly.request.promptMessages[0]?.content).toContain(
+      "Continue the scene with Mara as the primary character.",
+    );
   });
 
   it.each(["anthropic", "google"] as const)(
@@ -1620,9 +1658,12 @@ describe("prompt preset generation", () => {
       .map((message) => message.content)
       .join("\n\n");
 
-    expect(promptText).toContain("output only Mara's natural next response or action.");
-    expect(promptText).toContain("Write only Mara's next turn as one character entry.");
-    expect(promptText).not.toContain("Portray the world and every character");
-    expect(promptText).not.toContain("multi-character exchanges");
+    expect(promptText).toContain("Continue the scene with Mara as the primary character.");
+    expect(promptText).toContain(
+      "Never write the user's dialogue, intent, decisions, or deliberate actions.",
+    );
+    expect(promptText).toContain(
+      "Follow the selected preset's output behavior for narration and other characters.",
+    );
   });
 });

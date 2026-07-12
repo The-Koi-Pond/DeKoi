@@ -140,7 +140,9 @@ Focused checks for narrow changes are mapped to change types in
   lore insertion strategy.
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
   current sampling controls, and structured Roleplay section/group editing,
-  then select a prompt preset from thread settings. Roleplay sections can be
+  then select a prompt preset from thread settings. The bundled Universal V2
+  starter is an ordinary native preset that can be edited, duplicated, or
+  deleted. Roleplay sections can be
   ordered, grouped, enabled or disabled, assigned provider roles, wrapped, and
   placed at transcript depth; marker sections insert saved Roleplay context,
   including conversation history through an enabled Chat History marker.

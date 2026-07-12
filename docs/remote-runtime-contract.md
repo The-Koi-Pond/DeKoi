@@ -586,6 +586,11 @@ marker when present, or to the sectioned prompt message stream when it is
 absent. If a sectioned preset materializes no messages after filtering,
 Roleplay falls back to `systemPrompt` without automatically including
 transcript history.
+DeKoi appends a post-history contract that keeps the target companion primary
+and prevents generation of the user's dialogue, intent, decisions, or
+deliberate actions. With a selected preset, narration and other-character
+behavior remain controlled by that preset; without one, Roleplay keeps its
+single-character output contract.
 Choice blocks contain stable IDs and variable names, optional questions,
 stable-ID options with optional descriptions, reusable defaults, multi-select
 and separator settings, `auto`/`buttons`/`listbox` display modes,

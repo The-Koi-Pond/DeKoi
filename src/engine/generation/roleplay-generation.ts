@@ -372,10 +372,12 @@ function resolveRoleplayPromptPrelude(
 function buildPostHistoryPrompt({
   activePersona,
   macroContext,
+  promptPreset,
   targetCompanion,
 }: {
   activePersona: PersonaRecord | null;
   macroContext: GenerationMacroContext;
+  promptPreset: PromptPresetRecord | null;
   targetCompanion: CharacterRecord | null;
 }) {
   const targetName = macroContext.char;
@@ -387,6 +389,19 @@ function buildPostHistoryPrompt({
     ? resolveGenerationMacros(activePersona.postHistoryInstructions, macroContext)
     : "";
 
+  const outputContract = promptPreset
+    ? [
+        `Continue the scene with ${targetName} as the primary character.`,
+        `Never write ${userName}'s dialogue, intent, decisions, or deliberate actions.`,
+        "Follow the selected preset's output behavior for narration and other characters.",
+        "Do not include metadata, markdown fences, or out-of-world notes.",
+      ]
+    : [
+        `Continue the scene as ${targetName}.`,
+        `Write only ${targetName}'s next turn as one character entry. Do not write ${userName}'s dialogue, intent, decisions, deliberate actions, response, narrator text, scene-beat text, or other characters' lines.`,
+        "Do not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
+      ];
+
   return [
     targetPostHistoryInstructions.trim()
       ? `Character post-history instructions: ${targetPostHistoryInstructions}`
@@ -394,9 +409,7 @@ function buildPostHistoryPrompt({
     personaPostHistoryInstructions.trim()
       ? `Persona post-history instructions: ${personaPostHistoryInstructions}`
       : "",
-    `Continue the scene as ${targetName}.`,
-    `Write only ${targetName}'s next turn as one character entry. Do not write ${userName}'s response, narrator text, scene-beat text, or other characters' lines.`,
-    "Do not include speaker labels, scene labels, metadata, markdown fences, or out-of-world notes.",
+    ...outputContract,
   ]
     .filter((line) => line.trim())
     .join("\n");
@@ -483,6 +496,7 @@ function createRoleplayPromptAssembly({
     const postHistoryPrompt = buildPostHistoryPrompt({
       activePersona,
       macroContext,
+      promptPreset,
       targetCompanion,
     });
     return postHistoryPrompt

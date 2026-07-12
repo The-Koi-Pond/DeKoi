@@ -126,6 +126,28 @@ in app settings. If remote storage already has any saved collection records, or
 if desktop storage already has an empty `prompt-presets` collection, DeKoi
 records the one-time marker without adding the starter so deleting the starter
 preset is respected.
+
+### Development reset for a changed starter preset
+
+The bundled starter is ordinary stored data, so an existing development store
+does not automatically receive a newly changed starter. To inspect the current
+Universal V2 starter:
+
+- **Desktop/local app:** stop DeKoi, remove the local
+  `<app-data>/collections/prompt-presets.json` collection file, then restart
+  DeKoi. A missing desktop prompt-preset collection is seeded on startup. This
+  intentionally deletes the local development prompt presets; preserve or
+  export them first if they matter.
+- **Remote runtime:** reset or rebuild the _entire_ development data store using
+  the runtime/deployment's data-management procedure so that every DeKoi
+  collection is absent/empty, then restart the runtime and DeKoi. Remote
+  first-run seeding requires all collections to load cleanly and empty; deleting
+  only the remote `prompt-presets` collection does not trigger reseeding.
+
+There is no supported partial remote reset that preserves the other collections
+while re-running first-run seeding. Full resets intentionally destroy local
+development data.
+
 Choice blocks carry stable block IDs, unique variable names, optional questions,
 options with stable IDs and optional descriptions, reusable defaults,
 multi-select separators, display and sort modes, optional ordering/timestamp
@@ -147,8 +169,8 @@ Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
 prompt preset sections for prompt assembly.
-In Roleplay, a selected prompt preset can replace the system prelude and
-sampling, but it cannot replace the stored-output shape. If the preset has
+In Roleplay, a selected prompt preset can replace the system prelude, sampling,
+and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
@@ -159,8 +181,9 @@ marker when present, or around the sectioned prompt message stream by depth from
 the newest item. If a sectioned preset leaves no materialized messages after
 enabled/group/content filtering, Roleplay falls back to the selected system
 prompt without automatically replaying transcript history. DeKoi still appends
-the target companion single-character post-history contract until Roleplay has a
-native narrator, scene-beat, or multi-character generated-output model.
+a Roleplay post-history contract that keeps the target
+companion primary, protects the user's dialogue and agency, and leaves narration
+and other-character output behavior to the selected preset.
 Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
 stable prompt-preset choice-block ID. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, and multi-select separators into
@@ -504,9 +527,10 @@ pnpm check:storage-contracts
 ```
 
 The check fails if the TypeScript registry, TypeScript semantic alias map, Rust
-allowlist, or documented collection table drift. It also verifies each
-documented native owner file exists and names the documented record type, and
-that each documented runtime adapter uses the expected repository entity alias.
+allowlist, documented collection table, or approved Universal V2 starter
+package bytes drift. It also verifies each documented native owner file exists
+and names the documented record type, and that each documented runtime adapter
+uses the expected repository entity alias.
 
 ## Record Rules
 
