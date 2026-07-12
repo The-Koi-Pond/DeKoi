@@ -6,9 +6,11 @@ import {
   appStorageCollectionSignature,
   appStorageCollectionSource,
   changedAppStorageMetadataKeys,
+  createStorageTransactionCoordinator,
   loadAppStorageMetadata,
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
+  runPromptPresetImportStorageTransaction,
   saveAppStorageCollections,
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
@@ -18,6 +20,8 @@ import {
   type AppStorageSnapshot,
   type MessengerStorageMode,
   type MessengerStorageStatus,
+  type PromptPresetImportSaveResult,
+  type StorageTransactionCoordinator,
 } from "../features/runtime";
 import type { StateSetter } from "../shared/react/state-setter";
 import { appStorageReplaceResultNeedsReload } from "./app-storage-import-recovery";
@@ -540,6 +544,8 @@ export function useAppStorageSync({
     EMPTY_IMPORT_RECOVERY_STATE,
   );
   const storageGeneration = useRef(0);
+  const currentStorageRawUrl = useRef(remoteRuntimeUrl);
+  currentStorageRawUrl.current = remoteRuntimeUrl;
   const currentStorageMode = useRef<MessengerStorageMode>("unavailable");
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
   const loadedStorageMetadata = useRef<AppStorageMetadata>({});
@@ -553,7 +559,6 @@ export function useAppStorageSync({
   const activeSavePromise = useRef<ActiveSavePromise | null>(null);
   const queuedSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queuedSaveIdleHandle = useRef<IdleHandle | null>(null);
-  const importCommitRunning = useRef(false);
   const lastPreImportRecovery = useRef<{
     records: AppStorageRecords;
     createdAt: string;
@@ -575,6 +580,33 @@ export function useAppStorageSync({
     messengerThreads,
     rippleStates,
   });
+  const storageTransactionCoordinatorRef = useRef<StorageTransactionCoordinator | null>(null);
+  if (!storageTransactionCoordinatorRef.current) {
+    storageTransactionCoordinatorRef.current = createStorageTransactionCoordinator(
+      { generation: storageGeneration.current, rawUrl: remoteRuntimeUrl },
+      currentAppStorageRecords.current,
+    );
+  }
+  const storageTransactionCoordinator = storageTransactionCoordinatorRef.current;
+
+  const publishCurrentStorageState = useCallback(
+    (snapshot = currentAppStorageRecords.current) => {
+      storageTransactionCoordinator.publishCurrentState(
+        {
+          generation: storageGeneration.current,
+          rawUrl: currentStorageRawUrl.current,
+        },
+        snapshot,
+      );
+    },
+    [storageTransactionCoordinator],
+  );
+
+  const advanceStorageGeneration = useCallback(() => {
+    storageGeneration.current += 1;
+    publishCurrentStorageState();
+    return storageGeneration.current;
+  }, [publishCurrentStorageState]);
 
   const mergeLoadedStorageMetadata = useCallback((storageMetadata: AppStorageMetadata) => {
     if (!hasAppStorageMetadata(storageMetadata)) return;
@@ -617,6 +649,7 @@ export function useAppStorageSync({
   const applyAppStorageRecords = useCallback(
     (records: AppStorageRecords) => {
       currentAppStorageRecords.current = records;
+      publishCurrentStorageState(records);
       setAppSettings(records.appSettings);
       setCharacters(records.characters);
       setPersonas(records.personas);
@@ -630,6 +663,7 @@ export function useAppStorageSync({
       setRippleStates(records.rippleStates);
     },
     [
+      publishCurrentStorageState,
       setAppSettings,
       setCharacters,
       setLorebooks,
@@ -658,6 +692,7 @@ export function useAppStorageSync({
       messengerThreads,
       rippleStates,
     };
+    publishCurrentStorageState(currentAppStorageRecords.current);
   }, [
     appSettings,
     characters,
@@ -668,6 +703,8 @@ export function useAppStorageSync({
     personas,
     promptPresets,
     providerConnections,
+    publishCurrentStorageState,
+    remoteRuntimeUrl,
     rippleStates,
     roleplayThreads,
   ]);
@@ -732,13 +769,13 @@ export function useAppStorageSync({
 
   const hasActiveStorageWork = useCallback(
     () =>
-      importCommitRunning.current ||
+      storageTransactionCoordinator.hasActiveTransaction() ||
       activeSavePromise.current !== null ||
       saveQueueRunning.current !== null ||
       queuedSaveTimer.current !== null ||
       queuedSaveIdleHandle.current !== null ||
       hasPendingSave(pendingSaves.current),
-    [],
+    [storageTransactionCoordinator],
   );
 
   const enqueueAppStorageCollectionSaves = useCallback(
@@ -885,11 +922,17 @@ export function useAppStorageSync({
   );
 
   const flushAppStorageSaves = useCallback(
-    async (options?: { reason?: AppStorageFlushReason }): Promise<AppStorageFlushResult> => {
+    async (options?: {
+      reason?: AppStorageFlushReason;
+      allowActiveTransaction?: boolean;
+    }): Promise<AppStorageFlushResult> => {
       const reason = options?.reason ?? "manual";
       const generation = storageGeneration.current;
 
-      if (importCommitRunning.current) {
+      if (
+        storageTransactionCoordinator.hasActiveTransaction() &&
+        !options?.allowActiveTransaction
+      ) {
         return {
           mode: currentStorageMode.current,
           status: "error",
@@ -902,13 +945,29 @@ export function useAppStorageSync({
         };
       }
 
-      if (!storageReady || !savedSignatures.current) {
+      if (!savedSignatures.current) {
         return {
           mode: currentStorageMode.current,
           status: "error",
           message: "Storage flush skipped because app storage is not ready yet.",
           flushed: false,
           blocked: true,
+          dirtyCollectionKeys: [],
+          savedCollectionKeys: [],
+          failedCollectionKeys: [],
+        };
+      }
+
+      if (!storageReady) {
+        const unavailable = currentStorageMode.current === "unavailable";
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: unavailable
+            ? "Storage is unavailable."
+            : "Storage flush skipped because app storage is not ready yet.",
+          flushed: false,
+          blocked: !unavailable,
           dirtyCollectionKeys: [],
           savedCollectionKeys: [],
           failedCollectionKeys: [],
@@ -1087,7 +1146,77 @@ export function useAppStorageSync({
       enqueueAppStorageCollectionSaves,
       refreshSaveStatus,
       remoteRuntimeUrl,
+      storageTransactionCoordinator,
       storageReady,
+    ],
+  );
+
+  const savePromptPresetImport = useCallback(
+    async (
+      preset: AppStorageRecords["promptPresets"][number],
+    ): Promise<PromptPresetImportSaveResult> => {
+      const createFailure = (message: string, blocked: boolean) => ({
+        mode: currentStorageMode.current,
+        status: "error" as const,
+        message,
+        saved: false,
+        blocked,
+      });
+
+      if (!savedSignatures.current || !storageReady) {
+        return createFailure("Prompt preset save blocked because app storage is not ready.", true);
+      }
+      if (droppedRecordSaveBlockedCollectionKeys.current.has("promptPresets")) {
+        return createFailure(DROPPED_RECORD_SAVE_BLOCK_MESSAGE, true);
+      }
+
+      return runPromptPresetImportStorageTransaction({
+        preset,
+        coordinator: storageTransactionCoordinator,
+        ports: {
+          cancelQueuedSaveDispatch,
+          drainSaveQueue,
+          waitForActiveSaveToSettle,
+          getStorageMode: () => currentStorageMode.current,
+          publishSaving: (message) => {
+            setMessengerStorageStatus("saving");
+            setMessengerStorageMessage(message);
+          },
+          mergeStorageMetadata: mergeLoadedStorageMetadata,
+          setPersistedPromptPresetSignature: (signature) => {
+            savedSignatures.current = savedSignatures.current
+              ? { ...savedSignatures.current, promptPresets: signature }
+              : null;
+          },
+          clearPendingPromptPresetSave: () => {
+            delete pendingSaves.current.promptPresets;
+          },
+          clearPromptPresetSaveError: () => {
+            delete saveErrors.current.promptPresets;
+          },
+          setUnsavedPromptPresetSignature: (signature) => {
+            unsavedSignatures.current.promptPresets = signature;
+          },
+          clearUnsavedPromptPresetSignature: () => {
+            delete unsavedSignatures.current.promptPresets;
+          },
+          refreshSaveStatus,
+          flushFailureSaves: () =>
+            flushAppStorageSaves({ reason: "import", allowActiveTransaction: true }),
+        },
+      });
+    },
+    [
+      cancelQueuedSaveDispatch,
+      drainSaveQueue,
+      flushAppStorageSaves,
+      mergeLoadedStorageMetadata,
+      refreshSaveStatus,
+      setMessengerStorageMessage,
+      setMessengerStorageStatus,
+      storageTransactionCoordinator,
+      storageReady,
+      waitForActiveSaveToSettle,
     ],
   );
 
@@ -1154,7 +1283,7 @@ export function useAppStorageSync({
       records: AppStorageRecords,
       options?: AppStorageCommitImportOptions,
     ): Promise<AppStorageReplaceResult> => {
-      if (importCommitRunning.current) {
+      if (storageTransactionCoordinator.hasActiveTransaction()) {
         const result = createImportErrorResult(
           records,
           "Another import is already in progress. Wait for it to finish before importing again.",
@@ -1165,7 +1294,18 @@ export function useAppStorageSync({
         return result;
       }
 
-      importCommitRunning.current = true;
+      const generation = advanceStorageGeneration();
+      const transaction = storageTransactionCoordinator.tryBegin("bundle-import");
+      if (!transaction) {
+        const result = createImportErrorResult(
+          records,
+          "Another import is already in progress. Wait for it to finish before importing again.",
+        );
+        setMessengerStorageMode(result.mode);
+        setMessengerStorageStatus("error");
+        setMessengerStorageMessage(result.message);
+        return result;
+      }
 
       try {
         setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
@@ -1173,15 +1313,13 @@ export function useAppStorageSync({
         setMessengerStorageMessage("Importing DeKoi bundle...");
 
         cancelQueuedSaveDispatch();
-        storageGeneration.current += 1;
-        const generation = storageGeneration.current;
         pendingSaves.current = {};
         unsavedSignatures.current = {};
         saveErrors.current = {};
 
         await waitForActiveSaveToSettle();
 
-        if (storageGeneration.current !== generation) {
+        if (!transaction.isTargetCurrent()) {
           const result = createImportErrorResult(
             records,
             "Import was interrupted because the storage target changed. Retry on the current storage target.",
@@ -1218,7 +1356,7 @@ export function useAppStorageSync({
           return failureResult;
         }
 
-        if (storageGeneration.current !== generation) {
+        if (!transaction.isTargetCurrent()) {
           const result: AppStorageReplaceResult = {
             ...storageResult,
             status: "error",
@@ -1268,11 +1406,12 @@ export function useAppStorageSync({
         setMessengerStorageMessage(failureResult.message);
         return failureResult;
       } finally {
-        importCommitRunning.current = false;
+        transaction.finish();
       }
     },
     [
       applyReplacedAppStorageRecords,
+      advanceStorageGeneration,
       cancelQueuedSaveDispatch,
       reloadPersistedStorageAfterImportFailure,
       remoteRuntimeUrl,
@@ -1281,6 +1420,7 @@ export function useAppStorageSync({
       setMessengerStorageMode,
       setMessengerStorageStatus,
       setStorageReady,
+      storageTransactionCoordinator,
       waitForActiveSaveToSettle,
     ],
   );
@@ -1313,7 +1453,7 @@ export function useAppStorageSync({
       return result;
     }
 
-    if (importCommitRunning.current) {
+    if (storageTransactionCoordinator.hasActiveTransaction()) {
       const result = createImportErrorResult(
         recovery.records,
         "Restore blocked because an import or restore is already in progress.",
@@ -1342,22 +1482,31 @@ export function useAppStorageSync({
       return result;
     }
 
-    importCommitRunning.current = true;
+    const generation = advanceStorageGeneration();
+    const transaction = storageTransactionCoordinator.tryBegin("pre-import-backup-restore");
+    if (!transaction) {
+      const result = createImportErrorResult(
+        recovery.records,
+        "Restore blocked because an import or restore is already in progress.",
+      );
+      setMessengerStorageMode(result.mode);
+      setMessengerStorageStatus("error");
+      setMessengerStorageMessage(result.message);
+      return result;
+    }
 
     try {
       setMessengerStorageStatus("saving");
       setMessengerStorageMessage("Restoring pre-import backup...");
 
       cancelQueuedSaveDispatch();
-      storageGeneration.current += 1;
-      const generation = storageGeneration.current;
       pendingSaves.current = {};
       unsavedSignatures.current = {};
       saveErrors.current = {};
 
       await waitForActiveSaveToSettle();
 
-      if (storageGeneration.current !== generation) {
+      if (!transaction.isTargetCurrent()) {
         const result = createImportErrorResult(
           recovery.records,
           "Restore was interrupted because the storage target changed. Retry on the current storage target.",
@@ -1391,7 +1540,7 @@ export function useAppStorageSync({
         return failureResult;
       }
 
-      if (storageGeneration.current !== generation) {
+      if (!transaction.isTargetCurrent()) {
         const result: AppStorageReplaceResult = {
           ...storageResult,
           status: "error",
@@ -1441,10 +1590,11 @@ export function useAppStorageSync({
       setMessengerStorageMessage(failureResult.message);
       return failureResult;
     } finally {
-      importCommitRunning.current = false;
+      transaction.finish();
     }
   }, [
     applyReplacedAppStorageRecords,
+    advanceStorageGeneration,
     cancelQueuedSaveDispatch,
     reloadPersistedStorageAfterImportFailure,
     remoteRuntimeUrl,
@@ -1453,6 +1603,7 @@ export function useAppStorageSync({
     setMessengerStorageMode,
     setMessengerStorageStatus,
     setStorageReady,
+    storageTransactionCoordinator,
     waitForActiveSaveToSettle,
   ]);
 
@@ -1578,8 +1729,7 @@ export function useAppStorageSync({
     confirmedReloadBlockToken.current = null;
     const reloadStartSignatures = currentSignatures;
     cancelQueuedSaveDispatch();
-    storageGeneration.current += 1;
-    const generation = storageGeneration.current;
+    const generation = advanceStorageGeneration();
     setStorageReady(false);
     setMessengerStorageStatus("loading");
     setMessengerStorageMessage("Reloading storage...");
@@ -1665,6 +1815,7 @@ export function useAppStorageSync({
     }
   }, [
     applyLoadedAppStorageSnapshot,
+    advanceStorageGeneration,
     cancelQueuedSaveDispatch,
     hasActiveStorageWork,
     refreshSaveStatus,
@@ -1677,8 +1828,7 @@ export function useAppStorageSync({
 
   useEffect(() => {
     let cancelled = false;
-    storageGeneration.current += 1;
-    const generation = storageGeneration.current;
+    const generation = advanceStorageGeneration();
     savedSignatures.current = null;
     loadedStorageMetadata.current = {};
     lastSeenSnapshot.current = null;
@@ -1797,6 +1947,7 @@ export function useAppStorageSync({
     };
   }, [
     cancelQueuedSaveDispatch,
+    advanceStorageGeneration,
     applyLoadedAppStorageSnapshot,
     mergeLoadedStorageMetadata,
     remoteRuntimeUrl,
@@ -1811,7 +1962,11 @@ export function useAppStorageSync({
   // updateAppSettings calls) into a single host write. We debounce briefly, then
   // defer the write to an idle frame so the main thread stays responsive.
   useEffect(() => {
-    if (!storageReady || !savedSignatures.current || importCommitRunning.current) {
+    if (
+      !storageReady ||
+      !savedSignatures.current ||
+      storageTransactionCoordinator.hasActiveTransaction()
+    ) {
       return;
     }
 
@@ -1940,6 +2095,7 @@ export function useAppStorageSync({
     setMessengerStorageMode,
     setMessengerStorageStatus,
     storageReady,
+    storageTransactionCoordinator,
   ]);
 
   return {
@@ -1949,6 +2105,7 @@ export function useAppStorageSync({
     importRecoveryState,
     reloadAppStorage,
     restoreLastPreImportBackup,
+    savePromptPresetImport,
     storageHasUnsavedChanges,
   };
 }

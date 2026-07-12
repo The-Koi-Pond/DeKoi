@@ -20,11 +20,15 @@ export {
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
+  runPromptPresetImportStorageTransaction,
+  createStorageTransactionCoordinator,
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
   type MessengerStorageMode,
   type MessengerStorageStatus,
+  type PromptPresetImportSaveResult,
+  type StorageTransactionCoordinator,
 } from "./storage";
 export {
   addRippleToOwnerState,
@@ -53,6 +57,15 @@ export {
   type DeKoiStorageBundle,
   type DeKoiStorageBundleCounts,
   type DeKoiStorageBundlePreview,
+} from "./storage";
+export {
+  downloadPromptPresetBrowserFile,
+  getPromptPresetFileHost,
+  readPromptPresetBrowserFile,
+  readPromptPresetDesktopFile,
+  writePromptPresetDesktopFile,
+  type PromptPresetFileExportResult,
+  type PromptPresetFileImportResult,
 } from "./storage";
 export {
   describeGenerationFailureNotice,

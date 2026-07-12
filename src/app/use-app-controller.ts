@@ -15,6 +15,7 @@ import {
 import { useAppState } from "./use-app-state";
 import { useAppStorageSync } from "./use-app-storage-sync";
 import { useLoreRuntimeActions } from "./use-lore-runtime-actions";
+import { usePromptPresetFileActions } from "./use-prompt-preset-file-actions";
 import { useRippleActions } from "./use-ripple-actions";
 import { useViewActions } from "./use-view-actions";
 
@@ -85,6 +86,7 @@ export function useAppController(): NavContextType {
     importRecoveryState,
     reloadAppStorage,
     restoreLastPreImportBackup,
+    savePromptPresetImport,
     storageHasUnsavedChanges,
   } = useAppStorageSync({
     appSettings,
@@ -190,13 +192,33 @@ export function useAppController(): NavContextType {
     setMessengerThreads,
   });
 
-  const { createPromptPreset, updatePromptPreset, duplicatePromptPreset, deletePromptPreset } =
-    usePromptPresetActions({
-      promptPresets,
-      setPromptPresets,
-      setRoleplayThreads,
-      setMessengerThreads,
-    });
+  const {
+    createPromptPreset,
+    updatePromptPreset,
+    duplicatePromptPreset,
+    prepareImportedPromptPreset,
+    addImportedPromptPreset,
+    deletePromptPreset,
+  } = usePromptPresetActions({
+    promptPresets,
+    setPromptPresets,
+    setRoleplayThreads,
+    setMessengerThreads,
+  });
+  const {
+    promptPresetFileHost,
+    promptPresetFileStatus,
+    setPromptPresetFileStatus,
+    importPromptPresetFile,
+    openPromptPresetFile,
+    exportPromptPresetFile,
+  } = usePromptPresetFileActions({
+    promptPresets,
+    prepareImportedPromptPreset,
+    addImportedPromptPreset,
+    savePromptPresetImport,
+    flushAppStorageSaves,
+  });
 
   const {
     createProviderConnection,
@@ -272,6 +294,8 @@ export function useAppController(): NavContextType {
     personas,
     lorebooks,
     promptPresets,
+    promptPresetFileHost,
+    promptPresetFileStatus,
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
@@ -311,6 +335,10 @@ export function useAppController(): NavContextType {
     updatePromptPreset,
     duplicatePromptPreset,
     deletePromptPreset,
+    importPromptPresetFile,
+    openPromptPresetFile,
+    exportPromptPresetFile,
+    setPromptPresetFileStatus,
     createProviderConnection,
     updateProviderConnection,
     duplicateProviderConnection,

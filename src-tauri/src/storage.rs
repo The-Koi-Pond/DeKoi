@@ -2,10 +2,12 @@ use crate::runtime_args::{read_string_field, runtime_args_object};
 use chrono::{SecondsFormat, Utc};
 use std::{
     collections::HashSet,
-    fs::{self, File},
+    ffi::OsString,
+    fs::{self, File, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
+    sync::atomic::{AtomicU64, Ordering},
+    time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Manager;
 
@@ -23,6 +25,10 @@ const MESSENGER_MESSAGES_ENTITY: &str = "messenger-messages";
 const PERSONAS_ENTITY: &str = "personas";
 const PROVIDER_CONNECTIONS_ENTITY: &str = "provider-connections";
 const RIPPLE_STATES_ENTITY: &str = "ripple-states";
+const JSON_WRITE_ARTIFACT_KIND: &str = "write";
+const JSON_ROLLBACK_ARTIFACT_KIND: &str = "rollback";
+const JSON_ARTIFACT_ALLOCATION_ATTEMPTS: usize = 128;
+static JSON_ARTIFACT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COLLECTION_ENTITIES: &[&str] = &[
     APP_SETTINGS_ENTITY,
     CHARACTERS_ENTITY,
@@ -169,6 +175,14 @@ fn collection_entity_from_artifact_name(file_name: &str) -> Option<&str> {
     [".json", ".json.bak", ".json.tmp", ".json.pre-repair"]
         .iter()
         .find_map(|suffix| file_name.strip_suffix(suffix))
+        .or_else(|| {
+            let (entity, artifact) = file_name.split_once(".json.write-")?;
+            artifact.ends_with(".tmp").then_some(entity)
+        })
+        .or_else(|| {
+            let (entity, artifact) = file_name.split_once(".json.rollback-")?;
+            artifact.ends_with(".tmp").then_some(entity)
+        })
         .filter(|entity| !entity.is_empty())
 }
 
@@ -329,7 +343,7 @@ pub(crate) fn write_bundle_file(
     path: &Path,
     bundle: &serde_json::Value,
 ) -> Result<StorageBundleInfo, String> {
-    write_bundle_json_file(path, bundle, "bundle file")?;
+    write_export_json_file(path, bundle, "bundle file")?;
     bundle_info(path.to_path_buf())
 }
 
@@ -353,8 +367,40 @@ fn pre_repair_exists(path: &Path) -> bool {
     pre_repair_json_path(path).exists()
 }
 
+fn json_artifact_file_name(path: &Path, kind: &str, nonce: u128, sequence: u64) -> OsString {
+    let mut file_name = path
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("collection.json"))
+        .to_os_string();
+    file_name.push(format!(
+        ".{kind}-{}-{nonce}-{sequence}.tmp",
+        std::process::id()
+    ));
+    file_name
+}
+
+fn json_artifact_exists(path: &Path, kind: &str) -> bool {
+    let Some(directory) = path.parent() else {
+        return false;
+    };
+    let Some(file_name) = path.file_name() else {
+        return false;
+    };
+    let prefix = format!("{}.{kind}-", file_name.to_string_lossy());
+
+    fs::read_dir(directory).is_ok_and(|entries| {
+        entries.filter_map(Result::ok).any(|entry| {
+            let candidate = entry.file_name();
+            let candidate = candidate.to_string_lossy();
+            candidate.starts_with(&prefix) && candidate.ends_with(".tmp")
+        })
+    })
+}
+
 fn temporary_json_exists(path: &Path) -> bool {
     temporary_json_path(path).exists()
+        || json_artifact_exists(path, JSON_WRITE_ARTIFACT_KIND)
+        || json_artifact_exists(path, JSON_ROLLBACK_ARTIFACT_KIND)
 }
 
 fn recovery_artifacts_exist(path: &Path) -> bool {
@@ -383,38 +429,136 @@ fn sync_parent_directory_best_effort(path: &Path) {
     }
 }
 
+struct OwnedJsonArtifact {
+    path: PathBuf,
+    file: Option<File>,
+    owned: bool,
+}
+
+impl OwnedJsonArtifact {
+    fn create(path: &Path, kind: &str) -> io::Result<Self> {
+        for _ in 0..JSON_ARTIFACT_ALLOCATION_ATTEMPTS {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_nanos())
+                .unwrap_or_default();
+            let sequence = JSON_ARTIFACT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let artifact_path =
+                path.with_file_name(json_artifact_file_name(path, kind, nonce, sequence));
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&artifact_path)
+            {
+                Ok(file) => {
+                    return Ok(Self {
+                        path: artifact_path,
+                        file: Some(file),
+                        owned: true,
+                    })
+                }
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error),
+            }
+        }
+
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "could not allocate a unique DeKoi JSON artifact",
+        ))
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn file_mut(&mut self) -> &mut File {
+        self.file
+            .as_mut()
+            .expect("owned JSON artifact file should still be open")
+    }
+
+    fn close(&mut self) {
+        self.file.take();
+    }
+
+    fn disarm(&mut self) {
+        self.close();
+        self.owned = false;
+    }
+
+    fn cleanup(&mut self) -> Result<(), String> {
+        self.cleanup_as("temp file")
+    }
+
+    fn cleanup_as(&mut self, artifact_description: &str) -> Result<(), String> {
+        self.close();
+        if !self.owned {
+            return Ok(());
+        }
+
+        match fs::remove_file(&self.path) {
+            Ok(()) => {
+                self.owned = false;
+                Ok(())
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                self.owned = false;
+                Ok(())
+            }
+            Err(error) => Err(format!(
+                "Could not remove DeKoi JSON {artifact_description} '{}'. {error}",
+                self.path.to_string_lossy()
+            )),
+        }
+    }
+}
+
+impl Drop for OwnedJsonArtifact {
+    fn drop(&mut self) {
+        self.close();
+        if self.owned {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
 enum BackupState {
     NotRequested,
     NoSourceFile,
-    Created { path: PathBuf },
-    RollbackCreated { path: PathBuf },
+    Created,
+    RollbackCreated { artifact: OwnedJsonArtifact },
 }
 
 impl BackupState {
     fn created(&self) -> bool {
-        matches!(self, BackupState::Created { .. })
+        matches!(self, BackupState::Created)
     }
 
-    fn recorded_path(&self) -> Option<&Path> {
+    fn retained_rollback_message(&self) -> String {
         match self {
-            BackupState::Created { path } | BackupState::RollbackCreated { path } => {
-                Some(path.as_path())
+            BackupState::RollbackCreated { artifact } => {
+                format!(
+                    " Rollback file retained at '{}'.",
+                    artifact.path().to_string_lossy()
+                )
             }
-            BackupState::NotRequested | BackupState::NoSourceFile => None,
+            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created => {
+                String::new()
+            }
         }
     }
 
-    fn cleanup_transient_rollback(&self) -> Result<(), String> {
-        if let BackupState::RollbackCreated { path } = self {
-            match fs::remove_file(path) {
-                Ok(()) => Ok(()),
-                Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-                Err(error) => Err(format!(
-                    "Could not remove DeKoi JSON rollback file. {error}"
-                )),
-            }
-        } else {
-            Ok(())
+    fn retain_transient_rollback(&mut self) {
+        if let BackupState::RollbackCreated { artifact } = self {
+            artifact.disarm();
+        }
+    }
+
+    fn cleanup_transient_rollback(&mut self) -> Result<(), String> {
+        match self {
+            BackupState::RollbackCreated { artifact } => artifact.cleanup_as("rollback file"),
+            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created => Ok(()),
         }
     }
 }
@@ -439,34 +583,50 @@ fn preserve_existing_backup(
     sync_file_best_effort(&backup_path);
     sync_parent_directory_best_effort(&backup_path);
 
-    Ok(BackupState::Created { path: backup_path })
+    Ok(BackupState::Created)
 }
 
-fn repair_rollback_json_path(path: &Path) -> PathBuf {
-    let file_name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("collection.json");
-    let stamp = Utc::now().timestamp_millis();
-    let rollback_name = format!("{file_name}.rollback-{}-{stamp}.tmp", std::process::id());
-    path.with_file_name(rollback_name)
-}
-
-fn preserve_current_for_repair_rollback(path: &Path) -> Result<BackupState, String> {
-    if !path.exists() {
-        return Ok(BackupState::NoSourceFile);
+fn preserve_current_for_rollback(
+    path: &Path,
+    rollback_description: &str,
+) -> Result<BackupState, String> {
+    let mut source = match File::open(path) {
+        Ok(source) => source,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Ok(BackupState::NoSourceFile)
+        }
+        Err(error) => {
+            return Err(format!(
+                "Could not preserve {rollback_description}. {error}"
+            ))
+        }
+    };
+    let mut rollback = OwnedJsonArtifact::create(path, JSON_ROLLBACK_ARTIFACT_KIND)
+        .map_err(|error| format!("Could not preserve {rollback_description}. {error}"))?;
+    if let Err(error) = io::copy(&mut source, rollback.file_mut()) {
+        let cleanup_message = rollback
+            .cleanup_as("rollback file")
+            .err()
+            .map(|cleanup_error| format!(" Cleanup failed: {cleanup_error}"))
+            .unwrap_or_default();
+        return Err(format!(
+            "Could not preserve {rollback_description}. {error}.{cleanup_message}"
+        ));
     }
+    if let Err(error) = rollback.file_mut().sync_all() {
+        let cleanup_message = rollback
+            .cleanup_as("rollback file")
+            .err()
+            .map(|cleanup_error| format!(" Cleanup failed: {cleanup_error}"))
+            .unwrap_or_default();
+        return Err(format!(
+            "Could not sync {rollback_description}. {error}.{cleanup_message}"
+        ));
+    }
+    rollback.close();
+    sync_parent_directory_best_effort(rollback.path());
 
-    let rollback_path = repair_rollback_json_path(path);
-    fs::copy(path, &rollback_path).map_err(|error| {
-        format!("Could not preserve DeKoi collection for repair rollback. {error}")
-    })?;
-    sync_file_best_effort(&rollback_path);
-    sync_parent_directory_best_effort(&rollback_path);
-
-    Ok(BackupState::RollbackCreated {
-        path: rollback_path,
-    })
+    Ok(BackupState::RollbackCreated { artifact: rollback })
 }
 
 fn install_temporary_json_file(
@@ -474,81 +634,125 @@ fn install_temporary_json_file(
     path: &Path,
     backup_state: &BackupState,
 ) -> io::Result<()> {
-    match fs::rename(temporary_path, path) {
+    let replace_existing = matches!(
+        backup_state,
+        BackupState::Created | BackupState::RollbackCreated { .. }
+    );
+    replace_temporary_json_file(temporary_path, path, replace_existing)
+}
+
+#[cfg(any(not(windows), test))]
+fn install_new_json_file_with_atomic_rename<R, L>(
+    temporary_path: &Path,
+    path: &Path,
+    atomic_rename: R,
+    hard_link: L,
+) -> io::Result<()>
+where
+    R: FnOnce(&Path, &Path) -> io::Result<()>,
+    L: FnOnce(&Path, &Path) -> io::Result<()>,
+{
+    match atomic_rename(temporary_path, path) {
         Ok(()) => Ok(()),
-        Err(first_error) => match backup_state {
-            BackupState::NotRequested => Err(first_error),
-            BackupState::NoSourceFile => Err(io::Error::new(
-                first_error.kind(),
-                format!("no recorded backup existed before replacement: {first_error}"),
-            )),
-            BackupState::Created { .. } | BackupState::RollbackCreated { .. } => {
-                if let Err(remove_error) = fs::remove_file(path) {
-                    return if remove_error.kind() == io::ErrorKind::NotFound {
-                        Err(first_error)
-                    } else {
-                        Err(remove_error)
-                    };
-                }
-                fs::rename(temporary_path, path)
-            }
-        },
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => Err(error),
+        Err(rename_error) => hard_link(temporary_path, path).map_err(|hard_link_error| {
+            io::Error::new(
+                hard_link_error.kind(),
+                format!(
+                    "Atomic no-replace rename failed: {rename_error} Hard-link fallback failed: {hard_link_error}"
+                ),
+            )
+        }),
     }
 }
 
-fn restore_backup_from_path(backup_path: &Path, path: &Path) -> Result<(), String> {
-    fs::copy(backup_path, path)
-        .map_err(|error| format!("Could not restore DeKoi JSON backup. {error}"))?;
-    sync_file_best_effort(path);
-    sync_parent_directory_best_effort(path);
-    Ok(())
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn rename_temporary_json_file_no_replace(temporary_path: &Path, path: &Path) -> io::Result<()> {
+    use rustix::fs::{renameat_with, RenameFlags, CWD};
+
+    renameat_with(CWD, temporary_path, CWD, path, RenameFlags::NOREPLACE).map_err(io::Error::from)
 }
 
-fn restore_recorded_backup(path: &Path, backup_state: &BackupState) -> String {
-    let Some(backup_path) = backup_state.recorded_path() else {
-        return " No recorded backup was available to restore.".to_string();
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn replace_temporary_json_file(
+    temporary_path: &Path,
+    path: &Path,
+    replace_existing: bool,
+) -> io::Result<()> {
+    if replace_existing {
+        return fs::rename(temporary_path, path);
+    }
+
+    install_new_json_file_with_atomic_rename(
+        temporary_path,
+        path,
+        rename_temporary_json_file_no_replace,
+        |source, destination| fs::hard_link(source, destination),
+    )
+}
+
+#[cfg(all(not(windows), not(any(target_os = "linux", target_os = "macos"))))]
+fn replace_temporary_json_file(
+    temporary_path: &Path,
+    path: &Path,
+    replace_existing: bool,
+) -> io::Result<()> {
+    if replace_existing {
+        fs::rename(temporary_path, path)
+    } else {
+        fs::hard_link(temporary_path, path)
+    }
+}
+
+#[cfg(windows)]
+fn replace_temporary_json_file(
+    temporary_path: &Path,
+    path: &Path,
+    replace_existing: bool,
+) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
     };
 
-    match restore_backup_from_path(backup_path, path) {
-        Ok(()) => " Restored recorded backup.".to_string(),
-        Err(restore_error) => format!(" Restore failed: {restore_error}"),
+    let temporary_path: Vec<u16> = temporary_path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let path: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    // SAFETY: Both pointers reference null-terminated buffers that remain alive for the call.
+    let flags = if replace_existing {
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH
+    } else {
+        MOVEFILE_WRITE_THROUGH
+    };
+    let moved = unsafe { MoveFileExW(temporary_path.as_ptr(), path.as_ptr(), flags) };
+    if moved == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
     }
 }
 
-struct TemporaryJsonCleanup {
-    path: PathBuf,
-}
-
-impl TemporaryJsonCleanup {
-    fn new(path: PathBuf) -> Self {
-        Self { path }
-    }
-
-    fn cleanup(&self) -> Result<(), String> {
-        match fs::remove_file(&self.path) {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(format!("Could not remove DeKoi JSON temp file. {error}")),
-        }
-    }
-}
-
-impl Drop for TemporaryJsonCleanup {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
-    }
-}
-
-fn write_bundle_json_file(
+pub(crate) fn write_export_json_file(
     path: &Path,
     value: &serde_json::Value,
     path_category: &str,
 ) -> Result<(), String> {
-    write_json_file_with_installer(
+    ensure_json_parent_directory(path)?;
+    let rollback_description = format!("existing {path_category} for replacement");
+    let rollback_state = preserve_current_for_rollback(path, &rollback_description)?;
+    write_json_file_with_backup_state(
         path,
         value,
         path_category,
-        false,
+        rollback_state,
         install_temporary_json_file,
     )
 }
@@ -574,6 +778,30 @@ fn ensure_json_parent_directory(path: &Path) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn cleanup_json_write_artifacts(
+    temporary: Option<&mut OwnedJsonArtifact>,
+    backup_state: &mut BackupState,
+) -> Vec<String> {
+    let mut failures = Vec::new();
+    if let Some(temporary) = temporary {
+        if let Err(error) = temporary.cleanup() {
+            failures.push(error);
+        }
+    }
+    if let Err(error) = backup_state.cleanup_transient_rollback() {
+        failures.push(error);
+    }
+    failures
+}
+
+fn cleanup_failure_suffix(failures: &[String]) -> String {
+    if failures.is_empty() {
+        String::new()
+    } else {
+        format!(" Cleanup failed: {}", failures.join(" "))
+    }
 }
 
 fn write_json_file_with_installer<F>(
@@ -602,45 +830,66 @@ fn write_json_file_with_backup_state<F>(
 where
     F: FnOnce(&Path, &Path, &BackupState) -> io::Result<()>,
 {
-    let contents = serde_json::to_string_pretty(value)
-        .map_err(|error| format!("Could not serialize DeKoi runtime data. {error}"))?;
-    let temporary_path = temporary_json_path(path);
-    let temporary_cleanup = TemporaryJsonCleanup::new(temporary_path.clone());
-    {
-        let mut temporary_file = File::create(&temporary_path)
-            .map_err(|error| format!("Could not write DeKoi runtime data. {error}"))?;
-        temporary_file
-            .write_all(contents.as_bytes())
-            .map_err(|error| format!("Could not write DeKoi runtime data. {error}"))?;
-        temporary_file
-            .sync_all()
-            .map_err(|error| format!("Could not sync DeKoi runtime data. {error}"))?;
+    let mut backup_state = backup_state;
+    let contents = match serde_json::to_string_pretty(value) {
+        Ok(contents) => contents,
+        Err(error) => {
+            let failures = cleanup_json_write_artifacts(None, &mut backup_state);
+            return Err(format!(
+                "Could not serialize DeKoi runtime data. {error}.{}",
+                cleanup_failure_suffix(&failures)
+            ));
+        }
+    };
+    let mut temporary = match OwnedJsonArtifact::create(path, JSON_WRITE_ARTIFACT_KIND) {
+        Ok(temporary) => temporary,
+        Err(error) => {
+            let failures = cleanup_json_write_artifacts(None, &mut backup_state);
+            return Err(format!(
+                "Could not write DeKoi runtime data. {error}.{}",
+                cleanup_failure_suffix(&failures)
+            ));
+        }
+    };
+    if let Err(error) = temporary.file_mut().write_all(contents.as_bytes()) {
+        let failures = cleanup_json_write_artifacts(Some(&mut temporary), &mut backup_state);
+        return Err(format!(
+            "Could not write DeKoi runtime data. {error}.{}",
+            cleanup_failure_suffix(&failures)
+        ));
     }
+    if let Err(error) = temporary.file_mut().sync_all() {
+        let failures = cleanup_json_write_artifacts(Some(&mut temporary), &mut backup_state);
+        return Err(format!(
+            "Could not sync DeKoi runtime data. {error}.{}",
+            cleanup_failure_suffix(&failures)
+        ));
+    }
+    temporary.close();
 
-    let install_result = installer(&temporary_path, path, &backup_state);
-    let cleanup_result = temporary_cleanup.cleanup();
+    let install_result = installer(temporary.path(), path, &backup_state);
 
     if let Err(error) = install_result {
-        let cleanup_message = cleanup_result
-            .err()
-            .map(|cleanup_error| format!(" Temp cleanup failed: {cleanup_error}."))
-            .unwrap_or_default();
-        let restore_message = restore_recorded_backup(path, &backup_state);
-        let rollback_cleanup_message = backup_state
-            .cleanup_transient_rollback()
-            .err()
-            .map(|cleanup_error| format!(" {cleanup_error}"))
-            .unwrap_or_default();
+        let cleanup_failures = temporary.cleanup().err().into_iter().collect::<Vec<_>>();
+        let cleanup_message = cleanup_failure_suffix(&cleanup_failures);
+        let rollback_message = backup_state.retained_rollback_message();
+        backup_state.retain_transient_rollback();
         return Err(format!(
-            "Could not save DeKoi JSON data (path category: {path_category}; backup created: {}). {error}.{cleanup_message}{restore_message}{rollback_cleanup_message}",
+            "Could not save DeKoi JSON data (path category: {path_category}; backup created: {}). {error}.{cleanup_message}{rollback_message}",
             yes_no(backup_state.created()),
         ));
     }
 
     sync_file_best_effort(path);
     sync_parent_directory_best_effort(path);
-    cleanup_result?;
-    backup_state.cleanup_transient_rollback()?;
+    let cleanup_failures = cleanup_json_write_artifacts(Some(&mut temporary), &mut backup_state);
+    if !cleanup_failures.is_empty() {
+        return Err(format!(
+            "DeKoi JSON data was saved to '{}', but cleanup failed: {}",
+            path.to_string_lossy(),
+            cleanup_failures.join(" ")
+        ));
+    }
 
     Ok(())
 }
@@ -842,7 +1091,7 @@ fn read_collection_backup_for_restore(
 fn preserve_pre_repair_collection(path: &Path) -> Result<BackupState, String> {
     let pre_repair_path = pre_repair_json_path(path);
     if pre_repair_path.exists() {
-        return preserve_current_for_repair_rollback(path);
+        return preserve_current_for_rollback(path, "DeKoi collection for repair rollback");
     }
 
     if !path.exists() {
@@ -855,9 +1104,7 @@ fn preserve_pre_repair_collection(path: &Path) -> Result<BackupState, String> {
     sync_file_best_effort(&pre_repair_path);
     sync_parent_directory_best_effort(&pre_repair_path);
 
-    Ok(BackupState::Created {
-        path: pre_repair_path,
-    })
+    Ok(BackupState::Created)
 }
 
 fn ensure_replace_empty_is_allowed(path: &Path, entity: &str) -> Result<(), String> {
@@ -1607,6 +1854,16 @@ mod tests {
             .expect("unknown pre-repair fixture should be written");
         fs::write(directory.join("temporary-entity.json.tmp"), "[]")
             .expect("unknown temp fixture should be written");
+        fs::write(
+            directory.join("unique-temp-entity.json.write-12-34-56.tmp"),
+            "[]",
+        )
+        .expect("unknown unique temp fixture should be written");
+        fs::write(
+            directory.join("rollback-entity.json.rollback-12-34.tmp"),
+            "[]",
+        )
+        .expect("unknown rollback fixture should be written");
         fs::write(directory.join("backup-entity.json.bak"), "[]")
             .expect("unknown backup fixture should be written");
         fs::write(directory.join("not-a-collection.txt"), "[]")
@@ -1621,7 +1878,9 @@ mod tests {
                 "archived-entity".to_string(),
                 "backup-entity".to_string(),
                 "future-entity".to_string(),
+                "rollback-entity".to_string(),
                 "temporary-entity".to_string(),
+                "unique-temp-entity".to_string(),
             ]
         );
         let _ = fs::remove_dir_all(directory);
@@ -1679,6 +1938,26 @@ mod tests {
         assert!(error.contains("backup exists: yes"));
         assert!(error.contains("temp exists: yes"));
         assert!(error.contains("writes blocked: yes"));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn missing_collection_file_with_rollback_artifact_blocks_reads_and_writes() {
+        let directory = temp_test_dir("missing-collection-rollback");
+        let path = directory.join("characters.json");
+        let rollback = OwnedJsonArtifact::create(&path, JSON_ROLLBACK_ARTIFACT_KIND)
+            .expect("rollback fixture should be created");
+
+        let read_error = read_collection_records_from_path(&path, CHARACTERS_ENTITY)
+            .expect_err("missing collection with rollback bytes should not load as empty");
+        let write_error = write_runtime_records_to_path(&path, CHARACTERS_ENTITY, Vec::new())
+            .expect_err("missing collection with rollback bytes should block writes");
+
+        assert!(read_error.contains("Collection file is missing but recovery artifacts exist."));
+        assert!(write_error.contains("Collection file is missing but recovery artifacts exist."));
+        assert!(write_error.contains("temp exists: yes"));
+        assert!(write_error.contains("writes blocked: yes"));
+        drop(rollback);
         let _ = fs::remove_dir_all(directory);
     }
 
@@ -1936,10 +2215,11 @@ mod tests {
     }
 
     #[test]
-    fn repair_collection_restore_rolls_back_current_file_after_install_failure() {
+    fn repair_collection_restore_preserves_concurrent_file_after_install_failure() {
         let directory = temp_test_dir("collection-restore-install-failure");
         let path = directory.join("characters.json");
         let backup_value = serde_json::json!([{ "id": "backup" }]);
+        let concurrent_value = serde_json::json!([{ "id": "concurrent" }]);
         fs::write(&path, "{").expect("invalid collection fixture should be written");
         fs::write(pre_repair_json_path(&path), "previous pre-repair")
             .expect("pre-repair fixture should be written");
@@ -1957,24 +2237,25 @@ mod tests {
             "collection repair restore",
             backup_state,
             |_temporary_path, target_path, _backup_state| {
-                fs::remove_file(target_path)?;
+                fs::write(
+                    target_path,
+                    serde_json::to_vec(&concurrent_value)
+                        .expect("concurrent value should serialize"),
+                )?;
                 Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated repair install failure should be reported");
 
-        assert!(error.contains("Restored recorded backup."));
-        assert_eq!(
-            fs::read_to_string(&path).expect("current fixture should be readable"),
-            "{"
-        );
+        assert!(error.contains("Rollback file retained at"));
+        assert_eq!(read_json(&path), concurrent_value);
         assert_eq!(read_json(&backup_json_path(&path)), backup_value);
         assert_eq!(
             fs::read_to_string(pre_repair_json_path(&path))
                 .expect("pre-repair fixture should be readable"),
             "previous pre-repair"
         );
-        assert_eq!(rollback_file_count(&directory), 0);
+        assert_eq!(rollback_file_count(&directory), 1);
         let _ = fs::remove_dir_all(directory);
     }
 
@@ -2011,9 +2292,10 @@ mod tests {
     }
 
     #[test]
-    fn repair_collection_replace_empty_rolls_back_current_file_after_install_failure() {
+    fn repair_collection_replace_empty_preserves_concurrent_file_after_install_failure() {
         let directory = temp_test_dir("collection-replace-empty-install-failure");
         let path = directory.join("characters.json");
+        let concurrent_value = serde_json::json!([{ "id": "concurrent" }]);
         fs::write(&path, "{").expect("invalid collection fixture should be written");
         let backup_state =
             preserve_pre_repair_collection(&path).expect("rollback state should be created");
@@ -2024,17 +2306,18 @@ mod tests {
             "collection repair replacement",
             backup_state,
             |_temporary_path, target_path, _backup_state| {
-                fs::remove_file(target_path)?;
+                fs::write(
+                    target_path,
+                    serde_json::to_vec(&concurrent_value)
+                        .expect("concurrent value should serialize"),
+                )?;
                 Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated repair install failure should be reported");
 
-        assert!(error.contains("Restored recorded backup."));
-        assert_eq!(
-            fs::read_to_string(&path).expect("current fixture should be readable"),
-            "{"
-        );
+        assert!(error.contains("backup created: yes"));
+        assert_eq!(read_json(&path), concurrent_value);
         assert_eq!(
             fs::read_to_string(pre_repair_json_path(&path))
                 .expect("pre-repair fixture should be readable"),
@@ -2241,11 +2524,12 @@ mod tests {
     }
 
     #[test]
-    fn collection_json_write_restores_backup_after_install_failure() {
+    fn collection_json_write_preserves_concurrent_destination_after_install_failure() {
         let directory = temp_test_dir("json-install-failure");
         let path = directory.join("characters.json");
         let old_value = serde_json::json!([{ "id": "old" }]);
         let new_value = serde_json::json!([{ "id": "new" }]);
+        let concurrent_value = serde_json::json!([{ "id": "concurrent" }]);
         write_collection_json_file(&path, &old_value, "collection file")
             .expect("initial JSON write should succeed");
 
@@ -2256,17 +2540,20 @@ mod tests {
             true,
             |_temporary_path, target_path, backup_state| {
                 assert!(backup_state.created());
-                fs::remove_file(target_path)?;
+                fs::write(
+                    target_path,
+                    serde_json::to_vec(&concurrent_value)
+                        .expect("concurrent value should serialize"),
+                )?;
                 Err(io::Error::other("simulated install failure"))
             },
         )
         .expect_err("simulated install failure should be reported");
 
-        assert!(error.contains("Restored recorded backup."));
         assert!(error.contains("backup created: yes"));
-        assert_eq!(read_json(&path), old_value);
+        assert_eq!(read_json(&path), concurrent_value);
         assert_eq!(read_json(&backup_json_path(&path)), old_value);
-        assert!(!temporary_json_path(&path).exists());
+        assert!(!temporary_json_exists(&path));
         let _ = fs::remove_dir_all(directory);
     }
 
@@ -2274,6 +2561,7 @@ mod tests {
     fn collection_json_write_cleans_temp_when_created_backup_disappears() {
         let directory = temp_test_dir("json-install-missing-backup");
         let path = directory.join("characters.json");
+        let backup_path = backup_json_path(&path);
         let old_value = serde_json::json!([{ "id": "old" }]);
         let new_value = serde_json::json!([{ "id": "new" }]);
         write_collection_json_file(&path, &old_value, "collection file")
@@ -2284,22 +2572,20 @@ mod tests {
             &new_value,
             "collection file",
             true,
-            |_temporary_path, target_path, backup_state| {
-                let BackupState::Created { path: backup_path } = backup_state else {
+            |_temporary_path, _target_path, backup_state| {
+                if !matches!(backup_state, BackupState::Created) {
                     panic!("collection backup state should be available");
-                };
-                fs::remove_file(backup_path)?;
-                fs::remove_file(target_path)?;
+                }
+                fs::remove_file(&backup_path)?;
                 Err(io::Error::other("simulated missing backup failure"))
             },
         )
         .expect_err("simulated missing backup failure should be reported");
 
         assert!(error.contains("backup created: yes"));
-        assert!(error.contains("Restore failed:"));
-        assert!(!path.exists());
+        assert_eq!(read_json(&path), old_value);
         assert!(!backup_json_path(&path).exists());
-        assert!(!temporary_json_path(&path).exists());
+        assert!(!temporary_json_exists(&path));
         let _ = fs::remove_dir_all(directory);
     }
 
@@ -2332,6 +2618,368 @@ mod tests {
         assert_eq!(
             fs::read_to_string(&path).expect("old bundle should be restored"),
             old_contents
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn prompt_preset_export_failure_preserves_concurrent_destination() {
+        let directory = temp_test_dir("prompt-preset-export-install-failure");
+        let path = directory.join("Portable Preset.json");
+        let old_value = serde_json::json!({ "type": "dekoi_preset", "version": 1 });
+        let new_value = serde_json::json!({ "type": "dekoi_preset", "version": 2 });
+        let concurrent_value = serde_json::json!({ "source": "other writer" });
+        write_export_json_file(&path, &old_value, "prompt preset file")
+            .expect("initial prompt preset export should succeed");
+
+        let rollback_state =
+            preserve_current_for_rollback(&path, "existing prompt preset file for replacement")
+                .expect("existing prompt preset should be preserved for rollback");
+        let error = write_json_file_with_backup_state(
+            &path,
+            &new_value,
+            "prompt preset file",
+            rollback_state,
+            |_temporary_path, target_path, backup_state| {
+                assert!(matches!(backup_state, BackupState::RollbackCreated { .. }));
+                fs::write(
+                    target_path,
+                    serde_json::to_vec(&concurrent_value)
+                        .expect("concurrent value should serialize"),
+                )?;
+                Err(io::Error::other("simulated prompt preset install failure"))
+            },
+        )
+        .expect_err("simulated prompt preset install failure should be reported");
+
+        assert!(error.contains("Could not save DeKoi JSON data"));
+        assert_eq!(read_json(&path), concurrent_value);
+        assert!(!temporary_json_path(&path).exists());
+        assert_eq!(rollback_file_count(&directory), 1);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn prompt_preset_export_does_not_touch_unowned_legacy_temp_file() {
+        let directory = temp_test_dir("prompt-preset-export-temp-ownership");
+        let path = directory.join("Portable Preset.json");
+        let unowned_temp_path = temporary_json_path(&path);
+        let unowned_contents = "another operation's temporary data";
+        fs::write(&unowned_temp_path, unowned_contents)
+            .expect("unowned temp fixture should be written");
+
+        let value = serde_json::json!({ "type": "dekoi_preset", "version": 1 });
+        write_export_json_file(&path, &value, "prompt preset file")
+            .expect("prompt preset export should succeed with an occupied legacy temp path");
+
+        assert_eq!(read_json(&path), value);
+        assert_eq!(
+            fs::read_to_string(&unowned_temp_path).expect("unowned temp should remain"),
+            unowned_contents
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn temporary_json_artifacts_are_unique_and_cleanup_is_owned() {
+        let directory = temp_test_dir("prompt-preset-temp-ownership");
+        let path = directory.join("Portable Preset.json");
+        let mut first = OwnedJsonArtifact::create(&path, JSON_WRITE_ARTIFACT_KIND)
+            .expect("first temp artifact should be created");
+        let mut second = OwnedJsonArtifact::create(&path, JSON_WRITE_ARTIFACT_KIND)
+            .expect("second temp artifact should be created");
+        first
+            .file_mut()
+            .write_all(b"first")
+            .expect("first temp artifact should be writable");
+        second
+            .file_mut()
+            .write_all(b"second")
+            .expect("second temp artifact should be writable");
+        first.close();
+        second.close();
+        let first_path = first.path().to_path_buf();
+        let second_path = second.path().to_path_buf();
+
+        assert_ne!(first_path, second_path);
+        assert!(temporary_json_exists(&path));
+        first
+            .cleanup()
+            .expect("first temp artifact should be removed");
+        assert!(!first_path.exists());
+        assert_eq!(
+            fs::read_to_string(&second_path).expect("second temp artifact should remain readable"),
+            "second"
+        );
+        assert!(temporary_json_exists(&path));
+        second
+            .cleanup()
+            .expect("second temp artifact should be removed");
+        assert!(!temporary_json_exists(&path));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn committed_export_reports_rollback_cleanup_failure() {
+        let directory = temp_test_dir("prompt-preset-export-cleanup-failure");
+        let path = directory.join("Portable Preset.json");
+        let rollback_path = directory.join("owned-rollback-directory");
+        fs::create_dir(&rollback_path).expect("rollback cleanup fixture should be a directory");
+        let new_value = serde_json::json!({ "type": "dekoi_preset", "version": 1 });
+
+        let error = write_json_file_with_backup_state(
+            &path,
+            &new_value,
+            "prompt preset file",
+            BackupState::RollbackCreated {
+                artifact: OwnedJsonArtifact {
+                    path: rollback_path.clone(),
+                    file: None,
+                    owned: true,
+                },
+            },
+            install_temporary_json_file,
+        )
+        .expect_err("committed export should report rollback cleanup failure");
+
+        assert!(error.contains("was saved"));
+        assert!(error.contains("rollback"));
+        assert!(error.contains(&rollback_path.to_string_lossy().into_owned()));
+        assert_eq!(read_json(&path), new_value);
+        assert!(rollback_path.exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn temp_allocation_failure_cleans_owned_rollback() {
+        let directory = temp_test_dir("prompt-preset-temp-allocation-failure");
+        let path = directory
+            .join("missing-parent")
+            .join("Portable Preset.json");
+        let rollback_path = directory.join("owned-rollback.json");
+        fs::write(&rollback_path, "previous export").expect("rollback fixture should be written");
+
+        write_json_file_with_backup_state(
+            &path,
+            &serde_json::json!({ "type": "dekoi_preset", "version": 1 }),
+            "prompt preset file",
+            BackupState::RollbackCreated {
+                artifact: OwnedJsonArtifact {
+                    path: rollback_path.clone(),
+                    file: None,
+                    owned: true,
+                },
+            },
+            install_temporary_json_file,
+        )
+        .expect_err("missing parent should prevent temp allocation");
+
+        assert!(!rollback_path.exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn atomic_no_replace_install_does_not_require_hard_links() {
+        let directory = temp_test_dir("prompt-preset-atomic-no-replace");
+        let path = directory.join("Portable Preset.json");
+        let value = serde_json::json!({ "source": "dekoi" });
+
+        write_json_file_with_backup_state(
+            &path,
+            &value,
+            "prompt preset file",
+            BackupState::NoSourceFile,
+            |temporary_path, destination, _backup_state| {
+                install_new_json_file_with_atomic_rename(
+                    temporary_path,
+                    destination,
+                    |source, destination| fs::rename(source, destination),
+                    |_source, _destination| {
+                        Err(io::Error::new(
+                            io::ErrorKind::Unsupported,
+                            "simulated unsupported hard link",
+                        ))
+                    },
+                )
+            },
+        )
+        .expect("atomic rename should install a new destination");
+
+        assert_eq!(read_json(&path), value);
+        assert!(!temporary_json_exists(&path));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn atomic_no_replace_install_preserves_raced_destination() {
+        let directory = temp_test_dir("prompt-preset-atomic-no-replace-race");
+        let path = directory.join("Portable Preset.json");
+        let temporary_path = directory.join("owned-temp.json");
+        fs::write(&temporary_path, r#"{"source":"dekoi"}"#)
+            .expect("temporary prompt preset should be written");
+        fs::write(&path, r#"{"source":"other-process"}"#)
+            .expect("raced destination should be written");
+
+        let error = install_new_json_file_with_atomic_rename(
+            &temporary_path,
+            &path,
+            |_source, _destination| {
+                Err(io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    "simulated raced destination",
+                ))
+            },
+            |_source, _destination| panic!("hard-link fallback must not replace a raced file"),
+        )
+        .expect_err("atomic no-replace install must reject a raced destination");
+
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(
+            fs::read_to_string(&path).expect("raced destination should remain readable"),
+            r#"{"source":"other-process"}"#
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn native_no_replace_rename_preserves_existing_destination() {
+        let directory = temp_test_dir("prompt-preset-native-no-replace-race");
+        let path = directory.join("Portable Preset.json");
+        let temporary_path = directory.join("owned-temp.json");
+        fs::write(&temporary_path, r#"{"source":"dekoi"}"#)
+            .expect("temporary prompt preset should be written");
+        fs::write(&path, r#"{"source":"other-process"}"#)
+            .expect("raced destination should be written");
+
+        let error = rename_temporary_json_file_no_replace(&temporary_path, &path)
+            .expect_err("native no-replace rename must reject a raced destination");
+
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(
+            fs::read_to_string(&path).expect("raced destination should remain readable"),
+            r#"{"source":"other-process"}"#
+        );
+        assert!(temporary_path.exists());
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn prompt_preset_native_install_failure_preserves_existing_destination() {
+        let directory = temp_test_dir("prompt-preset-native-install-failure");
+        let path = directory.join("Portable Preset.json");
+        let missing_temporary_path = temporary_json_path(&path);
+        let old_contents = r#"{"type":"dekoi_preset","version":1}"#;
+        fs::write(&path, old_contents).expect("old prompt preset fixture should be written");
+        let mut rollback_state =
+            preserve_current_for_rollback(&path, "existing prompt preset file for replacement")
+                .expect("existing prompt preset should be preserved for rollback");
+
+        install_temporary_json_file(&missing_temporary_path, &path, &rollback_state)
+            .expect_err("missing temporary file should fail without removing the destination");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("old prompt preset should remain"),
+            old_contents
+        );
+        rollback_state
+            .cleanup_transient_rollback()
+            .expect("rollback fixture should be removable");
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn transient_rollbacks_are_unique_and_cleanup_is_owned() {
+        let directory = temp_test_dir("prompt-preset-rollback-ownership");
+        let path = directory.join("Portable Preset.json");
+        let contents = r#"{"type":"dekoi_preset","version":1}"#;
+        fs::write(&path, contents).expect("prompt preset fixture should be written");
+
+        let mut first = preserve_current_for_rollback(&path, "first rollback")
+            .expect("first rollback should be created");
+        let mut second = preserve_current_for_rollback(&path, "second rollback")
+            .expect("second rollback should be created");
+        let (first_path, second_path) = match (&first, &second) {
+            (
+                BackupState::RollbackCreated {
+                    artifact: first_artifact,
+                },
+                BackupState::RollbackCreated {
+                    artifact: second_artifact,
+                },
+            ) => (
+                first_artifact.path().to_path_buf(),
+                second_artifact.path().to_path_buf(),
+            ),
+            _ => panic!("both rollback states should own files"),
+        };
+
+        assert_ne!(first_path, second_path);
+        assert_eq!(
+            fs::read_to_string(&first_path).expect("first rollback should remain readable"),
+            contents
+        );
+        assert_eq!(
+            fs::read_to_string(&second_path).expect("second rollback should remain readable"),
+            contents
+        );
+
+        first
+            .cleanup_transient_rollback()
+            .expect("first rollback should be removable");
+        assert!(!first_path.exists());
+        assert!(second_path.exists());
+        second
+            .cleanup_transient_rollback()
+            .expect("second rollback should be removable");
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn new_export_destination_race_does_not_overwrite_another_file() {
+        let directory = temp_test_dir("prompt-preset-new-destination-race");
+        let path = directory.join("Portable Preset.json");
+        let temporary_path = temporary_json_path(&path);
+        fs::write(&temporary_path, r#"{"source":"dekoi"}"#)
+            .expect("temporary prompt preset should be written");
+        fs::write(&path, r#"{"source":"other-process"}"#)
+            .expect("raced destination should be written");
+
+        install_temporary_json_file(&temporary_path, &path, &BackupState::NoSourceFile)
+            .expect_err("a raced destination must not be replaced without a recorded backup");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("raced destination should remain"),
+            r#"{"source":"other-process"}"#
+        );
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn prompt_preset_export_replaces_existing_destination() {
+        let directory = temp_test_dir("prompt-preset-export-replacement");
+        let path = directory.join("Portable Preset.json");
+        let old_value = serde_json::json!({ "type": "dekoi_preset", "version": 1 });
+        let new_value = serde_json::json!({
+            "type": "dekoi_preset",
+            "version": 1,
+            "data": { "preset": { "name": "Replacement" } }
+        });
+        write_export_json_file(&path, &old_value, "prompt preset file")
+            .expect("initial prompt preset export should succeed");
+
+        write_export_json_file(&path, &new_value, "prompt preset file")
+            .expect("repeat prompt preset export should replace the destination");
+
+        assert_eq!(read_json(&path), new_value);
+        assert!(!backup_json_path(&path).exists());
+        assert!(!temporary_json_path(&path).exists());
+        assert_eq!(
+            fs::read_dir(&directory)
+                .expect("prompt preset export directory should be readable")
+                .count(),
+            1
         );
         let _ = fs::remove_dir_all(directory);
     }

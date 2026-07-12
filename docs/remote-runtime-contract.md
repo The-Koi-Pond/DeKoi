@@ -86,11 +86,12 @@ data directory at:
 ```
 
 Desktop collection files are JSON arrays. Missing files load as empty
-collections only when no `.json.bak`, `.json.tmp`, or `.json.pre-repair`
-recovery sibling is present. Malformed files and missing files with recovery
-artifacts return recoverable storage errors instead of being overwritten by
-normal autosave. Desktop collection writes use a synced temp file and preserve
-the previous readable file as `<entity>.json.bak`; storage bundle writes use the
+collections only when no `.json.bak`, legacy `.json.tmp`, unique
+`.json.write-*.tmp`, or `.json.pre-repair` recovery sibling is present.
+Malformed files and missing files with recovery artifacts return recoverable
+storage errors instead of being overwritten by normal autosave. Desktop
+collection writes use an atomically allocated, synced temp file and preserve the
+previous readable file as `<entity>.json.bak`; storage bundle writes use the
 temp/sync path without creating a backup.
 
 If a readable desktop file or remote `storage_list` response contains individual
@@ -593,8 +594,10 @@ preset linkage, and value-based visibility rules. Runtimes must round-trip those
 `variableOrder` entries; the catalog preserves compatibility-only order slots
 while reordering choice-block slots. Choice evaluation is deterministic and does
 not support `randomPick`.
-Remote runtimes should expose native prompt preset records in storage; packaged
-preset envelopes are only normalized by DeKoi bundle import.
+Remote runtimes should expose native prompt preset records in storage. Packaged
+`dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
+normalized only at DeKoi's bundle and standalone preset-file import boundaries;
+they are not remote storage record shapes.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.

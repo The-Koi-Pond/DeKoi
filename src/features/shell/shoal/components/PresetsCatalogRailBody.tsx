@@ -1,12 +1,25 @@
+import { PromptPresetFileActions } from "../../../catalog";
 import { getMessengerThreadInitials } from "../../../modes";
 import type { ShoalNav } from "../types";
 import { CatalogRailCard } from "./CatalogRailCard";
 
 type PresetsCatalogRailBodyProps = {
-  nav: Pick<ShoalNav, "promptPresets" | "setView" | "view">;
+  originActive: boolean;
+  nav: Pick<
+    ShoalNav,
+    | "exportPromptPresetFile"
+    | "importPromptPresetFile"
+    | "openPromptPresetFile"
+    | "promptPresetFileHost"
+    | "promptPresetFileStatus"
+    | "promptPresets"
+    | "setPromptPresetFileStatus"
+    | "setView"
+    | "view"
+  >;
 };
 
-export function PresetsCatalogRailBody({ nav }: PresetsCatalogRailBodyProps) {
+export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRailBodyProps) {
   const activePresetId = nav.view.kind === "presets" ? (nav.view.presetId ?? null) : null;
   const presetCount = nav.promptPresets.length;
 
@@ -36,6 +49,20 @@ export function PresetsCatalogRailBody({ nav }: PresetsCatalogRailBodyProps) {
         <span>Presets</span>
         <span className="mark-chip">{presetCount} shown</span>
       </div>
+      {nav.view.kind !== "presets" && (
+        <PromptPresetFileActions
+          visibility="list"
+          host={nav.promptPresetFileHost}
+          importPromptPresetFile={nav.importPromptPresetFile}
+          openPromptPresetFile={nav.openPromptPresetFile}
+          exportPromptPresetFile={nav.exportPromptPresetFile}
+          navigationContext={nav.view}
+          originActive={originActive}
+          status={nav.promptPresetFileStatus}
+          onImportedPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
+          onStatusChange={nav.setPromptPresetFileStatus}
+        />
+      )}
       <div className="shoal-list">
         <div className="group-label">Presets</div>
         {nav.promptPresets.map((preset) => (

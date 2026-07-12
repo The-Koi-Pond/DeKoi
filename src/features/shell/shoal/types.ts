@@ -1,6 +1,7 @@
 import type {
   NavCatalogState,
   NavMessengerThreadActions,
+  NavPromptPresetActions,
   NavRoleplayThreadActions,
   NavSettingsActions,
   NavSettingsState,
@@ -11,8 +12,21 @@ import type {
 
 export type ShoalNav = Pick<
   NavCatalogState,
-  "characters" | "lorebooks" | "personas" | "promptPresets" | "providerConnections"
+  | "characters"
+  | "lorebooks"
+  | "personas"
+  | "promptPresets"
+  | "promptPresetFileHost"
+  | "promptPresetFileStatus"
+  | "providerConnections"
 > &
+  Pick<
+    NavPromptPresetActions,
+    | "exportPromptPresetFile"
+    | "importPromptPresetFile"
+    | "openPromptPresetFile"
+    | "setPromptPresetFileStatus"
+  > &
   Pick<
     NavRoleplayThreadActions,
     | "createRoleplayThread"

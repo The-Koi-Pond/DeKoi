@@ -17,16 +17,43 @@ import type {
 
 export const DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT = "Write the next response in character.";
 
-function cleanSamplingNumber(value: number | null | undefined, min: number, max: number) {
-  if (value === null) return null;
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return Math.max(min, Math.min(max, value));
+export interface PromptPresetNumericConstraint {
+  minimum: number;
+  maximum: number;
+  integer: boolean;
 }
 
-function cleanNullableNumber(value: unknown, min: number, max: number, round = false) {
+export const PROMPT_PRESET_NUMERIC_CONSTRAINTS = {
+  maxTokens: { minimum: 1, maximum: 131_072, integer: true },
+  temperature: { minimum: 0, maximum: 2, integer: false },
+  topP: { minimum: 0, maximum: 1, integer: false },
+  topK: { minimum: 0, maximum: 1_000, integer: true },
+  minP: { minimum: 0, maximum: 1, integer: false },
+  maxContext: { minimum: 1, maximum: 2_000_000, integer: true },
+  frequencyPenalty: { minimum: -2, maximum: 2, integer: false },
+  presencePenalty: { minimum: -2, maximum: 2, integer: false },
+  sectionInjectionDepth: {
+    minimum: Number.MIN_SAFE_INTEGER,
+    maximum: Number.MAX_SAFE_INTEGER,
+    integer: true,
+  },
+  sectionInjectionOrder: {
+    minimum: Number.MIN_SAFE_INTEGER,
+    maximum: Number.MAX_SAFE_INTEGER,
+    integer: true,
+  },
+  groupOrder: {
+    minimum: Number.MIN_SAFE_INTEGER,
+    maximum: Number.MAX_SAFE_INTEGER,
+    integer: true,
+  },
+  choiceSortOrder: { minimum: 0, maximum: Number.MAX_SAFE_INTEGER, integer: true },
+} as const satisfies Record<string, PromptPresetNumericConstraint>;
+
+function cleanNullableNumber(value: unknown, constraint: PromptPresetNumericConstraint) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  const normalized = Math.max(min, Math.min(max, value));
-  return round ? Math.round(normalized) : normalized;
+  const normalized = Math.max(constraint.minimum, Math.min(constraint.maximum, value));
+  return constraint.integer ? Math.round(normalized) : normalized;
 }
 
 function cleanNullableBoolean(value: unknown) {
@@ -38,12 +65,18 @@ export function normalizePromptPresetSampling(
 ): PromptPresetSampling | null {
   if (!value) return null;
 
-  const maxTokens = cleanSamplingNumber(value.maxTokens, 1, 131_072);
-  const temperature = cleanSamplingNumber(value.temperature, 0, 2);
-  const topP = cleanSamplingNumber(value.topP, 0, 1);
+  const maxTokens = cleanNullableNumber(
+    value.maxTokens,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxTokens,
+  );
+  const temperature = cleanNullableNumber(
+    value.temperature,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.temperature,
+  );
+  const topP = cleanNullableNumber(value.topP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topP);
 
   const sampling: PromptPresetSampling = {};
-  if (maxTokens !== null) sampling.maxTokens = Math.round(maxTokens);
+  if (maxTokens !== null) sampling.maxTokens = maxTokens;
   if (temperature !== null) sampling.temperature = temperature;
   if (topP !== null) sampling.topP = topP;
 
@@ -55,14 +88,29 @@ export function normalizePromptPresetParameters(value: unknown): PromptPresetPar
   if (!isRecord(source)) return null;
 
   const parameters: PromptPresetParameters = {};
-  const maxTokens = cleanNullableNumber(source.maxTokens, 1, 131_072, true);
-  const temperature = cleanNullableNumber(source.temperature, 0, 2);
-  const topP = cleanNullableNumber(source.topP, 0, 1);
-  const topK = cleanNullableNumber(source.topK, 0, 1_000, true);
-  const minP = cleanNullableNumber(source.minP, 0, 1);
-  const maxContext = cleanNullableNumber(source.maxContext, 1, 2_000_000, true);
-  const frequencyPenalty = cleanNullableNumber(source.frequencyPenalty, -2, 2);
-  const presencePenalty = cleanNullableNumber(source.presencePenalty, -2, 2);
+  const maxTokens = cleanNullableNumber(
+    source.maxTokens,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxTokens,
+  );
+  const temperature = cleanNullableNumber(
+    source.temperature,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.temperature,
+  );
+  const topP = cleanNullableNumber(source.topP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topP);
+  const topK = cleanNullableNumber(source.topK, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topK);
+  const minP = cleanNullableNumber(source.minP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.minP);
+  const maxContext = cleanNullableNumber(
+    source.maxContext,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxContext,
+  );
+  const frequencyPenalty = cleanNullableNumber(
+    source.frequencyPenalty,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.frequencyPenalty,
+  );
+  const presencePenalty = cleanNullableNumber(
+    source.presencePenalty,
+    PROMPT_PRESET_NUMERIC_CONSTRAINTS.presencePenalty,
+  );
   const reasoningEffort = readNullableString(source.reasoningEffort);
   const verbosity = readNullableString(source.verbosity);
   const serviceTier = readNullableString(source.serviceTier);
@@ -104,11 +152,11 @@ export function normalizePromptPresetParameters(value: unknown): PromptPresetPar
   return Object.keys(parameters).length > 0 ? parameters : null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseJsonIfString(value: unknown): unknown {
+export function parseJsonIfString(value: unknown): unknown {
   if (typeof value !== "string") return value;
 
   try {
@@ -118,7 +166,7 @@ function parseJsonIfString(value: unknown): unknown {
   }
 }
 
-function readString(value: unknown) {
+export function readString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
@@ -129,7 +177,7 @@ function readBooleanLike(value: unknown, fallback = false) {
   return fallback;
 }
 
-function readNullableString(value: unknown) {
+export function readNullableString(value: unknown) {
   const trimmed = readString(value).trim();
   return trimmed ? trimmed : null;
 }
@@ -282,22 +330,39 @@ function normalizeChoiceOptions(value: unknown): PromptPresetChoiceBlock["option
   return options;
 }
 
+interface ChoiceOptionIndex {
+  optionsById: Map<string, PromptPresetChoiceBlock["options"][number]>;
+  optionsByValue: Map<string, PromptPresetChoiceBlock["options"][number]>;
+}
+
+function createChoiceOptionIndex(options: PromptPresetChoiceBlock["options"]): ChoiceOptionIndex {
+  const optionsById = new Map<string, PromptPresetChoiceBlock["options"][number]>();
+  const optionsByValue = new Map<string, PromptPresetChoiceBlock["options"][number]>();
+
+  for (const option of options) {
+    optionsById.set(option.id, option);
+    if (!optionsByValue.has(option.value)) optionsByValue.set(option.value, option);
+  }
+
+  return { optionsById, optionsByValue };
+}
+
 function findChoiceSelectionOption(
-  options: PromptPresetChoiceBlock["options"],
+  optionIndex: ChoiceOptionIndex,
   selection: PromptPresetChoiceSelectionValue,
 ) {
   if (typeof selection !== "string") {
-    return options.find((option) => option.id === selection.optionId) ?? null;
+    return optionIndex.optionsById.get(selection.optionId) ?? null;
   }
 
   const trimmed = selection.trim();
   if (!trimmed && selection.length > 0) return null;
 
-  const optionByValue = options.find((option) => option.value === trimmed);
+  const optionByValue = optionIndex.optionsByValue.get(trimmed);
   if (optionByValue) return optionByValue;
   if (!trimmed) return null;
 
-  return options.find((option) => option.id === trimmed) ?? null;
+  return optionIndex.optionsById.get(trimmed) ?? null;
 }
 
 function normalizeVisibilityRule(value: unknown): PromptPresetVisibilityRule | null {
@@ -331,6 +396,7 @@ export function normalizePromptPresetChoiceBlocks(
 
     const options = normalizeChoiceOptions(item.options);
     if (options.length === 0) continue;
+    const optionIndex = createChoiceOptionIndex(options);
 
     const defaultChoiceValue = defaultChoices[variableName];
     const firstDefaultChoice = Array.isArray(defaultChoiceValue)
@@ -338,10 +404,10 @@ export function normalizePromptPresetChoiceBlocks(
       : defaultChoiceValue;
     const defaultOptionByChoice =
       firstDefaultChoice !== undefined
-        ? findChoiceSelectionOption(options, firstDefaultChoice)
+        ? findChoiceSelectionOption(optionIndex, firstDefaultChoice)
         : null;
     const defaultOptionId = defaultOptionByChoice?.id ?? readTrimmedString(item.defaultOptionId);
-    const normalizedDefaultOptionId = options.some((option) => option.id === defaultOptionId)
+    const normalizedDefaultOptionId = optionIndex.optionsById.has(defaultOptionId)
       ? defaultOptionId
       : options[0]?.id;
 
@@ -365,7 +431,10 @@ export function normalizePromptPresetChoiceBlocks(
         : null;
     const optionSort =
       item.optionSort === "alphabetical" || item.optionSort === "manual" ? item.optionSort : null;
-    const sortOrder = cleanNullableNumber(item.sortOrder, 0, Number.MAX_SAFE_INTEGER, true);
+    const sortOrder = cleanNullableNumber(
+      item.sortOrder,
+      PROMPT_PRESET_NUMERIC_CONSTRAINTS.choiceSortOrder,
+    );
     const createdAt = readNullableString(item.createdAt);
     const visibilityRule = normalizeVisibilityRule(item.visibilityRule);
 
@@ -389,10 +458,10 @@ export function normalizePromptPresetChoiceBlocks(
 }
 
 function choiceSelectionIsValid(
-  block: PromptPresetChoiceBlock,
+  optionIndex: ChoiceOptionIndex,
   value: PromptPresetChoiceSelectionValue,
 ) {
-  return findChoiceSelectionOption(block.options, value) !== null;
+  return findChoiceSelectionOption(optionIndex, value) !== null;
 }
 
 export function prunePromptPresetDefaultChoices(
@@ -400,21 +469,25 @@ export function prunePromptPresetDefaultChoices(
   choiceBlocks: PromptPresetChoiceBlock[],
 ): PromptPresetChoiceSelections {
   const blocksByVariableName = new Map(
-    choiceBlocks.map((block) => [block.variableName, block] as const),
+    choiceBlocks.map(
+      (block) => [block.variableName, createChoiceOptionIndex(block.options)] as const,
+    ),
   );
   const prunedChoices: PromptPresetChoiceSelections = {};
 
   for (const [variableName, selection] of Object.entries(defaultChoices)) {
-    const block = blocksByVariableName.get(variableName);
-    if (!block) continue;
+    const optionIndex = blocksByVariableName.get(variableName);
+    if (!optionIndex) continue;
 
     if (Array.isArray(selection)) {
-      const validSelections = selection.filter((value) => choiceSelectionIsValid(block, value));
+      const validSelections = selection.filter((value) =>
+        choiceSelectionIsValid(optionIndex, value),
+      );
       if (validSelections.length > 0) prunedChoices[variableName] = validSelections;
       continue;
     }
 
-    if (choiceSelectionIsValid(block, selection)) {
+    if (choiceSelectionIsValid(optionIndex, selection)) {
       prunedChoices[variableName] = selection;
     }
   }
@@ -589,9 +662,10 @@ function choiceSelectionOptions(
       : [selection];
   const seen = new Set<string>();
   const options: PromptPresetChoiceBlock["options"] = [];
+  const optionIndex = createChoiceOptionIndex(block.options);
 
   for (const candidate of candidates) {
-    const option = findChoiceSelectionOption(block.options, candidate);
+    const option = findChoiceSelectionOption(optionIndex, candidate);
     if (!option || seen.has(option.id)) continue;
 
     seen.add(option.id);
@@ -864,15 +938,11 @@ export function normalizePromptPresetSections(value: unknown): PromptPresetSecti
     const injectionPosition = readNullableString(item.injectionPosition);
     const injectionDepth = cleanNullableNumber(
       item.injectionDepth,
-      Number.MIN_SAFE_INTEGER,
-      Number.MAX_SAFE_INTEGER,
-      true,
+      PROMPT_PRESET_NUMERIC_CONSTRAINTS.sectionInjectionDepth,
     );
     const injectionOrder = cleanNullableNumber(
       item.injectionOrder,
-      Number.MIN_SAFE_INTEGER,
-      Number.MAX_SAFE_INTEGER,
-      true,
+      PROMPT_PRESET_NUMERIC_CONSTRAINTS.sectionInjectionOrder,
     );
     const xmlTagName = readNullableString(item.xmlTagName);
 
@@ -914,21 +984,18 @@ export function normalizePromptPresetGroups(value: unknown): PromptPresetGroup[]
     };
     const presetId = readNullableString(item.presetId);
     const parentGroupId = readNullableString(item.parentGroupId);
-    const order = cleanNullableNumber(
-      item.order,
-      Number.MIN_SAFE_INTEGER,
-      Number.MAX_SAFE_INTEGER,
-      true,
-    );
+    const order = cleanNullableNumber(item.order, PROMPT_PRESET_NUMERIC_CONSTRAINTS.groupOrder);
     const createdAt = readNullableString(item.createdAt);
 
-    if (presetId !== null) group.presetId = presetId;
-    if (parentGroupId !== null) group.parentGroupId = parentGroupId;
-    if (order !== null) group.order = order;
+    if (presetId !== null || item.presetId === null) group.presetId = presetId;
+    if (parentGroupId !== null || item.parentGroupId === null) {
+      group.parentGroupId = parentGroupId;
+    }
+    if (order !== null || item.order === null) group.order = order;
     if (typeof item.enabled === "boolean" || typeof item.enabled === "string") {
       group.enabled = readBooleanLike(item.enabled, true);
     }
-    if (createdAt !== null) group.createdAt = createdAt;
+    if (createdAt !== null || item.createdAt === null) group.createdAt = createdAt;
 
     seenIds.add(id);
     groups.push(group);

@@ -336,7 +336,7 @@ Desktop collection files expose explicit per-collection metadata:
 - byte length
 - updated-at milliseconds
 - content hash
-- sibling `.json.bak`, `.json.tmp`, and `.json.pre-repair` artifact state
+- sibling `.json.bak`, recognized write-temp, and `.json.pre-repair` artifact state
 - whether a backup is restorable
 - whether the collection state is repairable
 
@@ -374,12 +374,12 @@ ordering should use `getMessengerThreadActivityAt` or
 
 Desktop collection files are JSON arrays. Missing files load as empty
 collections only when no sibling recovery artifacts are present. Empty files,
-invalid JSON, non-array JSON, and missing files with `.json.bak`, `.json.tmp`,
-or `.json.pre-repair` siblings are recoverable storage errors, not empty
-collections.
+invalid JSON, non-array JSON, and missing files with `.json.bak`, legacy
+`.json.tmp`, unique `.json.write-*.tmp`, or `.json.pre-repair` siblings are
+recoverable storage errors, not empty collections.
 
 When a desktop collection file is malformed, the desktop runtime reports the
-entity name, path category, whether `.json.bak`, `.json.tmp`, or
+entity name, path category, whether backup, recognized write-temp, or
 `.json.pre-repair` siblings exist, and that writes are blocked. Normal autosave
 must not overwrite that collection until an explicit repair/import path repairs
 or replaces the corrupt file.
@@ -414,18 +414,25 @@ transcript split as one migration group; if either collection in that group had
 drops, DeKoi skips automatic migration for the group and leaves the Pond Care
 warning as the recovery signal.
 
-Desktop collection JSON writes use a sibling temp file and a `.json.bak`
-sibling:
+Desktop collection JSON writes use an operation-owned sibling temp file and a
+`.json.bak` sibling:
 
-- serialize to `<entity>.json.tmp`
+- atomically allocate a unique `<entity>.json.write-*.tmp` without truncating an
+  existing sibling
 - write and sync the temp file
 - preserve the readable current file as `<entity>.json.bak`
-- install the temp file
-- restore the backup when install fails and a backup is available
+- atomically install only that operation's temp file without overwriting a
+  destination that appeared concurrently, using native no-replace rename with
+  an atomic hard-link fallback
+- leave the destination untouched on install failure and keep recovery artifacts
 - best-effort sync the final file and parent directory
 
 DeKoi storage bundle files use the same temp-file write and sync path, but they
-do not create `.json.bak` siblings.
+do not create `.json.bak` siblings. Replacing an existing bundle or standalone
+preset export first creates a unique transient rollback sibling. Failed install
+leaves the destination untouched and retains that rollback; successful install
+reports the destination as committed and identifies any rollback that cleanup
+could not remove.
 
 The backup is a recovery aid, not an automatic overwrite path. Pond Care exposes
 an explicit desktop-only repair workflow for one malformed collection at a time.
@@ -440,7 +447,7 @@ entities, and support two strategies:
   the same temp-file atomic write path. This is rejected when a restorable
   `.json.bak` backup is available. Otherwise, preserve the malformed current
   file as `<entity>.json.pre-repair` when that sidecar does not already exist
-  and use it as the rollback source during installation.
+  so failed installation retains an explicit recovery source.
 
 Repair results return the repaired collection metadata. Existing `.json.bak`
 backups and existing `.json.pre-repair` sidecars are preserved. When a
@@ -585,6 +592,19 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   `systemPrompt`, and packaged `isDefault`, `author`, and `folderId` metadata
   are preserved when present. Source envelope fields do not survive on the
   native record.
+- Keep standalone prompt preset files separate from full storage bundles. The
+  Presets catalog exports one saved record as a `dekoi_preset` version 1 package
+  named from its title with a normal `.json` extension. Standalone import is
+  content-driven: supported `dekoi_preset` and compatible `marinara_preset`
+  version 1 envelopes may use `.json` or `.marinara.json` filenames. A valid
+  import keeps supported parameters, sections, groups, choices, variables,
+  ordering, and metadata, then creates one fresh native preset ID and rewrites
+  nested preset ownership to that ID. Parse or validation failure does not add a
+  catalog record. With configured storage, import success is reported only after
+  the prompt-preset collection flushes; a failed prompt-preset save removes the
+  new session record and flushes that rollback. When no storage target exists,
+  browser import remains available as explicit session-only state and the
+  catalog warns that it will not survive reload.
 - Prune malformed or stale thread preset-choice selections during preview.
   Preview warnings count those repaired threads separately from threads whose
   missing imported preset reference was cleared.

@@ -13,3 +13,4 @@ export { PersonasSurface } from "./personas";
 export type { PersonasSurfaceNav } from "./personas";
 export { PromptPresetsSurface } from "./presets";
 export type { PromptPresetsSurfaceNav } from "./presets";
+export { PromptPresetFileActions } from "./presets";

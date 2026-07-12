@@ -27,6 +27,8 @@ import type {
   AppStorageReplaceResult,
   DeKoiLegacyImportData,
   DeKoiStorageBundle,
+  PromptPresetFileExportResult,
+  PromptPresetFileImportResult,
 } from "../../runtime";
 import type { MessengerStorageMode, MessengerStorageStatus } from "../../runtime";
 
@@ -54,6 +56,8 @@ export interface NavCatalogState {
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   promptPresets: PromptPresetRecord[];
+  promptPresetFileHost: "browser" | "desktop";
+  promptPresetFileStatus: string;
   providerConnections: ProviderConnectionRecord[];
 }
 
@@ -154,7 +158,15 @@ export interface NavPromptPresetActions {
   updatePromptPreset: (presetId: string, input: PromptPresetInput) => void;
   duplicatePromptPreset: (presetId: string) => PromptPresetRecord | null;
   deletePromptPreset: (presetId: string) => void;
+  importPromptPresetFile: (file: File) => Promise<NavPromptPresetFileImportResult>;
+  openPromptPresetFile: () => Promise<NavPromptPresetFileImportResult>;
+  exportPromptPresetFile: (presetId: string) => Promise<NavPromptPresetFileExportResult>;
+  setPromptPresetFileStatus: (status: string) => void;
 }
+
+export type NavPromptPresetFileImportResult = PromptPresetFileImportResult;
+
+export type NavPromptPresetFileExportResult = PromptPresetFileExportResult;
 
 export interface NavProviderConnectionActions {
   createProviderConnection: (input: ProviderConnectionInput) => Promise<ProviderConnectionRecord>;

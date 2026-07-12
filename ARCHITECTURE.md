@@ -198,7 +198,9 @@ architecture-level rules:
   and view actions for the app provider.
 - `src/runtime/index.ts` is the public runtime bridge. `src/runtime/storage/*`
   adapts native records to desktop or remote storage, DeKoi bundle
-  import/export, and legacy import through shared API wrappers.
+  import/export, standalone prompt-preset file conversion, and legacy import
+  through shared API wrappers. Pure prompt-preset package normalization and
+  serialization remain engine-owned.
 - `src-tauri/src/lib.rs` registers desktop commands. Focused modules under
   `src-tauri/src/` own storage, bundle file dialogs, provider secrets, host
   status, desktop runtime dispatch, provider transport, and provider response
