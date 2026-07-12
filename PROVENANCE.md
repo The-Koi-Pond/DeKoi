@@ -55,12 +55,26 @@ legacy application record model.
 
 ### Universal V2 provenance review
 
-The maintainer approved Chai's complete Universal V2 package as DeKoi source
-material. Chai independently authored its prompt prose, choice text, package
-structure, and metadata for the De-Koi team; no Marinara prompt text was copied
-or adapted into the package. The description's "audit of Marinara's Universal
-Preset" records the benchmark used to identify problems, not a source for the
-resulting wording or structure.
+This record preserves two distinct pieces of source evidence rather than using
+maintainer approval as evidence of authorship:
+
+- Chai supplied the Universal V2 source package to the De-Koi team with the
+  source-level attestation that Chai independently authored its prompt prose,
+  choice text, package structure, and metadata for the team. Chai's attestation
+  explicitly covers the complete inventory below and states that no Marinara
+  prompt text or structure was copied, adapted, or translated. The description's
+  "audit of Marinara's Universal Preset" identifies the behavioral benchmark;
+  it does not identify a source for any package content.
+- The DeKoi maintainer, acting for the team that owns that authored material,
+  separately approved its retention and distribution in this repository. That
+  permission covers the package content, not merely its compatibility envelope
+  or metadata.
+
+Both statements apply specifically to the 40,225-byte Git blob
+`74eb456624f1a2bc56b9e860e3ca68889765d8f3`, whose SHA-256 is
+`975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`.
+The integrity check prevents either the reviewed source or this provenance
+record from being silently reused for different prompt content.
 
 This approval covers all 14 prompt sections (role, five context/marker rows,
 context contract, world autonomy, agency boundaries, erotic tone, style,
@@ -70,12 +84,12 @@ parameters, Messenger prompt, and package metadata. The compatibility envelope
 is retained only as an import fixture; DeKoi normalizes it into a native editable
 record before storage or generation.
 
-The approval was recorded by the DeKoi maintainer for PR #129 and applies to
-the following source-level inventory. In every row, "Chai" means independently
-authored by Chai for the De-Koi team, team-owned, and approved for retention in
-DeKoi; it does not mean copied, adapted, or translated from Marinara.
+The following source-level inventory is the scope of Chai's authorship
+attestation and the team's retention permission. In every row, "Chai-authored"
+means independently authored by Chai for the De-Koi team; it does not mean
+copied, adapted, or translated from Marinara.
 
-| Package material               | Chai-authored source covered by the maintainer approval                                                                                                   |
+| Package material               | Chai-authored source covered by the authorship attestation and team permission                                                                            |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `section_v2_role`              | Role and mode prompt prose                                                                                                                                |
 | `section_v2_lorebook`          | Setting marker definition and metadata                                                                                                                    |
