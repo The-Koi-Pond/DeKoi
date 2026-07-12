@@ -20,13 +20,13 @@ export {
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
-  promptPresetPersistenceSignatures,
-  saveStagedPromptPresetToStorage,
+  runPromptPresetImportStorageTransaction,
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
   type MessengerStorageMode,
   type MessengerStorageStatus,
+  type PromptPresetImportSaveResult,
 } from "./storage";
 export {
   addRippleToOwnerState,

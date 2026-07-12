@@ -54,6 +54,6 @@ export {
   type PromptPresetFileImportResult,
 } from "./prompt-preset-file-workflows";
 export {
-  promptPresetPersistenceSignatures,
-  saveStagedPromptPresetToStorage,
+  runPromptPresetImportStorageTransaction,
+  type PromptPresetImportSaveResult,
 } from "./prompt-preset-import-storage";

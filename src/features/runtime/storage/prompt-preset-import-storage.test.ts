@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { AppStorageRecords } from "./app-storage-workflows";
 import {
   promptPresetPersistenceSignatures,
+  runPromptPresetImportStorageTransaction,
   saveStagedPromptPresetToStorage,
+  type PromptPresetImportStoragePorts,
 } from "./prompt-preset-import-storage";
 
 const now = "2026-07-11T00:00:00.000Z";
@@ -190,5 +192,251 @@ describe("saveStagedPromptPresetToStorage", () => {
         "Staged save failed. Catalog storage rollback could not be saved. Rollback save failed.",
       persisted: null,
     });
+  });
+});
+
+function transactionHarness(initialSnapshot: AppStorageRecords) {
+  let currentSnapshot = initialSnapshot;
+  let rollbackSnapshot = initialSnapshot;
+  let targetCurrent = true;
+  let locked = false;
+  let persistedSignature: string | null = null;
+  let unsavedSignature: string | null = null;
+  const events: string[] = [];
+
+  const ports: PromptPresetImportStoragePorts = {
+    tryBeginExclusiveImport: () => {
+      events.push("begin");
+      if (locked) return false;
+      locked = true;
+      return true;
+    },
+    finishExclusiveImport: () => {
+      events.push("finish");
+      locked = false;
+    },
+    captureTarget: () => ({ generation: 7, rawUrl: "http://runtime.test" }),
+    isTargetCurrent: () => targetCurrent,
+    getCurrentSnapshot: () => currentSnapshot,
+    trackRollbackSnapshot: () => ({
+      getSnapshot: () => rollbackSnapshot,
+      stop: () => events.push("stop-tracking"),
+    }),
+    cancelQueuedSaveDispatch: () => events.push("cancel"),
+    drainSaveQueue: () => events.push("drain"),
+    waitForActiveSaveToSettle: async () => {
+      events.push("wait");
+    },
+    getStorageMode: () => "desktop",
+    publishSaving: () => events.push("saving"),
+    mergeStorageMetadata: () => events.push("metadata"),
+    setPersistedPromptPresetSignature: (signature) => {
+      events.push("persisted-signature");
+      persistedSignature = signature;
+    },
+    clearPendingPromptPresetSave: () => events.push("clear-pending"),
+    clearPromptPresetSaveError: () => events.push("clear-error"),
+    setUnsavedPromptPresetSignature: (signature) => {
+      events.push("set-unsaved");
+      unsavedSignature = signature;
+    },
+    clearUnsavedPromptPresetSignature: () => {
+      events.push("clear-unsaved");
+      unsavedSignature = null;
+    },
+    refreshSaveStatus: () => events.push("status"),
+    flushFailureSaves: async () => {
+      events.push("flush");
+    },
+  };
+
+  return {
+    events,
+    ports,
+    get locked() {
+      return locked;
+    },
+    set locked(value: boolean) {
+      locked = value;
+    },
+    set currentSnapshot(value: AppStorageRecords) {
+      currentSnapshot = value;
+    },
+    set rollbackSnapshot(value: AppStorageRecords) {
+      rollbackSnapshot = value;
+    },
+    set targetCurrent(value: boolean) {
+      targetCurrent = value;
+    },
+    get persistedSignature() {
+      return persistedSignature;
+    },
+    get unsavedSignature() {
+      return unsavedSignature;
+    },
+  };
+}
+
+describe("runPromptPresetImportStorageTransaction", () => {
+  it("owns exclusive queue preparation, persistence publication, and cleanup ordering", async () => {
+    const existingPreset = promptPreset("prompt-preset-existing");
+    const importedPreset = promptPreset("prompt-preset-imported");
+    const harness = transactionHarness(appStorageRecords([existingPreset]));
+    const saveCollection = vi.fn(async () => {
+      harness.events.push("save");
+      return storageResult("ready", "Saved.");
+    });
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: importedPreset,
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(result).toMatchObject({ saved: true, blocked: false, message: "Saved." });
+    expect(harness.events).toEqual([
+      "begin",
+      "cancel",
+      "drain",
+      "wait",
+      "saving",
+      "save",
+      "metadata",
+      "persisted-signature",
+      "clear-pending",
+      "clear-error",
+      "set-unsaved",
+      "status",
+      "stop-tracking",
+      "finish",
+    ]);
+    expect(harness.locked).toBe(false);
+    expect(harness.persistedSignature).not.toBeNull();
+  });
+
+  it("rejects a competing import before touching queue or rollback state", async () => {
+    const harness = transactionHarness(appStorageRecords([]));
+    harness.locked = true;
+    const saveCollection = vi.fn();
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(result).toMatchObject({ saved: false, blocked: true });
+    expect(harness.events).toEqual(["begin"]);
+    expect(saveCollection).not.toHaveBeenCalled();
+  });
+
+  it("releases exclusivity when transaction setup throws", async () => {
+    const harness = transactionHarness(appStorageRecords([]));
+    harness.ports.trackRollbackSnapshot = () => {
+      throw new Error("rollback tracking failed");
+    };
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+    });
+
+    expect(result).toMatchObject({
+      saved: false,
+      blocked: false,
+      message: "rollback tracking failed",
+    });
+    expect(harness.locked).toBe(false);
+    expect(harness.events).toContain("finish");
+  });
+
+  it("stops before staging when the target changes while queued saves settle", async () => {
+    const harness = transactionHarness(appStorageRecords([]));
+    harness.ports.waitForActiveSaveToSettle = async () => {
+      harness.events.push("wait");
+      harness.targetCurrent = false;
+    };
+    const saveCollection = vi.fn();
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(result).toMatchObject({
+      saved: false,
+      blocked: true,
+      message: "Prompt preset save was interrupted because the storage target changed.",
+    });
+    expect(saveCollection).not.toHaveBeenCalled();
+    expect(harness.events).not.toContain("flush");
+    expect(harness.locked).toBe(false);
+  });
+
+  it("rolls back the latest original-target snapshot when the target changes during save", async () => {
+    const existingPreset = promptPreset("prompt-preset-existing");
+    const editedSnapshot = appStorageRecords([{ ...existingPreset, title: "Concurrent edit" }]);
+    const harness = transactionHarness(appStorageRecords([existingPreset]));
+    const savedSnapshots: AppStorageRecords[] = [];
+    const saveCollection = vi.fn(async (snapshot: AppStorageRecords) => {
+      savedSnapshots.push(snapshot);
+      if (savedSnapshots.length === 1) {
+        harness.rollbackSnapshot = editedSnapshot;
+        harness.targetCurrent = false;
+      }
+      return storageResult("ready", "Saved.");
+    });
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(result).toMatchObject({ saved: false, blocked: true });
+    expect(savedSnapshots).toHaveLength(2);
+    expect(savedSnapshots[1]?.promptPresets).toEqual(editedSnapshot.promptPresets);
+    expect(harness.events).not.toContain("persisted-signature");
+    expect(harness.events).not.toContain("flush");
+  });
+
+  it("keeps a concurrent catalog edit dirty after the staged preset is persisted", async () => {
+    const existingPreset = promptPreset("prompt-preset-existing");
+    const editedSnapshot = appStorageRecords([{ ...existingPreset, title: "Concurrent edit" }]);
+    const harness = transactionHarness(appStorageRecords([existingPreset]));
+    const saveCollection = vi.fn(async () => {
+      harness.currentSnapshot = editedSnapshot;
+      return storageResult("ready", "Saved.");
+    });
+
+    await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(harness.unsavedSignature).not.toBeNull();
+    expect(harness.unsavedSignature).not.toBe(harness.persistedSignature);
+  });
+
+  it("reconciles a confirmed rollback, publishes failure, then flushes remaining edits", async () => {
+    const snapshot = appStorageRecords([promptPreset("prompt-preset-existing")]);
+    const harness = transactionHarness(snapshot);
+    const saveCollection = vi
+      .fn()
+      .mockResolvedValueOnce(storageResult("error", "Staged save failed."))
+      .mockResolvedValueOnce(storageResult("ready", "Rollback saved."));
+
+    const result = await runPromptPresetImportStorageTransaction({
+      preset: promptPreset("prompt-preset-imported"),
+      ports: harness.ports,
+      saveCollection,
+    });
+
+    expect(result).toMatchObject({ saved: false, blocked: false, message: "Staged save failed." });
+    expect(harness.events).toContain("persisted-signature");
+    expect(harness.events.indexOf("status")).toBeLessThan(harness.events.indexOf("finish"));
+    expect(harness.events.indexOf("finish")).toBeLessThan(harness.events.indexOf("flush"));
   });
 });

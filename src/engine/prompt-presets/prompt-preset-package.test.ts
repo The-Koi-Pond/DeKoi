@@ -403,6 +403,37 @@ describe("prompt preset packages", () => {
         },
       }),
     ).toBeNull();
+    expect(
+      normalizePromptPresetImportRecord({
+        type: "dekoi_preset",
+        version: 1,
+        exportedAt,
+        data: {
+          preset: {
+            id: "preset-marker-only",
+            name: "Marker-only Preset",
+            systemPrompt: "   ",
+            sectionOrder: ["section-history"],
+            createdAt,
+            updatedAt: createdAt,
+          },
+          sections: [
+            {
+              id: "section-history",
+              identifier: "history",
+              name: "History",
+              content: "",
+              role: "user",
+              enabled: true,
+              isMarker: true,
+              markerConfig: { type: "chat_history" },
+            },
+          ],
+          groups: [],
+          choiceBlocks: [],
+        },
+      }),
+    ).toBeNull();
   });
 
   it.each([

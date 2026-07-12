@@ -14,6 +14,49 @@ type PromptPresetCollectionSaveResult = {
   message: string;
   storageMetadata: AppStorageMetadata;
 };
+export type PromptPresetImportSaveResult = {
+  mode: MessengerStorageMode;
+  status: "ready" | "error";
+  message: string;
+  saved: boolean;
+  blocked: boolean;
+};
+
+type PromptPresetImportStorageTarget = {
+  generation: number;
+  rawUrl: string;
+};
+
+export interface PromptPresetImportStoragePorts {
+  tryBeginExclusiveImport: () => boolean;
+  finishExclusiveImport: () => void;
+  captureTarget: () => PromptPresetImportStorageTarget;
+  isTargetCurrent: (target: PromptPresetImportStorageTarget) => boolean;
+  getCurrentSnapshot: () => AppStorageRecords;
+  trackRollbackSnapshot: (
+    rawUrl: string,
+    initialSnapshot: AppStorageRecords,
+  ) => {
+    getSnapshot: () => AppStorageRecords;
+    stop: () => void;
+  };
+  cancelQueuedSaveDispatch: () => void;
+  drainSaveQueue: () => void;
+  waitForActiveSaveToSettle: () => Promise<void>;
+  getStorageMode: () => MessengerStorageMode;
+  publishSaving: (message: string) => void;
+  mergeStorageMetadata: (storageMetadata: AppStorageMetadata) => void;
+  setPersistedPromptPresetSignature: (signature: string) => void;
+  clearPendingPromptPresetSave: () => void;
+  clearPromptPresetSaveError: () => void;
+  setUnsavedPromptPresetSignature: (signature: string) => void;
+  clearUnsavedPromptPresetSignature: () => void;
+  refreshSaveStatus: (
+    generation: number,
+    result?: PromptPresetCollectionSaveResult | PromptPresetImportSaveResult,
+  ) => void;
+  flushFailureSaves: () => Promise<unknown>;
+}
 type SavePromptPresetCollection = (
   snapshot: AppStorageRecords,
   collectionKeys: ["promptPresets"],
@@ -132,4 +175,111 @@ export async function saveStagedPromptPresetToStorage({
       saveCollection,
     });
   }
+}
+
+export async function runPromptPresetImportStorageTransaction({
+  preset,
+  ports,
+  saveCollection,
+}: {
+  preset: PromptPresetRecord;
+  ports: PromptPresetImportStoragePorts;
+  saveCollection?: SavePromptPresetCollection;
+}): Promise<PromptPresetImportSaveResult> {
+  const createFailure = (message: string, blocked: boolean): PromptPresetImportSaveResult => ({
+    mode: ports.getStorageMode(),
+    status: "error",
+    message,
+    saved: false,
+    blocked,
+  });
+
+  if (!ports.tryBeginExclusiveImport()) {
+    return createFailure(
+      "Prompt preset save blocked because another import is already in progress.",
+      true,
+    );
+  }
+
+  let target: PromptPresetImportStorageTarget | null = null;
+  let stopTrackingRollback: (() => void) | null = null;
+  let result: PromptPresetImportSaveResult;
+
+  try {
+    const activeTarget = ports.captureTarget();
+    target = activeTarget;
+    const rollback = ports.trackRollbackSnapshot(
+      activeTarget.rawUrl,
+      ports.getCurrentSnapshot(),
+    );
+    stopTrackingRollback = rollback.stop;
+    ports.cancelQueuedSaveDispatch();
+    ports.drainSaveQueue();
+    await ports.waitForActiveSaveToSettle();
+
+    if (!ports.isTargetCurrent(activeTarget)) {
+      result = createFailure(
+        "Prompt preset save was interrupted because the storage target changed.",
+        true,
+      );
+    } else {
+      const initialSnapshot = ports.getCurrentSnapshot();
+      ports.publishSaving("Saving imported prompt preset...");
+      const storageTransaction = await saveStagedPromptPresetToStorage({
+        preset,
+        initialSnapshot,
+        getRollbackSnapshot: rollback.getSnapshot,
+        isCommitCurrent: () => ports.isTargetCurrent(activeTarget),
+        rawUrl: activeTarget.rawUrl,
+        saveCollection,
+      });
+
+      if (!ports.isTargetCurrent(activeTarget)) {
+        result = createFailure(storageTransaction.message, true);
+      } else {
+        const persisted = storageTransaction.persisted;
+        if (persisted) {
+          ports.mergeStorageMetadata(persisted.result.storageMetadata);
+          const { persistedSignature, currentSignature, hasUnsavedChanges } =
+            promptPresetPersistenceSignatures(persisted.snapshot, ports.getCurrentSnapshot());
+          ports.setPersistedPromptPresetSignature(persistedSignature);
+          ports.clearPendingPromptPresetSave();
+          ports.clearPromptPresetSaveError();
+          if (hasUnsavedChanges) {
+            ports.setUnsavedPromptPresetSignature(currentSignature);
+          } else {
+            ports.clearUnsavedPromptPresetSignature();
+          }
+        } else if (!storageTransaction.saved) {
+          ports.setUnsavedPromptPresetSignature(
+            appStorageCollectionSignature(ports.getCurrentSnapshot(), "promptPresets"),
+          );
+        }
+
+        if (storageTransaction.saved && persisted) {
+          ports.refreshSaveStatus(activeTarget.generation, persisted.result);
+          result = {
+            ...persisted.result,
+            saved: true,
+            blocked: false,
+          };
+        } else {
+          result = createFailure(storageTransaction.message, false);
+          ports.refreshSaveStatus(activeTarget.generation, result);
+        }
+      }
+    }
+  } catch (error) {
+    result = createFailure(errorMessage(error), false);
+    if (target) ports.refreshSaveStatus(target.generation, result);
+  } finally {
+    stopTrackingRollback?.();
+    ports.finishExclusiveImport();
+  }
+
+  if (!result.saved && target && ports.isTargetCurrent(target)) {
+    await ports.flushFailureSaves();
+  }
+
+  return result;
 }

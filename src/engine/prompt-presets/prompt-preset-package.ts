@@ -92,6 +92,7 @@ function normalizePromptPresetPackageRecord(
   const systemPrompt =
     readString(preset.systemPrompt).trim() ||
     systemPromptFromPackageSections(packageData.sections, preset.sectionOrder);
+  if (!systemPrompt) return null;
 
   const normalized = normalizePromptPresetRecord({
     id,
