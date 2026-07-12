@@ -7,6 +7,7 @@ import {
   saveStagedPromptPresetToStorage,
   type PromptPresetImportStoragePorts,
 } from "./prompt-preset-import-storage";
+import { createStorageTransactionCoordinator } from "./storage-transaction-coordinator";
 
 const now = "2026-07-11T00:00:00.000Z";
 type PromptPresetRecord = AppStorageRecords["promptPresets"][number];
@@ -197,31 +198,14 @@ describe("saveStagedPromptPresetToStorage", () => {
 
 function transactionHarness(initialSnapshot: AppStorageRecords) {
   let currentSnapshot = initialSnapshot;
-  let rollbackSnapshot = initialSnapshot;
-  let targetCurrent = true;
-  let locked = false;
+  let currentTarget = { generation: 7, rawUrl: "http://runtime.test" };
+  const coordinator = createStorageTransactionCoordinator(currentTarget, initialSnapshot);
+  let competingTransaction: ReturnType<typeof coordinator.tryBegin> = null;
   let persistedSignature: string | null = null;
   let unsavedSignature: string | null = null;
   const events: string[] = [];
 
   const ports: PromptPresetImportStoragePorts = {
-    tryBeginExclusiveImport: () => {
-      events.push("begin");
-      if (locked) return false;
-      locked = true;
-      return true;
-    },
-    finishExclusiveImport: () => {
-      events.push("finish");
-      locked = false;
-    },
-    captureTarget: () => ({ generation: 7, rawUrl: "http://runtime.test" }),
-    isTargetCurrent: () => targetCurrent,
-    getCurrentSnapshot: () => currentSnapshot,
-    trackRollbackSnapshot: () => ({
-      getSnapshot: () => rollbackSnapshot,
-      stop: () => events.push("stop-tracking"),
-    }),
     cancelQueuedSaveDispatch: () => events.push("cancel"),
     drainSaveQueue: () => events.push("drain"),
     waitForActiveSaveToSettle: async () => {
@@ -252,21 +236,31 @@ function transactionHarness(initialSnapshot: AppStorageRecords) {
 
   return {
     events,
+    coordinator,
     ports,
     get locked() {
-      return locked;
+      return coordinator.hasActiveTransaction();
     },
     set locked(value: boolean) {
-      locked = value;
+      if (value) {
+        competingTransaction = coordinator.tryBegin("bundle-import");
+      } else {
+        competingTransaction?.finish();
+        competingTransaction = null;
+      }
     },
     set currentSnapshot(value: AppStorageRecords) {
       currentSnapshot = value;
+      coordinator.publishCurrentState(currentTarget, value);
     },
     set rollbackSnapshot(value: AppStorageRecords) {
-      rollbackSnapshot = value;
+      currentSnapshot = value;
+      coordinator.publishCurrentState(currentTarget, value);
     },
     set targetCurrent(value: boolean) {
-      targetCurrent = value;
+      if (value) return;
+      currentTarget = { generation: 8, rawUrl: "http://other-runtime.test" };
+      coordinator.publishCurrentState(currentTarget, currentSnapshot);
     },
     get persistedSignature() {
       return persistedSignature;
@@ -289,13 +283,13 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: importedPreset,
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
 
     expect(result).toMatchObject({ saved: true, blocked: false, message: "Saved." });
     expect(harness.events).toEqual([
-      "begin",
       "cancel",
       "drain",
       "wait",
@@ -307,8 +301,6 @@ describe("runPromptPresetImportStorageTransaction", () => {
       "clear-error",
       "set-unsaved",
       "status",
-      "stop-tracking",
-      "finish",
     ]);
     expect(harness.locked).toBe(false);
     expect(harness.persistedSignature).not.toBeNull();
@@ -321,33 +313,34 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
 
     expect(result).toMatchObject({ saved: false, blocked: true });
-    expect(harness.events).toEqual(["begin"]);
+    expect(harness.events).toEqual([]);
     expect(saveCollection).not.toHaveBeenCalled();
   });
 
   it("releases exclusivity when transaction setup throws", async () => {
     const harness = transactionHarness(appStorageRecords([]));
-    harness.ports.trackRollbackSnapshot = () => {
-      throw new Error("rollback tracking failed");
+    harness.ports.cancelQueuedSaveDispatch = () => {
+      throw new Error("queue setup failed");
     };
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
     });
 
     expect(result).toMatchObject({
       saved: false,
       blocked: false,
-      message: "rollback tracking failed",
+      message: "queue setup failed",
     });
     expect(harness.locked).toBe(false);
-    expect(harness.events).toContain("finish");
   });
 
   it("stops before staging when the target changes while queued saves settle", async () => {
@@ -360,6 +353,7 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
@@ -390,6 +384,7 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
@@ -412,6 +407,7 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
@@ -430,13 +426,13 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
     const result = await runPromptPresetImportStorageTransaction({
       preset: promptPreset("prompt-preset-imported"),
+      coordinator: harness.coordinator,
       ports: harness.ports,
       saveCollection,
     });
 
     expect(result).toMatchObject({ saved: false, blocked: false, message: "Staged save failed." });
     expect(harness.events).toContain("persisted-signature");
-    expect(harness.events.indexOf("status")).toBeLessThan(harness.events.indexOf("finish"));
-    expect(harness.events.indexOf("finish")).toBeLessThan(harness.events.indexOf("flush"));
+    expect(harness.events.indexOf("status")).toBeLessThan(harness.events.indexOf("flush"));
   });
 });

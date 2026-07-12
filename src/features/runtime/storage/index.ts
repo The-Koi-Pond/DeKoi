@@ -57,3 +57,7 @@ export {
   runPromptPresetImportStorageTransaction,
   type PromptPresetImportSaveResult,
 } from "./prompt-preset-import-storage";
+export {
+  createStorageTransactionCoordinator,
+  type StorageTransactionCoordinator,
+} from "./storage-transaction-coordinator";

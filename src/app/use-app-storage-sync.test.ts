@@ -3,35 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   appStorageAutoMigrationCollectionKeys,
   appStorageDroppedRecordSaveBlockCollectionKeys,
-  isAppStorageTargetCurrent,
   orderedAppStorageCollectionKeys,
   partitionAppStorageDirtyCollectionKeys,
   shouldBlockAppSettingsPromptPresetStarterSave,
 } from "./use-app-storage-sync";
-
-describe("isAppStorageTargetCurrent", () => {
-  it("rejects a target URL change before its generation advances", () => {
-    expect(
-      isAppStorageTargetCurrent({
-        expectedGeneration: 4,
-        expectedRawUrl: "http://target-a.test",
-        currentGeneration: 4,
-        currentRawUrl: "http://target-b.test",
-      }),
-    ).toBe(false);
-  });
-
-  it("accepts only the same generation and target URL", () => {
-    expect(
-      isAppStorageTargetCurrent({
-        expectedGeneration: 4,
-        expectedRawUrl: "http://target-a.test",
-        currentGeneration: 4,
-        currentRawUrl: "http://target-a.test",
-      }),
-    ).toBe(true);
-  });
-});
 
 describe("appStorageAutoMigrationCollectionKeys", () => {
   it("keeps complete migration groups with no dropped records", () => {
