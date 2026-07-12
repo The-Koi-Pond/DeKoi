@@ -70,6 +70,46 @@ parameters, Messenger prompt, and package metadata. The compatibility envelope
 is retained only as an import fixture; DeKoi normalizes it into a native editable
 record before storage or generation.
 
+The approval was recorded by the DeKoi maintainer for PR #129 and applies to
+the following source-level inventory. In every row, "Chai" means independently
+authored by Chai for the De-Koi team, team-owned, and approved for retention in
+DeKoi; it does not mean copied, adapted, or translated from Marinara.
+
+| Package material               | Chai-authored source covered by the maintainer approval                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `section_v2_role`              | Role and mode prompt prose                                                                                                                                |
+| `section_v2_lorebook`          | Setting marker definition and metadata                                                                                                                    |
+| `section_v2_character`         | Character marker definition and metadata                                                                                                                  |
+| `section_v2_persona`           | Persona marker definition and metadata                                                                                                                    |
+| `section_v2_summary`           | Chat-summary marker definition and metadata                                                                                                               |
+| `section_v2_context_contract`  | Context-contract prompt prose                                                                                                                             |
+| `section_v2_world_autonomy`    | World-autonomy prompt prose                                                                                                                               |
+| `section_v2_agency_boundaries` | Agency and boundary prompt prose                                                                                                                          |
+| `section_v2_erotic_tone`       | Conditional erotic-tone prompt prose                                                                                                                      |
+| `section_v2_style`             | Style prompt prose                                                                                                                                        |
+| `section_v2_pacing`            | Pacing prompt prose                                                                                                                                       |
+| `section_v2_examples`          | Dialogue-examples marker definition and metadata                                                                                                          |
+| `section_v2_history`           | Chat-history marker definition and metadata                                                                                                               |
+| `section_v2_output`            | Output-contract prompt prose                                                                                                                              |
+| `choice_v2_mode`               | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_content_boundary`   | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_erotic_tone`        | Question, option labels, values, descriptions, IDs, and visibility rule                                                                                   |
+| `choice_v2_agency`             | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_pacing`             | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_style`              | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_narration`          | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_pov`                | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_tense`              | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_length`             | Question, option labels, values, descriptions, and IDs                                                                                                    |
+| `choice_v2_language`           | Question, option labels, values, and IDs                                                                                                                  |
+| Remaining package surfaces     | Preset and context-group structure, ordering, defaults, parameters, Messenger prompt, timestamps, names, description, and compatibility-envelope metadata |
+
+The audit mentioned in the package description was a behavioral comparison:
+Chai identified behaviors to improve, then wrote the listed material
+independently. No Marinara prompt wording or prompt structure is retained. This
+inventory is the source-by-source independent-authorship review for the exact
+artifact locked below; a different artifact is not covered by this approval.
+
 The approved artifact is exactly 40,225 bytes with SHA-256
 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`.
 `pnpm check:storage-contracts` guards that identity so prompt or metadata changes
