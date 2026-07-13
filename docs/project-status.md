@@ -8,6 +8,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Native product records for Messenger, Roleplay, companions, personas,
   lorebooks, prompt presets, lore runtime states, macro variable scopes,
   provider connections, and Ripples.
+- Additive React-free `ModeThread` contracts, strict validation, and pure
+  branch/message/version actions shared by the truthful `messenger` and
+  `roleplay` kinds, including branch-isolated settings, per-preset choice
+  history, historical author labels, and activity ordering.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
   trigger, filter, timing, match-source, and budget fields.
@@ -121,6 +125,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 
 ## Experimental Or Incomplete
 
+- The unified mode-thread foundation is not yet wired into concrete Messenger
+  or Roleplay factories, generation, UI, app state, or storage. Existing
+  mode-owned records and collections remain the live behavior, so branches and
+  message versions have no visible controls yet.
 - Provider transport is still narrow and experimental; required-key providers
   use desktop provider-key storage through the runtime boundary. Provider
   response parsing has shared TypeScript/Rust parity fixtures, but still needs

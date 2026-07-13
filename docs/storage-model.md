@@ -58,6 +58,11 @@ adapters.
 | `provider-connections`  | `src/engine/contracts/types/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts`  |
 | `ripple-states`         | `src/engine/contracts/types/ripples.ts`             | `RippleState`              | `src/runtime/storage/collections/ripple-state-storage.ts`         |
 
+The additive `ModeThread` contract is not a current durable record and has no
+collection or runtime adapter. Messenger and Roleplay storage continues to use
+the concrete thread/transcript rows above until a later atomic cutover; this
+foundation does not migrate or invalidate current local data.
+
 ## Source Of Truth
 
 The frontend registry is the TypeScript source of truth for DeKoi storage entity
