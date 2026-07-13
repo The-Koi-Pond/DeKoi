@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
 import { STARTER_PROMPT_PRESET } from "../../src/engine/prompt-presets/starter-preset";
@@ -26,6 +26,47 @@ import {
   openDataAndBackupSettings,
   TEST_RUNTIME_URL,
 } from "./app-test-utils";
+
+async function installDesktopStorageFailures(
+  page: Page,
+  failures: Record<string, string>,
+) {
+  await page.addInitScript((collectionFailures) => {
+    Object.assign(globalThis, {
+      isTauri: true,
+      __TAURI_INTERNALS__: {
+        invoke: async (command: string, payload: Record<string, unknown> = {}) => {
+          if (command === "dekoi_runtime_invoke") {
+            const runtimeCommand = payload.command;
+            const args = payload.args as Record<string, unknown> | null;
+            const entity = args?.entity;
+            if (runtimeCommand === "storage_list" && typeof entity === "string") {
+              const failure = collectionFailures[entity];
+              if (failure) throw new Error(failure);
+              return [];
+            }
+            if (runtimeCommand === "storage_replace") {
+              const records = Array.isArray(args?.records) ? args.records : [];
+              return { ok: true, count: records.length };
+            }
+          }
+          if (command === "dekoi_storage_collection_metadata") return [];
+          if (command === "dekoi_host_status") {
+            return {
+              appName: "DeKoi",
+              hostKind: "tauri",
+              storageReady: true,
+              secretsReady: true,
+              runtimeReady: true,
+              message: "Desktop host is ready.",
+            };
+          }
+          throw new Error(`Unexpected desktop command: ${command}`);
+        },
+      },
+    });
+  }, failures);
+}
 
 test("storage import reload decision falls back to completed collections", () => {
   const counts = {
@@ -343,6 +384,7 @@ test("Pond Care lists every collection that fails during reload", async ({ page 
     "app-settings": [
       {
         ...DEFAULT_APP_SETTINGS,
+        accent: "amber",
         defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
         promptPresetStarterInitialized: true,
       },
@@ -352,6 +394,15 @@ test("Pond Care lists every collection that fails during reload", async ({ page 
 
   await openDataAndBackupSettings(page);
   await connectRemoteRuntime(page);
+  runtime.records.set("app-settings", [
+    {
+      ...DEFAULT_APP_SETTINGS,
+      accent: "jade",
+      defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+      promptPresetStarterInitialized: true,
+    },
+  ]);
+  runtime.listFailures.set("app-settings", "App settings failed while loading.");
   runtime.listFailures.set("characters", "Characters failed while loading.");
   runtime.listFailures.set("lorebooks", "Lorebooks failed while loading.");
 
@@ -362,8 +413,14 @@ test("Pond Care lists every collection that fails during reload", async ({ page 
   await expect(loadErrors).toContainText("Characters failed while loading.");
   await expect(loadErrors).toContainText("Lorebooks:");
   await expect(loadErrors).toContainText("Lorebooks failed while loading.");
-  await expect(loadErrors).not.toContainText("App settings:");
+  await expect(loadErrors).toContainText("App settings:");
+  await expect(loadErrors).toContainText("App settings failed while loading.");
+  await expect(loadErrors).not.toContainText("Prompt presets:");
   await expect(page.getByText("Reloaded storage from the current runtime target.")).toHaveCount(0);
+
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
+  await page.getByRole("tab", { name: /Data & Backup/ }).click();
 
   runtime.listFailures.clear();
   await page.getByRole("button", { name: "Reload records" }).click();
@@ -373,6 +430,27 @@ test("Pond Care lists every collection that fails during reload", async ({ page 
       .getByLabel("Stored collections")
       .getByText("Reloaded storage from the current runtime target."),
   ).toBeVisible();
+  await page.getByRole("tab", { name: /Appearance/ }).click();
+  await expect(page.getByRole("radio", { name: "Jade" })).toBeChecked();
+});
+
+test("Pond Care shows desktop collection load failures without repair metadata", async ({
+  page,
+}) => {
+  await installDesktopStorageFailures(page, {
+    characters: "Desktop characters failed while loading.",
+    lorebooks: "Desktop lorebooks failed while loading.",
+  });
+
+  await openDataAndBackupSettings(page);
+
+  await expect(page.locator(".runtime-status").filter({ hasText: "Desktop host" })).toBeVisible();
+  const loadErrors = page.getByRole("alert").filter({ hasText: "Collection load errors" });
+  await expect(loadErrors).toContainText("Characters:");
+  await expect(loadErrors).toContainText("Desktop characters failed while loading.");
+  await expect(loadErrors).toContainText("Lorebooks:");
+  await expect(loadErrors).toContainText("Desktop lorebooks failed while loading.");
+  await expect(page.getByText("Storage repair options")).toHaveCount(0);
 });
 
 test("manual storage reload is blocked while local changes are saving", async ({ page }) => {

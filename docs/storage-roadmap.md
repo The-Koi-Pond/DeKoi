@@ -20,10 +20,11 @@ that a user can understand what will happen before data changes.
 - `src/runtime/storage/storage-entities.ts` and the Rust storage allowlist define
   collection entity names.
 - `src/runtime/storage/app-storage-snapshot.ts` assembles and replaces app
-  storage snapshots.
+  storage snapshots, including structured per-collection load errors.
 - `src/app/use-app-storage-sync.ts` owns current React lifecycle storage sync:
   startup load, dirty collection queueing, stale checks, reload blocking, and
-  import coordination, including dropped-record save blocking.
+  import coordination, including generation-scoped load diagnostics and
+  dropped-record save blocking.
 - `src/features/runtime/storage` owns user-facing storage workflow wrappers.
 - `src-tauri` owns desktop file IO, bundle dialogs, repair, and provider
   secrets behind shared API wrappers.
