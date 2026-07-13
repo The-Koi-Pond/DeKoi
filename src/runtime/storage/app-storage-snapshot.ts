@@ -93,6 +93,8 @@ export type AppStorageSnapshot = AppStorageRecords & {
   storageMetadata: AppStorageMetadata;
   /** Nonzero per-collection dropped-record counts from the most recent load. */
   droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>;
+  /** Error messages from each collection that failed during the most recent load. */
+  loadErrorMessageByCollection: Partial<Record<AppStorageCollectionKey, string>>;
 };
 
 type AppStorageMigrationCollectionKey =
@@ -274,6 +276,21 @@ function collectDroppedRecordCounts(
   return droppedRecordCountByCollection;
 }
 
+function collectLoadErrorMessages(
+  collectionSnapshots: readonly {
+    collectionKey: AppStorageCollectionKey;
+    snapshot: AppStorageCollectionLoadResult;
+  }[],
+): Partial<Record<AppStorageCollectionKey, string>> {
+  const loadErrorMessageByCollection: Partial<Record<AppStorageCollectionKey, string>> = {};
+  for (const { collectionKey, snapshot } of collectionSnapshots) {
+    if (snapshot.status === "error") {
+      loadErrorMessageByCollection[collectionKey] = snapshot.message;
+    }
+  }
+  return loadErrorMessageByCollection;
+}
+
 export async function loadAppStorageMetadata(rawUrl: string): Promise<AppStorageMetadataResult> {
   const metadataResult = await loadHostStorageMetadata(rawUrl);
   return {
@@ -416,6 +433,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     snapshot: AppStorageCollectionLoadResult;
   }[];
   const droppedRecordCountByCollection = collectDroppedRecordCounts(collectionSnapshots);
+  const loadErrorMessageByCollection = collectLoadErrorMessages(collectionSnapshots);
   const storageResult = mergeStorageResults(collectionSnapshots.map(({ snapshot }) => snapshot));
 
   return {
@@ -433,6 +451,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     migrationCollectionKeys,
     storageMetadata: metadataResult.storageMetadata,
     droppedRecordCountByCollection,
+    loadErrorMessageByCollection,
     storageResult,
   };
 }

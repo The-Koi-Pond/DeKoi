@@ -47,6 +47,7 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     | "messengerStorageStatus"
     | "storageHasUnsavedChanges"
     | "droppedRecordCountByCollection"
+    | "storageLoadErrorMessageByCollection"
     | "remoteRuntimeUrl"
   > &
   Pick<NavThreadState, "roleplayThreads" | "messengerThreads">;

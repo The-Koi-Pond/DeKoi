@@ -101,6 +101,13 @@ blocks saves for affected collections, including both sides of a split
 Messenger or Roleplay transcript pair, until reload or import/restore loads
 without drops.
 
+When one or more collection loads fail, DeKoi keeps every per-collection error
+message while preserving the first error as the aggregate storage result for
+compatibility. Pond Care lists all failed collections for both desktop and
+remote targets without requiring desktop repair metadata. A failed manual
+reload retains the last good in-memory records; a healthy retry clears the
+collection alerts.
+
 Malformed-collection repair is desktop-only and not part of the remote runtime
 HTTP contract. Pond Care uses dedicated Tauri commands to repair one collection
 at a time with explicit confirmation. Repair supports `restore-backup` and
@@ -748,10 +755,11 @@ exception is prompt-preset recovery: any successful load with no usable prompt
 presets restores the exact bundled starter in memory. Genuinely empty storage is
 queued for persistence; dropped unreadable records keep automatic saving
 blocked pending explicit repair. DeKoi treats a non-array response as a load
-error. For
-array responses, DeKoi normalizes each raw item, counts rejected items as
-dropped records, and surfaces that count through Pond Care; remote runtimes do
-not send dropped-record counts separately.
+error. DeKoi preserves the error returned for every failed collection load and
+shows all of them in Pond Care; the app-wide aggregate still uses the first
+error. For array responses, DeKoi normalizes each raw item, counts rejected
+items as dropped records, and surfaces that count through Pond Care; remote
+runtimes do not send dropped-record counts separately.
 
 `storage_replace`:
 

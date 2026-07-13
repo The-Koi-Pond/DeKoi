@@ -44,6 +44,9 @@ export function useAppState() {
   const [droppedRecordCountByCollection, setDroppedRecordCountByCollection] = useState<
     Partial<Record<AppStorageCollectionKey, number>>
   >({});
+  const [storageLoadErrorMessageByCollection, setStorageLoadErrorMessageByCollection] = useState<
+    Partial<Record<AppStorageCollectionKey, string>>
+  >({});
   const [remoteRuntimeUrl, setRemoteRuntimeUrlState] = useState(readRuntimeTargetUrl);
   const [appSettings, setAppSettings] = useState<AppStorageRecords["appSettings"]>(
     initialStorageRecords.appSettings,
@@ -87,6 +90,8 @@ export function useAppState() {
     setMessengerStorageMessage,
     droppedRecordCountByCollection,
     setDroppedRecordCountByCollection,
+    storageLoadErrorMessageByCollection,
+    setStorageLoadErrorMessageByCollection,
     remoteRuntimeUrl,
     setRemoteRuntimeUrlState,
     appSettings,

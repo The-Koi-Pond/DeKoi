@@ -55,6 +55,13 @@ malformed desktop collection at a time by restoring a valid backup or, when no
 restorable backup exists, replacing it with an empty collection. The malformed
 bytes remain in `.json.pre-repair` until the user finishes the repair.
 
+If any collection fails to load, Pond Care lists every failed collection and
+its error under **Collection load errors**. This works for both desktop storage
+and remote runtimes; desktop repair metadata is not required for the alert. A
+failed manual reload keeps the last successfully loaded records in the app.
+Retry **Reload records** after fixing the storage problem; a healthy current
+reload clears the collection alerts.
+
 If Pond Care warns that unreadable records were skipped during load, restore a
 backup bundle before editing those collections. DeKoi blocks saves for affected
 collections, including paired Messenger or Roleplay transcript collections, so a

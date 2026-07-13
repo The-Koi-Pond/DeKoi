@@ -365,6 +365,36 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
   });
 });
 
+describe("loadAppStorageSnapshot collection load errors", () => {
+  beforeEach(() => {
+    vi.mocked(invokeRemote).mockReset();
+  });
+
+  it("preserves distinct errors for every failed collection while keeping the first aggregate error", async () => {
+    vi.mocked(invokeRemote).mockImplementation(async (command, args) => {
+      if (command !== RUNTIME_COMMANDS.storageList) {
+        throw new Error(`Unexpected remote command: ${command}`);
+      }
+      const entity =
+        args && typeof args.entity === "string" ? (args.entity as StorageEntity) : null;
+      if (!entity) throw new Error("storage_list requires args.entity.");
+      if (entity === STORAGE_ENTITIES.characters) throw new Error("characters failed");
+      if (entity === STORAGE_ENTITIES.personas) throw new Error("personas failed");
+      return [];
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.loadErrorMessageByCollection).toEqual({
+      characters: "Host storage unavailable. characters failed",
+      personas: "Host storage unavailable. personas failed",
+    });
+    expect(snapshot.loadErrorMessageByCollection.appSettings).toBeUndefined();
+    expect(snapshot.storageResult.status).toBe("error");
+    expect(snapshot.storageResult.message).toBe("Host storage unavailable. characters failed");
+  });
+});
+
 describe("saveAppStorageCollections prompt preset marker ordering", () => {
   beforeEach(() => {
     vi.mocked(invokeRemote).mockReset();

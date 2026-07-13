@@ -1,5 +1,7 @@
 import { useState } from "react";
 import {
+  APP_STORAGE_COLLECTION_KEYS,
+  APP_STORAGE_COLLECTION_LABELS,
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
@@ -21,6 +23,7 @@ type CareRuntimeStorageNav = Pick<NavStorageActions, "checkAppStorageStale" | "r
   Pick<
     NavStorageState,
     | "droppedRecordCountByCollection"
+    | "storageLoadErrorMessageByCollection"
     | "messengerStorageMessage"
     | "messengerStorageStatus"
     | "remoteRuntimeUrl"
@@ -42,6 +45,12 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
   const droppedRecordsSummary = summarizeAppStorageDroppedRecords(
     nav.droppedRecordCountByCollection,
   );
+  const storageLoadErrors = APP_STORAGE_COLLECTION_KEYS.flatMap((collectionKey) => {
+    const message = nav.storageLoadErrorMessageByCollection[collectionKey];
+    return message
+      ? [{ collectionKey, label: APP_STORAGE_COLLECTION_LABELS[collectionKey], message }]
+      : [];
+  });
   const storageActionBusy =
     storageReloadBusy ||
     storageRepairBusy !== null ||
@@ -253,6 +262,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
     desktopHostBusy,
     storageReloadBusy,
     droppedRecordsSummary,
+    storageLoadErrors,
     storageReloadStatus,
     storageRepairStatus,
     storageActionBusy,

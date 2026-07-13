@@ -32,6 +32,7 @@ export type RuntimeRecords = Partial<Record<StorageEntity, unknown[]>>;
 type FakeRemoteRuntimeState = {
   calls: RuntimeCall[];
   records: Map<StorageEntity, unknown[]>;
+  listFailures: Map<StorageEntity, string>;
 };
 
 type RuntimeCommandContext = FakeRemoteRuntimeState & {
@@ -106,6 +107,7 @@ async function installFakeRemoteRuntime(
   const state: FakeRemoteRuntimeState = {
     calls: [],
     records: createRuntimeRecordMap(initialRecords),
+    listFailures: new Map(),
   };
 
   await page.route(`${TEST_RUNTIME_URL}/api/invoke`, async (route) => {
@@ -114,6 +116,11 @@ async function installFakeRemoteRuntime(
 
     if (command === "storage_list" && entity) {
       await options.onStorageList?.({ ...state, args, entity });
+      const failureMessage = state.listFailures.get(entity);
+      if (failureMessage) {
+        await route.fulfill({ status: 500, json: { message: failureMessage } });
+        return;
+      }
       await route.fulfill({ json: state.records.get(entity) ?? [] });
       return;
     }

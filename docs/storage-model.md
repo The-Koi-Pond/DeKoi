@@ -414,6 +414,24 @@ entity name, path category, whether backup, recognized write-temp, or
 must not overwrite that collection until an explicit repair/import path repairs
 or replaces the corrupt file.
 
+### Per-Collection Load Errors
+
+App-wide snapshot loading preserves the message from every collection whose
+load result is an error. `AppStorageSnapshot.loadErrorMessageByCollection` keys
+those messages by the canonical `AppStorageCollectionKey`; the existing merged
+`storageResult` remains the compatibility aggregate and reports only the first
+error.
+
+Pond Care lists every structured error with the collection's readable label for
+both desktop and remote-runtime storage. These alerts do not depend on the
+desktop-only repair metadata path. A failed manual reload keeps the last good
+in-memory records while publishing the current reload's collection errors. The
+alerts are scoped to the active storage-target generation: a permitted reload
+or target load clears them when it begins, the current load publishes its own
+results, and stale asynchronous completions cannot clear or replace them. A
+healthy retry and a current-generation unexpected load exception leave no stale
+per-collection alerts.
+
 ### Per-Record Load Drops
 
 A readable collection file or remote `storage_list` response may still contain
