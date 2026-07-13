@@ -27,10 +27,7 @@ import {
   TEST_RUNTIME_URL,
 } from "./app-test-utils";
 
-async function installDesktopStorageFailures(
-  page: Page,
-  failures: Record<string, string>,
-) {
+async function installDesktopStorageFailures(page: Page, failures: Record<string, string>) {
   await page.addInitScript((collectionFailures) => {
     Object.assign(globalThis, {
       isTauri: true,
