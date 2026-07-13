@@ -460,6 +460,66 @@ describe("prompt preset generation", () => {
     expect(context.ephemeralVariableNames).toEqual(["pacing", "tone"]);
   });
 
+  it("resolves selected and default prompt preset choices for Roleplay generation", () => {
+    const thread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: ["character-1"],
+        id: "roleplay-thread-1",
+        now,
+        title: "Test scene",
+      }),
+      presetId: "preset-1",
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-pacing": { kind: "option" as const, optionId: "slow" },
+        },
+      },
+    };
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [
+        promptPreset({
+          systemPrompt: "Use {{pacing}} and {{tone}}.",
+          choiceBlocks: [
+            {
+              id: "choice-pacing",
+              variableName: "pacing",
+              label: "Pacing",
+              defaultOptionId: "fast",
+              options: [
+                { id: "fast", label: "Fast", value: "fast pacing" },
+                { id: "slow", label: "Slow", value: "slow pacing" },
+              ],
+            },
+            {
+              id: "choice-tone",
+              variableName: "tone",
+              label: "Tone",
+              defaultOptionId: "warm",
+              options: [{ id: "warm", label: "Warm", value: "warm tone" }],
+            },
+          ],
+        }),
+      ],
+      thread,
+    });
+
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const promptText = assembly.request.promptMessages
+      .map((message) => message.content)
+      .join("\n\n");
+
+    expect(promptText).toContain("Use slow pacing and warm tone.");
+    expect(promptText).not.toContain("fast pacing");
+  });
+
   it("preserves preset-controlled Roleplay output while protecting user agency", () => {
     const thread = {
       ...createRoleplayThread({

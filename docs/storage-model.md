@@ -153,7 +153,8 @@ to the restored starter.
 Choice blocks carry stable block IDs, unique variable names, optional questions,
 options with stable IDs and optional descriptions, reusable defaults,
 multi-select separators, display and sort modes, optional ordering/timestamp
-metadata and preset linkage, and value-based visibility rules. Blank optional question,
+metadata and preset linkage. Choice blocks are always visible and independent.
+Blank optional question,
 description, and separator text is omitted when the catalog saves. The catalog
 uses `variableOrder` for displayed choice order while preserving compatible
 non-choice slots in their existing positions as choices move, appear, or are
@@ -195,13 +196,9 @@ companion primary, protects the user's dialogue and agency, and leaves narration
 and other-character output behavior to the selected preset.
 Messenger and Roleplay threads resolve the active preset's entry in
 `presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
-`variableValues`, defaults, visibility rules, and multi-select separators into
+`variableValues`, defaults, and multi-select separators into
 request-local macro variables before prompt assembly.
-Visibility rules refer to another block's variable name and allowed option
-values. The catalog requires a valid controller and at least one controller
-value, rejects dependency cycles, and allows nested acyclic chains. Settings UI
-and generation use the same recursive resolution; a hidden block ignores its
-thread override and contributes its preset default. Choice blocks never choose
+Every normalized choice block resolves independently. Choice blocks never choose
 random options; use random variable macros when prompt randomness is required.
 Changing or clearing a thread's selected prompt preset preserves its stored
 choice histories; selecting a preset again restores its confirmed choices.
@@ -644,13 +641,13 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   version 1 envelopes may use `.json` or `.marinara.json` filenames. A valid
   import keeps supported parameters, sections, groups, choices, variables,
   ordering, and metadata, then creates one fresh native preset ID and rewrites
-  nested preset ownership to that ID. It never changes the app default. Parse or
-  validation failure does not add a
-  catalog record. With configured storage, import success is reported only after
-  the prompt-preset collection flushes; a failed prompt-preset save removes the
-  new session record and flushes that rollback. When no storage target exists,
-  browser import remains available as explicit session-only state and the
-  catalog warns that it will not survive reload.
+  nested preset ownership to that ID. It never changes the app default. Parse
+  or validation failure does not add a catalog record. With configured storage,
+  import success is reported only after the prompt-preset collection flushes; a
+  failed prompt-preset save removes the new session record and flushes that
+  rollback. When no storage target exists, browser import remains available as
+  explicit session-only state and the catalog warns that it will not survive
+  reload.
 - Normalize malformed or stale per-preset thread choice histories during
   preview. Preview warnings count those repaired threads separately from threads
   whose missing active preset reference was reassigned to the imported default.

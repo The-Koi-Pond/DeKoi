@@ -118,7 +118,6 @@ function richPromptPreset(): PromptPresetRecord {
         optionSort: "manual",
         sortOrder: 1,
         createdAt,
-        visibilityRule: { variableName: "register", values: ["plain"] },
       },
       {
         id: "choice-register",
@@ -488,44 +487,6 @@ describe("prompt preset packages", () => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
 
     expect(normalizePromptPresetPackage(mutatePackage(validPackage))).toBeNull();
-  });
-
-  it.each([
-    ["a missing visibility controller", "missing", ["plain"]],
-    ["a self-referencing visibility controller", "tone", ["warm"]],
-    ["a visibility value absent from the controller", "register", ["missing"]],
-  ])("rejects %s", (_label, variableName, values) => {
-    const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
-    const malformedPackage = {
-      ...validPackage,
-      data: {
-        ...validPackage.data,
-        choiceBlocks: validPackage.data.choiceBlocks.map((block) =>
-          block.variableName === "tone"
-            ? { ...block, visibilityRule: { variableName, values } }
-            : block,
-        ),
-      },
-    };
-
-    expect(normalizePromptPresetPackage(malformedPackage)).toBeNull();
-  });
-
-  it("rejects cyclic visibility controllers", () => {
-    const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
-    const cyclicPackage = {
-      ...validPackage,
-      data: {
-        ...validPackage.data,
-        choiceBlocks: validPackage.data.choiceBlocks.map((block) =>
-          block.variableName === "register"
-            ? { ...block, visibilityRule: { variableName: "tone", values: ["warm"] } }
-            : block,
-        ),
-      },
-    };
-
-    expect(normalizePromptPresetPackage(cyclicPackage)).toBeNull();
   });
 
   it.each([

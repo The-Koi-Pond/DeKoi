@@ -202,12 +202,6 @@
   color: var(--mist);
 }
 
-.catalog-choice-visibility {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
 .catalog-choice-errors {
   margin: 0;
   padding-left: 18px;

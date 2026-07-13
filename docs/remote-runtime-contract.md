@@ -602,10 +602,11 @@ Choice blocks contain stable IDs and variable names, optional questions,
 stable-ID options with optional descriptions, reusable defaults, multi-select
 and separator settings, `auto`/`buttons`/`listbox` display modes,
 manual/alphabetical option ordering, optional ordering/timestamp metadata and
-preset linkage, and value-based visibility rules. Runtimes must round-trip those fields and all
-`variableOrder` entries; the catalog preserves compatibility-only order slots
-while reordering choice-block slots. Choice evaluation is deterministic and does
-not support `randomPick`.
+preset linkage, and independent option/default data. Runtimes must round-trip
+those fields and all `variableOrder` entries; the catalog preserves
+compatibility-only order slots while reordering choice-block slots. Choice
+evaluation is deterministic and does not support `randomPick`; every normalized
+choice is visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged
 `dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;

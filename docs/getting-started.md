@@ -154,8 +154,8 @@ Focused checks for narrow changes are mapped to change types in
   override both for that thread. The catalog can add, remove, and reorder
   reusable choice blocks and options; edit defaults, questions, option
   descriptions, multi-select separators, manual or alphabetical option order,
-  button/list/automatic presentation, and conditional visibility; and reject
-  visibility cycles. Compatible data may carry static variables, richer
+  button/list/automatic presentation. Choice questions are always visible.
+  Compatible data may carry static variables, richer
   parameters, and metadata that the catalog preserves even when those fields do
   not have visible editors yet. Roleplay generation consumes saved section/group
   structure when present. Both Messenger and Roleplay generation consume stored
@@ -163,7 +163,7 @@ Focused checks for narrow changes are mapped to change types in
   thread switches presets. In Roleplay settings, Prompt Preset > Edit opens Preset
   Variables for the selected preset; New remains the secondary action for
   creating another preset. Questions and option descriptions appear with the
-  choices. Ordered multi-select choices and nested visibility feed request-local
+  choices. Ordered multi-select choices feed request-local
   prompt variables during generation, and using the preset default removes the
   thread override. The Presets catalog can import a compatible `.json` or
   `.marinara.json` package as a new preset and export the selected saved preset

@@ -280,15 +280,6 @@ function promptPresetPackageOptionsAreValid(value: unknown) {
   );
 }
 
-function visibilityRuleIsValid(value: unknown) {
-  return (
-    value === null ||
-    (isRecord(value) &&
-      isNonEmptyString(value.variableName) &&
-      isStringArrayValue(value.values, true))
-  );
-}
-
 const CHOICE_BLOCK_OPTIONAL_FIELD_VALIDATORS: Record<string, FieldValidator> = {
   presetId: isNullableString,
   question: isNullableString,
@@ -302,7 +293,6 @@ const CHOICE_BLOCK_OPTIONAL_FIELD_VALIDATORS: Record<string, FieldValidator> = {
   sortOrder: (value) =>
     isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.choiceSortOrder),
   createdAt: isNullableString,
-  visibilityRule: visibilityRuleIsValid,
 };
 
 function promptPresetPackageChoiceBlockIsValid(block: Record<string, unknown>) {
@@ -390,45 +380,6 @@ function packageChoiceDefaultsAreValid(
   });
 }
 
-function packageChoiceVisibilityRulesAreValid(choiceBlocks: Record<string, unknown>[]) {
-  const blocksByVariableName = new Map(
-    choiceBlocks.map((block) => [String(block.variableName).trim(), block] as const),
-  );
-  const controllerByBlock = new Map<Record<string, unknown>, Record<string, unknown>>();
-
-  for (const block of choiceBlocks) {
-    if (block.visibilityRule === undefined || block.visibilityRule === null) continue;
-    if (!isRecord(block.visibilityRule)) return false;
-
-    const controller = blocksByVariableName.get(String(block.visibilityRule.variableName).trim());
-    if (!controller || controller === block) return false;
-
-    const controllerValues = packageChoiceOptionIndex(controller).optionValues;
-    const values = block.visibilityRule.values;
-    if (
-      !Array.isArray(values) ||
-      !values.every((value) => typeof value === "string" && controllerValues.has(value.trim()))
-    ) {
-      return false;
-    }
-    controllerByBlock.set(block, controller);
-  }
-
-  const visited = new Set<Record<string, unknown>>();
-  for (const block of choiceBlocks) {
-    const path = new Set<Record<string, unknown>>();
-    let current: Record<string, unknown> | undefined = block;
-    while (current && !visited.has(current)) {
-      if (path.has(current)) return false;
-      path.add(current);
-      current = controllerByBlock.get(current);
-    }
-    for (const pathBlock of path) visited.add(pathBlock);
-  }
-
-  return true;
-}
-
 function readPackageRecordArray(
   value: unknown,
   validate: (record: Record<string, unknown>) => boolean,
@@ -462,7 +413,6 @@ export function readPromptPresetPackageData(value: unknown): PromptPresetPackage
   return sections &&
     groups &&
     choiceBlocks &&
-    packageChoiceVisibilityRulesAreValid(choiceBlocks) &&
     packageChoiceDefaultsAreValid(value.preset, choiceBlocks)
     ? { preset: value.preset, sections, groups, choiceBlocks }
     : null;

@@ -10,7 +10,6 @@ import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-pr
 export interface PromptPresetChoiceDraftState {
   choiceBlocks: PromptPresetChoiceBlock[];
   defaultOptionIdsByBlockId: Record<string, string[]>;
-  visibilityControllerIdsByBlockId: Record<string, string>;
 }
 
 export interface PromptPresetChoiceDraftIssue {
@@ -20,16 +19,8 @@ export interface PromptPresetChoiceDraftIssue {
     | "variable-duplicate"
     | "label-required"
     | "option-required"
-    | "option-label-required"
-    | "visibility-controller-missing"
-    | "visibility-values-required"
-    | "visibility-cycle";
+    | "option-label-required";
   message: string;
-}
-
-export interface PromptPresetChoiceVisibilityOption {
-  label: string;
-  value: string;
 }
 
 let choiceDraftIdCounter = 0;
@@ -51,9 +42,6 @@ function cloneChoiceBlocks(choiceBlocks: readonly PromptPresetChoiceBlock[]) {
   return choiceBlocks.map((block) => ({
     ...block,
     options: block.options.map((option) => ({ ...option })),
-    visibilityRule: block.visibilityRule
-      ? { ...block.visibilityRule, values: [...block.visibilityRule.values] }
-      : block.visibilityRule,
   }));
 }
 
@@ -134,18 +122,7 @@ export function choiceDraftFromPromptPreset(
       defaultOptionIds(block, preset.defaultChoices[block.variableName]),
     ]),
   );
-  const visibilityControllerIdsByBlockId = Object.fromEntries(
-    choiceBlocks.flatMap((block) => {
-      const controller = choiceBlocks.find(
-        (candidate) =>
-          candidate.id !== block.id &&
-          candidate.variableName === block.visibilityRule?.variableName,
-      );
-      return controller ? [[block.id, controller.id] as const] : [];
-    }),
-  );
-
-  return { choiceBlocks, defaultOptionIdsByBlockId, visibilityControllerIdsByBlockId };
+  return { choiceBlocks, defaultOptionIdsByBlockId };
 }
 
 export function addPromptPresetChoiceBlock(
@@ -293,145 +270,11 @@ export function setPromptPresetChoiceDefault(
   };
 }
 
-function normalizedVisibilityValues(values: readonly string[]) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
-export function promptPresetChoiceVisibilityOptions(
-  block: PromptPresetChoiceBlock,
-): PromptPresetChoiceVisibilityOption[] {
-  const seenValues = new Set<string>();
-  const options: PromptPresetChoiceVisibilityOption[] = [];
-
-  for (const option of block.options) {
-    const value = option.value.trim();
-    if (!value || seenValues.has(value)) continue;
-    seenValues.add(value);
-    options.push({ label: option.label.trim() || value, value });
-  }
-
-  return options;
-}
-
-export function setPromptPresetChoiceVisibilityController(
-  draft: PromptPresetChoiceDraftState,
-  blockId: string,
-  controllerId: string | null,
-): PromptPresetChoiceDraftState {
-  const block = draft.choiceBlocks.find((candidate) => candidate.id === blockId);
-  if (!block) return draft;
-
-  const controller = controllerId
-    ? draft.choiceBlocks.find(
-        (candidate) => candidate.id === controllerId && candidate.id !== blockId,
-      )
-    : null;
-  if (controllerId && !controller) return draft;
-
-  const nextDraft = updatePromptPresetChoiceBlock(draft, blockId, (currentBlock) => {
-    if (!controller) {
-      const nextBlock = { ...currentBlock };
-      delete nextBlock.visibilityRule;
-      return nextBlock;
-    }
-
-    const firstValue = promptPresetChoiceVisibilityOptions(controller)[0]?.value;
-    return {
-      ...currentBlock,
-      visibilityRule: {
-        variableName: controller.variableName,
-        values: firstValue ? [firstValue] : [],
-      },
-    };
-  });
-  const visibilityControllerIdsByBlockId = {
-    ...nextDraft.visibilityControllerIdsByBlockId,
-  };
-  if (controller) visibilityControllerIdsByBlockId[blockId] = controller.id;
-  else delete visibilityControllerIdsByBlockId[blockId];
-  return { ...nextDraft, visibilityControllerIdsByBlockId };
-}
-
-export function setPromptPresetChoiceVisibilityValue(
-  draft: PromptPresetChoiceDraftState,
-  blockId: string,
-  value: string,
-  selected: boolean,
-): PromptPresetChoiceDraftState {
-  const block = draft.choiceBlocks.find((candidate) => candidate.id === blockId);
-  const controllerId = draft.visibilityControllerIdsByBlockId[blockId];
-  const controller = draft.choiceBlocks.find(
-    (candidate) => candidate.id === controllerId && candidate.id !== blockId,
-  );
-  const normalizedValue = value.trim();
-  if (
-    !block?.visibilityRule ||
-    !controller ||
-    !promptPresetChoiceVisibilityOptions(controller).some(
-      (option) => option.value === normalizedValue,
-    )
-  ) {
-    return draft;
-  }
-
-  const currentValues = normalizedVisibilityValues(block.visibilityRule.values);
-  const values = selected
-    ? [...new Set([...currentValues, normalizedValue])]
-    : currentValues.filter((currentValue) => currentValue !== normalizedValue);
-
-  return updatePromptPresetChoiceBlock(draft, blockId, (currentBlock) => ({
-    ...currentBlock,
-    visibilityRule: {
-      variableName: controller.variableName,
-      values,
-    },
-  }));
-}
-
-function visibilityCycleBlockIds(draft: PromptPresetChoiceDraftState) {
-  const blockIds = new Set(draft.choiceBlocks.map((block) => block.id));
-  const controllerIdByBlockId = new Map<string, string>();
-  for (const block of draft.choiceBlocks) {
-    if (!block.visibilityRule) continue;
-    const controllerId = draft.visibilityControllerIdsByBlockId[block.id];
-    if (controllerId && controllerId !== block.id && blockIds.has(controllerId)) {
-      controllerIdByBlockId.set(block.id, controllerId);
-    }
-  }
-
-  const cycleBlockIds = new Set<string>();
-  const processedBlockIds = new Set<string>();
-  for (const block of draft.choiceBlocks) {
-    if (processedBlockIds.has(block.id)) continue;
-
-    const path: string[] = [];
-    const pathIndexByBlockId = new Map<string, number>();
-    let currentBlockId: string | undefined = block.id;
-    while (currentBlockId && !processedBlockIds.has(currentBlockId)) {
-      const cycleStartIndex = pathIndexByBlockId.get(currentBlockId);
-      if (cycleStartIndex !== undefined) {
-        for (const cycleBlockId of path.slice(cycleStartIndex)) {
-          cycleBlockIds.add(cycleBlockId);
-        }
-        break;
-      }
-
-      pathIndexByBlockId.set(currentBlockId, path.length);
-      path.push(currentBlockId);
-      currentBlockId = controllerIdByBlockId.get(currentBlockId);
-    }
-    for (const pathBlockId of path) processedBlockIds.add(pathBlockId);
-  }
-
-  return cycleBlockIds;
-}
-
 export function validatePromptPresetChoiceDraft(
   draft: PromptPresetChoiceDraftState,
 ): PromptPresetChoiceDraftIssue[] {
   const issues: PromptPresetChoiceDraftIssue[] = [];
   const seenVariableNames = new Set<string>();
-  const cycleBlockIds = visibilityCycleBlockIds(draft);
   for (const block of draft.choiceBlocks) {
     const variableName = block.variableName.trim();
     if (!variableName) {
@@ -469,42 +312,6 @@ export function validatePromptPresetChoiceDraft(
         message: "Every option needs a label.",
       });
     }
-
-    if (block.visibilityRule) {
-      const controllerId = draft.visibilityControllerIdsByBlockId[block.id];
-      const controller = draft.choiceBlocks.find(
-        (candidate) => candidate.id === controllerId && candidate.id !== block.id,
-      );
-      if (!controller || controller.id === block.id) {
-        issues.push({
-          blockId: block.id,
-          code: "visibility-controller-missing",
-          message: "Choose another valid choice as the visibility controller.",
-        });
-      } else {
-        const controllerValues = new Set(
-          promptPresetChoiceVisibilityOptions(controller).map((option) => option.value),
-        );
-        const visibilityValues = block.visibilityRule.values.map((value) => value.trim());
-        const hasOnlyValidValues =
-          visibilityValues.length > 0 &&
-          visibilityValues.every((value) => Boolean(value) && controllerValues.has(value));
-        if (!hasOnlyValidValues) {
-          issues.push({
-            blockId: block.id,
-            code: "visibility-values-required",
-            message: "Choose at least one controller value for visibility.",
-          });
-        }
-      }
-    }
-    if (cycleBlockIds.has(block.id)) {
-      issues.push({
-        blockId: block.id,
-        code: "visibility-cycle",
-        message: "Visibility choices cannot depend on each other in a cycle.",
-      });
-    }
   }
 
   return issues;
@@ -520,16 +327,9 @@ export function renamePromptPresetChoiceVariable(
 
   return {
     ...draft,
-    choiceBlocks: draft.choiceBlocks.map((choiceBlock) => {
-      if (choiceBlock.id === blockId) return { ...choiceBlock, variableName };
-      if (draft.visibilityControllerIdsByBlockId[choiceBlock.id] !== blockId) return choiceBlock;
-      if (!choiceBlock.visibilityRule) return choiceBlock;
-
-      return {
-        ...choiceBlock,
-        visibilityRule: { ...choiceBlock.visibilityRule, variableName },
-      };
-    }),
+    choiceBlocks: draft.choiceBlocks.map((choiceBlock) =>
+      choiceBlock.id === blockId ? { ...choiceBlock, variableName } : choiceBlock,
+    ),
   };
 }
 
@@ -549,62 +349,10 @@ export function updatePromptPresetChoiceOption(
   const nextControllerOptions = controller.options.map((option) =>
     option.id === optionId ? nextOption : option,
   );
-  const currentValue = currentOption.value.trim();
-  const nextValue = nextOption.value.trim();
-  const currentValueStillExists = nextControllerOptions.some(
-    (option) => option.id !== optionId && option.value.trim() === currentValue,
-  );
-  const clearedVisibilityBlockIds = new Set<string>();
-  const nextBlocks = draft.choiceBlocks.map((block) => {
-    if (block.id === blockId) {
-      return {
-        ...block,
-        options: nextControllerOptions,
-      };
-    }
-    if (
-      !currentValue ||
-      currentValue === nextValue ||
-      currentValueStillExists ||
-      draft.visibilityControllerIdsByBlockId[block.id] !== controller.id ||
-      !block.visibilityRule ||
-      !block.visibilityRule.values.some((value) => value.trim() === currentValue)
-    ) {
-      return block;
-    }
-
-    const values = nextValue
-      ? [
-          ...new Set(
-            block.visibilityRule.values.map((value) =>
-              value.trim() === currentValue ? nextValue : value.trim(),
-            ),
-          ),
-        ]
-      : block.visibilityRule.values.filter((value) => value.trim() !== currentValue);
-    if (values.length === 0) {
-      clearedVisibilityBlockIds.add(block.id);
-      const nextBlock = { ...block };
-      delete nextBlock.visibilityRule;
-      return nextBlock;
-    }
-
-    return {
-      ...block,
-      visibilityRule: {
-        ...block.visibilityRule,
-        values,
-      },
-    };
-  });
-
   return {
     ...draft,
-    choiceBlocks: nextBlocks,
-    visibilityControllerIdsByBlockId: Object.fromEntries(
-      Object.entries(draft.visibilityControllerIdsByBlockId).filter(
-        ([dependentBlockId]) => !clearedVisibilityBlockIds.has(dependentBlockId),
-      ),
+    choiceBlocks: draft.choiceBlocks.map((block) =>
+      block.id === blockId ? { ...block, options: nextControllerOptions } : block,
     ),
   };
 }
@@ -619,10 +367,6 @@ export function removePromptPresetChoiceOption(
   if (!controller || !removedOption || controller.options.length <= 1) return draft;
 
   const remainingOptions = controller.options.filter((option) => option.id !== optionId);
-  const removedValue = removedOption.value.trim();
-  const removedValueStillExists = remainingOptions.some(
-    (option) => option.value.trim() === removedValue,
-  );
   const currentDefaults = draft.defaultOptionIdsByBlockId[blockId] ?? [];
   const remainingDefaults = currentDefaults.filter((defaultId) => defaultId !== optionId);
   const repairedDefaults =
@@ -631,7 +375,6 @@ export function removePromptPresetChoiceOption(
       : remainingOptions[0]
         ? [remainingOptions[0].id]
         : [];
-  const clearedVisibilityBlockIds = new Set<string>();
   const choiceBlocks = draft.choiceBlocks.map((block) => {
     if (block.id === blockId) {
       return {
@@ -640,24 +383,7 @@ export function removePromptPresetChoiceOption(
         defaultOptionId: repairedDefaults[0] ?? null,
       };
     }
-    if (
-      !removedValue ||
-      removedValueStillExists ||
-      draft.visibilityControllerIdsByBlockId[block.id] !== controller.id ||
-      !block.visibilityRule
-    ) {
-      return block;
-    }
-
-    const values = block.visibilityRule.values.filter((value) => value.trim() !== removedValue);
-    if (values.length === block.visibilityRule.values.length) return block;
-    if (values.length === 0) {
-      clearedVisibilityBlockIds.add(block.id);
-      const nextBlock = { ...block };
-      delete nextBlock.visibilityRule;
-      return nextBlock;
-    }
-    return { ...block, visibilityRule: { ...block.visibilityRule, values } };
+    return block;
   });
 
   return {
@@ -667,11 +393,6 @@ export function removePromptPresetChoiceOption(
       ...draft.defaultOptionIdsByBlockId,
       [blockId]: repairedDefaults,
     },
-    visibilityControllerIdsByBlockId: Object.fromEntries(
-      Object.entries(draft.visibilityControllerIdsByBlockId).filter(
-        ([dependentBlockId]) => !clearedVisibilityBlockIds.has(dependentBlockId),
-      ),
-    ),
   };
 }
 
@@ -684,26 +405,10 @@ export function removePromptPresetChoiceBlock(
 
   const defaultOptionIdsByBlockId = { ...draft.defaultOptionIdsByBlockId };
   delete defaultOptionIdsByBlockId[blockId];
-  const visibilityControllerIdsByBlockId = {
-    ...draft.visibilityControllerIdsByBlockId,
-  };
-  delete visibilityControllerIdsByBlockId[blockId];
-  for (const [dependentBlockId, controllerId] of Object.entries(visibilityControllerIdsByBlockId)) {
-    if (controllerId === blockId) delete visibilityControllerIdsByBlockId[dependentBlockId];
-  }
-
   return {
     ...draft,
-    choiceBlocks: draft.choiceBlocks
-      .filter((block) => block.id !== blockId)
-      .map((block) => {
-        if (draft.visibilityControllerIdsByBlockId[block.id] !== removedBlock.id) return block;
-        const nextBlock = { ...block };
-        delete nextBlock.visibilityRule;
-        return nextBlock;
-      }),
+    choiceBlocks: draft.choiceBlocks.filter((block) => block.id !== blockId),
     defaultOptionIdsByBlockId,
-    visibilityControllerIdsByBlockId,
   };
 }
 
@@ -751,23 +456,9 @@ function defaultChoiceSelection(optionIds: readonly string[]) {
 export function promptPresetChoiceDraftToInput(
   draft: PromptPresetChoiceDraftState,
 ): Pick<PromptPresetInput, "choiceBlocks" | "defaultChoices" | "variableOrder"> {
-  const choiceBlocks = draft.choiceBlocks.map((block) => {
-    const controllerId = draft.visibilityControllerIdsByBlockId[block.id];
-    const controller = draft.choiceBlocks.find(
-      (candidate) => candidate.id === controllerId && candidate.id !== block.id,
-    );
-    const blockWithController =
-      block.visibilityRule && controller
-        ? {
-            ...block,
-            visibilityRule: {
-              ...block.visibilityRule,
-              variableName: controller.variableName,
-            },
-          }
-        : block;
-    return cleanChoiceBlock(blockWithController, draft.defaultOptionIdsByBlockId[block.id] ?? []);
-  });
+  const choiceBlocks = draft.choiceBlocks.map((block) =>
+    cleanChoiceBlock(block, draft.defaultOptionIdsByBlockId[block.id] ?? []),
+  );
   const defaultChoices: PromptPresetChoiceSelections = {};
 
   for (const block of choiceBlocks) {

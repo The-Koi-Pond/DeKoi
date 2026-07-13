@@ -4,7 +4,6 @@ import {
   createPromptPresetRecord,
   createImportedPromptPresetRecord,
   duplicatePromptPresetRecord,
-  isPromptPresetChoiceBlockVisible,
   normalizePromptPresetRecord,
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
@@ -223,185 +222,6 @@ describe("normalizePromptPresetRecord", () => {
     });
   });
 
-  it("applies choice visibility rules to UI visibility and hidden defaults", () => {
-    const record = normalizePromptPresetRecord({
-      id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{boundary}} and {{tone}}.",
-      choiceBlocks: [
-        {
-          id: "choice-boundary",
-          variableName: "boundary",
-          label: "Boundary",
-          defaultOptionId: "sfw",
-          options: [
-            { id: "sfw", label: "SFW", value: "SFW" },
-            { id: "adult", label: "Adult", value: "Adult" },
-          ],
-        },
-        {
-          id: "choice-tone",
-          variableName: "tone",
-          label: "Tone",
-          defaultOptionId: "none",
-          options: [
-            { id: "none", label: "None", value: "none" },
-            { id: "direct", label: "Direct", value: "direct" },
-          ],
-          visibilityRule: {
-            variableName: "boundary",
-            values: ["Adult"],
-          },
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record).not.toBeNull();
-    if (!record) throw new Error("Expected prompt preset record.");
-    const toneBlock = record.choiceBlocks[1];
-    expect(
-      toneBlock &&
-        isPromptPresetChoiceBlockVisible({
-          block: toneBlock,
-          preset: record,
-          selections: {
-            "choice-boundary": { kind: "option", optionId: "sfw" },
-            "choice-tone": { kind: "option", optionId: "direct" },
-          },
-        }),
-    ).toBe(false);
-    expect(
-      resolvePromptPresetChoiceVariables({
-        preset: record,
-        selections: {
-          "choice-boundary": { kind: "option", optionId: "sfw" },
-          "choice-tone": { kind: "option", optionId: "direct" },
-        },
-      }).variables,
-    ).toEqual({
-      boundary: "SFW",
-      tone: "none",
-    });
-    expect(
-      toneBlock &&
-        isPromptPresetChoiceBlockVisible({
-          block: toneBlock,
-          preset: record,
-          selections: { "choice-boundary": { kind: "option", optionId: "adult" } },
-        }),
-    ).toBe(true);
-  });
-
-  it("uses hidden controller defaults consistently for nested visibility", () => {
-    const record = normalizePromptPresetRecord({
-      id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{boundary}}, {{tone}}, and {{style}}.",
-      choiceBlocks: [
-        {
-          id: "choice-boundary",
-          variableName: "boundary",
-          label: "Boundary",
-          defaultOptionId: "sfw",
-          options: [
-            { id: "sfw", label: "SFW", value: "SFW" },
-            { id: "adult", label: "Adult", value: "Adult" },
-          ],
-        },
-        {
-          id: "choice-tone",
-          variableName: "tone",
-          label: "Tone",
-          defaultOptionId: "none",
-          options: [
-            { id: "none", label: "None", value: "none" },
-            { id: "direct", label: "Direct", value: "direct" },
-          ],
-          visibilityRule: { variableName: "boundary", values: ["Adult"] },
-        },
-        {
-          id: "choice-style",
-          variableName: "style",
-          label: "Style",
-          defaultOptionId: "plain",
-          options: [{ id: "plain", label: "Plain", value: "plain" }],
-          visibilityRule: { variableName: "tone", values: ["direct"] },
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record).not.toBeNull();
-    if (!record) throw new Error("Expected prompt preset record.");
-
-    const selections = {
-      "choice-boundary": { kind: "option" as const, optionId: "sfw" },
-      "choice-tone": { kind: "option" as const, optionId: "direct" },
-    };
-
-    expect(
-      resolvePromptPresetChoiceControls({ preset: record, selections }).map(({ id }) => id),
-    ).toEqual(["choice-boundary"]);
-    expect(resolvePromptPresetChoiceVariables({ preset: record, selections }).variables).toEqual({
-      boundary: "SFW",
-      tone: "none",
-      style: "plain",
-    });
-  });
-
-  it("keeps every member of malformed visibility cycles hidden", () => {
-    const cycles = [
-      [
-        { id: "a", controllerId: "b" },
-        { id: "b", controllerId: "a" },
-      ],
-      [
-        { id: "a", controllerId: "c" },
-        { id: "b", controllerId: "a" },
-        { id: "c", controllerId: "b" },
-      ],
-    ];
-
-    for (const cycle of cycles) {
-      const record = normalizePromptPresetRecord({
-        id: "preset-cycle",
-        schemaVersion: 1,
-        title: "Cyclic Preset",
-        systemPrompt: "Use cyclic choices.",
-        choiceBlocks: cycle.map(({ id, controllerId }) => ({
-          id: `choice-${id}`,
-          variableName: id,
-          label: id.toUpperCase(),
-          defaultOptionId: `${id}-on`,
-          options: [{ id: `${id}-on`, label: "On", value: `${id}-on` }],
-          visibilityRule: {
-            variableName: controllerId,
-            values: [`${controllerId}-on`],
-          },
-        })),
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      expect(record).not.toBeNull();
-      if (!record) throw new Error("Expected prompt preset record.");
-      const selections = Object.fromEntries(
-        cycle.map(({ id }) => [`choice-${id}`, { kind: "option" as const, optionId: `${id}-on` }]),
-      );
-
-      expect(resolvePromptPresetChoiceControls({ preset: record, selections })).toEqual([]);
-      expect(resolvePromptPresetChoiceVariables({ preset: record, selections })).toEqual({
-        variables: {},
-        variableNames: [],
-      });
-    }
-  });
-
   it("resolves preset variables and multi-select choice values", () => {
     const record = normalizePromptPresetRecord({
       id: "preset-1",
@@ -453,7 +273,7 @@ describe("normalizePromptPresetRecord", () => {
       schemaVersion: 1,
       title: "Preset One",
       systemPrompt: "Use {{boundary}} and {{motifs}}.",
-      variableOrder: ["choice-motifs", "choice-boundary", "choice-hidden"],
+      variableOrder: ["choice-hidden", "choice-motifs", "choice-boundary"],
       defaultChoices: {
         motifs: ["rain", "neon"],
       },
@@ -477,10 +297,6 @@ describe("normalizePromptPresetRecord", () => {
             { id: "soft", label: "Soft", value: "soft" },
             { id: "direct", label: "Direct", value: "direct" },
           ],
-          visibilityRule: {
-            variableName: "boundary",
-            values: ["Adult"],
-          },
         },
         {
           id: "choice-motifs",
@@ -514,6 +330,30 @@ describe("normalizePromptPresetRecord", () => {
         },
       }),
     ).toEqual([
+      {
+        id: "choice-hidden",
+        variableName: "hiddenTone",
+        label: "Hidden tone",
+        multiSelect: false,
+        displayMode: "auto",
+        defaultLabel: "Preset default: Soft",
+        selectedOptionIds: ["direct"],
+        selectedValues: ["direct"],
+        options: [
+          {
+            id: "soft",
+            label: "Soft",
+            value: "soft",
+            selection: { kind: "option", optionId: "soft" },
+          },
+          {
+            id: "direct",
+            label: "Direct",
+            value: "direct",
+            selection: { kind: "option", optionId: "direct" },
+          },
+        ],
+      },
       {
         id: "choice-motifs",
         variableName: "motifs",

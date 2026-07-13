@@ -51,7 +51,6 @@ export const EMPTY_PROMPT_PRESET_DRAFT: PromptPresetDraftState = {
   groups: [],
   choiceBlocks: [],
   defaultOptionIdsByBlockId: {},
-  visibilityControllerIdsByBlockId: {},
 };
 
 let draftIdCounter = 0;
