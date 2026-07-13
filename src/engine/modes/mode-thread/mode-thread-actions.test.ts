@@ -435,6 +435,45 @@ describe("mode-thread actions", () => {
     ).toBe("2026-01-03");
   });
 
+  it("includes branch timestamps newer than the thread and messages", () => {
+    const newerBranchThread: MessengerModeThread = {
+      ...thread,
+      branches: [thread.branches[0], { ...thread.branches[1], updatedAt: "2026-01-04T12:00:00Z" }],
+    };
+
+    expect(getModeThreadActivityAt(newerBranchThread)).toBe("2026-01-04T12:00:00Z");
+  });
+
+  it("includes inactive version timestamps and compares their parsed instants", () => {
+    const message = createModeMessage({
+      id: "inactive-version-activity",
+      versionId: "active-version",
+      threadId: thread.id,
+      branchId: thread.activeBranchId,
+      author: { kind: "system", label: "System" },
+      body: "active",
+      origin: "manual",
+      now: "2026-01-01T08:00:00+11:00",
+    });
+    const messageWithNewerInactiveVersion: ModeMessage = {
+      ...message,
+      versions: [
+        message.versions[0],
+        {
+          id: "inactive-version",
+          body: "inactive",
+          origin: "imported",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:30:00Z",
+        },
+      ],
+    };
+
+    expect(
+      getModeThreadActivityAt({ ...thread, messages: [messageWithNewerInactiveVersion] }),
+    ).toBe("2026-01-01T00:30:00Z");
+  });
+
   it("orders equivalent and different offsets by instant while preserving stored timestamps", () => {
     const message = createModeMessage({
       id: "activity-offset",
@@ -455,6 +494,10 @@ describe("mode-thread actions", () => {
       ...thread,
       createdAt: "2025-12-31",
       updatedAt: "2025-12-31T23:00:00Z",
+      branches: [
+        { ...thread.branches[0], createdAt: "2025-12-31", updatedAt: "2025-12-31" },
+        { ...thread.branches[1], createdAt: "2025-12-31", updatedAt: "2025-12-31" },
+      ],
       messages: [offsetMessage],
     };
 

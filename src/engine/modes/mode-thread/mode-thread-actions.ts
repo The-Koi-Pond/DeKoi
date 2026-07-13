@@ -368,12 +368,14 @@ export function setModeBranchProviderConnection<K extends ModeThreadKind>(
 
 export function getModeThreadActivityAt(thread: ModeThread): string {
   assertValidModeThread(thread);
-  return thread.messages.reduce((latest, message) => {
-    const version = getActiveModeMessageVersion(message);
-    const messageLatest =
-      Date.parse(message.updatedAt) > Date.parse(version.updatedAt)
-        ? message.updatedAt
-        : version.updatedAt;
-    return Date.parse(messageLatest) > Date.parse(latest) ? messageLatest : latest;
-  }, thread.updatedAt);
+  const latestTimestamp = (latest: string, candidate: string): string =>
+    Date.parse(candidate) > Date.parse(latest) ? candidate : latest;
+
+  let latest = thread.updatedAt;
+  for (const branch of thread.branches) latest = latestTimestamp(latest, branch.updatedAt);
+  for (const message of thread.messages) {
+    latest = latestTimestamp(latest, message.updatedAt);
+    for (const version of message.versions) latest = latestTimestamp(latest, version.updatedAt);
+  }
+  return latest;
 }
