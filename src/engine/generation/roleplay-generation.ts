@@ -163,7 +163,9 @@ export function createRoleplayGenerationContext({
   });
   const presetChoiceVariables = resolvePromptPresetChoiceVariables({
     preset: records.promptPreset,
-    selections: thread.presetChoiceSelections,
+    selections: thread.presetId
+      ? (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId]
+      : {},
   });
 
   return {
@@ -186,7 +188,13 @@ export function createRoleplayGenerationContext({
       characterIds: records.companions.map((companion) => companion.id),
       lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
       presetId: records.promptPreset?.id ?? null,
-      presetChoiceSelections: records.promptPreset ? (thread.presetChoiceSelections ?? {}) : {},
+      presetChoiceSelectionsByPresetId:
+        records.promptPreset && thread.presetId
+          ? {
+              [thread.presetId]:
+                (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId] ?? {},
+            }
+          : {},
       providerConnectionId: records.providerConnectionId,
     },
     warnings: records.warnings,

@@ -40,7 +40,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   Messenger Prompt Source, optional temperature, `topP`, max-token sampling,
   Roleplay section groups, ordered sections, markers, section roles, enabled
   state, wrapping, and depth placement, with create, edit, duplicate, and delete
-  actions, plus the editable and deletable Universal V2 starter preset,
+  actions, plus the editable Universal V2 starter preset,
   normalized from its bundled package into an ordinary native record. The
   catalog also imports standalone
   compatible `.json` or `.marinara.json` packages as fresh native copies and
@@ -57,6 +57,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   descriptions remain visible across the supported dropdown, checkbox, button,
   and list presentations. Messenger keeps the Messenger Prompt Source/system
   prompt path.
+- App settings own the default prompt preset. New Messenger and Roleplay threads
+  start with it, and each thread retains independent confirmed-choice history per
+  preset. The default and last preset are protected from deletion; deleting
+  another preset durably reassigns active threads to the default before the
+  change is published to React state.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
@@ -136,7 +141,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   metadata do not all have dedicated catalog controls yet. Choice-block
   definitions and their reusable defaults are editable in the Presets catalog;
   the Roleplay Preset Variables popup selects thread-specific values. Messenger
-  also consumes stable-ID thread choice values when they are present.
+  also consumes stable-ID thread choice values when they are present. Catalog
+  controls for designating the app default are not exposed yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.

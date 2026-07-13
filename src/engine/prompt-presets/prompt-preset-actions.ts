@@ -28,7 +28,6 @@ export {
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
   normalizePromptPresetRecord,
-  normalizePromptPresetSections,
   prunePromptPresetThreadChoiceSelections,
   resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,
@@ -51,7 +50,6 @@ export interface PromptPresetInput {
   variableValues?: Record<string, string> | null;
   defaultChoices?: PromptPresetChoiceSelections | null;
   wrapFormat?: string | null;
-  isDefault?: boolean;
   author?: string | null;
   folderId?: string | null;
   sections?: PromptPresetSection[] | null;
@@ -142,7 +140,6 @@ export function createPromptPresetRecord({
     variableValues: normalizeStringRecord(input.variableValues),
     defaultChoices,
     wrapFormat: cleanNullableText(input.wrapFormat),
-    isDefault: input.isDefault ?? false,
     author: cleanNullableText(input.author),
     folderId: cleanNullableText(input.folderId),
     sections: normalizePromptPresetSections(input.sections),
@@ -205,7 +202,6 @@ export function updatePromptPresetRecord(
     defaultChoices: prunedDefaultChoices,
     wrapFormat:
       input.wrapFormat === undefined ? record.wrapFormat : cleanNullableText(input.wrapFormat),
-    isDefault: input.isDefault === undefined ? record.isDefault : input.isDefault,
     author: input.author === undefined ? record.author : cleanNullableText(input.author),
     folderId: input.folderId === undefined ? record.folderId : cleanNullableText(input.folderId),
     sections:
@@ -243,8 +239,4 @@ export function createImportedPromptPresetRecord(
     createdAt: now,
     updatedAt: now,
   };
-}
-
-export function deletePromptPresetRecord(records: PromptPresetRecord[], id: string) {
-  return records.filter((record) => record.id !== id);
 }

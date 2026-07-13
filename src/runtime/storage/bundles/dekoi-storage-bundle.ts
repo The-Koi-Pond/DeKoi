@@ -40,6 +40,7 @@ import { normalizeProviderConnectionRecord } from "../collections/provider-conne
 import { normalizeRippleState } from "../collections/ripple-state-storage";
 import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
 import { normalizePromptPresetImportRecord } from "../../../engine/prompt-presets/prompt-preset-package";
+import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
@@ -412,8 +413,28 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     extractMessengerMessages(normalizedMessengerThreads),
     validMessengerSplitMessages,
   );
+  const normalizedAppSettings = normalizeAppSettings(value.data.appSettings);
+  const importedPromptPresets = normalizeOptionalList(
+    value.data.promptPresets,
+    "Prompt presets",
+    normalizePromptPresetImportRecord,
+    warnings,
+  );
+  const normalizedPromptPresets =
+    importedPromptPresets.length > 0 ? importedPromptPresets : [STARTER_PROMPT_PRESET];
+  const repairedDefaultPromptPresetId =
+    normalizedPromptPresets.find(
+      (preset) => preset.id === normalizedAppSettings.defaultPromptPresetId,
+    )?.id ??
+    normalizedPromptPresets[0]?.id ??
+    null;
+  const defaultWasRepaired =
+    repairedDefaultPromptPresetId !== normalizedAppSettings.defaultPromptPresetId;
   const data: DeKoiStorageBundleData = {
-    appSettings: normalizeAppSettings(value.data.appSettings),
+    appSettings: {
+      ...normalizedAppSettings,
+      defaultPromptPresetId: repairedDefaultPromptPresetId,
+    },
     characters: normalizeList(
       value.data.characters,
       "Characters",
@@ -430,12 +451,7 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       warnings,
       2,
     ),
-    promptPresets: normalizeOptionalList(
-      value.data.promptPresets,
-      "Prompt presets",
-      normalizePromptPresetImportRecord,
-      warnings,
-    ),
+    promptPresets: normalizedPromptPresets,
     loreRuntimeStates: normalizeOptionalList(
       value.data.loreRuntimeStates,
       "Lore runtime states",
@@ -464,6 +480,13 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     ),
   };
 
+  if (defaultWasRepaired) {
+    warnings.push("App settings repaired the default prompt preset reference.");
+  }
+  if (importedPromptPresets.length === 0) {
+    warnings.push("Prompt presets was empty; restored the bundled starter preset.");
+  }
+
   if (providerConnectionSecretFieldCount > 0) {
     warnings.push(
       `Provider connections skipped secret field(s) from ${providerConnectionSecretFieldCount} imported record(s).`,
@@ -482,11 +505,12 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     data.roleplayThreads,
     data.promptPresets,
     normalizedRoleplayChoiceSelectionRecordIds,
+    repairedDefaultPromptPresetId,
   );
   data.roleplayThreads = repairedRoleplayThreads.records;
   if (repairedRoleplayThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Roleplay threads cleared ${repairedRoleplayThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+      `Roleplay threads reassigned ${repairedRoleplayThreads.clearedPresetReferenceCount} dangling preset reference(s) to the imported default.`,
     );
   }
   if (repairedRoleplayThreads.repairedChoiceSelectionCount > 0) {
@@ -499,11 +523,12 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     data.messengerThreads,
     data.promptPresets,
     normalizedMessengerChoiceSelectionRecordIds,
+    repairedDefaultPromptPresetId,
   );
   data.messengerThreads = repairedMessengerThreads.records;
   if (repairedMessengerThreads.clearedPresetReferenceCount > 0) {
     warnings.push(
-      `Messenger threads cleared ${repairedMessengerThreads.clearedPresetReferenceCount} preset reference(s) without an imported prompt preset.`,
+      `Messenger threads reassigned ${repairedMessengerThreads.clearedPresetReferenceCount} dangling preset reference(s) to the imported default.`,
     );
   }
   if (repairedMessengerThreads.repairedChoiceSelectionCount > 0) {

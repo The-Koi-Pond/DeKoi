@@ -16,6 +16,57 @@ import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-pr
 const now = "2026-06-24T07:00:00.000Z";
 
 describe("normalizeDeKoiStorageBundle", () => {
+  it("preserves native preset IDs, default, and inactive history through a full bundle round trip", () => {
+    const messenger = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+        id: "messenger-round-trip",
+        now,
+        title: "Messenger",
+      }),
+      presetChoiceSelectionsByPresetId: {
+        [STARTER_PROMPT_PRESET.id]: {},
+        "deleted-preset": {},
+      },
+    };
+    const roleplay = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: [],
+      defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+      id: "roleplay-round-trip",
+      now,
+      title: "Roleplay",
+    });
+    const bundle = createDeKoiStorageBundle({
+      appSettings: { ...DEFAULT_APP_SETTINGS, defaultPromptPresetId: STARTER_PROMPT_PRESET.id },
+      characters: [],
+      roleplayThreads: [roleplay],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [STARTER_PROMPT_PRESET],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      messengerThreads: [messenger],
+      rippleStates: [],
+    });
+    const result = normalizeDeKoiStorageBundle(bundle);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.preview.bundle.data.appSettings.defaultPromptPresetId).toBe(
+      STARTER_PROMPT_PRESET.id,
+    );
+    expect(result.preview.bundle.data.promptPresets[0]?.id).toBe(STARTER_PROMPT_PRESET.id);
+    expect(result.preview.bundle.data.messengerThreads[0]?.id).toBe("messenger-round-trip");
+    expect(
+      result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelectionsByPresetId,
+    ).toEqual({
+      [STARTER_PROMPT_PRESET.id]: expect.any(Object),
+      "deleted-preset": {},
+    });
+  });
+
   it("reports lorebook schemaVersion 2 when rejecting pre-v2 records", () => {
     const result = normalizeDeKoiStorageBundle({
       kind: DEKOI_STORAGE_BUNDLE_KIND,
@@ -112,7 +163,7 @@ describe("normalizeDeKoiStorageBundle", () => {
       throw new Error(result.error);
     }
 
-    expect(result.preview.bundle.data.promptPresets).toEqual([]);
+    expect(result.preview.bundle.data.promptPresets).toEqual([STARTER_PROMPT_PRESET]);
     expect(result.preview.warnings).not.toContain(
       "Prompt presets was missing or not an array; imported as empty.",
     );
@@ -330,7 +381,6 @@ describe("normalizeDeKoiStorageBundle", () => {
       variableValues: { tone: "warm" },
       defaultChoices: { motifs: ["rain on glass", "neon signs"] },
       parameters: { temperature: 1, squashSystemMessages: true },
-      isDefault: true,
       choiceBlocks: [
         expect.objectContaining({
           multiSelect: true,
@@ -409,17 +459,17 @@ describe("normalizeDeKoiStorageBundle", () => {
       result.preview.bundle.data.messengerThreads.map((thread) => [thread.id, thread.presetId]),
     ).toEqual([
       ["messenger-thread-valid", STARTER_PROMPT_PRESET.id],
-      ["messenger-thread-missing", null],
+      ["messenger-thread-missing", STARTER_PROMPT_PRESET.id],
     ]);
     expect(
       result.preview.bundle.data.roleplayThreads.map((thread) => [thread.id, thread.presetId]),
-    ).toEqual([["roleplay-thread-missing", null]]);
+    ).toEqual([["roleplay-thread-missing", STARTER_PROMPT_PRESET.id]]);
     expect(result.preview.warnings).toContain("Prompt presets skipped 1 invalid record(s).");
     expect(result.preview.warnings).toContain(
-      "Messenger threads cleared 1 preset reference(s) without an imported prompt preset.",
+      "Messenger threads reassigned 1 dangling preset reference(s) to the imported default.",
     );
     expect(result.preview.warnings).toContain(
-      "Roleplay threads cleared 1 preset reference(s) without an imported prompt preset.",
+      "Roleplay threads reassigned 1 dangling preset reference(s) to the imported default.",
     );
   });
 
@@ -478,12 +528,16 @@ describe("normalizeDeKoiStorageBundle", () => {
       throw new Error(result.error);
     }
 
-    expect(result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelections).toEqual({});
+    expect(
+      result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelectionsByPresetId,
+    ).toEqual({
+      [preset.id]: { "choice-tone": { kind: "option", optionId: "tone-warm" } },
+    });
     expect(result.preview.warnings).toContain(
       "Messenger threads pruned stale preset choice selections from 1 thread(s).",
     );
     expect(result.preview.warnings).not.toContain(
-      "Messenger threads cleared 1 preset reference(s) without an imported prompt preset.",
+      "Messenger threads reassigned 1 dangling preset reference(s) to the imported default.",
     );
   });
 
@@ -535,13 +589,11 @@ describe("normalizeDeKoiStorageBundle", () => {
       throw new Error(result.error);
     }
 
-    expect(result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(result.preview.bundle.data.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(result.preview.warnings).toContain(
-      "Messenger threads pruned stale preset choice selections from 1 thread(s).",
-    );
-    expect(result.preview.warnings).toContain(
-      "Roleplay threads pruned stale preset choice selections from 1 thread(s).",
+    expect(
+      result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelectionsByPresetId,
+    ).toEqual({ [STARTER_PROMPT_PRESET.id]: expect.any(Object) });
+    expect(result.preview.bundle.data.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual(
+      { [STARTER_PROMPT_PRESET.id]: expect.any(Object) },
     );
   });
 
@@ -593,13 +645,11 @@ describe("normalizeDeKoiStorageBundle", () => {
       throw new Error(result.error);
     }
 
-    expect(result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(result.preview.bundle.data.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(result.preview.warnings).toContain(
-      "Messenger threads pruned stale preset choice selections from 1 thread(s).",
-    );
-    expect(result.preview.warnings).toContain(
-      "Roleplay threads pruned stale preset choice selections from 1 thread(s).",
+    expect(
+      result.preview.bundle.data.messengerThreads[0]?.presetChoiceSelectionsByPresetId,
+    ).toEqual({});
+    expect(result.preview.bundle.data.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual(
+      {},
     );
   });
 

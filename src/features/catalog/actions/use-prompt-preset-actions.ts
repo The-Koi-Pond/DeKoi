@@ -1,13 +1,8 @@
 import { useCallback } from "react";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
-import { removeMessengerThreadPreset } from "../../../engine/modes/messenger/messenger-actions";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import { removeRoleplayThreadPreset } from "../../../engine/modes/roleplay/roleplay-actions";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import {
   createImportedPromptPresetRecord,
   createPromptPresetRecord,
-  deletePromptPresetRecord,
   duplicatePromptPresetRecord,
   updatePromptPresetRecord,
   type PromptPresetInput,
@@ -15,19 +10,23 @@ import {
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { StateSetter } from "../../../shared/react/state-setter";
+import type {
+  PromptPresetRelationshipMutation,
+  PromptPresetRelationshipTransactionResult,
+} from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
 
 type UsePromptPresetActionsInput = {
   promptPresets: PromptPresetRecord[];
   setPromptPresets: StateSetter<PromptPresetRecord[]>;
-  setRoleplayThreads: StateSetter<RoleplayThread[]>;
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  runPromptPresetRelationshipMutation: (
+    mutation: PromptPresetRelationshipMutation,
+  ) => Promise<PromptPresetRelationshipTransactionResult>;
 };
 
 export function usePromptPresetActions({
   promptPresets,
   setPromptPresets,
-  setRoleplayThreads,
-  setMessengerThreads,
+  runPromptPresetRelationshipMutation,
 }: UsePromptPresetActionsInput) {
   const createPromptPreset = useCallback(
     (input: PromptPresetInput) => {
@@ -86,17 +85,11 @@ export function usePromptPresetActions({
   );
 
   const deletePromptPreset = useCallback(
-    (presetId: string) => {
+    async (presetId: string): Promise<PromptPresetRelationshipTransactionResult> => {
       const now = currentIsoTimestamp();
-      setPromptPresets((currentPresets) => deletePromptPresetRecord(currentPresets, presetId));
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) => removeMessengerThreadPreset(thread, presetId, now)),
-      );
-      setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) => removeRoleplayThreadPreset(thread, presetId, now)),
-      );
+      return runPromptPresetRelationshipMutation({ kind: "delete", presetId, updatedAt: now });
     },
-    [setPromptPresets, setMessengerThreads, setRoleplayThreads],
+    [runPromptPresetRelationshipMutation],
   );
 
   return {

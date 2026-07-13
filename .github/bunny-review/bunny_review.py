@@ -766,11 +766,12 @@ def model_call(client, messages, stats):
         ]
         empty_shapes = []
         for attempt, response_input in enumerate(response_inputs):
+            reasoning_effort = RESPONSES_REASONING_EFFORT if attempt == 0 else "none"
             resp = client.responses.create(
                 model=model_name(),
                 input=response_input,
                 store=False,
-                reasoning={"effort": RESPONSES_REASONING_EFFORT},
+                reasoning={"effort": reasoning_effort},
                 max_output_tokens=RESPONSES_MAX_OUTPUT_TOKENS,
                 timeout=MODEL_REQUEST_TIMEOUT,
             )
@@ -794,7 +795,8 @@ def model_call(client, messages, stats):
                 stats["empty_response_retries"] += 1
                 print(
                     "Bunny warning: Responses API completed without visible text; "
-                    "retrying once with an explicit final-output instruction.",
+                    "retrying once with reasoning disabled and an explicit "
+                    "final-output instruction.",
                     flush=True,
                 )
                 continue
@@ -807,12 +809,32 @@ def model_call(client, messages, stats):
                 f"({shape_detail})"
             )
 
-    resp = client.chat.completions.create(
-        model=model_name(),
-        messages=messages,
-        timeout=MODEL_REQUEST_TIMEOUT,
-    )
-    stats["model_calls"] += 1
+    request = {
+        "model": model_name(),
+        "messages": messages,
+        "response_format": {"type": "json_object"},
+        "timeout": MODEL_REQUEST_TIMEOUT,
+    }
+    try:
+        resp = client.chat.completions.create(**request)
+        stats["model_calls"] += 1
+    except Exception as exc:
+        stats["model_calls"] += 1
+        detail = " ".join(str(exc).lower().split())
+        response_format_is_unsupported = "response_format" in detail and any(
+            marker in detail
+            for marker in ("unsupported", "not supported", "unknown", "unrecognized")
+        )
+        if not response_format_is_unsupported:
+            raise
+        print(
+            "Bunny warning: chat completions backend rejected response_format; "
+            f"retrying without structured output ({exc}).",
+            flush=True,
+        )
+        request.pop("response_format")
+        resp = client.chat.completions.create(**request)
+        stats["model_calls"] += 1
     add_usage(stats, object_value(resp, "usage"))
     if isinstance(resp, str):
         return resp

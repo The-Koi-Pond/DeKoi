@@ -53,7 +53,6 @@ function richPromptPreset(): PromptPresetRecord {
     variableValues: { register: "plain" },
     defaultChoices: { tone: { kind: "option", optionId: "tone-warm" } },
     wrapFormat: "<prompt>{{prompt}}</prompt>",
-    isDefault: true,
     author: "DeKoi",
     folderId: "folder-roleplay",
     sections: [

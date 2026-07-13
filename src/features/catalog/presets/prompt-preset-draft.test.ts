@@ -36,7 +36,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
-    isDefault: false,
     author: null,
     folderId: null,
     sections: [],
@@ -124,7 +123,6 @@ describe("prompt preset draft conversion", () => {
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },
       defaultChoices: { tone: { kind: "option", optionId: "warm" } },
-      isDefault: true,
       author: "Preset Author",
       folderId: "folder-a",
       choiceBlocks: [
@@ -162,7 +160,6 @@ describe("prompt preset draft conversion", () => {
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },
       defaultChoices: { tone: { kind: "option", optionId: "warm" } },
-      isDefault: true,
       author: "Preset Author",
       folderId: "folder-a",
       choiceBlocks: record.choiceBlocks,

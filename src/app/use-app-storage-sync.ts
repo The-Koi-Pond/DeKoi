@@ -11,6 +11,7 @@ import {
   loadAppStorageSnapshot,
   replaceAppStorageSnapshot,
   runPromptPresetImportStorageTransaction,
+  runPromptPresetRelationshipTransaction,
   saveAppStorageCollections,
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
@@ -21,6 +22,7 @@ import {
   type MessengerStorageMode,
   type MessengerStorageStatus,
   type PromptPresetImportSaveResult,
+  type PromptPresetRelationshipMutation,
   type StorageTransactionCoordinator,
 } from "../features/runtime";
 import type { StateSetter } from "../shared/react/state-setter";
@@ -81,6 +83,21 @@ export type AppStorageImportRecoveryState = {
 type AppStorageCommitImportOptions = {
   desktopBackupPath?: string | null;
 };
+
+export function mergeAffectedAppStorageCollections(
+  current: AppStorageRecords,
+  candidate: AppStorageRecords,
+  affectedKeys: readonly AppStorageCollectionKey[],
+): AppStorageRecords {
+  const merged = { ...current };
+  for (const key of affectedKeys) {
+    if (key === "messengerThreads") merged.messengerThreads = candidate.messengerThreads;
+    if (key === "roleplayThreads") merged.roleplayThreads = candidate.roleplayThreads;
+    if (key === "promptPresets") merged.promptPresets = candidate.promptPresets;
+    if (key === "appSettings") merged.appSettings = candidate.appSettings;
+  }
+  return merged;
+}
 
 const IMPORT_ROLLBACK_MESSAGE =
   "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.";
@@ -200,6 +217,17 @@ function createAppStorageSignatures(snapshot: AppStorageRecords): AppStorageColl
     signatures[collectionKey] = appStorageCollectionSignature(snapshot, collectionKey);
   }
   return signatures;
+}
+
+export function appStorageSnapshotsHaveMatchingSignatures(
+  left: AppStorageRecords,
+  right: AppStorageRecords,
+) {
+  return APP_STORAGE_COLLECTION_KEYS.every(
+    (collectionKey) =>
+      appStorageCollectionSignature(left, collectionKey) ===
+      appStorageCollectionSignature(right, collectionKey),
+  );
 }
 
 function createLoadedAppStorageSignatures(
@@ -371,6 +399,64 @@ export function reconcileMigrationAppStorageSignatures({
     savedSignatures: nextSavedSignatures,
     unsavedSignatures: nextUnsavedSignatures,
   };
+}
+
+export function reconcilePublishedAppStorageTransactionBookkeeping({
+  savedSignatures,
+  unsavedSignatures,
+  snapshot,
+  affectedKeys,
+}: {
+  savedSignatures: AppStorageCollectionSignatures | null;
+  unsavedSignatures: PartialAppStorageCollectionSignatures;
+  snapshot: AppStorageRecords;
+  affectedKeys: readonly AppStorageCollectionKey[];
+}) {
+  const nextSavedSignatures = savedSignatures ? { ...savedSignatures } : null;
+  const nextUnsavedSignatures = { ...unsavedSignatures };
+  const affectedSignatures: PartialAppStorageCollectionSignatures = {};
+
+  for (const collectionKey of affectedKeys) {
+    const signature = appStorageCollectionSignature(snapshot, collectionKey);
+    affectedSignatures[collectionKey] = signature;
+    if (nextSavedSignatures) nextSavedSignatures[collectionKey] = signature;
+    delete nextUnsavedSignatures[collectionKey];
+  }
+
+  return {
+    savedSignatures: nextSavedSignatures,
+    unsavedSignatures: nextUnsavedSignatures,
+    affectedSignatures,
+    lastSeenSnapshot: snapshot,
+  };
+}
+
+export function reconcileCurrentAppStorageTransactionBookkeeping({
+  savedSignatures,
+  snapshot,
+}: {
+  savedSignatures: AppStorageCollectionSignatures | null;
+  snapshot: AppStorageRecords;
+}) {
+  const nextUnsavedSignatures: PartialAppStorageCollectionSignatures = {};
+  const dirtyCollectionKeys: AppStorageCollectionKey[] = [];
+  for (const collectionKey of APP_STORAGE_COLLECTION_KEYS) {
+    const signature = appStorageCollectionSignature(snapshot, collectionKey);
+    if (savedSignatures?.[collectionKey] !== signature) {
+      nextUnsavedSignatures[collectionKey] = signature;
+      dirtyCollectionKeys.push(collectionKey);
+    }
+  }
+  return { unsavedSignatures: nextUnsavedSignatures, dirtyCollectionKeys };
+}
+
+export function mergePersistedAppStorageTransactionSignatures(
+  savedSignatures: AppStorageCollectionSignatures | null,
+  persistedSignatures: PartialAppStorageCollectionSignatures | undefined,
+) {
+  return savedSignatures && persistedSignatures
+    ? { ...savedSignatures, ...persistedSignatures }
+    : savedSignatures;
 }
 
 function createAppStorageCounts(
@@ -1217,6 +1303,159 @@ export function useAppStorageSync({
       storageTransactionCoordinator,
       storageReady,
       waitForActiveSaveToSettle,
+    ],
+  );
+
+  const runPromptPresetRelationshipMutation = useCallback(
+    async (mutation: PromptPresetRelationshipMutation) => {
+      if (!storageReady) {
+        return {
+          saved: false,
+          published: false,
+          blocked: true,
+          message: "Prompt preset change blocked because app storage is not ready.",
+        };
+      }
+      const flushed = await flushAppStorageSaves({ reason: "manual" });
+      if (!flushed.flushed) {
+        return {
+          saved: false,
+          published: false,
+          blocked: true,
+          message: `Prompt preset change blocked until existing storage changes are saved. ${flushed.message}`,
+        };
+      }
+      let publishedSnapshot: AppStorageRecords | null = null;
+      const result = await runPromptPresetRelationshipTransaction({
+        mutation,
+        coordinator: storageTransactionCoordinator,
+        getLatestSnapshot: () => currentAppStorageRecords.current,
+        saveCollection: async (snapshot, collectionKey) => {
+          const result = await saveAppStorageCollections(
+            snapshot,
+            [collectionKey],
+            remoteRuntimeUrl,
+          );
+          if (result.status === "ready" && result.storageMetadata)
+            mergeLoadedStorageMetadata(result.storageMetadata);
+          return result;
+        },
+        reload: async () => {
+          const reloadTarget = {
+            generation: storageGeneration.current,
+            rawUrl: currentStorageRawUrl.current,
+          };
+          const stateBeforeReload = currentAppStorageRecords.current;
+          const snapshot = await loadAppStorageSnapshot(reloadTarget.rawUrl);
+          if (
+            storageGeneration.current !== reloadTarget.generation ||
+            currentStorageRawUrl.current !== reloadTarget.rawUrl
+          ) {
+            throw new Error("Storage target changed during recovery reload.");
+          }
+          if (
+            !appStorageSnapshotsHaveMatchingSignatures(
+              stateBeforeReload,
+              currentAppStorageRecords.current,
+            )
+          ) {
+            throw new Error("In-memory storage changed during recovery reload.");
+          }
+          applyLoadedAppStorageSnapshot(snapshot);
+          return {
+            appSettings: snapshot.appSettings,
+            characters: snapshot.characters,
+            personas: snapshot.personas,
+            lorebooks: snapshot.lorebooks,
+            promptPresets: snapshot.promptPresets,
+            loreRuntimeStates: snapshot.loreRuntimeStates,
+            macroVariableStates: snapshot.macroVariableStates,
+            providerConnections: snapshot.providerConnections,
+            roleplayThreads: snapshot.roleplayThreads,
+            messengerThreads: snapshot.messengerThreads,
+            rippleStates: snapshot.rippleStates,
+          };
+        },
+        publish: (snapshot, affectedKeys) => {
+          const reconciled = mergeAffectedAppStorageCollections(
+            currentAppStorageRecords.current,
+            snapshot,
+            affectedKeys,
+          );
+          publishedSnapshot = reconciled;
+          const bookkeeping = reconcilePublishedAppStorageTransactionBookkeeping({
+            savedSignatures: savedSignatures.current,
+            unsavedSignatures: unsavedSignatures.current,
+            snapshot: reconciled,
+            affectedKeys,
+          });
+          savedSignatures.current = bookkeeping.savedSignatures;
+          unsavedSignatures.current = bookkeeping.unsavedSignatures;
+          lastSeenSnapshot.current = bookkeeping.lastSeenSnapshot;
+          for (const collectionKey of affectedKeys) {
+            delete pendingSaves.current[collectionKey];
+            delete saveErrors.current[collectionKey];
+          }
+          applyAppStorageRecords(reconciled);
+          refreshSaveStatus(storageGeneration.current);
+          if (
+            !hasPendingSave(pendingSaves.current) &&
+            !hasUnsavedSignature(unsavedSignatures.current)
+          ) {
+            setMessengerStorageStatus("ready");
+          }
+          setMessengerStorageMessage("Prompt preset change saved.");
+        },
+      });
+      const currentSnapshot =
+        result.published && publishedSnapshot
+          ? publishedSnapshot
+          : currentAppStorageRecords.current;
+      savedSignatures.current = mergePersistedAppStorageTransactionSignatures(
+        savedSignatures.current,
+        result.persistedSignatures,
+      );
+      const reconciled = reconcileCurrentAppStorageTransactionBookkeeping({
+        savedSignatures: savedSignatures.current,
+        snapshot: currentSnapshot,
+      });
+      unsavedSignatures.current = reconciled.unsavedSignatures;
+      lastSeenSnapshot.current = currentSnapshot;
+      const { blockedDirtyCollectionKeys, saveableDirtyCollectionKeys } =
+        partitionAppStorageDirtyCollectionKeys({
+          dirtyCollectionKeys: reconciled.dirtyCollectionKeys,
+          blockedCollectionKeys: droppedRecordSaveBlockedCollectionKeys.current,
+        });
+      for (const collectionKey of blockedDirtyCollectionKeys) {
+        saveErrors.current[collectionKey] = DROPPED_RECORD_SAVE_BLOCK_MESSAGE;
+      }
+      if (saveableDirtyCollectionKeys.length > 0) {
+        const signatures = createAppStorageSignatures(currentSnapshot);
+        enqueueAppStorageCollectionSaves({
+          snapshot: currentSnapshot,
+          collectionKeys: saveableDirtyCollectionKeys,
+          rawUrl: remoteRuntimeUrl,
+          generation: storageGeneration.current,
+          signatures,
+        });
+        drainSaveQueue();
+      }
+      refreshSaveStatus(storageGeneration.current);
+      return result;
+    },
+    [
+      applyAppStorageRecords,
+      applyLoadedAppStorageSnapshot,
+      drainSaveQueue,
+      enqueueAppStorageCollectionSaves,
+      flushAppStorageSaves,
+      mergeLoadedStorageMetadata,
+      remoteRuntimeUrl,
+      refreshSaveStatus,
+      setMessengerStorageMessage,
+      setMessengerStorageStatus,
+      storageReady,
+      storageTransactionCoordinator,
     ],
   );
 
@@ -2106,6 +2345,7 @@ export function useAppStorageSync({
     reloadAppStorage,
     restoreLastPreImportBackup,
     savePromptPresetImport,
+    runPromptPresetRelationshipMutation,
     storageHasUnsavedChanges,
   };
 }

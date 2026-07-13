@@ -289,24 +289,27 @@ Current implementation:
   sections, section roles, enabled state, wrapping, depth placement, choice
   blocks, options, reusable defaults, questions, option descriptions,
   presentation, ordering, and conditional visibility. Its edit flow preserves
-  static variable values, richer parameters, default/folder/author metadata,
+  static variable values, richer parameters, folder/author metadata,
   compatibility-only variable-order slots, and Messenger Prompt Source even
   where dedicated controls are not exposed.
 - The Presets catalog imports one compatible prompt-preset package as a fresh
   native record and exports one selected saved record as a stable DeKoi-owned
   `.json` package. Standalone preset files are not full storage bundles.
-- Messenger and Roleplay threads can select one prompt preset. Messenger uses
+- New Messenger and Roleplay threads select the current app default prompt
+  preset. Each thread can later select one prompt preset. Messenger uses
   the selected preset's Messenger Prompt Source when present, then falls back to
   the preset system prompt; a non-empty custom thread Messenger Prompt still
   wins over both. Messenger does not consume preset sections. Roleplay uses
   sections and groups when the selected preset has them, otherwise it uses the
   selected preset system prompt as its system prelude, then still appends the
   Roleplay-owned one-character output contract.
-- Prompt-preset static `variableValues` and per-thread preset choice selections
-  become request-local prompt variables at generation time. Choice selections
+- Prompt-preset static `variableValues` and the active preset's confirmed
+  per-thread choice selections become request-local prompt variables at
+  generation time. Choice selections
   are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
-  Thread selections use stable choice-block and option IDs; loading prunes IDs
-  that are no longer valid for the selected preset.
+  Thread selections use stable choice-block and option IDs and retain separate
+  histories per preset. Loading repairs invalid confirmed choices without
+  creating confirmations for choice blocks that were never answered.
 - Both Messenger and Roleplay consume stored stable-ID choices during
   generation. Roleplay thread settings currently expose Preset Variables for
   editing those choices without changing the reusable preset record. Questions
@@ -572,3 +575,23 @@ records before append.
 Provider support should sit behind a DeKoi request/response contract. Thread,
 character, persona, lorebook, and preset records should not depend on one
 provider's API shape.
+
+### Prompt Preset Relationships
+
+`AppSettings.defaultPromptPresetId` is the single native default authority;
+`PromptPresetRecord` does not carry a default flag. Messenger and Roleplay
+threads keep confirmed variable choices in
+`presetChoiceSelectionsByPresetId`, retaining history when switching presets
+or when a deleted preset ID remains in history. New threads use the current
+default. The default and last preset cannot be deleted; deleting another preset
+reassigns its active threads to the default without erasing their histories.
+
+Snapshot/bundle normalization restores the exact bundled starter when no usable
+preset remains, repairs a missing default to the first usable preset, and
+reassigns dangling active references to that default while preserving imported
+IDs. Standalone preset-file import restamps the imported preset and does not
+change the app default.
+
+Development data written with the removed native fields may be reset through
+storage repair/reload; the legacy single-history field is accepted only as a
+one-way normalization into the history map.

@@ -13,6 +13,7 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
+import type { PromptPresetRelationshipTransactionResult } from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
@@ -21,7 +22,11 @@ import type { ProviderConnectionInput } from "../../../engine/catalog/provider-c
 import type { RippleState, RippleStateOwnerKind } from "../../../engine/contracts/types/ripples";
 import type { RippleInput } from "../../../engine/ripples/ripple-actions";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
-import type { AppSettings, ShoalSortMode } from "../../../engine/contracts/types/app-settings";
+import type {
+  AppSettings,
+  AppSettingsPatch,
+  ShoalSortMode,
+} from "../../../engine/contracts/types/app-settings";
 import type {
   AppStorageCollectionKey,
   AppStorageReplaceResult,
@@ -121,7 +126,7 @@ export interface NavViewActions {
 
 export interface NavSettingsActions {
   setRemoteRuntimeUrl: (url: string) => void;
-  updateAppSettings: (patch: Partial<AppSettings>) => void;
+  updateAppSettings: (patch: AppSettingsPatch) => void;
   setSendOnEnterSurface: (surface: SurfaceId) => void;
   setConfirmRelease: (confirmRelease: boolean) => void;
   setSurfaceStatus: (status: string) => void;
@@ -157,7 +162,7 @@ export interface NavPromptPresetActions {
   createPromptPreset: (input: PromptPresetInput) => PromptPresetRecord;
   updatePromptPreset: (presetId: string, input: PromptPresetInput) => void;
   duplicatePromptPreset: (presetId: string) => PromptPresetRecord | null;
-  deletePromptPreset: (presetId: string) => void;
+  deletePromptPreset: (presetId: string) => Promise<PromptPresetRelationshipTransactionResult>;
   importPromptPresetFile: (file: File) => Promise<NavPromptPresetFileImportResult>;
   openPromptPresetFile: () => Promise<NavPromptPresetFileImportResult>;
   exportPromptPresetFile: (presetId: string) => Promise<NavPromptPresetFileExportResult>;

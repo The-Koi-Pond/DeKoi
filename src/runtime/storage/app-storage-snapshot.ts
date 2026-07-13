@@ -325,78 +325,36 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     messengerSnapshot.threads,
     messengerMessageSnapshot.records,
   );
-  const loadedCollectionRecordCounts = [
-    appSettingsSnapshot.records.length,
-    characterSnapshot.records.length,
-    personaSnapshot.records.length,
-    lorebookSnapshot.records.length,
-    promptPresetSnapshot.records.length,
-    loreRuntimeStateSnapshot.states.length,
-    macroVariableStateSnapshot.states.length,
-    providerConnectionSnapshot.records.length,
-    roleplaySnapshot.records.length,
-    roleplayEntrySnapshot.records.length,
-    messengerSnapshot.threads.length,
-    messengerMessageSnapshot.records.length,
-    rippleSnapshot.states.length,
-  ];
-  const loadedCollectionStatuses = [
-    appSettingsSnapshot.status,
-    characterSnapshot.status,
-    personaSnapshot.status,
-    lorebookSnapshot.status,
-    promptPresetSnapshot.status,
-    loreRuntimeStateSnapshot.status,
-    macroVariableStateSnapshot.status,
-    providerConnectionSnapshot.status,
-    roleplaySnapshot.status,
-    roleplayEntrySnapshot.status,
-    messengerSnapshot.status,
-    messengerMessageSnapshot.status,
-    rippleSnapshot.status,
-  ];
-  const loadedCollectionDroppedCounts = [
-    appSettingsSnapshot.droppedRecordCount,
-    characterSnapshot.droppedRecordCount,
-    personaSnapshot.droppedRecordCount,
-    lorebookSnapshot.droppedRecordCount,
-    promptPresetSnapshot.droppedRecordCount,
-    loreRuntimeStateSnapshot.droppedRecordCount,
-    macroVariableStateSnapshot.droppedRecordCount,
-    providerConnectionSnapshot.droppedRecordCount,
-    roleplaySnapshot.droppedRecordCount,
-    roleplayEntrySnapshot.droppedRecordCount,
-    messengerSnapshot.droppedRecordCount,
-    messengerMessageSnapshot.droppedRecordCount,
-    rippleSnapshot.droppedRecordCount,
-  ];
-  const allCollectionsLoadedCleanly =
-    loadedCollectionStatuses.every((status) => status === "ready") &&
-    loadedCollectionDroppedCounts.every((count) => count === 0);
-  const remoteStorageLooksLikeFirstRun =
-    metadataResult.mode === "remote" &&
-    allCollectionsLoadedCleanly &&
-    loadedCollectionRecordCounts.every((count) => count === 0);
-  const promptPresetCollectionMissingOnDesktop =
-    metadataResult.storageMetadata.promptPresets?.exists === false;
   const appSettingsCanStorePromptPresetStarterMarker =
     appSettingsSnapshot.status === "ready" && appSettingsSnapshot.droppedRecordCount === 0;
   const shouldSeedPromptPresets =
     promptPresetSnapshot.status === "ready" &&
-    promptPresetSnapshot.records.length === 0 &&
-    (promptPresetCollectionMissingOnDesktop || remoteStorageLooksLikeFirstRun);
+    promptPresetSnapshot.droppedRecordCount === 0 &&
+    promptPresetSnapshot.records.length === 0;
   const promptPresets = shouldSeedPromptPresets
     ? [STARTER_PROMPT_PRESET]
     : promptPresetSnapshot.records;
+  const repairedDefaultPromptPresetId =
+    promptPresets.find((preset) => preset.id === appSettingsSnapshot.settings.defaultPromptPresetId)
+      ?.id ??
+    promptPresets[0]?.id ??
+    null;
+  const defaultChanged =
+    repairedDefaultPromptPresetId !== appSettingsSnapshot.settings.defaultPromptPresetId;
+  const settingsWithDefault = defaultChanged
+    ? { ...appSettingsSnapshot.settings, defaultPromptPresetId: repairedDefaultPromptPresetId }
+    : appSettingsSnapshot.settings;
   const repairedRoleplayThreads = repairPromptPresetRelationships(
     roleplayThreads,
     promptPresets,
     new Set(roleplaySnapshot.normalizationChangedRecordIds),
+    repairedDefaultPromptPresetId,
   );
   const repairedMessengerThreads = repairPromptPresetRelationships(
     messengerThreads,
     promptPresets,
     new Set(messengerSnapshot.normalizationChangedRecordIds),
+    repairedDefaultPromptPresetId,
   );
   const shouldInitializePromptPresetStarter =
     appSettingsCanStorePromptPresetStarterMarker &&
@@ -405,10 +363,10 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     shouldSeedPromptPresets;
   const appSettings = shouldInitializePromptPresetStarter
     ? {
-        ...appSettingsSnapshot.settings,
+        ...settingsWithDefault,
         promptPresetStarterInitialized: true,
       }
-    : appSettingsSnapshot.settings;
+    : settingsWithDefault;
   const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [];
   const addMigrationCollectionKeys = (...collectionKeys: AppStorageMigrationCollectionKey[]) => {
     for (const collectionKey of collectionKeys) {
@@ -418,6 +376,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     }
   };
   if (shouldInitializePromptPresetStarter) addMigrationCollectionKeys("appSettings");
+  if (defaultChanged) addMigrationCollectionKeys("appSettings");
   if (shouldSeedPromptPresets) addMigrationCollectionKeys("promptPresets");
   if (
     repairedRoleplayThreads.clearedPresetReferenceCount > 0 ||

@@ -88,7 +88,7 @@ export interface MessengerThread {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
+  presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
   systemPromptMode: MessengerSystemPromptMode;
   systemPrompt: string;

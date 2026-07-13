@@ -65,7 +65,7 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.migrationCollectionKeys).toEqual(["appSettings", "promptPresets"]);
   });
 
-  it("keeps a saved empty remote prompt preset collection empty", async () => {
+  it("repairs a saved empty remote prompt preset collection", async () => {
     mockRemoteStorage({
       "app-settings": [{ id: "app-settings" }],
       "prompt-presets": [],
@@ -73,22 +73,23 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
-    expect(snapshot.promptPresets).toEqual([]);
-    expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(false);
-    expect(snapshot.migrationCollectionKeys).toEqual([]);
+    expect(snapshot.promptPresets).toEqual([STARTER_PROMPT_PRESET]);
+    expect(snapshot.appSettings.defaultPromptPresetId).toBe(STARTER_PROMPT_PRESET.id);
+    expect(snapshot.migrationCollectionKeys).toContain("promptPresets");
   });
 
   it("does not initialize the starter marker from a damaged prompt preset collection", async () => {
     mockRemoteStorage({
-      "app-settings": [{ id: "app-settings" }],
+      "app-settings": [{ ...DEFAULT_APP_SETTINGS, promptPresetStarterInitialized: false }],
       "prompt-presets": [{ id: "unreadable-preset" }],
     });
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
     expect(snapshot.promptPresets).toEqual([]);
+    expect(snapshot.appSettings.defaultPromptPresetId).toBeNull();
     expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(false);
-    expect(snapshot.migrationCollectionKeys).toEqual([]);
+    expect(snapshot.migrationCollectionKeys).not.toContain("promptPresets");
     expect(snapshot.droppedRecordCountByCollection.promptPresets).toBe(1);
   });
 
@@ -110,7 +111,7 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     expect(snapshot.promptPresets[0]?.messengerPrompt).toBe("Messenger source prompt.");
   });
 
-  it("does not migrate a saved empty remote collection after the marker exists", async () => {
+  it("repairs a saved empty remote collection after the marker exists", async () => {
     mockRemoteStorage({
       "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
       "prompt-presets": [],
@@ -118,9 +119,9 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
-    expect(snapshot.promptPresets).toEqual([]);
+    expect(snapshot.promptPresets).toEqual([STARTER_PROMPT_PRESET]);
     expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(true);
-    expect(snapshot.migrationCollectionKeys).toEqual([]);
+    expect(snapshot.migrationCollectionKeys).toContain("promptPresets");
   });
 
   it("clears thread preset IDs that do not resolve to loaded prompt presets", async () => {
@@ -171,21 +172,27 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     expect(snapshot.messengerThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
       ["messenger-thread-valid", STARTER_PROMPT_PRESET.id],
-      ["messenger-thread-missing", null],
+      ["messenger-thread-missing", STARTER_PROMPT_PRESET.id],
     ]);
     expect(snapshot.roleplayThreads.map((thread) => [thread.id, thread.presetId])).toEqual([
-      ["roleplay-thread-missing", null],
+      ["roleplay-thread-missing", STARTER_PROMPT_PRESET.id],
     ]);
     expect(
       snapshot.messengerThreads.find((thread) => thread.id === "messenger-thread-valid")
-        ?.presetChoiceSelections,
-    ).toEqual({});
+        ?.presetChoiceSelectionsByPresetId,
+    ).toEqual({ [STARTER_PROMPT_PRESET.id]: expect.any(Object) });
     expect(
       snapshot.messengerThreads.find((thread) => thread.id === "messenger-thread-missing")
-        ?.presetChoiceSelections,
-    ).toEqual({});
-    expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
+        ?.presetChoiceSelectionsByPresetId,
+    ).toEqual({ "missing-preset": {} });
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      "missing-preset": {},
+    });
+    expect(snapshot.migrationCollectionKeys).toEqual([
+      "appSettings",
+      "roleplayThreads",
+      "messengerThreads",
+    ]);
   });
 
   it("does not migrate thread preset IDs that resolve to loaded prompt presets", async () => {
@@ -220,7 +227,9 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     expect(snapshot.messengerThreads[0]?.presetId).toBe(STARTER_PROMPT_PRESET.id);
     expect(snapshot.roleplayThreads[0]?.presetId).toBe(STARTER_PROMPT_PRESET.id);
-    expect(snapshot.migrationCollectionKeys).toEqual([]);
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(snapshot.migrationCollectionKeys).toEqual(["appSettings"]);
   });
 
   it("migrates normalized legacy choice selections for valid presets in both thread modes", async () => {
@@ -255,9 +264,19 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
-    expect(snapshot.messengerThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      [STARTER_PROMPT_PRESET.id]: expect.any(Object),
+    });
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      [STARTER_PROMPT_PRESET.id]: expect.any(Object),
+    });
+    expect(snapshot.messengerThreads[0]).not.toHaveProperty("presetChoiceSelections");
+    expect(snapshot.roleplayThreads[0]).not.toHaveProperty("presetChoiceSelections");
+    expect(snapshot.migrationCollectionKeys).toEqual([
+      "appSettings",
+      "roleplayThreads",
+      "messengerThreads",
+    ]);
   });
 
   it("migrates orphaned choice selections without preset references in both thread modes", async () => {
@@ -292,9 +311,57 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
-    expect(snapshot.messengerThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(snapshot.roleplayThreads[0]?.presetChoiceSelections).toEqual({});
-    expect(snapshot.migrationCollectionKeys).toEqual(["roleplayThreads", "messengerThreads"]);
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(snapshot.migrationCollectionKeys).toEqual([
+      "appSettings",
+      "roleplayThreads",
+      "messengerThreads",
+    ]);
+  });
+
+  it("preserves inactive and deleted preset history keys while normalizing each entry", async () => {
+    const messengerThread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-history",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger history",
+      }),
+      presetId: null,
+      presetChoiceSelectionsByPresetId: {
+        "deleted-preset": { pacing: "legacy-invalid" },
+        "inactive-preset": { tone: "warm" },
+      },
+    };
+    const roleplayHistoryThread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "roleplay-thread-history",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Roleplay history",
+      }),
+      presetId: null,
+      presetChoiceSelectionsByPresetId: "malformed-history-map",
+    } as never;
+    mockRemoteStorage({
+      "app-settings": [{ id: "app-settings", promptPresetStarterInitialized: true }],
+      "prompt-presets": [STARTER_PROMPT_PRESET],
+      "messenger-threads": [messengerThread],
+      "roleplay-threads": [roleplayHistoryThread],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+    expect(snapshot.messengerThreads[0]?.presetId).toBeNull();
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      "deleted-preset": {},
+      "inactive-preset": {},
+    });
+    expect(snapshot.roleplayThreads[0]?.presetId).toBeNull();
+    expect(snapshot.roleplayThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(snapshot.migrationCollectionKeys).toContain("roleplayThreads");
   });
 });
 

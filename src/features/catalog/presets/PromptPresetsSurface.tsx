@@ -19,6 +19,7 @@ import {
 import { PromptPresetChoiceEditor } from "./PromptPresetChoiceEditor";
 import { PromptPresetFileActions } from "./PromptPresetFileActions";
 import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
+import { deletePromptPresetAndNavigate } from "./prompt-presets-navigation";
 import "../shared/CatalogSurface.css";
 import "./PromptPresetsSurface.css";
 
@@ -46,7 +47,7 @@ interface PromptPresetEditorProps {
   editingId: string | null;
   initialDraft: PromptPresetDraftState;
   onBack: () => void;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
   onDuplicate?: () => void;
   onSave: (input: PromptPresetInput) => void;
   fileActions: Omit<
@@ -251,10 +252,14 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
     nav.setView({ kind: "pond" });
   }
 
-  function handleDelete() {
+  async function handleDelete(): Promise<void> {
     if (!editingId) return;
-    nav.deletePromptPreset(editingId);
-    nav.setView({ kind: "presets" });
+    await deletePromptPresetAndNavigate({
+      presetId: editingId,
+      deletePromptPreset: nav.deletePromptPreset,
+      setPromptPresetFileStatus: nav.setPromptPresetFileStatus,
+      setView: nav.setView,
+    });
   }
 
   function handleDuplicate() {

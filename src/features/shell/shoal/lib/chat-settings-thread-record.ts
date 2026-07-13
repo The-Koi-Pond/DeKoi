@@ -7,7 +7,7 @@ export interface ChatSettingsThreadRecord {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
+  presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
   systemPromptMode?: "default" | "custom";
 }

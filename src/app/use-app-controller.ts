@@ -87,6 +87,7 @@ export function useAppController(): NavContextType {
     reloadAppStorage,
     restoreLastPreImportBackup,
     savePromptPresetImport,
+    runPromptPresetRelationshipMutation,
     storageHasUnsavedChanges,
   } = useAppStorageSync({
     appSettings,
@@ -201,9 +202,8 @@ export function useAppController(): NavContextType {
     deletePromptPreset,
   } = usePromptPresetActions({
     promptPresets,
+    runPromptPresetRelationshipMutation,
     setPromptPresets,
-    setRoleplayThreads,
-    setMessengerThreads,
   });
   const {
     promptPresetFileHost,
@@ -242,6 +242,7 @@ export function useAppController(): NavContextType {
     deleteRoleplayThread,
   } = useRoleplayThreadActions({
     activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
+    defaultPromptPresetId: appSettings.defaultPromptPresetId,
     characters,
     roleplayThreads,
     personas,
@@ -264,6 +265,7 @@ export function useAppController(): NavContextType {
     deleteMessengerThread,
   } = useMessengerThreadActions({
     activeMessengerConnectionId: appSettings.activeMessengerConnectionId,
+    defaultPromptPresetId: appSettings.defaultPromptPresetId,
     characters,
     messengerThreads,
     personas,

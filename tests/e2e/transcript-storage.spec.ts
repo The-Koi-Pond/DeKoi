@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
 import {
   attachMessengerMessagesToThreads,
   extractMessengerMessages,
@@ -19,6 +20,7 @@ import {
   createNarrationRoleplayEntry,
   createRoleplayThread,
 } from "../../src/engine/modes/roleplay/roleplay-actions";
+import { STARTER_PROMPT_PRESET } from "../../src/engine/prompt-presets/starter-preset";
 import {
   connectRemoteRuntime,
   installDeferredReplaceRemoteRuntime,
@@ -153,7 +155,15 @@ test("legacy embedded transcripts migrate into split collections on load", async
   const messengerWithEmbeddedMessage = appendMessengerMessages(messengerThread, [messengerMessage]);
   const roleplayWithEmbeddedEntry = appendRoleplayEntries(roleplayThread, [roleplayEntry]);
   const runtime = await installRemoteRuntime(page, {
+    "app-settings": [
+      {
+        ...DEFAULT_APP_SETTINGS,
+        defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+        promptPresetStarterInitialized: true,
+      },
+    ],
     "messenger-threads": [messengerWithEmbeddedMessage],
+    "prompt-presets": [STARTER_PROMPT_PRESET],
     "roleplay-threads": [roleplayWithEmbeddedEntry],
   });
 

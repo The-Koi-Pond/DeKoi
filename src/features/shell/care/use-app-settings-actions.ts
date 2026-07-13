@@ -4,6 +4,7 @@ import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import {
   normalizeSurfaceStatus,
   type AppSettings,
+  type AppSettingsPatch,
   type ShoalSortMode,
 } from "../../../engine/contracts/types/app-settings";
 import { type MessengerStorageStatus, writeRuntimeTargetUrl } from "../../runtime";
@@ -91,7 +92,7 @@ export function useAppSettingsActions({
   );
 
   const updateAppSettings = useCallback(
-    (patch: Partial<AppSettings>) => {
+    (patch: AppSettingsPatch) => {
       setAppSettings((currentSettings) => ({
         ...currentSettings,
         ...patch,

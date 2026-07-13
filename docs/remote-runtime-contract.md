@@ -332,7 +332,7 @@ Request:
         "activePersonaId": "persona-xel",
         "lorebookIds": [],
         "presetId": null,
-        "presetChoiceSelections": {},
+        "presetChoiceSelectionsByPresetId": {},
         "providerConnectionId": "connection-local-provider",
         "systemPromptMode": "default",
         "systemPrompt": "<default messenger system prompt>",
@@ -543,14 +543,18 @@ compatible runtimes should not expose those legacy fields in normal records.
 Messenger and Roleplay transcript storage is split. `messenger-threads` records
 omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
 live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
-`threadId`. Thread records may carry `presetChoiceSelections` when a prompt
-preset is selected; runtimes should preserve that object with the thread
-metadata. Thread selections are keyed by stable choice-block ID. Each value is
+`threadId`. Thread records may carry `presetChoiceSelectionsByPresetId`;
+runtimes should preserve that per-preset history map with the thread metadata.
+Each history is keyed by stable choice-block ID. Each value is
 an option object such as `{ "kind": "option", "optionId": "tone-soft" }`, or
-an ordered array of those objects for multi-select blocks. DeKoi prunes unknown
-block and option IDs when loading a thread. Prompt preset `defaultChoices`
-separately retain the compatible package shape keyed by variable name, including
-string values. Runtimes should round-trip native thread option objects so empty
+an ordered array of those objects for multi-select blocks. For histories whose
+preset still exists, DeKoi prunes unknown block IDs and repairs invalid confirmed
+values to preset defaults and then valid block options, but unanswered blocks
+are not materialized. Histories for inactive or missing preset IDs remain
+round-trippable. The removed `presetChoiceSelections` field is accepted only for
+one-way migration into an absent active-preset history. Prompt preset
+`defaultChoices` separately retain the compatible package shape keyed by
+variable name, including string values. Runtimes should round-trip native thread option objects so empty
 or duplicate option values keep their option identity. Native loading does not
 create aliases or tombstones for removed IDs; repaired thread rows are written
 back through the normal collection path. DeKoi assembles thread
@@ -561,16 +565,19 @@ import, but normal writes use the split collections.
 `app-settings` records include `globalLorebookIds` and `loreInsertionStrategy`
 for generation-wide lore context. `globalLorebookIds` stores trimmed unique
 lorebook IDs; `loreInsertionStrategy` is `sorted-evenly`, `character-first`, or
-`global-first`. `promptPresetStarterInitialized` is a boolean one-time marker
-that prevents a saved empty `prompt-presets` collection from being seeded again
-after the starter preset is deleted.
+`global-first`. `defaultPromptPresetId` is the sole native prompt-preset default
+authority and is repaired to the first usable preset when missing or dangling.
+New Messenger and Roleplay threads use it. `promptPresetStarterInitialized`
+records that starter initialization occurred; it does not prevent recovery of a
+cleanly loaded empty prompt-preset collection.
 
 `prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
 `title`, optional `summary`, required non-empty `systemPrompt`, optional
 `messengerPrompt`, normalized `parameters`, a `sampling` projection with
 `temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
 `choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
-default/author/folder metadata. DeKoi drops invalid parameter and sampling
+author/folder metadata. Native prompt preset records do not carry a default
+flag. DeKoi drops invalid parameter and sampling
 fields during normalization. Current generated requests consume the sampling
 projection, and cap preset `maxTokens` to the selected provider connection's
 positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
@@ -603,6 +610,15 @@ Remote runtimes should expose native prompt preset records in storage. Packaged
 `dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
 they are not remote storage record shapes.
+
+Default changes and non-default preset deletion are staged storage
+transactions. The app writes only affected collections before publishing the
+new state. The default and last preset cannot be deleted; deleting another
+preset reassigns active thread references to the default and retains their
+per-preset choice histories. Standalone preset imports receive fresh IDs and do
+not change the default. Native bundle import preserves IDs, restores the bundled
+starter if no usable preset remains, repairs the default, and reassigns dangling
+active references to it.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.
@@ -726,9 +742,12 @@ Character filters and triggers are still not applied by DeKoi prompt assembly.
 ```
 
 Returns an array of records. An empty array is a successful empty collection;
-collection adapters do not replace it with local seed records. The only
-app-level exception is first-run prompt preset seeding when every collection
-loads cleanly and empty. DeKoi treats a non-array response as a load error. For
+collection adapters do not replace it with local seed records. The app-level
+exception is prompt-preset recovery: any successful load with no usable prompt
+presets restores the exact bundled starter in memory. Genuinely empty storage is
+queued for persistence; dropped unreadable records keep automatic saving
+blocked pending explicit repair. DeKoi treats a non-array response as a load
+error. For
 array responses, DeKoi normalizes each raw item, counts rejected items as
 dropped records, and surfaces that count through Pond Care; remote runtimes do
 not send dropped-record counts separately.
@@ -751,7 +770,7 @@ not send dropped-record counts separately.
         "activePersonaId": null,
         "lorebookIds": [],
         "presetId": null,
-        "presetChoiceSelections": {},
+        "presetChoiceSelectionsByPresetId": {},
         "providerConnectionId": null,
         "systemPromptMode": "default",
         "systemPrompt": "",

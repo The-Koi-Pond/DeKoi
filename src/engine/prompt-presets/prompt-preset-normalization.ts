@@ -563,7 +563,7 @@ export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unk
     return { selections: {}, changed: value !== undefined };
   }
 
-  const selections: PromptPresetThreadChoiceSelections = {};
+  const selections: PromptPresetThreadChoiceSelections = Object.create(null);
   for (const [rawBlockId, rawSelection] of Object.entries(source)) {
     const blockId = rawBlockId.trim();
     const selection = normalizeThreadChoiceSelection(rawSelection);
@@ -581,7 +581,7 @@ export function prunePromptPresetThreadChoiceSelections(
   value: unknown,
 ): PromptPresetThreadChoiceSelections {
   const selections = normalizePromptPresetThreadChoiceSelections(value);
-  const pruned: PromptPresetThreadChoiceSelections = {};
+  const pruned: PromptPresetThreadChoiceSelections = Object.create(null);
 
   for (const block of preset.choiceBlocks) {
     const selection = selections[block.id];
@@ -596,6 +596,42 @@ export function prunePromptPresetThreadChoiceSelections(
   }
 
   return pruned;
+}
+
+/** Materializes the stable thread selection shape using preset default, block default, or first option. */
+export function materializePromptPresetThreadChoiceSelections(
+  preset: PromptPresetRecord,
+  value: unknown,
+): PromptPresetThreadChoiceSelections {
+  const existing = prunePromptPresetThreadChoiceSelections(preset, value);
+  const materialized: PromptPresetThreadChoiceSelections = Object.assign(
+    Object.create(null),
+    existing,
+  );
+  for (const block of preset.choiceBlocks) {
+    if (Object.prototype.hasOwnProperty.call(materialized, block.id)) continue;
+    const configured = preset.defaultChoices[block.variableName];
+    const candidates =
+      configured === undefined ? (block.defaultOptionId ?? block.options[0]?.id) : configured;
+    const values = Array.isArray(candidates) ? candidates : [candidates];
+    const optionIds = values
+      .map((candidate) => {
+        if (typeof candidate === "object" && candidate !== null && "optionId" in candidate) {
+          return typeof candidate.optionId === "string" ? candidate.optionId : null;
+        }
+        const text = typeof candidate === "string" ? candidate : "";
+        return (
+          block.options.find((option) => option.value === text || option.id === text)?.id ?? null
+        );
+      })
+      .filter((optionId): optionId is string => optionId !== null);
+    if (optionIds.length > 0) {
+      materialized[block.id] = block.multiSelect
+        ? optionIds.map((optionId) => ({ kind: "option" as const, optionId }))
+        : { kind: "option", optionId: optionIds[0]! };
+    }
+  }
+  return materialized;
 }
 
 interface PromptPresetChoiceControlOption {
@@ -1012,7 +1048,6 @@ function normalizePromptPresetRecordFromParts({
   groupOrder,
   groups,
   id,
-  isDefault = false,
   parameters,
   schemaVersion = 1,
   sectionOrder,
@@ -1042,7 +1077,6 @@ function normalizePromptPresetRecordFromParts({
   variableValues: Record<string, string>;
   defaultChoices: PromptPresetChoiceSelections;
   wrapFormat?: string | null;
-  isDefault?: boolean;
   author?: string | null;
   folderId?: string | null;
   sections: PromptPresetSection[];
@@ -1074,7 +1108,6 @@ function normalizePromptPresetRecordFromParts({
     variableValues,
     defaultChoices,
     wrapFormat,
-    isDefault,
     author,
     folderId,
     sections,
@@ -1152,7 +1185,6 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     variableValues,
     defaultChoices,
     wrapFormat: readNullableString(value.wrapFormat),
-    isDefault: readBooleanLike(value.isDefault, false),
     author: readNullableString(value.author),
     folderId: readNullableString(value.folderId),
     sections,

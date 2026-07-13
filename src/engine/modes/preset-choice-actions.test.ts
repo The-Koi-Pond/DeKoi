@@ -20,6 +20,7 @@ describe("thread prompt preset choice selections", () => {
       characterIds: ["character-1"],
       id: "messenger-1",
       now: STARTED_AT,
+      defaultPromptPresetId: "preset-1",
       title: "Messenger",
     });
 
@@ -31,11 +32,11 @@ describe("thread prompt preset choice selections", () => {
       UPDATED_AT,
     );
 
-    expect(updated.presetChoiceSelections).toEqual({
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-1"]).toEqual({
       "choice-tone": { kind: "option", optionId: "tone-dramatic" },
     });
     expect(updated.updatedAt).toBe(UPDATED_AT);
-    expect(thread.presetChoiceSelections).toEqual({});
+    expect(thread.presetChoiceSelectionsByPresetId).toEqual({});
   });
 
   it("replaces Roleplay prompt preset choices atomically", () => {
@@ -45,18 +46,21 @@ describe("thread prompt preset choice selections", () => {
         characterIds: ["character-1"],
         id: "roleplay-1",
         now: STARTED_AT,
+        defaultPromptPresetId: "preset-1",
         title: "Roleplay",
       }),
-      presetChoiceSelections: {
-        "choice-style": { kind: "option" as const, optionId: "style-noir" },
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-style": { kind: "option" as const, optionId: "style-noir" },
+        },
       },
     };
 
     const updated = setRoleplayThreadPresetChoiceSelections(thread, {}, UPDATED_AT);
 
-    expect(updated.presetChoiceSelections).toEqual({});
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-1"]).toEqual({});
     expect(updated.updatedAt).toBe(UPDATED_AT);
-    expect(thread.presetChoiceSelections).toEqual({
+    expect(thread.presetChoiceSelectionsByPresetId["preset-1"]).toEqual({
       "choice-style": { kind: "option", optionId: "style-noir" },
     });
   });
@@ -67,6 +71,7 @@ describe("thread prompt preset choice selections", () => {
       characterIds: ["character-1"],
       id: "roleplay-1",
       now: STARTED_AT,
+      defaultPromptPresetId: "preset-1",
       title: "Roleplay",
     });
 
@@ -82,7 +87,7 @@ describe("thread prompt preset choice selections", () => {
       UPDATED_AT,
     );
 
-    expect(updated.presetChoiceSelections).toEqual({
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-1"]).toEqual({
       "choice-tags": [
         { kind: "option", optionId: "first" },
         { kind: "option", optionId: "second" },
@@ -100,15 +105,17 @@ describe("thread prompt preset choice selections", () => {
         title: "Roleplay",
       }),
       presetId: "preset-1",
-      presetChoiceSelections: {
-        "choice-tone": { kind: "option" as const, optionId: "tone-quiet" },
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-tone": { kind: "option" as const, optionId: "tone-quiet" },
+        },
       },
     };
 
     const updated = setRoleplayThreadPreset(thread, " preset-1 ", UPDATED_AT);
 
     expect(updated).toBe(thread);
-    expect(updated.presetChoiceSelections).toEqual({
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-1"]).toEqual({
       "choice-tone": { kind: "option", optionId: "tone-quiet" },
     });
     expect(updated.updatedAt).toBe(STARTED_AT);
@@ -124,15 +131,17 @@ describe("thread prompt preset choice selections", () => {
         title: "Roleplay",
       }),
       presetId: "preset-1",
-      presetChoiceSelections: {
-        "choice-tone": { kind: "option" as const, optionId: "tone-quiet" },
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-tone": { kind: "option" as const, optionId: "tone-quiet" },
+        },
       },
     };
 
     const updated = setRoleplayThreadPreset(thread, "preset-2", UPDATED_AT);
 
     expect(updated.presetId).toBe("preset-2");
-    expect(updated.presetChoiceSelections).toEqual({});
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-2"]).toEqual(undefined);
     expect(updated.updatedAt).toBe(UPDATED_AT);
   });
 
@@ -146,15 +155,17 @@ describe("thread prompt preset choice selections", () => {
         title: "Messenger",
       }),
       presetId: "preset-1",
-      presetChoiceSelections: {
-        "choice-style": { kind: "option" as const, optionId: "style-crisp" },
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-style": { kind: "option" as const, optionId: "style-crisp" },
+        },
       },
     };
 
     const updated = setMessengerThreadPreset(thread, "preset-1", UPDATED_AT);
 
     expect(updated).toBe(thread);
-    expect(updated.presetChoiceSelections).toEqual({
+    expect(updated.presetChoiceSelectionsByPresetId!["preset-1"]).toEqual({
       "choice-style": { kind: "option", optionId: "style-crisp" },
     });
     expect(updated.updatedAt).toBe(STARTED_AT);
