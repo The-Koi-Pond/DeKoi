@@ -89,4 +89,37 @@ describe("createStorageRepository", () => {
     expect(snapshot.status).toBe("error");
     expect(snapshot.message).toContain("non-array response");
   });
+
+  it.each([
+    {
+      label: "a mismatched record count",
+      response: { ok: true, count: 0 },
+    },
+    {
+      label: "metadata missing required fields",
+      response: {
+        ok: true,
+        count: 1,
+        metadata: { entity: STORAGE_ENTITIES.characters },
+      },
+    },
+  ])("rejects $label without exposing metadata", async ({ response }) => {
+    vi.mocked(invokeRemote).mockResolvedValue(response);
+
+    const repository = createStorageRepository<TestRecord>({
+      entity: STORAGE_ENTITIES.characters,
+      normalizeRecord: normalizeTestRecord,
+      seedRecords: [],
+    });
+
+    const result = await repository.replace(
+      [{ id: "record-1", label: "saved" }],
+      "http://runtime.test",
+    );
+
+    expect(result.mode).toBe("remote");
+    expect(result.status).toBe("error");
+    expect(result.message).toContain(RUNTIME_COMMANDS.storageReplace);
+    expect(result).not.toHaveProperty("metadata");
+  });
 });
