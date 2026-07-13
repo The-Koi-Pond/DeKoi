@@ -617,21 +617,22 @@ def run_model_transport_case(module):
                 usage=None,
             )
         )
+        fallback_completions = FakeCompletions()
         client = SimpleNamespace(
             responses=empty_twice,
-            chat=SimpleNamespace(completions=FakeCompletions()),
+            chat=SimpleNamespace(completions=fallback_completions),
         )
-        try:
-            module.model_call(client, messages, module.build_stats("packet"))
-        except RuntimeError as exc:
-            detail = str(exc)
-            assert "without text output after retry" in detail
-            assert "output_types=reasoning" in detail
-            assert "content_types=none" in detail
-            assert "choices=absent" in detail
-        else:
-            raise AssertionError("repeated empty Responses output must fail explicitly")
+        stats = module.build_stats("packet")
+        content = module.model_call(client, messages, stats)
+        assert content == "chat review"
         assert len(empty_twice.calls) == 2
+        assert len(fallback_completions.calls) == 1
+        assert fallback_completions.calls[0]["response_format"] == {
+            "type": "json_object"
+        }
+        assert stats["wire_api"] == "responses->chat_completions"
+        assert stats["empty_response_retries"] == 1
+        assert stats["responses_empty_fallbacks"] == 1
     finally:
         if old_model is None:
             os.environ.pop("LLM_MODEL", None)
