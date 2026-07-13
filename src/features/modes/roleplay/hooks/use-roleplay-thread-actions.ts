@@ -28,6 +28,7 @@ import type { StateSetter } from "../../../../shared/react/state-setter";
 
 type UseRoleplayThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
+  defaultPromptPresetId?: string | null;
   characters: CharacterRecord[];
   roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
@@ -43,6 +44,7 @@ type UseRoleplayThreadActionsInput = {
 
 export function useRoleplayThreadActions({
   activeMessengerConnectionId,
+  defaultPromptPresetId = null,
   characters,
   roleplayThreads,
   personas,
@@ -81,6 +83,7 @@ export function useRoleplayThreadActions({
         id: createRecordId("roleplay-thread"),
         lorebookIds,
         now,
+        defaultPromptPresetId,
         providerConnectionId: activeConnection?.id ?? null,
         title: input?.title?.trim() || `New Roleplay ${roleplayThreads.length + 1}`,
       });
@@ -108,6 +111,7 @@ export function useRoleplayThreadActions({
     },
     [
       activeMessengerConnectionId,
+      defaultPromptPresetId,
       characters,
       roleplayThreads.length,
       openRoleplayThread,

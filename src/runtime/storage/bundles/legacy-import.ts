@@ -376,6 +376,7 @@ function normalizeLegacyThread(value: unknown, index: number): LegacyThreadImpor
     activePersonaId: readNullableString(value.activePersonaId),
     lorebookIds: readStringArray(value.lorebookIds),
     presetId: readNullableString(value.presetId),
+    presetChoiceSelectionsByPresetId: {},
     providerConnectionId: readNullableString(value.providerConnectionId),
     systemPromptMode: "default",
     systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,

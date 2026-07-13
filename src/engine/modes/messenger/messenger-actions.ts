@@ -16,6 +16,7 @@ export function createMessengerThread({
   id,
   lorebookIds = [],
   now,
+  defaultPromptPresetId = null,
   providerConnectionId = null,
   title,
 }: {
@@ -24,6 +25,7 @@ export function createMessengerThread({
   id: string;
   lorebookIds?: string[];
   now: string;
+  defaultPromptPresetId?: string | null;
   providerConnectionId?: string | null;
   title: string;
 }): MessengerThread {
@@ -36,8 +38,8 @@ export function createMessengerThread({
     characterIds,
     activePersonaId,
     lorebookIds,
-    presetId: null,
-    presetChoiceSelections: {},
+    presetId: defaultPromptPresetId?.trim() || null,
+    presetChoiceSelectionsByPresetId: {},
     providerConnectionId,
     systemPromptMode: "default",
     systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
@@ -174,10 +176,13 @@ export function setMessengerThreadPreset(
   const cleanPresetId = presetId?.trim() || null;
   if (cleanPresetId === thread.presetId && presetChoiceSelections === undefined) return thread;
 
+  const history = { ...thread.presetChoiceSelectionsByPresetId };
+  if (cleanPresetId && presetChoiceSelections !== undefined)
+    history[cleanPresetId] = presetChoiceSelections;
   return {
     ...thread,
     presetId: cleanPresetId,
-    presetChoiceSelections: presetChoiceSelections ?? {},
+    presetChoiceSelectionsByPresetId: history,
     updatedAt,
   };
 }
@@ -189,18 +194,14 @@ export function setMessengerThreadPresetChoiceSelections(
 ): MessengerThread {
   return {
     ...thread,
-    presetChoiceSelections: normalizePromptPresetThreadChoiceSelections(selections),
+    presetChoiceSelectionsByPresetId: {
+      ...thread.presetChoiceSelectionsByPresetId,
+      ...(thread.presetId
+        ? { [thread.presetId]: normalizePromptPresetThreadChoiceSelections(selections) }
+        : {}),
+    },
     updatedAt,
   };
-}
-
-export function removeMessengerThreadPreset(
-  thread: MessengerThread,
-  presetId: string,
-  updatedAt: string,
-): MessengerThread {
-  if (thread.presetId !== presetId) return thread;
-  return setMessengerThreadPreset(thread, null, updatedAt);
 }
 
 export function setMessengerThreadSystemPrompt(

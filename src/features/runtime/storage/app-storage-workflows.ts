@@ -40,12 +40,17 @@ export {
 } from "../../../runtime";
 
 export function loadInitialAppStorageRecords(): AppStorageRecords {
+  const promptPresets = loadPromptPresetRecords();
+  const appSettings = loadAppSettings();
   return {
-    appSettings: loadAppSettings(),
+    appSettings: {
+      ...appSettings,
+      defaultPromptPresetId: appSettings.defaultPromptPresetId ?? promptPresets[0]?.id ?? null,
+    },
     characters: loadCharacterRecords(),
     personas: loadPersonaRecords(),
     lorebooks: loadLorebookRecords(),
-    promptPresets: loadPromptPresetRecords(),
+    promptPresets,
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: loadProviderConnectionRecords(),

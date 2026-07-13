@@ -30,7 +30,7 @@ export interface RoleplayThread {
   activePersonaId: string | null;
   lorebookIds: string[];
   presetId: string | null;
-  presetChoiceSelections?: PromptPresetThreadChoiceSelections;
+  presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
   entries: RoleplayEntry[];
   createdAt: string;

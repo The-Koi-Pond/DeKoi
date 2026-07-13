@@ -340,7 +340,8 @@ from global `MacroVariableScope` state overlaid with the active thread scope,
 then record committed prompt-order mutations for the caller.
 
 Before prompt text resolves, selected prompt presets overlay static
-`variableValues` and resolved per-thread `presetChoiceSelections` into the
+`variableValues` and the active preset's resolved entry from
+`presetChoiceSelectionsByPresetId` into the
 request-local variable map, then resolve those preset-supplied variable values
 once with a scratch macro context. Those preset variables can override stored
 global or thread macro variables for the current request, but they are not

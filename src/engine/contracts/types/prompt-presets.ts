@@ -128,7 +128,6 @@ export interface PromptPresetRecord {
   variableValues: Record<string, string>;
   defaultChoices: PromptPresetChoiceSelections;
   wrapFormat?: string | null;
-  isDefault?: boolean;
   author?: string | null;
   folderId?: string | null;
   sections: PromptPresetSection[];

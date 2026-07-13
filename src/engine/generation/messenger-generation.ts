@@ -116,7 +116,9 @@ export function createMessengerGenerationContext({
   });
   const presetChoiceVariables = resolvePromptPresetChoiceVariables({
     preset: records.promptPreset,
-    selections: thread.presetChoiceSelections,
+    selections: thread.presetId
+      ? (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId]
+      : {},
   });
 
   return {
@@ -139,7 +141,13 @@ export function createMessengerGenerationContext({
       characterIds: records.companions.map((companion) => companion.id),
       lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
       presetId: records.promptPreset?.id ?? null,
-      presetChoiceSelections: records.promptPreset ? (thread.presetChoiceSelections ?? {}) : {},
+      presetChoiceSelectionsByPresetId:
+        records.promptPreset && thread.presetId
+          ? {
+              [thread.presetId]:
+                (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId] ?? {},
+            }
+          : {},
       mode: records.companions.length > 1 ? "group" : "direct",
       providerConnectionId: records.providerConnectionId,
     },

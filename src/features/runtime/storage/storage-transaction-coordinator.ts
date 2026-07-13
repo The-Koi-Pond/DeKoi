@@ -1,7 +1,10 @@
 import type { AppStorageRecords } from "./app-storage-workflows";
 
 type StorageTransactionKind =
-  "prompt-preset-import" | "bundle-import" | "pre-import-backup-restore";
+  | "prompt-preset-import"
+  | "prompt-preset-relationship"
+  | "bundle-import"
+  | "pre-import-backup-restore";
 
 export type StorageTransactionTarget = Readonly<{
   generation: number;

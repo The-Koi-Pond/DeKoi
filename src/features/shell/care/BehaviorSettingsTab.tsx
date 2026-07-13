@@ -1,4 +1,4 @@
-import type { AppSettings } from "../../../engine/contracts/types/app-settings";
+import type { AppSettings, AppSettingsPatch } from "../../../engine/contracts/types/app-settings";
 import { MESSENGER, RESERVED, ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Slider } from "../../../shared/ui/primitives/Slider";
@@ -22,7 +22,7 @@ interface BehaviorSettingsTabProps {
     | "sendOnEnterSurface"
     | "confirmRelease"
   >;
-  updateAppSettings: (patch: Partial<AppSettings>) => void;
+  updateAppSettings: (patch: AppSettingsPatch) => void;
   setSendOnEnterSurface: (surface: AppSettings["sendOnEnterSurface"]) => void;
   setConfirmRelease: (confirmRelease: boolean) => void;
 }

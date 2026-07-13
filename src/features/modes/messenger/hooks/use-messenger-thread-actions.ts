@@ -25,6 +25,7 @@ import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/
 
 type UseMessengerThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
+  defaultPromptPresetId?: string | null;
   characters: CharacterRecord[];
   messengerThreads: MessengerThread[];
   personas: PersonaRecord[];
@@ -39,6 +40,7 @@ type UseMessengerThreadActionsInput = {
 
 export function useMessengerThreadActions({
   activeMessengerConnectionId,
+  defaultPromptPresetId = null,
   characters,
   messengerThreads,
   providerConnections,
@@ -75,6 +77,7 @@ export function useMessengerThreadActions({
         id: createRecordId("messenger-thread"),
         lorebookIds: cleanLorebookIds,
         now,
+        defaultPromptPresetId,
         providerConnectionId: activeConnection?.id ?? null,
         title: input?.title?.trim() || fallbackTitle,
       });
@@ -85,6 +88,7 @@ export function useMessengerThreadActions({
     },
     [
       activeMessengerConnectionId,
+      defaultPromptPresetId,
       characters,
       messengerThreads.length,
       openMessengerThread,

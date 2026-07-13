@@ -78,7 +78,9 @@ Bundle import/export and legacy import normalization live under
 App settings normalize `globalLorebookIds` as trimmed unique lorebook IDs and
 `loreInsertionStrategy` as one of `sorted-evenly`, `character-first`, or
 `global-first`. Missing or invalid values fall back to no global lorebooks and
-`sorted-evenly`.
+`sorted-evenly`. `defaultPromptPresetId` normalizes to a trimmed ID or `null`;
+snapshot and bundle relationship repair then ensure it identifies a usable
+preset.
 
 Persona records normalize `lorebookIds` as trimmed unique lorebook IDs, matching
 character lorebook bindings.
@@ -109,7 +111,9 @@ Prompt presets use `schemaVersion: 1`. Each record stores title, optional
 summary, required non-empty `systemPrompt`, optional `messengerPrompt`, optional
 normalized `parameters`, a provider-ready `sampling` projection, section/group
 ordering fields, `sections`, `groups`, `choiceBlocks`, static `variableValues`,
-`defaultChoices`, and optional default/author/folder metadata. The `parameters`
+`defaultChoices`, and optional author/folder metadata. Native preset records do
+not store a default flag; `AppSettings.defaultPromptPresetId` is the sole native
+default authority. The `parameters`
 object preserves normalized prompt-preset controls such as `temperature`,
 `topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties, service/model
 effort strings, stop sequences, custom parameters, and provider-shaping
@@ -118,14 +122,14 @@ booleans. Current provider requests consume the `sampling` projection
 parameter and sampling fields are dropped during load. Preset `maxTokens` can
 override request parameters, but the final generation request is capped by the
 selected provider connection's positive `maxOutput` when one is configured. The
-bundled starter preset is ordinary user-editable data. A missing
-desktop `prompt-presets` collection is seeded on startup and saved through the
-normal collection save path. Remote runtime storage seeds the starter only when
-all collections load cleanly and empty, then records the one-time initialization
-in app settings. If remote storage already has any saved collection records, or
-if desktop storage already has an empty `prompt-presets` collection, DeKoi
-records the one-time marker without adding the starter so deleting the starter
-preset is respected.
+bundled starter preset is ordinary user-editable data except while it is the
+default. Any successful load with no usable prompt presets restores the exact
+bundled starter in memory. A genuinely empty collection is queued for the normal
+save path; if unreadable records were dropped, automatic saving remains blocked
+until explicit storage repair preserves or resolves that evidence. The starter
+initialization marker is recorded in app settings, but it does not suppress
+empty-collection recovery. Ordinary deletion cannot empty the collection
+because the default and last preset cannot be deleted.
 
 ### Development reset for a changed starter preset
 
@@ -138,15 +142,13 @@ Universal V2 starter:
   DeKoi. A missing desktop prompt-preset collection is seeded on startup. This
   intentionally deletes the local development prompt presets; preserve or
   export them first if they matter.
-- **Remote runtime:** reset or rebuild the _entire_ development data store using
-  the runtime/deployment's data-management procedure so that every DeKoi
-  collection is absent/empty, then restart the runtime and DeKoi. Remote
-  first-run seeding requires all collections to load cleanly and empty; deleting
-  only the remote `prompt-presets` collection does not trigger reseeding.
+- **Remote runtime:** use the runtime/deployment's data-management procedure to
+  replace the `prompt-presets` collection with an empty array, then restart
+  DeKoi. The clean empty collection is repaired with the starter.
 
-There is no supported partial remote reset that preserves the other collections
-while re-running first-run seeding. Full resets intentionally destroy local
-development data.
+These resets intentionally destroy local prompt presets. On the next load,
+`defaultPromptPresetId` and dangling active thread preset references are repaired
+to the restored starter.
 
 Choice blocks carry stable block IDs, unique variable names, optional questions,
 options with stable IDs and optional descriptions, reusable defaults,
@@ -157,14 +159,21 @@ uses `variableOrder` for displayed choice order while preserving compatible
 non-choice slots in their existing positions as choices move, appear, or are
 removed.
 Prompt preset `defaultChoices` remain compatible package data keyed by variable
-name and may use option values or IDs. Native thread `presetChoiceSelections`
-are deliberately narrower: they are keyed by stable choice-block ID and store
-stable option-ID objects such as
+name and may use option values or IDs. Native threads store
+`presetChoiceSelectionsByPresetId`, a map from preset ID to a deliberately
+narrower confirmed-choice map keyed by stable choice-block ID. Values are stable
+option-ID objects such as
 `{ "kind": "option", "optionId": "tone-soft" }`, or ordered arrays of those
 objects for multi-select blocks. Duplicate IDs are removed in first-seen order.
-On load, malformed selections, selections without an active preset, and unknown
-block or option IDs are pruned and the affected thread collection is queued for
-rewrite. DeKoi does not create aliases or tombstones for renamed or removed IDs.
+Switching or clearing the active preset retains each preset's independent
+history. On load, malformed histories are normalized and the removed legacy
+`presetChoiceSelections` field is migrated into the active preset's history when
+that history is absent. For a history whose preset still exists, an invalid
+confirmed choice is repaired to the preset default, then the block default or
+first valid option; a block with no prior answer is not materialized. Unknown
+blocks are removed, histories for missing presets are retained, and affected
+thread collections are queued for rewrite. DeKoi does not create aliases or
+tombstones for renamed or removed IDs.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
@@ -184,8 +193,8 @@ prompt without automatically replaying transcript history. DeKoi still appends
 a Roleplay post-history contract that keeps the target
 companion primary, protects the user's dialogue and agency, and leaves narration
 and other-character output behavior to the selected preset.
-Messenger and Roleplay threads may store `presetChoiceSelections` keyed by
-stable prompt-preset choice-block ID. Choice selections resolve with preset
+Messenger and Roleplay threads resolve the active preset's entry in
+`presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
 `variableValues`, defaults, visibility rules, and multi-select separators into
 request-local macro variables before prompt assembly.
 Visibility rules refer to another block's variable name and allowed option
@@ -194,8 +203,8 @@ value, rejects dependency cycles, and allows nested acyclic chains. Settings UI
 and generation use the same recursive resolution; a hidden block ignores its
 thread override and contributes its preset default. Choice blocks never choose
 random options; use random variable macros when prompt randomness is required.
-Changing or clearing a thread's selected prompt preset clears its stored choice
-selections; re-selecting the same preset preserves them.
+Changing or clearing a thread's selected prompt preset preserves its stored
+choice histories; selecting a preset again restores its confirmed choices.
 
 Current generation builds a generation-owned macro context, including the
 request-local variable map, at the mode boundary. It resolves current built-in
@@ -299,7 +308,8 @@ committed mutation log after generation succeeds. Mutated keys target the scope
 that supplied them at generation start: thread keys stay thread-scoped, keys
 that belonged only to global state stay global, and new keys are saved to the
 thread scope. Prompt-preset static and choice variables are request inputs from
-the preset and thread `presetChoiceSelections`; they are resolved once before
+the preset and the active `presetChoiceSelectionsByPresetId` history; they are
+resolved once before
 prompt assembly and are not persisted in this collection. Mutations targeting
 those request-local names can affect later prompt text in the same request, but
 they are skipped when `macro-variable-states` are committed.
@@ -487,7 +497,8 @@ confirmation. Accepted DeKoi-native bundles are persisted through
 `replaceAppStorageSnapshot`, which replaces known collections in a fixed order
 instead of relying on React state changes and the autosave effect. When prompt
 presets and app settings are both replaced, `prompt-presets` is written before
-the app-settings starter marker, and replacement stops on the first failed
+app settings (including its default preset reference and starter marker), and
+replacement stops on the first failed
 collection write.
 The preview includes a fingerprint of the normalized bundle content. The Care UI
 checks the preview fingerprint again at commit time so a stale preview cannot
@@ -568,26 +579,32 @@ actions to clear only the missing thread references.
 
 Current relationships:
 
-| From                    | Field                                | Points to                                                      | Cleanup expectation                                                                                                                                                |
-| ----------------------- | ------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `messenger-threads`     | `characterIds[]`                     | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                                                           |
-| `messenger-threads`     | `activePersonaId`                    | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                         |
-| `messenger-threads`     | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                                                 |
-| `messenger-threads`     | `presetId`, `presetChoiceSelections` | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset and preset choice selections. Non-empty custom Messenger Prompt overrides the selected preset at generation time. |
-| `messenger-threads`     | `providerConnectionId`               | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                 |
-| `messenger-messages`    | `threadId`                           | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                                                            |
-| `roleplay-threads`      | `characterIds[]`                     | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                                                            |
-| `roleplay-threads`      | `activePersonaId`                    | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                         |
-| `roleplay-threads`      | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                                                                  |
-| `roleplay-threads`      | `presetId`, `presetChoiceSelections` | `prompt-presets.id`                                            | Deleted prompt presets clear the selected preset and preset choice selections.                                                                                     |
-| `roleplay-threads`      | `providerConnectionId`               | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                 |
-| `roleplay-entries`      | `threadId`                           | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                                                                |
-| `characters`            | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                                                              |
-| `personas`              | `lorebookIds[]`                      | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                                                                |
-| `app-settings`          | `globalLorebookIds[]`                | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                                                      |
-| `lore-runtime-states`   | `ownerId`                            | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                                                           |
-| `macro-variable-states` | `ownerId`                            | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import.                                      |
-| `ripple-states`         | `ownerId`                            | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                                                               |
+| From                    | Field                                          | Points to                                                      | Cleanup expectation                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `messenger-threads`     | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                                                                                                                                   |
+| `messenger-threads`     | `activePersonaId`                              | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                                                                                                 |
+| `messenger-threads`     | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                                                                                                                         |
+| `messenger-threads`     | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories. Non-empty custom Messenger Prompt overrides the selected preset at generation time. |
+| `messenger-threads`     | `providerConnectionId`                         | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                                                                                         |
+| `messenger-messages`    | `threadId`                                     | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                                                                                                                                    |
+| `roleplay-threads`      | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                                                                                                                                    |
+| `roleplay-threads`      | `activePersonaId`                              | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                                                                                                 |
+| `roleplay-threads`      | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                                                                                                                                          |
+| `roleplay-threads`      | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories.                                                                                     |
+| `roleplay-threads`      | `providerConnectionId`                         | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                                                                                         |
+| `roleplay-entries`      | `threadId`                                     | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                                                                                                                                        |
+| `characters`            | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                                                                                                                                      |
+| `personas`              | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                                                                                                                                        |
+| `app-settings`          | `globalLorebookIds[]`                          | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                                                                                                                              |
+| `app-settings`          | `defaultPromptPresetId`                        | `prompt-presets.id`                                            | The sole native default authority. Missing references repair to the first usable preset; the default and last preset cannot be deleted.                                                                                                    |
+| `lore-runtime-states`   | `ownerId`                                      | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                                                                                                                                   |
+| `macro-variable-states` | `ownerId`                                      | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import.                                                                                                              |
+| `ripple-states`         | `ownerId`                                      | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                                                                                                                                       |
+
+Default changes and non-default deletion use a relationship transaction. It
+saves only affected collections in referentially safe order before publishing
+React state. A failed or blocked transaction reports failure, reloads persisted
+state when safe, and preserves newer or independently dirty in-memory state.
 
 ## Import And Export
 
@@ -607,15 +624,19 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
 - Include `macro-variable-states` in native bundles, import missing older bundle
   fields as empty, and skip thread-scoped states whose owner thread is not
   imported. Global macro variable state is not owner-filtered.
-- Include `prompt-presets` in native bundles and import missing older bundle
-  fields as empty without warnings. Exported records stay DeKoi-native; bundle
+- Include `prompt-presets` and `appSettings.defaultPromptPresetId` in native
+  bundles. Exported records stay DeKoi-native with their IDs; bundle
   import may also normalize packaged prompt preset envelopes with
   `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
   Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
-  becomes `messengerPrompt`, enabled non-marker sections can supply the native
-  `systemPrompt`, and packaged `isDefault`, `author`, and `folderId` metadata
-  are preserved when present. Source envelope fields do not survive on the
-  native record.
+  becomes `messengerPrompt`, and enabled non-marker sections can supply the
+  native `systemPrompt`. Packaged `author` and `folderId` metadata are preserved
+  when present; packaged `isDefault` is not native authority and is discarded.
+  An empty or unusable imported preset collection is repaired with the bundled
+  starter. A missing default is repaired to the first usable imported preset,
+  and dangling active thread references are reassigned to it without erasing
+  per-preset histories. Source envelope fields do not survive on the native
+  record.
 - Keep standalone prompt preset files separate from full storage bundles. The
   Presets catalog exports one saved record as a `dekoi_preset` version 1 package
   named from its title with a normal `.json` extension. Standalone import is
@@ -623,15 +644,16 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   version 1 envelopes may use `.json` or `.marinara.json` filenames. A valid
   import keeps supported parameters, sections, groups, choices, variables,
   ordering, and metadata, then creates one fresh native preset ID and rewrites
-  nested preset ownership to that ID. Parse or validation failure does not add a
+  nested preset ownership to that ID. It never changes the app default. Parse or
+  validation failure does not add a
   catalog record. With configured storage, import success is reported only after
   the prompt-preset collection flushes; a failed prompt-preset save removes the
   new session record and flushes that rollback. When no storage target exists,
   browser import remains available as explicit session-only state and the
   catalog warns that it will not survive reload.
-- Prune malformed or stale thread preset-choice selections during preview.
-  Preview warnings count those repaired threads separately from threads whose
-  missing imported preset reference was cleared.
+- Normalize malformed or stale per-preset thread choice histories during
+  preview. Preview warnings count those repaired threads separately from threads
+  whose missing active preset reference was reassigned to the imported default.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
 - Redact legacy or hand-edited provider secret fields during bundle import and

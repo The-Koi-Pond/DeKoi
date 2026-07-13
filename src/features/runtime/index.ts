@@ -21,6 +21,7 @@ export {
   loadAppStorageRepairStatus,
   repairAppStorageCollection,
   runPromptPresetImportStorageTransaction,
+  runPromptPresetRelationshipTransaction,
   createStorageTransactionCoordinator,
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
@@ -28,6 +29,7 @@ export {
   type MessengerStorageMode,
   type MessengerStorageStatus,
   type PromptPresetImportSaveResult,
+  type PromptPresetRelationshipMutation,
   type StorageTransactionCoordinator,
 } from "./storage";
 export {

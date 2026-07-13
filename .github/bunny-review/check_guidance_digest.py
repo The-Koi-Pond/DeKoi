@@ -193,7 +193,7 @@ def run_semantic_repair_case(module):
     )
 
     assert len(completions.calls) == 1, "semantic schema gap should trigger one repair call"
-    assert "response_format" not in completions.calls[0]
+    assert completions.calls[0]["response_format"] == {"type": "json_object"}
     repair_prompt = completions.calls[0]["messages"][-1]["content"]
     assert "FINAL_REVIEW followed" in repair_prompt
     assert "Ensure change_summary and what_i_checked are non-empty" in repair_prompt
@@ -317,7 +317,7 @@ def run_json_repair_format_case(module):
         stats,
     )
     assert parsed["change_summary"] == repaired["change_summary"]
-    assert "response_format" not in completions.calls[0]
+    assert completions.calls[0]["response_format"] == {"type": "json_object"}
     repair_prompt = completions.calls[0]["messages"][-1]["content"]
     assert "FINAL_REVIEW followed" in repair_prompt
     assert "Do not include prose" in repair_prompt
@@ -350,8 +350,9 @@ def run_json_repair_format_case(module):
         module.build_stats("packet"),
     )
     assert parsed["change_summary"] == repaired["change_summary"]
-    assert len(rejecting.calls) == 1
-    assert "response_format" not in rejecting.calls[0]
+    assert len(rejecting.calls) == 2
+    assert rejecting.calls[0]["response_format"] == {"type": "json_object"}
+    assert "response_format" not in rejecting.calls[1]
 
 
 def run_model_transport_case(module):
@@ -458,6 +459,7 @@ def run_model_transport_case(module):
         assert len(completions.calls) == 1
         assert not responses.calls, "GPT-4.x must retain Chat Completions in auto mode"
         assert completions.calls[0]["messages"] == messages
+        assert completions.calls[0]["response_format"] == {"type": "json_object"}
         assert stats["wire_api"] == "chat_completions"
         assert stats["prompt_tokens"] == 7
         assert stats["completion_tokens"] == 5
@@ -475,6 +477,7 @@ def run_model_transport_case(module):
         content = module.model_call(client, messages, module.build_stats("packet"))
         assert content == "chat review"
         assert len(completions.calls) == 1
+        assert completions.calls[0]["response_format"] == {"type": "json_object"}
         assert not responses.calls, "explicit wire override must win over model routing"
 
         os.environ.pop("BUNNY_LLM_WIRE_API", None)
@@ -580,6 +583,7 @@ def run_model_transport_case(module):
         assert retry_input[:-1] == messages
         assert retry_input[-1]["role"] == "user"
         assert "visible review text" in retry_input[-1]["content"]
+        assert empty_then_text.calls[1]["reasoning"] == {"effort": "none"}
         assert stats["model_calls"] == 2
         assert stats["prompt_tokens"] == 40
         assert stats["completion_tokens"] == 48

@@ -16,7 +16,7 @@ import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { STORAGE_ENTITIES } from "../storage-entities";
 import type { StorageRecordNormalization } from "../storage-repository";
 import { readNullableString } from "../storage-json";
-import { normalizePromptPresetThreadChoiceSelectionsForPreset } from "../prompt-preset-relationship-repair";
+import { normalizePromptPresetThreadChoiceSelectionHistories } from "../prompt-preset-relationship-repair";
 
 export type MessengerStorageMode = StorageMode;
 export type MessengerStorageStatus = "loading" | "ready" | "saving" | "error";
@@ -34,6 +34,15 @@ export type MessengerStorageSnapshot = {
 
 type MessengerThreadStorageRecord = MessengerThreadRecord & {
   messages?: MessengerMessage[];
+};
+
+type LegacyMessengerThreadStorageRecord = Omit<
+  Partial<MessengerThread>,
+  "presetChoiceSelectionsByPresetId"
+> & {
+  kind?: unknown;
+  presetChoiceSelections?: unknown;
+  presetChoiceSelectionsByPresetId?: unknown;
 };
 
 /** Messenger thread plus normalization metadata used by load and bundle import. */
@@ -91,7 +100,7 @@ export function normalizeMessengerThreadWithMetadata(
 ): NormalizedMessengerThread | null {
   if (!value || typeof value !== "object") return null;
 
-  const candidate = value as Partial<MessengerThread> & { kind?: unknown };
+  const candidate = value as LegacyMessengerThreadStorageRecord;
   if (
     candidate.schemaVersion === 1 &&
     (candidate.kind === "messenger" || candidate.kind === "bubbles") &&
@@ -114,14 +123,25 @@ export function normalizeMessengerThreadWithMetadata(
     }
 
     const presetId = readNullableString(candidate.presetId);
-    const normalizedPresetChoiceSelections = normalizePromptPresetThreadChoiceSelectionsForPreset(
-      presetId,
-      candidate.presetChoiceSelections,
+    const histories = candidate.presetChoiceSelectionsByPresetId;
+    const hasLegacySelections = Object.prototype.hasOwnProperty.call(
+      candidate,
+      "presetChoiceSelections",
     );
+    const legacySelections = candidate.presetChoiceSelections;
+    const normalizedHistory = normalizePromptPresetThreadChoiceSelectionHistories({
+      presetId,
+      histories,
+      hasLegacySelections,
+      legacySelections,
+    });
+    const candidateWithoutHistory = { ...candidate };
+    delete candidateWithoutHistory.presetChoiceSelections;
+    delete candidateWithoutHistory.presetChoiceSelectionsByPresetId;
 
     return {
       thread: {
-        ...candidate,
+        ...candidateWithoutHistory,
         id,
         kind: "messenger",
         title: migrateLegacyTitle(candidate.title),
@@ -130,7 +150,7 @@ export function normalizeMessengerThreadWithMetadata(
             ? candidate.providerConnectionId
             : null,
         presetId,
-        presetChoiceSelections: normalizedPresetChoiceSelections.selections,
+        presetChoiceSelectionsByPresetId: normalizedHistory.histories,
         systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
         systemPrompt:
           typeof candidate.systemPrompt === "string"
@@ -139,7 +159,7 @@ export function normalizeMessengerThreadWithMetadata(
         messages,
       } as MessengerThread,
       droppedRecordCount,
-      presetChoiceSelectionsChanged: normalizedPresetChoiceSelections.changed,
+      presetChoiceSelectionsChanged: normalizedHistory.changed,
     };
   }
 

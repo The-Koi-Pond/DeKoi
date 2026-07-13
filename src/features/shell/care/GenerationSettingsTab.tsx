@@ -1,4 +1,4 @@
-import type { AppSettings } from "../../../engine/contracts/types/app-settings";
+import type { AppSettings, AppSettingsPatch } from "../../../engine/contracts/types/app-settings";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import { LorebookMultiSelect } from "../../../shared/ui/LorebookMultiSelect";
 import { NumberField } from "../../../shared/ui/primitives/NumberField";
@@ -21,7 +21,7 @@ interface GenerationSettingsTabProps {
     | "loreInsertionStrategy"
   >;
   lorebooks: LorebookRecord[];
-  updateAppSettings: (patch: Partial<AppSettings>) => void;
+  updateAppSettings: (patch: AppSettingsPatch) => void;
 }
 
 export function GenerationSettingsTab({

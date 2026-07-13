@@ -400,8 +400,10 @@ describe("prompt preset generation", () => {
         title: "Test chat",
       }),
       presetId: "preset-1",
-      presetChoiceSelections: {
-        "choice-pacing": { kind: "option" as const, optionId: "slow" },
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": {
+          "choice-pacing": { kind: "option" as const, optionId: "slow" },
+        },
       },
     };
     const context = createMessengerGenerationContext({

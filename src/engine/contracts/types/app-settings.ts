@@ -9,6 +9,7 @@ type MotionPref = "auto" | "reduced" | "off";
 type DensityPref = "comfortable" | "compact";
 
 export interface AppSettings {
+  defaultPromptPresetId: string | null;
   sendOnEnterSurface: SurfaceId;
   confirmRelease: boolean;
   surfaceStatus: string;
@@ -35,9 +36,12 @@ export interface AppSettings {
   promptPresetStarterInitialized: boolean;
 }
 
+export type AppSettingsPatch = Partial<Omit<AppSettings, "defaultPromptPresetId">>;
+
 export type ShoalSortMode = "freshest" | "oldest" | "title";
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
+  defaultPromptPresetId: null,
   sendOnEnterSurface: MESSENGER,
   confirmRelease: true,
   surfaceStatus: "",
@@ -121,6 +125,10 @@ export function normalizeAppSettings(value: unknown): AppSettings {
       : {};
 
   return {
+    defaultPromptPresetId:
+      typeof parsed.defaultPromptPresetId === "string" && parsed.defaultPromptPresetId.trim()
+        ? parsed.defaultPromptPresetId.trim()
+        : DEFAULT_APP_SETTINGS.defaultPromptPresetId,
     sendOnEnterSurface: isSurfaceId(parsed.sendOnEnterSurface)
       ? parsed.sendOnEnterSurface
       : DEFAULT_APP_SETTINGS.sendOnEnterSurface,

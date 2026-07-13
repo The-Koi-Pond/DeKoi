@@ -140,9 +140,12 @@ Focused checks for narrow changes are mapped to change types in
   lore insertion strategy.
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
   current sampling controls, and structured Roleplay section/group editing,
-  then select a prompt preset from thread settings. The bundled Universal V2
-  starter is an ordinary native preset that can be edited, duplicated, or
-  deleted. Roleplay sections can be
+  then select a prompt preset from thread settings. New threads start with the
+  current app default. The bundled Universal V2 starter is an ordinary native
+  preset that can be edited or duplicated. It becomes deletable after another
+  preset is designated as default, but that designation control is not exposed
+  in the catalog yet. The default and last preset cannot be deleted.
+  Roleplay sections can be
   ordered, grouped, enabled or disabled, assigned provider roles, wrapped, and
   placed at transcript depth; marker sections insert saved Roleplay context,
   including conversation history through an enabled Chat History marker.
@@ -156,7 +159,8 @@ Focused checks for narrow changes are mapped to change types in
   parameters, and metadata that the catalog preserves even when those fields do
   not have visible editors yet. Roleplay generation consumes saved section/group
   structure when present. Both Messenger and Roleplay generation consume stored
-  stable-ID choices. In Roleplay settings, Prompt Preset > Edit opens Preset
+  stable-ID choices and retain independent confirmed-choice histories when a
+  thread switches presets. In Roleplay settings, Prompt Preset > Edit opens Preset
   Variables for the selected preset; New remains the secondary action for
   creating another preset. Questions and option descriptions appear with the
   choices. Ordered multi-select choices and nested visibility feed request-local

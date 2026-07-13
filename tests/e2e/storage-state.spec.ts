@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { appStorageReplaceResultNeedsReload } from "../../src/app/app-storage-import-recovery";
+import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
+import { STARTER_PROMPT_PRESET } from "../../src/engine/prompt-presets/starter-preset";
 import {
   createStorageReloadBlockToken,
   decideAppStorageReload,
@@ -338,7 +340,14 @@ test("manual storage reload applies current runtime records", async ({ page }) =
 
 test("manual storage reload is blocked while local changes are saving", async ({ page }) => {
   const runtime = await installDeferredReplaceRemoteRuntime(page, "app-settings", {
-    "app-settings": [{ id: "app-settings", accent: "koi" }],
+    "app-settings": [
+      {
+        ...DEFAULT_APP_SETTINGS,
+        defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+        promptPresetStarterInitialized: true,
+      },
+    ],
+    "prompt-presets": [STARTER_PROMPT_PRESET],
   });
 
   await openDataAndBackupSettings(page);

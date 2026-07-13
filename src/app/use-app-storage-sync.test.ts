@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  appStorageSnapshotsHaveMatchingSignatures,
   appStorageAutoMigrationCollectionKeys,
   appStorageDroppedRecordSaveBlockCollectionKeys,
   orderedAppStorageCollectionKeys,
   partitionAppStorageDirtyCollectionKeys,
   shouldBlockAppSettingsPromptPresetStarterSave,
+  mergeAffectedAppStorageCollections,
+  mergePersistedAppStorageTransactionSignatures,
+  reconcilePublishedAppStorageTransactionBookkeeping,
+  reconcileCurrentAppStorageTransactionBookkeeping,
+  type AppStorageCollectionSignatures,
 } from "./use-app-storage-sync";
+import type { AppStorageRecords } from "../features/runtime";
 
 describe("appStorageAutoMigrationCollectionKeys", () => {
   it("keeps complete migration groups with no dropped records", () => {
@@ -146,6 +153,170 @@ describe("appStorageAutoMigrationCollectionKeys", () => {
         },
       }),
     ).toEqual([]);
+  });
+});
+
+describe("mergeAffectedAppStorageCollections", () => {
+  it("preserves unrelated ordinary edits while applying affected collections", () => {
+    const current = {
+      characters: [{ id: "current-character" }],
+      messengerThreads: [{ id: "current-thread" }],
+      promptPresets: [{ id: "current-preset" }],
+    } as unknown as AppStorageRecords;
+    const candidate = {
+      characters: [{ id: "stale-character" }],
+      messengerThreads: [{ id: "candidate-thread" }],
+      promptPresets: [{ id: "candidate-preset" }],
+    } as unknown as AppStorageRecords;
+
+    const merged = mergeAffectedAppStorageCollections(current, candidate, ["messengerThreads"]);
+    expect(merged.characters).toEqual(current.characters);
+    expect(merged.promptPresets).toEqual(current.promptPresets);
+    expect(merged.messengerThreads).toEqual(candidate.messengerThreads);
+  });
+});
+
+describe("reconcilePublishedAppStorageTransactionBookkeeping", () => {
+  it("marks affected collections saved while retaining unrelated dirty edits", () => {
+    const snapshot = {
+      appSettings: { defaultPromptPresetId: "preset-2" },
+      characters: [{ id: "edited-character" }],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [{ id: "preset-2" }],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      roleplayThreads: [],
+      messengerThreads: [],
+      rippleStates: [],
+    } as unknown as AppStorageRecords;
+    const result = reconcilePublishedAppStorageTransactionBookkeeping({
+      savedSignatures: {
+        appSettings: "old-settings",
+        characters: "old-characters",
+        messengerThreads: "old-messenger-threads",
+        messengerMessages: "old-messenger-messages",
+        roleplayThreads: "old-roleplay-threads",
+        roleplayEntries: "old-roleplay-entries",
+      } as unknown as AppStorageCollectionSignatures,
+      unsavedSignatures: {
+        characters: "edited-characters",
+        appSettings: "old-settings",
+        messengerThreads: "old-messenger-threads",
+        messengerMessages: "old-messenger-messages",
+        roleplayThreads: "old-roleplay-threads",
+        roleplayEntries: "old-roleplay-entries",
+      },
+      snapshot,
+      affectedKeys: ["appSettings", "messengerThreads", "roleplayThreads"],
+    });
+
+    expect(result.savedSignatures?.appSettings).not.toBe("old-settings");
+    expect(result.savedSignatures?.messengerThreads).not.toBe("old-messenger-threads");
+    expect(result.savedSignatures?.messengerMessages).toBe("old-messenger-messages");
+    expect(result.savedSignatures?.roleplayThreads).not.toBe("old-roleplay-threads");
+    expect(result.savedSignatures?.roleplayEntries).toBe("old-roleplay-entries");
+    expect(result.unsavedSignatures).toEqual({
+      characters: "edited-characters",
+      messengerMessages: "old-messenger-messages",
+      roleplayEntries: "old-roleplay-entries",
+    });
+    expect(result.lastSeenSnapshot).toBe(snapshot);
+  });
+});
+
+describe("reconcileCurrentAppStorageTransactionBookkeeping", () => {
+  it("reconciles all collections after a transaction without claiming unrelated edits are clean", () => {
+    const snapshot = {
+      appSettings: { defaultPromptPresetId: "preset-2" },
+      characters: [{ id: "edited-character" }],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [{ id: "preset-2" }],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      roleplayThreads: [],
+      messengerThreads: [],
+      rippleStates: [],
+    } as unknown as AppStorageRecords;
+    const result = reconcileCurrentAppStorageTransactionBookkeeping({
+      savedSignatures: {
+        appSettings: "old-settings",
+        characters: "old-characters",
+        messengerThreads: "old-messenger-threads",
+        messengerMessages: "old-messenger-messages",
+        roleplayThreads: "old-roleplay-threads",
+        roleplayEntries: "old-roleplay-entries",
+      } as unknown as AppStorageCollectionSignatures,
+      snapshot,
+    });
+
+    expect(result.dirtyCollectionKeys).toContain("characters");
+    expect(result.dirtyCollectionKeys).toContain("appSettings");
+    expect(result.unsavedSignatures.characters).toBeDefined();
+    expect(result.unsavedSignatures.appSettings).toBeDefined();
+  });
+
+  it("queues compensation when a transaction partially persisted an older collection", () => {
+    const snapshot = {
+      appSettings: {},
+      characters: [],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      roleplayThreads: [],
+      messengerThreads: [{ id: "in-memory-thread", messages: [] }],
+      rippleStates: [],
+    } as unknown as AppStorageRecords;
+    const savedSignatures = mergePersistedAppStorageTransactionSignatures(
+      {
+        messengerThreads: "previously-saved",
+      } as unknown as AppStorageCollectionSignatures,
+      { messengerThreads: "partially-persisted-transaction" },
+    );
+
+    const result = reconcileCurrentAppStorageTransactionBookkeeping({
+      savedSignatures,
+      snapshot,
+    });
+
+    expect(result.dirtyCollectionKeys).toContain("messengerThreads");
+    expect(result.unsavedSignatures.messengerThreads).toBeDefined();
+  });
+});
+
+describe("appStorageSnapshotsHaveMatchingSignatures", () => {
+  it("detects an edit that arrives while a recovery load is pending", () => {
+    const before: AppStorageRecords = {
+      appSettings: {} as AppStorageRecords["appSettings"],
+      characters: [],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      roleplayThreads: [],
+      messengerThreads: [],
+      rippleStates: [],
+    };
+    const unrelatedEdit = {
+      ...before,
+      characters: [{ id: "new-character" }] as typeof before.characters,
+    };
+    const affectedEdit = {
+      ...before,
+      messengerThreads: [{ id: "new-thread" }] as typeof before.messengerThreads,
+    };
+
+    expect(appStorageSnapshotsHaveMatchingSignatures(before, before)).toBe(true);
+    expect(appStorageSnapshotsHaveMatchingSignatures(before, unrelatedEdit)).toBe(false);
+    expect(appStorageSnapshotsHaveMatchingSignatures(before, affectedEdit)).toBe(false);
   });
 });
 

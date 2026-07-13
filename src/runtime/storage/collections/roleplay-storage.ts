@@ -15,7 +15,7 @@ import {
 import { createStorageRepository } from "../storage-repository-factory";
 import type { StorageRecordNormalization, StorageResult } from "../storage-repository";
 import { STORAGE_ENTITIES } from "../storage-entities";
-import { normalizePromptPresetThreadChoiceSelectionsForPreset } from "../prompt-preset-relationship-repair";
+import { normalizePromptPresetThreadChoiceSelectionHistories } from "../prompt-preset-relationship-repair";
 
 type RoleplayThreadStorageRecord = RoleplayThreadRecord & {
   entries?: RoleplayEntry[];
@@ -109,10 +109,15 @@ export function normalizeRoleplayThreadWithMetadata(
   }
 
   const presetId = readNullableString(value.presetId);
-  const normalizedPresetChoiceSelections = normalizePromptPresetThreadChoiceSelectionsForPreset(
+  const histories = value.presetChoiceSelectionsByPresetId as Record<string, unknown> | undefined;
+  const hasLegacySelections = Object.prototype.hasOwnProperty.call(value, "presetChoiceSelections");
+  const legacySelections = value.presetChoiceSelections;
+  const normalizedHistory = normalizePromptPresetThreadChoiceSelectionHistories({
     presetId,
-    value.presetChoiceSelections,
-  );
+    histories,
+    hasLegacySelections,
+    legacySelections,
+  });
 
   return {
     thread: {
@@ -126,14 +131,14 @@ export function normalizeRoleplayThreadWithMetadata(
       activePersonaId: readNullableString(value.activePersonaId),
       lorebookIds: readStringArray(value.lorebookIds),
       presetId,
-      presetChoiceSelections: normalizedPresetChoiceSelections.selections,
+      presetChoiceSelectionsByPresetId: normalizedHistory.histories,
       providerConnectionId: readNullableString(value.providerConnectionId),
       entries,
       createdAt: readTimestamp(value.createdAt, now),
       updatedAt: readTimestamp(value.updatedAt, now),
     },
     droppedRecordCount,
-    presetChoiceSelectionsChanged: normalizedPresetChoiceSelections.changed,
+    presetChoiceSelectionsChanged: normalizedHistory.changed,
   };
 }
 

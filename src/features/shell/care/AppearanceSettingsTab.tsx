@@ -1,4 +1,4 @@
-import type { AppSettings } from "../../../engine/contracts/types/app-settings";
+import type { AppSettings, AppSettingsPatch } from "../../../engine/contracts/types/app-settings";
 import { Chip } from "../../../shared/ui/primitives/Chip";
 import { Seg } from "../../../shared/ui/primitives/Seg";
 import { Slider } from "../../../shared/ui/primitives/Slider";
@@ -6,7 +6,7 @@ import { SettingSection } from "./SettingSection";
 
 interface AppearanceSettingsTabProps {
   settings: Pick<AppSettings, "accent" | "motion" | "density" | "fontScale">;
-  updateAppSettings: (patch: Partial<AppSettings>) => void;
+  updateAppSettings: (patch: AppSettingsPatch) => void;
 }
 
 export function AppearanceSettingsTab({ settings, updateAppSettings }: AppearanceSettingsTabProps) {

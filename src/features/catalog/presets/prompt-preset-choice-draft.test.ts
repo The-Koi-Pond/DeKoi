@@ -45,7 +45,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
       tone: { kind: "option", optionId: "tone-warm" },
     },
     wrapFormat: null,
-    isDefault: false,
     author: null,
     folderId: null,
     sections: [],

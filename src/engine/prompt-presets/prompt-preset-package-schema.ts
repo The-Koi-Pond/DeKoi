@@ -194,7 +194,6 @@ const PRESET_FIELD_VALIDATORS: Record<string, FieldValidator> = {
   variableValues: isStringRecordValue,
   defaultChoices: isChoiceSelectionRecordValue,
   wrapFormat: isNullableString,
-  isDefault: isNullableBooleanLike,
   author: isNullableString,
   folderId: isNullableString,
   createdAt: isTimestamp,

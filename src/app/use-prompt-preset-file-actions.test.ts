@@ -23,7 +23,6 @@ function promptPreset(id = "preset-source"): PromptPresetRecord {
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
-    isDefault: false,
     author: null,
     folderId: null,
     sections: [],
