@@ -80,15 +80,16 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
 
   it("does not initialize the starter marker from a damaged prompt preset collection", async () => {
     mockRemoteStorage({
-      "app-settings": [{ id: "app-settings" }],
+      "app-settings": [{ ...DEFAULT_APP_SETTINGS, promptPresetStarterInitialized: false }],
       "prompt-presets": [{ id: "unreadable-preset" }],
     });
 
     const snapshot = await loadAppStorageSnapshot("http://runtime.test");
 
-    expect(snapshot.promptPresets).toEqual([STARTER_PROMPT_PRESET]);
-    expect(snapshot.appSettings.defaultPromptPresetId).toBe(STARTER_PROMPT_PRESET.id);
-    expect(snapshot.migrationCollectionKeys).toContain("promptPresets");
+    expect(snapshot.promptPresets).toEqual([]);
+    expect(snapshot.appSettings.defaultPromptPresetId).toBeNull();
+    expect(snapshot.appSettings.promptPresetStarterInitialized).toBe(false);
+    expect(snapshot.migrationCollectionKeys).not.toContain("promptPresets");
     expect(snapshot.droppedRecordCountByCollection.promptPresets).toBe(1);
   });
 

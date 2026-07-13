@@ -328,7 +328,9 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const appSettingsCanStorePromptPresetStarterMarker =
     appSettingsSnapshot.status === "ready" && appSettingsSnapshot.droppedRecordCount === 0;
   const shouldSeedPromptPresets =
-    promptPresetSnapshot.status === "ready" && promptPresetSnapshot.records.length === 0;
+    promptPresetSnapshot.status === "ready" &&
+    promptPresetSnapshot.droppedRecordCount === 0 &&
+    promptPresetSnapshot.records.length === 0;
   const promptPresets = shouldSeedPromptPresets
     ? [STARTER_PROMPT_PRESET]
     : promptPresetSnapshot.records;
