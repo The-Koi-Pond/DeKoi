@@ -1,6 +1,7 @@
 import type { FormEventHandler } from "react";
 import type { DeKoiDesktopHostStatus } from "../../../shared/api/desktop-host-status";
 import type {
+  AppStorageCollectionKey,
   AppStorageRepairCollectionStatus,
   AppStorageRepairStatusResult,
   AppStorageRepairStrategy,
@@ -20,6 +21,7 @@ interface RuntimeStoragePanelProps {
   storageReloadBusy: boolean;
   storageHasUnsavedChanges: boolean;
   droppedRecordsSummary: { total: number; message: string };
+  storageLoadErrors: { collectionKey: AppStorageCollectionKey; label: string; message: string }[];
   storageReloadStatus: string;
   storageRepairStatus: AppStorageRepairStatusResult | null;
   storageActionBusy: boolean;
@@ -50,6 +52,7 @@ export function RuntimeStoragePanel({
   storageReloadBusy,
   storageHasUnsavedChanges,
   droppedRecordsSummary,
+  storageLoadErrors,
   storageReloadStatus,
   storageRepairStatus,
   storageActionBusy,
@@ -158,6 +161,18 @@ export function RuntimeStoragePanel({
           <p className="bundle-status storage-dropped-warning" role="alert">
             {droppedRecordsSummary.message}
           </p>
+        )}
+        {storageLoadErrors.length > 0 && (
+          <div className="bundle-status storage-load-errors" role="alert">
+            <b>Collection load errors</b>
+            <ul>
+              {storageLoadErrors.map(({ collectionKey, label, message }) => (
+                <li key={collectionKey}>
+                  <b>{label}:</b> {message}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {storageReloadStatus && <p className="bundle-status">{storageReloadStatus}</p>}
         {storageRepairStatus && (

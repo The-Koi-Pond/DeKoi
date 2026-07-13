@@ -115,6 +115,8 @@ const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
   "Reload blocked because DeKoi still has unsaved storage changes. Wait for saving to finish before reloading.";
 const STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE =
   "Reload will discard local changes that have not been saved yet. Select Reload records again to confirm.";
+const STORAGE_RELOAD_INTERRUPTED_MESSAGE =
+  "Reload was interrupted because the storage target changed. Retry on the current storage target.";
 const STORAGE_SAVE_IDLE_TIMEOUT_MS = 1_000;
 const APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS = [
   ["roleplayThreads", "roleplayEntries"],
@@ -591,6 +593,9 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
   setMessengerStorageMessage: StateSetter<string>;
   setDroppedRecordCountByCollection: StateSetter<Partial<Record<AppStorageCollectionKey, number>>>;
+  setStorageLoadErrorMessageByCollection: StateSetter<
+    Partial<Record<AppStorageCollectionKey, string>>
+  >;
   setStorageReady: StateSetter<boolean>;
 };
 
@@ -623,6 +628,7 @@ export function useAppStorageSync({
   setMessengerStorageStatus,
   setMessengerStorageMessage,
   setDroppedRecordCountByCollection,
+  setStorageLoadErrorMessageByCollection,
   setStorageReady,
 }: UseAppStorageSyncInput) {
   const [storageHasUnsavedChanges, setStorageHasUnsavedChanges] = useState(false);
@@ -818,10 +824,16 @@ export function useAppStorageSync({
       lastSeenSnapshot.current = snapshot;
       applyAppStorageRecords(snapshot);
       setDroppedRecordCountByCollection(snapshot.droppedRecordCountByCollection);
+      setStorageLoadErrorMessageByCollection(snapshot.loadErrorMessageByCollection);
       setStorageReady(options?.storageReady ?? snapshot.storageResult.status === "ready");
       setStorageHasUnsavedChanges(hasUnsavedSignature(unsavedSignatures.current));
     },
-    [applyAppStorageRecords, setDroppedRecordCountByCollection, setStorageReady],
+    [
+      applyAppStorageRecords,
+      setDroppedRecordCountByCollection,
+      setStorageLoadErrorMessageByCollection,
+      setStorageReady,
+    ],
   );
 
   const applyReplacedAppStorageRecords = useCallback(
@@ -831,8 +843,13 @@ export function useAppStorageSync({
         records.appSettings.promptPresetStarterInitialized;
       droppedRecordSaveBlockedCollectionKeys.current = new Set();
       setDroppedRecordCountByCollection({});
+      setStorageLoadErrorMessageByCollection({});
     },
-    [applyAppStorageRecords, setDroppedRecordCountByCollection],
+    [
+      applyAppStorageRecords,
+      setDroppedRecordCountByCollection,
+      setStorageLoadErrorMessageByCollection,
+    ],
   );
 
   const cancelQueuedSaveDispatch = useCallback(() => {
@@ -1970,6 +1987,7 @@ export function useAppStorageSync({
     cancelQueuedSaveDispatch();
     const generation = advanceStorageGeneration();
     setStorageReady(false);
+    setStorageLoadErrorMessageByCollection({});
     setMessengerStorageStatus("loading");
     setMessengerStorageMessage("Reloading storage...");
 
@@ -1979,8 +1997,7 @@ export function useAppStorageSync({
         return {
           mode: snapshot.storageResult.mode,
           status: "error",
-          message:
-            "Reload was interrupted because the storage target changed. Retry on the current storage target.",
+          message: STORAGE_RELOAD_INTERRUPTED_MESSAGE,
           blocked: false,
           reloaded: false,
         };
@@ -1988,6 +2005,7 @@ export function useAppStorageSync({
 
       currentStorageMode.current = snapshot.storageResult.mode;
       setMessengerStorageMode(snapshot.storageResult.mode);
+      setStorageLoadErrorMessageByCollection(snapshot.loadErrorMessageByCollection);
 
       if (snapshot.storageResult.status !== "ready") {
         const hasLoadedSnapshot = savedSignatures.current !== null;
@@ -2040,7 +2058,18 @@ export function useAppStorageSync({
         reloaded: true,
       };
     } catch (error) {
+      if (storageGeneration.current !== generation) {
+        return {
+          mode: currentStorageMode.current,
+          status: "error",
+          message: STORAGE_RELOAD_INTERRUPTED_MESSAGE,
+          blocked: false,
+          reloaded: false,
+        };
+      }
+
       const message = `Storage reload failed. ${errorMessage(error)}`;
+      setStorageLoadErrorMessageByCollection({});
       setStorageReady(savedSignatures.current !== null);
       setMessengerStorageStatus("error");
       setMessengerStorageMessage(message);
@@ -2062,6 +2091,7 @@ export function useAppStorageSync({
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
+    setStorageLoadErrorMessageByCollection,
     setStorageReady,
   ]);
 
@@ -2081,6 +2111,7 @@ export function useAppStorageSync({
     activeSavePromise.current = null;
     cancelQueuedSaveDispatch();
     setStorageReady(false);
+    setStorageLoadErrorMessageByCollection({});
 
     loadAppStorageSnapshot(remoteRuntimeUrl).then((snapshot) => {
       if (cancelled || storageGeneration.current !== generation) return;
@@ -2194,6 +2225,7 @@ export function useAppStorageSync({
     setMessengerStorageMessage,
     setMessengerStorageMode,
     setMessengerStorageStatus,
+    setStorageLoadErrorMessageByCollection,
     setStorageReady,
   ]);
 

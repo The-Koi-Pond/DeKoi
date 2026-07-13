@@ -92,6 +92,8 @@ export interface NavStorageState {
   importRecoveryState: NavStorageImportRecoveryState;
   /** Per-collection records dropped during the most recent load (empty when none). */
   droppedRecordCountByCollection: Partial<Record<AppStorageCollectionKey, number>>;
+  /** Per-collection errors from the most recent storage load attempt (empty when none). */
+  storageLoadErrorMessageByCollection: Partial<Record<AppStorageCollectionKey, string>>;
   remoteRuntimeUrl: string;
 }
 

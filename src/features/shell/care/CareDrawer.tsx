@@ -33,6 +33,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
     desktopHostBusy,
     storageReloadBusy,
     droppedRecordsSummary,
+    storageLoadErrors,
     storageReloadStatus,
     storageRepairStatus,
     storageActionBusy,
@@ -163,6 +164,7 @@ export function CareDrawer({ nav }: CareDrawerProps) {
             storageReloadBusy={storageReloadBusy}
             storageHasUnsavedChanges={nav.storageHasUnsavedChanges}
             droppedRecordsSummary={droppedRecordsSummary}
+            storageLoadErrors={storageLoadErrors}
             storageReloadStatus={storageReloadStatus}
             storageRepairStatus={storageRepairStatus}
             storageActionBusy={storageActionBusy}

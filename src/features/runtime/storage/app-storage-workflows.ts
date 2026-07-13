@@ -13,6 +13,7 @@ import {
 import { readRemoteRuntimeUrl, writeRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 
 export {
+  APP_STORAGE_COLLECTION_LABELS,
   APP_STORAGE_COLLECTION_KEYS,
   appStorageCollectionCount,
   appStorageCollectionSignature,

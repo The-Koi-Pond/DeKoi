@@ -1,4 +1,5 @@
 export {
+  APP_STORAGE_COLLECTION_LABELS,
   APP_STORAGE_COLLECTION_KEYS,
   appStorageCollectionCount,
   appStorageCollectionSignature,

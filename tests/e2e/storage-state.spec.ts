@@ -338,6 +338,43 @@ test("manual storage reload applies current runtime records", async ({ page }) =
   await expect(page.getByRole("radio", { name: "Amber" })).toBeChecked();
 });
 
+test("Pond Care lists every collection that fails during reload", async ({ page }) => {
+  const runtime = await installRemoteRuntime(page, {
+    "app-settings": [
+      {
+        ...DEFAULT_APP_SETTINGS,
+        defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+        promptPresetStarterInitialized: true,
+      },
+    ],
+    "prompt-presets": [STARTER_PROMPT_PRESET],
+  });
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  runtime.listFailures.set("characters", "Characters failed while loading.");
+  runtime.listFailures.set("lorebooks", "Lorebooks failed while loading.");
+
+  await page.getByRole("button", { name: "Reload records" }).click();
+
+  const loadErrors = page.getByRole("alert").filter({ hasText: "Collection load errors" });
+  await expect(loadErrors).toContainText("Characters:");
+  await expect(loadErrors).toContainText("Characters failed while loading.");
+  await expect(loadErrors).toContainText("Lorebooks:");
+  await expect(loadErrors).toContainText("Lorebooks failed while loading.");
+  await expect(loadErrors).not.toContainText("App settings:");
+  await expect(page.getByText("Reloaded storage from the current runtime target.")).toHaveCount(0);
+
+  runtime.listFailures.clear();
+  await page.getByRole("button", { name: "Reload records" }).click();
+  await expect(loadErrors).toHaveCount(0);
+  await expect(
+    page
+      .getByLabel("Stored collections")
+      .getByText("Reloaded storage from the current runtime target."),
+  ).toBeVisible();
+});
+
 test("manual storage reload is blocked while local changes are saving", async ({ page }) => {
   const runtime = await installDeferredReplaceRemoteRuntime(page, "app-settings", {
     "app-settings": [
