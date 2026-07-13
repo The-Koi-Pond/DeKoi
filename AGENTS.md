@@ -127,3 +127,10 @@ or invalidated. Do not use the register to defer a current-scope bug.
 - A bare `bunny` request means the local `skills/bunny-style-review` lens unless
   the user explicitly mentions GitHub Actions, CI, workflow dispatch, or
   `.github/bunny-review`.
+- GitHub Actions Bunny Review preserves its executable tooling from the PR's
+  trusted base branch (normally `origin/main`) before checking out the PR head.
+  Changes to `.github/bunny-review` or its workflow cannot fix Bunny for the
+  same PR until those changes reach the base branch. For an immediate current-PR
+  recovery, use an already-supported repository variable override or land a
+  separate prerequisite workflow fix on `main`; do not repeatedly rerun the
+  unchanged trusted-base implementation.
