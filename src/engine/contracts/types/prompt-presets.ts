@@ -25,11 +25,6 @@ export interface PromptPresetParameters extends PromptPresetSampling {
   singleUserMessage?: boolean | null;
 }
 
-export interface PromptPresetVisibilityRule {
-  variableName: string;
-  values: string[];
-}
-
 interface PromptPresetChoiceOption {
   id: string;
   label: string;
@@ -51,7 +46,6 @@ export interface PromptPresetChoiceBlock {
   optionSort?: "manual" | "alphabetical" | null;
   sortOrder?: number | null;
   createdAt?: string | null;
-  visibilityRule?: PromptPresetVisibilityRule | null;
 }
 
 /**

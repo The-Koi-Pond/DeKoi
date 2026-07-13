@@ -50,8 +50,9 @@ legacy application record model.
 - Team-authored prompt packages from the old De-Koi tree may be retained intact
   with attribution when the maintainer has approved them as DeKoi source
   material.
-- The bundled Universal V2 starter package is Chai-authored, team-owned prompt
-  material retained intact at `src/engine/prompt-presets/DeKoiUniversalPreset.json`.
+- The bundled Universal V2 starter package is derived from Chai-authored,
+  team-owned prompt material by deleting only the abandoned `visibilityRule`
+  metadata described below.
 
 ### Universal V2 provenance review
 
@@ -60,23 +61,27 @@ package. It preserves who made and received the attestation, its exact claim,
 its complete scope, and the immutable artifact it covers; maintainer approval
 is recorded separately and is not used as evidence of authorship.
 
-| Evidence field          | Recorded evidence                                                                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Evidence type           | Primary author attestation supplied with the source package                                                                                                                                       |
-| Attestor                | Chai, the package author                                                                                                                                                                          |
-| Recipient and custodian | The De-Koi team; retained by DeKoi maintainer Xel with the approved team-owned source material                                                                                                    |
-| Attested claim          | Chai independently authored all prompt prose, choice text, package structure, and metadata enumerated below for the team; no Marinara prompt text or structure was copied, adapted, or translated |
-| Artifact covered        | Git blob `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, 40,225 bytes, SHA-256 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`                                                     |
-| Scope evidence          | The complete source-level inventory below; every prompt section, choice block, Messenger field, and metadata surface is accounted for                                                             |
-| Permission evidence     | Xel's maintainer approval to retain and distribute the attested team-owned package in DeKoi                                                                                                       |
+| Evidence field              | Recorded evidence                                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evidence type               | Primary author attestation supplied with the source package                                                                                                                                       |
+| Attestor                    | Chai, the package author                                                                                                                                                                          |
+| Recipient and custodian     | The De-Koi team; retained by DeKoi maintainer Xel with the approved team-owned source material                                                                                                    |
+| Attested claim              | Chai independently authored all prompt prose, choice text, package structure, and metadata enumerated below for the team; no Marinara prompt text or structure was copied, adapted, or translated |
+| Authorship artifact covered | Git blob `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, 40,225 bytes, SHA-256 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`                                                     |
+| Checked-in derived artifact | Git blob `f777bff79d068051e8ef7dc5e6116aed37519ef9`, 39,137 bytes, SHA-256 `eefc3759e23cd4ea505f06baa5fcf5485c1f055b1db9b9c9a0aa4e91579c4b17`                                                     |
+| Transformation              | Delete only `data.choiceBlocks[2].visibilityRule` from the attested artifact; all remaining JSON data is unchanged                                                                                |
+| Scope evidence              | The complete source-level inventory below; every prompt section, choice block, Messenger field, and metadata surface is accounted for                                                             |
+| Permission evidence         | Xel's maintainer approval to retain and distribute both the attested source and the derived artifact in DeKoi                                                                                     |
 
 Reviewers can reproduce the evidence check without trusting a package label:
 
-1. Hash `src/engine/prompt-presets/DeKoiUniversalPreset.json` and verify the
-   byte count, Git blob, and SHA-256 above.
-2. Compare every package surface with the complete attestation inventory below;
-   no unlisted prompt or metadata surface may inherit this attestation.
-3. Run `pnpm check:storage-contracts`, which rejects an artifact that differs
+1. Hash `src/engine/prompt-presets/DeKoiUniversalPreset.json` and verify its
+   derived-artifact byte count, Git blob, and SHA-256 above.
+2. Remove only `data.choiceBlocks[2].visibilityRule` from the attested artifact
+   and verify that its remaining JSON data equals the checked-in artifact.
+3. Compare every source package surface with the complete attestation inventory
+   below; no unlisted prompt or metadata surface may inherit this attestation.
+4. Run `pnpm check:storage-contracts`, which rejects an artifact that differs
    from the reviewed bytes.
 
 The two source statements recorded by the custodian are:
@@ -93,19 +98,25 @@ The two source statements recorded by the custodian are:
   permission covers the package content, not merely its compatibility envelope
   or metadata.
 
-Both statements apply specifically to the 40,225-byte Git blob
+Chai's authorship statement applies specifically to the 40,225-byte Git blob
 `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, whose SHA-256 is
 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`.
-The integrity check prevents either the reviewed source or this provenance
-record from being silently reused for different prompt content.
+Xel separately approved retaining and distributing the 39,137-byte derived
+artifact after verifying that it deletes only the abandoned `visibilityRule`
+metadata and does not add or alter prompt content. This approval does not claim
+that Chai attested the derived blob. The integrity check prevents the reviewed
+derived artifact or this provenance record from being silently reused for
+different prompt content.
 
-This approval covers all 14 prompt sections (role, five context/marker rows,
-context contract, world autonomy, agency boundaries, erotic tone, style,
-pacing, examples, history, and output), the context group, all 11 choice
-blocks and their options, default and visibility selections, generation
-parameters, Messenger prompt, and package metadata. The compatibility envelope
-is retained only as an import fixture; DeKoi normalizes it into a native editable
-record before storage or generation.
+Chai's source attestation covers all 14 prompt sections (role, five
+context/marker rows, context contract, world autonomy, agency boundaries,
+erotic tone, style, pacing, examples, history, and output), the context group,
+all 11 choice blocks and their options, default selections, the source
+artifact's one visibility rule, generation parameters, Messenger prompt, and
+package metadata. The derived artifact retains every listed surface except that
+visibility rule. The compatibility envelope is retained only as an import
+fixture; DeKoi normalizes it into a native editable record before storage or
+generation.
 
 The following source-level inventory is the scope of Chai's authorship
 attestation and the team's retention permission. In every row, "Chai-authored"
@@ -130,7 +141,7 @@ copied, adapted, or translated from Marinara.
 | `section_v2_output`            | Output-contract prompt prose                                                                                                                              |
 | `choice_v2_mode`               | Question, option labels, values, descriptions, and IDs                                                                                                    |
 | `choice_v2_content_boundary`   | Question, option labels, values, descriptions, and IDs                                                                                                    |
-| `choice_v2_erotic_tone`        | Question, option labels, values, descriptions, IDs, and visibility rule                                                                                   |
+| `choice_v2_erotic_tone`        | Question, option labels, values, descriptions, IDs, and the source-only visibility rule deleted from the derived artifact                                 |
 | `choice_v2_agency`             | Question, option labels, values, descriptions, and IDs                                                                                                    |
 | `choice_v2_pacing`             | Question, option labels, values, descriptions, and IDs                                                                                                    |
 | `choice_v2_style`              | Question, option labels, values, descriptions, and IDs                                                                                                    |
@@ -145,13 +156,16 @@ The audit mentioned in the package description was a behavioral comparison:
 Chai identified behaviors to improve, then wrote the listed material
 independently. No Marinara prompt wording or prompt structure is retained. This
 inventory is the source-by-source independent-authorship review for the exact
-artifact locked below; a different artifact is not covered by this approval.
+source artifact locked below; a different artifact does not inherit Chai's
+attestation.
 
-The approved artifact is exactly 40,225 bytes with SHA-256
+The authorship-attested source artifact is exactly 40,225 bytes with SHA-256
 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`.
-`pnpm check:storage-contracts` guards that identity so prompt or metadata changes
-require a new maintainer provenance review rather than silently inheriting this
-approval.
+The maintainer-approved derived artifact is exactly 39,137 bytes with SHA-256
+`eefc3759e23cd4ea505f06baa5fcf5485c1f055b1db9b9c9a0aa4e91579c4b17`.
+`pnpm check:storage-contracts` guards the derived identity so prompt or metadata
+changes require a new maintainer provenance review rather than silently
+inheriting this approval.
 
 This distinction lets DeKoi-built presets round-trip through compatible tools
 without turning another application's internal schema or implementation into

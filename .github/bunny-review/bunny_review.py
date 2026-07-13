@@ -654,6 +654,7 @@ def build_stats(review_packet):
         "total_tokens": 0,
         "wire_api": "",
         "empty_response_retries": 0,
+        "responses_empty_fallbacks": 0,
     }
 
 
@@ -673,6 +674,7 @@ def print_telemetry(stats):
         f"total_tokens={stats['total_tokens']}; "
         f"wire_api={stats['wire_api'] or 'unknown'}; "
         f"empty_response_retries={stats['empty_response_retries']}; "
+        f"responses_empty_fallbacks={stats['responses_empty_fallbacks']}; "
         f"responses_reasoning_effort={RESPONSES_REASONING_EFFORT}; "
         f"responses_max_output_tokens={RESPONSES_MAX_OUTPUT_TOKENS}",
         flush=True,
@@ -804,10 +806,14 @@ def model_call(client, messages, stats):
                 f"attempt_{index + 1}: {shape}"
                 for index, shape in enumerate(empty_shapes)
             )
-            raise RuntimeError(
-                "Responses API completed without text output after retry "
-                f"({shape_detail})"
+            stats["responses_empty_fallbacks"] += 1
+            stats["wire_api"] = "responses->chat_completions"
+            print(
+                "Bunny warning: Responses API completed without text output "
+                f"after retry ({shape_detail}); falling back to Chat Completions.",
+                flush=True,
             )
+            break
 
     request = {
         "model": model_name(),

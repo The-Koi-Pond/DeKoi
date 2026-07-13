@@ -4,13 +4,10 @@ import {
   addPromptPresetChoiceOption,
   movePromptPresetChoiceBlock,
   movePromptPresetChoiceOption,
-  promptPresetChoiceVisibilityOptions,
   removePromptPresetChoiceBlock,
   removePromptPresetChoiceOption,
   renamePromptPresetChoiceVariable,
   setPromptPresetChoiceDefault,
-  setPromptPresetChoiceVisibilityController,
-  setPromptPresetChoiceVisibilityValue,
   updatePromptPresetChoiceBlock,
   updatePromptPresetChoiceOption,
   validatePromptPresetChoiceDraft,
@@ -35,8 +32,6 @@ interface ChoiceBlockCardProps {
   onRemoveOption: (blockId: string, optionId: string) => void;
   onRenameVariable: (blockId: string, variableName: string) => void;
   onSetDefault: (blockId: string, optionId: string, selected: boolean) => void;
-  onSetVisibilityController: (blockId: string, controllerId: string | null) => void;
-  onSetVisibilityValue: (blockId: string, value: string, selected: boolean) => void;
   onUpdate: (
     blockId: string,
     update: (block: PromptPresetChoiceBlock) => PromptPresetChoiceBlock,
@@ -54,7 +49,6 @@ function currentChoiceDraft(draft: PromptPresetDraftState): PromptPresetChoiceDr
   return {
     choiceBlocks: draft.choiceBlocks,
     defaultOptionIdsByBlockId: draft.defaultOptionIdsByBlockId,
-    visibilityControllerIdsByBlockId: draft.visibilityControllerIdsByBlockId,
   };
 }
 
@@ -84,68 +78,6 @@ function choiceOptionFieldId(field: string, blockId: string, optionId: string) {
   return `preset-choice-option-${field}-${domIdSegment(blockId)}-${domIdSegment(optionId)}`;
 }
 
-function ChoiceVisibilityEditor({
-  block,
-  choiceDraft,
-  onSetVisibilityController,
-  onSetVisibilityValue,
-}: Pick<
-  ChoiceBlockCardProps,
-  "block" | "choiceDraft" | "onSetVisibilityController" | "onSetVisibilityValue"
->) {
-  const controllers = choiceDraft.choiceBlocks.filter((candidate) => candidate.id !== block.id);
-  const controllerId = choiceDraft.visibilityControllerIdsByBlockId[block.id];
-  const controller = controllers.find((candidate) => candidate.id === controllerId);
-  const controllerValues = controller ? promptPresetChoiceVisibilityOptions(controller) : [];
-
-  return (
-    <div className="catalog-choice-visibility">
-      <div className="catalog-editor-field">
-        <label htmlFor={`preset-choice-visibility-controller-${block.id}`}>Show When</label>
-        <select
-          id={`preset-choice-visibility-controller-${block.id}`}
-          className="pondinput"
-          value={controller?.id ?? ""}
-          onChange={(event) => onSetVisibilityController(block.id, event.target.value || null)}
-        >
-          <option value="">Always visible</option>
-          {controllers.map((candidate) => (
-            <option value={candidate.id} key={candidate.id}>
-              {candidate.label.trim() || candidate.variableName.trim() || "Unnamed choice"}
-            </option>
-          ))}
-        </select>
-      </div>
-      {controller && (
-        <fieldset className="catalog-choice-defaults">
-          <legend>Controller values</legend>
-          {controllerValues.length === 0 ? (
-            <span className="catalog-field-hint">Add a non-empty value to the controller.</span>
-          ) : (
-            controllerValues.map((option) => {
-              const checked =
-                block.visibilityRule?.values.some((value) => value.trim() === option.value) ??
-                false;
-              return (
-                <label className="catalog-checkbox-control" key={option.value}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) =>
-                      onSetVisibilityValue(block.id, option.value, event.target.checked)
-                    }
-                  />
-                  <span>{option.label.trim() || option.value}</span>
-                </label>
-              );
-            })
-          )}
-        </fieldset>
-      )}
-    </div>
-  );
-}
-
 function ChoiceBlockCard({
   block,
   blockIndex,
@@ -158,8 +90,6 @@ function ChoiceBlockCard({
   onRemoveOption,
   onRenameVariable,
   onSetDefault,
-  onSetVisibilityController,
-  onSetVisibilityValue,
   onUpdate,
   onUpdateOption,
 }: ChoiceBlockCardProps) {
@@ -425,12 +355,6 @@ function ChoiceBlockCard({
             </div>
           )}
         </div>
-        <ChoiceVisibilityEditor
-          block={block}
-          choiceDraft={choiceDraft}
-          onSetVisibilityController={onSetVisibilityController}
-          onSetVisibilityValue={onSetVisibilityValue}
-        />
       </details>
     </div>
   );
@@ -517,16 +441,6 @@ export function PromptPresetChoiceEditor({ draft, onDraftChange }: PromptPresetC
               onSetDefault={(blockId, optionId, selected) =>
                 applyChoiceDraft(
                   setPromptPresetChoiceDefault(choiceDraft, blockId, optionId, selected),
-                )
-              }
-              onSetVisibilityController={(blockId, controllerId) =>
-                applyChoiceDraft(
-                  setPromptPresetChoiceVisibilityController(choiceDraft, blockId, controllerId),
-                )
-              }
-              onSetVisibilityValue={(blockId, value, selected) =>
-                applyChoiceDraft(
-                  setPromptPresetChoiceVisibilityValue(choiceDraft, blockId, value, selected),
                 )
               }
               onUpdate={updateBlock}

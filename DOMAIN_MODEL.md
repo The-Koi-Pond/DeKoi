@@ -288,7 +288,8 @@ Current implementation:
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
   sections, section roles, enabled state, wrapping, depth placement, choice
   blocks, options, reusable defaults, questions, option descriptions,
-  presentation, ordering, and conditional visibility. Its edit flow preserves
+  presentation, and ordering. Choice questions are always visible and
+  independent. Its edit flow preserves
   static variable values, richer parameters, folder/author metadata,
   compatibility-only variable-order slots, and Messenger Prompt Source even
   where dedicated controls are not exposed.
@@ -313,9 +314,9 @@ Current implementation:
 - Both Messenger and Roleplay consume stored stable-ID choices during
   generation. Roleplay thread settings currently expose Preset Variables for
   editing those choices without changing the reusable preset record. Questions
-  and option descriptions remain visible there, and nested acyclic visibility
-  resolves the same way in settings and generation. Switching to another preset
-  clears those thread-level choices.
+  and option descriptions remain visible there; every choice resolves
+  independently in settings and generation. Switching to another preset
+  preserves each preset's separate thread-level choice history.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 

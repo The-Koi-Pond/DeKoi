@@ -350,9 +350,9 @@ names can affect later prompt text in the same request, but they are ignored
 when macro variable state is committed.
 Prompt-preset choices are deterministic. Native thread selections use stable
 choice-block and option IDs, preserve multi-select order, and join resolved
-values with the block separator. Nested acyclic visibility is resolved
-recursively for both settings controls and generation; hidden blocks ignore
-thread overrides and resolve their preset defaults. Choice blocks do not support
+values with the block separator. Every choice block is always visible and
+resolved independently before applying thread overrides and preset defaults.
+Choice blocks do not support
 `randomPick`; random and roll macros are the only prompt randomness mechanism.
 Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the

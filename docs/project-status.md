@@ -48,10 +48,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   Native prompt preset records also
   normalize richer parameters, choice blocks, static variable values, and
   defaults for compatible import. The catalog edits choice-block definitions,
-  options, defaults, presentation settings, and conditional visibility while
-  preserving other advanced compatible fields that do not have dedicated
-  controls yet. Roleplay generation consumes section/group assembly when
-  present. Both Messenger and Roleplay generation consume stable-ID choice
+  options, defaults, and presentation settings; all choice questions are always
+  visible. It preserves other advanced compatible fields that do not have
+  dedicated controls yet. Roleplay generation consumes section/group assembly
+  when present. Both Messenger and Roleplay generation consume stable-ID choice
   values, while Roleplay thread settings can edit them through a Preset Variables
   popup without changing the preset catalog record. Questions and option
   descriptions remain visible across the supported dropdown, checkbox, button,

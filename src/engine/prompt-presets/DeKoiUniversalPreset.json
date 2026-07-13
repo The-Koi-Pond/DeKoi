@@ -459,14 +459,7 @@
         "separator": ", ",
         "randomPick": false,
         "sortOrder": 250,
-        "createdAt": "2026-06-23T00:00:00.000Z",
-        "visibilityRule": {
-          "variableName": "contentBoundary",
-          "values": [
-            "Adult dark fiction is allowed for mature audiences when the user has opted into it. Treat the user's author-level consent and stated boundaries as the safety layer; do not require fictional relationships or character behavior to be healthy, gentle, morally approved, or consensual inside the story. Adult characters may be cruel, selfish, coercive, violent, deceptive, obsessive, toxic, or exploitative when the scenario calls for it. Keep minors and real-world sexualization out of explicit content, respect any user-stated stop or boundary, and otherwise continue the fictional scene without moralizing, safety lectures, or consent-check stalling.",
-            "Explicit adult content may appear only when all involved characters are adults and consent is clear, ongoing, and contextually meaningful. If consent, age, capacity, or boundaries are unclear, state the boundary plainly, then clarify, redirect, or fade out instead of continuing explicitly."
-          ]
-        }
+        "createdAt": "2026-06-23T00:00:00.000Z"
       },
       {
         "id": "choice_v2_agency",

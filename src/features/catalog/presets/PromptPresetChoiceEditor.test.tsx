@@ -35,7 +35,7 @@ describe("PromptPresetChoiceEditor", () => {
     expect(labelledIds.every((id) => ids.includes(id))).toBe(true);
   });
 
-  it("renders visibility controls from the stable controller ID", () => {
+  it("renders every choice authoring card without visibility controls", () => {
     const markup = renderToStaticMarkup(
       <PromptPresetChoiceEditor
         draft={{
@@ -58,16 +58,15 @@ describe("PromptPresetChoiceEditor", () => {
               variableName: "dependent",
               label: "Dependent",
               options: [{ id: "dependent-on", label: "On", value: "on" }],
-              visibilityRule: { variableName: "beta", values: ["alpha-on"] },
             },
           ],
-          visibilityControllerIdsByBlockId: { "choice-dependent": "choice-alpha" },
         }}
         onDraftChange={vi.fn()}
       />,
     );
 
-    expect(markup).toContain('<option value="choice-alpha" selected="">Alpha</option>');
-    expect(markup).toContain("<span>Alpha On</span>");
+    expect(markup).toContain("Dependent");
+    expect(markup).toContain("Alpha On");
+    expect(markup).not.toContain("Show When");
   });
 });

@@ -35,16 +35,9 @@ describe("Universal V2 starter prompt preset", () => {
       ).toBe(true);
     }
 
-    for (const block of STARTER_PROMPT_PRESET.choiceBlocks) {
-      if (block.visibilityRule) {
-        const controller = choiceBlocksByVariable.get(block.visibilityRule.variableName);
-        expect(controller).toBeDefined();
-        const controllerValues = new Set(controller?.options.map(({ value }) => value));
-        expect(block.visibilityRule.values.every((value) => controllerValues.has(value))).toBe(
-          true,
-        );
-      }
-    }
+    expect(
+      STARTER_PROMPT_PRESET.choiceBlocks.every((block) => !Object.hasOwn(block, "visibilityRule")),
+    ).toBe(true);
 
     expect(normalizePromptPresetRecord(STARTER_PROMPT_PRESET)).toEqual(STARTER_PROMPT_PRESET);
   });
