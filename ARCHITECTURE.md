@@ -149,7 +149,8 @@ src/engine/core            IDs, timestamps, result helpers, JSON primitives.
 src/engine/shared          Pure deterministic helpers shared by engine owners.
 src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
-src/engine/modes           Messenger and Roleplay orchestration.
+src/engine/modes           Shared mode-thread primitives plus concrete
+                           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
 src/engine/prompt-presets  Prompt preset actions, starter preset records,
                             normalization, and section-message assembly.
@@ -188,7 +189,11 @@ architecture-level rules:
   assembly, including lorebook activation, prompt preset section-message
   assembly, the macro resolver and active editor macro catalog under
   `generation-core`, and Messenger/Roleplay prompt macro wiring under
-  `generation`.
+  `generation`. The additive `contracts/types/mode-thread.ts` and
+  `modes/mode-thread` package define the validated branch/message/version
+  substrate shared by both truthful mode kinds. Concrete Messenger and
+  Roleplay factories, generation, UI, app state, and storage still use their
+  existing mode-owned records; adopting the substrate is later cutover work.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules

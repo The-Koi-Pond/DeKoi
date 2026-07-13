@@ -60,6 +60,14 @@ src/engine/
 ## Current Engine Files
 
 ```text
+src/engine/contracts/types/mode-thread.ts
+src/engine/modes/mode-thread/mode-thread-actions.ts
+src/engine/modes/mode-thread/mode-thread-validation.ts
+  Additive shared branch/message/version contracts, strict boundary validation,
+  and pure actions for truthful Messenger and Roleplay kinds. Concrete mode
+  factories, generation, UI, app state, and storage do not use this substrate
+  yet.
+
 src/engine/contracts/types/messenger.ts
 src/engine/modes/messenger/messenger-actions.ts
 src/engine/generation/messenger-generation.ts
@@ -134,7 +142,8 @@ src/engine/core            IDs, timestamps, result helpers, JSON primitives.
 src/engine/shared          Pure deterministic helpers shared by engine owners.
 src/engine/generation-core Prompt and provider-neutral generation primitives.
 src/engine/generation      Shared generation request/response assembly.
-src/engine/modes           Messenger and Roleplay orchestration.
+src/engine/modes           Shared mode-thread primitives plus concrete
+                           Messenger and Roleplay orchestration.
 src/engine/catalog         Character, persona, lorebook, and provider actions.
 src/engine/prompt-presets  Prompt preset actions, normalization, and assembly.
 src/engine/macro-variables Owner-scoped macro variable state actions.

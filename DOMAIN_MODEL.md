@@ -347,6 +347,35 @@ Not fully settled yet:
 - Final provider roster and provider-specific capability depth.
 - Provider support depth outside the current desktop secret-backed path.
 
+## Unified Mode-Thread Foundation
+
+`ModeThread` is the additive React-free substrate for the future Messenger and
+Roleplay record cutover. It keeps `messenger` and `roleplay` as truthful
+discriminated kinds rather than erasing their product differences. A thread has
+one or more same-kind branches; messages belong to exactly one thread and
+branch and have one or more versions with one active version.
+
+Branches own participants, active Persona, lorebooks, prompt preset,
+per-preset confirmed-choice history, provider connection, and timestamps.
+Roleplay branches additionally own their reply strategy, while a Roleplay
+thread may record its opening Companion. Message authors use the native
+`persona`, `character`, `system`, or `unknown` discriminators and store a
+historical display label; Character is presented publicly as Companion. System
+is a neutral author kind, not a native narrator or generated-reply target.
+
+The foundation validates exact native shapes, canonical IDs, ownership,
+discriminators, nonempty branches and versions, active references, and
+monotonic parseable timestamps. Its pure actions isolate branch mutations,
+retain preset choice histories when presets change, and order activity from
+thread metadata plus message and active-version updates.
+
+This slice does not replace `MessengerThread`, `MessengerMessage`,
+`RoleplayThread`, or `RoleplayEntry`. Their factories, generation, UI, app
+state, and durable collections remain authoritative until a later atomic
+cutover. The foundation deliberately has no generic cross-mode thread factory,
+native narrator, `sceneText`, conversation-level prompt override, legacy
+aliases, or visible branch/swipe UI.
+
 ## Messenger Records
 
 ### MessengerThread

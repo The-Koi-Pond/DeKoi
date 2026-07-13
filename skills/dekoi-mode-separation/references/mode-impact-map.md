@@ -56,6 +56,29 @@ Must not own:
 - generic ripple state semantics
 - storage contracts that should be mode-neutral
 
+## Shared Mode-Thread Foundation
+
+Owner paths:
+
+- `src/engine/contracts/types/mode-thread.ts`
+- `src/engine/modes/mode-thread/mode-thread-actions.ts`
+- `src/engine/modes/mode-thread/mode-thread-validation.ts`
+
+Owns:
+
+- truthful `messenger` and `roleplay` discriminators
+- shared branch, message, version, and historical-author-label contracts
+- strict native-shape, canonical-ID, ownership, and timestamp validation
+- branch-isolated pure mutations, per-preset choice history, and activity
+  ordering
+
+Must not own:
+
+- a generic cross-mode thread factory
+- Messenger or Roleplay generation and orchestration
+- concrete mode UI, app state, storage, or compatibility aliases
+- Roleplay scene text or a native narrator
+
 ## Shared Per-Thread State
 
 Owner paths:
@@ -85,6 +108,9 @@ Allowed shared homes:
 
 - `src/engine`: native record types, deterministic actions, and pure helpers
   that do not encode concrete mode orchestration.
+- `src/engine/modes/mode-thread`: additive shared branch/message/version
+  substrate; concrete mode records remain authoritative until their later
+  cutover.
 - `src/engine/shared`: engine-local helpers shared by engine owners without
   importing generic frontend/shared code.
 - `src/engine/generation-core`: mode-neutral activation and prompt-selection

@@ -31,6 +31,10 @@ import boundaries.
 - Roleplay owns roleplay thread records, scene records, cast/world/context
   setup, scene display, scene actions, and Roleplay-specific generation
   behavior.
+- `src/engine/modes/mode-thread` owns only the shared native
+  branch/message/version substrate and validation. It preserves truthful mode
+  discriminators and must not become a generic thread factory or mode
+  orchestrator.
 - Ripples are shared per-thread state, not a third mode. Changes to ripple
   records or workflows must check which mode surfaces can observe them.
 
@@ -56,11 +60,12 @@ After editing:
 
 ## Sharing Rules
 
-- Share only lower-layer primitives: record contracts, storage adapters, runtime
-  command wrappers, generic transcript helpers, deterministic parsers, generic
-  UI atoms, and provider transport wrappers.
-- Do not share orchestration, prompts, scene semantics, state transitions, or
-  mode-specific generation behavior across modes.
+- Share only lower-layer primitives: record contracts, branch/message/version
+  invariants and pure mutations, storage adapters, runtime command wrappers,
+  generic transcript helpers, deterministic parsers, generic UI atoms, and
+  provider transport wrappers.
+- Do not share orchestration, prompts, scene semantics, mode-specific state
+  transitions, or mode-specific generation behavior across modes.
 - If two modes need similar behavior, extract a smaller lower-layer primitive
   and keep each mode's orchestration separate.
 - Do not add a mode flag to a generic function when a mode-owned service would
