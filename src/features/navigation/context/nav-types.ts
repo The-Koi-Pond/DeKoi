@@ -201,19 +201,31 @@ export interface RoleplayThreadCreateInput {
 export interface NavRoleplayThreadActions {
   createRoleplayThread: (input?: RoleplayThreadCreateInput) => RoleplayThread;
   updateRoleplayThread: (thread: RoleplayThread) => void;
+  updateRoleplayThreadById: (
+    threadId: string,
+    updater: (thread: RoleplayThread) => RoleplayThread,
+  ) => void;
   appendRoleplayThreadEntries: (threadId: string, entries: RoleplayEntry[]) => void;
   renameRoleplayThread: (threadId: string, title: string) => void;
   clearRoleplayThreadEntries: (threadId: string) => void;
   deleteRoleplayThread: (threadId: string) => void;
+  roleplayPromptPresetRepairNotices: Record<string, string>;
+  clearRoleplayPromptPresetRepairNotice: (threadId: string) => void;
 }
 
 export interface NavMessengerThreadActions {
   createMessengerThread: (input?: MessengerThreadCreateInput) => MessengerThread;
   updateMessengerThread: (thread: MessengerThread) => void;
+  updateMessengerThreadById: (
+    threadId: string,
+    updater: (thread: MessengerThread) => MessengerThread,
+  ) => void;
   appendMessengerThreadMessages: (threadId: string, messages: MessengerMessage[]) => void;
   renameMessengerThread: (threadId: string, title: string) => void;
   clearMessengerThreadMessages: (threadId: string) => void;
   deleteMessengerThread: (threadId: string) => void;
+  messengerPromptPresetRepairNotices: Record<string, string>;
+  clearMessengerPromptPresetRepairNotice: (threadId: string) => void;
 }
 
 interface NavRippleActions {

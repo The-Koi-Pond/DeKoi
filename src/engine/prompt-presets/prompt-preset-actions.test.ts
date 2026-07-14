@@ -4,6 +4,7 @@ import {
   createPromptPresetRecord,
   createImportedPromptPresetRecord,
   duplicatePromptPresetRecord,
+  materializePromptPresetThreadChoiceSelections,
   normalizePromptPresetRecord,
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
@@ -913,6 +914,64 @@ describe("createImportedPromptPresetRecord", () => {
 });
 
 describe("native thread prompt preset choices", () => {
+  it("materializes untouched defaults into a stable confirmed history copy", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-default-copy",
+      now,
+      input: {
+        title: "Default copy",
+        systemPrompt: "Use {{tone}} and {{pace}}.",
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            defaultOptionId: "tone-warm",
+            options: [
+              { id: "tone-warm", label: "Warm", value: "warm" },
+              { id: "tone-dry", label: "Dry", value: "dry" },
+            ],
+          },
+          {
+            id: "choice-pace",
+            variableName: "pace",
+            label: "Pace",
+            defaultOptionId: "pace-slow",
+            options: [
+              { id: "pace-slow", label: "Slow", value: "slow" },
+              { id: "pace-fast", label: "Fast", value: "fast" },
+            ],
+          },
+        ],
+      },
+    });
+    const confirmed = materializePromptPresetThreadChoiceSelections(preset, {
+      "choice-tone": { kind: "option", optionId: "tone-dry" },
+    });
+    const editedPreset = updatePromptPresetRecord(
+      preset,
+      {
+        ...preset,
+        choiceBlocks: preset.choiceBlocks.map((block) =>
+          block.id === "choice-pace" ? { ...block, defaultOptionId: "pace-fast" } : block,
+        ),
+      },
+      "2026-07-08T01:00:00.000Z",
+    );
+
+    expect(confirmed).toEqual({
+      "choice-tone": { kind: "option", optionId: "tone-dry" },
+      "choice-pace": { kind: "option", optionId: "pace-slow" },
+    });
+    expect(
+      resolvePromptPresetChoiceVariables({ preset: editedPreset, selections: confirmed }),
+    ).toEqual(
+      expect.objectContaining({
+        variables: expect.objectContaining({ tone: "dry", pace: "slow" }),
+      }),
+    );
+  });
+
   it("reports when legacy selections change during normalization", () => {
     expect(normalizePromptPresetThreadChoiceSelectionsWithChange({ pacing: "slow" })).toEqual({
       selections: {},

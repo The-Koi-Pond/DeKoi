@@ -158,7 +158,10 @@ Focused checks for narrow changes are mapped to change types in
   including conversation history through an enabled Chat History marker.
   Messenger uses the preset's Messenger prompt source when present, falls back
   to the preset system prompt, and lets a non-empty edited Messenger Prompt
-  override both for that thread. The catalog can add, remove, and reorder
+  override both for that thread. Switching Messenger to another preset returns
+  the thread to preset/default prompt behavior; reconfirming the same preset
+  preserves an intentional custom Messenger Prompt. The catalog can add,
+  remove, and reorder
   reusable choice blocks and options; edit defaults, questions, option
   descriptions, multi-select separators, manual or alphabetical option order,
   button/list/automatic presentation. Choice questions are always visible.
@@ -167,12 +170,18 @@ Focused checks for narrow changes are mapped to change types in
   not have visible editors yet. Roleplay generation consumes saved section/group
   structure when present. Both Messenger and Roleplay generation consume stored
   stable-ID choices and retain independent confirmed-choice histories when a
-  thread switches presets. In Roleplay settings, Prompt Preset > Edit opens Preset
-  Variables for the selected preset; New remains the secondary action for
-  creating another preset. Questions and option descriptions appear with the
-  choices. Ordered multi-select choices feed request-local
-  prompt variables during generation, and using the preset default removes the
-  thread override. The Presets catalog can import a compatible `.json` or
+  thread switches presets. Selecting a variable-bearing preset for the first
+  time opens Preset Variables in both modes and leaves the previous preset
+  active until Confirm or Use Defaults; Cancel discards the draft. New threads
+  whose default preset has variables open settings immediately, and generation
+  stays blocked until those variables are confirmed. Choice-free presets are
+  confirmed without a dialog. Messenger's Variables action and Roleplay's
+  Prompt Preset > Edit action reopen the active preset's saved choices. Questions
+  and option descriptions appear with the choices. Ordered multi-select choices
+  feed request-local prompt variables during generation, and Use Defaults copies
+  the preset's current defaults into the thread history. Invalid saved choices
+  are repaired from valid defaults and reported even when settings was closed.
+  The Presets catalog can import a compatible `.json` or
   `.marinara.json` package as a new preset and export the selected saved preset
   as `Preset Name.json`. These single-preset files are separate from Pond Care
   backups. Browser imports without a configured storage target are session-only

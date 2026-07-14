@@ -27,6 +27,7 @@ export {
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
   normalizePromptPresetRecord,
+  materializePromptPresetThreadChoiceSelections,
   prunePromptPresetThreadChoiceSelections,
   resolvePromptPresetChoiceControls,
   resolvePromptPresetChoiceVariables,

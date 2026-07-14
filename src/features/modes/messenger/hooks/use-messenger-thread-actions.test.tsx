@@ -9,6 +9,8 @@ import type {
   MessengerThread,
 } from "../../../../engine/contracts/types/messenger";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
+import { createPromptPresetRecord } from "../../../../engine/prompt-presets/prompt-preset-actions";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 import { useMessengerThreadActions } from "./use-messenger-thread-actions";
 
@@ -59,15 +61,21 @@ function createStateSetter<T>(state: { current: T }): StateSetter<T> {
   };
 }
 
-function captureMessengerThreadActions(initialMessengerThreads: MessengerThread[] = []) {
+function captureMessengerThreadActions(
+  initialMessengerThreads: MessengerThread[] = [],
+  promptPresets: PromptPresetRecord[] = [],
+) {
   const messengerThreads = { current: initialMessengerThreads };
   const loreRuntimeStates = { current: [] as LoreRuntimeState[] };
   const macroVariableStates = { current: [] as MacroVariableScope[] };
   const actions = { current: null as ReturnType<typeof useMessengerThreadActions> | null };
+  let chatSettingsOpenCount = 0;
 
   function Capture() {
     actions.current = useMessengerThreadActions({
       activeMessengerConnectionId: "connection-1",
+      defaultPromptPresetId: "preset-default",
+      promptPresets,
       characters: [character("character-1")],
       messengerThreads: messengerThreads.current,
       personas: [],
@@ -77,6 +85,9 @@ function captureMessengerThreadActions(initialMessengerThreads: MessengerThread[
       setMacroVariableStates: createStateSetter(macroVariableStates),
       setView: () => {},
       view: { kind: "pond" },
+      openChatSettings: () => {
+        chatSettingsOpenCount += 1;
+      },
       openMessengerThread: () => {},
     });
     return null;
@@ -91,6 +102,9 @@ function captureMessengerThreadActions(initialMessengerThreads: MessengerThread[
   return {
     actions: actions.current,
     messengerThreads,
+    get chatSettingsOpenCount() {
+      return chatSettingsOpenCount;
+    },
   };
 }
 
@@ -116,5 +130,45 @@ describe("useMessengerThreadActions", () => {
       "user-message",
       "generated-message",
     ]);
+  });
+
+  it("materializes empty history for a variable-free default preset", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-default",
+      now: "2026-07-13T00:00:00.000Z",
+      input: { title: "Default", systemPrompt: "Write a reply.", choiceBlocks: [] },
+    });
+    const captured = captureMessengerThreadActions([], [preset]);
+
+    const created = captured.actions.createMessengerThread();
+
+    expect(created.presetChoiceSelectionsByPresetId).toEqual({ "preset-default": {} });
+    expect(captured.messengerThreads.current[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      "preset-default": {},
+    });
+    expect(captured.chatSettingsOpenCount).toBe(0);
+  });
+
+  it("leaves history empty for a variable-bearing default preset", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-default",
+      now: "2026-07-13T00:00:00.000Z",
+      input: {
+        title: "Default",
+        systemPrompt: "Write a reply.",
+        choiceBlocks: [
+          {
+            id: "choice-1",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    });
+    const captured = captureMessengerThreadActions([], [preset]);
+
+    expect(captured.actions.createMessengerThread().presetChoiceSelectionsByPresetId).toEqual({});
+    expect(captured.chatSettingsOpenCount).toBe(1);
   });
 });

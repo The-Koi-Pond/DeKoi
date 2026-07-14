@@ -4,7 +4,12 @@ import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
-import { getThreadReferenceSummary, type ThreadReferenceRecord } from "./thread-reference-summary";
+import {
+  getThreadReferenceNotices,
+  getThreadReferenceSummary,
+  getThreadSendBlocker,
+  type ThreadReferenceRecord,
+} from "./thread-reference-summary";
 
 function character(id: string, lorebookIds: string[]): CharacterRecord {
   return { id, lorebookIds } as CharacterRecord;
@@ -24,6 +29,19 @@ function providerConnection(id: string): ProviderConnectionRecord {
 
 function promptPreset(id: string): PromptPresetRecord {
   return { id } as PromptPresetRecord;
+}
+
+function variablePromptPreset(id: string): PromptPresetRecord {
+  return {
+    id,
+    choiceBlocks: [
+      {
+        id: "choice",
+        variableName: "tone",
+        options: [{ id: "warm", label: "Warm", value: "warm" }],
+      },
+    ],
+  } as PromptPresetRecord;
 }
 
 function thread(input: Partial<ThreadReferenceRecord> = {}): ThreadReferenceRecord {
@@ -86,5 +104,49 @@ describe("getThreadReferenceSummary", () => {
     });
 
     expect(summary.hasMissingPreset).toBe(true);
+  });
+
+  it("treats an empty history as confirmed but a missing history key as unconfirmed", () => {
+    const base = {
+      characters: [],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [variablePromptPreset("preset-1")],
+      providerConnections: [providerConnection("connection")],
+    };
+    expect(
+      getThreadReferenceSummary({
+        ...base,
+        thread: thread({
+          presetId: "preset-1",
+          presetChoiceSelectionsByPresetId: {},
+        }),
+      }).hasUnconfirmedPresetChoices,
+    ).toBe(true);
+    expect(
+      getThreadReferenceSummary({
+        ...base,
+        thread: thread({
+          presetId: "preset-1",
+          presetChoiceSelectionsByPresetId: { "preset-1": {} },
+        }),
+      }).hasUnconfirmedPresetChoices,
+    ).toBe(false);
+  });
+
+  it("blocks sending before transcript mutation when preset choices are unconfirmed", () => {
+    const summary = getThreadReferenceSummary({
+      characters: [],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [variablePromptPreset("preset-1")],
+      providerConnections: [providerConnection("connection")],
+      thread: thread({ presetId: "preset-1" }),
+    });
+    expect(summary.hasUnconfirmedPresetChoices).toBe(true);
+    expect(getThreadReferenceNotices(summary, { surfaceLabel: "Messenger" })).toContainEqual(
+      expect.objectContaining({ id: "preset-choices-unconfirmed" }),
+    );
+    expect(getThreadSendBlocker(summary, { surfaceLabel: "Messenger" })).toContain("Confirm");
   });
 });

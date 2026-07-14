@@ -1,10 +1,13 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { resolvePromptPresetMessengerPrompt } from "../../../../engine/contracts/types/prompt-presets";
+import { ChatSettingsNotice } from "./ChatSettingsBlocks";
+import { ChatSettingsPresetVariablesDialog } from "./ChatSettingsPresetVariablesDialog";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
 import { ChatSettingsPresetDrawer } from "./ChatSettingsPresetDrawer";
 import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
 import { useChatSettingsPromptEditor } from "../hooks/use-chat-settings-prompt-editor";
+import { useChatSettingsPresetChoiceFlow } from "../hooks/use-chat-settings-preset-choice-flow";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
 import type { ShoalRailProps } from "../types";
@@ -34,6 +37,31 @@ export function ChatSettingsMessengerResourceSection({
   onCreateCompanion,
   onCreateLorebook,
 }: ChatSettingsMessengerResourceSectionProps) {
+  const {
+    selectedPreset: activePreset,
+    dialogPreset: variablesPreset,
+    repairNoticeVisible,
+    selectionsForPreset,
+    openVariables,
+    closeVariables,
+    selectPreset,
+  } = useChatSettingsPresetChoiceFlow({
+    threadId: activeMessengerThreadRecord?.id,
+    selectedPresetId: activeMessengerThreadRecord?.presetId,
+    promptPresets,
+    history: activeMessengerThreadRecord?.presetChoiceSelectionsByPresetId,
+    onPresetChange: actions.preset.onPresetChange,
+    onPresetConfirm: actions.preset.onPresetConfirm,
+  });
+
+  function handlePresetChange(presetId: string) {
+    const preset = promptPresets.find((candidate) => candidate.id === presetId);
+    if (!preset) {
+      actions.preset.onPresetChange(presetId);
+      return;
+    }
+    selectPreset(preset);
+  }
   const selectedPromptSource = activeMessengerThreadRecord?.presetId
     ? resolvePromptPresetMessengerPrompt(
         promptPresets.find((preset) => preset.id === activeMessengerThreadRecord.presetId),
@@ -75,7 +103,10 @@ export function ChatSettingsMessengerResourceSection({
         title="Prompt Preset"
         onClearMissingPreset={actions.preset.onClearMissingPreset}
         onPresetAction={openPromptEditor}
-        onPresetChange={actions.preset.onPresetChange}
+        onPresetChange={handlePresetChange}
+        secondaryActionLabel="Variables"
+        secondaryActionDisabled={!activePreset}
+        onSecondaryAction={() => activePreset && openVariables(activePreset.id)}
         onToggle={actions.drawers.onToggle}
       />
 
@@ -85,6 +116,19 @@ export function ChatSettingsMessengerResourceSection({
         onClose={closePromptEditor}
         onSave={savePromptEditor}
         onValueChange={updatePromptEditorValue}
+      />
+
+      {repairNoticeVisible && (
+        <ChatSettingsNotice>Some preset choices were reset to valid defaults.</ChatSettingsNotice>
+      )}
+
+      <ChatSettingsPresetVariablesDialog
+        open={!!variablesPreset}
+        preset={variablesPreset}
+        presetChoiceSelections={variablesPreset ? selectionsForPreset(variablesPreset.id) : {}}
+        onClose={closeVariables}
+        onCancel={closeVariables}
+        onPresetConfirm={actions.preset.onPresetConfirm}
       />
 
       <ChatSettingsLorebookResourceDrawer

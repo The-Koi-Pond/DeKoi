@@ -178,7 +178,7 @@ export function setMessengerThreadPreset(
 
   const history = { ...thread.presetChoiceSelectionsByPresetId };
   if (cleanPresetId && presetChoiceSelections !== undefined)
-    history[cleanPresetId] = presetChoiceSelections;
+    history[cleanPresetId] = normalizePromptPresetThreadChoiceSelections(presetChoiceSelections);
   return {
     ...thread,
     presetId: cleanPresetId,

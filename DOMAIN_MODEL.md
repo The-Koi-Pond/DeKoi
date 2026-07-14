@@ -309,14 +309,20 @@ Current implementation:
   generation time. Choice selections
   are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
   Thread selections use stable choice-block and option IDs and retain separate
-  histories per preset. Loading repairs invalid confirmed choices without
-  creating confirmations for choice blocks that were never answered.
-- Both Messenger and Roleplay consume stored stable-ID choices during
-  generation. Roleplay thread settings currently expose Preset Variables for
-  editing those choices without changing the reusable preset record. Questions
-  and option descriptions remain visible there; every choice resolves
-  independently in settings and generation. Switching to another preset
-  preserves each preset's separate thread-level choice history.
+  histories per preset. Messenger and Roleplay mode owners repair invalid
+  confirmed choices after live preset edits, persist the valid defaults, and
+  surface a repair notice without creating confirmations for unanswered
+  presets.
+- Both Messenger and Roleplay settings expose Preset Variables without changing
+  the reusable preset record. Variable edits remain a dialog-local draft until
+  Confirm or Use Defaults; canceling a first-use preset change preserves the
+  previous preset and history. First use blocks generation until choices are
+  confirmed, while choice-free presets record an empty confirmed history
+  without opening the dialog. Returning to a preset restores its separate
+  history, and the active preset's variables can be reopened manually.
+- Switching Messenger to a different preset restores preset/default system
+  prompt behavior. Reconfirming the same preset preserves an intentional custom
+  Messenger Prompt.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 

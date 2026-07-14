@@ -621,6 +621,21 @@ export function materializePromptPresetThreadChoiceSelections(
   return materialized;
 }
 
+/** A variable-bearing preset is confirmed only after its preset id has a durable history key. */
+export function promptPresetChoiceSelectionsAreConfirmed(
+  preset: PromptPresetRecord | null | undefined,
+  selectionsByPresetId: Record<string, PromptPresetThreadChoiceSelections> | null | undefined,
+): boolean {
+  if (!preset || !Array.isArray(preset.choiceBlocks) || preset.choiceBlocks.length === 0)
+    return true;
+  const presetId = preset.id.trim();
+  return Boolean(
+    presetId &&
+    selectionsByPresetId &&
+    Object.prototype.hasOwnProperty.call(selectionsByPresetId, presetId),
+  );
+}
+
 interface PromptPresetChoiceControlOption {
   id: string;
   label: string;

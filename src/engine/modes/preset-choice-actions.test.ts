@@ -14,6 +14,64 @@ const STARTED_AT = "2026-07-09T00:00:00.000Z";
 const UPDATED_AT = "2026-07-09T00:01:00.000Z";
 
 describe("thread prompt preset choice selections", () => {
+  it("atomically confirms a Messenger target preset with normalized history", () => {
+    const thread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: ["character-1"],
+        id: "messenger-atomic",
+        now: STARTED_AT,
+        title: "Messenger",
+      }),
+      presetId: "preset-old",
+      presetChoiceSelectionsByPresetId: {
+        "preset-old": { old: { kind: "option" as const, optionId: "old" } },
+      },
+    };
+    const updated = setMessengerThreadPreset(thread, " preset-new ", UPDATED_AT, {
+      " choice-tone ": { kind: "option", optionId: " tone-warm " },
+    });
+
+    expect(updated.presetId).toBe("preset-new");
+    expect(updated.presetChoiceSelectionsByPresetId).toEqual({
+      "preset-old": { old: { kind: "option", optionId: "old" } },
+      "preset-new": { "choice-tone": { kind: "option", optionId: "tone-warm" } },
+    });
+    expect(thread.presetId).toBe("preset-old");
+    expect(
+      (thread.presetChoiceSelectionsByPresetId as Record<string, unknown>)["preset-new"],
+    ).toBeUndefined();
+  });
+
+  it("atomically confirms a Roleplay target preset and preserves prior history", () => {
+    const thread = {
+      ...createRoleplayThread({
+        activePersonaId: null,
+        characterIds: ["character-1"],
+        id: "roleplay-atomic",
+        now: STARTED_AT,
+        title: "Roleplay",
+      }),
+      presetId: "preset-old",
+      presetChoiceSelectionsByPresetId: {
+        "preset-old": { old: { kind: "option" as const, optionId: "old" } },
+      },
+    };
+    const updated = setRoleplayThreadPreset(thread, "preset-new", UPDATED_AT, {
+      " choice-tone ": { kind: "option", optionId: " tone-warm " },
+    });
+
+    expect(updated.presetId).toBe("preset-new");
+    expect(updated.presetChoiceSelectionsByPresetId).toEqual({
+      "preset-old": { old: { kind: "option", optionId: "old" } },
+      "preset-new": { "choice-tone": { kind: "option", optionId: "tone-warm" } },
+    });
+    expect(thread.presetId).toBe("preset-old");
+    expect(
+      (thread.presetChoiceSelectionsByPresetId as Record<string, unknown>)["preset-new"],
+    ).toBeUndefined();
+  });
+
   it("stores only native stable Messenger prompt preset choices", () => {
     const thread = createMessengerThread({
       activePersonaId: null,

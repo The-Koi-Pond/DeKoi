@@ -75,6 +75,7 @@ export function ChatSettingsRoleplayDrawers({
 
       <ChatSettingsRoleplayResourceSection
         actions={actions}
+        activeRoleplayThreadRecord={activeRoleplayThread}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}

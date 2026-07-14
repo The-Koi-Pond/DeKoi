@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useState } from "react";
 import type {
   PromptPresetRecord,
   PromptPresetThreadChoiceSelection,
@@ -6,6 +7,7 @@ import type {
 } from "../../../../engine/contracts/types/prompt-presets";
 import {
   resolvePromptPresetChoiceControls,
+  materializePromptPresetThreadChoiceSelections,
   updatePromptPresetChoiceSelections,
   type PromptPresetChoiceControl,
 } from "../../../../engine/prompt-presets/prompt-preset-actions";
@@ -19,8 +21,20 @@ interface ChatSettingsPresetVariablesDialogProps {
   preset: PromptPresetRecord | null;
   presetChoiceSelections: PromptPresetThreadChoiceSelections;
   onClose: () => void;
-  onPresetChoiceChange: (selections: PromptPresetThreadChoiceSelections) => void;
+  /** Legacy alias for onConfirm; changes remain local until confirmation. */
+  onPresetChoiceChange?: (selections: PromptPresetThreadChoiceSelections) => void;
+  onPresetConfirm?: (presetId: string, selections: PromptPresetThreadChoiceSelections) => void;
+  onConfirm?: (selections: PromptPresetThreadChoiceSelections) => void;
+  onUseDefaults?: (selections: PromptPresetThreadChoiceSelections) => void;
+  onCancel?: () => void;
 }
+
+type PresetVariablesDialogContentProps = Omit<
+  ChatSettingsPresetVariablesDialogProps,
+  "open" | "preset"
+> & {
+  preset: PromptPresetRecord;
+};
 
 function defaultChoiceOptionValue(control: PromptPresetChoiceControl) {
   let value = DEFAULT_CHOICE_OPTION_VALUE;
@@ -243,27 +257,46 @@ function PresetVariableControl(props: PresetVariableControlProps) {
   return <PresetVariableDropdown {...props} />;
 }
 
-export function ChatSettingsPresetVariablesDialog({
-  open,
+function PresetVariablesDialogContent({
   preset,
   presetChoiceSelections,
   onClose,
   onPresetChoiceChange,
-}: ChatSettingsPresetVariablesDialogProps) {
-  if (!open || !preset) return null;
+  onPresetConfirm,
+  onConfirm,
+  onUseDefaults,
+  onCancel,
+}: PresetVariablesDialogContentProps) {
+  const [draftSelections, setDraftSelections] = useState(presetChoiceSelections);
 
   const choiceControls = resolvePromptPresetChoiceControls({
     preset,
-    selections: presetChoiceSelections,
+    selections: draftSelections,
   });
   const handlePresetChoiceChange: PresetChoiceChangeHandler = (blockId, selection) => {
-    onPresetChoiceChange(
-      updatePromptPresetChoiceSelections(preset, presetChoiceSelections, blockId, selection),
+    setDraftSelections(
+      updatePromptPresetChoiceSelections(preset, draftSelections, blockId, selection),
     );
+  };
+  const handleConfirm = () => {
+    const selections = materializePromptPresetThreadChoiceSelections(preset, draftSelections);
+    if (onPresetConfirm) onPresetConfirm(preset.id, selections);
+    else (onConfirm ?? onPresetChoiceChange)?.(selections);
+    onClose();
+  };
+  const handleUseDefaults = () => {
+    const selections = materializePromptPresetThreadChoiceSelections(preset, {});
+    setDraftSelections(selections);
+    if (onPresetConfirm) onPresetConfirm(preset.id, selections);
+    else (onUseDefaults ?? onConfirm ?? onPresetChoiceChange)?.(selections);
+    onClose();
+  };
+  const handleCancel = () => {
+    (onCancel ?? onClose)();
   };
 
   const dialog = (
-    <div className="prompt-editor-backdrop" role="presentation" onClick={onClose}>
+    <div className="prompt-editor-backdrop" role="presentation" onClick={handleCancel}>
       <section
         className="prompt-editor-popover preset-variables-popover"
         role="dialog"
@@ -273,7 +306,7 @@ export function ChatSettingsPresetVariablesDialog({
       >
         <div className="prompt-editor-head">
           <b id="preset-variables-title">Preset Variables</b>
-          <button type="button" aria-label="Close preset variables" onClick={onClose}>
+          <button type="button" aria-label="Close preset variables" onClick={handleCancel}>
             ×
           </button>
         </div>
@@ -297,8 +330,14 @@ export function ChatSettingsPresetVariablesDialog({
           })}
         </div>
         <div className="prompt-editor-actions">
-          <button type="button" onClick={onClose}>
-            Done
+          <button type="button" onClick={handleCancel}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleUseDefaults}>
+            Use Defaults
+          </button>
+          <button type="button" onClick={handleConfirm}>
+            Confirm
           </button>
         </div>
       </section>
@@ -308,4 +347,22 @@ export function ChatSettingsPresetVariablesDialog({
   if (typeof document === "undefined") return dialog;
 
   return createPortal(dialog, document.body);
+}
+
+export function ChatSettingsPresetVariablesDialog(props: ChatSettingsPresetVariablesDialogProps) {
+  if (!props.open || !props.preset) return null;
+  const { preset } = props;
+  return (
+    <PresetVariablesDialogContent
+      key={`${preset.id}:${props.open}`}
+      preset={preset}
+      presetChoiceSelections={props.presetChoiceSelections}
+      onClose={props.onClose}
+      onPresetChoiceChange={props.onPresetChoiceChange}
+      onPresetConfirm={props.onPresetConfirm}
+      onConfirm={props.onConfirm}
+      onUseDefaults={props.onUseDefaults}
+      onCancel={props.onCancel}
+    />
+  );
 }

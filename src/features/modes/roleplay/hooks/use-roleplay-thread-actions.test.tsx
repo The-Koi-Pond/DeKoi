@@ -7,14 +7,16 @@ import type { MacroVariableScope } from "../../../../engine/contracts/types/macr
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
 import type { RoleplayEntry, RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { RippleState } from "../../../../engine/contracts/types/ripples";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
+import { createPromptPresetRecord } from "../../../../engine/prompt-presets/prompt-preset-actions";
 import type { StateSetter } from "../../../../shared/react/state-setter";
 import { useRoleplayThreadActions } from "./use-roleplay-thread-actions";
 
-function character(id: string): CharacterRecord {
+function character(id: string, firstMessage = ""): CharacterRecord {
   return {
     id,
     displayName: "Companion",
-    firstMessage: "",
+    firstMessage,
     lorebookIds: ["character-lore"],
   } as CharacterRecord;
 }
@@ -54,18 +56,26 @@ function createStateSetter<T>(state: { current: T }): StateSetter<T> {
   };
 }
 
-function captureRoleplayThreadActions(initialRoleplayThreads: RoleplayThread[] = []) {
+function captureRoleplayThreadActions(
+  initialRoleplayThreads: RoleplayThread[] = [],
+  promptPresets: PromptPresetRecord[] = [],
+  defaultPromptPresetId: string | null = null,
+  companionFirstMessage = "",
+) {
   const roleplayThreads = { current: initialRoleplayThreads };
   const loreRuntimeStates = { current: [] as LoreRuntimeState[] };
   const macroVariableStates = { current: [] as MacroVariableScope[] };
   const rippleStates = { current: [] as RippleState[] };
   const actions = { current: null as ReturnType<typeof useRoleplayThreadActions> | null };
   let openedThreadId: string | null = null;
+  let chatSettingsOpenCount = 0;
 
   function Capture() {
     actions.current = useRoleplayThreadActions({
       activeMessengerConnectionId: "connection-1",
-      characters: [character("character-1")],
+      defaultPromptPresetId,
+      promptPresets,
+      characters: [character("character-1", companionFirstMessage)],
       roleplayThreads: roleplayThreads.current,
       personas: [],
       providerConnections: [providerConnection("connection-1")],
@@ -75,6 +85,9 @@ function captureRoleplayThreadActions(initialRoleplayThreads: RoleplayThread[] =
       setRippleStates: createStateSetter(rippleStates),
       setView: () => {},
       view: { kind: "pond" },
+      openChatSettings: () => {
+        chatSettingsOpenCount += 1;
+      },
       openRoleplayThread: (threadId) => {
         openedThreadId = threadId;
       },
@@ -91,6 +104,9 @@ function captureRoleplayThreadActions(initialRoleplayThreads: RoleplayThread[] =
   return {
     actions: actions.current,
     roleplayThreads,
+    get chatSettingsOpenCount() {
+      return chatSettingsOpenCount;
+    },
     get openedThreadId() {
       return openedThreadId;
     },
@@ -116,6 +132,60 @@ describe("useRoleplayThreadActions", () => {
     });
 
     expect(thread.lorebookIds).toEqual(["explicit-lore"]);
+  });
+
+  it("materializes empty history for a choice-free default preset", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-empty",
+      now: "2026-07-13T00:00:00.000Z",
+      input: { title: "Empty", systemPrompt: "Write a reply.", choiceBlocks: [] },
+    });
+    const captured = captureRoleplayThreadActions([], [preset], preset.id);
+
+    const thread = captured.actions.createRoleplayThread();
+
+    expect(thread.presetChoiceSelectionsByPresetId).toEqual({ [preset.id]: {} });
+    expect(captured.chatSettingsOpenCount).toBe(0);
+  });
+
+  it("preserves empty preset history when appending a companion opening message", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-empty-opening",
+      now: "2026-07-13T00:00:00.000Z",
+      input: { title: "Empty", systemPrompt: "Write a reply.", choiceBlocks: [] },
+    });
+    const captured = captureRoleplayThreadActions([], [preset], preset.id, "Welcome to the scene.");
+
+    const thread = captured.actions.createRoleplayThread();
+
+    expect(thread.entries).toHaveLength(1);
+    expect(thread.entries[0]?.body).toBe("Welcome to the scene.");
+    expect(thread.presetChoiceSelectionsByPresetId).toEqual({ [preset.id]: {} });
+  });
+
+  it("does not materialize history for a variable-bearing default preset", () => {
+    const preset = createPromptPresetRecord({
+      id: "preset-variable",
+      now: "2026-07-13T00:00:00.000Z",
+      input: {
+        title: "Variable",
+        systemPrompt: "Write a reply.",
+        choiceBlocks: [
+          {
+            id: "choice",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    });
+    const captured = captureRoleplayThreadActions([], [preset], preset.id);
+
+    const thread = captured.actions.createRoleplayThread();
+
+    expect(thread.presetChoiceSelectionsByPresetId).toEqual({});
+    expect(captured.chatSettingsOpenCount).toBe(1);
   });
 
   it("appends generated Roleplay entries to the latest thread state", () => {
