@@ -268,10 +268,13 @@ infer saved secrets from DeKoi storage records.
 The built-in direct provider paths currently support `openai`, `anthropic`,
 `google`, `mistral`, `cohere`, `openrouter`, `nanogpt`, `xai`, and `custom`.
 The desktop runtime uses that matrix for provider checks, model listing,
-generation request shaping, and response extraction; the browser fallback uses
-it for generation request shaping and response extraction. `mistral`, `cohere`,
+generation request shaping, and response extraction. The browser fallback uses
+one exhaustive typed provider plan for payload, endpoint, and response dispatch;
+its provider-specific parameter payloads are guarded by
+`test-fixtures/provider-parameter-payloads.json`. `mistral`, `cohere`,
 `openrouter`, `nanogpt`, `xai`, and `custom` use the OpenAI-compatible chat
-completions path. Non-direct aliases such as `openai_chatgpt`,
+completions path. Each built-in direct generation attempt sends at most one
+provider HTTP request. Non-direct aliases such as `openai_chatgpt`,
 `claude_subscription`, and `google_vertex` are valid provider connection record
 values, but the built-in direct provider adapter rejects them until a dedicated
 transport exists. A remote HTTP runtime may still implement its own
@@ -283,7 +286,9 @@ Built-in direct provider generation uses a 120 second timeout in both the
 desktop runtime and the browser fallback. Successful provider responses must be
 readable JSON. Empty or malformed successful bodies fail the request; non-2xx
 provider responses may be empty, but DeKoi still preserves the HTTP status in
-the surfaced error.
+the surfaced error. Surfaced built-in provider errors preserve useful provider
+message and code detail while redacting credential-like values and URL userinfo,
+normalizing whitespace, and bounding the final detail length.
 
 For built-in direct generation, OpenAI-compatible response extraction is
 `choices`-first. When a successful response contains a `choices` array, DeKoi
@@ -306,6 +311,19 @@ The request may carry Messenger or Roleplay native fields for local context.
 Runtimes should use the shared generation fields for provider calls:
 `providerConnection`, `targetCharacterId`, `targetCharacterName`,
 `promptMessages`, and `parameters`.
+
+`parameters` always carries `temperature`, `maxTokens`, and `topP`. Its
+provider-neutral contract also permits optional `topK`, `minP`,
+`frequencyPenalty`, `presencePenalty`, `reasoningEffort`, `verbosity`,
+`serviceTier`, `stopSequences`, and JSON-safe `customParameters`. The browser
+adapter maps only fields supported by its selected provider plan. Custom fields
+are accepted only by the custom-provider payload, are bounded before
+serialization, and cannot shadow routing, authentication, message, or mapped
+parameter names. Current app-side prompt preset generation still populates only
+the existing sampling projection; this contract does not activate advanced
+preset values. Desktop generation continues to receive the complete unchanged
+generation request through `generation_generate` and owns its provider payload
+adaptation behind that command boundary.
 
 DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should

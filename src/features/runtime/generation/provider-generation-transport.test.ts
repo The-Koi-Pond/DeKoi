@@ -104,8 +104,8 @@ describe("configured provider transport", () => {
   });
 
   it.each([
-    ['access_token=access-secret', "access-secret"],
-    ['token: token-secret', "token-secret"],
+    ["access_token=access-secret", "access-secret"],
+    ["token: token-secret", "token-secret"],
     ['"api_key":"json-secret"', "json-secret"],
     ["'accessToken': 'quoted secret'", "quoted secret"],
   ])("redacts protected credential field in %s", (detail, secret) => {
