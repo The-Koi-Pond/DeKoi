@@ -65,6 +65,13 @@ export function EntryTriggerControls({ draft, onDraftChange }: EntryTriggerContr
               when DeKoi supports those generation actions.
             </p>
           )}
+          <button
+            type="button"
+            className="catalog-trigger-clear"
+            onClick={() => onDraftChange({ ...draft, triggers: null })}
+          >
+            Clear all trigger restrictions
+          </button>
         </>
       )}
     </details>

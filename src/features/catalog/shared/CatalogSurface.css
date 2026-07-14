@@ -556,6 +556,26 @@
   margin-top: 6px;
 }
 
+.catalog-trigger-clear {
+  border: 1px solid rgba(244, 70, 70, 0.28);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+  margin-top: 10px;
+  padding: 7px 10px;
+  transition: 0.15s;
+}
+
+.catalog-trigger-clear:hover,
+.catalog-trigger-clear:focus-visible {
+  border-color: rgba(244, 70, 70, 0.5);
+  background: rgba(244, 70, 70, 0.1);
+  color: #f55;
+}
+
 .catalog-editor-field .pondtextarea {
   padding: 10px 12px;
   resize: vertical;
