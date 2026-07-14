@@ -152,12 +152,15 @@ Focused checks for narrow changes are mapped to change types in
   text, variables, metadata, parameters, and structured recipe rows may all be
   absent. A blank System Prompt stays blank in storage rather than receiving a
   built-in prompt. The bundled Universal V2 starter is an ordinary native
-  preset that can be edited or duplicated. It becomes deletable after another
-  preset is designated as default, but that designation control is not exposed
-  in the catalog yet. The default and last preset cannot be deleted.
-  Create and Save Changes finish only after the complete prompt-preset catalog
-  is stored; a failed save leaves the current editor and draft intact for
-  retry. DeKoi asks before discarding a dirty preset when navigating, opening a
+  preset that can be edited or duplicated. **Restore Starter Preset**, available
+  in the Presets rail and the empty Presets surface, adds a fresh copy of the
+  exact bundled starter without replacing existing presets or changing the app
+  default or any thread. It becomes deletable after another preset is designated
+  as default, but that designation control is not exposed in the catalog yet.
+  The default and last preset cannot be deleted. Create, Restore Starter Preset,
+  and Save Changes finish only after the complete prompt-preset catalog is
+  stored; failures are shown without navigating away. DeKoi asks before
+  discarding a dirty preset when navigating, opening a
   thread, changing the runtime target, reloading, importing, or restoring data.
   While a preset save is running, its fields and save controls are disabled and
   leaving is blocked; closing or reloading a browser tab uses the browser's

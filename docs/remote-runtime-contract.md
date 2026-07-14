@@ -648,12 +648,14 @@ Remote runtimes should expose native prompt preset records in storage. Packaged
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
 they are not remote storage record shapes.
 
-Prompt preset create and update stage and replace the complete
+Prompt preset create, starter restore, and update stage and replace the complete
 `prompt-presets` collection before the app publishes the new catalog state.
-Updates reject a stale record version, and create or update rejects a changed
-collection or storage target. A failed write is followed by replacement with
-the transaction's prior collection snapshot; the save is not reported as
-successful unless the staged collection remains current and is published.
+Create and restore reject an ID collision before a remote write. Updates reject
+a stale record version, and every catalog save rejects a changed collection or
+storage target. A failed write is followed by replacement with the transaction's
+prior collection snapshot; the save is not reported as successful unless the
+staged collection remains current and is published. Restore adds a fresh ordinary
+copy of the bundled starter without changing the default or other collections.
 Default changes and non-default preset deletion are staged storage
 transactions that write only affected collections before publishing the new
 state. The default and last preset cannot be deleted; deleting another preset

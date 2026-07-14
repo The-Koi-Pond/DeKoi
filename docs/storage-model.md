@@ -168,11 +168,13 @@ initialization marker is recorded in app settings, but it does not suppress
 empty-collection recovery. Ordinary deletion cannot empty the collection
 because the default and last preset cannot be deleted.
 
-### Development reset for a changed starter preset
+### Restoring or resetting the starter preset
 
 The bundled starter is ordinary stored data, so an existing development store
-does not automatically receive a newly changed starter. To inspect the current
-Universal V2 starter:
+does not automatically receive a newly changed starter. Use **Restore Starter
+Preset** in the Presets catalog to add the current Universal V2 starter without
+changing or deleting existing data. Use the destructive development reset only
+when the starter must also become the repaired app default:
 
 - **Desktop/local app:** stop DeKoi, remove the local
   `<app-data>/collections/prompt-presets.json` collection file, then restart
@@ -396,13 +398,17 @@ instead of pretending success when storage is not ready, an import is active,
 the storage target changes, unreadable dropped records block replacement saves,
 or records change while the flush is running.
 
-Prompt preset create and update are explicit catalog save transactions, not
-optimistic React edits. The transaction first flushes existing storage work,
-stages the complete `prompt-presets` collection, writes that collection through
-the active storage target, and publishes the new preset state only after the
-write succeeds. Updates require the editor's original `updatedAt`; a stale
-editor, changed prompt-preset collection signature, changed storage target, or
-overlapping storage transaction is rejected without overwriting newer state.
+Prompt preset create, starter restore, and update are explicit catalog save
+transactions, not optimistic React edits. Starter restore creates a fresh
+ordinary record from the exact bundled content, with a fresh ID and timestamps;
+it does not change the default, starter initialization marker, existing records,
+threads, or other collections. Create and restore reject an ID collision before
+writing. The transaction first flushes existing storage work, stages the complete
+`prompt-presets` collection, writes that collection through the active storage
+target, and publishes the new preset state only after the write succeeds. Updates
+require the editor's original `updatedAt`; a stale editor, changed prompt-preset
+collection signature, changed storage target, or overlapping storage transaction
+is rejected without overwriting newer state.
 If the write fails, DeKoi replaces the collection with the transaction's
 rollback snapshot before reporting failure. The editor keeps its exact draft
 and route so the user can retry. Transaction settlement reconciles unrelated

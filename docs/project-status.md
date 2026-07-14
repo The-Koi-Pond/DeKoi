@@ -45,16 +45,16 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   prompt, Messenger Prompt Source, optional temperature, `topP`, max-token
   sampling, Roleplay section groups, ordered sections, markers, section roles,
   enabled state, wrapping, and depth placement, with create, edit, duplicate,
-  and delete actions, plus the editable Universal V2 starter preset,
-  normalized from its bundled package into an ordinary native record. The
+  delete, and Restore Starter Preset actions. Restore adds a fresh ordinary
+  native record normalized from the bundled Universal V2 package. The
   catalog also imports standalone compatible `.json` or `.marinara.json`
   packages as fresh native copies and exports one selected saved preset through
   browser or desktop file workflows.
   A title-only preset can be created and saved, and promptless presets can be
   imported, reopened, and exported without persisting built-in fallback text.
-  Create and update stage the complete prompt-preset collection and publish the
-  catalog or navigate only after durable storage succeeds. Failed saves roll
-  the collection back while preserving the editor draft and route for retry;
+  Create, update, and starter restore stage the complete prompt-preset collection
+  and publish the catalog or navigate only after durable storage succeeds. Failed
+  saves roll the collection back while preserving the editor draft and route for retry;
   stale versions, changed storage state or targets, and overlapping saves are
   rejected. Dirty editors require explicit discard before navigation or
   storage replacement, active saves block leaving, and browser unload uses its

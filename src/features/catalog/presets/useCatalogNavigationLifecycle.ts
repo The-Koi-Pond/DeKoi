@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 
 import type { NavViewState } from "../../navigation";
 
-export type CatalogNavigationOriginPredicate = () => boolean;
+type CatalogNavigationOriginPredicate = () => boolean;
 
 export interface CatalogNavigationLifecycle {
   captureOriginCurrent: () => CatalogNavigationOriginPredicate;
