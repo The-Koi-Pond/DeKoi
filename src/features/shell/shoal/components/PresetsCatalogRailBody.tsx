@@ -1,4 +1,4 @@
-import { PromptPresetFileActions } from "../../../catalog";
+import { PromptPresetFileActions, RestoreStarterPresetAction } from "../../../catalog";
 import { getMessengerThreadInitials } from "../../../modes";
 import type { ShoalNav } from "../types";
 import { CatalogRailCard } from "./CatalogRailCard";
@@ -13,6 +13,7 @@ type PresetsCatalogRailBodyProps = {
     | "promptPresetFileHost"
     | "promptPresetFileStatus"
     | "promptPresets"
+    | "restoreStarterPromptPreset"
     | "setPromptPresetFileStatus"
     | "setView"
     | "view"
@@ -50,18 +51,26 @@ export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRail
         <span className="mark-chip">{presetCount} shown</span>
       </div>
       {nav.view.kind !== "presets" && (
-        <PromptPresetFileActions
-          visibility="list"
-          host={nav.promptPresetFileHost}
-          importPromptPresetFile={nav.importPromptPresetFile}
-          openPromptPresetFile={nav.openPromptPresetFile}
-          exportPromptPresetFile={nav.exportPromptPresetFile}
-          navigationContext={nav.view}
-          originActive={originActive}
-          status={nav.promptPresetFileStatus}
-          onImportedPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
-          onStatusChange={nav.setPromptPresetFileStatus}
-        />
+        <>
+          <RestoreStarterPresetAction
+            restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
+            navigationContext={nav.view}
+            originActive={originActive}
+            onRestoredPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
+          />
+          <PromptPresetFileActions
+            visibility="list"
+            host={nav.promptPresetFileHost}
+            importPromptPresetFile={nav.importPromptPresetFile}
+            openPromptPresetFile={nav.openPromptPresetFile}
+            exportPromptPresetFile={nav.exportPromptPresetFile}
+            navigationContext={nav.view}
+            originActive={originActive}
+            status={nav.promptPresetFileStatus}
+            onImportedPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
+            onStatusChange={nav.setPromptPresetFileStatus}
+          />
+        </>
       )}
       <div className="shoal-list">
         <div className="group-label">Presets</div>

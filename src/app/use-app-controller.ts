@@ -202,6 +202,7 @@ export function useAppController(): NavContextType {
 
   const {
     createPromptPreset,
+    restoreStarterPromptPreset,
     updatePromptPreset,
     duplicatePromptPreset,
     prepareImportedPromptPreset,
@@ -354,6 +355,7 @@ export function useAppController(): NavContextType {
     updateLorebook,
     deleteLorebook,
     createPromptPreset,
+    restoreStarterPromptPreset,
     updatePromptPreset,
     duplicatePromptPreset,
     deletePromptPreset,

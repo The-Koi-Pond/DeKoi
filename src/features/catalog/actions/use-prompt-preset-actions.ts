@@ -47,6 +47,15 @@ export function usePromptPresetActions({
     [runPromptPresetCatalogMutation],
   );
 
+  const restoreStarterPromptPreset = useCallback(async () => {
+    const now = currentIsoTimestamp();
+    return runPromptPresetCatalogMutation({
+      kind: "restore-starter",
+      id: createRecordId("prompt-preset"),
+      now,
+    });
+  }, [runPromptPresetCatalogMutation]);
+
   const updatePromptPreset = useCallback(
     async (presetId: string, input: PromptPresetInput, expectedUpdatedAt: string) => {
       const now = currentIsoTimestamp();
@@ -109,6 +118,7 @@ export function usePromptPresetActions({
 
   return {
     createPromptPreset,
+    restoreStarterPromptPreset,
     updatePromptPreset,
     duplicatePromptPreset,
     prepareImportedPromptPreset,

@@ -174,6 +174,7 @@ export interface NavLorebookActions {
 
 export interface NavPromptPresetActions {
   createPromptPreset: (input: PromptPresetInput) => Promise<PromptPresetCatalogTransactionResult>;
+  restoreStarterPromptPreset: () => Promise<PromptPresetCatalogTransactionResult>;
   updatePromptPreset: (
     presetId: string,
     input: PromptPresetInput,

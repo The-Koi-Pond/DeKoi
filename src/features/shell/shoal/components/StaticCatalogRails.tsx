@@ -12,6 +12,7 @@ type PresetsCatalogRailProps = Omit<StaticCatalogRailProps, "nav"> & {
     | "promptPresetFileHost"
     | "promptPresetFileStatus"
     | "promptPresets"
+    | "restoreStarterPromptPreset"
     | "selectedSurface"
     | "setPromptPresetFileStatus"
     | "setView"

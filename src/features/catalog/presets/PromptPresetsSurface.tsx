@@ -26,6 +26,7 @@ import {
 } from "./prompt-preset-draft";
 import { PromptPresetChoiceEditor } from "./PromptPresetChoiceEditor";
 import { PromptPresetFileActions } from "./PromptPresetFileActions";
+import { RestoreStarterPresetAction } from "./RestoreStarterPresetAction";
 import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
 import { deletePromptPresetAndNavigate } from "./prompt-presets-navigation";
 import "../shared/CatalogSurface.css";
@@ -39,6 +40,7 @@ export type PromptPresetsSurfaceNav = Pick<NavCatalogState, "promptPresets"> &
   Pick<
     NavPromptPresetActions,
     | "createPromptPreset"
+    | "restoreStarterPromptPreset"
     | "deletePromptPreset"
     | "duplicatePromptPreset"
     | "updatePromptPreset"
@@ -398,6 +400,12 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
         <>
           <CatalogSurfaceBanner icon="≡" onBack={handleBack} title="Presets" />
           <div className="pond-inner catalog-inner catalog-editor-only">
+            <RestoreStarterPresetAction
+              restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
+              navigationContext={nav.view}
+              originActive
+              onRestoredPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
+            />
             <div className="catalog-empty">Pick a preset from The Shoal or create a new one.</div>
             <PromptPresetFileActions {...fileActions} visibility="list" />
           </div>
