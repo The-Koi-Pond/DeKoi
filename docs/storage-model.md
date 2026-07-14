@@ -331,9 +331,14 @@ budget-dropped and macro-empty entries can clear timers before the updated state
 is persisted. Lore runtime states are cleared when an owning branch is cleared
 or its thread is deleted. Timer entries also
 reset on the next activation pass when their lore entry's `updatedAt` no longer
-matches, so editing an entry starts its sticky/cooldown state fresh. Triggers
-and character filters remain normalized storage fields but are not applied to
-prompt assembly yet.
+matches, so editing an entry starts its sticky/cooldown state fresh. Lore entry
+trigger restrictions are checked against the current generation action before
+activation; current Messenger and Roleplay sends use `normal`. Character
+filters are checked against the selected reply target: `include` requires a
+listed target, while `exclude` rejects a listed target. Null or empty trigger
+and character-filter lists remain unrestricted. The catalog editor exposes the
+implemented ordinary-send trigger and preserves imported constraints for
+generation actions that DeKoi does not yet provide.
 
 Dynamic macro variables persist in `macro-variable-states`. Global state uses
 `ownerKind: "global"` with `ownerId: "global"`; mode-scoped states use

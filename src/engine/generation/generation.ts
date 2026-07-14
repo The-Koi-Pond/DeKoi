@@ -2,6 +2,7 @@ import type { CharacterRecord } from "../contracts/types/character";
 import type {
   LorebookActivationSettings,
   LoreEntryRecord,
+  LoreGenerationTriggerType,
   LorebookRecord,
   LoreInsertionStrategy,
   LoreSourceKind,
@@ -476,6 +477,8 @@ export interface LoreGenerationContextOptions {
   activePersona?: PersonaRecord | null;
   /** Selected companions used by entries that opt into companion match sources. */
   companions?: CharacterRecord[];
+  /** Concrete generation action currently evaluating lore activation. */
+  generationTrigger?: LoreGenerationTriggerType | null;
   includeSummary?: boolean;
   /** Optional prompt macro context for resolving lore activation and output text. */
   macroContext?: GenerationMacroContext | null;
@@ -485,6 +488,8 @@ export interface LoreGenerationContextOptions {
   contextTokens?: number | null;
   /** Already-loaded per-branch lore timer state for sticky and cooldown effects. */
   runtimeState?: LoreRuntimeState | null;
+  /** Character selected to produce this generation, if any. */
+  targetCharacterId?: string | null;
   /** Final ordering strategy after all source buckets have been activated. */
   insertionStrategy?: LoreInsertionStrategy;
 }
@@ -1257,6 +1262,7 @@ export function activateLoreGenerationEntriesWithWarnings(
           ? (entry: LoreEntryRecord) => loreEntryHasSourceBody(entry, previews)
           : undefined,
         matchSources,
+        generationTrigger: options.generationTrigger,
         messageCount,
         runtimeState,
         recursionBody:
@@ -1269,6 +1275,7 @@ export function activateLoreGenerationEntriesWithWarnings(
             : undefined,
         sourceKind,
         sourceOrder,
+        targetCharacterId: options.targetCharacterId,
       });
       warnings.push(...activation.warnings);
       const budget = formattingState

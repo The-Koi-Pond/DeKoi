@@ -487,11 +487,13 @@ function createRoleplayPromptAssembly({
     activePersona,
     companions,
     contextTokens: providerConnection?.maxContext ?? null,
+    generationTrigger: "normal",
     includeSummary: true,
     insertionStrategy: loreInsertionStrategy,
     macroContext,
     runtimeState: loreRuntimeState,
     scanSources: roleplayLoreScanSources(thread),
+    targetCharacterId: targetCompanion?.id ?? null,
   });
   const activatedLoreEntries = loreActivation.entries;
   const transcript = getActiveModeBranchMessages(thread)

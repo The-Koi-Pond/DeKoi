@@ -774,7 +774,12 @@ and later Roleplay sectioned-preset system messages that would otherwise be
 hoisted out of stream order.
 Secondary-key logic is already applied before the runtime receives
 `promptMessages`.
-Character filters and triggers are still not applied by DeKoi prompt assembly.
+DeKoi also applies lore entry trigger and character filters before the runtime
+receives `promptMessages`. Current Messenger and Roleplay sends use the
+`normal` trigger. Non-empty include/exclude filters compare only with the
+selected reply target, not every thread participant; an include filter rejects
+a generation with no target, while an exclude filter allows it. Null or empty
+restrictions are unrestricted.
 
 `storage_list`:
 

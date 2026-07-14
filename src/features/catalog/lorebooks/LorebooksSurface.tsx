@@ -11,13 +11,8 @@ import {
   DEFAULT_LORE_ENTRY_TIMING,
   DEFAULT_LORE_ENTRY_RECURSION,
   DEFAULT_LOREBOOK_ACTIVATION,
-  resolveEntryTiming,
-  resolveEntryRecursion,
   type LorebookActivationSettings,
-  type LoreEntryTiming,
-  type LoreEntryRecursion,
   type LoreEntryRole,
-  type LoreEntryStrategy,
   type LoreInsertionPosition,
   type LoreSelectiveLogic,
 } from "../../../engine/contracts/types/lorebook";
@@ -30,8 +25,8 @@ import {
   canSaveLorebookEntryDraft,
   entryDraftDisablesBannerSave,
   EMPTY_LORE_MATCH_SOURCES,
+  lorebookEntryDraftFromRecord,
   lorebookEntryDraftToInput,
-  normalizeLoreMatchSources,
   parseLorebookEntryKeys,
   readFiniteNumberInput,
   readNonNegativeIntegerInput,
@@ -40,9 +35,11 @@ import {
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { EntryInclusionControls } from "./EntryInclusionControls";
+import { EntryCharacterFilterControls } from "./EntryCharacterFilterControls";
 import { EntryMatchSourceControls } from "./EntryMatchSourceControls";
 import { EntryRecursionControls } from "./EntryRecursionControls";
 import { EntryTimingControls } from "./EntryTimingControls";
+import { EntryTriggerControls } from "./EntryTriggerControls";
 import { LorebookGroupScoringActivationField } from "./LorebookGroupScoringActivationField";
 import { LorebookRecursionActivationFields } from "./LorebookRecursionActivationFields";
 import { readScanDepthInput } from "./lorebook-scan-depth";
@@ -52,7 +49,7 @@ interface LorebooksSurfaceProps {
   nav: LorebooksSurfaceNav;
 }
 
-export type LorebooksSurfaceNav = Pick<NavCatalogState, "lorebooks"> &
+export type LorebooksSurfaceNav = Pick<NavCatalogState, "characters" | "lorebooks"> &
   Pick<
     NavLorebookActions,
     | "createLorebook"
@@ -105,6 +102,8 @@ const EMPTY_DRAFT: LorebookEntryDraft = {
   cooldown: String(DEFAULT_LORE_ENTRY_TIMING.cooldown),
   delay: String(DEFAULT_LORE_ENTRY_TIMING.delay),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
+  triggers: null,
+  characterFilter: null,
 };
 const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   title: "",
@@ -119,55 +118,6 @@ const EMPTY_LOREBOOK_DRAFT: LorebookDraftState = {
   budgetTokens: DEFAULT_LOREBOOK_ACTIVATION.budgetTokens?.toString() ?? "",
   budgetPercent: DEFAULT_LOREBOOK_ACTIVATION.budgetPercent?.toString() ?? "",
 };
-
-function draftFromEntry(entry: {
-  title: string;
-  body: string;
-  enabled: boolean;
-  strategy: LoreEntryStrategy;
-  key: string[] | null;
-  keySecondary: string[] | null;
-  selectiveLogic: LoreSelectiveLogic | null;
-  probability: number;
-  inclusionGroup: string | null;
-  groupWeight: number;
-  prioritizeInclusion: boolean;
-  insertionOrder: number;
-  insertionPosition: LoreInsertionPosition;
-  depth: number | null;
-  role: LoreEntryRole | null;
-  recursion: LoreEntryRecursion | null;
-  timing: LoreEntryTiming | null;
-  matchSources: LorebookEntryDraft["matchSources"] | null;
-}): LorebookEntryDraft {
-  const recursion = resolveEntryRecursion(entry);
-  const timing = resolveEntryTiming(entry);
-  return {
-    title: entry.title,
-    body: entry.body,
-    enabled: entry.enabled,
-    strategy: entry.strategy,
-    key: entry.key?.join(", ") ?? "",
-    keySecondary: entry.keySecondary?.join(", ") ?? "",
-    selectiveLogic: entry.selectiveLogic ?? "and-any",
-    probability: String(entry.probability),
-    inclusionGroup: entry.inclusionGroup ?? "",
-    groupWeight: String(entry.groupWeight),
-    prioritizeInclusion: entry.prioritizeInclusion,
-    insertionOrder: String(entry.insertionOrder),
-    insertionPosition: entry.insertionPosition,
-    depth: String(entry.depth ?? 0),
-    role: entry.role ?? "system",
-    nonRecursable: recursion.nonRecursable,
-    preventFurther: recursion.preventFurther,
-    delayUntilRecursion: recursion.delayUntilRecursion,
-    recursionLevel: String(recursion.recursionLevel),
-    sticky: String(timing.sticky),
-    cooldown: String(timing.cooldown),
-    delay: String(timing.delay),
-    matchSources: normalizeLoreMatchSources(entry.matchSources),
-  };
-}
 
 function ScanDepthInput({
   fallback,
@@ -229,7 +179,7 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
   function openEdit(entryId: string) {
     const entry = activeLorebook?.entries.find((e) => e.id === entryId);
     if (!entry) return;
-    setDraft(draftFromEntry(entry));
+    setDraft(lorebookEntryDraftFromRecord(entry));
     setEditingEntryId(entryId);
     setShowEditor(true);
   }
@@ -876,6 +826,12 @@ export function LorebooksSurface({ nav }: LorebooksSurfaceProps) {
                   </div>
                 )}
                 <EntryInclusionControls draft={draft} onDraftChange={setDraft} />
+                <EntryTriggerControls draft={draft} onDraftChange={setDraft} />
+                <EntryCharacterFilterControls
+                  characters={nav.characters}
+                  draft={draft}
+                  onDraftChange={setDraft}
+                />
                 <EntryMatchSourceControls draft={draft} onDraftChange={setDraft} />
                 <EntryRecursionControls draft={draft} onDraftChange={setDraft} />
                 <EntryTimingControls draft={draft} onDraftChange={setDraft} />

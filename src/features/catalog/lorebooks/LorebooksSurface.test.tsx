@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { createLorebookRecord } from "../../../engine/catalog/lorebook-actions";
+import {
+  createLorebookEntryRecord,
+  createLorebookRecord,
+} from "../../../engine/catalog/lorebook-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
   DEFAULT_LORE_ENTRY_TIMING,
@@ -13,6 +16,7 @@ import {
   canSaveLorebookEntryDraft,
   EMPTY_LORE_MATCH_SOURCES,
   entryDraftDisablesBannerSave,
+  lorebookEntryDraftFromRecord,
   lorebookEntryDraftToInput,
   normalizeLoreMatchSources,
   parseLorebookEntryKeys,
@@ -23,6 +27,9 @@ import {
   type LorebookEntryDraft,
 } from "./lorebook-entry-draft";
 import { LorebooksSurface, type LorebooksSurfaceNav } from "./LorebooksSurface";
+import { EntryCharacterFilterControls } from "./EntryCharacterFilterControls";
+import { EntryTriggerControls } from "./EntryTriggerControls";
+import { updateTriggerScope } from "./entry-trigger-scope";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 
 const now = "2026-07-02T00:00:00.000Z";
@@ -64,6 +71,8 @@ const baseDraft: LorebookEntryDraft = {
   cooldown: String(DEFAULT_LORE_ENTRY_TIMING.cooldown),
   delay: String(DEFAULT_LORE_ENTRY_TIMING.delay),
   matchSources: EMPTY_LORE_MATCH_SOURCES,
+  triggers: null,
+  characterFilter: null,
 };
 
 function surfaceNav(overrides: Partial<LorebooksSurfaceNav> = {}): LorebooksSurfaceNav {
@@ -74,6 +83,7 @@ function surfaceNav(overrides: Partial<LorebooksSurfaceNav> = {}): LorebooksSurf
   });
 
   return {
+    characters: [],
     lorebooks: [lorebook],
     appSettings: DEFAULT_APP_SETTINGS,
     view: { kind: "lorebooks", lorebookId: lorebook.id },
@@ -250,6 +260,41 @@ describe("lorebook entry draft helpers", () => {
     });
   });
 
+  it("round-trips trigger and companion restrictions without losing imported values", () => {
+    const record = createLorebookEntryRecord({
+      id: "restricted-entry",
+      input: {
+        title: "Restricted",
+        triggers: { types: ["normal", "regenerate"] },
+        characterFilter: {
+          mode: "exclude",
+          characterIds: [" character-1 ", "character-1", "character-2"],
+        },
+      },
+      now,
+    });
+
+    const draft = lorebookEntryDraftFromRecord(record);
+
+    expect(lorebookEntryDraftToInput(draft)).toMatchObject({
+      triggers: { types: ["normal", "regenerate"] },
+      characterFilter: {
+        mode: "exclude",
+        characterIds: ["character-1", "character-2"],
+      },
+    });
+  });
+
+  it("requires selections for enabled trigger and companion restrictions", () => {
+    expect(canSaveLorebookEntryDraft({ ...baseDraft, triggers: { types: [] } })).toBe(false);
+    expect(
+      canSaveLorebookEntryDraft({
+        ...baseDraft,
+        characterFilter: { mode: "include", characterIds: [] },
+      }),
+    ).toBe(false);
+  });
+
   it("serializes recursion controls only when enabled", () => {
     expect(lorebookEntryDraftToInput(baseDraft).recursion).toBeNull();
     expect(lorebookEntryDraftToInput({ ...baseDraft, recursionLevel: "4" }).recursion).toBeNull();
@@ -353,6 +398,49 @@ describe("lorebook entry draft helpers", () => {
 });
 
 describe("LorebooksSurface", () => {
+  it("renders supported and imported trigger constraints without claiming unsupported actions", () => {
+    const markup = renderToStaticMarkup(
+      <EntryTriggerControls
+        draft={{ ...baseDraft, triggers: { types: ["normal", "regenerate"] } }}
+        onDraftChange={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Ordinary send");
+    expect(markup).toContain("Imported constraints preserved: Regenerate");
+    expect(markup).not.toContain('<option value="regenerate"');
+    expect(markup).not.toContain('<option value="all"');
+  });
+
+  it("preserves imported trigger values through scope transitions", () => {
+    const draft: LorebookEntryDraft = { ...baseDraft, triggers: { types: ["regenerate"] } };
+    expect(updateTriggerScope(draft, "all").triggers?.types).toEqual(["regenerate"]);
+    const restricted = updateTriggerScope(draft, "restricted");
+    expect(restricted.triggers?.types).toEqual(["regenerate", "normal"]);
+    expect(updateTriggerScope(restricted, "all").triggers?.types).toEqual(["regenerate", "normal"]);
+
+    const unrestricted = updateTriggerScope(baseDraft, "restricted");
+    expect(unrestricted.triggers?.types).toEqual(["normal"]);
+    expect(updateTriggerScope(unrestricted, "all").triggers).toBeNull();
+  });
+
+  it("renders catalog companions as character-filter choices", () => {
+    const markup = renderToStaticMarkup(
+      <EntryCharacterFilterControls
+        characters={[{ id: "character-1", displayName: "Mara" }]}
+        draft={{
+          ...baseDraft,
+          characterFilter: { mode: "include", characterIds: ["character-1"] },
+        }}
+        onDraftChange={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("Only selected companions");
+    expect(markup).toContain("Mara");
+    expect(markup).toContain('aria-label="Filter companion Mara"');
+  });
+
   it("renders Include names in existing lorebook activation settings", () => {
     const markup = renderToStaticMarkup(<LorebooksSurface nav={surfaceNav()} />);
 

@@ -6,6 +6,7 @@ import {
   type LorebookActivationSettings,
   type LorebookRecord,
   type LoreEntryRecord,
+  type LoreGenerationTriggerType,
   type LoreMatchSources,
 } from "../contracts/types/lorebook";
 import type {
@@ -26,6 +27,7 @@ import {
   finalizeActivationResult,
 } from "./lorebook-activation-resolution";
 import { errorMessage } from "../shared/errors";
+import { loreEntryMatchesGenerationContext } from "./lorebook-entry-generation-context";
 
 export type { ActivatedLoreEntry, LorebookActivationResult } from "./lorebook-activation-types";
 
@@ -76,6 +78,10 @@ export interface LorebookActivationOptions {
   matchSources?: LoreMatchSourceBuckets;
   /** Current thread transcript message count, after any just-submitted user message. */
   messageCount?: number | null;
+  /** Concrete generation action currently evaluating lore activation. */
+  generationTrigger?: LoreGenerationTriggerType | null;
+  /** Character selected to produce this generation, if any. */
+  targetCharacterId?: string | null;
   /** Random source used by weighted inclusion groups and probability gates. */
   rand?: () => number;
   /** Already-advanced per-branch mutable lore timer state. Engine treats this as pure input. */
@@ -948,6 +954,7 @@ export function activateLorebookEntries(
 }
 
 interface ActivationEvaluationContext {
+  generationTrigger: LoreGenerationTriggerType | null;
   messageCount: number;
   sourceOrder: number;
   sourceKind: LoreSourceKind;
@@ -956,6 +963,7 @@ interface ActivationEvaluationContext {
   primaryMatchCounters: Map<string, PrimaryMatchCounter>;
   runtimeEntryStates: Map<string, LoreRuntimeEntryState>;
   runtimeState: LoreRuntimeState | null;
+  targetCharacterId: string | null;
   entryHasBody: (entry: LoreEntryRecord) => boolean;
   recursionBody: (entry: ActivatedLoreEntry) => string;
 }
@@ -993,6 +1001,7 @@ function runDirectScan(
   const warnings: string[] = [];
 
   for (const [entryIndex, entry] of lorebook.entries.entries()) {
+    if (!loreEntryMatchesGenerationContext(entry, context)) continue;
     const entryState = runtimeStateForEntry(lorebook, entry, context);
     if (entryState?.stickyRemaining && entryState.stickyRemaining > 0) {
       const stickyEntry = createStickyActivatedEntry(
@@ -1056,6 +1065,7 @@ function entryWouldActivateFromRecursion(
   context: ActivationEvaluationContext,
   recursionLevel: number,
 ) {
+  if (!loreEntryMatchesGenerationContext(entry, context)) return false;
   if (!entryCanPossiblyActivateFromRecursion(entry, context.entryHasBody)) return false;
   if (!entryPassesTimedActivationGate(lorebook, entry, context)) return false;
   return (
@@ -1164,6 +1174,7 @@ function runRecursionPasses({
 
     for (const [entryIndex, entry] of lorebook.entries.entries()) {
       if (activeEntryIds.has(entry.id)) continue;
+      if (!loreEntryMatchesGenerationContext(entry, context)) continue;
       if (!entryPassesTimedActivationGate(lorebook, entry, context)) continue;
       const activation = activateEntry(
         lorebook,
@@ -1323,6 +1334,7 @@ export function activateLorebookEntriesWithWarnings(
   const messageCount = cleanMessageCount(options.messageCount);
   const runtimeState = options.runtimeState ?? null;
   const context: ActivationEvaluationContext = {
+    generationTrigger: options.generationTrigger ?? null,
     messageCount,
     sourceOrder: options.sourceOrder ?? 0,
     sourceKind: options.sourceKind ?? "chat",
@@ -1335,6 +1347,7 @@ export function activateLorebookEntriesWithWarnings(
       options.entryHasBody ?? entryHasBody,
     ),
     runtimeState,
+    targetCharacterId: options.targetCharacterId ?? null,
     entryHasBody: options.entryHasBody ?? entryHasBody,
     recursionBody: options.recursionBody ?? ((entry) => entry.entry.body),
   };
