@@ -9,9 +9,14 @@ import {
 } from "./provider-generation";
 
 const host = vi.hoisted(() => ({ desktop: false }));
+const desktopRuntime = vi.hoisted(() => ({ invoke: vi.fn() }));
 
 vi.mock("../../../shared/api/desktop-host-common", () => ({
   isDesktopHostAvailable: () => host.desktop,
+}));
+
+vi.mock("../../../shared/api/desktop-runtime", () => ({
+  invokeDesktopRuntime: desktopRuntime.invoke,
 }));
 
 function request(
@@ -55,7 +60,33 @@ function request(
 describe("configured provider transport", () => {
   beforeEach(() => {
     host.desktop = false;
+    desktopRuntime.invoke.mockReset();
     vi.unstubAllGlobals();
+  });
+
+  it("sends the full request through desktop transport without browser HTTP", async () => {
+    host.desktop = true;
+    const providerRequest = request("anthropic");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    desktopRuntime.invoke.mockResolvedValue({
+      schemaVersion: 1,
+      requestId: providerRequest.id,
+      source: "provider-transport",
+      createdAt: "2026-07-15T00:00:01.000Z",
+      messages: [{ characterId: "character-1", body: "Desktop reply" }],
+      warnings: [],
+    });
+
+    await expect(generateWithConfiguredProvider(providerRequest)).resolves.toMatchObject({
+      requestId: providerRequest.id,
+      messages: [{ characterId: "character-1", body: "Desktop reply" }],
+    });
+    expect(desktopRuntime.invoke).toHaveBeenCalledOnce();
+    expect(desktopRuntime.invoke).toHaveBeenCalledWith("generation_generate", {
+      request: providerRequest,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("sends exactly one browser request when the provider rejects", async () => {
