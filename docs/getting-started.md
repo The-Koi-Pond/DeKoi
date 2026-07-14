@@ -155,6 +155,13 @@ Focused checks for narrow changes are mapped to change types in
   preset that can be edited or duplicated. It becomes deletable after another
   preset is designated as default, but that designation control is not exposed
   in the catalog yet. The default and last preset cannot be deleted.
+  Create and Save Changes finish only after the complete prompt-preset catalog
+  is stored; a failed save leaves the current editor and draft intact for
+  retry. DeKoi asks before discarding a dirty preset when navigating, opening a
+  thread, changing the runtime target, reloading, importing, or restoring data.
+  While a preset save is running, its fields and save controls are disabled and
+  leaving is blocked; closing or reloading a browser tab uses the browser's
+  native confirmation.
   Roleplay sections can be
   ordered, grouped, enabled or disabled, assigned provider roles, wrapped, and
   placed at transcript depth; marker sections insert saved Roleplay context,
