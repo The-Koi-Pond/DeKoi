@@ -580,8 +580,8 @@ records that starter initialization occurred; it does not prevent recovery of a
 cleanly loaded empty prompt-preset collection.
 
 `prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
-`title`, optional `summary`, required non-empty `systemPrompt`, optional
-`messengerPrompt`, normalized `parameters`, a `sampling` projection with
+`title`, optional `summary`, `systemPrompt` (normalized to `""` when omitted),
+optional `messengerPrompt`, nullable normalized `parameters`, a `sampling` projection with
 `temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
 `choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
 author/folder metadata. Native prompt preset records do not carry a default
@@ -595,17 +595,19 @@ preset-authored Variables; they do not own an arbitrary prompt or model-
 parameter override. Generation uses the selected preset's `messengerPrompt`,
 then shared `systemPrompt`, and falls back to the built-in
 `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
+That fallback is generated at request time and is not stored in a blank preset.
 Messenger
 does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a
-selected preset has sections; otherwise it uses `systemPrompt` as the fallback
-prelude. Roleplay marker sections expand scene, lore, persona, character,
+selected preset has sections; when those sections have no usable text, it uses
+`systemPrompt` as the fallback prelude, then the built-in Roleplay prelude when
+neither has usable text. Roleplay marker sections expand scene, lore, persona, character,
 example-dialogue, and chat-history context, with transcript history included
 only by an enabled `chat_history` marker. Depth sections are anchored to that
 marker when present, or to the sectioned prompt message stream when it is
 absent. If a sectioned preset materializes no messages after filtering,
-Roleplay falls back to `systemPrompt` without automatically including
-transcript history.
+Roleplay falls back to `systemPrompt`, then the built-in Roleplay prelude when
+neither has usable text, without automatically including transcript history.
 DeKoi appends a post-history contract that keeps the target companion primary
 and prevents generation of the user's dialogue, intent, decisions, or
 deliberate actions. With a selected preset, narration and other-character

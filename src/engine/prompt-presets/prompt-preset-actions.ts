@@ -9,7 +9,6 @@ import type {
 } from "../contracts/types/prompt-presets";
 import { cleanNullableText, cleanText } from "../shared/text";
 import {
-  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   normalizeChoiceSelectionRecord,
   normalizePromptPresetChoiceBlocks,
   normalizePromptPresetGroups,
@@ -23,7 +22,6 @@ import {
 } from "./prompt-preset-normalization";
 
 export {
-  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
   normalizePromptPresetRecord,
@@ -38,7 +36,7 @@ export type { PromptPresetChoiceControl } from "./prompt-preset-normalization";
 export interface PromptPresetInput {
   title: string;
   summary?: string | null;
-  systemPrompt: string;
+  systemPrompt?: string;
   messengerPrompt?: string | null;
   sampling?: PromptPresetSampling | null;
   parameters?: PromptPresetParameters | null;
@@ -129,7 +127,7 @@ export function createPromptPresetRecord({
     schemaVersion: 1,
     title: cleanText(input.title, "Untitled preset"),
     summary: cleanNullableText(input.summary),
-    systemPrompt: cleanText(input.systemPrompt, DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT),
+    systemPrompt: cleanText(input.systemPrompt),
     messengerPrompt,
     sampling: normalizePromptPresetSampling(parameters),
     parameters,
@@ -177,7 +175,8 @@ export function updatePromptPresetRecord(
     ...record,
     title: cleanText(input.title, record.title),
     summary: cleanNullableText(input.summary),
-    systemPrompt: cleanText(input.systemPrompt, record.systemPrompt),
+    systemPrompt:
+      input.systemPrompt === undefined ? record.systemPrompt : cleanText(input.systemPrompt),
     messengerPrompt,
     sampling: normalizePromptPresetSampling(parameters),
     parameters,

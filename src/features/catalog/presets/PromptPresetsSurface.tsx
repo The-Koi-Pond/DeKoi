@@ -70,8 +70,8 @@ function PromptPresetEditor({
   const canSave = canSavePromptPresetDraft(draft);
   const systemPromptHint =
     draft.sections.length > 0
-      ? "Roleplay sections are present, so Roleplay uses those sections instead of System Prompt. System Prompt remains the fallback when Roleplay has no sections."
-      : "Roleplay uses System Prompt when no Roleplay sections are present. Messenger uses Messenger Prompt Source, or System Prompt when that source is empty.";
+      ? "Roleplay uses its sections first. System Prompt is next, followed by the built-in Roleplay prelude when neither has usable text."
+      : "Roleplay uses System Prompt first, followed by the built-in Roleplay prelude when it has no usable text. Messenger uses Messenger Prompt Source first, then System Prompt, then its built-in prelude when neither has usable text.";
 
   function handleSave() {
     if (!canSave) return;

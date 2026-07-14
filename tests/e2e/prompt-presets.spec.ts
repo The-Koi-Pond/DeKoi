@@ -38,6 +38,31 @@ function promptPresetFile(name: string, id: string, title: string) {
   };
 }
 
+function promptlessNativePresetFile(name: string, id: string, title: string) {
+  return {
+    name,
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        type: "dekoi_preset",
+        version: 1,
+        exportedAt: "2026-07-11T00:00:00.000Z",
+        data: {
+          preset: {
+            id,
+            name: title,
+            createdAt: "2026-07-11T00:00:00.000Z",
+            updatedAt: "2026-07-11T00:00:00.000Z",
+          },
+          sections: [],
+          groups: [],
+          choiceBlocks: [],
+        },
+      }),
+    ),
+  };
+}
+
 async function installDelayedPromptPresetRead(page: Page, filename: string) {
   await page.addInitScript((delayedFilename) => {
     const originalText = File.prototype.text;
@@ -103,6 +128,26 @@ test("prompt preset choice definitions can be authored and saved", async ({ page
   expect(pageErrors).toEqual([]);
 });
 
+test("promptless prompt presets can be created and reopened", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Promptless Catalog Proof");
+  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await page.getByRole("button", { name: "Promptless Catalog Proof" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Promptless Catalog Proof");
+  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  expect(pageErrors).toEqual([]);
+});
+
 test("standalone prompt preset files reject bad content and round-trip a fresh native copy", async ({
   page,
 }) => {
@@ -143,12 +188,12 @@ test("standalone prompt preset files reject bad content and round-trip a fresh n
   await expect(stockedCount).toHaveText(initialCount ?? "");
 
   await fileInput.setInputFiles(
-    promptPresetFile("Portable Proof.marinara.json", "preset-portable-source", "Portable Proof"),
+    promptlessNativePresetFile("Portable Proof.json", "preset-portable-source", "Portable Proof"),
   );
 
   await expect(page.getByLabel("Title")).toHaveValue("Portable Proof");
   await expect(page.getByRole("status")).toHaveText(
-    "Imported Portable Proof from Portable Proof.marinara.json. Storage is unavailable; this imported preset exists only for this session.",
+    "Imported Portable Proof from Portable Proof.json. Storage is unavailable; this imported preset exists only for this session.",
   );
   await expect(page.getByRole("button", { name: "Import JSON" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Export JSON" })).toBeVisible();
@@ -174,7 +219,7 @@ test("standalone prompt preset files reject bad content and round-trip a fresh n
   expect(exportedPackage).toMatchObject({
     type: "dekoi_preset",
     version: 1,
-    data: { preset: { name: "Portable Proof" } },
+    data: { preset: { name: "Portable Proof", systemPrompt: "" } },
   });
   expect(exportedPackage.data.preset.id).not.toBe("preset-portable-source");
   expect(pageErrors).toEqual([]);

@@ -395,6 +395,21 @@ function readPackageRecordArray(
   return records;
 }
 
+function readTopLevelPackageRecordArray(
+  value: unknown,
+  validate: (record: Record<string, unknown>) => boolean,
+): Record<string, unknown>[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return null;
+
+  const records: Record<string, unknown>[] = [];
+  for (const item of value) {
+    if (!isRecord(item) || !validate(item)) return null;
+    records.push(item);
+  }
+  return records;
+}
+
 export function readPromptPresetPackageData(value: unknown): PromptPresetPackageData | null {
   if (
     !isRecord(value) ||
@@ -404,15 +419,18 @@ export function readPromptPresetPackageData(value: unknown): PromptPresetPackage
     return null;
   }
 
-  const sections = readPackageRecordArray(value.sections, promptPresetPackageSectionIsValid);
-  const groups = readPackageRecordArray(value.groups, promptPresetPackageGroupIsValid);
-  const choiceBlocks = readPackageRecordArray(
+  const sections = readTopLevelPackageRecordArray(
+    value.sections,
+    promptPresetPackageSectionIsValid,
+  );
+  const groups = readTopLevelPackageRecordArray(value.groups, promptPresetPackageGroupIsValid);
+  const choiceBlocks = readTopLevelPackageRecordArray(
     value.choiceBlocks,
     promptPresetPackageChoiceBlockIsValid,
   );
-  return sections &&
-    groups &&
-    choiceBlocks &&
+  return sections !== null &&
+    groups !== null &&
+    choiceBlocks !== null &&
     packageChoiceDefaultsAreValid(value.preset, choiceBlocks)
     ? { preset: value.preset, sections, groups, choiceBlocks }
     : null;

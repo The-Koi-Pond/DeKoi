@@ -345,7 +345,7 @@ describe("normalizeDeKoiStorageBundle", () => {
       id: "preset-standard",
       title: "Standard Preset",
       summary: "Portable preset",
-      systemPrompt: "You are {{tone}}.\n\nWrite the next reply.",
+      systemPrompt: "",
       messengerPrompt: "Conversation prompt.",
       sampling: {
         maxTokens: 2048,
@@ -368,6 +368,11 @@ describe("normalizeDeKoiStorageBundle", () => {
           label: "Choose tone.",
           defaultOptionId: "tone-warm",
         }),
+      ],
+      sections: [
+        expect.objectContaining({ id: "section-role", content: "You are {{tone}}." }),
+        expect.objectContaining({ id: "section-history", isMarker: true }),
+        expect.objectContaining({ id: "section-output", content: "Write the next reply." }),
       ],
     });
     expect(standardPreset).not.toHaveProperty("sourceType");

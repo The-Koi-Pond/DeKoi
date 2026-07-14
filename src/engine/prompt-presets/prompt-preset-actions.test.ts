@@ -22,6 +22,50 @@ describe("normalizePromptPresetRecord", () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    ["omitted", {}],
+    ["null", { systemPrompt: null }],
+    ["blank", { systemPrompt: "   " }],
+  ])("normalizes a %s prompt to a blank persisted prompt", (_label, promptField) => {
+    const record = normalizePromptPresetRecord({
+      id: "promptless",
+      schemaVersion: 1,
+      title: "Promptless",
+      ...promptField,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record?.systemPrompt).toBe("");
+  });
+
+  it.each([42, {}, [], true])("rejects malformed prompt value %j", (systemPrompt) => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "malformed-prompt",
+        schemaVersion: 1,
+        title: "Malformed Prompt",
+        systemPrompt,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it("creates and updates promptless records without injecting fallback text", () => {
+    const created = createPromptPresetRecord({
+      id: "promptless",
+      input: { title: "Promptless" },
+      now,
+    });
+
+    expect(created.systemPrompt).toBe("");
+    expect(
+      updatePromptPresetRecord(created, { title: "Promptless", systemPrompt: "" }, now)
+        .systemPrompt,
+    ).toBe("");
+  });
+
   it("falls back when prompt preset timestamps are malformed", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(now));

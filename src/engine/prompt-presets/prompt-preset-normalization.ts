@@ -14,8 +14,6 @@ import type {
   PromptPresetThreadChoiceSelections,
 } from "../contracts/types/prompt-presets";
 
-export const DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT = "Write the next response in character.";
-
 export interface PromptPresetNumericConstraint {
   minimum: number;
   maximum: number;
@@ -970,7 +968,7 @@ function normalizePromptPresetRecordFromParts({
   const normalizedParameters = parameters ?? null;
   const sampling = normalizePromptPresetSampling(normalizedParameters);
   const resolvedMessengerPrompt = messengerPrompt?.trim() || null;
-  const resolvedSystemPrompt = systemPrompt.trim() || DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT;
+  const resolvedSystemPrompt = systemPrompt.trim();
 
   return {
     id,
@@ -1033,9 +1031,17 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
 
   if (value.schemaVersion !== 1) return null;
 
+  if (
+    value.systemPrompt !== undefined &&
+    value.systemPrompt !== null &&
+    typeof value.systemPrompt !== "string"
+  ) {
+    return null;
+  }
+
   const id = readString(value.id).trim();
   const systemPrompt = readString(value.systemPrompt).trim();
-  if (!id || !systemPrompt) return null;
+  if (!id) return null;
 
   const now = new Date().toISOString();
   const title = readString(value.title).trim() || "Untitled preset";

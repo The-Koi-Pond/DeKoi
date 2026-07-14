@@ -141,6 +141,61 @@ function richPromptPreset(): PromptPresetRecord {
 }
 
 describe("prompt preset packages", () => {
+  it("round-trips a promptless native package without injecting prompt text", () => {
+    const promptless = {
+      ...richPromptPreset(),
+      id: "prompt-preset-empty",
+      title: "Promptless Preset",
+      summary: null,
+      systemPrompt: "",
+      messengerPrompt: null,
+      sampling: null,
+      parameters: null,
+      sectionOrder: [],
+      groupOrder: [],
+      variableOrder: [],
+      variableGroups: [],
+      variableValues: {},
+      defaultChoices: {},
+      wrapFormat: null,
+      author: null,
+      folderId: null,
+      sections: [],
+      groups: [],
+      choiceBlocks: [],
+    } satisfies PromptPresetRecord;
+
+    const packageValue = createPromptPresetPackage(promptless, exportedAt);
+    expect(normalizePromptPresetImportRecord(JSON.parse(JSON.stringify(packageValue)))).toEqual(
+      promptless,
+    );
+  });
+
+  it("normalizes omitted optional recipe arrays in a minimal promptless package", () => {
+    const record = normalizePromptPresetImportRecord({
+      type: "dekoi_preset",
+      version: 1,
+      exportedAt,
+      data: {
+        preset: {
+          id: "prompt-preset-minimal",
+          name: "Minimal Promptless",
+          createdAt,
+          updatedAt: createdAt,
+        },
+      },
+    });
+
+    expect(record).toMatchObject({
+      id: "prompt-preset-minimal",
+      title: "Minimal Promptless",
+      systemPrompt: "",
+      sections: [],
+      groups: [],
+      choiceBlocks: [],
+    });
+  });
+
   it("round-trips every supported native prompt-preset field through the stable package", () => {
     const preset = richPromptPreset();
 
@@ -229,9 +284,9 @@ describe("prompt preset packages", () => {
     ).not.toBeNull();
   });
 
-  it("imports a compatible sectioned package without an explicit system prompt", () => {
+  it("imports compatible package sections without copying them into the shared prompt", () => {
     const record = normalizePromptPresetImportRecord({
-      type: "dekoi_preset",
+      type: "marinara_preset",
       version: 1,
       exportedAt,
       data: {
@@ -270,7 +325,7 @@ describe("prompt preset packages", () => {
       },
     });
 
-    expect(record?.systemPrompt).toBe("Write in character.");
+    expect(record?.systemPrompt).toBe("");
     expect(record?.sections.map((section) => section.presetId)).toEqual([
       "preset-compatible",
       "preset-compatible",
@@ -335,50 +390,19 @@ describe("prompt preset packages", () => {
     expect(record?.choiceBlocks[0]?.presetId).toBe(expectedId);
   });
 
-  it("dedupes section order and appends unordered sections once when deriving a prompt", () => {
-    const record = normalizePromptPresetImportRecord({
-      type: "dekoi_preset",
-      version: 1,
-      exportedAt,
-      data: {
-        preset: {
-          id: "preset-section-order",
-          name: "Ordered Preset",
-          sectionOrder: ["section-a", "section-a", "missing-section"],
-          createdAt,
-          updatedAt: createdAt,
-        },
-        sections: [
-          {
-            id: "section-a",
-            identifier: "a",
-            name: "A",
-            content: "First section.",
-            role: "system",
-            enabled: true,
-            isMarker: false,
-            injectionOrder: 2,
-          },
-          {
-            id: "section-b",
-            identifier: "b",
-            name: "B",
-            content: "Second section.",
-            role: "system",
-            enabled: true,
-            isMarker: false,
-            injectionOrder: 1,
-          },
-        ],
-        groups: [],
-        choiceBlocks: [],
-      },
-    });
+  it("round-trips native sections without copying them into a blank shared prompt", () => {
+    const preset = { ...richPromptPreset(), systemPrompt: "" };
+    const packageValue = createPromptPresetPackage(preset, exportedAt);
 
-    expect(record?.systemPrompt).toBe("First section.\n\nSecond section.");
+    const record = normalizePromptPresetImportRecord(
+      JSON.parse(JSON.stringify(packageValue)) as unknown,
+    );
+
+    expect(record?.systemPrompt).toBe("");
+    expect(record?.sections).toEqual(preset.sections);
   });
 
-  it("rejects unsupported envelopes and packages without usable prompt content", () => {
+  it("rejects unsupported envelopes while accepting promptless packages", () => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
 
     expect(normalizePromptPresetImportRecord({ ...validPackage, type: "dekoi_bundle" })).toBeNull();
@@ -399,8 +423,8 @@ describe("prompt preset packages", () => {
           groups: [],
           choiceBlocks: [],
         },
-      }),
-    ).toBeNull();
+      })?.systemPrompt,
+    ).toBe("");
     expect(
       normalizePromptPresetImportRecord({
         type: "dekoi_preset",
@@ -430,8 +454,8 @@ describe("prompt preset packages", () => {
           groups: [],
           choiceBlocks: [],
         },
-      }),
-    ).toBeNull();
+      })?.systemPrompt,
+    ).toBe("");
   });
 
   it.each([
@@ -591,6 +615,40 @@ describe("prompt preset packages", () => {
         },
       }),
     ).toBeNull();
+  });
+
+  it.each([
+    ["sections", "sections"],
+    ["groups", "groups"],
+    ["choiceBlocks", "choiceBlocks"],
+  ])("rejects a JSON-string top-level %s collection", (_label, field) => {
+    const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const collection = validPackage.data[field as keyof typeof validPackage.data];
+
+    expect(
+      normalizePromptPresetPackage({
+        ...validPackage,
+        data: { ...validPackage.data, [field]: JSON.stringify(collection) },
+      }),
+    ).toBeNull();
+  });
+
+  it("retains JSON-string compatibility for nested choice-block options", () => {
+    const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const [firstBlock, ...remainingBlocks] = validPackage.data.choiceBlocks;
+
+    expect(
+      normalizePromptPresetPackage({
+        ...validPackage,
+        data: {
+          ...validPackage.data,
+          choiceBlocks: [
+            { ...firstBlock, options: JSON.stringify(firstBlock.options) },
+            ...remainingBlocks,
+          ],
+        },
+      }),
+    ).not.toBeNull();
   });
 
   it("rejects malformed required section fields that survive row-count checks", () => {

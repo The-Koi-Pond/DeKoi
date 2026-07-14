@@ -113,8 +113,8 @@ development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
 Prompt presets use `schemaVersion: 1`. Each record stores title, optional
-summary, required non-empty `systemPrompt`, optional `messengerPrompt`, optional
-normalized `parameters`, a provider-ready `sampling` projection, section/group
+summary, `systemPrompt` (normalized to `""` when omitted), optional
+`messengerPrompt`, nullable normalized `parameters`, a provider-ready `sampling` projection, section/group
 ordering fields, `sections`, `groups`, `choiceBlocks`, static `variableValues`,
 `defaultChoices`, and optional author/folder metadata. Native preset records do
 not store a default flag; `AppSettings.defaultPromptPresetId` is the sole native
@@ -661,9 +661,10 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   import may also normalize packaged prompt preset envelopes with
   `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
   Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
-  becomes `messengerPrompt`, and enabled non-marker sections can supply the
-  native `systemPrompt`. Packaged `author` and `folderId` metadata are preserved
-  when present; packaged `isDefault` is not native authority and is discarded.
+  becomes `messengerPrompt`, and sections remain independent from the shared
+  `systemPrompt`; an omitted shared prompt normalizes to `""`. Packaged `author`
+  and `folderId` metadata are preserved when present; packaged `isDefault` is
+  not native authority and is discarded.
   An empty or unusable imported preset collection is repaired with the bundled
   starter. A missing default is repaired to the first usable imported preset,
   and dangling active thread references are reassigned to it without erasing

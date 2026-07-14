@@ -40,7 +40,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   per-entry probability, inclusion groups, group weight, insertion-order group
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
-- Presets catalog controls expose prompt preset title, summary, system prompt,
+- Presets catalog controls expose prompt preset title, summary, optional system
+  prompt,
   Messenger Prompt Source, optional temperature, `topP`, max-token sampling,
   Roleplay section groups, ordered sections, markers, section roles, enabled
   state, wrapping, and depth placement, with create, edit, duplicate, and delete
