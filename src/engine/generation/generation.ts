@@ -10,6 +10,12 @@ import type {
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../contracts/types/persona";
 import type { PromptPresetRecord, PromptPresetSampling } from "../contracts/types/prompt-presets";
+import type {
+  GenerationJsonValue,
+  GenerationReasoningEffort,
+  GenerationServiceTier,
+  GenerationVerbosity,
+} from "../generation-core/generation-parameter-contract";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { AppSettings } from "../contracts/types/app-settings";
 import {
@@ -51,6 +57,15 @@ export interface GenerationParameters {
   temperature: number;
   maxTokens: number;
   topP: number;
+  topK?: number;
+  minP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  reasoningEffort?: GenerationReasoningEffort;
+  verbosity?: GenerationVerbosity;
+  serviceTier?: GenerationServiceTier;
+  stopSequences?: string[];
+  customParameters?: Record<string, GenerationJsonValue>;
 }
 
 export interface GeneratedMessageDraft {

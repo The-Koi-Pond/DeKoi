@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "openai chat maps documented chat fields and preserves zeroes",
+      "provider": "openai",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": {
+        "maxTokens": 1,
+        "temperature": 0,
+        "topP": 0,
+        "topK": 12,
+        "minP": 0.1,
+        "frequencyPenalty": 0,
+        "presencePenalty": -0.5,
+        "reasoningEffort": "high",
+        "verbosity": "low",
+        "serviceTier": "flex",
+        "stopSequences": []
+      },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_completion_tokens": 1,
+        "temperature": 0,
+        "top_p": 0,
+        "frequency_penalty": 0,
+        "presence_penalty": -0.5,
+        "reasoning_effort": "high",
+        "service_tier": "flex",
+        "stop": []
+      }
+    },
+    {
+      "name": "openai omits the anthropic only standard tier",
+      "provider": "openai",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "serviceTier": "standard_only" },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }]
+      }
+    },
+    {
+      "name": "mistral uses conservative OAI compatible fields",
+      "provider": "mistral",
+      "model": "test-model",
+      "messages": [
+        { "role": "system", "content": "System" },
+        { "role": "user", "content": "Hello" }
+      ],
+      "parameters": {
+        "maxTokens": 200,
+        "topK": 9,
+        "minP": 0.2,
+        "reasoningEffort": "low",
+        "verbosity": "high",
+        "serviceTier": "auto",
+        "stopSequences": ["END"]
+      },
+      "expected": {
+        "model": "test-model",
+        "messages": [
+          { "role": "system", "content": "System" },
+          { "role": "user", "content": "Hello" }
+        ],
+        "max_tokens": 200,
+        "stop": ["END"]
+      }
+    },
+    {
+      "name": "cohere uses conservative OAI compatible fields",
+      "provider": "cohere",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": {
+        "temperature": 0.4,
+        "topP": 0.8,
+        "frequencyPenalty": 0.2,
+        "presencePenalty": 0.3
+      },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "temperature": 0.4,
+        "top_p": 0.8,
+        "frequency_penalty": 0.2,
+        "presence_penalty": 0.3
+      }
+    },
+    {
+      "name": "nanogpt uses conservative OAI compatible fields",
+      "provider": "nanogpt",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "maxTokens": 300, "topP": 0.9 },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_tokens": 300,
+        "top_p": 0.9
+      }
+    },
+    {
+      "name": "xai uses conservative OAI compatible fields",
+      "provider": "xai",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "maxTokens": 400, "temperature": 0.6 },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_tokens": 400,
+        "temperature": 0.6
+      }
+    },
+    {
+      "name": "openrouter maps its extended parameter set but omits service tier",
+      "provider": "openrouter",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": {
+        "maxTokens": 500,
+        "temperature": 0.7,
+        "topP": 0.95,
+        "topK": 40,
+        "minP": 0.05,
+        "frequencyPenalty": 0.1,
+        "presencePenalty": 0.2,
+        "reasoningEffort": "xhigh",
+        "verbosity": "max",
+        "serviceTier": "priority",
+        "stopSequences": ["A", "B"]
+      },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_tokens": 500,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 40,
+        "min_p": 0.05,
+        "frequency_penalty": 0.1,
+        "presence_penalty": 0.2,
+        "reasoning_effort": "xhigh",
+        "verbosity": "max",
+        "stop": ["A", "B"]
+      }
+    },
+    {
+      "name": "anthropic maps effort and accepted service tier",
+      "provider": "anthropic",
+      "model": "test-model",
+      "messages": [
+        { "role": "system", "content": "System" },
+        { "role": "user", "content": "Hello" },
+        { "role": "assistant", "content": "Hi" }
+      ],
+      "parameters": {
+        "maxTokens": 600,
+        "temperature": 0.5,
+        "topP": 0.9,
+        "topK": 20,
+        "reasoningEffort": "xhigh",
+        "serviceTier": "standard_only",
+        "stopSequences": ["END"]
+      },
+      "expected": {
+        "model": "test-model",
+        "system": "System",
+        "messages": [
+          { "role": "user", "content": "Hello" },
+          { "role": "assistant", "content": "Hi" }
+        ],
+        "max_tokens": 600,
+        "temperature": 0.5,
+        "top_p": 0.9,
+        "top_k": 20,
+        "stop_sequences": ["END"],
+        "output_config": { "effort": "xhigh" },
+        "service_tier": "standard_only"
+      }
+    },
+    {
+      "name": "anthropic omits unsupported effort and service tier values",
+      "provider": "anthropic",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "maxTokens": 700, "reasoningEffort": "minimal", "serviceTier": "flex" },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_tokens": 700
+      }
+    },
+    {
+      "name": "google clamps stops and reduces xhigh reasoning",
+      "provider": "google",
+      "model": "models/test-model",
+      "messages": [
+        { "role": "system", "content": "System" },
+        { "role": "user", "content": "Hello" },
+        { "role": "assistant", "content": "Hi" }
+      ],
+      "parameters": {
+        "maxTokens": 800,
+        "temperature": 0,
+        "topP": 0,
+        "topK": 0,
+        "minP": 0.1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "reasoningEffort": "xhigh",
+        "verbosity": "low",
+        "serviceTier": "auto",
+        "stopSequences": ["1", "2", "3", "4", "5", "6"]
+      },
+      "expected": {
+        "systemInstruction": { "parts": [{ "text": "System" }] },
+        "contents": [
+          { "role": "user", "parts": [{ "text": "Hello" }] },
+          { "role": "model", "parts": [{ "text": "Hi" }] }
+        ],
+        "generationConfig": {
+          "maxOutputTokens": 800,
+          "temperature": 0,
+          "topP": 0,
+          "topK": 0,
+          "frequencyPenalty": 0,
+          "presencePenalty": 0,
+          "stopSequences": ["1", "2", "3", "4", "5"],
+          "thinkingConfig": { "thinkingLevel": "HIGH" }
+        }
+      }
+    },
+    {
+      "name": "custom merges validated unknown values after standard fields",
+      "provider": "custom",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": {
+        "maxTokens": 900,
+        "topK": 0,
+        "minP": 0,
+        "reasoningEffort": "none",
+        "verbosity": "low",
+        "serviceTier": "default",
+        "stopSequences": [],
+        "customParameters": {
+          "feature_enabled": false,
+          "array_value": [],
+          "object_value": { "nested": 0 },
+          "unicode_value": "鯉"
+        }
+      },
+      "expected": {
+        "model": "test-model",
+        "messages": [{ "role": "user", "content": "Hello" }],
+        "max_tokens": 900,
+        "top_k": 0,
+        "min_p": 0,
+        "reasoning_effort": "none",
+        "verbosity": "low",
+        "service_tier": "default",
+        "stop": [],
+        "feature_enabled": false,
+        "array_value": [],
+        "object_value": { "nested": 0 },
+        "unicode_value": "鯉"
+      }
+    },
+    {
+      "name": "non custom providers omit custom values",
+      "provider": "openrouter",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "customParameters": { "feature_enabled": false } },
+      "expected": { "model": "test-model", "messages": [{ "role": "user", "content": "Hello" }] }
+    },
+    {
+      "name": "custom rejects protected collisions",
+      "provider": "custom",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "customParameters": { "maxOutputTokens": 123 } },
+      "expectedError": "Custom parameter name is reserved: maxOutputTokens."
+    },
+    {
+      "name": "anthropic requires max tokens before transport",
+      "provider": "anthropic",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": { "temperature": 0.5 },
+      "expectedError": "Anthropic generation requires maxTokens."
+    },
+    {
+      "name": "unsupported provider remains explicit",
+      "provider": "openai_chatgpt",
+      "model": "test-model",
+      "messages": [{ "role": "user", "content": "Hello" }],
+      "parameters": {},
+      "expectedError": "openai_chatgpt is not supported for generation."
+    }
+  ]
+}
