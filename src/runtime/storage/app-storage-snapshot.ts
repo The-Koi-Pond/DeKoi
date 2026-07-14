@@ -60,7 +60,10 @@ import {
 import { STARTER_PROMPT_PRESET } from "../../engine/prompt-presets/starter-preset";
 import type { ModeThread } from "../../engine/contracts/types/mode-thread";
 import { repairPromptPresetRelationships } from "./prompt-preset-relationship-repair";
-import { getDuplicateModeBranchIds } from "../../engine/modes/mode-thread/mode-thread-validation";
+import {
+  getDuplicateModeBranchIds,
+  getDuplicateModeThreadIds,
+} from "../../engine/modes/mode-thread/mode-thread-validation";
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
@@ -317,14 +320,21 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loadRippleStatesFromStorage(rawUrl),
     loadAppStorageMetadata(rawUrl),
   ]);
+  const duplicateThreadIds = getDuplicateModeThreadIds(modeThreadSnapshot.records);
   const duplicateBranchIds = getDuplicateModeBranchIds(modeThreadSnapshot.records);
+  const modeThreadIdentityError =
+    duplicateThreadIds.length > 0
+      ? `Mode thread storage contains duplicate thread IDs: ${duplicateThreadIds.join(", ")}.`
+      : duplicateBranchIds.length > 0
+        ? `Mode thread storage contains duplicate branch IDs: ${duplicateBranchIds.join(", ")}.`
+        : null;
   const validatedModeThreadSnapshot =
-    duplicateBranchIds.length === 0
+    modeThreadIdentityError === null
       ? modeThreadSnapshot
       : {
           ...modeThreadSnapshot,
           status: "error" as const,
-          message: `Mode thread storage contains branch IDs shared across threads: ${duplicateBranchIds.join(", ")}.`,
+          message: modeThreadIdentityError,
           records: [],
         };
   const modeThreads = assembleModeThreads(

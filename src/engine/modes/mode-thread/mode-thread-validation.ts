@@ -124,16 +124,25 @@ export function validateModeMessageAuthor(author: unknown): asserts author is Mo
 }
 
 export function getDuplicateModeBranchIds(threads: readonly Pick<ModeThread, "id" | "branches">[]) {
-  const branchOwnerById = new Map<string, string>();
+  const seenBranchIds = new Set<string>();
   const duplicateBranchIds = new Set<string>();
   for (const thread of threads) {
     for (const branch of thread.branches) {
-      const ownerId = branchOwnerById.get(branch.id);
-      if (ownerId && ownerId !== thread.id) duplicateBranchIds.add(branch.id);
-      else branchOwnerById.set(branch.id, thread.id);
+      if (seenBranchIds.has(branch.id)) duplicateBranchIds.add(branch.id);
+      else seenBranchIds.add(branch.id);
     }
   }
   return [...duplicateBranchIds];
+}
+
+export function getDuplicateModeThreadIds(threads: readonly Pick<ModeThread, "id">[]) {
+  const seenThreadIds = new Set<string>();
+  const duplicateThreadIds = new Set<string>();
+  for (const thread of threads) {
+    if (seenThreadIds.has(thread.id)) duplicateThreadIds.add(thread.id);
+    else seenThreadIds.add(thread.id);
+  }
+  return [...duplicateThreadIds];
 }
 
 function validatePresetChoiceHistory(value: unknown) {

@@ -775,6 +775,19 @@ describe("mode-thread actions", () => {
         branches: [{ ...thread.branches[0], lorebookIds: ["l", "l"] }, thread.branches[1]],
       }),
     ).toThrow();
+    expect(() =>
+      assertValidModeThread({
+        ...thread,
+        branches: [
+          {
+            ...thread.branches[0],
+            systemPromptMode: "custom",
+            systemPrompt: "   ",
+          },
+          thread.branches[1],
+        ],
+      }),
+    ).toThrow("Invalid mode thread: system prompt text");
     const badMessage: ModeMessage = {
       id: "bad",
       schemaVersion: 1,

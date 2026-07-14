@@ -33,7 +33,10 @@ import { normalizeRippleState } from "../collections/ripple-state-storage";
 import { normalizePromptPresetImportRecord } from "../../../engine/prompt-presets/prompt-preset-package";
 import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
-import { getDuplicateModeBranchIds } from "../../../engine/modes/mode-thread/mode-thread-validation";
+import {
+  getDuplicateModeBranchIds,
+  getDuplicateModeThreadIds,
+} from "../../../engine/modes/mode-thread/mode-thread-validation";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
 const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 2;
@@ -324,6 +327,18 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     normalizeModeThreadRecord,
     warnings,
   );
+  const normalizedModeThreadCandidates = Array.isArray(value.data.modeThreads)
+    ? value.data.modeThreads
+        .map(normalizeModeThreadRecord)
+        .filter((thread): thread is ModeThreadStorageRecord => thread !== null)
+    : [];
+  const duplicateThreadId = getDuplicateModeThreadIds(normalizedModeThreadCandidates)[0];
+  if (duplicateThreadId) {
+    return {
+      ok: false,
+      error: `Mode thread ID ${duplicateThreadId} is duplicated.`,
+    };
+  }
   const normalizedHistoryChangeCount = Array.isArray(value.data.modeThreads)
     ? value.data.modeThreads.reduce(
         (count, rawThread) =>

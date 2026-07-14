@@ -901,7 +901,28 @@ Example RippleState list:
     "value": {
       "id": "mode-thread-example",
       "schemaVersion": 1,
+      "kind": "messenger",
       "title": "Messenger example",
+      "activeBranchId": "branch-example",
+      "branches": [
+        {
+          "id": "branch-example",
+          "schemaVersion": 1,
+          "threadId": "mode-thread-example",
+          "kind": "messenger",
+          "participantMode": "direct",
+          "characterIds": [],
+          "activePersonaId": null,
+          "lorebookIds": [],
+          "presetId": null,
+          "presetChoiceSelectionsByPresetId": {},
+          "providerConnectionId": null,
+          "systemPromptMode": "default",
+          "systemPrompt": "",
+          "createdAt": "2026-06-24T07:20:00.000Z",
+          "updatedAt": "2026-06-24T07:20:00.000Z"
+        }
+      ],
       "createdAt": "2026-06-24T07:20:00.000Z",
       "updatedAt": "2026-06-24T07:20:00.000Z"
     }

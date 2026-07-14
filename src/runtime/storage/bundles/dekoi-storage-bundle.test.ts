@@ -228,4 +228,24 @@ describe("DeKoi storage bundle v2", () => {
       error: `Mode branch ID ${thread.activeBranchId} is duplicated across threads.`,
     });
   });
+
+  it("rejects duplicate thread IDs before normalizing the bundle collection", () => {
+    const duplicateThread = createMessengerThread({
+      id: thread.id,
+      branchId: "second-branch",
+      title: "Duplicate",
+      characterIds: [],
+      activePersonaId: null,
+      now,
+    });
+    const bundle = createDeKoiStorageBundle({
+      ...source(),
+      modeThreads: [thread, duplicateThread],
+    });
+
+    expect(normalizeDeKoiStorageBundle(bundle)).toEqual({
+      ok: false,
+      error: `Mode thread ID ${thread.id} is duplicated.`,
+    });
+  });
 });

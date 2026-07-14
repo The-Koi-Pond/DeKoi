@@ -2,14 +2,36 @@ import { describe, expect, it } from "vitest";
 import {
   appStorageAutoMigrationCollectionKeys,
   appStorageDroppedRecordSaveBlockCollectionKeys,
+  createLoadedAppStorageSignatures,
   orderedAppStorageCollectionKeys,
   partitionAppStorageDirtyCollectionKeys,
   mergeAffectedAppStorageCollections,
   type AppStorageCollectionSignatures,
 } from "./use-app-storage-sync";
-import type { AppStorageRecords } from "../features/runtime";
+import type { AppStorageRecords, AppStorageSnapshot } from "../features/runtime";
 
 describe("unified mode storage sync bookkeeping", () => {
+  it("keeps migrated collections distinct from their last durable signatures", () => {
+    const snapshot = {
+      appSettings: {},
+      characters: [],
+      personas: [],
+      lorebooks: [],
+      promptPresets: [],
+      loreRuntimeStates: [],
+      macroVariableStates: [],
+      providerConnections: [],
+      modeThreads: [],
+      rippleStates: [],
+    } as unknown as AppStorageSnapshot;
+
+    const signatures = createLoadedAppStorageSignatures(snapshot, ["modeThreads", "modeMessages"]);
+
+    expect(signatures.modeThreads).not.toBe("[]");
+    expect(signatures.modeMessages).not.toBe("[]");
+    expect(signatures.characters).toBe("[]");
+  });
+
   it("groups mode threads and messages for migration and dropped-record safety", () => {
     expect(
       appStorageAutoMigrationCollectionKeys({

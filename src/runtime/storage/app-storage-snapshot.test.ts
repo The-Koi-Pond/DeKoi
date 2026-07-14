@@ -130,7 +130,33 @@ describe("unified mode storage", () => {
     expect(result.modeThreads).toEqual([]);
     expect(result.storageResult.status).toBe("error");
     expect(result.loadErrorMessageByCollection.modeThreads).toContain(
-      "branch IDs shared across threads: branch-active",
+      "duplicate branch IDs: branch-active",
+    );
+  });
+  it("rejects duplicate mode thread IDs before assembling messages", async () => {
+    const { messages: _messages, ...threadStorage } = thread;
+    void _messages;
+    const duplicateThread = createMessengerThread({
+      id: thread.id,
+      branchId: "branch-duplicate-thread",
+      title: "Duplicate",
+      characterIds: [],
+      activePersonaId: null,
+      now,
+    });
+    const { messages: _duplicateMessages, ...duplicateThreadStorage } = duplicateThread;
+    void _duplicateMessages;
+    mockList({
+      [STORAGE_ENTITIES.modeThreads]: [threadStorage, duplicateThreadStorage],
+      [STORAGE_ENTITIES.modeMessages]: [message("branch-active", "message-1", "hello")],
+    });
+
+    const result = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(result.modeThreads).toEqual([]);
+    expect(result.storageResult.status).toBe("error");
+    expect(result.loadErrorMessageByCollection.modeThreads).toContain(
+      "duplicate thread IDs: thread-1",
     );
   });
   it("repairs prompt preset references on active and inactive branches and marks both collections", async () => {

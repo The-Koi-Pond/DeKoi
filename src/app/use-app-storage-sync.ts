@@ -109,6 +109,7 @@ const EMPTY_IMPORT_RECOVERY_STATE: AppStorageImportRecoveryState = {
   desktopBackupPath: null,
   reason: null,
 };
+const APP_STORAGE_MIGRATION_SIGNATURE = "__app_storage_migration_pending__";
 const DROPPED_RECORD_SAVE_BLOCK_MESSAGE =
   "Storage save blocked because unreadable records were skipped during load. Restore from backup or repair storage before saving affected collections.";
 const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
@@ -230,12 +231,15 @@ function appStorageSnapshotsHaveMatchingSignatures(
   );
 }
 
-function createLoadedAppStorageSignatures(
+export function createLoadedAppStorageSignatures(
   snapshot: AppStorageSnapshot,
   migrationCollectionKeys: readonly AppStorageCollectionKey[],
 ): AppStorageCollectionSignatures {
-  void migrationCollectionKeys;
-  return createAppStorageSignatures(snapshot);
+  const signatures = createAppStorageSignatures(snapshot);
+  for (const collectionKey of migrationCollectionKeys) {
+    signatures[collectionKey] = APP_STORAGE_MIGRATION_SIGNATURE;
+  }
+  return signatures;
 }
 
 function createMigrationAppStorageSignatures(
