@@ -154,7 +154,7 @@ src/engine/modes           Shared mode-thread primitives plus concrete
 src/engine/catalog         Character, persona, lorebook, and provider actions.
 src/engine/prompt-presets  Prompt preset actions, starter preset records,
                             normalization, and section-message assembly.
-src/engine/lore-runtime    Pure per-thread lore timer state actions.
+src/engine/lore-runtime    Pure per-branch lore timer state actions.
 src/engine/macro-variables Pure owner-scoped macro variable state actions.
 src/engine/ripples         Ripple behavior and pure actions.
 src/engine/capabilities    Future ports for storage, secrets, providers, files.
@@ -176,9 +176,9 @@ architecture-level rules:
 - Provider secrets are never ordinary records and never enter exported bundles.
 - Collection adapters depend on `storage-repository-factory.ts`, keeping the
   current host-storage adapter behind one future database swap point.
-- Messenger and Roleplay transcripts are separate storage collections from
-  thread metadata; runtime orchestration assembles them before feature UI or
-  generation consumes thread objects.
+- Messenger and Roleplay share `mode-threads` metadata and `mode-messages`
+  transcript collections; runtime orchestration assembles them before feature
+  UI or generation consumes thread objects.
 - Native DeKoi records come before legacy compatibility.
 
 ## Current Shape
@@ -189,11 +189,11 @@ architecture-level rules:
   assembly, including lorebook activation, prompt preset section-message
   assembly, the macro resolver and active editor macro catalog under
   `generation-core`, and Messenger/Roleplay prompt macro wiring under
-  `generation`. The additive `contracts/types/mode-thread.ts` and
-  `modes/mode-thread` package define the validated branch/message/version
-  substrate shared by both truthful mode kinds. Concrete Messenger and
-  Roleplay factories, generation, UI, app state, and storage still use their
-  existing mode-owned records; adopting the substrate is later cutover work.
+  `generation`. `contracts/types/mode-thread.ts` and `modes/mode-thread` define
+  the validated branch/message/version substrate used by both truthful mode
+  kinds. Messenger and Roleplay retain separate factories, actions, prompt
+  builders, generation workflows, and screens over one `modeThreads` app-state
+  collection and the shared durable collection pair.
 - `src/features` renders Pond, Messenger, Roleplay, shell, and catalog
   surfaces. `src/features/runtime` owns runtime-facing workflows grouped under
   `generation`, `ripples`, and `storage`. Non-navigation feature modules

@@ -1,8 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
 import { type ProviderConnectionRecord } from "../../src/engine/contracts/types/provider-connection";
-import { createMessengerThread } from "../../src/engine/modes/messenger/messenger-actions";
-import { createRoleplayThread } from "../../src/engine/modes/roleplay/roleplay-actions";
+import {
+  createMessengerThread,
+  setMessengerThreadProviderConnection,
+} from "../../src/engine/modes/messenger/messenger-actions";
+import {
+  createRoleplayThread,
+  setRoleplayThreadProviderConnection,
+} from "../../src/engine/modes/roleplay/roleplay-actions";
 import {
   getMessengerThreadReferenceNotices,
   getMessengerThreadReferenceSummary,
@@ -59,6 +65,7 @@ test("chat settings drawer models align active state with open state", () => {
     activePersonaId: null,
     characterIds: [],
     id: "thread-1",
+    branchId: "thread-1-branch",
     now: "2026-01-01T00:00:00.000Z",
     title: "Messenger",
   });
@@ -102,6 +109,7 @@ test("messenger thread reference summary flags missing settings before send", ()
     activePersonaId: "persona-missing",
     characterIds: ["companion-missing"],
     id: "thread-missing-references",
+    branchId: "thread-missing-references-branch",
     lorebookIds: ["lorebook-missing"],
     now: "2026-01-01T00:00:00.000Z",
     providerConnectionId: "connection-missing",
@@ -142,10 +150,11 @@ test("messenger thread reference summary flags missing settings before send", ()
     personas: [],
     promptPresets: [],
     providerConnections: [readyProviderConnection],
-    thread: {
-      ...activeMessengerThread,
-      providerConnectionId: readyProviderConnection.id,
-    },
+    thread: setMessengerThreadProviderConnection(
+      activeMessengerThread,
+      readyProviderConnection.id,
+      "2026-01-01T00:01:00.000Z",
+    ),
   });
   expect(getMessengerThreadSendBlocker(companionBlockerSummary)).toContain(
     "clear missing companions",
@@ -174,6 +183,8 @@ test("roleplay thread reference summary flags missing settings before send", () 
     activePersonaId: "persona-missing",
     characterIds: ["companion-missing"],
     id: "roleplay-missing-references",
+    branchId: "roleplay-missing-references-branch",
+    openingCharacter: null,
     lorebookIds: ["lorebook-missing"],
     now: "2026-01-01T00:00:00.000Z",
     providerConnectionId: "connection-missing",
@@ -214,10 +225,11 @@ test("roleplay thread reference summary flags missing settings before send", () 
     personas: [],
     promptPresets: [],
     providerConnections: [readyProviderConnection],
-    thread: {
-      ...activeRoleplayThread,
-      providerConnectionId: readyProviderConnection.id,
-    },
+    thread: setRoleplayThreadProviderConnection(
+      activeRoleplayThread,
+      readyProviderConnection.id,
+      "2026-01-01T00:01:00.000Z",
+    ),
   });
   expect(getRoleplayThreadSendBlocker(companionBlockerSummary)).toContain(
     "clear missing companions",

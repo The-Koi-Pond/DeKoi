@@ -1,5 +1,6 @@
 import type {
   MessengerGenerationRequest,
+  MessengerGenerationContext,
   MessengerGenerationResponse,
 } from "../../../engine/generation/messenger-generation";
 import {
@@ -15,7 +16,7 @@ import type { CharacterRecord } from "../../../engine/contracts/types/character"
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
-import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
+import type { MessengerModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
@@ -26,9 +27,9 @@ import { providerMessengerGenerationAdapter } from "./provider-messenger-generat
 import { resolveGenerationTimeZone } from "./generation-time-zone";
 
 export interface GenerateMessengerThreadReplyInput {
-  thread: MessengerThread;
+  thread: MessengerModeThread;
   appSettings: AppSettings;
-  userMessage: MessengerMessage;
+  userMessage: ModeMessage;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
@@ -52,9 +53,9 @@ export interface GenerateMessengerThreadReplyInput {
 }
 
 export interface GenerateMessengerThreadReplyResult {
-  thread: MessengerThread;
+  thread: MessengerModeThread;
   response: MessengerGenerationResponse;
-  generatedMessages: MessengerMessage[];
+  generatedMessages: ModeMessage[];
   loreRuntimeState: LoreRuntimeState | null;
   macroVariableCommit: MacroVariableStateCommit;
   runtimeLabel: string;
@@ -86,8 +87,15 @@ export async function generateMessengerThreadReply({
 }: GenerateMessengerThreadReplyInput): Promise<GenerateMessengerThreadReplyResult> {
   const generationTransport = describeGenerationTransport();
   const generationTimeZone = resolveGenerationTimeZone(timeZone);
-  const result = await runGenerationWorkflow({
-    appendRecords: appendMessengerMessages,
+  const result = await runGenerationWorkflow<
+    MessengerModeThread,
+    MessengerGenerationContext,
+    MessengerGenerationRequest,
+    MessengerGenerationResponse,
+    ModeMessage
+  >({
+    appendRecords: (target, records, branchId) =>
+      appendMessengerMessages(target, records, branchId),
     createContext: (variables) =>
       createMessengerGenerationContext({
         appSettings,
@@ -101,11 +109,12 @@ export async function generateMessengerThreadReply({
         variables,
       }),
     createId,
-    createRecord: ({ body, companion, id, now }) =>
+    createRecord: ({ body, companion, id, now, versionId }) =>
       createGeneratedCompanionMessage({
         body,
         companion,
         id,
+        versionId,
         now,
         thread,
       }),
@@ -123,8 +132,9 @@ export async function generateMessengerThreadReply({
     generateResponse: generateMessengerResponse,
     macroVariableStates,
     now,
-    ownerKind: "messenger-thread",
+    ownerKind: "mode-branch",
     recordIdPrefix: "messenger-message",
+    versionIdPrefix: "messenger-message-version",
     requestIdPrefix: "messenger-generation-request",
     thread,
   });

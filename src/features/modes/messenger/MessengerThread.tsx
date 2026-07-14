@@ -11,7 +11,12 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
-import { type MessengerMessage } from "../../../engine/contracts/types/messenger";
+import type { MessengerModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
+import {
+  getActiveModeBranch,
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+} from "../../../engine/modes/mode-thread/mode-thread-actions";
 import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import {
@@ -75,7 +80,7 @@ export type MessengerThreadNav = Pick<
   Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavStorageState, "storageReady"> &
-  Pick<NavThreadState, "messengerThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
 
@@ -112,7 +117,12 @@ interface MessengerThreadProps {
 export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const activeThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const messengerThread =
-    nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;
+    nav.modeThreads.find(
+      (thread): thread is MessengerModeThread =>
+        thread.kind === "messenger" && thread.id === activeThreadId,
+    ) ?? null;
+  const activeBranch = messengerThread ? getActiveModeBranch(messengerThread) : null;
+  const messages = messengerThread ? getActiveModeBranchMessages(messengerThread) : [];
   const [draftState, setDraftState] = useState<{
     body: string;
     threadId: string | null;
@@ -136,9 +146,9 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
-  const messengerThreadsRef = useRef(nav.messengerThreads);
+  const messengerThreadsRef = useRef(nav.modeThreads);
   const threadCompanions = messengerThread
-    ? nav.characters.filter((companion) => messengerThread.characterIds.includes(companion.id))
+    ? nav.characters.filter((companion) => activeBranch?.characterIds.includes(companion.id))
     : [];
   const primaryCompanion = threadCompanions[0] ?? null;
   const companionDisplayName =
@@ -200,7 +210,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     : activeEditingMessage
       ? "edit"
       : "idle";
-  const getMessageAuthorAvatar = (message: MessengerMessage) => {
+  const getMessageAuthorAvatar = (message: ModeMessage) => {
     const { author } = message;
 
     if (author.kind === "persona") {
@@ -227,8 +237,8 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   };
 
   useLayoutEffect(() => {
-    messengerThreadsRef.current = nav.messengerThreads;
-  }, [nav.messengerThreads]);
+    messengerThreadsRef.current = nav.modeThreads;
+  }, [nav.modeThreads]);
 
   useEffect(() => {
     if (!messageListRef.current) return;
@@ -250,13 +260,13 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     deleteConfirmRef.current?.focus();
   }, [activeDeleteRequest?.id, activeMessageInteractionMode]);
 
-  function handleEditMessage(message: MessengerMessage) {
+  function handleEditMessage(message: ModeMessage) {
     if (!messengerThread) return;
     setDeleteRequest(null);
     setEditingMessage({
       threadId: messengerThread.id,
       id: message.id,
-      body: message.body,
+      body: getActiveModeMessageVersion(message).body,
     });
   }
 
@@ -269,12 +279,12 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     const trimmedBody = activeEditingMessage.body.trim();
     if (!trimmedBody) return;
     const originalMessage =
-      messengerThread.messages.find((message) => message.id === activeEditingMessage.id) ?? null;
+      messages.find((message) => message.id === activeEditingMessage.id) ?? null;
     if (!originalMessage) {
       setEditingMessage(null);
       return;
     }
-    if (originalMessage.body === trimmedBody) {
+    if (getActiveModeMessageVersion(originalMessage).body === trimmedBody) {
       setEditingMessage(null);
       return;
     }
@@ -299,9 +309,9 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     setDeleteRequest(null);
   }
 
-  function handleDeleteMessage(message: MessengerMessage) {
+  function handleDeleteMessage(message: ModeMessage) {
     if (!messengerThread) return;
-    if (!messengerThread.messages.some((candidate) => candidate.id === message.id)) {
+    if (!messages.some((candidate) => candidate.id === message.id)) {
       return;
     }
 
@@ -352,7 +362,10 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     if (!trimmedDraft) return false;
     const sentAt = new Date().toISOString();
     const commitThread =
-      nav.messengerThreads.find((thread) => thread.id === activeThreadId) ?? null;
+      nav.modeThreads.find(
+        (thread): thread is MessengerModeThread =>
+          thread.kind === "messenger" && thread.id === activeThreadId,
+      ) ?? null;
     if (!commitThread) return false;
     const commitSendBlocker = getMessengerThreadSendBlocker(
       getMessengerThreadReferenceSummary({
@@ -376,7 +389,8 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     }
 
     const selectedConnection = getProviderConnectionById(
-      commitThread.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
+      getActiveModeBranch(commitThread).providerConnectionId ??
+        nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
     const connectionReadiness = getGenerationConnectionReadiness(selectedConnection);
@@ -393,12 +407,13 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
     const commitConnection = connectionReadiness.connection;
     const sendTransport = describeGenerationTransport();
-    const sendPersona = commitThread.activePersonaId
-      ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
+    const commitBranch = getActiveModeBranch(commitThread);
+    const sendPersona = commitBranch.activePersonaId
+      ? (nav.personas.find((persona) => persona.id === commitBranch.activePersonaId) ?? null)
       : null;
     const hasConfiguredConnection =
-      !!commitThread.providerConnectionId &&
-      commitThread.providerConnectionId === commitConnection.id;
+      !!commitBranch.providerConnectionId &&
+      commitBranch.providerConnectionId === commitConnection.id;
     const threadForSend = hasConfiguredConnection
       ? commitThread
       : setMessengerThreadProviderConnection(commitThread, commitConnection.id, sentAt);
@@ -406,6 +421,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       ? createPersonaMessengerMessage({
           body: trimmedDraft,
           id: createLocalId("messenger-message"),
+          versionId: createLocalId("messenger-version"),
           now: sentAt,
           persona: sendPersona,
           thread: threadForSend,
@@ -413,6 +429,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       : createAnonymousMessengerMessage({
           body: trimmedDraft,
           id: createLocalId("messenger-message"),
+          versionId: createLocalId("messenger-version"),
           now: sentAt,
           thread: threadForSend,
         });
@@ -435,7 +452,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        loreRuntimeState: nav.getLoreRuntimeState("messenger-thread", threadWithUserMessage.id),
+        loreRuntimeState: nav.getLoreRuntimeState("mode-branch", activeBranch?.id ?? ""),
         macroVariableStates: nav.macroVariableStates,
         now: sentAt,
         parameters: {
@@ -452,7 +469,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
 
       let ownerExists = generationOriginStillExists({
         itemId: userMessage.id,
-        selectItems: (thread) => thread.messages,
+        selectItems: (thread) => getActiveModeBranchMessages(thread),
         threadId: threadWithUserMessage.id,
         threads: messengerThreadsRef.current,
       });
@@ -477,11 +494,13 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           action: null,
         });
         await waitForGeneratedTypingDelay(
-          result.generatedMessages.map((message) => message.body).join("\n"),
+          result.generatedMessages
+            .map((message) => getActiveModeMessageVersion(message).body)
+            .join("\n"),
         );
         ownerExists = generationOriginStillExists({
           itemId: userMessage.id,
-          selectItems: (thread) => thread.messages,
+          selectItems: (thread) => getActiveModeBranchMessages(thread),
           threadId: threadWithUserMessage.id,
           threads: messengerThreadsRef.current,
         });
@@ -504,11 +523,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           }),
         );
       }
-      nav.updateLoreRuntimeState(
-        result.loreRuntimeState,
-        "messenger-thread",
-        threadWithUserMessage.id,
-      );
+      nav.updateLoreRuntimeState(result.loreRuntimeState, "mode-branch", activeBranch?.id ?? "");
 
       setGenerationState(
         result.generatedMessages.length > 0
@@ -579,7 +594,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     );
   }
 
-  function handleCopyMessage(message: MessengerMessage) {
+  function handleCopyMessage(message: ModeMessage) {
     const body = getCopyableMessageBody(message);
     if (!body) return;
     void copyTextToClipboard(body);
@@ -684,14 +699,15 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
       )}
 
       <div className="message-list" aria-label="Messenger messages" ref={messageListRef}>
-        {messengerThread.messages.length === 0 && !isGenerating && (
+        {messages.length === 0 && !isGenerating && (
           <p className="messenger-empty-note">No messages yet.</p>
         )}
-        {messengerThread.messages.map((message, index) => {
+        {messages.map((message, index) => {
+          const messageVersion = getActiveModeMessageVersion(message);
+          const messageBody = messageVersion.body;
           const authorAvatar = getMessageAuthorAvatar(message);
           const dateKey = getMessageDateKey(message.createdAt);
-          const previousDateKey =
-            index > 0 ? getMessageDateKey(messengerThread.messages[index - 1].createdAt) : "";
+          const previousDateKey = index > 0 ? getMessageDateKey(messages[index - 1].createdAt) : "";
           const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
           const isEditing = activeEditingMessage?.id === message.id;
           const isConfirmingDelete = activeDeleteRequest?.id === message.id;
@@ -701,7 +717,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
           const timeLabel = getMessageTimeLabel(message.createdAt);
           // Grouping: consecutive same-author messages within the window share one
           // header. A date separator or a different author re-opens the header.
-          const previousMessage = index > 0 ? messengerThread.messages[index - 1] : null;
+          const previousMessage = index > 0 ? messages[index - 1] : null;
           const previousTime = previousMessage ? Date.parse(previousMessage.createdAt) : NaN;
           const currentTime = Date.parse(message.createdAt);
           const opensGroup =
@@ -737,9 +753,6 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                     <div className="message-heading">
                       <div className="message-author">
                         <span className="message-author-name">{message.author.label}</span>
-                        {message.origin === "placeholder" && (
-                          <span className="message-origin-chip">Placeholder</span>
-                        )}
                         {timeLabel && (
                           <time
                             className="message-timestamp"
@@ -797,7 +810,7 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
                     </div>
                   ) : (
                     <>
-                      <p>{message.body}</p>
+                      <p>{messageBody}</p>
                       <div className="message-actions" aria-label="Message actions">
                         {isConfirmingDelete ? (
                           <div

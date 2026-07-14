@@ -13,8 +13,7 @@ function records(label: string): AppStorageRecords {
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: [],
-    roleplayThreads: [],
-    messengerThreads: [],
+    modeThreads: [],
     rippleStates: [],
   };
 }

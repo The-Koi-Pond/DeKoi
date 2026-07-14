@@ -63,22 +63,20 @@ src/engine/
 src/engine/contracts/types/mode-thread.ts
 src/engine/modes/mode-thread/mode-thread-actions.ts
 src/engine/modes/mode-thread/mode-thread-validation.ts
-  Additive shared branch/message/version contracts, strict boundary validation,
-  and pure actions for truthful Messenger and Roleplay kinds. Concrete mode
-  factories, generation, UI, app state, and storage do not use this substrate
-  yet.
+  Shared branch/message/version contracts, strict boundary validation, and pure
+  actions used by the truthful Messenger and Roleplay kinds. Concrete modes
+  keep their own factories, orchestration, generation, and UI over this
+  substrate.
 
-src/engine/contracts/types/messenger.ts
 src/engine/modes/messenger/messenger-actions.ts
 src/engine/generation/messenger-generation.ts
-  Messenger thread/message records, mutations, and provider-neutral generation
-  request assembly.
+  Messenger-owned mode-thread factories, mutations, and provider-neutral
+  generation request assembly.
 
-src/engine/contracts/types/roleplay.ts
 src/engine/modes/roleplay/roleplay-actions.ts
 src/engine/generation/roleplay-generation.ts
-  Roleplay thread/entry records, mutations, and provider-neutral generation
-  request assembly.
+  Roleplay-owned mode-thread factories, mutations, and provider-neutral
+  generation request assembly.
 
 src/engine/generation/generation.ts
   Shared provider-neutral generation request and response helpers.
@@ -121,11 +119,11 @@ src/engine/catalog/provider-connection-actions.ts
 
 src/engine/contracts/types/ripples.ts
 src/engine/ripples/ripple-actions.ts
-  Shared per-thread Ripple state contract and deterministic mutations.
+  Shared per-branch Ripple state contract and deterministic mutations.
 
 src/engine/contracts/types/macro-variables.ts
 src/engine/macro-variables/macro-variable-actions.ts
-  Shared global and per-thread macro variable state contract and deterministic
+  Shared global and per-branch macro variable state contract and deterministic
   selection/commit mutations.
 
 src/engine/contracts/types/app-settings.ts

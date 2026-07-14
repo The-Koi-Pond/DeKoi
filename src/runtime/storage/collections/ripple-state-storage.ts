@@ -26,7 +26,7 @@ function normalizeRippleTone(value: unknown): RippleTone {
 }
 
 function normalizeOwnerKind(value: unknown): RippleStateOwnerKind | null {
-  if (value === "messenger-thread" || value === "roleplay-thread") return value;
+  if (value === "mode-branch") return value;
   return null;
 }
 
@@ -58,8 +58,7 @@ export function normalizeRippleState(value: unknown): RippleState | null {
   const id = readString(value.id).trim();
   const legacyThreadId = readString(value.threadId).trim();
   const ownerId = readString(value.ownerId, legacyThreadId).trim();
-  const ownerKind =
-    normalizeOwnerKind(value.ownerKind) ?? (legacyThreadId ? "messenger-thread" : null);
+  const ownerKind = normalizeOwnerKind(value.ownerKind);
   if (!id || !ownerId || !ownerKind) return null;
 
   const now = new Date().toISOString();

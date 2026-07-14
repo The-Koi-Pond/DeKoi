@@ -1,6 +1,6 @@
 ---
 name: dekoi-mode-separation
-description: "Enforce DeKoi's separation between Messenger, Roleplay, shared generation, and shared ripple state. Use when changing mode engines, mode UI, Messenger threads, Roleplay scenes, shared ChatComposer or reference-summary behavior, generation routing, prompt assembly, provider generation workflows, ripple state, storage tied to modes, or any shared code that could affect more than one mode."
+description: "Enforce DeKoi's separation between Messenger, Roleplay, shared generation, and shared branch-owned state. Use when changing mode engines, mode UI, Messenger threads, Roleplay scenes, shared ChatComposer or reference-summary behavior, generation routing, prompt assembly, provider generation workflows, ripple state, storage tied to modes, or any shared code that could affect more than one mode."
 ---
 
 # DeKoi Mode Separation
@@ -8,7 +8,7 @@ description: "Enforce DeKoi's separation between Messenger, Roleplay, shared gen
 ## Overview
 
 Use this skill whenever a change touches Messenger, Roleplay, shared generation,
-shared mode helpers, or shared per-thread state. The goal is to keep each
+shared mode helpers, or shared per-branch state. The goal is to keep each
 product path explicit so a fix in one mode does not silently change another.
 
 This is a local DeKoi port of MuniMuni-authored Tauri app framework guidance.
@@ -35,7 +35,7 @@ import boundaries.
   branch/message/version substrate and validation. It preserves truthful mode
   discriminators and must not become a generic thread factory or mode
   orchestrator.
-- Ripples are shared per-thread state, not a third mode. Changes to ripple
+- Ripples are shared per-branch state, not a third mode. Changes to ripple
   records or workflows must check which mode surfaces can observe them.
 
 ## Required Checks

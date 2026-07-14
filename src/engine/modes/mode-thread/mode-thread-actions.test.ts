@@ -22,6 +22,7 @@ import {
   setModeBranchPersona,
   setModeBranchLorebooks,
   setModeBranchProviderConnection,
+  setModeBranchSystemPrompt,
   setModeBranchPreset,
   setModeBranchPresetChoiceSelections,
 } from "./mode-thread-actions";
@@ -48,6 +49,8 @@ const thread: MessengerModeThread = {
       presetId: null,
       presetChoiceSelectionsByPresetId: {},
       providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
       createdAt: "2026-01-01",
       updatedAt: "2026-01-01",
     },
@@ -63,6 +66,8 @@ const thread: MessengerModeThread = {
       presetId: null,
       presetChoiceSelectionsByPresetId: {},
       providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
       createdAt: "2026-01-01",
       updatedAt: "2026-01-01",
     },
@@ -91,6 +96,8 @@ describe("mode-thread actions", () => {
       presetId: "preset",
       presetChoiceSelectionsByPresetId: {},
       providerConnectionId: null,
+      systemPromptMode: "default",
+      systemPrompt: "",
       createdAt: "2026-01-01",
       updatedAt: "2026-01-01",
     });
@@ -364,6 +371,21 @@ describe("mode-thread actions", () => {
     expect(related.branches[0].lorebookIds).toEqual(["l1", "l2"]);
     expect(related.branches[0].providerConnectionId).toBe("provider");
     expect(related.branches[1].activePersonaId).toBeNull();
+    const customPrompt = setModeBranchSystemPrompt(
+      related,
+      "branch-1",
+      "custom",
+      "  Custom instructions.  ",
+      "2026-01-05",
+    );
+    expect(customPrompt.branches[0]).toMatchObject({
+      systemPromptMode: "custom",
+      systemPrompt: "Custom instructions.",
+    });
+    expect(
+      setModeBranchSystemPrompt(customPrompt, "branch-1", "default", "ignored", "2026-01-06")
+        .branches[0],
+    ).toMatchObject({ systemPromptMode: "default", systemPrompt: "" });
     const presetA = setModeBranchPreset(changed, "branch-1", "a", "2026-01-04", {
       block: { kind: "option", optionId: "x" },
     });

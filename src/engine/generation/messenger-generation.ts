@@ -2,11 +2,14 @@ import type { CharacterRecord } from "../contracts/types/character";
 import type { LorebookRecord, LoreInsertionStrategy } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { AppSettings } from "../contracts/types/app-settings";
+import type { MessengerModeThread, ModeMessage } from "../contracts/types/mode-thread";
+import { DEFAULT_MESSENGER_SYSTEM_PROMPT } from "../contracts/types/messenger";
 import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerMessage,
-  type MessengerThread,
-} from "../contracts/types/messenger";
+  createActiveModeThreadSnapshot,
+  getActiveModeBranch,
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+} from "../modes/mode-thread/mode-thread-actions";
 import type {
   ActivatedLoreEntry,
   LorebookScanSource,
@@ -50,8 +53,8 @@ import type {
 type MessengerGenerationPromptMessage = GenerationPromptMessage;
 export type MessengerGenerationParameters = GenerationParameters;
 
-export interface MessengerGenerationRequest extends GenerationRequestEnvelope<MessengerThread> {
-  userMessage: MessengerMessage;
+export interface MessengerGenerationRequest extends GenerationRequestEnvelope<MessengerModeThread> {
+  userMessage: ModeMessage;
 }
 
 export type MessengerGenerationResponse = GenerationResponse;
@@ -70,14 +73,14 @@ export interface MessengerGenerationContext {
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   promptPreset: PromptPresetRecord | null;
-  requestThread: MessengerThread;
+  requestThread: MessengerModeThread;
   ephemeralVariableNames: string[];
   variables: Record<string, string>;
   warnings: string[];
 }
 
 export interface MessengerGenerationContextInput {
-  thread: MessengerThread;
+  thread: MessengerModeThread;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
@@ -99,26 +102,26 @@ export function createMessengerGenerationContext({
   thread,
   variables = {},
 }: MessengerGenerationContextInput): MessengerGenerationContext {
+  const branch = getActiveModeBranch(thread);
   const records = resolveGenerationRecords({
-    activePersonaId: thread.activePersonaId,
+    activePersonaId: branch.activePersonaId,
     appSettings,
-    characterIds: thread.characterIds,
+    characterIds: branch.characterIds,
     characters,
     fallbackProviderConnectionId,
-    lorebookIds: thread.lorebookIds,
+    lorebookIds: branch.lorebookIds,
     lorebooks,
     personas,
-    promptPresetId: thread.presetId,
+    promptPresetId: branch.presetId,
     promptPresets,
-    providerConnectionId: thread.providerConnectionId,
+    providerConnectionId: branch.providerConnectionId,
     providerConnections,
     warningPrefix: "Messenger thread",
   });
+  const resolvedPresetId = records.promptPreset?.id ?? null;
   const presetChoiceVariables = resolvePromptPresetChoiceVariables({
     preset: records.promptPreset,
-    selections: thread.presetId
-      ? (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId]
-      : {},
+    selections: resolvedPresetId ? branch.presetChoiceSelectionsByPresetId[resolvedPresetId] : {},
   });
 
   return {
@@ -136,39 +139,53 @@ export function createMessengerGenerationContext({
       ...presetChoiceVariables.variables,
     },
     requestThread: {
-      ...thread,
-      activePersonaId: records.activePersona?.id ?? null,
-      characterIds: records.companions.map((companion) => companion.id),
-      lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
-      presetId: records.promptPreset?.id ?? null,
-      presetChoiceSelectionsByPresetId:
-        records.promptPreset && thread.presetId
-          ? {
-              [thread.presetId]:
-                (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId] ?? {},
-            }
-          : {},
-      mode: records.companions.length > 1 ? "group" : "direct",
-      providerConnectionId: records.providerConnectionId,
+      ...createActiveModeThreadSnapshot(thread),
+      branches: [
+        {
+          ...branch,
+          activePersonaId: records.activePersona?.id ?? null,
+          characterIds: records.companions.map((c) => c.id),
+          lorebookIds: records.lorebookSources.chat.map((l) => l.id),
+          presetId: resolvedPresetId,
+          providerConnectionId: records.providerConnectionId,
+          presetChoiceSelectionsByPresetId: resolvedPresetId
+            ? {
+                [resolvedPresetId]: branch.presetChoiceSelectionsByPresetId[resolvedPresetId] ?? {},
+              }
+            : {},
+        },
+      ],
     },
     warnings: records.warnings,
   };
 }
 
-function messageRole(message: MessengerMessage): MessengerGenerationPromptMessage["role"] {
+function messageRole(message: ModeMessage): MessengerGenerationPromptMessage["role"] {
   return message.author.kind === "character" ? "assistant" : "user";
 }
 
-function messageContent(message: MessengerMessage) {
+function messageContent(message: ModeMessage) {
+  const body = getActiveModeMessageVersion(message).body;
   const label = cleanGenerationText(message.author.label) || "Unknown";
-  return `${label}: ${message.body.trim()}`;
+  return `${label}: ${body.trim()}`;
 }
 
-function messengerLoreScanSources(thread: MessengerThread): LorebookScanSource[] {
-  return thread.messages.map((message) => ({
+function messengerLoreScanSources(thread: MessengerModeThread): LorebookScanSource[] {
+  return getActiveModeBranchMessages(thread).map((message) => ({
     name: cleanGenerationText(message.author.label) || null,
-    body: message.body,
+    body: getActiveModeMessageVersion(message).body,
   }));
+}
+
+function messengerSelectedPromptSource(
+  thread: MessengerModeThread,
+  promptPreset: PromptPresetRecord | null,
+) {
+  const branch = getActiveModeBranch(thread);
+  if (branch.systemPromptMode === "custom" && branch.systemPrompt) return branch.systemPrompt;
+  return (
+    resolvePromptPresetMessengerPrompt(promptPreset)?.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT
+  );
 }
 
 function buildSystemPrompt({
@@ -264,18 +281,25 @@ function createMessengerPromptAssembly({
   now: string;
   providerConnection: ProviderConnectionRecord | null;
   promptPreset: PromptPresetRecord | null;
-  thread: MessengerThread;
+  thread: MessengerModeThread;
   targetCompanion: CharacterRecord | null;
   timeZone?: string | null;
-  userMessage: MessengerMessage;
+  userMessage: ModeMessage;
   variables?: Record<string, string>;
   variableNames?: string[];
 }): GenerationPromptAssemblyResult {
+  if (
+    loreRuntimeState &&
+    (loreRuntimeState.ownerKind !== "mode-branch" ||
+      loreRuntimeState.ownerId !== getActiveModeBranch(thread).id)
+  ) {
+    throw new Error("Invalid Messenger lore runtime state owner");
+  }
   const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
     companions,
-    lastInput: userMessage.body,
+    lastInput: getActiveModeMessageVersion(userMessage).body,
     now,
     providerConnection,
     targetCompanion,
@@ -286,7 +310,7 @@ function createMessengerPromptAssembly({
   });
   resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
   const selectedPrompt = resolveGenerationMacros(
-    resolvePromptPresetMessengerPrompt(promptPreset)?.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT,
+    messengerSelectedPromptSource(thread, promptPreset),
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
@@ -299,8 +323,8 @@ function createMessengerPromptAssembly({
     scanSources: messengerLoreScanSources(thread),
   });
   const activatedLoreEntries = loreActivation.entries;
-  const transcript = thread.messages
-    .filter((message) => message.body.trim())
+  const transcript = getActiveModeBranchMessages(thread)
+    .filter((message) => getActiveModeMessageVersion(message).body.trim())
     .map((message) => ({
       role: messageRole(message),
       content: messageContent(message),
@@ -351,7 +375,7 @@ export function createMessengerGenerationRequest({
   parameters?: Partial<MessengerGenerationParameters>;
   /** IANA time zone for display macros; omitted or `null` uses UTC. */
   timeZone?: string | null;
-  userMessage: MessengerMessage;
+  userMessage: ModeMessage;
 }): MessengerGenerationRequest {
   return createMessengerGenerationRequestAssembly({
     context,
@@ -380,8 +404,28 @@ export function createMessengerGenerationRequestAssembly({
   parameters?: Partial<MessengerGenerationParameters>;
   /** IANA time zone for display macros; omitted or `null` uses UTC. */
   timeZone?: string | null;
-  userMessage: MessengerMessage;
+  userMessage: ModeMessage;
 }): MessengerGenerationRequestAssembly {
+  const activeBranch = getActiveModeBranch(context.requestThread);
+  if (userMessage.threadId !== context.requestThread.id) {
+    throw new Error("Invalid Messenger user message: foreign thread");
+  }
+  if (userMessage.branchId !== activeBranch.id) {
+    throw new Error("Invalid Messenger user message: inactive branch");
+  }
+  const canonicalMessage = context.requestThread.messages.find(
+    (message) =>
+      message.id === userMessage.id &&
+      message.threadId === context.requestThread.id &&
+      message.branchId === activeBranch.id,
+  );
+  if (!canonicalMessage) {
+    throw new Error("Invalid Messenger user message: missing from active branch");
+  }
+  const projectedUserMessage: ModeMessage = {
+    ...canonicalMessage,
+    versions: [getActiveModeMessageVersion(canonicalMessage)],
+  };
   const targetCompanion = getNextMessengerCompanion(context.requestThread, context.companions);
   const promptAssembly = createMessengerPromptAssembly({
     activePersona: context.activePersona,
@@ -395,19 +439,19 @@ export function createMessengerGenerationRequestAssembly({
     thread: context.requestThread,
     targetCompanion,
     timeZone,
-    userMessage,
+    userMessage: projectedUserMessage,
     variables: context.variables,
     variableNames: context.ephemeralVariableNames,
   });
 
-  return createGenerationRequestAssemblyResult<MessengerThread, MessengerGenerationRequest>({
+  return createGenerationRequestAssemblyResult<MessengerModeThread, MessengerGenerationRequest>({
     context,
-    createRequest: (request) => ({ ...request, userMessage }),
+    createRequest: (request) => ({ ...request, userMessage: projectedUserMessage }),
     id,
     now,
     parameters,
     promptAssembly,
     targetCompanion,
-    thread: context.requestThread,
+    thread: createActiveModeThreadSnapshot(context.requestThread),
   });
 }

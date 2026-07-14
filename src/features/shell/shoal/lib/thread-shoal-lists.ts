@@ -1,22 +1,24 @@
 import type { ShoalSortMode } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  RoleplayModeThread,
+} from "../../../../engine/contracts/types/mode-thread";
 import { sortRoleplayThreads } from "../../../modes";
 import { filterShoalMessengerThreads, filterShoalRoleplayThreads } from "./thread-shoal-filtering";
 import { getSortedShoalMessengerThreads } from "./thread-shoal-sorting";
 
 interface ThreadShoalListsInput {
   characterById: Map<string, CharacterRecord>;
-  messengerThreads: readonly MessengerThread[];
+  messengerThreads: readonly MessengerModeThread[];
   query: string;
-  roleplayThreads: readonly RoleplayThread[];
+  roleplayThreads: readonly RoleplayModeThread[];
   sortMode: ShoalSortMode;
 }
 
 export interface ThreadShoalLists {
-  messengerThreads: MessengerThread[];
-  roleplayThreads: RoleplayThread[];
+  messengerThreads: MessengerModeThread[];
+  roleplayThreads: RoleplayModeThread[];
 }
 
 export function getThreadShoalLists({

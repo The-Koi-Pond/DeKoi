@@ -1,7 +1,7 @@
 import type { AppSettings } from "../contracts/types/app-settings";
-import type { MessengerThread } from "../contracts/types/messenger";
+import type { ModeThread } from "../contracts/types/mode-thread";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
-import type { RoleplayThread } from "../contracts/types/roleplay";
+import { setModeBranchPreset } from "../modes/mode-thread/mode-thread-actions";
 
 export type PromptPresetRelationshipMutation =
   | { kind: "delete"; presetId: string; updatedAt: string }
@@ -17,16 +17,14 @@ export type PromptPresetRelationshipTransactionResult = {
 export type PromptPresetRelationshipSnapshot = {
   appSettings: AppSettings;
   promptPresets: PromptPresetRecord[];
-  messengerThreads: MessengerThread[];
-  roleplayThreads: RoleplayThread[];
+  modeThreads: ModeThread[];
 };
 
 export type PromptPresetDeletionPlan =
   | {
       ok: true;
       snapshot: PromptPresetRelationshipSnapshot;
-      reassignedMessenger: number;
-      reassignedRoleplay: number;
+      reassignedModeThreads: number;
     }
   | {
       ok: false;
@@ -49,40 +47,24 @@ export function planPromptPresetDeletion(
     !!fallbackId && snapshot.promptPresets.some((candidate) => candidate.id === fallbackId);
   if (snapshot.promptPresets.length <= 1) return { ok: false, reason: "last-preset" };
   if (!fallbackExists) return { ok: false, reason: "invalid-default" };
-  const messengerThreads = snapshot.messengerThreads.map((thread) =>
-    thread.presetId === cleanId && fallbackId
-      ? {
-          ...thread,
-          presetId: fallbackId,
-          updatedAt,
-          presetChoiceSelectionsByPresetId: thread.presetChoiceSelectionsByPresetId ?? {},
-        }
-      : thread,
-  );
-  const roleplayThreads = snapshot.roleplayThreads.map((thread) =>
-    thread.presetId === cleanId && fallbackId
-      ? {
-          ...thread,
-          presetId: fallbackId,
-          updatedAt,
-          presetChoiceSelectionsByPresetId: thread.presetChoiceSelectionsByPresetId ?? {},
-        }
-      : thread,
-  );
+  const modeThreads = snapshot.modeThreads.map((thread) => {
+    let next: ModeThread = thread;
+    for (const branch of thread.branches) {
+      if (branch.presetId !== cleanId || !fallbackId) continue;
+      next = setModeBranchPreset(next, branch.id, fallbackId, updatedAt);
+    }
+    return next;
+  });
 
   return {
     ok: true,
     snapshot: {
       ...snapshot,
       promptPresets: snapshot.promptPresets.filter((candidate) => candidate.id !== cleanId),
-      messengerThreads,
-      roleplayThreads,
+      modeThreads,
     },
-    reassignedMessenger: messengerThreads.filter(
-      (thread, index) => thread !== snapshot.messengerThreads[index],
-    ).length,
-    reassignedRoleplay: roleplayThreads.filter(
-      (thread, index) => thread !== snapshot.roleplayThreads[index],
+    reassignedModeThreads: modeThreads.filter(
+      (thread, index) => thread !== snapshot.modeThreads[index],
     ).length,
   };
 }

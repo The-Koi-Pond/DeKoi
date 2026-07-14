@@ -1,4 +1,5 @@
-import type { RoleplayEntry } from "../../../../engine/contracts/types/roleplay";
+import type { ModeMessage } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeMessageVersion } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 
 export function getInitials(name: string) {
   return name
@@ -10,15 +11,11 @@ export function getInitials(name: string) {
     .toUpperCase();
 }
 
-/**
- * Entries staged on the persona (right) side of the scene. Narration and OOC
- * are not dialogue and are never staged — they render as distinct variants per
- * DESIGN.md §8 Roleplay.
- */
-export function isOwnRoleplayEntry(entry: RoleplayEntry) {
-  return entry.role === "persona";
+export function isOwnRoleplayMessage(message: ModeMessage) {
+  return message.author.kind === "persona";
 }
 
-export function getCopyableRoleplayEntryBody(entry: RoleplayEntry) {
-  return entry.body.trim() ? entry.body : null;
+export function getCopyableRoleplayMessageBody(message: ModeMessage) {
+  const body = getActiveModeMessageVersion(message).body;
+  return body.trim() ? body : null;
 }

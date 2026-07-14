@@ -20,8 +20,10 @@ interface UseThreadShoalViewModelInput {
 export function useThreadShoalViewModel({ nav }: UseThreadShoalViewModelInput) {
   const [query, setQuery] = useState("");
   const sortMode = nav.appSettings.shoalSortMode;
-  const nextMessengerThreadNumber = nav.messengerThreads.length + 1;
-  const nextRoleplayThreadNumber = nav.roleplayThreads.length + 1;
+  const messengerThreads = nav.modeThreads.filter((thread) => thread.kind === "messenger");
+  const roleplayThreads = nav.modeThreads.filter((thread) => thread.kind === "roleplay");
+  const nextMessengerThreadNumber = messengerThreads.length + 1;
+  const nextRoleplayThreadNumber = roleplayThreads.length + 1;
   const activeSurface = nav.selectedSurface === ROLEPLAY ? ROLEPLAY : MESSENGER;
   const isRoleplaySurface = activeSurface === ROLEPLAY;
   const activeMessengerThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
@@ -54,12 +56,12 @@ export function useThreadShoalViewModel({ nav }: UseThreadShoalViewModelInput) {
     () =>
       getThreadShoalLists({
         characterById,
-        messengerThreads: nav.messengerThreads,
+        messengerThreads,
         query,
-        roleplayThreads: nav.roleplayThreads,
+        roleplayThreads,
         sortMode,
       }),
-    [characterById, nav.messengerThreads, nav.roleplayThreads, query, sortMode],
+    [characterById, messengerThreads, roleplayThreads, query, sortMode],
   );
 
   function cycleSortMode() {

@@ -1,5 +1,6 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { RoleplayModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import { getRoleplayThreadPreview } from "../../../modes";
 import { KoiCard } from "../KoiCard";
 import { getRoleplayCardAvatarDetails } from "../lib/roleplay-card-avatar-details";
@@ -8,7 +9,7 @@ import { RoleplayCardIcon } from "./ShoalIcons";
 interface RoleplayThreadShoalListProps {
   activeRoleplayThreadId: string | null;
   characterById: Map<string, CharacterRecord>;
-  roleplayThreads: readonly RoleplayThread[];
+  roleplayThreads: readonly RoleplayModeThread[];
   onDeleteRoleplayThread: (threadId: string, title: string) => void;
   onOpenRoleplayThread: (threadId: string) => void;
   onRenameRoleplayThread: (threadId: string, title: string) => void;
@@ -25,8 +26,9 @@ export function RoleplayThreadShoalList({
   return (
     <>
       {roleplayThreads.map((thread) => {
+        const branch = getActiveModeBranch(thread);
         const avatarDetails = getRoleplayCardAvatarDetails(
-          thread.characterIds,
+          branch.characterIds,
           thread.title,
           characterById,
         );

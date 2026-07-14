@@ -1,5 +1,5 @@
 export type RippleTone = "note" | "shift" | "meter";
-export type RippleStateOwnerKind = "messenger-thread" | "roleplay-thread";
+export type RippleStateOwnerKind = "mode-branch";
 
 export interface Ripple {
   id: string;

@@ -43,7 +43,7 @@ type HostStorageReplaceResponse = {
   metadata?: unknown;
 };
 
-export const HOST_STORAGE_UNAVAILABLE_MESSAGE =
+const HOST_STORAGE_UNAVAILABLE_MESSAGE =
   "Host storage is unavailable. Run the Tauri app or configure a Remote Runtime URL.";
 
 function remoteTargetIsAvailable(rawUrl: string) {

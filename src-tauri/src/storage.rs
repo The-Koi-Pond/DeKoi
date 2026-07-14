@@ -14,14 +14,12 @@ use tauri::Manager;
 const STORAGE_BUNDLE_FILE_NAME: &str = "dekoi-storage-bundle.json";
 const APP_SETTINGS_ENTITY: &str = "app-settings";
 const CHARACTERS_ENTITY: &str = "characters";
-const ROLEPLAY_THREADS_ENTITY: &str = "roleplay-threads";
-const ROLEPLAY_ENTRIES_ENTITY: &str = "roleplay-entries";
+const MODE_THREADS_ENTITY: &str = "mode-threads";
+const MODE_MESSAGES_ENTITY: &str = "mode-messages";
 const LOREBOOKS_ENTITY: &str = "lorebooks";
 const PROMPT_PRESETS_ENTITY: &str = "prompt-presets";
 const LORE_RUNTIME_STATES_ENTITY: &str = "lore-runtime-states";
 const MACRO_VARIABLE_STATES_ENTITY: &str = "macro-variable-states";
-const MESSENGER_THREADS_ENTITY: &str = "messenger-threads";
-const MESSENGER_MESSAGES_ENTITY: &str = "messenger-messages";
 const PERSONAS_ENTITY: &str = "personas";
 const PROVIDER_CONNECTIONS_ENTITY: &str = "provider-connections";
 const RIPPLE_STATES_ENTITY: &str = "ripple-states";
@@ -32,14 +30,12 @@ static JSON_ARTIFACT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const COLLECTION_ENTITIES: &[&str] = &[
     APP_SETTINGS_ENTITY,
     CHARACTERS_ENTITY,
-    ROLEPLAY_THREADS_ENTITY,
-    ROLEPLAY_ENTRIES_ENTITY,
+    MODE_THREADS_ENTITY,
+    MODE_MESSAGES_ENTITY,
     LOREBOOKS_ENTITY,
     PROMPT_PRESETS_ENTITY,
     LORE_RUNTIME_STATES_ENTITY,
     MACRO_VARIABLE_STATES_ENTITY,
-    MESSENGER_THREADS_ENTITY,
-    MESSENGER_MESSAGES_ENTITY,
     PERSONAS_ENTITY,
     PROVIDER_CONNECTIONS_ENTITY,
     RIPPLE_STATES_ENTITY,
@@ -1608,9 +1604,28 @@ mod tests {
     }
 
     #[test]
+    fn mode_collection_allowlist_replaces_legacy_mode_families() {
+        assert!(ensure_collection_entity(MODE_THREADS_ENTITY).is_ok());
+        assert!(ensure_collection_entity(MODE_MESSAGES_ENTITY).is_ok());
+        for entity in [
+            "messenger-threads",
+            "messenger-messages",
+            "roleplay-threads",
+            "roleplay-entries",
+        ] {
+            assert_eq!(
+                ensure_collection_entity(entity),
+                Err(format!(
+                    "Desktop runtime storage entity is not supported: {entity}"
+                ))
+            );
+        }
+    }
+
+    #[test]
     fn storage_create_rejects_existing_record_id_without_replacing() {
         let directory = temp_test_dir("storage-create-existing");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         let original = durable_test_record("thread-1", "Original", "2026-07-01T00:00:00.000Z");
         fs::write(&path, serde_json::json!([original]).to_string())
             .expect("collection fixture should be written");
@@ -1618,14 +1633,14 @@ mod tests {
 
         let error = storage_create_at_path(
             &path,
-            MESSENGER_THREADS_ENTITY,
+            MODE_THREADS_ENTITY,
             incoming
                 .as_object()
                 .expect("incoming test record should be an object"),
         )
         .expect_err("create should reject an existing id");
 
-        assert!(error.contains("cannot replace existing messenger-threads record 'thread-1'"));
+        assert!(error.contains("cannot replace existing mode-threads record 'thread-1'"));
         assert_eq!(read_json(&path)[0]["title"], "Original");
         let _ = fs::remove_dir_all(directory);
     }
@@ -1633,7 +1648,7 @@ mod tests {
     #[test]
     fn storage_create_requires_durable_record_fields() {
         let directory = temp_test_dir("storage-create-durable-fields");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         let incoming = serde_json::json!({
             "id": "thread-1",
             "createdAt": "2026-07-01T00:00:00.000Z",
@@ -1642,7 +1657,7 @@ mod tests {
 
         let error = storage_create_at_path(
             &path,
-            MESSENGER_THREADS_ENTITY,
+            MODE_THREADS_ENTITY,
             incoming
                 .as_object()
                 .expect("incoming test record should be an object"),
@@ -1657,7 +1672,7 @@ mod tests {
     #[test]
     fn storage_create_rejects_zero_schema_version() {
         let directory = temp_test_dir("storage-create-zero-schema");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         let incoming = serde_json::json!({
             "id": "thread-1",
             "schemaVersion": 0,
@@ -1667,7 +1682,7 @@ mod tests {
 
         let error = storage_create_at_path(
             &path,
-            MESSENGER_THREADS_ENTITY,
+            MODE_THREADS_ENTITY,
             incoming
                 .as_object()
                 .expect("incoming test record should be an object"),
@@ -1682,19 +1697,19 @@ mod tests {
     #[test]
     fn storage_update_rejects_missing_record_without_upsert() {
         let directory = temp_test_dir("storage-update-missing");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         fs::write(&path, "[]").expect("empty collection fixture should be written");
         let patch = serde_json::json!({ "title": "Should not create" });
 
         let error = storage_update_at_path(
             &path,
-            MESSENGER_THREADS_ENTITY,
+            MODE_THREADS_ENTITY,
             "thread-1",
             patch.as_object().expect("patch should be an object"),
         )
         .expect_err("update should reject a missing id");
 
-        assert!(error.contains("could not find messenger-threads record 'thread-1'"));
+        assert!(error.contains("could not find mode-threads record 'thread-1'"));
         assert_eq!(read_json(&path), serde_json::json!([]));
         let _ = fs::remove_dir_all(directory);
     }
@@ -1702,7 +1717,7 @@ mod tests {
     #[test]
     fn storage_update_preserves_id_and_stamps_updated_at() {
         let directory = temp_test_dir("storage-update-existing");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         let old_updated_at = "2026-07-01T00:00:00.000Z";
         let original = durable_test_record("thread-1", "Original", old_updated_at);
         fs::write(&path, serde_json::json!([original]).to_string())
@@ -1711,7 +1726,7 @@ mod tests {
 
         let result = storage_update_at_path(
             &path,
-            MESSENGER_THREADS_ENTITY,
+            MODE_THREADS_ENTITY,
             "thread-1",
             patch.as_object().expect("patch should be an object"),
         )
@@ -1727,13 +1742,13 @@ mod tests {
     #[test]
     fn storage_delete_rejects_missing_record_without_silent_success() {
         let directory = temp_test_dir("storage-delete-missing");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         fs::write(&path, "[]").expect("empty collection fixture should be written");
 
-        let error = storage_delete_at_path(&path, MESSENGER_THREADS_ENTITY, "thread-1")
+        let error = storage_delete_at_path(&path, MODE_THREADS_ENTITY, "thread-1")
             .expect_err("delete should reject a missing id");
 
-        assert!(error.contains("could not find messenger-threads record 'thread-1'"));
+        assert!(error.contains("could not find mode-threads record 'thread-1'"));
         assert_eq!(read_json(&path), serde_json::json!([]));
         let _ = fs::remove_dir_all(directory);
     }
@@ -1741,12 +1756,12 @@ mod tests {
     #[test]
     fn storage_delete_removes_existing_record() {
         let directory = temp_test_dir("storage-delete-existing");
-        let path = directory.join("messenger-threads.json");
+        let path = directory.join("mode-threads.json");
         let original = durable_test_record("thread-1", "Original", "2026-07-01T00:00:00.000Z");
         fs::write(&path, serde_json::json!([original]).to_string())
             .expect("collection fixture should be written");
 
-        let result = storage_delete_at_path(&path, MESSENGER_THREADS_ENTITY, "thread-1")
+        let result = storage_delete_at_path(&path, MODE_THREADS_ENTITY, "thread-1")
             .expect("delete should succeed for an existing id");
 
         assert_eq!(result, serde_json::json!({ "ok": true }));

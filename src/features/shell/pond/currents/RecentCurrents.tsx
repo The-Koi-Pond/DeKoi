@@ -1,5 +1,5 @@
 import type { NavThreadState, NavViewActions } from "../../../navigation";
-import { getMessengerThreadActivityAt } from "../../../../engine/contracts/types/messenger";
+import { getModeThreadActivityAt } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -12,11 +12,13 @@ interface RecentCurrentsProps {
   nav: RecentCurrentsNav;
 }
 
-export type RecentCurrentsNav = Pick<NavThreadState, "messengerThreads"> &
+export type RecentCurrentsNav = Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "openMessengerThread">;
 
 export function RecentCurrents({ nav }: RecentCurrentsProps) {
-  const recentThreads = sortMessengerThreadsByUpdatedAt(nav.messengerThreads).slice(0, 3);
+  const recentThreads = sortMessengerThreadsByUpdatedAt(
+    nav.modeThreads.filter((thread) => thread.kind === "messenger"),
+  ).slice(0, 3);
 
   return (
     <>
@@ -53,7 +55,7 @@ export function RecentCurrents({ nav }: RecentCurrentsProps) {
               </div>
               <div className="dm">
                 <span className="dtime">
-                  {getMessengerThreadTimeLabel(getMessengerThreadActivityAt(thread))}
+                  {getMessengerThreadTimeLabel(getModeThreadActivityAt(thread))}
                 </span>
               </div>
               <div className="dmsg">{getMessengerThreadPreview(thread)}</div>

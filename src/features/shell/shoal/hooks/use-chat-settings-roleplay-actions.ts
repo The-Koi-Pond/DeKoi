@@ -6,7 +6,8 @@ import {
   setRoleplayThreadPresetChoiceSelections,
   setRoleplayThreadProviderConnection,
 } from "../../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { RoleplayModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsIdentityActions,
@@ -17,7 +18,7 @@ import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
 interface UseChatSettingsRoleplayActionsInput {
-  activeRoleplayThread: RoleplayThread | null;
+  activeRoleplayThread: RoleplayModeThread | null;
   characters: ShoalNav["characters"];
   lorebooks: ShoalNav["lorebooks"];
   onCompanionSelectorOpenChange: (open: boolean) => void;
@@ -25,11 +26,11 @@ interface UseChatSettingsRoleplayActionsInput {
 }
 
 export function transformRoleplayPresetConfirm(
-  thread: RoleplayThread,
+  thread: RoleplayModeThread,
   presetId: string,
   selections: PromptPresetThreadChoiceSelections,
   updatedAt: string,
-): RoleplayThread {
+): RoleplayModeThread {
   return setRoleplayThreadPreset(thread, presetId.trim() || null, updatedAt, selections);
 }
 
@@ -41,7 +42,7 @@ export function useChatSettingsRoleplayActions({
   onUpdateRoleplayThreadById,
 }: UseChatSettingsRoleplayActionsInput) {
   function updateActiveRoleplayThread(
-    updater: (thread: RoleplayThread, updatedAt: string) => RoleplayThread,
+    updater: (thread: RoleplayModeThread, updatedAt: string) => RoleplayModeThread,
   ) {
     if (!activeRoleplayThread) return;
     onUpdateRoleplayThreadById(activeRoleplayThread.id, (thread) =>
@@ -65,7 +66,7 @@ export function useChatSettingsRoleplayActions({
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadParticipants(
         thread,
-        toggleSelectedId(thread.characterIds, characterId),
+        toggleSelectedId(getActiveModeBranch(thread).characterIds, characterId),
         updatedAt,
       ),
     );
@@ -75,7 +76,7 @@ export function useChatSettingsRoleplayActions({
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadLorebooks(
         thread,
-        toggleSelectedId(thread.lorebookIds, lorebookId),
+        toggleSelectedId(getActiveModeBranch(thread).lorebookIds, lorebookId),
         updatedAt,
       ),
     );
@@ -118,7 +119,7 @@ export function useChatSettingsRoleplayActions({
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadParticipants(
         thread,
-        thread.characterIds.filter((characterId) =>
+        getActiveModeBranch(thread).characterIds.filter((characterId) =>
           characters.some((character) => character.id === characterId),
         ),
         updatedAt,
@@ -131,7 +132,7 @@ export function useChatSettingsRoleplayActions({
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadLorebooks(
         thread,
-        thread.lorebookIds.filter((lorebookId) =>
+        getActiveModeBranch(thread).lorebookIds.filter((lorebookId) =>
           lorebooks.some((lorebook) => lorebook.id === lorebookId),
         ),
         updatedAt,

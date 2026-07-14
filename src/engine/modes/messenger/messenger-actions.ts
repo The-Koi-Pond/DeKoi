@@ -1,339 +1,218 @@
-import { type MessengerMessage, type MessengerThread } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
+import type { MessengerModeThread, ModeMessage } from "../../contracts/types/mode-thread";
+import {
+  appendModeMessages,
+  clearModeBranchMessages,
+  createMessengerModeBranch,
+  createModeMessage,
+  deleteModeMessage,
+  editActiveModeMessageVersion,
+  getActiveModeBranch,
+  getActiveModeBranchMessages,
+  renameModeThread,
+  setModeBranchLorebooks,
+  setModeBranchParticipants,
+  setModeBranchPersona,
+  setModeBranchPreset,
+  setModeBranchPresetChoiceSelections,
+  setModeBranchProviderConnection,
+  removeModeThreadCharacter,
+  assertValidModeThread,
+} from "../mode-thread/mode-thread-actions";
 import type { PromptPresetThreadChoiceSelections } from "../../contracts/types/prompt-presets";
-import { normalizePromptPresetThreadChoiceSelections } from "../../prompt-presets/prompt-preset-normalization";
-import { cleanTextArray } from "../../shared/text";
+import { cleanText } from "../../shared/text";
+import { canonicalId, timestamp } from "../mode-thread/mode-thread-validation";
 
-export function createMessengerThread({
-  activePersonaId,
-  characterIds,
-  id,
-  lorebookIds = [],
-  now,
-  defaultPromptPresetId = null,
-  providerConnectionId = null,
-  title,
-}: {
-  activePersonaId: string | null;
-  characterIds: string[];
+export interface MessengerThreadCreationInput {
   id: string;
-  lorebookIds?: string[];
+  branchId: string;
+  title: string;
+  characterIds: string[];
+  activePersonaId: string | null;
   now: string;
+  lorebookIds?: string[];
   defaultPromptPresetId?: string | null;
   providerConnectionId?: string | null;
-  title: string;
-}): MessengerThread {
-  return {
-    id,
+  systemPromptMode?: "default" | "custom";
+  systemPrompt?: string;
+}
+
+export function createMessengerThread(input: MessengerThreadCreationInput): MessengerModeThread {
+  const threadId = canonicalId(input.id, "thread id");
+  const branchId = canonicalId(input.branchId, "branch id");
+  const createdAt = timestamp(input.now, "thread timestamp");
+  const branch = createMessengerModeBranch({
+    ...input,
+    id: branchId,
+    threadId,
+    presetId: input.defaultPromptPresetId,
+  });
+  const thread: MessengerModeThread = {
+    id: threadId,
     schemaVersion: 1,
     kind: "messenger",
-    mode: characterIds.length > 1 ? "group" : "direct",
-    title,
-    characterIds,
-    activePersonaId,
-    lorebookIds,
-    presetId: defaultPromptPresetId?.trim() || null,
-    presetChoiceSelectionsByPresetId: {},
-    providerConnectionId,
+    title: cleanText(input.title, "New Messenger Chat"),
+    activeBranchId: branch.id,
+    branches: [branch],
     messages: [],
-    createdAt: now,
-    updatedAt: now,
+    createdAt,
+    updatedAt: createdAt,
   };
+  assertValidModeThread(thread);
+  return thread;
 }
 
-export function appendMessengerMessages(
-  thread: MessengerThread,
-  messages: MessengerMessage[],
-): MessengerThread {
-  return {
-    ...thread,
-    messages: [...thread.messages, ...messages],
-  };
-}
-
-export function clearMessengerMessages(thread: MessengerThread): MessengerThread {
-  return {
-    ...thread,
-    messages: [],
-  };
-}
-
-export function updateMessengerMessageBody(
-  thread: MessengerThread,
+export const appendMessengerMessages = (
+  thread: MessengerModeThread,
+  messages: readonly ModeMessage[],
+  branchId = thread.activeBranchId,
+) => appendModeMessages(thread, messages, branchId);
+export const clearMessengerMessages = (thread: MessengerModeThread) =>
+  clearModeBranchMessages(thread);
+export const updateMessengerMessageBody = (
+  thread: MessengerModeThread,
   messageId: string,
   body: string,
   updatedAt: string,
-): MessengerThread {
-  const cleanBody = body.trim();
-  if (!cleanBody) return thread;
-
-  return {
-    ...thread,
-    messages: thread.messages.map((message) =>
-      message.id === messageId
-        ? {
-            ...message,
-            body: cleanBody,
-            updatedAt,
-          }
-        : message,
-    ),
-  };
-}
-
-export function deleteMessengerMessage(
-  thread: MessengerThread,
-  messageId: string,
-): MessengerThread {
-  if (!thread.messages.some((message) => message.id === messageId)) return thread;
-
-  return {
-    ...thread,
-    messages: thread.messages.filter((message) => message.id !== messageId),
-  };
-}
-
-export function renameMessengerThread(
-  thread: MessengerThread,
+) => editActiveModeMessageVersion(thread, messageId, body, updatedAt);
+export const deleteMessengerMessage = (thread: MessengerModeThread, messageId: string) =>
+  deleteModeMessage(thread, messageId);
+export const renameMessengerThread = (
+  thread: MessengerModeThread,
   title: string,
   updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    title,
-    updatedAt,
-  };
-}
-
-export function deleteMessengerThread(records: MessengerThread[], id: string) {
-  return records.filter((record) => record.id !== id);
-}
-
-export function setMessengerThreadParticipants(
-  thread: MessengerThread,
-  characterIds: string[],
-  updatedAt: string,
-): MessengerThread {
-  const cleanCharacterIds = cleanTextArray(characterIds);
-  return {
-    ...thread,
-    characterIds: cleanCharacterIds,
-    mode: cleanCharacterIds.length > 1 ? "group" : "direct",
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadPersona(
-  thread: MessengerThread,
-  activePersonaId: string | null,
-  updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    activePersonaId: activePersonaId?.trim() || null,
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadLorebooks(
-  thread: MessengerThread,
-  lorebookIds: string[],
-  updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    lorebookIds: cleanTextArray(lorebookIds),
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadProviderConnection(
-  thread: MessengerThread,
-  providerConnectionId: string | null,
-  updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    providerConnectionId,
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadPreset(
-  thread: MessengerThread,
-  presetId: string | null,
-  updatedAt: string,
-  presetChoiceSelections?: PromptPresetThreadChoiceSelections,
-): MessengerThread {
-  const cleanPresetId = presetId?.trim() || null;
-  if (cleanPresetId === thread.presetId && presetChoiceSelections === undefined) return thread;
-
-  const history = { ...thread.presetChoiceSelectionsByPresetId };
-  if (cleanPresetId && presetChoiceSelections !== undefined)
-    history[cleanPresetId] = normalizePromptPresetThreadChoiceSelections(presetChoiceSelections);
-  return {
-    ...thread,
-    presetId: cleanPresetId,
-    presetChoiceSelectionsByPresetId: history,
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadPresetChoiceSelections(
-  thread: MessengerThread,
-  selections: PromptPresetThreadChoiceSelections,
-  updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    presetChoiceSelectionsByPresetId: {
-      ...thread.presetChoiceSelectionsByPresetId,
-      ...(thread.presetId
-        ? { [thread.presetId]: normalizePromptPresetThreadChoiceSelections(selections) }
-        : {}),
-    },
-    updatedAt,
-  };
-}
-
+) => renameModeThread(thread, title, updatedAt);
+export const setMessengerThreadParticipants = (
+  thread: MessengerModeThread,
+  ids: string[],
+  at: string,
+) => setModeBranchParticipants(thread, thread.activeBranchId, ids, at);
+export const setMessengerThreadPersona = (
+  thread: MessengerModeThread,
+  id: string | null,
+  at: string,
+) => setModeBranchPersona(thread, thread.activeBranchId, id, at);
+export const setMessengerThreadLorebooks = (
+  thread: MessengerModeThread,
+  ids: string[],
+  at: string,
+) => setModeBranchLorebooks(thread, thread.activeBranchId, ids, at);
+export const setMessengerThreadProviderConnection = (
+  thread: MessengerModeThread,
+  id: string | null,
+  at: string,
+) => setModeBranchProviderConnection(thread, thread.activeBranchId, id, at);
+export const setMessengerThreadPreset = (
+  thread: MessengerModeThread,
+  id: string | null,
+  at: string,
+  choices?: PromptPresetThreadChoiceSelections,
+) => setModeBranchPreset(thread, thread.activeBranchId, id, at, choices);
+export const setMessengerThreadPresetChoiceSelections = (
+  thread: MessengerModeThread,
+  choices: PromptPresetThreadChoiceSelections,
+  at: string,
+) => setModeBranchPresetChoiceSelections(thread, thread.activeBranchId, choices, at);
 export function removeMessengerThreadCharacter(
-  thread: MessengerThread,
+  thread: MessengerModeThread,
   characterId: string,
-  updatedAt: string,
-): MessengerThread {
-  if (!thread.characterIds.includes(characterId)) return thread;
-  return setMessengerThreadParticipants(
-    thread,
-    thread.characterIds.filter((id) => id !== characterId),
-    updatedAt,
-  );
+  at: string,
+) {
+  return removeModeThreadCharacter(thread, characterId, at);
 }
-
-export function clearMessengerThreadPersona(
-  thread: MessengerThread,
-  personaId: string,
-  updatedAt: string,
-): MessengerThread {
-  if (thread.activePersonaId !== personaId) return thread;
-  return setMessengerThreadPersona(thread, null, updatedAt);
+function messageInput(
+  thread: MessengerModeThread,
+  id: string,
+  versionId: string,
+  author: ModeMessage["author"],
+  body: string,
+  now: string,
+  origin: "manual" | "generated",
+): ModeMessage {
+  return createModeMessage({
+    id,
+    versionId,
+    threadId: thread.id,
+    branchId: getActiveModeBranch(thread).id,
+    author,
+    body: body.trim(),
+    origin,
+    now,
+  });
 }
-
-export function removeMessengerThreadLorebook(
-  thread: MessengerThread,
-  lorebookId: string,
-  updatedAt: string,
-): MessengerThread {
-  if (!thread.lorebookIds.includes(lorebookId)) return thread;
-  return setMessengerThreadLorebooks(
-    thread,
-    thread.lorebookIds.filter((id) => id !== lorebookId),
-    updatedAt,
-  );
-}
-
-export function replaceMessengerThreadProviderConnection(
-  thread: MessengerThread,
-  deletedConnectionId: string,
-  fallbackConnectionId: string | null,
-  updatedAt: string,
-): MessengerThread {
-  if (thread.providerConnectionId !== deletedConnectionId) return thread;
-  return setMessengerThreadProviderConnection(thread, fallbackConnectionId, updatedAt);
-}
-
-export function createPersonaMessengerMessage({
+export const createPersonaMessengerMessage = ({
   body,
   id,
+  versionId,
   now,
   persona,
   thread,
 }: {
   body: string;
   id: string;
+  versionId: string;
   now: string;
   persona: PersonaRecord;
-  thread: MessengerThread;
-}): MessengerMessage {
-  return {
+  thread: MessengerModeThread;
+}) =>
+  messageInput(
+    thread,
     id,
-    schemaVersion: 1,
-    threadId: thread.id,
-    author: {
-      kind: "persona",
-      personaId: persona.id,
-      label: persona.displayName,
-    },
+    versionId,
+    { kind: "persona", personaId: persona.id, label: persona.displayName },
     body,
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export function createAnonymousMessengerMessage({
-  body,
-  id,
-  now,
-  thread,
-}: {
-  body: string;
-  id: string;
-  now: string;
-  thread: MessengerThread;
-}): MessengerMessage {
-  return {
-    id,
-    schemaVersion: 1,
-    threadId: thread.id,
-    author: {
-      kind: "unknown",
-      label: "Anonymous",
-    },
-    body,
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export function createGeneratedCompanionMessage({
-  body,
-  companion,
-  id,
-  now,
-  thread,
-}: {
-  body: string;
-  companion: CharacterRecord;
-  id: string;
-  now: string;
-  thread: MessengerThread;
-}): MessengerMessage {
-  return {
-    id,
-    schemaVersion: 1,
-    threadId: thread.id,
-    author: {
-      kind: "character",
-      characterId: companion.id,
-      label: companion.displayName,
-    },
-    body,
-    origin: "generated",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export function getNextMessengerCompanion(thread: MessengerThread, companions: CharacterRecord[]) {
-  const availableCompanions = companions.filter((companion) =>
-    thread.characterIds.includes(companion.id),
+    now,
+    "manual",
   );
-  if (availableCompanions.length === 0) return null;
+export const createAnonymousMessengerMessage = ({
+  body,
+  id,
+  versionId,
+  now,
+  thread,
+}: {
+  body: string;
+  id: string;
+  versionId: string;
+  now: string;
+  thread: MessengerModeThread;
+}) =>
+  messageInput(thread, id, versionId, { kind: "unknown", label: "Anonymous" }, body, now, "manual");
+export const createGeneratedCompanionMessage = ({
+  body,
+  id,
+  versionId,
+  now,
+  companion,
+  thread,
+}: {
+  body: string;
+  id: string;
+  versionId: string;
+  now: string;
+  companion: CharacterRecord;
+  thread: MessengerModeThread;
+}) =>
+  messageInput(
+    thread,
+    id,
+    versionId,
+    { kind: "character", characterId: companion.id, label: companion.displayName },
+    body,
+    now,
+    "generated",
+  );
 
-  const companionMessageCount = thread.messages.filter(
-    (message) => message.author.kind === "character",
+export function getNextMessengerCompanion(
+  thread: MessengerModeThread,
+  companions: CharacterRecord[],
+) {
+  const branch = getActiveModeBranch(thread);
+  const available = companions.filter((c) => branch.characterIds.includes(c.id));
+  if (!available.length) return null;
+  const count = getActiveModeBranchMessages(thread).filter(
+    (m) => m.author.kind === "character",
   ).length;
-  return availableCompanions[companionMessageCount % availableCompanions.length];
+  return available[count % available.length];
 }

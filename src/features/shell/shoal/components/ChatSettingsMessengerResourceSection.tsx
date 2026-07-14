@@ -1,6 +1,6 @@
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsPresetVariablesDialog } from "./ChatSettingsPresetVariablesDialog";
+import type { ChatSettingsThreadRecord } from "../lib/chat-settings-thread-record";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
 import { ChatSettingsPresetDrawer } from "./ChatSettingsPresetDrawer";
@@ -11,7 +11,7 @@ import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
   actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "preset" | "resources">;
-  activeMessengerThreadRecord: MessengerThread | null;
+  activeMessengerThreadRecord: ChatSettingsThreadRecord | null;
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];

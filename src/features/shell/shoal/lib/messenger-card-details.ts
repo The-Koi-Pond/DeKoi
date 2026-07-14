@@ -1,16 +1,18 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { MessengerModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import { getMessengerThreadInitials, getMessengerThreadPreview } from "../../../modes";
 
 export function getMessengerCardDetails(
-  thread: MessengerThread,
+  thread: MessengerModeThread,
   characterById: Map<string, CharacterRecord>,
 ) {
-  const companions = thread.characterIds.flatMap((characterId) => {
+  const branch = getActiveModeBranch(thread);
+  const companions = branch.characterIds.flatMap((characterId) => {
     const companion = characterById.get(characterId);
     return companion ? [companion] : [];
   });
-  const missingCount = thread.characterIds.length - companions.length;
+  const missingCount = branch.characterIds.length - companions.length;
   const name =
     companions.map((companion) => companion.displayName).join(" + ") ||
     (missingCount > 0 ? "Missing companion" : "No companion");

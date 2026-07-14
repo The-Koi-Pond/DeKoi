@@ -44,6 +44,8 @@ export interface ModeBranchCreationInput {
   lorebookIds?: string[];
   presetId?: string | null;
   providerConnectionId?: string | null;
+  systemPromptMode?: "default" | "custom";
+  systemPrompt?: string;
   now: string;
 }
 
@@ -61,6 +63,8 @@ function createModeBranchBase(input: ModeBranchCreationInput) {
     presetId: input.presetId?.trim() || null,
     presetChoiceSelectionsByPresetId: copyPresetChoiceHistory(),
     providerConnectionId: input.providerConnectionId?.trim() || null,
+    systemPromptMode: input.systemPromptMode ?? "default",
+    systemPrompt: input.systemPromptMode === "custom" ? input.systemPrompt?.trim() || "" : "",
     createdAt: now,
     updatedAt: now,
   };
@@ -139,6 +143,23 @@ export function getActiveModeMessageVersion(message: ModeMessage): ModeMessageVe
 export function getActiveModeBranchMessages(thread: ModeThread): ModeMessage[] {
   const branch = getActiveModeBranch(thread);
   return thread.messages.filter((message) => message.branchId === branch.id);
+}
+
+/** Returns a provider-safe immutable projection containing only the active branch and versions. */
+export function createActiveModeThreadSnapshot<T extends ModeThread>(thread: T): T {
+  assertValidModeThread(thread);
+  const branch = getActiveModeBranch(thread);
+  const messages = thread.messages
+    .filter((message) => message.branchId === branch.id)
+    .map((message) => ({
+      ...message,
+      versions: [getActiveModeMessageVersion(message)],
+    }));
+  return {
+    ...thread,
+    branches: [branch],
+    messages,
+  } as T;
 }
 
 function branchFor<K extends ModeThreadKind>(
@@ -362,6 +383,92 @@ export function setModeBranchProviderConnection<K extends ModeThreadKind>(
   return updateBranch(thread, branchId, (branch) => ({
     ...branch,
     providerConnectionId: providerConnectionId?.trim() || null,
+    updatedAt: branchUpdateTimestamp(branch, updatedAt),
+  }));
+}
+
+/** Remove a character reference from every branch, including inactive branches. */
+export function removeModeThreadCharacter<K extends ModeThreadKind>(
+  thread: ModeThreadOfKind<K>,
+  characterId: string,
+  updatedAt: string,
+): ModeThreadOfKind<K> {
+  return thread.branches.reduce(
+    (current, branch) =>
+      branch.characterIds.includes(characterId)
+        ? setModeBranchParticipants(
+            current,
+            branch.id,
+            branch.characterIds.filter((id) => id !== characterId),
+            updatedAt,
+          )
+        : current,
+    thread,
+  );
+}
+
+/** Clear a persona reference from every branch, including inactive branches. */
+export function clearModeThreadPersona<K extends ModeThreadKind>(
+  thread: ModeThreadOfKind<K>,
+  personaId: string,
+  updatedAt: string,
+): ModeThreadOfKind<K> {
+  return thread.branches.reduce(
+    (current, branch) =>
+      branch.activePersonaId === personaId
+        ? setModeBranchPersona(current, branch.id, null, updatedAt)
+        : current,
+    thread,
+  );
+}
+
+/** Remove a lorebook reference from every branch, including inactive branches. */
+export function removeModeThreadLorebook<K extends ModeThreadKind>(
+  thread: ModeThreadOfKind<K>,
+  lorebookId: string,
+  updatedAt: string,
+): ModeThreadOfKind<K> {
+  return thread.branches.reduce(
+    (current, branch) =>
+      branch.lorebookIds.includes(lorebookId)
+        ? setModeBranchLorebooks(
+            current,
+            branch.id,
+            branch.lorebookIds.filter((id) => id !== lorebookId),
+            updatedAt,
+          )
+        : current,
+    thread,
+  );
+}
+
+/** Replace a provider connection reference from every branch, including inactive branches. */
+export function replaceModeThreadProviderConnection<K extends ModeThreadKind>(
+  thread: ModeThreadOfKind<K>,
+  deletedConnectionId: string,
+  fallbackConnectionId: string | null,
+  updatedAt: string,
+): ModeThreadOfKind<K> {
+  return thread.branches.reduce(
+    (current, branch) =>
+      branch.providerConnectionId === deletedConnectionId
+        ? setModeBranchProviderConnection(current, branch.id, fallbackConnectionId, updatedAt)
+        : current,
+    thread,
+  );
+}
+
+export function setModeBranchSystemPrompt<K extends ModeThreadKind>(
+  thread: ModeThreadOfKind<K>,
+  branchId: string,
+  systemPromptMode: "default" | "custom",
+  systemPrompt: string,
+  updatedAt: string,
+): ModeThreadOfKind<K> {
+  return updateBranch(thread, branchId, (branch) => ({
+    ...branch,
+    systemPromptMode,
+    systemPrompt: systemPromptMode === "custom" ? systemPrompt.trim() : "",
     updatedAt: branchUpdateTimestamp(branch, updatedAt),
   }));
 }

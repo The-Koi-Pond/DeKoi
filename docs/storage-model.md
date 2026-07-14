@@ -46,22 +46,54 @@ adapters.
 | ----------------------- | --------------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
 | `app-settings`          | `src/engine/contracts/types/app-settings.ts`        | `AppSettings`              | `src/runtime/storage/collections/app-settings.ts`                 |
 | `characters`            | `src/engine/contracts/types/character.ts`           | `CharacterRecord`          | `src/runtime/storage/collections/character-storage.ts`            |
-| `roleplay-threads`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayThreadRecord`     | `src/runtime/storage/collections/roleplay-storage.ts`             |
-| `roleplay-entries`      | `src/engine/contracts/types/roleplay.ts`            | `RoleplayEntry`            | `src/runtime/storage/collections/roleplay-entry-storage.ts`       |
+| `mode-threads`          | `src/engine/contracts/types/mode-thread.ts`         | `ModeThread`               | `src/runtime/storage/collections/mode-thread-storage.ts`          |
+| `mode-messages`         | `src/engine/contracts/types/mode-thread.ts`         | `ModeMessage`              | `src/runtime/storage/collections/mode-message-storage.ts`         |
 | `lorebooks`             | `src/engine/contracts/types/lorebook.ts`            | `LorebookRecord`           | `src/runtime/storage/collections/lorebook-storage.ts`             |
 | `prompt-presets`        | `src/engine/contracts/types/prompt-presets.ts`      | `PromptPresetRecord`       | `src/runtime/storage/collections/prompt-preset-storage.ts`        |
 | `lore-runtime-states`   | `src/engine/contracts/types/lore-runtime-state.ts`  | `LoreRuntimeState`         | `src/runtime/storage/collections/lore-runtime-state-storage.ts`   |
 | `macro-variable-states` | `src/engine/contracts/types/macro-variables.ts`     | `MacroVariableScope`       | `src/runtime/storage/collections/macro-variable-state-storage.ts` |
-| `messenger-threads`     | `src/engine/contracts/types/messenger.ts`           | `MessengerThreadRecord`    | `src/runtime/storage/collections/messenger-storage.ts`            |
-| `messenger-messages`    | `src/engine/contracts/types/messenger.ts`           | `MessengerMessage`         | `src/runtime/storage/collections/messenger-message-storage.ts`    |
 | `personas`              | `src/engine/contracts/types/persona.ts`             | `PersonaRecord`            | `src/runtime/storage/collections/persona-storage.ts`              |
 | `provider-connections`  | `src/engine/contracts/types/provider-connection.ts` | `ProviderConnectionRecord` | `src/runtime/storage/collections/provider-connection-storage.ts`  |
 | `ripple-states`         | `src/engine/contracts/types/ripples.ts`             | `RippleState`              | `src/runtime/storage/collections/ripple-state-storage.ts`         |
 
-The additive `ModeThread` contract is not a current durable record and has no
-collection or runtime adapter. Messenger and Roleplay storage continues to use
-the concrete thread/transcript rows above until a later atomic cutover; this
-foundation does not migrate or invalidate current local data.
+`mode-threads` and `mode-messages` are the current native mode collections.
+`ModeThread` is a metadata projection: its durable record omits `messages`.
+`ModeMessage` records are complete, versioned transcript records in the paired
+collection. The two collections form one replacement safety group: a dropped
+record in either collection blocks automatic replacement of both. Operations
+that change both projections schedule both for persistence; the current host
+writes collection files sequentially, so explicit import/restore reports and
+reloads any partial durable result instead of claiming transactional rollback.
+
+The native cutover intentionally invalidates old local development data. Stop
+DeKoi and remove the old collection files (or clear the local collections
+directory) before restarting; there is no native compatibility migration. The
+supported compatibility path is the one-way legacy importer, which converts
+recognized legacy Messenger records into these native collections. It does not
+convert legacy Roleplay transcripts.
+
+### Mode thread and message records
+
+`ModeThread` has `schemaVersion: 1`, a `kind` discriminator (`messenger` or
+`roleplay`), `title`, non-empty `branches`, `activeBranchId`, and timestamps.
+The projection deliberately omits transcript messages. Each branch has its own
+`kind`, participant/context IDs, `participantMode`, `presetId`,
+`presetChoiceSelectionsByPresetId`, `providerConnectionId`,
+`systemPromptMode` (`default` or `custom`), `systemPrompt`, and timestamps.
+Roleplay branches additionally carry `replyStrategy`; Roleplay threads carry
+`openingCharacterId`.
+
+Each `ModeMessage` has `schemaVersion: 1`, `threadId`, `branchId`, an author
+discriminator, a non-empty `versions` array, `activeVersionId`, and timestamps.
+Every version is complete (`id`, `body`, `origin`, `createdAt`, `updatedAt`),
+and `activeVersionId` must reference a version in that message. Branch and
+message references must resolve to the owning thread; active branch/version
+references are never implicit.
+
+Lore runtime, macro variable, and ripple records use `ownerKind: "mode-branch"`
+with the owning branch ID (plus `global` for global macro state). The thread kind
+is resolved from the branch's owning `ModeThread` when mode-specific behavior is
+needed.
 
 ## Source Of Truth
 
@@ -112,21 +144,17 @@ records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
-Prompt presets use `schemaVersion: 1` and require a non-empty local ID and title.
-Prompt text and the rest of the recipe are optional: omitted or null shared
-prompt text normalizes to `systemPrompt: ""`; nullable text and metadata
-normalize to `null`; parameters normalize to an object or `null`; and omitted
-ordering fields, `sections`, `groups`, `choiceBlocks`, variable groups, static
-`variableValues`, and `defaultChoices` normalize to stable empty arrays or maps.
-An explicitly non-string shared prompt or present non-array `sections`, `groups`,
-or `choiceBlocks` rejects the record instead of silently erasing malformed data.
+Prompt presets use `schemaVersion: 1`. Each record stores title, optional
+summary, required string `systemPrompt` (which may be empty), optional
+`messengerPrompt`, optional normalized `parameters`, a provider-ready `sampling`
+projection, section/group ordering fields, `sections`, `groups`, `choiceBlocks`,
+static `variableValues`, `defaultChoices`, and optional author/folder metadata.
 Native preset records do not store a default flag;
-`AppSettings.defaultPromptPresetId` is the sole native default authority. The
-`parameters` object preserves normalized prompt-preset controls such as
-`temperature`, `topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties,
-service/model effort strings, stop sequences, custom parameters, and
-provider-shaping booleans. Current provider requests consume the `sampling`
-projection
+`AppSettings.defaultPromptPresetId` is the sole native default authority. The `parameters`
+object preserves normalized prompt-preset controls such as `temperature`,
+`topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties, service/model
+effort strings, stop sequences, custom parameters, and provider-shaping
+booleans. Current provider requests consume the `sampling` projection
 (`temperature`, `topP`, and `maxTokens`) from the selected preset. Invalid
 parameter and sampling fields are dropped during load. Preset `maxTokens` can
 override request parameters, but the final generation request is capped by the
@@ -169,7 +197,7 @@ uses `variableOrder` for displayed choice order while preserving compatible
 non-choice slots in their existing positions as choices move, appear, or are
 removed.
 Prompt preset `defaultChoices` remain compatible package data keyed by variable
-name and may use option values or IDs. Native threads store
+name and may use option values or IDs. Native branches store
 `presetChoiceSelectionsByPresetId`, a map from preset ID to a deliberately
 narrower confirmed-choice map keyed by stable choice-block ID. Values are stable
 option-ID objects such as
@@ -184,26 +212,12 @@ first valid option; a block with no prior answer is not materialized. Unknown
 blocks are removed, histories for missing presets are retained, and affected
 thread collections are queued for rewrite. DeKoi does not create aliases or
 tombstones for renamed or removed IDs.
-At runtime, the presence of the active preset ID as a history key records
-confirmation. First use of a variable-bearing preset does not write that key
-until the user confirms choices or materialized defaults, so generation remains
-blocked and cancel can preserve the previous preset. A choice-free preset writes
-an empty history entry immediately. If a live preset edit makes an existing
-history incomplete or invalid, the Messenger or Roleplay mode owner
-materializes valid defaults, updates only the latest matching thread record,
-persists the repair once, and surfaces a review notice.
-Messenger ordinary conversation settings select a prompt preset and its
-preset-authored Variables; they do not own an arbitrary prompt or model-
-parameter override. Generation uses the selected preset's `messengerPrompt`,
-then shared `systemPrompt`, and falls back to the built-in
-`DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
-That fallback is assembled for the request and is not persisted into the blank
-preset.
-Messenger does not consume prompt preset sections for prompt assembly. Old
-development override keys are ignored and dropped by normalization; there is no
-migration or conversion promise for them.
+Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
+when present, then falls back to `systemPrompt`; a non-empty custom Messenger
+Prompt still overrides both at generation time. Messenger does not consume
+prompt preset sections for prompt assembly.
 In Roleplay, a selected prompt preset can replace the system prelude, sampling,
-and narration or other-character output behavior. When the preset has usable
+and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
@@ -211,13 +225,12 @@ expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
 `chat_history`; sectioned presets include transcript history only through an
 enabled `chat_history` marker. Depth sections insert around the `chat_history`
 marker when present, or around the sectioned prompt message stream by depth from
-the newest item. With no usable section messages, Roleplay falls back to the
-selected shared system prompt and then to the built-in Roleplay prelude, without
-automatically replaying transcript history. DeKoi still appends a Roleplay
-post-history contract that keeps the target companion primary, protects the
-user's dialogue and agency, and leaves narration and other-character output
-behavior to the selected preset. Only no-preset, single-character Roleplay uses
-the Roleplay-owned one-character output contract.
+the newest item. If a sectioned preset leaves no materialized messages after
+enabled/group/content filtering, Roleplay falls back to the selected system
+prompt without automatically replaying transcript history. DeKoi still appends
+a Roleplay post-history contract that keeps the target
+companion primary, protects the user's dialogue and agency, and leaves narration
+and other-character output behavior to the selected preset.
 Messenger and Roleplay threads resolve the active preset's entry in
 `presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
 `variableValues`, defaults, and multi-select separators into
@@ -232,7 +245,7 @@ request-local variable map, at the mode boundary. It resolves current built-in
 macros in activation inputs through scratch contexts so variable mutations do
 not commit while scanning, then applies lore activation before building final
 prompt messages. Messenger and Roleplay resolve lorebook sources from
-chat/thread selections, the active persona, selected characters, and global app
+active-branch selections, the active persona, selected characters, and global app
 settings, then scan each lorebook at most once. If the same lorebook appears in
 more than one bucket, the first bucket wins in deterministic order: chat,
 persona, character, then global. Enabled constant entries with non-empty source
@@ -308,27 +321,27 @@ timers. Roleplay lorebook summaries count against budgets and are emitted at
 most once per generation request. Optional secondary keys and `selectiveLogic`
 are applied against the same per-entry scan buffer during activation. Sticky,
 cooldown, and delay timing fields are normalized storage fields; prompt assembly
-applies them through per-thread `lore-runtime-states`, which record active entry
+applies them through per-branch `lore-runtime-states`, which record active entry
 timers by `(lorebookId, entryId)` and advance once per generation from the
 current non-empty transcript count. Macro-activated lore runtime updates are
 finalized only after every prompt-position lore format pass settles, so
 budget-dropped and macro-empty entries can clear timers before the updated state
-is persisted. Lore runtime states are cleared when an owning Messenger or
-Roleplay thread is deleted or its transcript is cleared. Timer entries also
+is persisted. Lore runtime states are cleared when an owning branch is cleared
+or its thread is deleted. Timer entries also
 reset on the next activation pass when their lore entry's `updatedAt` no longer
 matches, so editing an entry starts its sticky/cooldown state fresh. Triggers
 and character filters remain normalized storage fields but are not applied to
 prompt assembly yet.
 
 Dynamic macro variables persist in `macro-variable-states`. Global state uses
-`ownerKind: "global"` with `ownerId: "global"`; Messenger and Roleplay states
-use their thread ID. Generation starts with global variables, overlays the
-thread variables, then overlays resolved prompt-preset static and choice
+`ownerKind: "global"` with `ownerId: "global"`; mode-scoped states use
+`ownerKind: "mode-branch"` with their branch ID. Generation starts with global
+variables, overlays the branch variables, then overlays resolved prompt-preset static and choice
 variables for the active request. It resolves macros, then persists only the
 committed mutation log after generation succeeds. Mutated keys target the scope
-that supplied them at generation start: thread keys stay thread-scoped, keys
+that supplied them at generation start: branch keys stay branch-scoped, keys
 that belonged only to global state stay global, and new keys are saved to the
-thread scope. Prompt-preset static and choice variables are request inputs from
+branch scope. Prompt-preset static and choice variables are request inputs from
 the preset and the active `presetChoiceSelectionsByPresetId` history; they are
 resolved once before
 prompt assembly and are not persisted in this collection. Mutations targeting
@@ -412,17 +425,16 @@ entities and any extra collection-like files discovered in the desktop
 collections directory. Unknown future entities are surfaced in Pond Care as
 unrepairable by the current app version instead of being silently hidden.
 
-Messenger and Roleplay transcripts are stored separately from thread metadata.
-The UI still receives assembled `MessengerThread` and `RoleplayThread` objects,
-but storage projection strips `messages` from `messenger-threads` and `entries`
-from `roleplay-threads`. Message-only or entry-only edits dirty
-`messenger-messages` or `roleplay-entries`, so new transcript items do not
-rewrite whole thread records. Runtime adapters still normalize legacy embedded
-messages/entries and migrate them into the split collections on the next save or
-explicit import commit.
-After this split, thread `updatedAt` means thread metadata changed; activity
-ordering should use `getMessengerThreadActivityAt` or
-`getRoleplayThreadActivityAt`.
+Mode transcripts use a unified pair: persisted `mode-threads` metadata and
+`mode-messages` records, assembled into complete mode threads for the UI. The
+two collections are one dropped-record replacement safety group: operations
+changing both schedule both, while metadata-only or message-only operations may
+save one projection. Writes remain sequential and partial failures explicit.
+Only the one-way legacy importer
+accepts embedded transcript shapes. Development data may be reset when storage
+shape changes.
+With this projection, thread `updatedAt` means thread metadata changed; activity
+ordering should use `getModeThreadActivityAt`.
 
 ## Desktop JSON Safety
 
@@ -477,14 +489,12 @@ Because `storage_replace` writes the whole collection, editing any record in a
 collection that had drops would erase the skipped records from disk on the next
 save (only the single-generation `.json.bak` retains them for desktop JSON).
 DeKoi blocks saves for affected collections until a reload or explicit
-import/restore replaces them with data that loads without drops. For split
-transcript storage, a drop in either the thread collection or its transcript item
-collection blocks saves for both collections in that Messenger or Roleplay pair.
+import/restore replaces them with data that loads without drops. For unified
+mode transcript storage, a drop in either `mode-threads` or `mode-messages`
+blocks automatic saves for both collections in that replacement safety group.
 Restore from a backup bundle before editing a collection that reported drops.
-Legacy transcript auto-migration treats each Messenger or Roleplay thread and
-transcript split as one migration group; if either collection in that group had
-drops, DeKoi skips automatic migration for the group and leaves the Pond Care
-warning as the recovery signal.
+There is no automatic transcript migration. Reset development data or use the
+explicit one-way legacy import when recovery is required.
 
 Desktop collection JSON writes use an operation-owned sibling temp file and a
 `.json.bak` sibling:
@@ -559,8 +569,8 @@ import, restore, active save, queued save, pending save, or unsaved signature is
 present. Legacy converted imports add native catalog, provider, Messenger, and
 macro variable scope records to the current snapshot and use the same explicit
 commit path instead of relying on autosave.
-Imported thread-scoped macro variable scopes are appended with their converted
-Messenger threads. Imported global macro variables are merged into the current
+Imported branch-scoped macro variable scopes are appended with their converted
+Messenger branches. Imported global macro variables are merged into the current
 global scope when one exists; same-name imported globals take precedence, and the
 preview warns before commit.
 Because that path commits a complete current snapshot, pending changes in other
@@ -618,27 +628,21 @@ actions to clear only the missing thread references.
 
 Current relationships:
 
-| From                    | Field                                          | Points to                                                      | Cleanup expectation                                                                                                                                                                                                  |
-| ----------------------- | ---------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `messenger-threads`     | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                                                                                                             |
-| `messenger-threads`     | `activePersonaId`                              | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                                                                           |
-| `messenger-threads`     | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                                                                                                   |
-| `messenger-threads`     | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories. Messenger threads have no conversation-owned prompt override. |
-| `messenger-threads`     | `providerConnectionId`                         | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                                                                   |
-| `messenger-messages`    | `threadId`                                     | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                                                                                                              |
-| `roleplay-threads`      | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                                                                                                              |
-| `roleplay-threads`      | `activePersonaId`                              | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                                                                           |
-| `roleplay-threads`      | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from scene context.                                                                                                                                                                    |
-| `roleplay-threads`      | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories.                                                               |
-| `roleplay-threads`      | `providerConnectionId`                         | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                                                                   |
-| `roleplay-entries`      | `threadId`                                     | `roleplay-threads.id`                                          | Deleting a Roleplay thread removes its entries from the projected entry collection.                                                                                                                                  |
-| `characters`            | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from character context.                                                                                                                                                                |
-| `personas`              | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from persona context.                                                                                                                                                                  |
-| `app-settings`          | `globalLorebookIds[]`                          | `lorebooks.id`                                                 | Deleted lorebooks are removed from global generation context.                                                                                                                                                        |
-| `app-settings`          | `defaultPromptPresetId`                        | `prompt-presets.id`                                            | The sole native default authority. Missing references repair to the first usable preset; the default and last preset cannot be deleted.                                                                              |
-| `lore-runtime-states`   | `ownerId`                                      | `messenger-threads.id` or `roleplay-threads.id`                | Deleting a thread removes its lore timers; orphaned states are skipped on bundle import.                                                                                                                             |
-| `macro-variable-states` | `ownerId`                                      | `messenger-threads.id`, `roleplay-threads.id`, or global scope | Deleting or clearing a thread removes its thread-scoped macro variables; orphaned thread scopes are skipped on bundle import.                                                                                        |
-| `ripple-states`         | `ownerId`                                      | `messenger-threads.id` or `roleplay-threads.id`                | Orphaned ripple states are skipped on bundle import.                                                                                                                                                                 |
+| From                    | Field                                   | Points to                     | Cleanup expectation                                                                                                                     |
+| ----------------------- | --------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `mode-threads`          | `branches[].characterIds[]`             | `characters.id`               | Deleted characters are removed from branch participants.                                                                                |
+| `mode-threads`          | `branches[].activePersonaId`            | `personas.id`                 | Deleted personas clear the active branch persona.                                                                                       |
+| `mode-threads`          | `branches[].lorebookIds[]`              | `lorebooks.id`                | Deleted lorebooks are removed from branch context.                                                                                      |
+| `mode-threads`          | `branches[].presetId`, choice histories | `prompt-presets.id`           | New branches select the app default; deleting a non-default preset repairs active branches while retaining per-preset histories.        |
+| `mode-threads`          | `branches[].providerConnectionId`       | `provider-connections.id`     | Deleted connections clear the selected branch connection.                                                                               |
+| `mode-messages`         | `threadId`, `branchId`                  | `mode-threads.id`, branch IDs | Deleting a thread removes its messages; deleting a branch removes its messages from the paired collection.                              |
+| `characters`            | `lorebookIds[]`                         | `lorebooks.id`                | Deleted lorebooks are removed from character context.                                                                                   |
+| `personas`              | `lorebookIds[]`                         | `lorebooks.id`                | Deleted lorebooks are removed from persona context.                                                                                     |
+| `app-settings`          | `globalLorebookIds[]`                   | `lorebooks.id`                | Deleted lorebooks are removed from global generation context.                                                                           |
+| `app-settings`          | `defaultPromptPresetId`                 | `prompt-presets.id`           | The sole native default authority. Missing references repair to the first usable preset; the default and last preset cannot be deleted. |
+| `lore-runtime-states`   | `ownerKind`, `ownerId`                  | `mode-threads.branches[].id`  | `ownerKind` is `mode-branch`; orphaned states are skipped on bundle import.                                                             |
+| `macro-variable-states` | `ownerKind`, `ownerId`                  | branch ID or global scope     | Branch scopes use `mode-branch`; orphaned scopes are skipped on bundle import.                                                          |
+| `ripple-states`         | `ownerKind`, `ownerId`                  | `mode-threads.branches[].id`  | `ownerKind` is `mode-branch`; orphaned states are skipped on bundle import.                                                             |
 
 Default changes and non-default deletion use a relationship transaction. It
 saves only affected collections in referentially safe order before publishing
@@ -647,36 +651,30 @@ state when safe, and preserves newer or independently dirty in-memory state.
 
 ## Import And Export
 
-DeKoi-native bundle import/export is the durable interchange path. It should:
+DeKoi-native bundle schema version 2 is the durable interchange path. It should:
 
-- Validate bundle kind and schema version.
+- Validate bundle kind and require schema version `2` for native bundles.
 - Normalize each collection independently.
 - Preview counts before replacing local data.
 - Skip invalid records with clear warnings when possible.
 - Keep legacy import separate from native bundle import.
 - Keep provider secret values outside exported JSON.
-- Include `roleplay-entries` and `messenger-messages` as separate bundle arrays;
-  imported legacy bundles with embedded transcript data are normalized into the
-  split collections.
+- Include `mode-threads` and `mode-messages` as the mode bundle arrays. Native
+  bundle import requires schema version 2; embedded legacy transcripts are
+  accepted only by the separate one-way legacy importer.
 - Include `lore-runtime-states` in native bundles, import missing older bundle
-  fields as empty, and skip runtime states whose owner thread is not imported.
+  fields as empty, and skip runtime states whose owner branch is not imported.
 - Include `macro-variable-states` in native bundles, import missing older bundle
-  fields as empty, and skip thread-scoped states whose owner thread is not
+  fields as empty, and skip branch-scoped states whose owner branch is not
   imported. Global macro variable state is not owner-filtered.
 - Include `prompt-presets` and `appSettings.defaultPromptPresetId` in native
   bundles. Exported records stay DeKoi-native with their IDs; bundle
   import may also normalize packaged prompt preset envelopes with
   `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
   Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
-  becomes `messengerPrompt`, and sections remain independent from the shared
-  `systemPrompt`; an omitted shared prompt normalizes to `""`. Packaged `author`
-  and `folderId` metadata are preserved when present; packaged `isDefault` is
-  not native authority and is discarded.
-  The package recipe arrays may be omitted and then normalize to empty arrays,
-  but a present top-level `sections`, `groups`, or `choiceBlocks` value must be
-  an actual JSON array. Nested choice `options` may retain the supported
-  JSON-string compatibility form. Malformed prompt values and present non-array
-  recipe collections reject the package.
+  becomes `messengerPrompt`, and enabled non-marker sections can supply the
+  native `systemPrompt`. Packaged `author` and `folderId` metadata are preserved
+  when present; packaged `isDefault` is not native authority and is discarded.
   An empty or unusable imported preset collection is repaired with the bundled
   starter. A missing default is repaired to the first usable imported preset,
   and dangling active thread references are reassigned to it without erasing
@@ -696,8 +694,8 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   rollback. When no storage target exists, browser import remains available as
   explicit session-only state and the catalog warns that it will not survive
   reload.
-- Normalize malformed or stale per-preset thread choice histories during
-  preview. Preview warnings count those repaired threads separately from threads
+- Normalize malformed or stale per-preset branch choice histories during
+  preview. Preview warnings count affected mode threads separately from threads
   whose missing active preset reference was reassigned to the imported default.
 - Include persona lorebook bindings and global lore settings in native bundle
   import/export through the normalized `personas` and `app-settings` records.
@@ -714,16 +712,19 @@ legacy source record -> DeKoi native record
 
 Import adapters may understand old source names. Engine records, collection
 names, UI labels, and provider requests should stay DeKoi-native.
-The current legacy import adapter can convert legacy companion, persona,
-provider-connection, Messenger thread, and macro variable records. Legacy
+The current legacy import adapter can convert recognized legacy companion,
+persona, provider-connection, Messenger thread, and macro variable records. Legacy
 `globalVariables` become a global `MacroVariableScope`; Messenger thread
-`variables` become thread-scoped `MacroVariableScope` records. Variable names are
+`variables` become branch-scoped `MacroVariableScope` records. Variable names are
 trimmed, string, number, and boolean values are converted to strings, null
 values become empty strings, and unsupported values or blank names are dropped.
 Legacy preview counts report both macro variable scopes and individual macro
 variables.
-Before append, imported IDs are remapped and imported thread provider references
-are cleared when the legacy provider record was not converted. Thread-scoped
+Commit first verifies that the converted records still match the preview
+fingerprint. Imported IDs are then remapped and imported thread provider references
+are cleared when the legacy provider record was not converted. Lorebook and
+prompt-preset references are always cleared because those records are not
+imported. Branch-scoped
 macro variable scopes are paired to imported Messenger threads by source
 position during preview and preparation, so duplicate legacy thread IDs and
 asymmetric variable presence keep the correct imported owner. Imported global

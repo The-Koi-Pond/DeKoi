@@ -1,4 +1,5 @@
-import type { MessengerMessage } from "../../../../engine/contracts/types/messenger";
+import type { ModeMessage } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeMessageVersion } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 
 export function getInitials(name: string) {
   return name
@@ -10,7 +11,7 @@ export function getInitials(name: string) {
     .toUpperCase();
 }
 
-export function getMessageClassName(message: MessengerMessage) {
+export function getMessageClassName(message: ModeMessage) {
   return message.author.kind === "persona" ||
     (message.author.kind === "unknown" && message.author.label === "Anonymous")
     ? "messenger-message messenger-message-own"
@@ -22,7 +23,7 @@ export function getMessageClassName(message: MessengerMessage) {
  * messages group together only when their author keys match; the render layer
  * additionally applies a time window so a long gap still re-opens the header.
  */
-export function getMessageAuthorKey(message: MessengerMessage) {
+export function getMessageAuthorKey(message: ModeMessage) {
   const { author } = message;
   if (author.kind === "persona") return `persona:${author.personaId}`;
   if (author.kind === "character") return `character:${author.characterId}`;
@@ -30,6 +31,7 @@ export function getMessageAuthorKey(message: MessengerMessage) {
   return `unknown:${author.label}`;
 }
 
-export function getCopyableMessageBody(message: MessengerMessage) {
-  return message.body.trim() ? message.body : null;
+export function getCopyableMessageBody(message: ModeMessage) {
+  const body = getActiveModeMessageVersion(message).body;
+  return body.trim() ? body : null;
 }

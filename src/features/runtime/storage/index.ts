@@ -66,3 +66,4 @@ export {
   runPromptPresetRelationshipTransaction,
   type PromptPresetRelationshipMutation,
 } from "./prompt-preset-relationship-transaction";
+export { restampLegacyImportData } from "./legacy-import-commit";

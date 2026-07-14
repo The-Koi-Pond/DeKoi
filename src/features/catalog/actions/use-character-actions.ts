@@ -7,10 +7,8 @@ import {
   updateCharacterRecord,
   type CharacterRecordInput,
 } from "../../../engine/catalog/character-actions";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import { removeRoleplayThreadCharacter } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
-import { removeMessengerThreadCharacter } from "../../../engine/modes/messenger/messenger-actions";
+import type { ModeThread } from "../../../engine/contracts/types/mode-thread";
+import { removeModeThreadCharacter } from "../../../engine/modes/mode-thread/mode-thread-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
 import { createRecordId } from "../../../shared/browser/record-id";
 import type { StateSetter } from "../../../shared/react/state-setter";
@@ -18,15 +16,13 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 type UseCharacterActionsInput = {
   characters: CharacterRecord[];
   setCharacters: StateSetter<CharacterRecord[]>;
-  setRoleplayThreads: StateSetter<RoleplayThread[]>;
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  setModeThreads: StateSetter<ModeThread[]>;
 };
 
 export function useCharacterActions({
   characters,
   setCharacters,
-  setRoleplayThreads,
-  setMessengerThreads,
+  setModeThreads,
 }: UseCharacterActionsInput) {
   const createCharacter = useCallback(
     (input: CharacterRecordInput) => {
@@ -75,14 +71,11 @@ export function useCharacterActions({
     (characterId: string) => {
       const now = currentIsoTimestamp();
       setCharacters((currentCharacters) => deleteCharacterRecord(currentCharacters, characterId));
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) => removeMessengerThreadCharacter(thread, characterId, now)),
-      );
-      setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) => removeRoleplayThreadCharacter(thread, characterId, now)),
+      setModeThreads((currentThreads) =>
+        currentThreads.map((thread) => removeModeThreadCharacter(thread, characterId, now)),
       );
     },
-    [setCharacters, setRoleplayThreads, setMessengerThreads],
+    [setCharacters, setModeThreads],
   );
 
   return {

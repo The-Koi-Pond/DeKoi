@@ -7,14 +7,18 @@ import {
 } from "../../../engine/catalog/lorebook-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
-import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import { generateMessengerThreadReply } from "./messenger-generation";
 import { generateRoleplayThreadTurn } from "./roleplay-generation";
 import {
   generateWithConfiguredProvider,
   type ProviderGenerationRequest,
 } from "./provider-generation";
+import {
+  messengerMessage,
+  messengerThread,
+  roleplayMessage,
+  roleplayThread,
+} from "./test-fixtures";
 
 vi.mock("./provider-generation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./provider-generation")>();
@@ -88,71 +92,8 @@ function variableLorebook(): LorebookRecord {
   };
 }
 
-function messengerMessage(): MessengerMessage {
-  return {
-    id: "message-1",
-    schemaVersion: 1,
-    threadId: "messenger-thread-1",
-    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
-    body: "Use literal /[bad/ text.",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function messengerThread(message: MessengerMessage): MessengerThread {
-  return {
-    id: "messenger-thread-1",
-    schemaVersion: 1,
-    kind: "messenger",
-    mode: "direct",
-    title: "Thread",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: ["lorebook-1"],
-    presetId: null,
-    providerConnectionId: null,
-    messages: [message],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function roleplayEntry(): RoleplayEntry {
-  return {
-    id: "entry-1",
-    schemaVersion: 1,
-    threadId: "roleplay-thread-1",
-    role: "persona",
-    characterId: null,
-    personaId: "persona-1",
-    label: "Alex",
-    body: "Use literal /[bad/ text.",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function roleplayThread(entry: RoleplayEntry): RoleplayThread {
-  return {
-    id: "roleplay-thread-1",
-    schemaVersion: 1,
-    kind: "roleplay",
-    mode: "scene",
-    title: "Scene",
-    sceneText: "",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: ["lorebook-1"],
-    presetId: null,
-    providerConnectionId: null,
-    entries: [entry],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
+const messengerInput = () => messengerMessage("Use literal /[bad/ text.");
+const roleplayInput = () => roleplayMessage("Use literal /[bad/ text.");
 
 describe("lorebook warning propagation", () => {
   beforeEach(() => {
@@ -171,7 +112,7 @@ describe("lorebook warning propagation", () => {
   });
 
   it("includes Messenger activation warnings in runtime results", async () => {
-    const message = messengerMessage();
+    const message = messengerInput();
     const result = await generateMessengerThreadReply({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
@@ -188,7 +129,7 @@ describe("lorebook warning propagation", () => {
   });
 
   it("puts Messenger no-output warnings before activation warnings", async () => {
-    const message = messengerMessage();
+    const message = messengerInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -251,7 +192,7 @@ describe("lorebook warning propagation", () => {
   });
 
   it("omits Messenger macro variable commits when no reply is accepted", async () => {
-    const message = messengerMessage();
+    const message = messengerInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -291,13 +232,18 @@ describe("lorebook warning propagation", () => {
     });
 
     expect(acceptedResult.generatedMessages).toHaveLength(1);
+    expect(acceptedResult.generatedMessages[0]).toMatchObject({
+      id: "messenger-message-1",
+      activeVersionId: "messenger-message-version-1",
+      versions: [{ id: "messenger-message-version-1", origin: "generated" }],
+    });
     expect(acceptedResult.macroVariableCommit.variableMutations).toEqual([
       { kind: "set", name: "mood", value: "calm" },
     ]);
   });
 
   it("puts Messenger dropped-draft warnings before activation warnings when a reply survives", async () => {
-    const message = messengerMessage();
+    const message = messengerInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -332,7 +278,7 @@ describe("lorebook warning propagation", () => {
   });
 
   it("includes Roleplay activation warnings in runtime results", async () => {
-    const entry = roleplayEntry();
+    const entry = roleplayInput();
     const result = await generateRoleplayThreadTurn({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
@@ -345,10 +291,15 @@ describe("lorebook warning propagation", () => {
     });
 
     expect(result.warnings[0]).toContain('Invalid regex key "/[bad/" treated as plaintext');
+    expect(result.generatedMessages[0]).toMatchObject({
+      id: "roleplay-message-1",
+      activeVersionId: "roleplay-message-version-1",
+      versions: [{ id: "roleplay-message-version-1", origin: "generated" }],
+    });
   });
 
   it("puts Roleplay no-output warnings before activation warnings", async () => {
-    const entry = roleplayEntry();
+    const entry = roleplayInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -371,7 +322,7 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(providerWarningResult.generatedEntryCount).toBe(0);
+    expect(providerWarningResult.generatedMessageCount).toBe(0);
     expect(providerWarningResult.warnings[0]).toBe("Provider returned no text.");
     expect(providerWarningResult.warnings[1]).toContain(
       'Invalid regex key "/[bad/" treated as plaintext',
@@ -399,7 +350,7 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(droppedDraftResult.generatedEntryCount).toBe(0);
+    expect(droppedDraftResult.generatedMessageCount).toBe(0);
     expect(droppedDraftResult.warnings[0]).toBe(
       "Generation response referenced an unavailable companion: missing-character.",
     );
@@ -409,7 +360,7 @@ describe("lorebook warning propagation", () => {
   });
 
   it("omits Roleplay macro variable commits when no entry is accepted", async () => {
-    const entry = roleplayEntry();
+    const entry = roleplayInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -432,7 +383,7 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(noEntryResult.generatedEntryCount).toBe(0);
+    expect(noEntryResult.generatedMessageCount).toBe(0);
     expect(noEntryResult.macroVariableCommit.variableMutations).toEqual([]);
 
     const acceptedResult = await generateRoleplayThreadTurn({
@@ -446,14 +397,14 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(acceptedResult.generatedEntryCount).toBe(1);
+    expect(acceptedResult.generatedMessageCount).toBe(1);
     expect(acceptedResult.macroVariableCommit.variableMutations).toEqual([
       { kind: "set", name: "mood", value: "calm" },
     ]);
   });
 
   it("puts Roleplay dropped-draft warnings before activation warnings when an entry survives", async () => {
-    const entry = roleplayEntry();
+    const entry = roleplayInput();
     vi.mocked(generateWithConfiguredProvider).mockImplementationOnce(
       async (request: ProviderGenerationRequest) => ({
         schemaVersion: 1,
@@ -479,7 +430,7 @@ describe("lorebook warning propagation", () => {
       thread: roleplayThread(entry),
     });
 
-    expect(result.generatedEntryCount).toBe(1);
+    expect(result.generatedMessageCount).toBe(1);
     expect(result.warnings[0]).toBe(
       "Generation response referenced an unavailable companion: missing-character.",
     );

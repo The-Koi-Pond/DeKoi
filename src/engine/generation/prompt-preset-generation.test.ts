@@ -3,22 +3,102 @@ import { describe, expect, it } from "vitest";
 import { createCharacterRecord } from "../catalog/character-actions";
 import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import { createProviderConnectionRecord } from "../catalog/provider-connection-actions";
-import type { MessengerMessage } from "../contracts/types/messenger";
-import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
+import type {
+  MessengerModeThread,
+  ModeMessage,
+  RoleplayModeThread,
+} from "../contracts/types/mode-thread";
+import type {
+  PromptPresetRecord,
+  PromptPresetThreadChoiceSelections,
+} from "../contracts/types/prompt-presets";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
-import { createMessengerThread } from "../modes/messenger/messenger-actions";
-import { createRoleplayThread } from "../modes/roleplay/roleplay-actions";
+import { createMessengerThread as createMessengerModeThread } from "../modes/messenger/messenger-actions";
+import { createRoleplayThread as createRoleplayModeThread } from "../modes/roleplay/roleplay-actions";
 import { STARTER_PROMPT_PRESET } from "../prompt-presets/starter-preset";
 import {
-  createMessengerGenerationContext,
-  createMessengerGenerationRequestAssembly,
+  createMessengerGenerationContext as createMessengerGenerationContextRaw,
+  createMessengerGenerationRequestAssembly as createMessengerGenerationRequestAssemblyRaw,
 } from "./messenger-generation";
 import {
-  createRoleplayGenerationContext,
-  createRoleplayGenerationRequestAssembly,
+  createRoleplayGenerationContext as createRoleplayGenerationContextRaw,
+  createRoleplayGenerationRequestAssembly as createRoleplayGenerationRequestAssemblyRaw,
 } from "./roleplay-generation";
+import { createModeMessage } from "../modes/mode-thread/mode-thread-actions";
 
 const now = "2026-07-08T00:00:00.000Z";
+const createMessengerThread = (
+  input: Omit<Parameters<typeof createMessengerModeThread>[0], "branchId"> & {
+    messages?: ModeMessage[];
+    presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
+  },
+): MessengerModeThread => {
+  const { messages = [], presetChoiceSelectionsByPresetId, ...creationInput } = input;
+  const thread = createMessengerModeThread({
+    branchId: `${creationInput.id}-branch`,
+    ...creationInput,
+  });
+  const withMessages = messages.length ? { ...thread, messages } : thread;
+  return presetChoiceSelectionsByPresetId
+    ? {
+        ...withMessages,
+        branches: [
+          { ...withMessages.branches[0], presetChoiceSelectionsByPresetId },
+          ...withMessages.branches.slice(1),
+        ],
+      }
+    : withMessages;
+};
+const createRoleplayThread = (
+  input: Omit<Parameters<typeof createRoleplayModeThread>[0], "openingCharacter" | "branchId"> & {
+    openingCharacter?: Parameters<typeof createRoleplayModeThread>[0]["openingCharacter"];
+    messages?: ModeMessage[];
+    presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
+  },
+): RoleplayModeThread => {
+  const { messages = [], presetChoiceSelectionsByPresetId, ...creationInput } = input;
+  const thread = createRoleplayModeThread({
+    openingCharacter: null,
+    branchId: `${creationInput.id}-branch`,
+    ...creationInput,
+  });
+  const withMessages = messages.length ? { ...thread, messages } : thread;
+  return presetChoiceSelectionsByPresetId
+    ? {
+        ...withMessages,
+        branches: [
+          { ...withMessages.branches[0], presetChoiceSelectionsByPresetId },
+          ...withMessages.branches.slice(1),
+        ],
+      }
+    : withMessages;
+};
+const createMessengerGenerationContext = (
+  input: Parameters<typeof createMessengerGenerationContextRaw>[0],
+) => createMessengerGenerationContextRaw(input);
+const createRoleplayGenerationContext = (
+  input: Parameters<typeof createRoleplayGenerationContextRaw>[0],
+) => createRoleplayGenerationContextRaw(input);
+const createMessengerGenerationRequestAssembly = (
+  input: Parameters<typeof createMessengerGenerationRequestAssemblyRaw>[0],
+) =>
+  createMessengerGenerationRequestAssemblyRaw({
+    ...input,
+    context: {
+      ...input.context,
+      requestThread: {
+        ...input.context.requestThread,
+        messages: input.context.requestThread.messages.some(
+          (message) => message.id === input.userMessage.id,
+        )
+          ? input.context.requestThread.messages
+          : [...input.context.requestThread.messages, input.userMessage],
+      },
+    },
+  });
+const createRoleplayGenerationRequestAssembly = (
+  input: Parameters<typeof createRoleplayGenerationRequestAssemblyRaw>[0],
+) => createRoleplayGenerationRequestAssemblyRaw(input);
 
 function companion() {
   return createCharacterRecord({
@@ -166,41 +246,83 @@ function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPresetReco
   };
 }
 
-function roleplayEntry(id: string, body: string) {
-  return {
+function roleplayEntry(id: string, body: string): ModeMessage {
+  return createModeMessage({
     id,
-    schemaVersion: 1 as const,
+    versionId: `${id}-v1`,
     threadId: "roleplay-thread-1",
-    role: "persona" as const,
-    characterId: null,
-    personaId: null,
-    label: "Alex",
+    branchId: "roleplay-thread-1-branch",
+    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
     body,
-    origin: "manual" as const,
-    createdAt: now,
-    updatedAt: now,
-  };
+    origin: "manual",
+    now,
+  });
 }
 
-function userMessage(threadId: string): MessengerMessage {
-  return {
+function userMessage(thread: MessengerModeThread): ModeMessage {
+  return createModeMessage({
     id: "message-1",
-    schemaVersion: 1,
-    threadId,
-    author: {
-      kind: "unknown",
-      label: "Alex",
-    },
+    versionId: "message-1-v1",
+    threadId: thread.id,
+    branchId: thread.activeBranchId,
+    author: { kind: "unknown", label: "Alex" },
     body: "Hello.",
     origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
+    now,
+  });
 }
 
 describe("prompt preset generation", () => {
+  it("keeps neutral Roleplay scene entries as system messages", () => {
+    const sceneEntry = createModeMessage({
+      id: "scene-1",
+      versionId: "scene-1-v1",
+      threadId: "roleplay-thread-1",
+      branchId: "roleplay-thread-1-branch",
+      author: { kind: "system", label: "Scene" },
+      body: "The room goes quiet.",
+      origin: "manual",
+      now,
+    });
+    const system = createModeMessage({
+      id: "system-1",
+      versionId: "system-1-v1",
+      threadId: "roleplay-thread-1",
+      branchId: "roleplay-thread-1-branch",
+      author: { kind: "system", label: "System" },
+      body: "Keep this instruction active.",
+      origin: "manual",
+      now,
+    });
+    const thread = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "roleplay-thread-1",
+      messages: [sceneEntry, system],
+      now,
+      title: "Test scene",
+    });
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      thread,
+    });
+    const transcript = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    }).request.promptMessages;
+
+    expect(transcript).toContainEqual({ role: "system", content: "Scene: The room goes quiet." });
+    expect(transcript).toContainEqual({
+      role: "system",
+      content: "System: Keep this instruction active.",
+    });
+  });
+
   it("uses a selected Messenger preset as the system prompt base", () => {
-    const thread = {
+    const thread: MessengerModeThread = {
       ...createMessengerThread({
         activePersonaId: null,
         characterIds: ["character-1"],
@@ -208,8 +330,8 @@ describe("prompt preset generation", () => {
         now,
         providerConnectionId: "connection-1",
         title: "Test chat",
+        defaultPromptPresetId: "preset-1",
       }),
-      presetId: "preset-1",
     };
     const preset = promptPreset({
       systemPrompt: "Roleplay-only preset for {{char}}.",
@@ -237,10 +359,10 @@ describe("prompt preset generation", () => {
         temperature: 0.4,
         topP: 0.9,
       },
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
 
-    expect(assembly.request.thread.presetId).toBe("preset-1");
+    expect(assembly.request.thread.branches[0]?.presetId).toBe("preset-1");
     expect(assembly.request.promptMessages[0]?.content).toContain("Messenger preset for Mara.");
     expect(assembly.request.promptMessages[0]?.content).not.toContain("Roleplay-only preset");
     expect(assembly.request.parameters).toEqual({
@@ -250,7 +372,7 @@ describe("prompt preset generation", () => {
     });
   });
 
-  it("uses the Messenger conversation prompt path instead of preset sections", () => {
+  it("uses the selected Messenger preset system prompt instead of legacy conversation fields", () => {
     const thread = {
       ...createMessengerThread({
         activePersonaId: null,
@@ -258,8 +380,8 @@ describe("prompt preset generation", () => {
         id: "messenger-thread-1",
         now,
         title: "Test chat",
+        defaultPromptPresetId: "preset-1",
       }),
-      presetId: "preset-1",
     };
     const context = createMessengerGenerationContext({
       characters: [companion()],
@@ -288,7 +410,7 @@ describe("prompt preset generation", () => {
       context,
       id: "request-1",
       now,
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
 
     expect(assembly.request.promptMessages[0]?.content).toContain("Messenger prompt for Mara.");
@@ -296,19 +418,17 @@ describe("prompt preset generation", () => {
     expect(assembly.request.promptMessages[0]?.content).not.toContain("Section prompt");
   });
 
-  it("uses a selected Messenger preset even when legacy override keys are present", () => {
-    const thread = {
-      ...createMessengerThread({
-        activePersonaId: null,
-        characterIds: ["character-1"],
-        id: "messenger-thread-1",
-        now,
-        title: "Test chat",
-      }),
-      presetId: "preset-1",
+  it("preserves a native custom Messenger prompt over the selected preset", () => {
+    const thread = createMessengerThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "messenger-thread-1",
+      now,
+      title: "Test chat",
+      defaultPromptPresetId: "preset-1",
       systemPrompt: "Legacy custom prompt for {{char}}.",
       systemPromptMode: "custom",
-    };
+    });
     const context = createMessengerGenerationContext({
       characters: [companion()],
       lorebooks: [],
@@ -320,12 +440,12 @@ describe("prompt preset generation", () => {
       context,
       id: "request-1",
       now,
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
 
-    expect(assembly.request.promptMessages[0]?.content).toContain("Preset prompt for Mara.");
-    expect(assembly.request.promptMessages[0]?.content).not.toContain("Legacy custom prompt");
-    expect(assembly.request.thread.presetId).toBe("preset-1");
+    expect(assembly.request.promptMessages[0]?.content).toContain("Legacy custom prompt for Mara.");
+    expect(assembly.request.promptMessages[0]?.content).not.toContain("Preset prompt for Mara.");
+    expect(assembly.request.thread.branches[0]?.presetId).toBe("preset-1");
   });
 
   it("falls back to the default Messenger prompt when the selected preset is missing", () => {
@@ -336,8 +456,8 @@ describe("prompt preset generation", () => {
         id: "messenger-thread-1",
         now,
         title: "Test chat",
+        defaultPromptPresetId: "missing-preset",
       }),
-      presetId: "missing-preset",
     };
     const context = createMessengerGenerationContext({
       characters: [companion()],
@@ -350,16 +470,132 @@ describe("prompt preset generation", () => {
       context,
       id: "request-1",
       now,
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
 
-    expect(assembly.request.thread.presetId).toBeNull();
+    expect(assembly.request.thread.branches[0]?.presetId).toBeNull();
     expect(assembly.request.warnings).toContain(
       "Messenger thread references a missing prompt preset: missing-preset.",
     );
     expect(assembly.request.promptMessages[0]?.content).toContain(
       "texting privately with the user in a casual DM conversation",
     );
+  });
+
+  it("projects only the resolved Messenger preset choice history into the request envelope", () => {
+    const thread = createMessengerThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "messenger-thread-1",
+      now,
+      title: "Test chat",
+      defaultPromptPresetId: "preset-1",
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": { active: { kind: "option", optionId: "selected" } },
+        "preset-inactive": { poison: { kind: "option", optionId: "POISON" } },
+      },
+    });
+    const context = createMessengerGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [promptPreset()],
+      thread,
+    });
+    const assembly = createMessengerGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+      userMessage: userMessage(thread),
+    });
+    const branch = assembly.request.thread.branches[0];
+
+    expect(branch.presetChoiceSelectionsByPresetId).toEqual({
+      "preset-1": { active: { kind: "option", optionId: "selected" } },
+    });
+    expect(JSON.stringify(assembly.request)).not.toContain("POISON");
+  });
+
+  it("projects only the resolved Roleplay preset choice history into the request envelope", () => {
+    const thread = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "roleplay-thread-1",
+      now,
+      title: "Test scene",
+      defaultPromptPresetId: "preset-1",
+      presetChoiceSelectionsByPresetId: {
+        "preset-1": { active: { kind: "option", optionId: "selected" } },
+        "preset-inactive": { poison: { kind: "option", optionId: "POISON" } },
+      },
+    });
+    const context = createRoleplayGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      promptPresets: [promptPreset()],
+      thread,
+    });
+    const assembly = createRoleplayGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+    });
+    const branch = assembly.request.thread.branches[0];
+
+    expect(branch.presetChoiceSelectionsByPresetId).toEqual({
+      "preset-1": { active: { kind: "option", optionId: "selected" } },
+    });
+    expect(JSON.stringify(assembly.request)).not.toContain("POISON");
+  });
+
+  it("projects only the active branch and active message versions into the request", () => {
+    const base = createMessengerThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "messenger-thread-1",
+      now,
+      title: "Test chat",
+    });
+    const activeBranch = base.branches[0];
+    const siblingBranch = { ...activeBranch, id: "sibling-branch", updatedAt: now };
+    const message = createModeMessage({
+      id: "message-1",
+      versionId: "active-version",
+      threadId: base.id,
+      branchId: activeBranch.id,
+      author: { kind: "persona", personaId: "persona-1", label: "Alex" },
+      body: "Active message.",
+      origin: "manual",
+      now,
+    });
+    message.versions.push({ ...message.versions[0], id: "inactive-version", body: "POISON" });
+    const thread: MessengerModeThread = {
+      ...base,
+      branches: [activeBranch, siblingBranch],
+      messages: [message],
+    };
+    const context = createMessengerGenerationContext({
+      characters: [companion()],
+      lorebooks: [],
+      personas: [],
+      thread,
+    });
+    const request = createMessengerGenerationRequestAssembly({
+      context,
+      id: "request-1",
+      now,
+      userMessage: userMessage(thread),
+    }).request;
+
+    expect(request.thread.branches).toHaveLength(1);
+    expect(request.thread.branches[0]?.id).toBe(activeBranch.id);
+    const projectedMessage = request.thread.messages.find((item) => item.id === message.id);
+    expect(projectedMessage?.versions).toHaveLength(1);
+    expect(projectedMessage?.versions[0]?.body).toBe("Active message.");
+    expect(JSON.stringify(request.thread)).not.toContain("POISON");
+    expect(request.thread).not.toHaveProperty("sceneText");
+    expect(request.thread).not.toHaveProperty("narrator");
   });
 
   it("uses a selected Roleplay preset as the system prelude", () => {
@@ -370,8 +606,8 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      presetId: "preset-1",
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -386,8 +622,67 @@ describe("prompt preset generation", () => {
       now,
     });
 
-    expect(assembly.request.thread.presetId).toBe("preset-1");
+    expect(assembly.request.thread.branches[0]?.presetId).toBe("preset-1");
     expect(assembly.request.promptMessages[0]?.content).toContain("Roleplay preset for Mara.");
+  });
+
+  it("uses branch custom system prompts ahead of selected preset prompts in both modes", () => {
+    const messengerThread = createMessengerThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "messenger-custom-prompt",
+      now,
+      title: "Custom Messenger",
+      defaultPromptPresetId: "preset-1",
+      systemPromptMode: "custom",
+      systemPrompt: "Messenger custom prompt for {{char}}.",
+    });
+    const messengerAssembly = createMessengerGenerationRequestAssembly({
+      context: createMessengerGenerationContext({
+        characters: [companion()],
+        lorebooks: [],
+        personas: [],
+        promptPresets: [promptPreset({ messengerPrompt: "Preset Messenger prompt." })],
+        thread: messengerThread,
+      }),
+      id: "messenger-custom-request",
+      now,
+      userMessage: userMessage(messengerThread),
+    });
+    expect(messengerAssembly.request.promptMessages[0]?.content).toContain(
+      "Messenger custom prompt for Mara.",
+    );
+    expect(messengerAssembly.request.promptMessages[0]?.content).not.toContain(
+      "Preset Messenger prompt.",
+    );
+
+    const roleplayThread = createRoleplayThread({
+      activePersonaId: null,
+      characterIds: ["character-1"],
+      id: "roleplay-custom-prompt",
+      now,
+      title: "Custom Roleplay",
+      defaultPromptPresetId: "preset-1",
+      systemPromptMode: "custom",
+      systemPrompt: "Roleplay custom prompt for {{char}}.",
+    });
+    const roleplayAssembly = createRoleplayGenerationRequestAssembly({
+      context: createRoleplayGenerationContext({
+        characters: [companion()],
+        lorebooks: [],
+        personas: [],
+        promptPresets: [promptPreset({ systemPrompt: "Preset Roleplay prompt." })],
+        thread: roleplayThread,
+      }),
+      id: "roleplay-custom-request",
+      now,
+    });
+    expect(roleplayAssembly.request.promptMessages[0]?.content).toContain(
+      "Roleplay custom prompt for Mara.",
+    );
+    expect(roleplayAssembly.request.promptMessages[0]?.content).not.toContain(
+      "Preset Roleplay prompt.",
+    );
   });
 
   it("resolves selected prompt preset choice variables without dynamic macro state", () => {
@@ -398,13 +693,13 @@ describe("prompt preset generation", () => {
         id: "messenger-thread-1",
         now,
         title: "Test chat",
-      }),
-      presetId: "preset-1",
-      presetChoiceSelectionsByPresetId: {
-        "preset-1": {
-          "choice-pacing": { kind: "option" as const, optionId: "slow" },
+        defaultPromptPresetId: "preset-1",
+        presetChoiceSelectionsByPresetId: {
+          "preset-1": {
+            "choice-pacing": { kind: "option" as const, optionId: "slow" },
+          },
         },
-      },
+      }),
     };
     const context = createMessengerGenerationContext({
       characters: [companion()],
@@ -412,8 +707,8 @@ describe("prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Roleplay-only prompt.",
-          messengerPrompt: "Use {{pacing}} and {{getvar::tone}}.",
+          systemPrompt: "Use {{pacing}} and {{getvar::tone}}.",
+          messengerPrompt: "Legacy Messenger prompt {{pacing}}.",
           choiceBlocks: [
             {
               id: "choice-pacing",
@@ -450,10 +745,13 @@ describe("prompt preset generation", () => {
       context,
       id: "request-1",
       now,
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
 
-    expect(assembly.request.promptMessages[0]?.content).toContain("Use slow pacing and warm tone.");
+    expect(assembly.request.promptMessages[0]?.content).toContain(
+      "Legacy Messenger prompt slow pacing.",
+    );
+    expect(assembly.request.promptMessages[0]?.content).not.toContain("Use slow pacing");
     expect(assembly.request.promptMessages[0]?.content).not.toContain("stored pacing");
     expect(assembly.request.promptMessages[0]?.content).not.toContain("bad");
     expect(assembly.macroVariableMutations).toEqual([]);
@@ -468,13 +766,13 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
-      }),
-      presetId: "preset-1",
-      presetChoiceSelectionsByPresetId: {
-        "preset-1": {
-          "choice-pacing": { kind: "option" as const, optionId: "slow" },
+        defaultPromptPresetId: "preset-1",
+        presetChoiceSelectionsByPresetId: {
+          "preset-1": {
+            "choice-pacing": { kind: "option" as const, optionId: "slow" },
+          },
         },
-      },
+      }),
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -528,8 +826,8 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      presetId: "preset-1",
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -538,7 +836,7 @@ describe("prompt preset generation", () => {
       promptPresets: [
         promptPreset({
           systemPrompt:
-            "Roleplay preset for {{char}}. Write the whole scene beat and include any relevant non-user character.",
+            "Roleplay preset for {{char}}. Write the whole scene beat and include unknown relevant non-user character.",
         }),
       ],
       thread,
@@ -553,7 +851,7 @@ describe("prompt preset generation", () => {
       .join("\n\n");
 
     expect(promptText).toContain(
-      "Roleplay preset for Mara. Write the whole scene beat and include any relevant non-user character.",
+      "Roleplay preset for Mara. Write the whole scene beat and include unknown relevant non-user character.",
     );
     expect(promptText).toContain("Continue the scene with Mara as the primary character.");
     expect(promptText).toContain(
@@ -605,23 +903,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [
-        {
-          id: "entry-1",
-          schemaVersion: 1 as const,
-          threadId: "roleplay-thread-1",
-          role: "persona" as const,
-          characterId: null,
-          personaId: null,
-          label: "Alex",
-          body: "Open the airlock.",
-          origin: "manual" as const,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -686,9 +970,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -735,9 +1019,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -784,9 +1068,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -866,9 +1150,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -954,9 +1238,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1035,10 +1319,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "{{setvar::unusedTitle::bad}}Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      sceneText: "{{setvar::unusedScene::bad}}Hidden scene.",
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1095,23 +1378,9 @@ describe("prompt preset generation", () => {
         lorebookIds: ["lorebook-1"],
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [
-        {
-          id: "entry-1",
-          schemaVersion: 1 as const,
-          threadId: "roleplay-thread-1",
-          role: "persona" as const,
-          characterId: null,
-          personaId: null,
-          label: "Alex",
-          body: "Open the airlock.",
-          origin: "manual" as const,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1168,9 +1437,9 @@ describe("prompt preset generation", () => {
         lorebookIds: ["lorebook-1"],
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1216,9 +1485,9 @@ describe("prompt preset generation", () => {
         lorebookIds: ["lorebook-1"],
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1285,9 +1554,9 @@ describe("prompt preset generation", () => {
         lorebookIds: ["lorebook-1"],
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1336,9 +1605,9 @@ describe("prompt preset generation", () => {
         lorebookIds: ["lorebook-1"],
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1401,23 +1670,9 @@ describe("prompt preset generation", () => {
           now,
           providerConnectionId: "connection-1",
           title: "Test scene",
+          defaultPromptPresetId: "preset-1",
         }),
-        entries: [
-          {
-            id: "entry-1",
-            schemaVersion: 1 as const,
-            threadId: "roleplay-thread-1",
-            role: "persona" as const,
-            characterId: null,
-            personaId: null,
-            label: "Alex",
-            body: "Open the airlock.",
-            origin: "manual" as const,
-            createdAt: now,
-            updatedAt: now,
-          },
-        ],
-        presetId: "preset-1",
+        messages: [roleplayEntry("entry-1", "Open the airlock.")],
       };
       const context = createRoleplayGenerationContext({
         characters: [companion()],
@@ -1478,9 +1733,9 @@ describe("prompt preset generation", () => {
           now,
           providerConnectionId: "connection-1",
           title: "Test scene",
+          defaultPromptPresetId: "preset-1",
         }),
-        entries: [roleplayEntry("entry-1", "Open the airlock.")],
-        presetId: "preset-1",
+        messages: [roleplayEntry("entry-1", "Open the airlock.")],
       };
       const context = createRoleplayGenerationContext({
         characters: [companion()],
@@ -1552,9 +1807,9 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: "preset-1",
       }),
-      entries: [roleplayEntry("entry-1", "Open the airlock.")],
-      presetId: "preset-1",
+      messages: [roleplayEntry("entry-1", "Open the airlock.")],
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],
@@ -1619,9 +1874,9 @@ describe("prompt preset generation", () => {
           now,
           providerConnectionId: "connection-1",
           title: "Test scene",
+          defaultPromptPresetId: "preset-1",
         }),
-        entries: [roleplayEntry("entry-1", "Open the airlock.")],
-        presetId: "preset-1",
+        messages: [roleplayEntry("entry-1", "Open the airlock.")],
       };
       const context = createRoleplayGenerationContext({
         characters: [companion()],
@@ -1701,8 +1956,8 @@ describe("prompt preset generation", () => {
         id: "roleplay-thread-1",
         now,
         title: "Test scene",
+        defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
       }),
-      presetId: STARTER_PROMPT_PRESET.id,
     };
     const context = createRoleplayGenerationContext({
       characters: [companion()],

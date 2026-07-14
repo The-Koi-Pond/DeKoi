@@ -32,17 +32,18 @@ interface GeneratedWorkflowRecordInput {
   body: string;
   companion: CharacterRecord;
   id: string;
+  versionId: string;
   now: string;
 }
 
 export interface RunGenerationWorkflowInput<
-  Thread extends { id: string },
+  Thread extends { id: string; activeBranchId: string },
   Context extends GenerationWorkflowContext,
   Request extends GenerationRequestBase,
   Response extends GenerationResponse,
   GeneratedRecord,
 > {
-  appendRecords: (thread: Thread, records: GeneratedRecord[]) => Thread;
+  appendRecords: (thread: Thread, records: GeneratedRecord[], branchId: string) => Thread;
   createContext: (variables: Record<string, string>) => Context;
   createId: (prefix: string) => string;
   createRecord: (input: GeneratedWorkflowRecordInput) => GeneratedRecord;
@@ -56,6 +57,7 @@ export interface RunGenerationWorkflowInput<
   macroVariableStates?: MacroVariableScope[];
   ownerKind: ThreadGenerationOwnerKind;
   recordIdPrefix: string;
+  versionIdPrefix: string;
   requestIdPrefix: string;
   thread: Thread;
   now: string;
@@ -75,7 +77,7 @@ export interface RunGenerationWorkflowResult<
 }
 
 export async function runGenerationWorkflow<
-  Thread extends { id: string },
+  Thread extends { id: string; activeBranchId: string },
   Context extends GenerationWorkflowContext,
   Request extends GenerationRequestBase,
   Response extends GenerationResponse,
@@ -92,14 +94,23 @@ export async function runGenerationWorkflow<
   now,
   ownerKind,
   recordIdPrefix,
+  versionIdPrefix,
   requestIdPrefix,
   thread,
 }: RunGenerationWorkflowInput<Thread, Context, Request, Response, GeneratedRecord>): Promise<
   RunGenerationWorkflowResult<Thread, Response, GeneratedRecord>
 > {
+  const activeBranchId = thread.activeBranchId;
+  if (
+    existingLoreRuntimeState &&
+    (existingLoreRuntimeState.ownerKind !== ownerKind ||
+      existingLoreRuntimeState.ownerId !== activeBranchId)
+  ) {
+    throw new Error("Existing lore runtime state belongs to a different generation owner.");
+  }
   const macroVariableSelection = buildGenerationMacroVariableState({
     macroVariableStates,
-    ownerId: thread.id,
+    ownerId: activeBranchId,
     ownerKind,
   });
   const context = createContext(macroVariableSelection.variables);
@@ -107,7 +118,7 @@ export async function runGenerationWorkflow<
     createId,
     existingState: existingLoreRuntimeState,
     now,
-    ownerId: thread.id,
+    ownerId: activeBranchId,
     ownerKind,
   });
   const requestAssembly = createRequestAssembly({
@@ -121,6 +132,7 @@ export async function runGenerationWorkflow<
     companions: context.companions,
     createRecord,
     nextId: () => createId(recordIdPrefix),
+    nextVersionId: () => createId(versionIdPrefix),
     response,
   });
   const generatedRecords = draftRecords.records;
@@ -129,7 +141,10 @@ export async function runGenerationWorkflow<
     generatedRecords.length > 0 ? requestAssembly.macroVariableMutations : [];
 
   return {
-    thread: generatedRecords.length > 0 ? appendRecords(thread, generatedRecords) : thread,
+    thread:
+      generatedRecords.length > 0
+        ? appendRecords(thread, generatedRecords, activeBranchId)
+        : thread,
     response,
     generatedRecords,
     loreRuntimeState: compactGenerationLoreRuntimeState(
@@ -140,7 +155,7 @@ export async function runGenerationWorkflow<
       variableMutations,
       ephemeralVariableNames: [...(context.ephemeralVariableNames ?? [])],
       now: response.createdAt,
-      ownerId: thread.id,
+      ownerId: activeBranchId,
       ownerKind,
       selection: macroVariableSelection,
     },

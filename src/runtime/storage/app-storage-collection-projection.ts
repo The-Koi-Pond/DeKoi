@@ -1,58 +1,90 @@
-import {
-  extractMessengerMessages,
-  toMessengerThreadRecord,
-} from "../../engine/contracts/types/messenger";
-import {
-  extractRoleplayEntries,
-  toRoleplayThreadRecord,
-} from "../../engine/contracts/types/roleplay";
+import type {
+  ModeMessage,
+  ModeThread,
+  ModeThreadKind,
+  ModeThreadOfKind,
+} from "../../engine/contracts/types/mode-thread";
 import type { AppStorageCollectionKey, AppStorageRecords } from "./app-storage-records";
 
-function assertNeverAppStorageCollectionKey(collectionKey: never): never {
-  throw new Error(`Unhandled app storage collection: ${collectionKey}`);
+type ModeThreadStorageRecordFor<K extends ModeThreadKind> = Omit<ModeThreadOfKind<K>, "messages">;
+export type ModeThreadStorageRecord = {
+  [K in ModeThreadKind]: ModeThreadStorageRecordFor<K>;
+}[ModeThreadKind];
+
+/** Join persisted thread metadata and messages into the canonical app shape. */
+export function assembleModeThreads(
+  metadata: readonly ModeThreadStorageRecord[],
+  messages: readonly ModeMessage[],
+): ModeThread[] {
+  const threads: ModeThread[] = metadata.map((thread) => ({
+    ...thread,
+    messages: [] as ModeMessage[],
+  }));
+  const byId = new Map(threads.map((thread) => [thread.id, thread] as const));
+  for (const message of messages) {
+    const thread = byId.get(message.threadId);
+    if (!thread) continue;
+    const branch = thread.branches.find((candidate) => candidate.id === message.branchId);
+    if (branch?.kind !== thread.kind) continue;
+    thread.messages.push(message);
+  }
+  return threads;
+}
+
+/** Project canonical app threads to the split collections used by persistence/bundles. */
+export function projectModeThreadCollections(modeThreads: readonly ModeThread[]) {
+  return {
+    modeThreads: modeThreads.map(toModeThreadStorageRecord),
+    modeMessages: modeThreads.flatMap((thread) => thread.messages),
+  };
+}
+
+export function toModeThreadStorageRecord(thread: ModeThread): ModeThreadStorageRecord {
+  const { messages: _messages, ...metadata } = thread;
+  void _messages;
+  return metadata;
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled app storage collection: ${value}`);
 }
 
 export function appStorageCollectionSignature(
   snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
+  key: AppStorageCollectionKey,
 ): string {
-  switch (collectionKey) {
+  switch (key) {
+    case "modeThreads":
+      return JSON.stringify(snapshot.modeThreads.map(toModeThreadStorageRecord));
+    case "modeMessages":
+      return JSON.stringify(projectModeThreadCollections(snapshot.modeThreads).modeMessages);
     case "appSettings":
-      return JSON.stringify(snapshot.appSettings) ?? "null";
+      return JSON.stringify(snapshot.appSettings);
     case "characters":
-      return JSON.stringify(snapshot.characters) ?? "null";
+      return JSON.stringify(snapshot.characters);
     case "personas":
-      return JSON.stringify(snapshot.personas) ?? "null";
+      return JSON.stringify(snapshot.personas);
     case "lorebooks":
-      return JSON.stringify(snapshot.lorebooks) ?? "null";
+      return JSON.stringify(snapshot.lorebooks);
     case "promptPresets":
-      return JSON.stringify(snapshot.promptPresets) ?? "null";
+      return JSON.stringify(snapshot.promptPresets);
     case "loreRuntimeStates":
-      return JSON.stringify(snapshot.loreRuntimeStates) ?? "null";
+      return JSON.stringify(snapshot.loreRuntimeStates);
     case "macroVariableStates":
-      return JSON.stringify(snapshot.macroVariableStates) ?? "null";
+      return JSON.stringify(snapshot.macroVariableStates);
     case "providerConnections":
-      return JSON.stringify(snapshot.providerConnections) ?? "null";
-    case "roleplayThreads":
-      return JSON.stringify(snapshot.roleplayThreads.map(toRoleplayThreadRecord));
-    case "roleplayEntries":
-      return JSON.stringify(extractRoleplayEntries(snapshot.roleplayThreads));
-    case "messengerThreads":
-      return JSON.stringify(snapshot.messengerThreads.map(toMessengerThreadRecord));
-    case "messengerMessages":
-      return JSON.stringify(extractMessengerMessages(snapshot.messengerThreads));
+      return JSON.stringify(snapshot.providerConnections);
     case "rippleStates":
-      return JSON.stringify(snapshot.rippleStates) ?? "null";
+      return JSON.stringify(snapshot.rippleStates);
   }
-
-  return assertNeverAppStorageCollectionKey(collectionKey);
+  return assertNever(key);
 }
 
 export function appStorageCollectionCount(
   snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
+  key: AppStorageCollectionKey,
 ): number {
-  switch (collectionKey) {
+  switch (key) {
     case "appSettings":
       return 1;
     case "characters":
@@ -69,26 +101,21 @@ export function appStorageCollectionCount(
       return snapshot.macroVariableStates.length;
     case "providerConnections":
       return snapshot.providerConnections.length;
-    case "roleplayThreads":
-      return snapshot.roleplayThreads.length;
-    case "roleplayEntries":
-      return extractRoleplayEntries(snapshot.roleplayThreads).length;
-    case "messengerThreads":
-      return snapshot.messengerThreads.length;
-    case "messengerMessages":
-      return extractMessengerMessages(snapshot.messengerThreads).length;
+    case "modeThreads":
+      return snapshot.modeThreads.length;
+    case "modeMessages":
+      return projectModeThreadCollections(snapshot.modeThreads).modeMessages.length;
     case "rippleStates":
       return snapshot.rippleStates.length;
   }
-
-  return assertNeverAppStorageCollectionKey(collectionKey);
+  return assertNever(key);
 }
 
 export function appStorageCollectionSource(
   snapshot: AppStorageRecords,
-  collectionKey: AppStorageCollectionKey,
+  key: AppStorageCollectionKey,
 ): unknown {
-  switch (collectionKey) {
+  switch (key) {
     case "appSettings":
       return snapshot.appSettings;
     case "characters":
@@ -105,15 +132,12 @@ export function appStorageCollectionSource(
       return snapshot.macroVariableStates;
     case "providerConnections":
       return snapshot.providerConnections;
-    case "roleplayThreads":
-    case "roleplayEntries":
-      return snapshot.roleplayThreads;
-    case "messengerThreads":
-    case "messengerMessages":
-      return snapshot.messengerThreads;
+    case "modeThreads":
+      return snapshot.modeThreads;
+    case "modeMessages":
+      return projectModeThreadCollections(snapshot.modeThreads).modeMessages;
     case "rippleStates":
       return snapshot.rippleStates;
   }
-
-  return assertNeverAppStorageCollectionKey(collectionKey);
+  return assertNever(key);
 }

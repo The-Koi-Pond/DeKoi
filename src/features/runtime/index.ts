@@ -89,3 +89,5 @@ export type {
 } from "../../engine/contracts/types/lore-runtime-state";
 export { generateRoleplayThreadTurn } from "./generation";
 export { generateMessengerThreadReply } from "./generation";
+export { assembleModeThreads } from "../../runtime";
+export { restampLegacyImportData } from "./storage";

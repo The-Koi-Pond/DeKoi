@@ -23,7 +23,7 @@ describe("normalizeMacroVariableScope", () => {
     const record = normalizeMacroVariableScope({
       id: "macro-variable-state-under-test",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "messenger-thread-1",
       variables: {
         " mood ": "calm",
@@ -38,7 +38,7 @@ describe("normalizeMacroVariableScope", () => {
     expect(record).toEqual({
       id: "macro-variable-state-under-test",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "messenger-thread-1",
       variables: {
         mood: "calm",
@@ -64,7 +64,7 @@ describe("normalizeMacroVariableScope", () => {
       normalizeMacroVariableScope({
         id: "state",
         schemaVersion: 2,
-        ownerKind: "messenger-thread",
+        ownerKind: "mode-branch",
         ownerId: "thread",
       }),
     ).toBeNull();
@@ -73,6 +73,14 @@ describe("normalizeMacroVariableScope", () => {
         id: "state",
         schemaVersion: 1,
         ownerKind: "unknown",
+        ownerId: "thread",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeMacroVariableScope({
+        id: "state",
+        schemaVersion: 1,
+        ownerKind: "roleplay-thread",
         ownerId: "thread",
       }),
     ).toBeNull();

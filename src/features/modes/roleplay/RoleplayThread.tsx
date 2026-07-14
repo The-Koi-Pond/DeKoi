@@ -1,12 +1,17 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
-  appendRoleplayEntries,
-  createNarrationRoleplayEntry,
-  createPersonaRoleplayEntry,
-  deleteRoleplayEntry,
-  updateRoleplayEntryBody,
+  appendRoleplayMessages,
+  createPersonaRoleplayMessage,
+  createSystemRoleplayMessage,
+  deleteRoleplayMessage,
+  updateRoleplayMessageBody,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayEntry } from "../../../engine/contracts/types/roleplay";
+import type { RoleplayModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
+import {
+  getActiveModeBranch,
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+} from "../../../engine/modes/mode-thread/mode-thread-actions";
 import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
 import { copyTextToClipboard } from "../../../shared/browser/clipboard";
@@ -38,7 +43,11 @@ import {
 } from "../shared";
 import { generationOriginStillExists } from "../shared/generation-origin";
 import { getMessageDateTimeTitle, getMessageTimeLabel } from "../shared/message-time";
-import { getCopyableRoleplayEntryBody, getInitials, isOwnRoleplayEntry } from "./lib/message-view";
+import {
+  getCopyableRoleplayMessageBody,
+  getInitials,
+  isOwnRoleplayMessage,
+} from "./lib/message-view";
 import {
   getRoleplayThreadReferenceNotices,
   getRoleplayThreadReferenceSummary,
@@ -63,7 +72,7 @@ export type RoleplayThreadNav = Pick<
   Pick<NavMacroVariableActions, "updateMacroVariableStates"> &
   Pick<NavSettingsState, "appSettings"> &
   Pick<NavStorageState, "storageReady"> &
-  Pick<NavThreadState, "roleplayThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "setSelectedSurface" | "setSideRailView" | "setView"> &
   Pick<NavViewState, "view">;
 
@@ -110,7 +119,13 @@ function RoleplayPendingRow({ label }: { label: string }) {
 
 export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const activeThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
-  const thread = nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ?? null;
+  const thread =
+    nav.modeThreads.find(
+      (candidate): candidate is RoleplayModeThread =>
+        candidate.kind === "roleplay" && candidate.id === activeThreadId,
+    ) ?? null;
+  const activeBranch = thread ? getActiveModeBranch(thread) : null;
+  const messages = thread ? getActiveModeBranchMessages(thread) : [];
   const [draftState, setDraftState] = useState<{
     threadId: string | null;
     body: string;
@@ -134,10 +149,10 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const entryListRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
-  const roleplayThreadsRef = useRef(nav.roleplayThreads);
+  const roleplayThreadsRef = useRef(nav.modeThreads);
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const threadConnection = getProviderConnectionById(
-    thread?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
+    activeBranch?.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
     nav.providerConnections,
   );
   const generationTransport = describeGenerationTransport();
@@ -190,22 +205,22 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     : activeEditingEntry
       ? "edit"
       : "idle";
-  const castCompanions = thread
-    ? nav.characters.filter((companion) => thread.characterIds.includes(companion.id))
+  const castCompanions = activeBranch
+    ? nav.characters.filter((companion) => activeBranch.characterIds.includes(companion.id))
     : [];
-  const activePersona = thread?.activePersonaId
-    ? (nav.personas.find((persona) => persona.id === thread.activePersonaId) ?? null)
+  const activePersona = activeBranch?.activePersonaId
+    ? (nav.personas.find((persona) => persona.id === activeBranch.activePersonaId) ?? null)
     : null;
 
   useLayoutEffect(() => {
-    roleplayThreadsRef.current = nav.roleplayThreads;
-  }, [nav.roleplayThreads]);
+    roleplayThreadsRef.current = nav.modeThreads;
+  }, [nav.modeThreads]);
 
   useEffect(() => {
     if (!entryListRef.current) return;
     if (!thread) return;
     entryListRef.current.scrollTop = entryListRef.current.scrollHeight;
-  }, [thread, thread?.entries.length]);
+  }, [thread, messages.length]);
 
   useEffect(() => {
     if (activeEntryInteractionMode !== "edit") return;
@@ -221,10 +236,14 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     deleteConfirmRef.current?.focus();
   }, [activeDeleteRequest?.id, activeEntryInteractionMode]);
 
-  function handleEditEntry(entry: RoleplayEntry) {
+  function handleEditEntry(entry: ModeMessage) {
     if (!thread) return;
     setDeleteRequest(null);
-    setEditingEntry({ threadId: thread.id, id: entry.id, body: entry.body });
+    setEditingEntry({
+      threadId: thread.id,
+      id: entry.id,
+      body: getActiveModeMessageVersion(entry).body,
+    });
   }
 
   function handleCancelEditEntry() {
@@ -235,35 +254,39 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     if (!thread || !activeEditingEntry) return;
     const trimmedBody = activeEditingEntry.body.trim();
     if (!trimmedBody) return;
-    const originalEntry =
-      thread.entries.find((entry) => entry.id === activeEditingEntry.id) ?? null;
+    const originalEntry = messages.find((entry) => entry.id === activeEditingEntry.id) ?? null;
     if (!originalEntry) {
       setEditingEntry(null);
       return;
     }
-    if (originalEntry.body === trimmedBody) {
+    if (getActiveModeMessageVersion(originalEntry).body === trimmedBody) {
       setEditingEntry(null);
       return;
     }
 
     nav.updateRoleplayThread(
-      updateRoleplayEntryBody(thread, activeEditingEntry.id, trimmedBody, new Date().toISOString()),
+      updateRoleplayMessageBody(
+        thread,
+        activeEditingEntry.id,
+        trimmedBody,
+        new Date().toISOString(),
+      ),
     );
     setEditingEntry(null);
   }
 
   function commitDeleteEntry(entryId: string) {
     if (!thread) return;
-    nav.updateRoleplayThread(deleteRoleplayEntry(thread, entryId));
+    nav.updateRoleplayThread(deleteRoleplayMessage(thread, entryId));
     if (activeEditingEntry?.id === entryId) {
       setEditingEntry(null);
     }
     setDeleteRequest(null);
   }
 
-  function handleDeleteEntry(entry: RoleplayEntry) {
+  function handleDeleteEntry(entry: ModeMessage) {
     if (!thread) return;
-    if (!thread.entries.some((candidate) => candidate.id === entry.id)) {
+    if (!messages.some((candidate) => candidate.id === entry.id)) {
       return;
     }
 
@@ -272,7 +295,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       setDeleteRequest({
         threadId: thread.id,
         id: entry.id,
-        label: entry.label,
+        label: entry.author.label,
       });
       return;
     }
@@ -314,7 +337,10 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     if (!trimmedDraft) return false;
     const sentAt = new Date().toISOString();
     const commitThread =
-      nav.roleplayThreads.find((candidate) => candidate.id === activeThreadId) ?? null;
+      nav.modeThreads.find(
+        (candidate): candidate is RoleplayModeThread =>
+          candidate.kind === "roleplay" && candidate.id === activeThreadId,
+      ) ?? null;
     if (!commitThread) return false;
     const commitSendBlocker = getRoleplayThreadSendBlocker(
       getRoleplayThreadReferenceSummary({
@@ -338,7 +364,8 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     }
 
     const selectedConnection = getProviderConnectionById(
-      commitThread.providerConnectionId ?? nav.appSettings.activeMessengerConnectionId,
+      getActiveModeBranch(commitThread).providerConnectionId ??
+        nav.appSettings.activeMessengerConnectionId,
       nav.providerConnections,
     );
     const connectionReadiness = getGenerationConnectionReadiness(selectedConnection);
@@ -355,24 +382,27 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
 
     const commitConnection = connectionReadiness.connection;
     const sendTransport = describeGenerationTransport();
-    const sendPersona = commitThread.activePersonaId
-      ? (nav.personas.find((persona) => persona.id === commitThread.activePersonaId) ?? null)
+    const commitBranch = getActiveModeBranch(commitThread);
+    const sendPersona = commitBranch.activePersonaId
+      ? (nav.personas.find((persona) => persona.id === commitBranch.activePersonaId) ?? null)
       : null;
-    const userEntry = sendPersona
-      ? createPersonaRoleplayEntry({
+    const userMessage = sendPersona
+      ? createPersonaRoleplayMessage({
           body: trimmedDraft,
-          id: createLocalId("roleplay-entry"),
+          id: createLocalId("roleplay-message"),
+          versionId: createLocalId("roleplay-version"),
           now: sentAt,
           persona: sendPersona,
           thread: commitThread,
         })
-      : createNarrationRoleplayEntry({
+      : createSystemRoleplayMessage({
           body: trimmedDraft,
-          id: createLocalId("roleplay-entry"),
+          id: createLocalId("roleplay-message"),
+          versionId: createLocalId("roleplay-version"),
           now: sentAt,
           thread: commitThread,
         });
-    const threadWithUserEntry = appendRoleplayEntries(commitThread, [userEntry]);
+    const threadWithUserEntry = appendRoleplayMessages(commitThread, [userMessage]);
 
     nav.updateRoleplayThread(threadWithUserEntry);
     setDraftState({ body: "", threadId: activeThreadId });
@@ -390,7 +420,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         createId: createLocalId,
         fallbackProviderConnectionId: commitConnection.id,
         lorebooks: nav.lorebooks,
-        loreRuntimeState: nav.getLoreRuntimeState("roleplay-thread", threadWithUserEntry.id),
+        loreRuntimeState: nav.getLoreRuntimeState("mode-branch", commitBranch.id),
         macroVariableStates: nav.macroVariableStates,
         now: sentAt,
         parameters: {
@@ -405,8 +435,8 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       });
 
       const ownerExists = generationOriginStillExists({
-        itemId: userEntry.id,
-        selectItems: (candidate) => candidate.entries,
+        itemId: userMessage.id,
+        selectItems: (candidate) => getActiveModeBranchMessages(candidate),
         threadId: threadWithUserEntry.id,
         threads: roleplayThreadsRef.current,
       });
@@ -420,8 +450,8 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         return;
       }
 
-      if (result.generatedEntries.length > 0) {
-        nav.appendRoleplayThreadEntries(threadWithUserEntry.id, result.generatedEntries);
+      if (result.generatedMessages.length > 0) {
+        nav.appendRoleplayThreadEntries(threadWithUserEntry.id, result.generatedMessages);
         nav.updateMacroVariableStates((currentStates) =>
           commitGenerationMacroVariableStates({
             ...result.macroVariableCommit,
@@ -431,14 +461,10 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
           }),
         );
       }
-      nav.updateLoreRuntimeState(
-        result.loreRuntimeState,
-        "roleplay-thread",
-        threadWithUserEntry.id,
-      );
+      nav.updateLoreRuntimeState(result.loreRuntimeState, "mode-branch", commitBranch.id);
 
       setGenerationState(
-        result.generatedEntries.length > 0
+        result.generatedMessages.length > 0
           ? {
               threadId: commitThread.id,
               status: result.warnings.length > 0 ? "warning" : "idle",
@@ -506,8 +532,8 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     );
   }
 
-  function handleCopyEntry(entry: RoleplayEntry) {
-    const body = getCopyableRoleplayEntryBody(entry);
+  function handleCopyEntry(entry: ModeMessage) {
+    const body = getCopyableRoleplayMessageBody(entry);
     if (!body) return;
     void copyTextToClipboard(body);
   }
@@ -535,27 +561,28 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     void sendDraft();
   }
 
-  function getEntryAuthorAvatar(entry: RoleplayEntry) {
-    if (entry.role === "character" && entry.characterId) {
-      const character =
-        nav.characters.find((candidate) => candidate.id === entry.characterId) ?? null;
+  function getEntryAuthorAvatar(entry: ModeMessage) {
+    if (entry.author.kind === "character") {
+      const characterId = entry.author.characterId;
+      const character = nav.characters.find((candidate) => candidate.id === characterId) ?? null;
       return {
         avatarUrl: character?.avatarUrl ?? null,
-        initials: getInitials(character?.displayName ?? entry.label),
+        initials: getInitials(character?.displayName ?? entry.author.label),
       };
     }
 
-    if (entry.role === "persona" && entry.personaId) {
-      const persona = nav.personas.find((candidate) => candidate.id === entry.personaId) ?? null;
+    if (entry.author.kind === "persona") {
+      const personaId = entry.author.personaId;
+      const persona = nav.personas.find((candidate) => candidate.id === personaId) ?? null;
       return {
         avatarUrl: persona?.avatarUrl ?? null,
-        initials: getInitials(persona?.displayName ?? entry.label),
+        initials: getInitials(persona?.displayName ?? entry.author.label),
       };
     }
 
     return {
       avatarUrl: null,
-      initials: getInitials(entry.label),
+      initials: getInitials(entry.author.label),
     };
   }
 
@@ -664,271 +691,158 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
       )}
 
       <div className="roleplay-entries" aria-label="Roleplay scene" ref={entryListRef}>
-        {thread.entries.length === 0 && !isGenerating && (
+        {messages.length === 0 && !isGenerating && (
           <p className="roleplay-empty-note">No messages yet.</p>
         )}
-        {thread.entries.map((entry) => {
+        {messages.map((entry) => {
+          const body = getActiveModeMessageVersion(entry).body;
+          const label = entry.author.label;
           const isEditing = activeEditingEntry?.id === entry.id;
           const isConfirmingDelete = activeDeleteRequest?.id === entry.id;
           const deleteRequestLabel = isConfirmingDelete
-            ? (activeDeleteRequest?.label ?? entry.label)
-            : entry.label;
+            ? (activeDeleteRequest?.label ?? label)
+            : label;
           const authorAvatar = getEntryAuthorAvatar(entry);
           const timeLabel = getMessageTimeLabel(entry.createdAt);
-          const own = isOwnRoleplayEntry(entry);
+          const own = isOwnRoleplayMessage(entry);
           const speakerChip =
-            entry.role === "character"
+            entry.author.kind === "character"
               ? "Character"
-              : entry.role === "persona"
+              : entry.author.kind === "persona"
                 ? "Persona"
-                : entry.role === "narration"
-                  ? "Narration"
-                  : "Scene";
+                : "Scene";
 
           return (
             <Fragment key={entry.id}>
-              {entry.role === "narration" ? (
-                <article
-                  className={`roleplay-narration${isEditing ? " editing" : ""}${
-                    isConfirmingDelete ? " confirming-delete" : ""
-                  }`}
-                  aria-label={`Narration from ${entry.label}`}
+              <article
+                className={`roleplay-entry ${entry.author.kind}${own ? " own" : ""}${
+                  isEditing ? " editing" : ""
+                }${isConfirmingDelete ? " confirming-delete" : ""}`}
+                aria-label={`${speakerChip} entry from ${label}`}
+              >
+                <span
+                  className={`roleplay-entry-avatar ${own ? "persona" : "character"}`}
+                  aria-hidden="true"
                 >
-                  {isEditing ? (
-                    <div className="roleplay-entry-edit-form">
-                      <textarea
-                        ref={editTextareaRef}
-                        aria-label={`Edit narration from ${entry.label}`}
-                        value={activeEditingEntry?.body ?? ""}
-                        onKeyDown={handleEditEntryKeyDown}
-                        onChange={(event) =>
-                          setEditingEntry({
-                            threadId: thread.id,
-                            id: entry.id,
-                            body: event.target.value,
-                          })
-                        }
-                      />
-                      <div className="roleplay-entry-edit-actions">
-                        <button
-                          type="button"
-                          onClick={handleSaveEditedEntry}
-                          aria-label={`Save edited narration from ${entry.label}`}
-                          disabled={!activeEditingEntry?.body.trim()}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Cancel editing narration from ${entry.label}`}
-                          onClick={handleCancelEditEntry}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
+                  {authorAvatar.avatarUrl ? (
+                    <img src={authorAvatar.avatarUrl} alt="" />
                   ) : (
-                    <>
-                      <p className="roleplay-narration-body">{entry.body}</p>
+                    authorAvatar.initials
+                  )}
+                </span>
+                <div className="roleplay-entry-content">
+                  <div className="roleplay-entry-head">
+                    <div className="roleplay-entry-author">
+                      <b>{label}</b>
                       {timeLabel && (
                         <time
-                          className="roleplay-narration-timestamp"
+                          className="roleplay-entry-timestamp"
                           dateTime={entry.createdAt}
                           title={getMessageDateTimeTitle(entry.createdAt)}
                         >
                           {timeLabel}
                         </time>
                       )}
-                      <div className="roleplay-entry-actions" aria-label="Narration actions">
-                        {isConfirmingDelete ? (
-                          <div
-                            className="roleplay-entry-delete-confirm"
-                            role="group"
-                            aria-label={`Confirm delete narration from ${deleteRequestLabel}`}
-                            onKeyDown={handleDeleteConfirmKeyDown}
-                          >
-                            <button
-                              ref={deleteConfirmRef}
-                              type="button"
-                              aria-label={`Confirm delete narration from ${deleteRequestLabel}`}
-                              onClick={() => commitDeleteEntry(entry.id)}
-                            >
-                              Delete
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Cancel delete narration from ${deleteRequestLabel}`}
-                              onClick={handleCancelDeleteEntry}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="roleplay-action-pill"
-                              aria-label={`Copy narration from ${entry.label}`}
-                              title="Copy"
-                              onClick={() => handleCopyEntry(entry)}
-                            >
-                              ⧉
-                            </button>
-                            <button
-                              type="button"
-                              className="roleplay-action-pill"
-                              aria-label={`Edit narration from ${entry.label}`}
-                              title="Edit"
-                              onClick={() => handleEditEntry(entry)}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              type="button"
-                              className="roleplay-action-pill"
-                              aria-label={`Delete narration from ${entry.label}`}
-                              title="Delete"
-                              onClick={() => handleDeleteEntry(entry)}
-                            >
-                              ×
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </article>
-              ) : (
-                <article
-                  className={`roleplay-entry ${entry.role}${own ? " own" : ""}${
-                    isEditing ? " editing" : ""
-                  }${isConfirmingDelete ? " confirming-delete" : ""}`}
-                  aria-label={`${speakerChip} entry from ${entry.label}`}
-                >
-                  <span
-                    className={`roleplay-entry-avatar ${own ? "persona" : "character"}`}
-                    aria-hidden="true"
-                  >
-                    {authorAvatar.avatarUrl ? (
-                      <img src={authorAvatar.avatarUrl} alt="" />
-                    ) : (
-                      authorAvatar.initials
-                    )}
-                  </span>
-                  <div className="roleplay-entry-content">
-                    <div className="roleplay-entry-head">
-                      <div className="roleplay-entry-author">
-                        <b>{entry.label}</b>
-                        {timeLabel && (
-                          <time
-                            className="roleplay-entry-timestamp"
-                            dateTime={entry.createdAt}
-                            title={getMessageDateTimeTitle(entry.createdAt)}
-                          >
-                            {timeLabel}
-                          </time>
-                        )}
-                      </div>
-                    </div>
-                    <div className="roleplay-entry-bubble">
-                      {isEditing ? (
-                        <div className="roleplay-entry-edit-form">
-                          <textarea
-                            ref={editTextareaRef}
-                            aria-label={`Edit Roleplay entry from ${entry.label}`}
-                            value={activeEditingEntry?.body ?? ""}
-                            onKeyDown={handleEditEntryKeyDown}
-                            onChange={(event) =>
-                              setEditingEntry({
-                                threadId: thread.id,
-                                id: entry.id,
-                                body: event.target.value,
-                              })
-                            }
-                          />
-                          <div className="roleplay-entry-edit-actions">
-                            <button
-                              type="button"
-                              onClick={handleSaveEditedEntry}
-                              aria-label={`Save edited Roleplay entry from ${entry.label}`}
-                              disabled={!activeEditingEntry?.body.trim()}
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Cancel editing Roleplay entry from ${entry.label}`}
-                              onClick={handleCancelEditEntry}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p>{entry.body}</p>
-                          <div className="roleplay-entry-actions" aria-label="Entry actions">
-                            {isConfirmingDelete ? (
-                              <div
-                                className="roleplay-entry-delete-confirm"
-                                role="group"
-                                aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
-                                onKeyDown={handleDeleteConfirmKeyDown}
-                              >
-                                <button
-                                  ref={deleteConfirmRef}
-                                  type="button"
-                                  aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
-                                  onClick={() => commitDeleteEntry(entry.id)}
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={`Cancel delete Roleplay entry from ${deleteRequestLabel}`}
-                                  onClick={handleCancelDeleteEntry}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className="roleplay-action-pill"
-                                  aria-label={`Copy Roleplay entry from ${entry.label}`}
-                                  title="Copy"
-                                  onClick={() => handleCopyEntry(entry)}
-                                >
-                                  ⧉
-                                </button>
-                                <button
-                                  type="button"
-                                  className="roleplay-action-pill"
-                                  aria-label={`Edit Roleplay entry from ${entry.label}`}
-                                  title="Edit"
-                                  onClick={() => handleEditEntry(entry)}
-                                >
-                                  ✎
-                                </button>
-                                <button
-                                  type="button"
-                                  className="roleplay-action-pill"
-                                  aria-label={`Delete Roleplay entry from ${entry.label}`}
-                                  title="Delete"
-                                  onClick={() => handleDeleteEntry(entry)}
-                                >
-                                  ×
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
                     </div>
                   </div>
-                </article>
-              )}
+                  <div className="roleplay-entry-bubble">
+                    {isEditing ? (
+                      <div className="roleplay-entry-edit-form">
+                        <textarea
+                          ref={editTextareaRef}
+                          aria-label={`Edit Roleplay entry from ${label}`}
+                          value={activeEditingEntry?.body ?? ""}
+                          onKeyDown={handleEditEntryKeyDown}
+                          onChange={(event) =>
+                            setEditingEntry({
+                              threadId: thread.id,
+                              id: entry.id,
+                              body: event.target.value,
+                            })
+                          }
+                        />
+                        <div className="roleplay-entry-edit-actions">
+                          <button
+                            type="button"
+                            onClick={handleSaveEditedEntry}
+                            aria-label={`Save edited Roleplay entry from ${label}`}
+                            disabled={!activeEditingEntry?.body.trim()}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Cancel editing Roleplay entry from ${label}`}
+                            onClick={handleCancelEditEntry}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p>{body}</p>
+                        <div className="roleplay-entry-actions" aria-label="Entry actions">
+                          {isConfirmingDelete ? (
+                            <div
+                              className="roleplay-entry-delete-confirm"
+                              role="group"
+                              aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
+                              onKeyDown={handleDeleteConfirmKeyDown}
+                            >
+                              <button
+                                ref={deleteConfirmRef}
+                                type="button"
+                                aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
+                                onClick={() => commitDeleteEntry(entry.id)}
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Cancel delete Roleplay entry from ${deleteRequestLabel}`}
+                                onClick={handleCancelDeleteEntry}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="roleplay-action-pill"
+                                aria-label={`Copy Roleplay entry from ${label}`}
+                                title="Copy"
+                                onClick={() => handleCopyEntry(entry)}
+                              >
+                                ⧉
+                              </button>
+                              <button
+                                type="button"
+                                className="roleplay-action-pill"
+                                aria-label={`Edit Roleplay entry from ${label}`}
+                                title="Edit"
+                                onClick={() => handleEditEntry(entry)}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                type="button"
+                                className="roleplay-action-pill"
+                                aria-label={`Delete Roleplay entry from ${label}`}
+                                title="Delete"
+                                onClick={() => handleDeleteEntry(entry)}
+                              >
+                                ×
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </article>
             </Fragment>
           );
         })}

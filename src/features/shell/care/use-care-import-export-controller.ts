@@ -24,7 +24,6 @@ import { errorMessage } from "../../../shared/errors";
 import {
   createLegacyImportDataFingerprint,
   getLegacyImportPreviewWarnings,
-  prepareLegacyImportData,
 } from "./use-app-import-export-actions";
 import type { StorageImportFailureSource } from "./care-drawer-types";
 
@@ -443,14 +442,12 @@ export function useCareImportExportController({
       return;
     }
 
-    const preparedData = prepareLegacyImportData(result.preview.data);
     setLegacyPreview({
       ...result.preview,
-      data: preparedData,
-      fingerprint: createLegacyImportDataFingerprint(preparedData),
+      fingerprint: createLegacyImportDataFingerprint(result.preview.data),
       warnings: getLegacyImportPreviewWarnings(
         result.preview.warnings,
-        preparedData.macroVariableStates,
+        result.preview.data.macroVariableStates,
         nav.macroVariableStates,
       ),
     });

@@ -5,6 +5,7 @@ interface GeneratedDraftRecordInput {
   body: string;
   companion: CharacterRecord;
   id: string;
+  versionId: string;
   now: string;
 }
 
@@ -12,6 +13,7 @@ export interface CreateGeneratedDraftRecordsInput<GeneratedRecord> {
   companions: CharacterRecord[];
   createRecord: (input: GeneratedDraftRecordInput) => GeneratedRecord;
   nextId: () => string;
+  nextVersionId: () => string;
   response: GenerationResponse;
 }
 
@@ -29,6 +31,7 @@ export function createGeneratedDraftRecords<GeneratedRecord>({
   companions,
   createRecord,
   nextId,
+  nextVersionId,
   response,
 }: CreateGeneratedDraftRecordsInput<GeneratedRecord>): CreateGeneratedDraftRecordsResult<GeneratedRecord> {
   const warnings: string[] = [];
@@ -46,6 +49,7 @@ export function createGeneratedDraftRecords<GeneratedRecord>({
         body: messageDraft.body,
         companion,
         id: nextId(),
+        versionId: nextVersionId(),
         now: response.createdAt,
       }),
     ];

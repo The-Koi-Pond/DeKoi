@@ -1,4 +1,4 @@
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { ChatSettingsThreadRecord } from "../lib/chat-settings-thread-record";
 import { materializePromptPresetThreadChoiceSelections } from "../../../../engine/prompt-presets/prompt-preset-actions";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
@@ -12,7 +12,7 @@ import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsRoleplayResourceSectionProps {
   actions: Pick<ChatSettingsRoleplayActionGroup, "drawers" | "preset" | "resources">;
-  activeRoleplayThreadRecord: RoleplayThread | null;
+  activeRoleplayThreadRecord: ChatSettingsThreadRecord | null;
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
   lorebooks: ShoalRailProps["nav"]["lorebooks"];

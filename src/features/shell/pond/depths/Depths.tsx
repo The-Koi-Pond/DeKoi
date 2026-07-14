@@ -37,7 +37,7 @@ interface DepthsProps {
 export type DepthsNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<NavRoleplayThreadActions, "createRoleplayThread"> &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
-  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface">;
 
 const surfaceChips: Array<"All surfaces" | FeatureSurface> = [
@@ -163,7 +163,9 @@ export function Depths({ nav }: DepthsProps) {
   const visibleResults = showAll ? filteredResults : filteredResults.slice(0, 3);
 
   function openLatestMessengerThread() {
-    const latestThread = sortMessengerThreadsByUpdatedAt(nav.messengerThreads)[0];
+    const latestThread = sortMessengerThreadsByUpdatedAt(
+      nav.modeThreads.filter((thread) => thread.kind === "messenger"),
+    )[0];
     if (latestThread) {
       nav.openMessengerThread(latestThread.id);
       return;
@@ -173,7 +175,9 @@ export function Depths({ nav }: DepthsProps) {
   }
 
   function openLatestRoleplayThread() {
-    const latestThread = sortRoleplayThreadsByUpdatedAt(nav.roleplayThreads)[0];
+    const latestThread = sortRoleplayThreadsByUpdatedAt(
+      nav.modeThreads.filter((thread) => thread.kind === "roleplay"),
+    )[0];
     if (latestThread) {
       nav.openRoleplayThread(latestThread.id);
       return;

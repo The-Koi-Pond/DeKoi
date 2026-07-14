@@ -120,8 +120,8 @@ pnpm test:ui
 ```
 
 The committed Playwright specs live in `tests/e2e` and are split by workflow:
-app shell, provider generation, storage bundles, storage state, and transcript
-storage.
+app shell, provider generation, prompt presets, preset variables, storage
+bundles, and storage state.
 
 Remote-runtime e2e coverage does not need the development fixture process. The
 shared helpers in `tests/e2e/app-test-utils.ts` install a Playwright route for
@@ -197,7 +197,10 @@ Focused checks for narrow changes are mapped to change types in
   catalog.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
-  then replace collections through the storage commit path.
+  then replace collections through the storage commit path. Native bundles use
+  schema version 2 with unified mode-thread and mode-message collections. Local
+  development data from the removed split collections must be reset; it is not
+  migrated as a native bundle.
 - Use the Connections catalog for provider-key checks and secret storage.
 - Required-key provider generation needs the desktop app so saved keys can stay
   in the desktop key store; browser mode can still use compatible no-key/local
@@ -207,4 +210,6 @@ Focused checks for narrow changes are mapped to change types in
   provider connections, Messenger records, and macro variable scopes after the
   same backup and commit flow. The preview shows macro variable scope and
   variable counts, and warns when imported global variables will overwrite
-  same-name current globals.
+  same-name current globals. Only recognized legacy Messenger records are
+  converted; unsupported Roleplay records are skipped, and lorebook/preset
+  references are cleared because those resources are not imported.

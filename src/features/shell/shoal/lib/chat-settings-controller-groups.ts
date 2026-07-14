@@ -1,11 +1,10 @@
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
 import type { ChatSettingsDrawerId } from "./chat-settings-drawers";
 import type { ChatSettingsViewModel } from "./chat-settings-view-model";
+import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 
 export interface ChatSettingsMessengerSettings {
-  activeMessengerThread: MessengerThread | null;
+  activeMessengerThread: ChatSettingsThreadRecord | null;
   activeMessengerThreadId: string | null;
   chatSettingsViewModel: ChatSettingsViewModel;
   companionSelectorOpen: boolean;
@@ -52,7 +51,7 @@ export interface ChatSettingsMessengerActionGroup {
 }
 
 export interface ChatSettingsRoleplaySettings {
-  activeRoleplayThread: RoleplayThread | null;
+  activeRoleplayThread: ChatSettingsThreadRecord | null;
   activeRoleplayThreadId: string | null;
   chatSettingsViewModel: ChatSettingsViewModel;
   companionSelectorOpen: boolean;

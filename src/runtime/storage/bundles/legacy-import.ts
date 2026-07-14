@@ -7,6 +7,7 @@ import {
 } from "../../../engine/contracts/types/messenger";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
+import type { ModeMessage, MessengerModeThread } from "../../../engine/contracts/types/mode-thread";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   getProviderConnectionProviderOption,
@@ -43,6 +44,7 @@ export interface DeKoiLegacyImportData {
   messengerThreadMacroVariableStates: (MacroVariableScope | null)[];
   providerConnections: ProviderConnectionRecord[];
   messengerThreads: MessengerThread[];
+  modeThreads: MessengerModeThread[];
   sourceLabel: string;
 }
 
@@ -318,6 +320,10 @@ function normalizeAuthor(value: unknown): MessengerMessageAuthor {
     return { kind: "system", label };
   }
 
+  if (value.kind === "narrator") {
+    return { kind: "system", label: "System" };
+  }
+
   return { kind: "unknown", label };
 }
 
@@ -389,8 +395,8 @@ function normalizeLegacyThread(value: unknown, index: number): LegacyThreadImpor
           {
             id: `macro-variable-state-imported-thread-${index + 1}`,
             schemaVersion: 1,
-            ownerKind: "messenger-thread",
-            ownerId: thread.id,
+            ownerKind: "mode-branch",
+            ownerId: `${thread.id}-branch-1`,
             variables,
             createdAt: thread.createdAt,
             updatedAt: thread.updatedAt,
@@ -599,6 +605,60 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
   const warnings: string[] = [];
   const importedThreadRecords = convertThreadImports(candidates.messengerThreads, warnings);
   const importedThreads = importedThreadRecords.map((record) => record.thread);
+  const modeThreads: MessengerModeThread[] = importedThreads.map((thread) => {
+    const branchId = `${thread.id}-branch-1`;
+    return {
+      id: thread.id,
+      schemaVersion: 1 as const,
+      kind: "messenger",
+      title: thread.title,
+      activeBranchId: branchId,
+      branches: [
+        {
+          id: branchId,
+          schemaVersion: 1,
+          threadId: thread.id,
+          kind: "messenger",
+          participantMode: thread.mode,
+          characterIds: thread.characterIds,
+          activePersonaId: thread.activePersonaId,
+          lorebookIds: thread.lorebookIds,
+          presetId: thread.presetId,
+          presetChoiceSelectionsByPresetId: thread.presetChoiceSelectionsByPresetId ?? {},
+          providerConnectionId: thread.providerConnectionId,
+          systemPromptMode: "default",
+          systemPrompt: "",
+          createdAt: thread.createdAt,
+          updatedAt: thread.updatedAt,
+        },
+      ],
+      messages: [],
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+    };
+  });
+  const modeThreadsWithMessages = modeThreads.map((modeThread, index) => ({
+    ...modeThread,
+    messages: importedThreads[index]!.messages.map((message): ModeMessage => ({
+      id: message.id,
+      schemaVersion: 1 as const,
+      threadId: modeThread.id,
+      branchId: modeThread.activeBranchId,
+      author: message.author,
+      versions: [
+        {
+          id: `${message.id}-v1`,
+          body: message.body,
+          origin: message.origin === "placeholder" ? "imported" : message.origin,
+          createdAt: message.createdAt,
+          updatedAt: message.updatedAt,
+        },
+      ],
+      activeVersionId: `${message.id}-v1`,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+    })),
+  }));
   const importedThreadMacroVariableStates = importedThreadRecords.map(
     (record) => record.macroVariableStates[0] ?? null,
   );
@@ -651,6 +711,7 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
     messengerThreadMacroVariableStates: importedThreadMacroVariableStates,
     providerConnections: importedProviderConnections,
     messengerThreads: importedThreads,
+    modeThreads: modeThreadsWithMessages,
     sourceLabel,
   };
 

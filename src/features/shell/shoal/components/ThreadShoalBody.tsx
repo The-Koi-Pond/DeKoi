@@ -1,6 +1,8 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  RoleplayModeThread,
+} from "../../../../engine/contracts/types/mode-thread";
 import type { ShoalNav } from "../types";
 import { ThreadShoalHead } from "./ThreadShoalHead";
 import { ThreadShoalList } from "./ThreadShoalList";
@@ -11,11 +13,11 @@ interface ThreadShoalBodyProps {
   activeSurfaceLabel: string;
   characterById: Map<string, CharacterRecord>;
   isRoleplaySurface: boolean;
-  messengerThreads: readonly MessengerThread[];
+  messengerThreads: readonly MessengerModeThread[];
   newMessengerOpen: boolean;
   newRoleplayOpen: boolean;
   query: string;
-  roleplayThreads: readonly RoleplayThread[];
+  roleplayThreads: readonly RoleplayModeThread[];
   searchPlaceholder: string;
   sortLabel: string;
   onCreateActiveThread: () => void;

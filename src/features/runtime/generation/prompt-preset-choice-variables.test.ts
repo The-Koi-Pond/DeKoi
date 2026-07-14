@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCharacterRecord } from "../../../engine/catalog/character-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
-import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
 import type { MacroVariableThreadOwnerKind } from "../../../engine/macro-variables/macro-variable-actions";
 import { generateMessengerThreadReply } from "./messenger-generation";
 import { generateRoleplayThreadTurn } from "./roleplay-generation";
@@ -13,6 +11,14 @@ import {
   generateWithConfiguredProvider,
   type ProviderGenerationRequest,
 } from "./provider-generation";
+import {
+  messengerMessage,
+  messengerThread,
+  roleplayMessage,
+  roleplayThread,
+  messengerBranchId,
+  roleplayBranchId,
+} from "./test-fixtures";
 
 vi.mock("./provider-generation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./provider-generation")>();
@@ -76,13 +82,16 @@ function promptPreset(): PromptPresetRecord {
   };
 }
 
-function macroVariableStates(ownerKind: MacroVariableThreadOwnerKind): MacroVariableScope[] {
+function macroVariableStates(
+  ownerId: string,
+  ownerKind: MacroVariableThreadOwnerKind = "mode-branch",
+): MacroVariableScope[] {
   return [
     {
       id: "macro-state-1",
       schemaVersion: 1,
       ownerKind,
-      ownerId: ownerKind === "messenger-thread" ? "messenger-thread-1" : "roleplay-thread-1",
+      ownerId,
       variables: {
         style: "stored verbose",
         tone: "stored flat",
@@ -93,80 +102,21 @@ function macroVariableStates(ownerKind: MacroVariableThreadOwnerKind): MacroVari
   ];
 }
 
-function messengerMessage(): MessengerMessage {
-  return {
-    id: "message-1",
-    schemaVersion: 1,
-    threadId: "messenger-thread-1",
-    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
-    body: "Hello.",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
+function configuredMessengerThread(message: ReturnType<typeof messengerMessage>) {
+  const thread = messengerThread(message);
+  thread.branches[0].presetId = "preset-1";
+  thread.branches[0].presetChoiceSelectionsByPresetId = {
+    "preset-1": { "choice-tone": { kind: "option", optionId: "urgent" } },
   };
+  return thread;
 }
-
-function messengerThread(message: MessengerMessage): MessengerThread {
-  return {
-    id: "messenger-thread-1",
-    schemaVersion: 1,
-    kind: "messenger",
-    mode: "direct",
-    title: "Thread",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: [],
-    presetId: "preset-1",
-    presetChoiceSelectionsByPresetId: {
-      "preset-1": {
-        "choice-tone": { kind: "option", optionId: "urgent" },
-      },
-    },
-    providerConnectionId: null,
-    messages: [message],
-    createdAt: now,
-    updatedAt: now,
+function configuredRoleplayThread(message: ReturnType<typeof roleplayMessage>) {
+  const thread = roleplayThread(message);
+  thread.branches[0].presetId = "preset-1";
+  thread.branches[0].presetChoiceSelectionsByPresetId = {
+    "preset-1": { "choice-tone": { kind: "option", optionId: "urgent" } },
   };
-}
-
-function roleplayEntry(): RoleplayEntry {
-  return {
-    id: "entry-1",
-    schemaVersion: 1,
-    threadId: "roleplay-thread-1",
-    role: "persona",
-    characterId: null,
-    personaId: "persona-1",
-    label: "Alex",
-    body: "Hello.",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function roleplayThread(entry: RoleplayEntry): RoleplayThread {
-  return {
-    id: "roleplay-thread-1",
-    schemaVersion: 1,
-    kind: "roleplay",
-    mode: "scene",
-    title: "Scene",
-    sceneText: "",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: [],
-    presetId: "preset-1",
-    presetChoiceSelectionsByPresetId: {
-      "preset-1": {
-        "choice-tone": { kind: "option", optionId: "urgent" },
-      },
-    },
-    providerConnectionId: null,
-    entries: [entry],
-    createdAt: now,
-    updatedAt: now,
-  };
+  return thread;
 }
 
 function requireCapturedRequest() {
@@ -207,12 +157,12 @@ describe("prompt preset choice variables", () => {
       characters: [companion()],
       createId,
       lorebooks: [],
-      macroVariableStates: macroVariableStates("messenger-thread"),
+      macroVariableStates: macroVariableStates(messengerBranchId),
       now,
       personas: [],
       promptPresets: [promptPreset()],
       providerConnections: [],
-      thread: messengerThread(message),
+      thread: configuredMessengerThread(message),
       userMessage: message,
     });
 
@@ -223,18 +173,18 @@ describe("prompt preset choice variables", () => {
   });
 
   it("applies Roleplay preset choice selections over stored macro variables", async () => {
-    const entry = roleplayEntry();
+    const entry = roleplayMessage();
     await generateRoleplayThreadTurn({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [],
-      macroVariableStates: macroVariableStates("roleplay-thread"),
+      macroVariableStates: macroVariableStates(roleplayBranchId),
       now,
       personas: [],
       promptPresets: [promptPreset()],
       providerConnections: [],
-      thread: roleplayThread(entry),
+      thread: configuredRoleplayThread(entry),
     });
 
     const promptText = assembledPromptText(requireCapturedRequest());

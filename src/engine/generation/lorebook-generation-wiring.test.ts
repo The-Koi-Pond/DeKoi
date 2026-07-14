@@ -7,8 +7,11 @@ import type { PersonaRecord } from "../contracts/types/persona";
 import type { LorebookActivationSettings, LorebookRecord } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
-import type { MessengerMessage, MessengerThread } from "../contracts/types/messenger";
-import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  ModeMessage,
+  RoleplayModeThread,
+} from "../contracts/types/mode-thread";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
 import {
@@ -26,6 +29,9 @@ import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequest,
 } from "./roleplay-generation";
+import { createModeMessage } from "../modes/mode-thread/mode-thread-actions";
+import { createMessengerThread as createMessengerMode } from "../modes/messenger/messenger-actions";
+import { createRoleplayThread as createRoleplayMode } from "../modes/roleplay/roleplay-actions";
 
 const now = "2026-07-02T00:00:00.000Z";
 
@@ -154,17 +160,33 @@ function selectiveLorebook({
   };
 }
 
-function messengerMessage(id: string, body: string): MessengerMessage {
-  return {
+function messengerThread(
+  input: Omit<Parameters<typeof createMessengerMode>[0], "branchId" | "now"> & {
+    messages?: ModeMessage[];
+    presetId?: string | null;
+  },
+): MessengerModeThread {
+  const { messages = [], presetId, ...creationInput } = input;
+  const thread = createMessengerMode({
+    ...creationInput,
+    branchId: `${creationInput.id}-branch`,
+    defaultPromptPresetId: presetId,
+    now,
+  });
+  return { ...thread, messages };
+}
+
+function messengerMessage(id: string, body: string): ModeMessage {
+  return createModeMessage({
     id,
-    schemaVersion: 1,
+    versionId: `${id}-v1`,
     threadId: "messenger-thread-1",
+    branchId: "messenger-thread-1-branch",
     author: { kind: "persona", personaId: "persona-1", label: "Alex" },
     body,
     origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
+    now,
+  });
 }
 
 function messengerCharacterMessage(
@@ -172,17 +194,17 @@ function messengerCharacterMessage(
   characterId: string,
   label: string,
   body: string,
-): MessengerMessage {
-  return {
+): ModeMessage {
+  return createModeMessage({
     id,
-    schemaVersion: 1,
+    versionId: `${id}-v1`,
     threadId: "messenger-thread-1",
+    branchId: "messenger-thread-1-branch",
     author: { kind: "character", characterId, label },
     body,
     origin: "generated",
-    createdAt: now,
-    updatedAt: now,
-  };
+    now,
+  });
 }
 
 function messengerPreset(messengerPrompt: string): PromptPresetRecord {
@@ -209,50 +231,59 @@ function messengerPreset(messengerPrompt: string): PromptPresetRecord {
   };
 }
 
-function roleplayEntry(id: string, body: string): RoleplayEntry {
-  return {
-    id,
-    schemaVersion: 1,
-    threadId: "roleplay-thread-1",
-    role: "persona",
-    characterId: null,
-    personaId: "persona-1",
-    label: "Alex",
-    body,
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
+function roleplayThread(
+  input: Omit<Parameters<typeof createRoleplayMode>[0], "branchId" | "now" | "openingCharacter"> & {
+    openingCharacter?: Parameters<typeof createRoleplayMode>[0]["openingCharacter"];
+    messages?: ModeMessage[];
+    presetId?: string | null;
+  },
+): RoleplayModeThread {
+  const { messages = [], openingCharacter = null, presetId, ...creationInput } = input;
+  const thread = createRoleplayMode({
+    ...creationInput,
+    branchId: `${creationInput.id}-branch`,
+    defaultPromptPresetId: presetId,
+    openingCharacter,
+    now,
+  });
+  return { ...thread, messages };
 }
 
-function roleplayCharacterEntry(
+function roleplayMessage(id: string, body: string): ModeMessage {
+  return createModeMessage({
+    id,
+    versionId: `${id}-v1`,
+    threadId: "roleplay-thread-1",
+    branchId: "roleplay-thread-1-branch",
+    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
+    body,
+    origin: "manual",
+    now,
+  });
+}
+
+function roleplayCharacterMessage(
   id: string,
   characterId: string,
   label: string,
   body: string,
-): RoleplayEntry {
-  return {
+): ModeMessage {
+  return createModeMessage({
     id,
-    schemaVersion: 1,
+    versionId: `${id}-v1`,
     threadId: "roleplay-thread-1",
-    role: "character",
-    characterId,
-    personaId: null,
-    label,
+    branchId: "roleplay-thread-1-branch",
+    author: { kind: "character", characterId, label },
     body,
     origin: "generated",
-    createdAt: now,
-    updatedAt: now,
-  };
+    now,
+  });
 }
 
 describe("generation lorebook activation wiring", () => {
   it("filters Messenger selected lore from message scan sources", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
@@ -260,9 +291,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: "preset-1",
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Did you see the canal?")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -302,11 +331,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("surfaces Messenger invalid regex lorebook warnings on the request", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
@@ -314,9 +340,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Use literal /[bad/ text.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -350,11 +374,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("activates Messenger lore from opted-in companion and persona sources", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
@@ -362,9 +383,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: "preset-1",
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "No matching key here.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -434,11 +453,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("surfaces Messenger invalid regex warnings from inactive lore entries", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
@@ -446,9 +462,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Only the canal is here.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -484,11 +498,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("ignores blank trailing Messenger messages before scan-depth accounting", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
@@ -499,9 +510,7 @@ describe("generation lorebook activation wiring", () => {
         messengerMessage("message-1", "Did you see the canal?"),
         messengerMessage("message-2", "   "),
       ],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -536,22 +545,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("includes Roleplay lorebook summaries only when an entry activates", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore", "lake-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "We should look for the grove.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "We should look for the grove.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -600,22 +603,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("surfaces Roleplay invalid regex lorebook warnings on the request", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "Use literal /[bad/ text.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "Use literal /[bad/ text.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -648,22 +645,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("activates Roleplay lore from opted-in companion and persona sources", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["forest-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "No matching key here.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "No matching key here.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
@@ -732,22 +723,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("activates Roleplay lore from chat, persona, character, and global sources without rewriting chat IDs", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["chat-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "Hello.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       appSettings: {
@@ -815,7 +800,7 @@ describe("generation lorebook activation wiring", () => {
     });
     const promptText = request.promptMessages.map((message) => message.content).join("\n\n");
 
-    expect(context.requestThread.lorebookIds).toEqual(["chat-lore"]);
+    expect(context.requestThread.branches[0]?.lorebookIds).toEqual(["chat-lore"]);
     expect(request.lorebooks.map((lorebook) => lorebook.id)).toEqual([
       "chat-lore",
       "persona-lore",
@@ -829,22 +814,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("surfaces Roleplay invalid regex warnings from inactive lore entries", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "Only the grove is here.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "Only the grove is here.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -879,22 +858,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("counts Roleplay lorebook summaries against the lore token budget", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "We should look for the grove.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "We should look for the grove.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -933,22 +906,16 @@ describe("generation lorebook activation wiring", () => {
   it("counts macro-resolved lorebook summaries against the lore token budget", () => {
     const longCreatorNotes =
       "This companion description expands far beyond the raw summary macro and must consume the lore budget before the entry body is allowed.";
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
       presetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "We should look for the grove.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "We should look for the grove.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character({ creatorNotes: longCreatorNotes })],
@@ -985,11 +952,8 @@ describe("generation lorebook activation wiring", () => {
   it("counts macro-resolved lore entry bodies against the lore token budget", () => {
     const longCreatorNotes =
       "This companion description expands far beyond the raw entry macro and must not bypass the lore budget cap.";
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
@@ -997,9 +961,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character({ creatorNotes: longCreatorNotes })],
@@ -2046,8 +2008,8 @@ describe("generation lorebook activation wiring", () => {
     const runtimeState = {
       id: "lore-runtime-1",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
-      ownerId: "messenger-thread-1",
+      ownerKind: "mode-branch",
+      ownerId: "messenger-thread-1-branch",
       lastEvaluatedMessageCount: 0,
       entries: [],
       createdAt: now,
@@ -2100,8 +2062,8 @@ describe("generation lorebook activation wiring", () => {
     const runtimeState = {
       id: "lore-runtime-1",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
-      ownerId: "messenger-thread-1",
+      ownerKind: "mode-branch",
+      ownerId: "messenger-thread-1-branch",
       lastEvaluatedMessageCount: 0,
       entries: [
         {
@@ -2165,8 +2127,8 @@ describe("generation lorebook activation wiring", () => {
     const runtimeState = {
       id: "lore-runtime-1",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
-      ownerId: "messenger-thread-1",
+      ownerKind: "mode-branch",
+      ownerId: "messenger-thread-1-branch",
       lastEvaluatedMessageCount: 0,
       entries: [],
       createdAt: now,
@@ -2279,11 +2241,8 @@ describe("generation lorebook activation wiring", () => {
         },
       ],
     });
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: [companion.id],
       activePersonaId: null,
@@ -2291,14 +2250,12 @@ describe("generation lorebook activation wiring", () => {
       presetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const runtimeState = {
       id: "lore-runtime-1",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
-      ownerId: thread.id,
+      ownerKind: "mode-branch",
+      ownerId: thread.activeBranchId,
       lastEvaluatedMessageCount: 0,
       entries: [
         {
@@ -2407,22 +2364,17 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("emits a Roleplay lorebook summary once when entries use multiple positions", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
+      openingCharacter: null,
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "We should look for the grove.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "We should look for the grove.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -2605,21 +2557,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("routes Messenger lore around character context by insertion position", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Did you see the canal?")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -2671,21 +2618,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("makes Messenger character variables visible to following lore", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -2728,21 +2670,16 @@ describe("generation lorebook activation wiring", () => {
   it("budgets Messenger after-character lore after character variables resolve", () => {
     const longDetail =
       "This detail expands after character context and must still be counted before lore emits.";
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -2774,8 +2711,8 @@ describe("generation lorebook activation wiring", () => {
     const runtimeState = {
       id: "lore-runtime-1",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
-      ownerId: "messenger-thread-1",
+      ownerKind: "mode-branch",
+      ownerId: "messenger-thread-1-branch",
       lastEvaluatedMessageCount: 0,
       entries: [],
       createdAt: now,
@@ -2801,21 +2738,16 @@ describe("generation lorebook activation wiring", () => {
   it("does not pre-drop Messenger lore that shrinks after character variables resolve", () => {
     const longDetail =
       "This activation-time detail is deliberately too long for the lore budget before the character block replaces it.";
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -2859,21 +2791,16 @@ describe("generation lorebook activation wiring", () => {
 
   it("keeps higher-priority Messenger lore when later variables expand its budget cost", () => {
     const detail = "expanded detail still fits by itself";
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -2925,11 +2852,8 @@ describe("generation lorebook activation wiring", () => {
 
   it("resolves macros across Messenger prompt assembly surfaces", () => {
     const connection = providerConnection("openai");
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
@@ -2937,9 +2861,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: "preset-1",
       providerConnectionId: connection.id,
       messages: [messengerMessage("message-1", "  Canal please.  ")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -3027,11 +2949,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("resolves Messenger post-history macros after persona and companion sections", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
@@ -3039,9 +2958,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: "preset-1",
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -3076,11 +2993,8 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("applies Messenger lore variable side effects in prompt insertion order", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
@@ -3088,9 +3002,7 @@ describe("generation lorebook activation wiring", () => {
       presetId: "preset-1",
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -3143,7 +3055,6 @@ describe("generation lorebook activation wiring", () => {
     });
     const systemPrompt = request.promptMessages[0].content;
 
-    expect(systemPrompt).toContain("System mood system.");
     expect(systemPrompt).toContain("Before lore saw system then before.");
     expect(systemPrompt).toContain("Description: Persona mood before.");
     expect(systemPrompt).toContain("Description: Character mood before.");
@@ -3157,11 +3068,8 @@ describe("generation lorebook activation wiring", () => {
 
   it("resolves character macros for the selected Messenger group speaker", () => {
     const userMessage = messengerMessage("message-2", "Your turn.");
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "group",
       title: "Thread",
       characterIds: ["character-1", "character-2"],
       activePersonaId: "persona-1",
@@ -3172,9 +3080,7 @@ describe("generation lorebook activation wiring", () => {
         messengerCharacterMessage("message-1", "character-1", "Mara", "First reply."),
         userMessage,
       ],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [
@@ -3244,21 +3150,16 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("activates Messenger lore from chat, persona, character, and global sources without rewriting chat IDs", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["chat-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [messengerMessage("message-1", "Hello.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       appSettings: {
@@ -3327,7 +3228,7 @@ describe("generation lorebook activation wiring", () => {
     });
     const systemPrompt = request.promptMessages[0].content;
 
-    expect(context.requestThread.lorebookIds).toEqual(["chat-lore"]);
+    expect(context.requestThread.branches[0]?.lorebookIds).toEqual(["chat-lore"]);
     expect(request.lorebooks.map((lorebook) => lorebook.id)).toEqual([
       "chat-lore",
       "persona-lore",
@@ -3341,24 +3242,19 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("injects Messenger at-depth lore into the transcript with explicit role", () => {
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
       messages: [
         messengerMessage("message-1", "First turn."),
         messengerMessage("message-2", "Newest turn."),
       ],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -3402,24 +3298,19 @@ describe("generation lorebook activation wiring", () => {
 
   it("keeps Messenger default at-depth lore as system for OpenAI-compatible providers", () => {
     const connection = providerConnection("openai");
-    const thread: MessengerThread = {
+    const thread = messengerThread({
       id: "messenger-thread-1",
-      schemaVersion: 1,
-      kind: "messenger",
-      mode: "direct",
       title: "Thread",
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: connection.id,
       messages: [
         messengerMessage("message-1", "First turn."),
         messengerMessage("message-2", "Newest turn."),
       ],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createMessengerGenerationContext({
       thread,
       characters: [character()],
@@ -3466,24 +3357,19 @@ describe("generation lorebook activation wiring", () => {
     "rewrites only at-depth system lore to user for %s while preserving depth",
     (provider) => {
       const connection = providerConnection(provider);
-      const thread: MessengerThread = {
+      const thread = messengerThread({
         id: "messenger-thread-1",
-        schemaVersion: 1,
-        kind: "messenger",
-        mode: "direct",
         title: "Thread",
         characterIds: ["character-1"],
         activePersonaId: null,
         lorebookIds: ["city-lore"],
-        presetId: null,
+        defaultPromptPresetId: null,
         providerConnectionId: connection.id,
         messages: [
           messengerMessage("message-1", "First turn."),
           messengerMessage("message-2", "Newest turn."),
         ],
-        createdAt: now,
-        updatedAt: now,
-      };
+      });
       const context = createMessengerGenerationContext({
         thread,
         characters: [character()],
@@ -3561,22 +3447,20 @@ describe("generation lorebook activation wiring", () => {
   );
 
   it("injects Roleplay at-depth lore before the post-history prompt", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
+      openingCharacter: null,
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "First turn."), roleplayEntry("entry-2", "Newest turn.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [
+        roleplayMessage("entry-1", "First turn."),
+        roleplayMessage("entry-2", "Newest turn."),
+      ],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [character()],
@@ -3620,22 +3504,17 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("makes Roleplay character variables visible to following lore", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene",
-      sceneText: "",
+      openingCharacter: null,
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["forest-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "Start.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "Start.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
@@ -3677,22 +3556,17 @@ describe("generation lorebook activation wiring", () => {
 
   it("resolves macros across Roleplay prompt assembly surfaces", () => {
     const connection = providerConnection("openai");
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "Scene for {{char}}",
-      sceneText: "Scene setup mentions {{user}} and {{input}}.",
+      openingCharacter: null,
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["forest-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: connection.id,
-      entries: [roleplayEntry("entry-1", "  Open the gate.  ")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "  Open the gate.  ")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
@@ -3773,7 +3647,7 @@ describe("generation lorebook activation wiring", () => {
     expect(promptText).not.toContain("{{char}}");
     expect(promptText).not.toContain("{{user}}");
     expect(promptText).toContain("Title: Scene for Mara");
-    expect(promptText).toContain("Scene setup mentions Alex and Open the gate.");
+    expect(promptText).not.toContain("Scene setup mentions");
     expect(promptText).toContain("Forest Lore: Forest summary for Mara.");
     expect(promptText).toContain("Description: Trusts Alex near Open the gate.");
     expect(promptText).toContain("Personality: Says {{unknownPersonality}} plainly.");
@@ -3793,22 +3667,17 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("applies Roleplay lore variable side effects in prompt insertion order", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: "{{setvar::sceneMood::title}}Scene mood {{getvar::sceneMood}}",
-      sceneText: "{{setvar::sceneMood::scene}}Scene setup mood {{getvar::sceneMood}}.",
+      openingCharacter: null,
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["order-lore"],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
-      entries: [roleplayEntry("entry-1", "Open the gate.")],
-      createdAt: now,
-      updatedAt: now,
-    };
+      messages: [roleplayMessage("entry-1", "Open the gate.")],
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
@@ -3865,8 +3734,7 @@ describe("generation lorebook activation wiring", () => {
     const postHistoryPrompt = request.promptMessages[request.promptMessages.length - 1].content;
 
     expect(systemPrompt).toContain("Title: Scene mood title");
-    expect(systemPrompt).toContain("Scene setup mood scene.");
-    expect(systemPrompt).toContain("Before roleplay lore saw scene then before.");
+    expect(systemPrompt).toContain("Before roleplay lore saw title then before.");
     expect(systemPrompt).toContain("Description: Persona mood before.");
     expect(systemPrompt).toContain("Description: Character mood before.");
     expect(systemPrompt).toContain("After roleplay lore after.");
@@ -3883,25 +3751,20 @@ describe("generation lorebook activation wiring", () => {
   });
 
   it("resolves character macros for the selected Roleplay companion", () => {
-    const thread: RoleplayThread = {
+    const thread = roleplayThread({
       id: "roleplay-thread-1",
-      schemaVersion: 1,
-      kind: "roleplay",
-      mode: "scene",
       title: '{{#if char == "Koi"}}Koi scene{{else}}Wrong scene{{/if}}',
-      sceneText: "Scene anchor: {{creatorNotes}}",
+      openingCharacter: null,
       characterIds: ["character-1", "character-2"],
       activePersonaId: "persona-1",
       lorebookIds: [],
-      presetId: null,
+      defaultPromptPresetId: null,
       providerConnectionId: null,
-      entries: [
-        roleplayCharacterEntry("entry-1", "character-1", "Mara", "First turn."),
-        roleplayEntry("entry-2", "Continue."),
+      messages: [
+        roleplayCharacterMessage("entry-1", "character-1", "Mara", "First turn."),
+        roleplayMessage("entry-2", "Continue."),
       ],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
     const context = createRoleplayGenerationContext({
       thread,
       characters: [
@@ -3932,7 +3795,7 @@ describe("generation lorebook activation wiring", () => {
       "You are Koi, writing the next in-character turn in an ongoing fictional roleplay with Alex.",
     );
     expect(promptText).toContain("Title: Koi scene");
-    expect(promptText).toContain("Scene anchor: Koi selected creator notes.");
+    expect(promptText).not.toContain("Scene anchor:");
     expect(promptText).not.toContain("Wrong scene");
     expect(promptText).not.toContain("Mara hidden creator notes.");
   });

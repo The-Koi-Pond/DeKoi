@@ -2,8 +2,8 @@ import { useCallback } from "react";
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import { removeCharacterLorebook } from "../../../engine/catalog/character-actions";
 import type { AppSettings } from "../../../engine/contracts/types/app-settings";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import { removeRoleplayThreadLorebook } from "../../../engine/modes/roleplay/roleplay-actions";
+import type { ModeThread } from "../../../engine/contracts/types/mode-thread";
+import { removeModeThreadLorebook } from "../../../engine/modes/mode-thread/mode-thread-actions";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import {
   createLorebookEntryRecord,
@@ -17,8 +17,6 @@ import {
   type LorebookEntryInput,
   type LorebookInput,
 } from "../../../engine/catalog/lorebook-actions";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
-import { removeMessengerThreadLorebook } from "../../../engine/modes/messenger/messenger-actions";
 import { removePersonaLorebook } from "../../../engine/catalog/persona-actions";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
@@ -31,8 +29,7 @@ type UseLorebookActionsInput = {
   setAppSettings: StateSetter<AppSettings>;
   setCharacters: StateSetter<CharacterRecord[]>;
   setPersonas: StateSetter<PersonaRecord[]>;
-  setRoleplayThreads: StateSetter<RoleplayThread[]>;
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  setModeThreads: StateSetter<ModeThread[]>;
 };
 
 export function useLorebookActions({
@@ -41,8 +38,7 @@ export function useLorebookActions({
   setAppSettings,
   setCharacters,
   setPersonas,
-  setRoleplayThreads,
-  setMessengerThreads,
+  setModeThreads,
 }: UseLorebookActionsInput) {
   const createLorebookEntry = useCallback(
     (lorebookId: string, input: LorebookEntryInput) => {
@@ -169,21 +165,11 @@ export function useLorebookActions({
             }
           : currentSettings,
       );
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) => removeMessengerThreadLorebook(thread, lorebookId, now)),
-      );
-      setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) => removeRoleplayThreadLorebook(thread, lorebookId, now)),
+      setModeThreads((currentThreads) =>
+        currentThreads.map((thread) => removeModeThreadLorebook(thread, lorebookId, now)),
       );
     },
-    [
-      setAppSettings,
-      setCharacters,
-      setPersonas,
-      setRoleplayThreads,
-      setLorebooks,
-      setMessengerThreads,
-    ],
+    [setAppSettings, setCharacters, setPersonas, setModeThreads, setLorebooks],
   );
 
   return {

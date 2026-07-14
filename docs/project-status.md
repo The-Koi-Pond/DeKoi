@@ -8,10 +8,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Native product records for Messenger, Roleplay, companions, personas,
   lorebooks, prompt presets, lore runtime states, macro variable scopes,
   provider connections, and Ripples.
-- Additive React-free `ModeThread` contracts, strict validation, and pure
-  branch/message/version actions shared by the truthful `messenger` and
-  `roleplay` kinds, including branch-isolated settings, per-preset choice
-  history, historical author labels, and activity ordering.
+- Native React-free `ModeThread` contracts, strict validation, and pure
+  branch/message/version actions used by the truthful `messenger` and
+  `roleplay` kinds. Messenger and Roleplay keep separate factories, prompt
+  builders, generation workflows, and screens over one `modeThreads` app-state
+  collection.
 - Lorebooks use a native `schemaVersion: 2` storage/action foundation for
   activation settings and entry-level activation, inclusion, placement,
   trigger, filter, timing, match-source, and budget fields.
@@ -23,7 +24,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   companion/persona match sources, optional filter logic, and regex keys,
   recursively scans macro-resolved activated entry bodies when enabled, surfaces
   invalid or unsafe regex and runaway recursion warnings, applies timed
-  delay/cooldown/sticky effects through per-thread lore runtime state, resolves
+  delay/cooldown/sticky effects through per-branch lore runtime state, resolves
   inclusion groups, applies probability gates after group winners are selected
   while sticky activations bypass inclusion-group suppression and probability,
   orders activated entries by insertion order using the saved insertion
@@ -66,28 +67,29 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   the supported dropdown, checkbox, button, and list presentations. Invalid live
   histories repair to valid defaults with a notice. Messenger ordinary
   conversation settings select a prompt preset and its preset-authored
-  Variables; generation uses `messengerPrompt`, then shared `systemPrompt`,
-  then built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT`, with no conversation-owned
+  Variables; a stored non-empty custom active-branch prompt wins first, then
+  generation uses `messengerPrompt`, shared `systemPrompt`, and built-in
+  `DEFAULT_MESSENGER_SYSTEM_PROMPT` in that order. Ordinary settings expose no
   arbitrary prompt or model-parameter override. Roleplay uses usable sections,
   then the shared prompt, then its built-in prelude; Roleplay sections do not
   become Messenger prompt text.
-- App settings own the default prompt preset. New Messenger and Roleplay threads
-  start with it, and each thread retains independent confirmed-choice history per
+- App settings own the default prompt preset. New Messenger and Roleplay branches
+  start with it, and each branch retains independent confirmed-choice history per
   preset. The default and last preset are protected from deletion; deleting
-  another preset durably reassigns active threads to the default before the
+  another preset durably reassigns branches using it to the default before the
   change is published to React state.
 - Companion and Persona editors can attach lorebooks, and Pond Care generation
   settings can attach global lorebooks and choose `sorted-evenly`,
   `character-first`, or `global-first` insertion.
 - Collection-backed storage entity registry and Rust allowlist checks, including
-  prompt presets, split Messenger message and Roleplay entry collections,
-  per-thread lore runtime states, and global and per-thread macro variable
+  prompt presets, the unified `mode-threads`/`mode-messages` pair, per-branch
+  lore runtime and Ripple states, and global and per-branch macro variable
   states.
 - DeKoi-native bundle import and export paths through the desktop host, with
   preview, explicit confirmation, pre-import backup, and commit-path collection
-  replacement, including native prompt presets, compatible packaged prompt
-  preset import, preset-reference repair, lore runtime state cleanup, and macro
-  variable state cleanup for missing owner threads.
+  replacement, including schema-version-2 mode collections, native prompt
+  presets, compatible packaged prompt preset import, preset-reference repair,
+  and branch-owner cleanup for lore runtime, macro variable, and Ripple states.
 - Provider-key secret commands through the desktop host.
 - Remote runtime fixture and HTTP invoke contract for storage, provider checks,
   model listing, and generation commands.
@@ -113,8 +115,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   narrow recovery actions through mode-native records.
 - Messenger and Roleplay thread surfaces expose thread settings, pre-send
   missing-reference notices, and touch-friendly confirmation-aware edit/delete
-  message or entry actions. Generation is also blocked until a selected
-  variable-bearing preset has confirmed thread choices.
+  message actions. Generation is also blocked until a selected
+  variable-bearing preset has confirmed branch choices.
 - Roleplay thread settings now update thread name, connection, persona,
   companions, lorebooks, prompt preset, and preset choice selections through
   Roleplay-native records, while exposing the shared advanced generation drawer
@@ -131,15 +133,16 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   with save blocking for affected collections until reload or import/restore
   clears the count.
 - One-way legacy import into native companion, persona, provider connection,
-  Messenger, and macro variable scope records, including preview counts and
-  same-name global macro variable overwrite warnings.
+  Messenger mode-thread, and macro variable scope records. Commit verifies the
+  preview fingerprint before remapping IDs, clears unsupported lorebook and
+  preset references, and keeps duplicate source-thread variable scopes paired
+  by source position.
 
 ## Experimental Or Incomplete
 
-- The unified mode-thread foundation is not yet wired into concrete Messenger
-  or Roleplay factories, generation, UI, app state, or storage. Existing
-  mode-owned records and collections remain the live behavior, so branches and
-  message versions have no visible controls yet.
+- The unified substrate stores branches and message versions, but the current
+  Messenger and Roleplay surfaces expose only the active branch and version;
+  branch/version navigation controls are not implemented yet.
 - Provider transport is still narrow and experimental; required-key providers
   use desktop provider-key storage through the runtime boundary. Provider
   response parsing has shared TypeScript/Rust parity fixtures, but still needs
@@ -147,7 +150,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Macro resolver wiring is active in Messenger and Roleplay prompt assembly for
   current built-in identity, context, time, formatting, comment, control-flow,
   random, dice, and variable macros. Dynamic variable storage is persisted for
-  global, Messenger thread, and Roleplay thread scopes. The old deferred
+  global and active Messenger/Roleplay branch scopes. The old deferred
   character-macro second pass is not needed for the current selected-speaker
   architecture; reopen it only if prompt assembly must resolve shared text
   before a target companion is known.
@@ -162,7 +165,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Prompt preset advanced compatible parameters, static variable values, and
   metadata do not all have dedicated catalog controls yet. Choice-block
   definitions and their reusable defaults are editable in the Presets catalog;
-  Messenger and Roleplay Preset Variables dialogs select thread-specific values.
+  Messenger and Roleplay Preset Variables dialogs select branch-specific values.
   Catalog controls for designating the app default are not exposed yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
@@ -178,7 +181,7 @@ Build in this order unless the active task redirects:
 1. Harden provider connection UX and provider-backed generation errors.
 2. Polish Messenger and Roleplay thread settings, send/edit/delete, and
    missing-reference UX.
-3. Deepen Roleplay-specific scene semantics while keeping mode records separate.
+3. Deepen Roleplay-specific scene semantics while keeping mode behavior separate.
 4. Harden catalog validation, deletion cleanup, and empty states.
 5. Keep bundle import/export, legacy import, desktop storage repair, and runtime
    contracts reliable as storage changes.

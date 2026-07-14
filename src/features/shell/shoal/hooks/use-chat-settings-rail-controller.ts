@@ -14,6 +14,7 @@ import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ShoalRailProps } from "../types";
 import { useChatSettingsMessengerActions } from "./use-chat-settings-messenger-actions";
 import { useChatSettingsRoleplayActions } from "./use-chat-settings-roleplay-actions";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 
 interface UseChatSettingsRailControllerInput {
   nav: ShoalRailProps["nav"];
@@ -30,12 +31,32 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
   const isRoleplaySettings = nav.selectedSurface === ROLEPLAY;
   const activeMessengerThreadId = nav.view.kind === "messenger" ? nav.view.threadId : null;
   const activeMessengerThread = activeMessengerThreadId
-    ? (nav.messengerThreads.find((thread) => thread.id === activeMessengerThreadId) ?? null)
+    ? (nav.modeThreads.find(
+        (thread): thread is Extract<(typeof nav.modeThreads)[number], { kind: "messenger" }> =>
+          thread.kind === "messenger" && thread.id === activeMessengerThreadId,
+      ) ?? null)
     : null;
   const activeRoleplayThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
   const activeRoleplayThread = activeRoleplayThreadId
-    ? (nav.roleplayThreads.find((thread) => thread.id === activeRoleplayThreadId) ?? null)
+    ? (nav.modeThreads.find(
+        (thread): thread is Extract<(typeof nav.modeThreads)[number], { kind: "roleplay" }> =>
+          thread.kind === "roleplay" && thread.id === activeRoleplayThreadId,
+      ) ?? null)
     : null;
+  const activeMessengerSettingsThread = useMemo(
+    () =>
+      activeMessengerThread
+        ? { ...activeMessengerThread, ...getActiveModeBranch(activeMessengerThread) }
+        : null,
+    [activeMessengerThread],
+  );
+  const activeRoleplaySettingsThread = useMemo(
+    () =>
+      activeRoleplayThread
+        ? { ...activeRoleplayThread, ...getActiveModeBranch(activeRoleplayThread) }
+        : null,
+    [activeRoleplayThread],
+  );
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
   const { identityActions, presetActions, resourceActions } = useChatSettingsMessengerActions({
@@ -67,7 +88,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
   const chatSettingsViewModel = useMemo(
     () =>
       getChatSettingsViewModel({
-        activeThread: activeMessengerThread,
+        activeThread: activeMessengerSettingsThread,
         appSettings: nav.appSettings,
         characters: nav.characters,
         lorebooks: nav.lorebooks,
@@ -77,7 +98,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
         threadLabel: "Messenger",
       }),
     [
-      activeMessengerThread,
+      activeMessengerSettingsThread,
       nav.appSettings,
       nav.characters,
       nav.lorebooks,
@@ -89,7 +110,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
   const roleplayChatSettingsViewModel = useMemo(
     () =>
       getChatSettingsViewModel({
-        activeThread: activeRoleplayThread,
+        activeThread: activeRoleplaySettingsThread,
         appSettings: nav.appSettings,
         characters: nav.characters,
         lorebooks: nav.lorebooks,
@@ -99,7 +120,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
         threadLabel: "Roleplay",
       }),
     [
-      activeRoleplayThread,
+      activeRoleplaySettingsThread,
       nav.appSettings,
       nav.characters,
       nav.lorebooks,
@@ -109,7 +130,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     ],
   );
   const messengerSettings: ChatSettingsMessengerSettings = {
-    activeMessengerThread,
+    activeMessengerThread: activeMessengerSettingsThread,
     activeMessengerThreadId,
     chatSettingsViewModel,
     companionSelectorOpen,
@@ -127,7 +148,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     },
   };
   const roleplaySettings: ChatSettingsRoleplaySettings = {
-    activeRoleplayThread,
+    activeRoleplayThread: activeRoleplaySettingsThread,
     activeRoleplayThreadId,
     chatSettingsViewModel: roleplayChatSettingsViewModel,
     companionSelectorOpen,

@@ -63,7 +63,7 @@ function runtimeState(input: Partial<LoreRuntimeState> = {}): LoreRuntimeState {
   return {
     id: "lore-runtime-state-under-test",
     schemaVersion: 1,
-    ownerKind: "messenger-thread",
+    ownerKind: "mode-branch",
     ownerId: "messenger-thread-under-test",
     lastEvaluatedMessageCount: 0,
     createdAt: now,

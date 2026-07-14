@@ -1,8 +1,6 @@
 import { useCallback } from "react";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import { replaceRoleplayThreadProviderConnection } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
-import { replaceMessengerThreadProviderConnection } from "../../../engine/modes/messenger/messenger-actions";
+import type { ModeThread } from "../../../engine/contracts/types/mode-thread";
+import { replaceModeThreadProviderConnection } from "../../../engine/modes/mode-thread/mode-thread-actions";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { getProviderConnectionProviderOption } from "../../../engine/contracts/types/provider-connection";
 import {
@@ -26,8 +24,7 @@ type UseProviderConnectionActionsInput = {
   providerConnections: ProviderConnectionRecord[];
   setProviderConnections: StateSetter<ProviderConnectionRecord[]>;
   setAppSettings: StateSetter<AppSettings>;
-  setRoleplayThreads: StateSetter<RoleplayThread[]>;
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  setModeThreads: StateSetter<ModeThread[]>;
 };
 
 function providerSecretInput(input: ProviderConnectionInput) {
@@ -57,8 +54,7 @@ export function useProviderConnectionActions({
   providerConnections,
   setProviderConnections,
   setAppSettings,
-  setRoleplayThreads,
-  setMessengerThreads,
+  setModeThreads,
 }: UseProviderConnectionActionsInput) {
   const createProviderConnection = useCallback(
     async (input: ProviderConnectionInput) => {
@@ -152,19 +148,9 @@ export function useProviderConnectionActions({
             }
           : currentSettings,
       );
-      setMessengerThreads((currentThreads) =>
+      setModeThreads((currentThreads) =>
         currentThreads.map((thread) =>
-          replaceMessengerThreadProviderConnection(
-            thread,
-            connectionId,
-            fallbackConnection?.id ?? null,
-            now,
-          ),
-        ),
-      );
-      setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          replaceRoleplayThreadProviderConnection(
+          replaceModeThreadProviderConnection(
             thread,
             connectionId,
             fallbackConnection?.id ?? null,
@@ -173,13 +159,7 @@ export function useProviderConnectionActions({
         ),
       );
     },
-    [
-      providerConnections,
-      setAppSettings,
-      setRoleplayThreads,
-      setMessengerThreads,
-      setProviderConnections,
-    ],
+    [providerConnections, setAppSettings, setModeThreads, setProviderConnections],
   );
 
   return {

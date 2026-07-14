@@ -8,11 +8,8 @@ import { Buffer } from "node:buffer";
 import { expect, type Page, type Route } from "@playwright/test";
 import { type AppStorageCollectionSignatures } from "../../src/app/use-app-storage-sync";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
-import {
-  type MessengerMessage,
-  type MessengerThread,
-} from "../../src/engine/contracts/types/messenger";
-import { type RoleplayEntry } from "../../src/engine/contracts/types/roleplay";
+import type { MessengerModeThread } from "../../src/engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../src/engine/modes/mode-thread/mode-thread-actions";
 import { APP_STORAGE_COLLECTION_KEYS, type AppStorageRecords } from "../../src/features/runtime";
 import { CHAT_SETTINGS_DRAWER_DEFAULTS } from "../../src/features/shell/shoal/lib/chat-settings-drawers";
 import { getChatSettingsViewModel } from "../../src/features/shell/shoal/lib/chat-settings-view-model";
@@ -51,14 +48,13 @@ type FakeRemoteRuntimeOptions = {
   onStorageReplace?: (context: RuntimeReplaceContext) => Promise<boolean | void> | boolean | void;
 };
 
-type EmptyAppStorageRecordsFixture = AppStorageRecords & {
-  roleplayEntries: RoleplayEntry[];
-  messengerMessages: MessengerMessage[];
-};
+type EmptyAppStorageRecordsFixture = AppStorageRecords;
 
-export function createChatSettingsViewModel(activeMessengerThread: MessengerThread | null) {
+export function createChatSettingsViewModel(activeMessengerThread: MessengerModeThread | null) {
   return getChatSettingsViewModel({
-    activeMessengerThread,
+    activeThread: activeMessengerThread
+      ? { ...activeMessengerThread, ...getActiveModeBranch(activeMessengerThread) }
+      : null,
     appSettings: DEFAULT_APP_SETTINGS,
     characters: [],
     lorebooks: [],
@@ -293,20 +289,19 @@ export async function connectRemoteRuntime(page: Page) {
 export function createBundleFixture() {
   return {
     kind: "dekoi.storage-bundle",
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: "2026-06-28T00:00:00.000Z",
     data: {
       appSettings: { accent: "amber" },
       characters: [],
-      roleplayThreads: [],
-      roleplayEntries: [],
+      modeThreads: [],
+      modeMessages: [],
       personas: [],
       lorebooks: [],
+      promptPresets: [],
       loreRuntimeStates: [],
       macroVariableStates: [],
       providerConnections: [],
-      messengerThreads: [],
-      messengerMessages: [],
       rippleStates: [],
     },
   };
@@ -343,10 +338,7 @@ export function createEmptyAppStorageRecords(): EmptyAppStorageRecordsFixture {
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: [],
-    roleplayThreads: [],
-    roleplayEntries: [],
-    messengerThreads: [],
-    messengerMessages: [],
+    modeThreads: [],
     rippleStates: [],
   };
 }

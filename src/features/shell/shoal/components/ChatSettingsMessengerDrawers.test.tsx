@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_APP_SETTINGS } from "../../../../engine/contracts/types/app-settings";
 import { createMessengerThread } from "../../../../engine/modes/messenger/messenger-actions";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import { getChatSettingsViewModel } from "../lib/chat-settings-view-model";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import { ChatSettingsMessengerDrawers } from "./ChatSettingsMessengerDrawers";
@@ -14,9 +15,11 @@ function renderMessengerSettings() {
     activePersonaId: null,
     characterIds: [],
     id: "thread-1",
+    branchId: "thread-1-branch",
     now: "2026-01-01T00:00:00.000Z",
     title: "Messenger thread",
   });
+  const activeThreadRecord = { ...activeThread, ...getActiveModeBranch(activeThread) };
   const actions: ChatSettingsMessengerActionGroup = {
     drawers: { onToggle: noop },
     identity: {
@@ -49,11 +52,11 @@ function renderMessengerSettings() {
         onCreateMessengerThread: noop,
       }}
       settings={{
-        activeMessengerThread: activeThread,
+        activeMessengerThread: activeThreadRecord,
         activeMessengerThreadId: activeThread.id,
         chatSettingsViewModel: getChatSettingsViewModel({
           appSettings: DEFAULT_APP_SETTINGS,
-          activeThread,
+          activeThread: activeThreadRecord,
           characters: [],
           lorebooks: [],
           personas: [],

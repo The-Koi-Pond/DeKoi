@@ -1,5 +1,3 @@
-import { attachRoleplayEntriesToThreads } from "../../engine/contracts/types/roleplay";
-import { attachMessengerMessagesToThreads } from "../../engine/contracts/types/messenger";
 import { errorMessage } from "../../shared/errors";
 import { loadAppSettingsFromStorage, saveAppSettingsToStorage } from "./collections/app-settings";
 import {
@@ -7,13 +5,13 @@ import {
   saveCharacterRecordsToStorage,
 } from "./collections/character-storage";
 import {
-  loadRoleplayThreadsFromStorage,
-  saveRoleplayThreadsToStorage,
-} from "./collections/roleplay-storage";
+  loadModeThreadsFromStorage,
+  saveModeThreadsToStorage,
+} from "./collections/mode-thread-storage";
 import {
-  loadRoleplayEntriesFromStorage,
-  saveRoleplayEntriesToStorage,
-} from "./collections/roleplay-entry-storage";
+  loadModeMessagesFromStorage,
+  saveModeMessagesToStorage,
+} from "./collections/mode-message-storage";
 import {
   loadLorebookRecordsFromStorage,
   saveLorebookRecordsToStorage,
@@ -31,14 +29,6 @@ import {
   saveMacroVariableStatesToStorage,
 } from "./collections/macro-variable-state-storage";
 import {
-  loadMessengerThreadsFromStorage,
-  saveMessengerThreadsToStorage,
-} from "./collections/messenger-storage";
-import {
-  loadMessengerMessagesFromStorage,
-  saveMessengerMessagesToStorage,
-} from "./collections/messenger-message-storage";
-import {
   loadPersonaRecordsFromStorage,
   savePersonaRecordsToStorage,
 } from "./collections/persona-storage";
@@ -55,16 +45,22 @@ import {
   type StorageCollectionMetadata,
   type StorageResult,
 } from "./storage-repository";
-import { appStorageCollectionCount } from "./app-storage-collection-projection";
+import {
+  appStorageCollectionCount,
+  assembleModeThreads,
+  projectModeThreadCollections,
+} from "./app-storage-collection-projection";
 import { getHostStorageMode, loadHostStorageMetadata } from "./storage-repository-factory";
 import { STORAGE_ENTITIES, type StorageEntity } from "./storage-entities";
-import { repairPromptPresetRelationships } from "./prompt-preset-relationship-repair";
 import {
   APP_STORAGE_COLLECTION_KEYS,
   type AppStorageCollectionKey,
   type AppStorageRecords,
 } from "./app-storage-records";
 import { STARTER_PROMPT_PRESET } from "../../engine/prompt-presets/starter-preset";
+import type { ModeThread } from "../../engine/contracts/types/mode-thread";
+import { repairPromptPresetRelationships } from "./prompt-preset-relationship-repair";
+import { getDuplicateModeBranchIds } from "../../engine/modes/mode-thread/mode-thread-validation";
 
 export {
   APP_STORAGE_COLLECTION_KEYS,
@@ -98,12 +94,7 @@ export type AppStorageSnapshot = AppStorageRecords & {
 };
 
 type AppStorageMigrationCollectionKey =
-  | "appSettings"
-  | "promptPresets"
-  | "roleplayThreads"
-  | "roleplayEntries"
-  | "messengerThreads"
-  | "messengerMessages";
+  "appSettings" | "promptPresets" | "modeThreads" | "modeMessages";
 
 type AppStorageCollectionLoadResult = StorageResult & {
   droppedRecordCount: number;
@@ -118,10 +109,8 @@ export const APP_STORAGE_COLLECTION_ENTITIES = {
   loreRuntimeStates: STORAGE_ENTITIES.loreRuntimeStates,
   macroVariableStates: STORAGE_ENTITIES.macroVariableStates,
   providerConnections: STORAGE_ENTITIES.providerConnections,
-  roleplayThreads: STORAGE_ENTITIES.roleplayThreads,
-  roleplayEntries: STORAGE_ENTITIES.roleplayEntries,
-  messengerThreads: STORAGE_ENTITIES.messengerThreads,
-  messengerMessages: STORAGE_ENTITIES.messengerMessages,
+  modeThreads: STORAGE_ENTITIES.modeThreads,
+  modeMessages: STORAGE_ENTITIES.modeMessages,
   rippleStates: STORAGE_ENTITIES.rippleStates,
 } as const satisfies Record<AppStorageCollectionKey, StorageEntity>;
 
@@ -158,10 +147,8 @@ export const APP_STORAGE_COLLECTION_LABELS = {
   loreRuntimeStates: "Lore runtime states",
   macroVariableStates: "Macro variable states",
   providerConnections: "Provider connections",
-  roleplayThreads: "Roleplay threads",
-  roleplayEntries: "Roleplay entries",
-  messengerThreads: "Messenger threads",
-  messengerMessages: "Messenger messages",
+  modeThreads: "Mode threads",
+  modeMessages: "Mode messages",
   rippleStates: "Ripple states",
 } as const satisfies Record<AppStorageCollectionKey, string>;
 
@@ -312,10 +299,8 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loreRuntimeStateSnapshot,
     macroVariableStateSnapshot,
     providerConnectionSnapshot,
-    roleplaySnapshot,
-    roleplayEntrySnapshot,
-    messengerSnapshot,
-    messengerMessageSnapshot,
+    modeThreadSnapshot,
+    modeMessageSnapshot,
     rippleSnapshot,
     metadataResult,
   ] = await Promise.all([
@@ -327,21 +312,27 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loadLoreRuntimeStatesFromStorage(rawUrl),
     loadMacroVariableStatesFromStorage(rawUrl),
     loadProviderConnectionRecordsFromStorage(rawUrl),
-    loadRoleplayThreadsFromStorage(rawUrl),
-    loadRoleplayEntriesFromStorage(rawUrl),
-    loadMessengerThreadsFromStorage(rawUrl),
-    loadMessengerMessagesFromStorage(rawUrl),
+    loadModeThreadsFromStorage(rawUrl),
+    loadModeMessagesFromStorage(rawUrl),
     loadRippleStatesFromStorage(rawUrl),
     loadAppStorageMetadata(rawUrl),
   ]);
-  const roleplayThreads = attachRoleplayEntriesToThreads(
-    roleplaySnapshot.records,
-    roleplayEntrySnapshot.records,
+  const duplicateBranchIds = getDuplicateModeBranchIds(modeThreadSnapshot.records);
+  const validatedModeThreadSnapshot =
+    duplicateBranchIds.length === 0
+      ? modeThreadSnapshot
+      : {
+          ...modeThreadSnapshot,
+          status: "error" as const,
+          message: `Mode thread storage contains branch IDs shared across threads: ${duplicateBranchIds.join(", ")}.`,
+          records: [],
+        };
+  const modeThreads = assembleModeThreads(
+    validatedModeThreadSnapshot.records,
+    modeMessageSnapshot.records,
   );
-  const messengerThreads = attachMessengerMessagesToThreads(
-    messengerSnapshot.threads,
-    messengerMessageSnapshot.records,
-  );
+  const modeMessages = modeThreads.flatMap((thread) => thread.messages);
+  const orphanModeMessageCount = modeMessageSnapshot.records.length - modeMessages.length;
   const appSettingsCanStorePromptPresetStarterMarker =
     appSettingsSnapshot.status === "ready" && appSettingsSnapshot.droppedRecordCount === 0;
   const shouldSeedPromptPresets =
@@ -361,18 +352,6 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const settingsWithDefault = defaultChanged
     ? { ...appSettingsSnapshot.settings, defaultPromptPresetId: repairedDefaultPromptPresetId }
     : appSettingsSnapshot.settings;
-  const repairedRoleplayThreads = repairPromptPresetRelationships(
-    roleplayThreads,
-    promptPresets,
-    new Set(roleplaySnapshot.normalizationChangedRecordIds),
-    repairedDefaultPromptPresetId,
-  );
-  const repairedMessengerThreads = repairPromptPresetRelationships(
-    messengerThreads,
-    promptPresets,
-    new Set(),
-    repairedDefaultPromptPresetId,
-  );
   const shouldInitializePromptPresetStarter =
     appSettingsCanStorePromptPresetStarterMarker &&
     promptPresetSnapshot.status === "ready" &&
@@ -384,6 +363,20 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
         promptPresetStarterInitialized: true,
       }
     : settingsWithDefault;
+  let repairedModeThreadCount = 0;
+  const repairedModeThreads = modeThreads.map((thread) => {
+    const repaired = repairPromptPresetRelationships<(typeof thread.branches)[number]>(
+      thread.branches,
+      promptPresets,
+      new Set(validatedModeThreadSnapshot.normalizationChangedRecordIds),
+      repairedDefaultPromptPresetId,
+    );
+    if (repaired.clearedPresetReferenceCount > 0 || repaired.repairedChoiceSelectionCount > 0) {
+      repairedModeThreadCount += 1;
+      return { ...thread, branches: repaired.records } as ModeThread;
+    }
+    return thread;
+  });
   const migrationCollectionKeys: AppStorageMigrationCollectionKey[] = [];
   const addMigrationCollectionKeys = (...collectionKeys: AppStorageMigrationCollectionKey[]) => {
     for (const collectionKey of collectionKeys) {
@@ -396,25 +389,10 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   if (defaultChanged) addMigrationCollectionKeys("appSettings");
   if (shouldSeedPromptPresets) addMigrationCollectionKeys("promptPresets");
   if (
-    repairedRoleplayThreads.clearedPresetReferenceCount > 0 ||
-    repairedRoleplayThreads.repairedChoiceSelectionCount > 0
+    repairedModeThreadCount > 0 ||
+    validatedModeThreadSnapshot.normalizationChangedRecordIds.length > 0
   ) {
-    addMigrationCollectionKeys("roleplayThreads");
-  }
-  if (roleplaySnapshot.hasLegacyEmbeddedEntries) {
-    addMigrationCollectionKeys("roleplayThreads", "roleplayEntries");
-  }
-  if (
-    repairedMessengerThreads.clearedPresetReferenceCount > 0 ||
-    repairedMessengerThreads.repairedChoiceSelectionCount > 0
-  ) {
-    addMigrationCollectionKeys("messengerThreads");
-  }
-  if (messengerSnapshot.normalizationChangedRecordIds.length > 0) {
-    addMigrationCollectionKeys("messengerThreads");
-  }
-  if (messengerSnapshot.hasLegacyEmbeddedMessages) {
-    addMigrationCollectionKeys("messengerThreads", "messengerMessages");
+    addMigrationCollectionKeys("modeThreads", "modeMessages");
   }
 
   const collectionSnapshots = [
@@ -426,10 +404,14 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     { collectionKey: "loreRuntimeStates", snapshot: loreRuntimeStateSnapshot },
     { collectionKey: "macroVariableStates", snapshot: macroVariableStateSnapshot },
     { collectionKey: "providerConnections", snapshot: providerConnectionSnapshot },
-    { collectionKey: "roleplayThreads", snapshot: roleplaySnapshot },
-    { collectionKey: "roleplayEntries", snapshot: roleplayEntrySnapshot },
-    { collectionKey: "messengerThreads", snapshot: messengerSnapshot },
-    { collectionKey: "messengerMessages", snapshot: messengerMessageSnapshot },
+    { collectionKey: "modeThreads", snapshot: validatedModeThreadSnapshot },
+    {
+      collectionKey: "modeMessages",
+      snapshot: {
+        ...modeMessageSnapshot,
+        droppedRecordCount: modeMessageSnapshot.droppedRecordCount + orphanModeMessageCount,
+      },
+    },
     { collectionKey: "rippleStates", snapshot: rippleSnapshot },
   ] as const satisfies readonly {
     collectionKey: AppStorageCollectionKey;
@@ -448,8 +430,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     loreRuntimeStates: loreRuntimeStateSnapshot.states,
     macroVariableStates: macroVariableStateSnapshot.states,
     providerConnections: providerConnectionSnapshot.records,
-    roleplayThreads: repairedRoleplayThreads.records,
-    messengerThreads: repairedMessengerThreads.records,
+    modeThreads: repairedModeThreads,
     rippleStates: rippleSnapshot.states,
     migrationCollectionKeys,
     storageMetadata: metadataResult.storageMetadata,
@@ -494,14 +475,13 @@ async function saveAppStorageCollection(
       return saveMacroVariableStatesToStorage(snapshot.macroVariableStates, rawUrl);
     case "providerConnections":
       return saveProviderConnectionRecordsToStorage(snapshot.providerConnections, rawUrl);
-    case "roleplayThreads":
-      return saveRoleplayThreadsToStorage(snapshot.roleplayThreads, rawUrl);
-    case "roleplayEntries":
-      return saveRoleplayEntriesToStorage(snapshot.roleplayThreads, rawUrl);
-    case "messengerThreads":
-      return saveMessengerThreadsToStorage(snapshot.messengerThreads, rawUrl);
-    case "messengerMessages":
-      return saveMessengerMessagesToStorage(snapshot.messengerThreads, rawUrl);
+    case "modeThreads":
+      return saveModeThreadsToStorage(snapshot.modeThreads, rawUrl);
+    case "modeMessages":
+      return saveModeMessagesToStorage(
+        projectModeThreadCollections(snapshot.modeThreads).modeMessages,
+        rawUrl,
+      );
     case "rippleStates":
       return saveRippleStatesToStorage(snapshot.rippleStates, rawUrl);
   }

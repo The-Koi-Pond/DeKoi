@@ -1,8 +1,6 @@
 import { useCallback } from "react";
-import type { RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import { clearRoleplayThreadPersona } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { MessengerThread } from "../../../engine/contracts/types/messenger";
-import { clearMessengerThreadPersona } from "../../../engine/modes/messenger/messenger-actions";
+import type { ModeThread } from "../../../engine/contracts/types/mode-thread";
+import { clearModeThreadPersona } from "../../../engine/modes/mode-thread/mode-thread-actions";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import {
   createPersonaRecord,
@@ -18,15 +16,13 @@ import type { StateSetter } from "../../../shared/react/state-setter";
 type UsePersonaActionsInput = {
   personas: PersonaRecord[];
   setPersonas: StateSetter<PersonaRecord[]>;
-  setRoleplayThreads: StateSetter<RoleplayThread[]>;
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  setModeThreads: StateSetter<ModeThread[]>;
 };
 
 export function usePersonaActions({
   personas,
   setPersonas,
-  setRoleplayThreads,
-  setMessengerThreads,
+  setModeThreads,
 }: UsePersonaActionsInput) {
   const createPersona = useCallback(
     (input: PersonaRecordInput) => {
@@ -71,14 +67,11 @@ export function usePersonaActions({
     (personaId: string) => {
       const now = currentIsoTimestamp();
       setPersonas((currentPersonas) => deletePersonaRecord(currentPersonas, personaId));
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) => clearMessengerThreadPersona(thread, personaId, now)),
-      );
-      setRoleplayThreads((currentThreads) =>
-        currentThreads.map((thread) => clearRoleplayThreadPersona(thread, personaId, now)),
+      setModeThreads((currentThreads) =>
+        currentThreads.map((thread) => clearModeThreadPersona(thread, personaId, now)),
       );
     },
-    [setRoleplayThreads, setMessengerThreads, setPersonas],
+    [setModeThreads, setPersonas],
   );
 
   return {
