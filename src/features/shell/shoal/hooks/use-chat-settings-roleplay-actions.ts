@@ -21,7 +21,16 @@ interface UseChatSettingsRoleplayActionsInput {
   characters: ShoalNav["characters"];
   lorebooks: ShoalNav["lorebooks"];
   onCompanionSelectorOpenChange: (open: boolean) => void;
-  onUpdateRoleplayThread: ShoalNav["updateRoleplayThread"];
+  onUpdateRoleplayThreadById: ShoalNav["updateRoleplayThreadById"];
+}
+
+export function transformRoleplayPresetConfirm(
+  thread: RoleplayThread,
+  presetId: string,
+  selections: PromptPresetThreadChoiceSelections,
+  updatedAt: string,
+): RoleplayThread {
+  return setRoleplayThreadPreset(thread, presetId.trim() || null, updatedAt, selections);
 }
 
 export function useChatSettingsRoleplayActions({
@@ -29,15 +38,15 @@ export function useChatSettingsRoleplayActions({
   characters,
   lorebooks,
   onCompanionSelectorOpenChange,
-  onUpdateRoleplayThread,
+  onUpdateRoleplayThreadById,
 }: UseChatSettingsRoleplayActionsInput) {
   function updateActiveRoleplayThread(
     updater: (thread: RoleplayThread, updatedAt: string) => RoleplayThread,
   ) {
     if (!activeRoleplayThread) return;
-    const updatedThread = updater(activeRoleplayThread, new Date().toISOString());
-    if (updatedThread === activeRoleplayThread) return;
-    onUpdateRoleplayThread(updatedThread);
+    onUpdateRoleplayThreadById(activeRoleplayThread.id, (thread) =>
+      updater(thread, new Date().toISOString()),
+    );
   }
 
   function handleRoleplayConnectionChange(connectionId: string) {
@@ -75,6 +84,15 @@ export function useChatSettingsRoleplayActions({
   function handleRoleplayPresetChange(presetId: string) {
     updateActiveRoleplayThread((thread, updatedAt) =>
       setRoleplayThreadPreset(thread, presetId.trim() || null, updatedAt),
+    );
+  }
+
+  function handleRoleplayPresetConfirm(
+    presetId: string,
+    selections: PromptPresetThreadChoiceSelections,
+  ) {
+    updateActiveRoleplayThread((thread, updatedAt) =>
+      transformRoleplayPresetConfirm(thread, presetId, selections, updatedAt),
     );
   }
 
@@ -130,6 +148,7 @@ export function useChatSettingsRoleplayActions({
     onClearMissingPreset: clearMissingRoleplayPreset,
     onPresetChoiceChange: handleRoleplayPresetChoiceChange,
     onPresetChange: handleRoleplayPresetChange,
+    onPresetConfirm: handleRoleplayPresetConfirm,
   };
   const resourceActions: ChatSettingsThreadResourceActions = {
     clearMissingCompanions: clearMissingRoleplayCompanions,

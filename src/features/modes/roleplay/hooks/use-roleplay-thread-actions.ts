@@ -1,8 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
 import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
+import { resolvePromptPresetChoiceControls } from "../../../../engine/prompt-presets/prompt-preset-actions";
 import {
   appendRoleplayEntries,
   clearRoleplayEntries,
@@ -25,10 +27,13 @@ import { cleanTextArray } from "../../../../shared/text";
 import type { RoleplayThreadCreateInput, PondView } from "../../../navigation";
 import { deleteMacroVariableStateForOwner } from "../../../../engine/macro-variables/macro-variable-actions";
 import type { StateSetter } from "../../../../shared/react/state-setter";
+import { setRoleplayThreadPresetChoiceSelections } from "../../../../engine/modes/roleplay/roleplay-actions";
+import { projectPresetChoiceState } from "../../shared/prompt-preset-choice-state";
 
 type UseRoleplayThreadActionsInput = {
   activeMessengerConnectionId: ProviderConnectionId;
   defaultPromptPresetId?: string | null;
+  promptPresets: PromptPresetRecord[];
   characters: CharacterRecord[];
   roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
@@ -39,12 +44,14 @@ type UseRoleplayThreadActionsInput = {
   setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
+  openChatSettings: () => void;
   openRoleplayThread: (threadId: string) => void;
 };
 
 export function useRoleplayThreadActions({
   activeMessengerConnectionId,
   defaultPromptPresetId = null,
+  promptPresets,
   characters,
   roleplayThreads,
   personas,
@@ -55,6 +62,7 @@ export function useRoleplayThreadActions({
   setRippleStates,
   setView,
   view,
+  openChatSettings,
   openRoleplayThread,
 }: UseRoleplayThreadActionsInput) {
   const createRoleplayThread = useCallback(
@@ -77,6 +85,12 @@ export function useRoleplayThreadActions({
         ) ??
         providerConnections[0] ??
         null;
+      const defaultPreset = defaultPromptPresetId
+        ? (promptPresets.find((preset) => preset.id === defaultPromptPresetId) ?? null)
+        : null;
+      const defaultPresetHasChoices = defaultPreset
+        ? resolvePromptPresetChoiceControls({ preset: defaultPreset, selections: {} }).length > 0
+        : false;
       const thread = buildRoleplayThread({
         activePersonaId,
         characterIds,
@@ -87,6 +101,10 @@ export function useRoleplayThreadActions({
         providerConnectionId: activeConnection?.id ?? null,
         title: input?.title?.trim() || `New Roleplay ${roleplayThreads.length + 1}`,
       });
+      const threadWithPresetHistory =
+        defaultPreset && !defaultPresetHasChoices
+          ? { ...thread, presetChoiceSelectionsByPresetId: { [defaultPreset.id]: {} } }
+          : thread;
       const openingCompanion =
         characterIds
           .map(
@@ -94,32 +112,127 @@ export function useRoleplayThreadActions({
           )
           .find((character) => !!character?.firstMessage.trim()) ?? null;
       const threadWithOpeningEntry = openingCompanion
-        ? appendRoleplayEntries(thread, [
+        ? appendRoleplayEntries(threadWithPresetHistory, [
             createCompanionRoleplayEntry({
               body: openingCompanion.firstMessage,
               companion: openingCompanion,
               id: createRecordId("roleplay-entry"),
               now,
-              thread,
+              thread: threadWithPresetHistory,
             }),
           ])
-        : thread;
+        : threadWithPresetHistory;
 
       setRoleplayThreads((currentThreads) => [threadWithOpeningEntry, ...currentThreads]);
       openRoleplayThread(threadWithOpeningEntry.id);
+      if (defaultPresetHasChoices) openChatSettings();
       return threadWithOpeningEntry;
     },
     [
       activeMessengerConnectionId,
       defaultPromptPresetId,
+      promptPresets,
       characters,
       roleplayThreads.length,
+      openChatSettings,
       openRoleplayThread,
       personas,
       providerConnections,
       setRoleplayThreads,
     ],
   );
+
+  const [promptPresetRepairNotices, setPromptPresetRepairNotices] = useState<
+    Record<string, string>
+  >({});
+  const repairedPresetKeys = useRef(new Set<string>());
+  const pendingRepairs = useRef(
+    new Map<
+      string,
+      { threadId: string; presetId: string; sourceFingerprint: string; repairedFingerprint: string }
+    >(),
+  );
+  const noticePresetIds = useRef(new Map<string, string>());
+  useEffect(() => {
+    roleplayThreads.forEach((thread) => {
+      if (!thread.presetId) return;
+      const preset = promptPresets.find((candidate) => candidate.id === thread.presetId);
+      const projection = projectPresetChoiceState(preset, thread.presetChoiceSelectionsByPresetId);
+      if (!preset || !projection.needsRepair) return;
+      const key = `${thread.id}:${preset.id}:${projection.fingerprint}`;
+      if (repairedPresetKeys.current.has(key) || pendingRepairs.current.has(key)) return;
+      const repairedAt = currentIsoTimestamp();
+      const repaired = setRoleplayThreadPresetChoiceSelections(
+        thread,
+        projection.materializedSelections,
+        repairedAt,
+      );
+      pendingRepairs.current.set(key, {
+        threadId: thread.id,
+        presetId: preset.id,
+        sourceFingerprint: projection.fingerprint,
+        repairedFingerprint: JSON.stringify(
+          repaired.presetChoiceSelectionsByPresetId?.[preset.id] ?? {},
+        ),
+      });
+      setRoleplayThreads((currentThreads) =>
+        currentThreads.map((currentThread) => {
+          if (currentThread.id !== thread.id || currentThread.presetId !== preset.id)
+            return currentThread;
+          const latest = projectPresetChoiceState(
+            preset,
+            currentThread.presetChoiceSelectionsByPresetId,
+          );
+          if (latest.fingerprint !== projection.fingerprint || !latest.needsRepair)
+            return currentThread;
+          return setRoleplayThreadPresetChoiceSelections(
+            currentThread,
+            latest.materializedSelections,
+            repairedAt,
+          );
+        }),
+      );
+    });
+  }, [roleplayThreads, promptPresets, setRoleplayThreads]);
+  useEffect(() => {
+    let changed = false;
+    const next = { ...promptPresetRepairNotices };
+    for (const [key, pending] of pendingRepairs.current) {
+      const thread = roleplayThreads.find((candidate) => candidate.id === pending.threadId);
+      const projection =
+        thread?.presetId === pending.presetId
+          ? projectPresetChoiceState(
+              promptPresets.find((candidate) => candidate.id === pending.presetId),
+              thread.presetChoiceSelectionsByPresetId,
+            )
+          : null;
+      if (!thread || !projection) {
+        pendingRepairs.current.delete(key);
+        continue;
+      }
+      if (projection.fingerprint === pending.sourceFingerprint && projection.needsRepair) continue;
+      if (
+        thread.presetId !== pending.presetId ||
+        projection.fingerprint !== pending.repairedFingerprint
+      ) {
+        pendingRepairs.current.delete(key);
+        continue;
+      }
+      repairedPresetKeys.current.add(key);
+      pendingRepairs.current.delete(key);
+      next[pending.threadId] = "Prompt preset choices were repaired.";
+      noticePresetIds.current.set(pending.threadId, pending.presetId);
+      changed = true;
+    }
+    for (const [threadId, presetId] of noticePresetIds.current) {
+      if (roleplayThreads.find((thread) => thread.id === threadId)?.presetId !== presetId) {
+        noticePresetIds.current.delete(threadId);
+        delete next[threadId];
+        changed = true;
+      }
+    }
+    if (changed) queueMicrotask(() => setPromptPresetRepairNotices(next));
+  }, [roleplayThreads, promptPresets, promptPresetRepairNotices]);
 
   const updateRoleplayThread = useCallback(
     (thread: RoleplayThread) => {
@@ -129,6 +242,15 @@ export function useRoleplayThreadActions({
               currentThread.id === thread.id ? thread : currentThread,
             )
           : [thread, ...currentThreads],
+      );
+    },
+    [setRoleplayThreads],
+  );
+
+  const updateRoleplayThreadById = useCallback(
+    (threadId: string, updater: (thread: RoleplayThread) => RoleplayThread) => {
+      setRoleplayThreads((currentThreads) =>
+        currentThreads.map((thread) => (thread.id === threadId ? updater(thread) : thread)),
       );
     },
     [setRoleplayThreads],
@@ -209,9 +331,17 @@ export function useRoleplayThreadActions({
   return {
     createRoleplayThread,
     updateRoleplayThread,
+    updateRoleplayThreadById,
     appendRoleplayThreadEntries,
     renameRoleplayThread,
     clearRoleplayThreadEntries,
     deleteRoleplayThread,
+    roleplayPromptPresetRepairNotices: promptPresetRepairNotices,
+    clearRoleplayPromptPresetRepairNotice: (threadId: string) =>
+      setPromptPresetRepairNotices((current) => {
+        const next = { ...current };
+        delete next[threadId];
+        return next;
+      }),
   };
 }

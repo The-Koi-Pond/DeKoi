@@ -44,7 +44,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
       characters: nav.characters,
       lorebooks: nav.lorebooks,
       onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-      onUpdateMessengerThread: nav.updateMessengerThread,
+      onUpdateMessengerThreadById: nav.updateMessengerThreadById,
     });
   const {
     identityActions: roleplayIdentityActions,
@@ -55,7 +55,7 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     characters: nav.characters,
     lorebooks: nav.lorebooks,
     onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-    onUpdateRoleplayThread: nav.updateRoleplayThread,
+    onUpdateRoleplayThreadById: nav.updateRoleplayThreadById,
   });
 
   function toggleChatSettingsDrawer(drawerId: ChatSettingsDrawerId) {

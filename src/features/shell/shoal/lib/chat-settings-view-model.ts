@@ -74,6 +74,7 @@ export function getChatSettingsViewModel({
     }),
     sanitizedProviderConnections,
     missingPresetId,
+    presetChoiceSelectionsByPresetId: activeThread?.presetChoiceSelectionsByPresetId ?? {},
     presetChoiceSelections: activeThread?.presetId
       ? ((activeThread.presetChoiceSelectionsByPresetId ?? {})[activeThread.presetId] ?? {})
       : {},

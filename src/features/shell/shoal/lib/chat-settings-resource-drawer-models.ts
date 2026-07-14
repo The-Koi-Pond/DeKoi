@@ -17,6 +17,7 @@ export interface ChatSettingsPresetResourceModel {
   missingPresetId: string | null;
   open: boolean;
   presetChoiceSelections: PromptPresetThreadChoiceSelections;
+  presetChoiceSelectionsByPresetId: Record<string, PromptPresetThreadChoiceSelections>;
   selectedPresetId: string | null;
   summary: string;
 }
@@ -68,6 +69,7 @@ export function getChatSettingsResourceDrawerModels({
       missingPresetId: viewModel.missingPresetId,
       open: activeThread && openDrawers.preset,
       presetChoiceSelections: viewModel.presetChoiceSelections,
+      presetChoiceSelectionsByPresetId: viewModel.presetChoiceSelectionsByPresetId,
       selectedPresetId: viewModel.selectedPresetId,
       summary: viewModel.presetDrawerSummary,
     },

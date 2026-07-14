@@ -64,7 +64,11 @@ export type MessengerThreadNav = Pick<
 > &
   Pick<
     NavMessengerThreadActions,
-    "createMessengerThread" | "updateMessengerThread" | "appendMessengerThreadMessages"
+    | "createMessengerThread"
+    | "updateMessengerThread"
+    | "appendMessengerThreadMessages"
+    | "messengerPromptPresetRepairNotices"
+    | "clearMessengerPromptPresetRepairNotice"
   > &
   Pick<NavLoreRuntimeActions, "getLoreRuntimeState" | "updateLoreRuntimeState"> &
   Pick<NavMacroVariableState, "macroVariableStates"> &
@@ -172,6 +176,9 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
   const threadReferenceNotices = threadReferenceSummary
     ? getMessengerThreadReferenceNotices(threadReferenceSummary)
     : [];
+  const promptRepairNotice = activeThreadId
+    ? nav.messengerPromptPresetRepairNotices[activeThreadId]
+    : null;
   const storageBlocker = nav.storageReady ? "" : "Storage is still loading.";
   const sendBlocker =
     storageBlocker ||
@@ -657,6 +664,22 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+      {promptRepairNotice && (
+        <div className="messenger-thread-notices" aria-label="Messenger prompt preset notice">
+          <div className="messenger-thread-notice warning" role="status">
+            <p>{promptRepairNotice}</p>
+            <button
+              type="button"
+              onClick={() => {
+                nav.clearMessengerPromptPresetRepairNotice(messengerThread.id);
+                nav.setSideRailView("chat-settings");
+              }}
+            >
+              Review settings
+            </button>
+          </div>
         </div>
       )}
 

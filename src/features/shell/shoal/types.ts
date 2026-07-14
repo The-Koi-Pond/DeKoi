@@ -33,6 +33,9 @@ export type ShoalNav = Pick<
     | "deleteRoleplayThread"
     | "renameRoleplayThread"
     | "updateRoleplayThread"
+    | "updateRoleplayThreadById"
+    | "roleplayPromptPresetRepairNotices"
+    | "clearRoleplayPromptPresetRepairNotice"
   > &
   Pick<
     NavMessengerThreadActions,
@@ -40,6 +43,9 @@ export type ShoalNav = Pick<
     | "deleteMessengerThread"
     | "renameMessengerThread"
     | "updateMessengerThread"
+    | "updateMessengerThreadById"
+    | "messengerPromptPresetRepairNotices"
+    | "clearMessengerPromptPresetRepairNotice"
   > &
   Pick<
     NavSettingsActions,

@@ -26,7 +26,24 @@ interface UseChatSettingsMessengerActionsInput {
   characters: ShoalNav["characters"];
   lorebooks: ShoalNav["lorebooks"];
   onCompanionSelectorOpenChange: (open: boolean) => void;
-  onUpdateMessengerThread: ShoalNav["updateMessengerThread"];
+  onUpdateMessengerThreadById: ShoalNav["updateMessengerThreadById"];
+}
+
+export function transformMessengerPresetConfirm(
+  thread: MessengerThread,
+  presetId: string,
+  selections: PromptPresetThreadChoiceSelections,
+  updatedAt: string,
+): MessengerThread {
+  const next = setMessengerThreadPreset(thread, presetId, updatedAt, selections);
+  return next.presetId !== thread.presetId
+    ? setMessengerThreadSystemPrompt(
+        next,
+        "default",
+        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
+        updatedAt,
+      )
+    : next;
 }
 
 export function useChatSettingsMessengerActions({
@@ -34,13 +51,15 @@ export function useChatSettingsMessengerActions({
   characters,
   lorebooks,
   onCompanionSelectorOpenChange,
-  onUpdateMessengerThread,
+  onUpdateMessengerThreadById,
 }: UseChatSettingsMessengerActionsInput) {
   function updateActiveMessengerThread(
     updater: (thread: MessengerThread, updatedAt: string) => MessengerThread,
   ) {
     if (!activeMessengerThread) return;
-    onUpdateMessengerThread(updater(activeMessengerThread, new Date().toISOString()));
+    onUpdateMessengerThreadById(activeMessengerThread.id, (thread) =>
+      updater(thread, new Date().toISOString()),
+    );
   }
 
   function handleMessengerConnectionChange(connectionId: string) {
@@ -89,6 +108,15 @@ export function useChatSettingsMessengerActions({
   function handleMessengerPresetChoiceChange(selections: PromptPresetThreadChoiceSelections) {
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadPresetChoiceSelections(thread, selections, updatedAt),
+    );
+  }
+
+  function handleMessengerPresetConfirm(
+    presetId: string,
+    selections: PromptPresetThreadChoiceSelections,
+  ) {
+    updateActiveMessengerThread((thread, updatedAt) =>
+      transformMessengerPresetConfirm(thread, presetId, selections, updatedAt),
     );
   }
 
@@ -147,6 +175,7 @@ export function useChatSettingsMessengerActions({
   const presetActions: ChatSettingsThreadPresetActions = {
     onClearMissingPreset: clearMissingMessengerPreset,
     onPresetChoiceChange: handleMessengerPresetChoiceChange,
+    onPresetConfirm: handleMessengerPresetConfirm,
     onPresetChange: handleMessengerPresetChange,
   };
   const resourceActions: ChatSettingsMessengerThreadResourceActions = {

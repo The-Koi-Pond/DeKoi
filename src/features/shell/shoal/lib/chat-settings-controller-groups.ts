@@ -40,6 +40,7 @@ interface ChatSettingsPromptActions {
 interface ChatSettingsPresetActions {
   onClearMissingPreset: () => void;
   onPresetChoiceChange: (selections: PromptPresetThreadChoiceSelections) => void;
+  onPresetConfirm?: (presetId: string, selections: PromptPresetThreadChoiceSelections) => void;
   onPresetChange: (presetId: string) => void;
 }
 

@@ -1,7 +1,11 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
-import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
+import type {
+  PromptPresetRecord,
+  PromptPresetThreadChoiceSelections,
+} from "../../../engine/contracts/types/prompt-presets";
+import { promptPresetChoiceSelectionsAreConfirmed } from "../../../engine/prompt-presets/prompt-preset-normalization";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import { cleanTextArray } from "../../../shared/text";
 
@@ -10,6 +14,7 @@ export interface ThreadReferenceRecord {
   characterIds: string[];
   lorebookIds: string[];
   presetId: string | null;
+  presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
 }
 
@@ -18,6 +23,7 @@ export interface ThreadReferenceSummary {
   hasMissingConnection: boolean;
   hasMissingPersona: boolean;
   hasMissingPreset: boolean;
+  hasUnconfirmedPresetChoices: boolean;
   hasNoConnectionAvailable: boolean;
   missingCompanionCount: number;
   missingLorebookCount: number;
@@ -97,6 +103,9 @@ export function getThreadReferenceSummary({
   const personaIds = new Set(personas.map((persona) => persona.id));
   const presetIds = new Set(promptPresets.map((preset) => preset.id));
   const connectionIds = new Set(providerConnections.map((connection) => connection.id));
+  const activePreset = thread.presetId
+    ? (promptPresets.find((preset) => preset.id === thread.presetId) ?? null)
+    : null;
   const explicitConnectionId = thread.providerConnectionId?.trim() ?? "";
   const fallbackConnectionId = fallbackProviderConnectionId?.trim() ?? "";
   const hasFallbackConnection =
@@ -109,6 +118,12 @@ export function getThreadReferenceSummary({
       explicitConnectionId.length > 0 && !connectionIds.has(explicitConnectionId),
     hasMissingPersona: !!thread.activePersonaId && !personaIds.has(thread.activePersonaId),
     hasMissingPreset: !!thread.presetId && !presetIds.has(thread.presetId),
+    hasUnconfirmedPresetChoices:
+      !!activePreset &&
+      !promptPresetChoiceSelectionsAreConfirmed(
+        activePreset,
+        thread.presetChoiceSelectionsByPresetId,
+      ),
     hasNoConnectionAvailable: !hasFallbackConnection,
     missingCompanionCount: countMissingIds(thread.characterIds, characterIds),
     missingLorebookCount: countMissingIds(
@@ -178,6 +193,14 @@ export function getThreadReferenceNotices(
     });
   }
 
+  if (summary.hasUnconfirmedPresetChoices) {
+    notices.push({
+      id: "preset-choices-unconfirmed",
+      message: `Choose and confirm the variables for the selected prompt preset before sending.`,
+      tone: "error",
+    });
+  }
+
   if (summary.missingLorebookCount > 0) {
     notices.push({
       id: "missing-lorebooks",
@@ -199,6 +222,9 @@ export function getThreadSendBlocker(
 
   if (summary.hasNoConnectionAvailable) {
     return `Create a connection before ${labels.surfaceLabel} can generate replies.`;
+  }
+  if (summary.hasUnconfirmedPresetChoices) {
+    return "Confirm the selected prompt preset variables before sending.";
   }
   if (summary.selectedCompanionCount > 0) return "";
   if (summary.missingCompanionCount > 0) {

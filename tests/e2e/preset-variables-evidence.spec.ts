@@ -26,11 +26,13 @@ test("all starter preset variables stay visible and resolve independently", asyn
   await page.getByRole("button", { name: "+ New Roleplay" }).click();
   await page.getByLabel("Thread Name", { exact: true }).fill("Always Visible Proof");
   await page.getByRole("button", { name: "Create", exact: true }).click();
-  await page.getByRole("button", { name: "Open Roleplay thread settings" }).click();
-  await page.getByRole("button", { name: /^Prompt Preset/ }).click();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Preset Variables" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await page.getByRole("button", { name: /^Prompt Preset/ }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   const fields = dialog.locator(".preset-variables-field");
   await expect(fields).toHaveCount(starterQuestions.length);
   for (const question of starterQuestions) {
@@ -55,7 +57,8 @@ test("all starter preset variables stay visible and resolve independently", asyn
   await expect(fields.nth(2)).toContainText("Preset default: None");
   await expect(fields).toHaveCount(starterQuestions.length);
 
-  await dialog.getByRole("button", { name: "Done" }).click();
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  await expect(dialog).toBeHidden();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
 
   const reopenedFields = page
@@ -64,7 +67,7 @@ test("all starter preset variables stay visible and resolve independently", asyn
   await expect(reopenedFields).toHaveCount(starterQuestions.length);
   await expect(reopenedFields.nth(0)).toContainText("Roleplayer");
   await expect(reopenedFields.nth(1)).toContainText("SFW");
-  await expect(reopenedFields.nth(2)).toContainText("Preset default: None");
+  await expect(reopenedFields.nth(2)).toContainText("None");
 
   if (evidenceDir) {
     await page.screenshot({
@@ -72,4 +75,30 @@ test("all starter preset variables stay visible and resolve independently", asyn
       fullPage: true,
     });
   }
+});
+
+test("Messenger confirms its default preset before reopening variables", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Companions / Personas" }).click();
+  await page.getByRole("button", { name: "＋ Companion" }).first().click();
+  await page.getByLabel("Name", { exact: true }).fill("Messenger Evidence Companion");
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await page.getByRole("button", { name: "Messenger", exact: true }).first().click();
+  await page.getByRole("button", { name: "+ Cast a Line" }).click();
+  await page.getByLabel("Thread Name", { exact: true }).fill("Messenger Variable Proof");
+  await page.getByRole("button", { name: "Companions", exact: true }).click();
+  await page.getByRole("option", { name: /Messenger Evidence Companion/ }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Preset Variables" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Use Defaults" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole("button", { name: /^Prompt Preset/ }).click();
+  await page.getByRole("button", { name: "Variables", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".preset-variables-field")).toHaveCount(starterQuestions.length);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
 });

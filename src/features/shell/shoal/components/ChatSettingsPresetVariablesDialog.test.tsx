@@ -148,4 +148,30 @@ describe("ChatSettingsPresetVariablesDialog", () => {
       expect(markup).toContain("Gentle and reassuring.");
     }
   });
+
+  it("does not persist while rendering a draft and exposes transactional actions", () => {
+    const onPresetConfirm = vi.fn();
+    const onPresetChoiceChange = vi.fn();
+    const markup = renderToStaticMarkup(
+      <ChatSettingsPresetVariablesDialog
+        open
+        preset={promptPreset({
+          id: "choice-tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [{ id: "warm", label: "Warm", value: "warm" }],
+        })}
+        presetChoiceSelections={{}}
+        onClose={vi.fn()}
+        onPresetChoiceChange={onPresetChoiceChange}
+        onPresetConfirm={onPresetConfirm}
+      />,
+    );
+
+    expect(onPresetConfirm).not.toHaveBeenCalled();
+    expect(onPresetChoiceChange).not.toHaveBeenCalled();
+    expect(markup).toContain(">Cancel</button>");
+    expect(markup).toContain(">Use Defaults</button>");
+    expect(markup).toContain(">Confirm</button>");
+  });
 });
