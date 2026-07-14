@@ -112,17 +112,21 @@ records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
-Prompt presets use `schemaVersion: 1`. Each record stores title, optional
-summary, `systemPrompt` (normalized to `""` when omitted), optional
-`messengerPrompt`, nullable normalized `parameters`, a provider-ready `sampling` projection, section/group
-ordering fields, `sections`, `groups`, `choiceBlocks`, static `variableValues`,
-`defaultChoices`, and optional author/folder metadata. Native preset records do
-not store a default flag; `AppSettings.defaultPromptPresetId` is the sole native
-default authority. The `parameters`
-object preserves normalized prompt-preset controls such as `temperature`,
-`topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties, service/model
-effort strings, stop sequences, custom parameters, and provider-shaping
-booleans. Current provider requests consume the `sampling` projection
+Prompt presets use `schemaVersion: 1` and require a non-empty local ID and title.
+Prompt text and the rest of the recipe are optional: omitted or null shared
+prompt text normalizes to `systemPrompt: ""`; nullable text and metadata
+normalize to `null`; parameters normalize to an object or `null`; and omitted
+ordering fields, `sections`, `groups`, `choiceBlocks`, variable groups, static
+`variableValues`, and `defaultChoices` normalize to stable empty arrays or maps.
+An explicitly non-string shared prompt or present non-array `sections`, `groups`,
+or `choiceBlocks` rejects the record instead of silently erasing malformed data.
+Native preset records do not store a default flag;
+`AppSettings.defaultPromptPresetId` is the sole native default authority. The
+`parameters` object preserves normalized prompt-preset controls such as
+`temperature`, `topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties,
+service/model effort strings, stop sequences, custom parameters, and
+provider-shaping booleans. Current provider requests consume the `sampling`
+projection
 (`temperature`, `topP`, and `maxTokens`) from the selected preset. Invalid
 parameter and sampling fields are dropped during load. Preset `maxTokens` can
 override request parameters, but the final generation request is capped by the
@@ -193,11 +197,13 @@ preset-authored Variables; they do not own an arbitrary prompt or model-
 parameter override. Generation uses the selected preset's `messengerPrompt`,
 then shared `systemPrompt`, and falls back to the built-in
 `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
+That fallback is assembled for the request and is not persisted into the blank
+preset.
 Messenger does not consume prompt preset sections for prompt assembly. Old
 development override keys are ignored and dropped by normalization; there is no
 migration or conversion promise for them.
 In Roleplay, a selected prompt preset can replace the system prelude, sampling,
-and narration or other-character output behavior. If the preset has
+and narration or other-character output behavior. When the preset has usable
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
@@ -205,12 +211,13 @@ expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
 `chat_history`; sectioned presets include transcript history only through an
 enabled `chat_history` marker. Depth sections insert around the `chat_history`
 marker when present, or around the sectioned prompt message stream by depth from
-the newest item. If a sectioned preset leaves no materialized messages after
-enabled/group/content filtering, Roleplay falls back to the selected system
-prompt without automatically replaying transcript history. DeKoi still appends
-a Roleplay post-history contract that keeps the target
-companion primary, protects the user's dialogue and agency, and leaves narration
-and other-character output behavior to the selected preset.
+the newest item. With no usable section messages, Roleplay falls back to the
+selected shared system prompt and then to the built-in Roleplay prelude, without
+automatically replaying transcript history. DeKoi still appends a Roleplay
+post-history contract that keeps the target companion primary, protects the
+user's dialogue and agency, and leaves narration and other-character output
+behavior to the selected preset. Only no-preset, single-character Roleplay uses
+the Roleplay-owned one-character output contract.
 Messenger and Roleplay threads resolve the active preset's entry in
 `presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
 `variableValues`, defaults, and multi-select separators into
@@ -665,6 +672,11 @@ DeKoi-native bundle import/export is the durable interchange path. It should:
   `systemPrompt`; an omitted shared prompt normalizes to `""`. Packaged `author`
   and `folderId` metadata are preserved when present; packaged `isDefault` is
   not native authority and is discarded.
+  The package recipe arrays may be omitted and then normalize to empty arrays,
+  but a present top-level `sections`, `groups`, or `choiceBlocks` value must be
+  an actual JSON array. Nested choice `options` may retain the supported
+  JSON-string compatibility form. Malformed prompt values and present non-array
+  recipe collections reject the package.
   An empty or unusable imported preset collection is repaired with the bundled
   starter. A missing default is repaired to the first usable imported preset,
   and dangling active thread references are reassigned to it without erasing

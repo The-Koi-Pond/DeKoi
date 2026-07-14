@@ -329,10 +329,14 @@ expand scene, lore, persona, character, and example-dialogue blocks. Sectioned
 presets that omit a non-depth lore marker do not emit that lore text, so no
 prompt mutations from the omitted text commit. If enabled section/group
 filtering leaves no materialized messages, Roleplay falls back to the selected
-system prompt without transcript history. Messenger does not consume preset
-sections. It resolves the selected preset's `messengerPrompt`, then its shared
-`systemPrompt`, then the built-in Messenger fallback; there is no
-conversation-owned prompt override.
+shared system prompt and then the built-in Roleplay prelude, without transcript
+history. A selected preset still owns narration and other-character output
+behavior through either fallback; only no-preset, single-character Roleplay uses
+the one-character output contract. Messenger does not consume preset sections.
+It resolves the selected preset's `messengerPrompt`, then its shared
+`systemPrompt`, then the built-in Messenger fallback. Built-in fallbacks are
+assembled at request time rather than persisted into blank presets, and there is
+no conversation-owned prompt override.
 
 ## Slice 7 Dynamic Variable Persistence
 

@@ -41,22 +41,23 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
 - Presets catalog controls expose prompt preset title, summary, optional system
-  prompt,
-  Messenger Prompt Source, optional temperature, `topP`, max-token sampling,
-  Roleplay section groups, ordered sections, markers, section roles, enabled
-  state, wrapping, and depth placement, with create, edit, duplicate, and delete
-  actions, plus the editable Universal V2 starter preset,
+  prompt, Messenger Prompt Source, optional temperature, `topP`, max-token
+  sampling, Roleplay section groups, ordered sections, markers, section roles,
+  enabled state, wrapping, and depth placement, with create, edit, duplicate,
+  and delete actions, plus the editable Universal V2 starter preset,
   normalized from its bundled package into an ordinary native record. The
-  catalog also imports standalone
-  compatible `.json` or `.marinara.json` packages as fresh native copies and
-  exports one selected saved preset through browser or desktop file workflows.
+  catalog also imports standalone compatible `.json` or `.marinara.json`
+  packages as fresh native copies and exports one selected saved preset through
+  browser or desktop file workflows.
+  A title-only preset can be created and saved, and promptless presets can be
+  imported, reopened, and exported without persisting built-in fallback text.
   Native prompt preset records also
   normalize richer parameters, choice blocks, static variable values, and
   defaults for compatible import. The catalog edits choice-block definitions,
   options, defaults, and presentation settings; all choice questions are always
   visible. It preserves other advanced compatible fields that do not have
-  dedicated controls yet. Roleplay generation consumes section/group assembly
-  when present. Both Messenger and Roleplay generation consume stable-ID choice
+  dedicated controls yet. Roleplay generation consumes usable section/group
+  assembly. Both Messenger and Roleplay generation consume stable-ID choice
   values. Both thread settings flows edit them transactionally through Preset
   Variables without changing the preset catalog record: first use requires
   Confirm or Use Defaults, cancel preserves the prior preset and history,
@@ -67,7 +68,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   conversation settings select a prompt preset and its preset-authored
   Variables; generation uses `messengerPrompt`, then shared `systemPrompt`,
   then built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT`, with no conversation-owned
-  arbitrary prompt or model-parameter override.
+  arbitrary prompt or model-parameter override. Roleplay uses usable sections,
+  then the shared prompt, then its built-in prelude; Roleplay sections do not
+  become Messenger prompt text.
 - App settings own the default prompt preset. New Messenger and Roleplay threads
   start with it, and each thread retains independent confirmed-choice history per
   preset. The default and last preset are protected from deletion; deleting
