@@ -29,6 +29,27 @@ export type PromptPresetCatalogTransactionResult = {
   preset?: PromptPresetRecord;
 };
 
+type StorageOperationResult = { status: "ready" | "error"; message: string };
+
+async function rollbackPromptPresetCatalog(
+  rollback: (
+    snapshot: AppStorageRecords,
+    rawUrl: string,
+    target: StorageTransactionTarget,
+  ) => Promise<StorageOperationResult>,
+  snapshot: AppStorageRecords,
+  target: StorageTransactionTarget,
+): Promise<StorageOperationResult> {
+  try {
+    return await rollback(snapshot, target.rawUrl, target);
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export async function runPromptPresetCatalogTransaction({
   mutation,
   coordinator,
@@ -46,12 +67,12 @@ export async function runPromptPresetCatalogTransaction({
     snapshot: AppStorageRecords,
     rawUrl: string,
     target: StorageTransactionTarget,
-  ) => Promise<{ status: "ready" | "error"; message: string }>;
+  ) => Promise<StorageOperationResult>;
   rollback: (
     snapshot: AppStorageRecords,
     rawUrl: string,
     target: StorageTransactionTarget,
-  ) => Promise<{ status: "ready" | "error"; message: string }>;
+  ) => Promise<StorageOperationResult>;
   publish: (snapshot: AppStorageRecords) => void;
 }): Promise<PromptPresetCatalogTransactionResult> {
   const flushed = await flush();
@@ -122,9 +143,9 @@ export async function runPromptPresetCatalogTransaction({
       };
     }
     if (result.status === "error") {
-      const restored = await rollback(
+      const restored = await rollbackPromptPresetCatalog(
+        rollback,
         transaction.getRollbackSnapshot(),
-        transaction.target.rawUrl,
         transaction.target,
       );
       return {
@@ -143,9 +164,9 @@ export async function runPromptPresetCatalogTransaction({
       appStorageCollectionSignature(transaction.getLatestSnapshot(), "promptPresets") !==
         baselineSignature
     ) {
-      const restored = await rollback(
+      const restored = await rollbackPromptPresetCatalog(
+        rollback,
         transaction.getRollbackSnapshot(),
-        transaction.target.rawUrl,
         transaction.target,
       );
       return {

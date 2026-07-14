@@ -327,6 +327,42 @@ describe("prompt preset catalog transaction", () => {
     expect(h.coordinator.hasActiveTransaction()).toBe(false);
   });
 
+  it("converts a thrown rollback after a save error into a transaction result", async () => {
+    const h = setup();
+    const result = await run(h, {
+      save: async () => ({ status: "error", message: "save failed" }),
+      rollback: async () => {
+        throw new Error("rollback host disconnected");
+      },
+    });
+    expect(result).toMatchObject({ saved: false, published: false, blocked: false });
+    expect(result.message).toContain("save failed");
+    expect(result.message).toContain("rollback host disconnected");
+    expect(h.coordinator.hasActiveTransaction()).toBe(false);
+  });
+
+  it("converts a thrown rollback after stale publication state into a transaction result", async () => {
+    const h = setup();
+    const result = await run(h, {
+      save: async (snapshot) => {
+        h.set({
+          ...snapshot,
+          promptPresets: snapshot.promptPresets.map((preset) => ({
+            ...preset,
+            title: "Concurrent",
+          })),
+        });
+        return { status: "ready", message: "saved" };
+      },
+      rollback: async () => {
+        throw "rollback unavailable";
+      },
+    });
+    expect(result).toMatchObject({ saved: false, published: false, blocked: true });
+    expect(result.message).toContain("rollback unavailable");
+    expect(h.coordinator.hasActiveTransaction()).toBe(false);
+  });
+
   it("allows a retry after a stale transaction releases its lock", async () => {
     const h = setup();
     await run(h, {
