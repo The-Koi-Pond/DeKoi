@@ -2,9 +2,7 @@ import { useCallback } from "react";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import {
   createImportedPromptPresetRecord,
-  createPromptPresetRecord,
   duplicatePromptPresetRecord,
-  updatePromptPresetRecord,
   type PromptPresetInput,
 } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { currentIsoTimestamp } from "../../../shared/browser/current-time";
@@ -14,10 +12,17 @@ import type {
   PromptPresetRelationshipMutation,
   PromptPresetRelationshipTransactionResult,
 } from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
+import type {
+  PromptPresetCatalogMutation,
+  PromptPresetCatalogTransactionResult,
+} from "../../navigation";
 
 type UsePromptPresetActionsInput = {
   promptPresets: PromptPresetRecord[];
   setPromptPresets: StateSetter<PromptPresetRecord[]>;
+  runPromptPresetCatalogMutation: (
+    mutation: PromptPresetCatalogMutation,
+  ) => Promise<PromptPresetCatalogTransactionResult>;
   runPromptPresetRelationshipMutation: (
     mutation: PromptPresetRelationshipMutation,
   ) => Promise<PromptPresetRelationshipTransactionResult>;
@@ -27,31 +32,41 @@ export function usePromptPresetActions({
   promptPresets,
   setPromptPresets,
   runPromptPresetRelationshipMutation,
+  runPromptPresetCatalogMutation,
 }: UsePromptPresetActionsInput) {
   const createPromptPreset = useCallback(
-    (input: PromptPresetInput) => {
+    async (input: PromptPresetInput) => {
       const now = currentIsoTimestamp();
-      const preset = createPromptPresetRecord({
+      return runPromptPresetCatalogMutation({
+        kind: "create",
         id: createRecordId("prompt-preset"),
-        input,
         now,
+        input,
       });
-      setPromptPresets((currentPresets) => [preset, ...currentPresets]);
-      return preset;
     },
-    [setPromptPresets],
+    [runPromptPresetCatalogMutation],
   );
 
   const updatePromptPreset = useCallback(
-    (presetId: string, input: PromptPresetInput) => {
+    async (presetId: string, input: PromptPresetInput, expectedUpdatedAt: string) => {
       const now = currentIsoTimestamp();
-      setPromptPresets((currentPresets) =>
-        currentPresets.map((preset) =>
-          preset.id === presetId ? updatePromptPresetRecord(preset, input, now) : preset,
-        ),
-      );
+      const original = promptPresets.find((preset) => preset.id === presetId);
+      if (!original)
+        return {
+          saved: false,
+          published: false,
+          blocked: false,
+          message: "Prompt preset was not found.",
+        };
+      return runPromptPresetCatalogMutation({
+        kind: "update",
+        presetId,
+        originalUpdatedAt: expectedUpdatedAt,
+        now,
+        input,
+      });
     },
-    [setPromptPresets],
+    [promptPresets, runPromptPresetCatalogMutation],
   );
 
   const duplicatePromptPreset = useCallback(

@@ -28,6 +28,9 @@ export type {
   NavThreadState,
   NavViewActions,
   NavViewState,
+  PromptPresetCatalogMutation,
+  PromptPresetCatalogTransactionResult,
+  ViewLeavePolicy,
   PondView,
   SideRailView,
 } from "./context/nav-types";
