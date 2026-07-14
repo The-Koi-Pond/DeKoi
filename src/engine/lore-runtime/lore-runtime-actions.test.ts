@@ -13,7 +13,7 @@ function state(input: Partial<LoreRuntimeState>): LoreRuntimeState {
   return {
     id: "state-1",
     schemaVersion: 1,
-    ownerKind: "messenger-thread",
+    ownerKind: "mode-branch",
     ownerId: "thread-1",
     lastEvaluatedMessageCount: 0,
     entries: [],
@@ -30,7 +30,7 @@ describe("lore runtime actions", () => {
     expect(
       selectLoreRuntimeState({
         loreRuntimeStates: [state({ id: "other" }), selected],
-        ownerKind: "messenger-thread",
+        ownerKind: "mode-branch",
         ownerId: "thread-selected",
       }),
     ).toBe(selected);
@@ -72,7 +72,7 @@ describe("lore runtime actions", () => {
     expect(
       deleteLoreRuntimeStateForOwner(
         [state({ id: "first" }), state({ id: "second" }), state({ id: "other", ownerId: "x" })],
-        "messenger-thread",
+        "mode-branch",
         "thread-1",
       ).map((item) => item.id),
     ).toEqual(["other"]);

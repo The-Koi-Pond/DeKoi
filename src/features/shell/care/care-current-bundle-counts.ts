@@ -5,12 +5,11 @@ export function getCurrentCareBundleCounts(nav: CareDrawerNav) {
   return getDeKoiStorageBundleCounts({
     appSettings: nav.appSettings,
     characters: nav.characters,
-    roleplayThreads: nav.roleplayThreads,
+    modeThreads: nav.modeThreads,
     lorebooks: nav.lorebooks,
     promptPresets: nav.promptPresets,
     loreRuntimeStates: nav.loreRuntimeStates,
     macroVariableStates: nav.macroVariableStates,
-    messengerThreads: nav.messengerThreads,
     personas: nav.personas,
     providerConnections: nav.providerConnections,
     rippleStates: nav.rippleStates,

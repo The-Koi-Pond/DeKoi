@@ -97,9 +97,10 @@ temp/sync path without creating a backup.
 If a readable desktop file or remote `storage_list` response contains individual
 records DeKoi cannot normalize, DeKoi loads the accepted records and counts the
 rejected records locally. Pond Care shows one dropped-records warning and DeKoi
-blocks saves for affected collections, including both sides of a split
-Messenger or Roleplay transcript pair, until reload or import/restore loads
-without drops.
+blocks automatic replacement for the unified `mode-threads`/`mode-messages`
+safety group until reload or import/restore loads without drops. Operations
+changing both projections schedule both; one-projection edits may save only that
+projection, with sequential writes and explicit partial-failure reporting.
 
 When one or more collection loads fail, DeKoi keeps every per-collection error
 message while preserving the first error as the aggregate storage result for
@@ -330,31 +331,54 @@ Request:
       "id": "generation-request-example",
       "createdAt": "2026-06-24T07:20:00.000Z",
       "thread": {
-        "id": "messenger-thread-example",
+        "id": "mode-thread-example",
         "schemaVersion": 1,
         "kind": "messenger",
-        "mode": "direct",
         "title": "Example Messenger",
-        "characterIds": ["character-koi"],
-        "activePersonaId": "persona-xel",
-        "lorebookIds": [],
-        "presetId": null,
-        "presetChoiceSelectionsByPresetId": {},
-        "providerConnectionId": "connection-local-provider",
+        "activeBranchId": "branch-example",
+        "branches": [
+          {
+            "id": "branch-example",
+            "schemaVersion": 1,
+            "threadId": "mode-thread-example",
+            "kind": "messenger",
+            "participantMode": "direct",
+            "characterIds": ["character-koi"],
+            "activePersonaId": "persona-xel",
+            "lorebookIds": [],
+            "presetId": null,
+            "presetChoiceSelectionsByPresetId": {},
+            "providerConnectionId": "connection-local-provider",
+            "systemPromptMode": "default",
+            "systemPrompt": "",
+            "createdAt": "2026-06-24T07:10:00.000Z",
+            "updatedAt": "2026-06-24T07:20:00.000Z"
+          }
+        ],
         "messages": [],
         "createdAt": "2026-06-24T07:10:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
       },
       "userMessage": {
         "id": "messenger-message-user",
-        "threadId": "messenger-thread-example",
+        "schemaVersion": 1,
+        "threadId": "mode-thread-example",
+        "branchId": "branch-example",
         "author": {
           "kind": "persona",
           "personaId": "persona-xel",
           "label": "Xel"
         },
-        "body": "Can you hear me?",
-        "origin": "manual",
+        "versions": [
+          {
+            "id": "messenger-message-user-v1",
+            "body": "Can you hear me?",
+            "origin": "manual",
+            "createdAt": "2026-06-24T07:20:00.000Z",
+            "updatedAt": "2026-06-24T07:20:00.000Z"
+          }
+        ],
+        "activeVersionId": "messenger-message-user-v1",
         "createdAt": "2026-06-24T07:20:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
       },
@@ -516,14 +540,12 @@ Supported storage entities:
 
 - `app-settings`
 - `characters`
-- `roleplay-threads`
-- `roleplay-entries`
+- `mode-threads`
+- `mode-messages`
 - `lorebooks`
 - `prompt-presets`
 - `lore-runtime-states`
 - `macro-variable-states`
-- `messenger-threads`
-- `messenger-messages`
 - `personas`
 - `provider-connections`
 - `ripple-states`
@@ -545,13 +567,19 @@ Legacy `globalVariables` and Messenger thread `variables` are likewise converted
 only by Pond Care's one-way legacy import into `macro-variable-states`;
 compatible runtimes should not expose those legacy fields in normal records.
 
-Messenger and Roleplay transcript storage is split. `messenger-threads` records
-omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
-live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
-`threadId`. Messenger thread records do not carry `systemPromptMode` or
-`systemPrompt`; DeKoi drops those obsolete development fields during
-normalization and queues accepted records for rewrite. Thread records may carry
-`presetChoiceSelectionsByPresetId`;
+Mode transcript storage uses one native pair. `mode-threads` records are
+metadata projections and complete transcript items live in `mode-messages` with
+`schemaVersion: 1`, `threadId`, and `branchId`; DeKoi assembles the pair into
+unified mode threads. A thread has
+`kind`, non-empty `branches`, and `activeBranchId`; each branch has its own
+`systemPromptMode`/`systemPrompt` and context settings. Messages have an author
+kind discriminator, complete version records, and an `activeVersionId`.
+Thread and message records form one replacement safety group: a rejected record
+in either collection blocks automatic replacement of both. Operations that
+change both projections request both saves. The current protocol still replaces
+collections individually, so runtimes must report partial failure precisely;
+DeKoi reloads the durable result and offers its explicit backup/restore path.
+Thread records may carry `presetChoiceSelectionsByPresetId`;
 runtimes should preserve that per-preset history map with the thread metadata.
 Each history is keyed by stable choice-block ID. Each value is
 an option object such as `{ "kind": "option", "optionId": "tone-soft" }`, or
@@ -566,9 +594,9 @@ variable name, including string values. Runtimes should round-trip native thread
 or duplicate option values keep their option identity. Native loading does not
 create aliases or tombstones for removed IDs; repaired thread rows are written
 back through the normal collection path. DeKoi assembles thread
-records with their transcript items before rendering or generating. Legacy
-embedded `messages` or `entries` may still be accepted on load or bundle
-import, but normal writes use the split collections.
+records with their transcript items before rendering or generating. Embedded
+transcript data is accepted only by the one-way legacy importer; normal remote
+storage reads and writes use the native pair exclusively.
 
 `app-settings` records include `globalLorebookIds` and `loreInsertionStrategy`
 for generation-wide lore context. `globalLorebookIds` stores trimmed unique
@@ -579,36 +607,28 @@ New Messenger and Roleplay threads use it. `promptPresetStarterInitialized`
 records that starter initialization occurred; it does not prevent recovery of a
 cleanly loaded empty prompt-preset collection.
 
-`prompt-presets` records use `schemaVersion: 1` and require a non-empty `id` and
-`title`. Prompt text and the rest of the recipe are optional. Omitted or null
-shared prompt text normalizes to `systemPrompt: ""`; nullable text and metadata
-normalize to `null`; parameters normalize to an object or `null`; and omitted
-ordering fields, `sections`, `groups`, `choiceBlocks`, variable groups, static
-`variableValues`, and `defaultChoices` normalize to stable empty arrays or maps.
-An explicitly non-string shared prompt or present non-array `sections`, `groups`,
-or `choiceBlocks` rejects the record. Native prompt preset records do not carry
-a default flag. DeKoi drops invalid parameter and sampling fields during
-normalization. Current generated requests consume the sampling
+`prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
+`title`, optional `summary`, required non-empty `systemPrompt`, optional
+`messengerPrompt`, normalized `parameters`, a `sampling` projection with
+`temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
+`choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
+author/folder metadata. Native prompt preset records do not carry a default
+flag. DeKoi drops invalid parameter and sampling
+fields during normalization. Current generated requests consume the sampling
 projection, and cap preset `maxTokens` to the selected provider connection's
 positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
 as its selected-preset source when present, then falls back to `systemPrompt`.
-Messenger ordinary conversation settings select a prompt preset and its
-preset-authored Variables; they do not own an arbitrary prompt or model-
-parameter override. Generation uses the selected preset's `messengerPrompt`,
-then shared `systemPrompt`, and falls back to the built-in
-`DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
-That fallback is generated at request time and is not stored in a blank preset.
-Messenger does not consume prompt preset sections. Roleplay consumes enabled
-sections and adjacent enabled groups for prompt assembly when a selected preset
-has sections; when those sections have no usable text, it uses `systemPrompt` as
-the fallback prelude, then the built-in Roleplay prelude when neither has usable
-text. Roleplay marker sections expand scene, lore, persona, character,
+A non-empty custom Messenger Prompt still overrides the selected preset at
+generation time and Messenger does not consume prompt preset sections. Roleplay
+consumes enabled sections and adjacent enabled groups for prompt assembly when a
+selected preset has sections; otherwise it uses `systemPrompt` as the fallback
+prelude. Roleplay marker sections expand scene, lore, persona, character,
 example-dialogue, and chat-history context, with transcript history included
 only by an enabled `chat_history` marker. Depth sections are anchored to that
 marker when present, or to the sectioned prompt message stream when it is
-absent. If a sectioned preset materializes no messages after filtering, Roleplay
-falls back to `systemPrompt`, then the built-in Roleplay prelude when neither has
-usable text, without automatically including transcript history.
+absent. If a sectioned preset materializes no messages after filtering,
+Roleplay falls back to `systemPrompt` without automatically including
+transcript history.
 DeKoi appends a post-history contract that keeps the target companion primary
 and prevents generation of the user's dialogue, intent, decisions, or
 deliberate actions. With a selected preset, narration and other-character
@@ -626,11 +646,7 @@ choice is visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged
 `dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
-they are not remote storage record shapes. Package-level `sections`, `groups`,
-and `choiceBlocks` may be omitted and normalize to empty arrays, but any present
-value must be an actual JSON array. Nested choice `options` retain their
-supported JSON-string compatibility form. A malformed present prompt or
-non-array top-level recipe collection rejects the package.
+they are not remote storage record shapes.
 
 Prompt preset create and update stage and replace the complete
 `prompt-presets` collection before the app publishes the new catalog state.
@@ -663,8 +679,8 @@ are trimmed to non-empty unique keys in first-seen order. Pre-v2 lorebook rows
 were development-only and are rejected by DeKoi normalization rather than
 migrated.
 
-`lore-runtime-states` records use `schemaVersion: 1` and belong to either a
-Messenger or Roleplay thread through `ownerKind` and `ownerId`. They store
+`lore-runtime-states` records use `schemaVersion: 1` and belong to a Messenger
+or Roleplay branch through `ownerKind: "mode-branch"` and the branch `ownerId`. They store
 mutable per-entry sticky and cooldown timers for lorebook timing effects. Each
 entry state is keyed by `lorebookId` and `entryId`, records the entry's
 `entryUpdatedAt`, and stores non-negative `activatedAtMessageIndex`,
@@ -673,22 +689,24 @@ its transcript removes its matching lore runtime state; bundle import skips
 orphaned lore runtime states and treats missing older bundle fields as empty.
 
 `macro-variable-states` records use `schemaVersion: 1` and belong to global
-state, a Messenger thread, or a Roleplay thread through `ownerKind` and
-`ownerId`. Global records use `ownerKind: "global"` and `ownerId: "global"`;
-thread-scoped records use `ownerKind: "messenger-thread"` or
-`"roleplay-thread"` and the owning thread ID. The `variables` object stores
+state or a mode branch through `ownerKind` and `ownerId`. Global records use
+`ownerKind: "global"` and `ownerId: "global"`; branch-scoped records use
+`ownerKind: "mode-branch"` and the owning branch ID. The `variables` object stores
 trimmed non-empty variable names with string values. Generation starts with
-global variables, overlays thread variables, then overlays prompt-preset static
+global variables, overlays active-branch variables, then overlays prompt-preset static
 and choice variables for the active request. It persists committed mutations
 only after generation succeeds. New variables created during a thread generation
-are saved to the thread scope; existing global-only variables remain global.
-Deleting a thread or clearing its transcript removes matching thread-scoped
-macro variable state, bundle import skips orphaned thread-scoped states, and
+are saved to the active branch scope; existing global-only variables remain global.
+Deleting a thread or clearing its branch transcript removes matching branch-scoped
+macro variable state, bundle import skips orphaned branch-scoped states, and
 missing older bundle fields are treated as empty. Prompt-preset variables are
 request inputs and are not persisted in this collection.
-When Pond Care commits a legacy import, DeKoi has already remapped imported
-thread scopes to converted Messenger thread IDs and merged imported global
+When Pond Care commits a legacy import, DeKoi remaps imported
+legacy thread-variable scopes to converted mode branch IDs and merged imported global
 variables with existing globals; imported same-name globals take precedence.
+Legacy conversion is limited to recognized Messenger records; lorebook and
+prompt-preset references are cleared, not imported. Development data may be
+reset when storage shape changes.
 
 When `generation_generate` includes resolved lorebooks, they use the same v2
 shape. Current DeKoi prompt assembly resolves lorebook sources from the
@@ -762,7 +780,7 @@ Character filters and triggers are still not applied by DeKoi prompt assembly.
 {
   "command": "storage_list",
   "args": {
-    "entity": "messenger-threads",
+    "entity": "mode-threads",
     "options": null
   }
 }
@@ -786,20 +804,33 @@ runtimes do not send dropped-record counts separately.
 {
   "command": "storage_replace",
   "args": {
-    "entity": "messenger-threads",
+    "entity": "mode-threads",
     "records": [
       {
-        "id": "messenger-thread-example",
+        "id": "mode-thread-example",
         "schemaVersion": 1,
         "kind": "messenger",
-        "mode": "direct",
         "title": "Messenger example",
-        "characterIds": [],
-        "activePersonaId": null,
-        "lorebookIds": [],
-        "presetId": null,
-        "presetChoiceSelectionsByPresetId": {},
-        "providerConnectionId": null,
+        "activeBranchId": "branch-example",
+        "branches": [
+          {
+            "id": "branch-example",
+            "schemaVersion": 1,
+            "threadId": "mode-thread-example",
+            "kind": "messenger",
+            "participantMode": "direct",
+            "characterIds": [],
+            "activePersonaId": null,
+            "lorebookIds": [],
+            "presetId": null,
+            "presetChoiceSelectionsByPresetId": {},
+            "providerConnectionId": null,
+            "systemPromptMode": "default",
+            "systemPrompt": "",
+            "createdAt": "2026-06-24T07:20:00.000Z",
+            "updatedAt": "2026-06-24T07:20:00.000Z"
+          }
+        ],
         "createdAt": "2026-06-24T07:20:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
       }
@@ -818,8 +849,9 @@ For `storage_replace`, DeKoi's TypeScript runtime adapters own native record
 normalization before the call. Runtime implementations validate collection
 structure and IDs; they do not duplicate every product-record validator.
 After DeKoi loads a collection with dropped records, it will not call
-`storage_replace` for that collection, or for the paired split transcript
-collection, until reload or import/restore clears the dropped-record count.
+`storage_replace` for that collection, or for the unified mode transcript safety
+group when either projection has drops, until reload or import/restore clears
+the dropped-record count.
 
 Returns:
 
@@ -828,7 +860,7 @@ Returns:
   "ok": true,
   "count": 1,
   "metadata": {
-    "entity": "messenger-threads",
+    "entity": "mode-threads",
     "exists": true,
     "byteLength": 37,
     "updatedAtMs": 1782620000000,
@@ -865,11 +897,32 @@ Example RippleState list:
 {
   "command": "storage_create",
   "args": {
-    "entity": "messenger-threads",
+    "entity": "mode-threads",
     "value": {
-      "id": "messenger-thread-example",
+      "id": "mode-thread-example",
       "schemaVersion": 1,
+      "kind": "messenger",
       "title": "Messenger example",
+      "activeBranchId": "branch-example",
+      "branches": [
+        {
+          "id": "branch-example",
+          "schemaVersion": 1,
+          "threadId": "mode-thread-example",
+          "kind": "messenger",
+          "participantMode": "direct",
+          "characterIds": [],
+          "activePersonaId": null,
+          "lorebookIds": [],
+          "presetId": null,
+          "presetChoiceSelectionsByPresetId": {},
+          "providerConnectionId": null,
+          "systemPromptMode": "default",
+          "systemPrompt": "",
+          "createdAt": "2026-06-24T07:20:00.000Z",
+          "updatedAt": "2026-06-24T07:20:00.000Z"
+        }
+      ],
       "createdAt": "2026-06-24T07:20:00.000Z",
       "updatedAt": "2026-06-24T07:20:00.000Z"
     }
@@ -888,8 +941,8 @@ not replace. For non-settings collections, the created record must include
 {
   "command": "storage_update",
   "args": {
-    "entity": "messenger-threads",
-    "id": "messenger-thread-example",
+    "entity": "mode-threads",
+    "id": "mode-thread-example",
     "patch": {
       "title": "Updated Messenger"
     }
@@ -908,8 +961,8 @@ must still include required durable fields. Desktop and fixture runtimes stamp
 {
   "command": "storage_delete",
   "args": {
-    "entity": "messenger-threads",
-    "id": "messenger-thread-example"
+    "entity": "mode-threads",
+    "id": "mode-thread-example"
   }
 }
 ```

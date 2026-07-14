@@ -52,12 +52,12 @@ These are intentionally not current contracts:
 - Asset storage: add only when durable file bytes become product data. Collection
   rows should reference asset IDs or safe relative paths; bytes should live under
   a runtime-controlled asset root.
-- Transcript append path: when Messenger or Roleplay transcript storage paths
-  are next changed, stop rewriting the whole transcript collection for ordinary
-  appends. Prefer a repository-level append path or append-friendly adapter that
-  keeps the current `messenger-messages` and `roleplay-entries` record
-  contracts. Whole-collection replace is still appropriate for import, repair,
-  restore, and transcript-clear operations.
+- Transcript append path: when mode transcript storage is next changed, stop
+  rewriting the whole `mode-messages` collection for ordinary appends. Prefer a
+  repository-level append path or append-friendly adapter. Whole-collection
+  replace remains appropriate for import, repair, restore, and transcript-clear
+  operations. Operations that also change thread metadata must schedule
+  `mode-threads`; sequential writes must keep partial failures explicit.
 - Database adapter: add only after append-friendly transcript writes exist and
   collection JSON still cannot satisfy a concrete product need such as
   pagination, indexed search, full-text search, transactional multi-collection

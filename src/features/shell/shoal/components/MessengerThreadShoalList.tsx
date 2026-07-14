@@ -1,12 +1,12 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { MessengerModeThread } from "../../../../engine/contracts/types/mode-thread";
 import { KoiCard } from "../KoiCard";
 import { getMessengerCardDetails } from "../lib/messenger-card-details";
 
 interface MessengerThreadShoalListProps {
   activeMessengerThreadId: string | null;
   characterById: Map<string, CharacterRecord>;
-  messengerThreads: readonly MessengerThread[];
+  messengerThreads: readonly MessengerModeThread[];
   onDeleteMessengerThread: (threadId: string, displayName: string) => void;
   onOpenMessengerThread: (threadId: string) => void;
 }

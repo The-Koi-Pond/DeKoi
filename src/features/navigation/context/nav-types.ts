@@ -1,6 +1,11 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import type { CharacterRecordInput } from "../../../engine/catalog/character-actions";
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  ModeMessage,
+  ModeThread,
+  RoleplayModeThread,
+} from "../../../engine/contracts/types/mode-thread";
 import type { LoreEntryRecord, LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type {
   LoreRuntimeState,
@@ -8,7 +13,6 @@ import type {
 } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
 import type { LorebookEntryInput, LorebookInput } from "../../../engine/catalog/lorebook-actions";
-import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
@@ -74,8 +78,7 @@ export interface NavCatalogState {
 }
 
 export interface NavThreadState {
-  roleplayThreads: RoleplayThread[];
-  messengerThreads: MessengerThread[];
+  modeThreads: ModeThread[];
 }
 
 export interface NavRippleState {
@@ -212,13 +215,13 @@ export interface RoleplayThreadCreateInput {
 }
 
 export interface NavRoleplayThreadActions {
-  createRoleplayThread: (input?: RoleplayThreadCreateInput) => RoleplayThread;
-  updateRoleplayThread: (thread: RoleplayThread) => void;
+  createRoleplayThread: (input?: RoleplayThreadCreateInput) => RoleplayModeThread;
+  updateRoleplayThread: (thread: RoleplayModeThread) => void;
   updateRoleplayThreadById: (
     threadId: string,
-    updater: (thread: RoleplayThread) => RoleplayThread,
+    updater: (thread: RoleplayModeThread) => RoleplayModeThread,
   ) => void;
-  appendRoleplayThreadEntries: (threadId: string, entries: RoleplayEntry[]) => void;
+  appendRoleplayThreadEntries: (threadId: string, entries: ModeMessage[]) => void;
   renameRoleplayThread: (threadId: string, title: string) => void;
   clearRoleplayThreadEntries: (threadId: string) => void;
   deleteRoleplayThread: (threadId: string) => void;
@@ -227,13 +230,13 @@ export interface NavRoleplayThreadActions {
 }
 
 export interface NavMessengerThreadActions {
-  createMessengerThread: (input?: MessengerThreadCreateInput) => MessengerThread;
-  updateMessengerThread: (thread: MessengerThread) => void;
+  createMessengerThread: (input?: MessengerThreadCreateInput) => MessengerModeThread;
+  updateMessengerThread: (thread: MessengerModeThread) => void;
   updateMessengerThreadById: (
     threadId: string,
-    updater: (thread: MessengerThread) => MessengerThread,
+    updater: (thread: MessengerModeThread) => MessengerModeThread,
   ) => void;
-  appendMessengerThreadMessages: (threadId: string, messages: MessengerMessage[]) => void;
+  appendMessengerThreadMessages: (threadId: string, messages: ModeMessage[]) => void;
   renameMessengerThread: (threadId: string, title: string) => void;
   clearMessengerThreadMessages: (threadId: string) => void;
   deleteMessengerThread: (threadId: string) => void;

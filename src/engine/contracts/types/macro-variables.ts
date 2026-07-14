@@ -1,4 +1,4 @@
-export type MacroVariableScopeOwnerKind = "messenger-thread" | "roleplay-thread" | "global";
+export type MacroVariableScopeOwnerKind = "mode-branch" | "global";
 
 export interface MacroVariableScope {
   id: string;

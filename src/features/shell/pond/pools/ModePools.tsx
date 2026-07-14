@@ -21,7 +21,7 @@ interface ModePoolsProps {
 
 export type ModePoolsNav = Pick<NavRoleplayThreadActions, "createRoleplayThread"> &
   Pick<NavMessengerThreadActions, "createMessengerThread"> &
-  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "openRoleplayThread" | "openMessengerThread" | "setSelectedSurface"> &
   Pick<NavViewState, "selectedSurface">;
 
@@ -60,7 +60,9 @@ const POOLS: {
 
 export function ModePools({ nav }: ModePoolsProps) {
   function openLatestMessengerThread() {
-    const latestThread = sortMessengerThreadsByUpdatedAt(nav.messengerThreads)[0];
+    const latestThread = sortMessengerThreadsByUpdatedAt(
+      nav.modeThreads.filter((thread) => thread.kind === "messenger"),
+    )[0];
     if (latestThread) {
       nav.openMessengerThread(latestThread.id);
       return;
@@ -70,7 +72,9 @@ export function ModePools({ nav }: ModePoolsProps) {
   }
 
   function openLatestRoleplayThread() {
-    const latestThread = sortRoleplayThreadsByUpdatedAt(nav.roleplayThreads)[0];
+    const latestThread = sortRoleplayThreadsByUpdatedAt(
+      nav.modeThreads.filter((thread) => thread.kind === "roleplay"),
+    )[0];
     if (latestThread) {
       nav.openRoleplayThread(latestThread.id);
       return;

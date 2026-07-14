@@ -1,7 +1,8 @@
 import type { AppSettings } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { MessengerModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
@@ -37,8 +38,9 @@ export function getMessengerThreadReferenceSummary({
   personas: readonly PersonaRecord[];
   promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
-  thread: MessengerThread;
+  thread: MessengerModeThread;
 }): MessengerThreadReferenceSummary {
+  const branch = getActiveModeBranch(thread);
   return getThreadReferenceSummary({
     characters,
     fallbackProviderConnectionId: appSettings.activeMessengerConnectionId,
@@ -47,7 +49,7 @@ export function getMessengerThreadReferenceSummary({
     personas,
     promptPresets,
     providerConnections,
-    thread,
+    thread: branch,
   });
 }
 

@@ -1,6 +1,6 @@
-export type LoreRuntimeStateOwnerKind = "messenger-thread" | "roleplay-thread";
+export type LoreRuntimeStateOwnerKind = "mode-branch";
 
-/** Mutable timer state for one lorebook entry in one owner thread. */
+/** Mutable timer state for one lorebook entry in one owner branch. */
 export interface LoreRuntimeEntryState {
   lorebookId: string;
   entryId: string;
@@ -12,7 +12,7 @@ export interface LoreRuntimeEntryState {
   cooldownRemaining: number;
 }
 
-/** Per-thread durable state for lorebook sticky and cooldown timers. */
+/** Per-branch durable state for lorebook sticky and cooldown timers. */
 export interface LoreRuntimeState {
   id: string;
   schemaVersion: 1;

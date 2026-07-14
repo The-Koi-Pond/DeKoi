@@ -12,8 +12,7 @@ const snapshot = {
   loreRuntimeStates: [],
   macroVariableStates: [],
   providerConnections: [],
-  roleplayThreads: [],
-  messengerThreads: [],
+  modeThreads: [],
   rippleStates: [],
 } as unknown as AppStorageRecords;
 

@@ -1,11 +1,13 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  RoleplayModeThread,
+} from "../../../../engine/contracts/types/mode-thread";
 import { getRoleplayThreadPreview } from "../../../modes";
 import { getMessengerCardDetails } from "./messenger-card-details";
 
 export function filterShoalMessengerThreads(
-  threads: readonly MessengerThread[],
+  threads: readonly MessengerModeThread[],
   normalizedQuery: string,
   characterById: Map<string, CharacterRecord>,
 ) {
@@ -18,7 +20,7 @@ export function filterShoalMessengerThreads(
 }
 
 export function filterShoalRoleplayThreads(
-  threads: readonly RoleplayThread[],
+  threads: readonly RoleplayModeThread[],
   normalizedQuery: string,
 ) {
   if (!normalizedQuery) return [...threads];

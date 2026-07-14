@@ -22,13 +22,14 @@ export {
   type AppStorageRepairStrategy,
 } from "./storage/desktop-storage-repair";
 export {
+  assembleModeThreads,
   appStorageCollectionCount,
   appStorageCollectionSignature,
   appStorageCollectionSource,
+  projectModeThreadCollections,
 } from "./storage/app-storage-collection-projection";
 export { loadAppSettings } from "./storage/collections/app-settings";
 export { loadCharacterRecords } from "./storage/collections/character-storage";
-export { loadRoleplayThreads } from "./storage/collections/roleplay-storage";
 export {
   createDeKoiStorageBundle,
   createDeKoiStorageBundleFingerprint,
@@ -60,11 +61,9 @@ export {
   parsePromptPresetFileText,
   type PromptPresetFileParseResult,
 } from "./storage/prompt-presets/prompt-preset-file";
-export {
-  loadInitialMessengerThreads,
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
-} from "./storage/collections/messenger-storage";
+export type MessengerStorageMode = import("./storage/storage-repository").StorageMode;
+export type MessengerStorageStatus =
+  "loading" | "saving" | import("./storage/storage-repository").StorageStatus;
 export { loadPersonaRecords } from "./storage/collections/persona-storage";
 export { loadProviderConnectionRecords } from "./storage/collections/provider-connection-storage";
 export { loadRippleStates } from "./storage/collections/ripple-state-storage";

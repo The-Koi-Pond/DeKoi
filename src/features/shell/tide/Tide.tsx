@@ -12,6 +12,11 @@ import type {
 } from "../../navigation";
 import { setRoleplayThreadPersona } from "../../../engine/modes/roleplay/roleplay-actions";
 import { setMessengerThreadPersona } from "../../../engine/modes/messenger/messenger-actions";
+import { getActiveModeBranch } from "../../../engine/modes/mode-thread/mode-thread-actions";
+import type {
+  MessengerModeThread,
+  RoleplayModeThread,
+} from "../../../engine/contracts/types/mode-thread";
 import {
   getMessengerThreadInitials,
   getMessengerThreadPreview,
@@ -27,7 +32,7 @@ export type TideNav = Pick<NavSettingsActions, "setSurfaceStatus"> &
   Pick<NavRoleplayThreadActions, "updateRoleplayThread"> &
   Pick<NavMessengerThreadActions, "updateMessengerThread"> &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<NavViewActions, "openMessengerThread"> &
   Pick<NavViewState, "view">;
 
@@ -54,12 +59,22 @@ export function Tide({ nav }: TideProps) {
 
   if (nav.view.kind === "messenger") {
     const threadId = nav.view.threadId;
-    selectedPersonaId =
-      nav.messengerThreads.find((thread) => thread.id === threadId)?.activePersonaId ?? null;
+    selectedPersonaId = nav.modeThreads.find(
+      (thread) => thread.kind === "messenger" && thread.id === threadId,
+    )
+      ? getActiveModeBranch(
+          nav.modeThreads.find((thread) => thread.kind === "messenger" && thread.id === threadId)!,
+        ).activePersonaId
+      : null;
   } else if (nav.view.kind === "roleplay") {
     const threadId = nav.view.threadId;
-    selectedPersonaId =
-      nav.roleplayThreads.find((thread) => thread.id === threadId)?.activePersonaId ?? null;
+    selectedPersonaId = nav.modeThreads.find(
+      (thread) => thread.kind === "roleplay" && thread.id === threadId,
+    )
+      ? getActiveModeBranch(
+          nav.modeThreads.find((thread) => thread.kind === "roleplay" && thread.id === threadId)!,
+        ).activePersonaId
+      : null;
   } else if (nav.view.kind === "personas") {
     selectedPersonaId = nav.view.personaId ?? null;
   }
@@ -78,7 +93,9 @@ export function Tide({ nav }: TideProps) {
   const threadResults = useMemo(() => {
     if (!normalizedQuery) return [];
 
-    return sortMessengerThreadsByUpdatedAt(nav.messengerThreads)
+    return sortMessengerThreadsByUpdatedAt(
+      nav.modeThreads.filter((thread) => thread.kind === "messenger"),
+    )
       .filter((thread) => {
         const preview = getMessengerThreadPreview(thread);
         return (
@@ -87,7 +104,7 @@ export function Tide({ nav }: TideProps) {
         );
       })
       .slice(0, 5);
-  }, [nav.messengerThreads, normalizedQuery]);
+  }, [nav.modeThreads, normalizedQuery]);
   const resultsOpen = searchExpanded && normalizedQuery.length > 0;
 
   useEffect(() => {
@@ -143,13 +160,19 @@ export function Tide({ nav }: TideProps) {
 
     if (nav.view.kind === "messenger") {
       const threadId = nav.view.threadId;
-      const thread = nav.messengerThreads.find((candidate) => candidate.id === threadId) ?? null;
+      const thread = nav.modeThreads.find(
+        (candidate): candidate is MessengerModeThread =>
+          candidate.kind === "messenger" && candidate.id === threadId,
+      );
       if (thread) {
         nav.updateMessengerThread(setMessengerThreadPersona(thread, personaId, now));
       }
     } else if (nav.view.kind === "roleplay") {
       const threadId = nav.view.threadId;
-      const thread = nav.roleplayThreads.find((candidate) => candidate.id === threadId) ?? null;
+      const thread = nav.modeThreads.find(
+        (candidate): candidate is RoleplayModeThread =>
+          candidate.kind === "roleplay" && candidate.id === threadId,
+      );
       if (thread) {
         nav.updateRoleplayThread(setRoleplayThreadPersona(thread, personaId, now));
       }

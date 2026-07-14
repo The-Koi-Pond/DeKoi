@@ -6,7 +6,8 @@ import {
   setMessengerThreadPresetChoiceSelections,
   setMessengerThreadProviderConnection,
 } from "../../../../engine/modes/messenger/messenger-actions";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import { type MessengerModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsMessengerIdentityActions,
@@ -17,7 +18,7 @@ import { toggleSelectedId } from "../lib/toggle-selected-id";
 import type { ShoalNav } from "../types";
 
 interface UseChatSettingsMessengerActionsInput {
-  activeMessengerThread: MessengerThread | null;
+  activeMessengerThread: MessengerModeThread | null;
   characters: ShoalNav["characters"];
   lorebooks: ShoalNav["lorebooks"];
   onCompanionSelectorOpenChange: (open: boolean) => void;
@@ -25,11 +26,11 @@ interface UseChatSettingsMessengerActionsInput {
 }
 
 export function transformMessengerPresetConfirm(
-  thread: MessengerThread,
+  thread: MessengerModeThread,
   presetId: string,
   selections: PromptPresetThreadChoiceSelections,
   updatedAt: string,
-): MessengerThread {
+): MessengerModeThread {
   const next = setMessengerThreadPreset(thread, presetId, updatedAt, selections);
   return next;
 }
@@ -42,7 +43,7 @@ export function useChatSettingsMessengerActions({
   onUpdateMessengerThreadById,
 }: UseChatSettingsMessengerActionsInput) {
   function updateActiveMessengerThread(
-    updater: (thread: MessengerThread, updatedAt: string) => MessengerThread,
+    updater: (thread: MessengerModeThread, updatedAt: string) => MessengerModeThread,
   ) {
     if (!activeMessengerThread) return;
     onUpdateMessengerThreadById(activeMessengerThread.id, (thread) =>
@@ -66,7 +67,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadParticipants(
         thread,
-        toggleSelectedId(thread.characterIds, characterId),
+        toggleSelectedId(getActiveModeBranch(thread).characterIds, characterId),
         updatedAt,
       ),
     );
@@ -76,7 +77,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadLorebooks(
         thread,
-        toggleSelectedId(thread.lorebookIds, lorebookId),
+        toggleSelectedId(getActiveModeBranch(thread).lorebookIds, lorebookId),
         updatedAt,
       ),
     );
@@ -119,7 +120,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadParticipants(
         thread,
-        thread.characterIds.filter((characterId) =>
+        getActiveModeBranch(thread).characterIds.filter((characterId) =>
           characters.some((character) => character.id === characterId),
         ),
         updatedAt,
@@ -132,7 +133,7 @@ export function useChatSettingsMessengerActions({
     updateActiveMessengerThread((thread, updatedAt) =>
       setMessengerThreadLorebooks(
         thread,
-        thread.lorebookIds.filter((lorebookId) =>
+        getActiveModeBranch(thread).lorebookIds.filter((lorebookId) =>
           lorebooks.some((lorebook) => lorebook.id === lorebookId),
         ),
         updatedAt,

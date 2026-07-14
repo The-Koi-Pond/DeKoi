@@ -1,30 +1,36 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
 import type { LoreRuntimeState } from "../../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../../engine/contracts/types/macro-variables";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
-import { resolvePromptPresetChoiceControls } from "../../../../engine/prompt-presets/prompt-preset-actions";
-import {
-  appendMessengerMessages,
-  clearMessengerMessages,
-  createMessengerThread as buildMessengerThread,
-  deleteMessengerThread as deleteMessengerThreadRecord,
-  renameMessengerThread as renameMessengerThreadRecord,
-} from "../../../../engine/modes/messenger/messenger-actions";
+import type {
+  MessengerModeThread,
+  ModeMessage,
+  ModeThread,
+} from "../../../../engine/contracts/types/mode-thread";
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
+import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
 } from "../../../../engine/contracts/types/provider-connection";
+import type { RippleState } from "../../../../engine/contracts/types/ripples";
+import {
+  appendMessengerMessages,
+  clearMessengerMessages,
+  createMessengerThread as buildMessengerThread,
+  renameMessengerThread as renameMessengerThreadRecord,
+  setMessengerThreadPresetChoiceSelections,
+} from "../../../../engine/modes/messenger/messenger-actions";
+import { getActiveModeBranch } from "../../../../engine/modes/mode-thread/mode-thread-actions";
+import { resolvePromptPresetChoiceControls } from "../../../../engine/prompt-presets/prompt-preset-actions";
+import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/lore-runtime-actions";
+import { deleteMacroVariableStateForOwner } from "../../../../engine/macro-variables/macro-variable-actions";
+import { deleteRippleStateForOwner } from "../../../../engine/ripples/ripple-actions";
 import { currentIsoTimestamp } from "../../../../shared/browser/current-time";
 import { createRecordId } from "../../../../shared/browser/record-id";
 import { cleanTextArray } from "../../../../shared/text";
 import type { MessengerThreadCreateInput, PondView } from "../../../navigation";
-import { deleteMacroVariableStateForOwner } from "../../../../engine/macro-variables/macro-variable-actions";
 import type { StateSetter } from "../../../../shared/react/state-setter";
-import { deleteLoreRuntimeStateForOwner } from "../../../../engine/lore-runtime/lore-runtime-actions";
-import { setMessengerThreadPresetChoiceSelections } from "../../../../engine/modes/messenger/messenger-actions";
 import { projectPresetChoiceState } from "../../shared/prompt-preset-choice-state";
 
 type UseMessengerThreadActionsInput = {
@@ -32,12 +38,13 @@ type UseMessengerThreadActionsInput = {
   defaultPromptPresetId?: string | null;
   promptPresets?: readonly PromptPresetRecord[];
   characters: CharacterRecord[];
-  messengerThreads: MessengerThread[];
+  modeThreads: ModeThread[];
   personas: PersonaRecord[];
   providerConnections: ProviderConnectionRecord[];
-  setMessengerThreads: StateSetter<MessengerThread[]>;
+  setModeThreads: StateSetter<ModeThread[]>;
   setLoreRuntimeStates: StateSetter<LoreRuntimeState[]>;
   setMacroVariableStates: StateSetter<MacroVariableScope[]>;
+  setRippleStates: StateSetter<RippleState[]>;
   setView: (view: PondView) => void;
   view: PondView;
   openChatSettings: () => void;
@@ -49,11 +56,12 @@ export function useMessengerThreadActions({
   defaultPromptPresetId = null,
   promptPresets = [],
   characters,
-  messengerThreads,
+  modeThreads,
   providerConnections,
-  setMessengerThreads,
+  setModeThreads,
   setLoreRuntimeStates,
   setMacroVariableStates,
+  setRippleStates,
   setView,
   view,
   openChatSettings,
@@ -62,10 +70,9 @@ export function useMessengerThreadActions({
   const createMessengerThread = useCallback(
     (input?: MessengerThreadCreateInput) => {
       const now = currentIsoTimestamp();
-      const activePersonaId = input?.activePersonaId?.trim() || null;
-      const fallbackCharacterIds = characters[0] ? [characters[0].id] : [];
-      const cleanCharacterIds = cleanTextArray(input?.characterIds ?? fallbackCharacterIds);
-      const cleanLorebookIds = cleanTextArray(input?.lorebookIds);
+      const characterIds = cleanTextArray(
+        input?.characterIds ?? (characters[0] ? [characters[0].id] : []),
+      );
       const activeConnection =
         providerConnections.find((connection) =>
           input?.providerConnectionId
@@ -74,20 +81,23 @@ export function useMessengerThreadActions({
         ) ??
         providerConnections[0] ??
         null;
-      const fallbackTitle =
+      const title =
+        input?.title?.trim() ||
         characters
-          .filter((companion) => cleanCharacterIds.includes(companion.id))
-          .map((companion) => companion.displayName)
-          .join(" + ") || `New Messenger ${messengerThreads.length + 1}`;
-      const thread = buildMessengerThread({
-        activePersonaId,
-        characterIds: cleanCharacterIds,
+          .filter((character) => characterIds.includes(character.id))
+          .map((character) => character.displayName)
+          .join(" + ") ||
+        `New Messenger ${modeThreads.filter((thread) => thread.kind === "messenger").length + 1}`;
+      let thread = buildMessengerThread({
+        activePersonaId: input?.activePersonaId?.trim() || null,
+        characterIds,
         id: createRecordId("messenger-thread"),
-        lorebookIds: cleanLorebookIds,
+        branchId: createRecordId("messenger-branch"),
+        lorebookIds: cleanTextArray(input?.lorebookIds),
         now,
         defaultPromptPresetId,
         providerConnectionId: activeConnection?.id ?? null,
-        title: input?.title?.trim() || fallbackTitle,
+        title,
       });
       const defaultPreset = defaultPromptPresetId
         ? promptPresets.find((preset) => preset.id === defaultPromptPresetId)
@@ -96,209 +106,170 @@ export function useMessengerThreadActions({
         ? resolvePromptPresetChoiceControls({ preset: defaultPreset, selections: {} }).length > 0
         : false;
       if (defaultPreset && !defaultPresetHasChoices) {
-        thread.presetChoiceSelectionsByPresetId = { [defaultPreset.id]: {} };
+        thread = setMessengerThreadPresetChoiceSelections(thread, {}, now);
       }
-
-      setMessengerThreads((currentThreads) => [thread, ...currentThreads]);
+      setModeThreads((threads) => [thread, ...threads]);
       openMessengerThread(thread.id);
       if (defaultPresetHasChoices) openChatSettings();
       return thread;
     },
     [
       activeMessengerConnectionId,
-      defaultPromptPresetId,
-      promptPresets,
       characters,
-      messengerThreads.length,
+      defaultPromptPresetId,
+      modeThreads,
       openChatSettings,
       openMessengerThread,
+      promptPresets,
       providerConnections,
-      setMessengerThreads,
+      setModeThreads,
     ],
   );
 
   const [promptPresetRepairNotices, setPromptPresetRepairNotices] = useState<
     Record<string, string>
   >({});
-  const repairedPresetKeys = useRef(new Set<string>());
-  const pendingRepairs = useRef(
-    new Map<
-      string,
-      { threadId: string; presetId: string; sourceFingerprint: string; repairedFingerprint: string }
-    >(),
-  );
-  const noticePresetIds = useRef(new Map<string, string>());
   useEffect(() => {
-    messengerThreads.forEach((thread) => {
-      if (!thread.presetId) return;
-      const preset = promptPresets.find((candidate) => candidate.id === thread.presetId);
-      const projection = projectPresetChoiceState(preset, thread.presetChoiceSelectionsByPresetId);
-      if (!preset || projection.repairReason !== "invalid-history") return;
-      const key = `${thread.id}:${preset.id}:${projection.fingerprint}`;
-      if (repairedPresetKeys.current.has(key) || pendingRepairs.current.has(key)) return;
-      const repairedAt = currentIsoTimestamp();
-      const repaired = setMessengerThreadPresetChoiceSelections(
-        thread,
-        projection.materializedSelections,
-        repairedAt,
-      );
-      pendingRepairs.current.set(key, {
-        threadId: thread.id,
-        presetId: preset.id,
-        sourceFingerprint: projection.fingerprint,
-        repairedFingerprint: JSON.stringify(
-          repaired.presetChoiceSelectionsByPresetId?.[preset.id] ?? {},
-        ),
-      });
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((currentThread) => {
-          if (currentThread.id !== thread.id || currentThread.presetId !== preset.id)
-            return currentThread;
-          const latest = projectPresetChoiceState(
-            preset,
-            currentThread.presetChoiceSelectionsByPresetId,
-          );
-          if (
-            latest.fingerprint !== projection.fingerprint ||
-            latest.repairReason !== "invalid-history"
-          )
-            return currentThread;
-          return setMessengerThreadPresetChoiceSelections(
-            currentThread,
-            latest.materializedSelections,
-            repairedAt,
-          );
-        }),
-      );
+    const repairs = modeThreads.flatMap((thread) => {
+      if (thread.kind !== "messenger") return [];
+      const branch = getActiveModeBranch(thread);
+      if (!branch.presetId) return [];
+      const preset = promptPresets.find((candidate) => candidate.id === branch.presetId);
+      const projection = projectPresetChoiceState(preset, branch.presetChoiceSelectionsByPresetId);
+      return preset && projection.repairReason === "invalid-history"
+        ? [{ threadId: thread.id, selections: projection.materializedSelections }]
+        : [];
     });
-  }, [messengerThreads, promptPresets, setMessengerThreads]);
-  useEffect(() => {
-    let changed = false;
-    const next = { ...promptPresetRepairNotices };
-    for (const [key, pending] of pendingRepairs.current) {
-      const thread = messengerThreads.find((candidate) => candidate.id === pending.threadId);
-      const projection =
-        thread?.presetId === pending.presetId
-          ? projectPresetChoiceState(
-              promptPresets.find((candidate) => candidate.id === pending.presetId),
-              thread.presetChoiceSelectionsByPresetId,
-            )
+    if (!repairs.length) return;
+    const repairedAt = currentIsoTimestamp();
+    setModeThreads((threads) =>
+      threads.map((thread) => {
+        if (thread.kind !== "messenger") return thread;
+        const repair = repairs.find((candidate) => candidate.threadId === thread.id);
+        if (!repair) return thread;
+        const branch = getActiveModeBranch(thread);
+        const preset = branch.presetId
+          ? promptPresets.find((candidate) => candidate.id === branch.presetId)
           : null;
-      if (!thread || !projection) {
-        pendingRepairs.current.delete(key);
-        continue;
-      }
-      if (
-        projection.fingerprint === pending.sourceFingerprint &&
-        projection.repairReason === "invalid-history"
-      )
-        continue;
-      if (projection.fingerprint !== pending.repairedFingerprint) {
-        pendingRepairs.current.delete(key);
-        continue;
-      }
-      repairedPresetKeys.current.add(key);
-      pendingRepairs.current.delete(key);
-      next[pending.threadId] = "Prompt preset choices were repaired.";
-      noticePresetIds.current.set(pending.threadId, pending.presetId);
-      changed = true;
-    }
-    for (const [threadId, presetId] of noticePresetIds.current) {
-      if (messengerThreads.find((thread) => thread.id === threadId)?.presetId !== presetId) {
-        noticePresetIds.current.delete(threadId);
-        delete next[threadId];
-        changed = true;
-      }
-    }
-    if (changed) queueMicrotask(() => setPromptPresetRepairNotices(next));
-  }, [messengerThreads, promptPresets, promptPresetRepairNotices]);
+        const latest = projectPresetChoiceState(preset, branch.presetChoiceSelectionsByPresetId);
+        return latest.repairReason === "invalid-history"
+          ? setMessengerThreadPresetChoiceSelections(thread, repair.selections, repairedAt)
+          : thread;
+      }),
+    );
+    // This notice is a direct consequence of the repair performed by this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPromptPresetRepairNotices((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        repairs.map(({ threadId }) => [threadId, "Prompt preset choices were repaired."]),
+      ),
+    }));
+  }, [modeThreads, promptPresets, setModeThreads]);
 
   const updateMessengerThread = useCallback(
-    (thread: MessengerThread) => {
-      setMessengerThreads((currentThreads) =>
-        currentThreads.some((currentThread) => currentThread.id === thread.id)
-          ? currentThreads.map((currentThread) =>
-              currentThread.id === thread.id ? thread : currentThread,
-            )
-          : [thread, ...currentThreads],
-      );
-    },
-    [setMessengerThreads],
-  );
-
-  const updateMessengerThreadById = useCallback(
-    (threadId: string, updater: (thread: MessengerThread) => MessengerThread) => {
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) => (thread.id === threadId ? updater(thread) : thread)),
-      );
-    },
-    [setMessengerThreads],
-  );
-
-  const appendMessengerThreadMessages = useCallback(
-    (threadId: string, messages: MessengerThread["messages"]) => {
-      if (messages.length === 0) return;
-
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          thread.id === threadId ? appendMessengerMessages(thread, messages) : thread,
+    (thread: MessengerModeThread) => {
+      setModeThreads((threads) =>
+        threads.map((current) =>
+          current.kind === "messenger" && current.id === thread.id ? thread : current,
         ),
       );
     },
-    [setMessengerThreads],
+    [setModeThreads],
   );
-
+  const updateMessengerThreadById = useCallback(
+    (threadId: string, updater: (thread: MessengerModeThread) => MessengerModeThread) => {
+      setModeThreads((threads) =>
+        threads.map((thread) =>
+          thread.kind === "messenger" && thread.id === threadId ? updater(thread) : thread,
+        ),
+      );
+    },
+    [setModeThreads],
+  );
+  const appendMessengerThreadMessages = useCallback(
+    (threadId: string, messages: ModeMessage[]) => {
+      if (!messages.length) return;
+      setModeThreads((threads) =>
+        threads.map((thread) =>
+          thread.kind === "messenger" && thread.id === threadId
+            ? appendMessengerMessages(thread, messages)
+            : thread,
+        ),
+      );
+    },
+    [setModeThreads],
+  );
   const renameMessengerThread = useCallback(
     (threadId: string, title: string) => {
-      const trimmedTitle = title.trim();
-      if (!trimmedTitle) return;
-
+      const trimmed = title.trim();
+      if (!trimmed) return;
       const now = currentIsoTimestamp();
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          thread.id === threadId ? renameMessengerThreadRecord(thread, trimmedTitle, now) : thread,
+      setModeThreads((threads) =>
+        threads.map((thread) =>
+          thread.kind === "messenger" && thread.id === threadId
+            ? renameMessengerThreadRecord(thread, trimmed, now)
+            : thread,
         ),
       );
     },
-    [setMessengerThreads],
+    [setModeThreads],
   );
-
   const clearMessengerThreadMessages = useCallback(
     (threadId: string) => {
-      setMessengerThreads((currentThreads) =>
-        currentThreads.map((thread) =>
-          thread.id === threadId ? clearMessengerMessages(thread) : thread,
+      const branchId = modeThreads.find(
+        (thread): thread is MessengerModeThread =>
+          thread.kind === "messenger" && thread.id === threadId,
+      )?.activeBranchId;
+      setModeThreads((threads) =>
+        threads.map((thread) =>
+          thread.kind === "messenger" && thread.id === threadId
+            ? clearMessengerMessages(thread)
+            : thread,
         ),
       );
-      setLoreRuntimeStates((currentStates) =>
-        deleteLoreRuntimeStateForOwner(currentStates, "messenger-thread", threadId),
+      if (!branchId) return;
+      setLoreRuntimeStates((states) =>
+        deleteLoreRuntimeStateForOwner(states, "mode-branch", branchId),
       );
-      setMacroVariableStates((currentStates) =>
-        deleteMacroVariableStateForOwner(currentStates, "messenger-thread", threadId),
+      setMacroVariableStates((states) =>
+        deleteMacroVariableStateForOwner(states, "mode-branch", branchId),
       );
+      setRippleStates((states) => deleteRippleStateForOwner(states, "mode-branch", branchId));
     },
-    [setLoreRuntimeStates, setMacroVariableStates, setMessengerThreads],
+    [modeThreads, setLoreRuntimeStates, setMacroVariableStates, setModeThreads, setRippleStates],
   );
-
   const deleteMessengerThread = useCallback(
     (threadId: string) => {
-      setMessengerThreads((currentThreads) =>
-        deleteMessengerThreadRecord(currentThreads, threadId),
+      const target = modeThreads.find(
+        (thread): thread is MessengerModeThread =>
+          thread.kind === "messenger" && thread.id === threadId,
       );
-      setLoreRuntimeStates((currentStates) =>
-        deleteLoreRuntimeStateForOwner(currentStates, "messenger-thread", threadId),
+      const branchIds = target?.branches.map((branch) => branch.id) ?? [];
+      setModeThreads((threads) =>
+        threads.filter((thread) => !(thread.kind === "messenger" && thread.id === threadId)),
       );
-      setMacroVariableStates((currentStates) =>
-        deleteMacroVariableStateForOwner(currentStates, "messenger-thread", threadId),
-      );
-
-      if (view.kind === "messenger" && view.threadId === threadId) {
-        setView({ kind: "pond" });
+      for (const branchId of branchIds) {
+        setLoreRuntimeStates((states) =>
+          deleteLoreRuntimeStateForOwner(states, "mode-branch", branchId),
+        );
+        setMacroVariableStates((states) =>
+          deleteMacroVariableStateForOwner(states, "mode-branch", branchId),
+        );
+        setRippleStates((states) => deleteRippleStateForOwner(states, "mode-branch", branchId));
       }
+      if (view.kind === "messenger" && view.threadId === threadId) setView({ kind: "pond" });
     },
-    [setLoreRuntimeStates, setMacroVariableStates, setMessengerThreads, setView, view],
+    [
+      modeThreads,
+      setLoreRuntimeStates,
+      setMacroVariableStates,
+      setModeThreads,
+      setRippleStates,
+      setView,
+      view,
+    ],
   );
-
   return {
     createMessengerThread,
     updateMessengerThread,

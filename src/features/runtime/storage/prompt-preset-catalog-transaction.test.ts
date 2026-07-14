@@ -41,8 +41,7 @@ const records = (updatedAt = "1"): AppStorageRecords => ({
   loreRuntimeStates: [],
   macroVariableStates: [],
   providerConnections: [],
-  roleplayThreads: [],
-  messengerThreads: [],
+  modeThreads: [],
   rippleStates: [],
 });
 

@@ -1,14 +1,12 @@
 import type { ShoalSortMode } from "../../../../engine/contracts/types/app-settings";
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import {
-  getMessengerThreadActivityAt,
-  type MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerModeThread } from "../../../../engine/contracts/types/mode-thread";
+import { getModeThreadActivityAt } from "../../../../engine/modes/mode-thread/mode-thread-actions";
 import { sortMessengerThreads } from "../../../modes";
 import { getMessengerCardDetails } from "./messenger-card-details";
 
 export function getSortedShoalMessengerThreads(
-  threads: readonly MessengerThread[],
+  threads: readonly MessengerModeThread[],
   sortMode: ShoalSortMode,
   characterById: Map<string, CharacterRecord>,
 ) {
@@ -22,7 +20,7 @@ export function getSortedShoalMessengerThreads(
     return (
       aDetails.name.localeCompare(bDetails.name, undefined, {
         sensitivity: "base",
-      }) || getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a))
+      }) || getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a))
     );
   });
 }

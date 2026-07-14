@@ -50,7 +50,7 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
     | "storageLoadErrorMessageByCollection"
     | "remoteRuntimeUrl"
   > &
-  Pick<NavThreadState, "roleplayThreads" | "messengerThreads">;
+  Pick<NavThreadState, "modeThreads">;
 
 export type StorageImportFailureSource = "bundle" | "legacy";
 

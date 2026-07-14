@@ -333,16 +333,17 @@ shared system prompt and then the built-in Roleplay prelude, without transcript
 history. A selected preset still owns narration and other-character output
 behavior through either fallback; only no-preset, single-character Roleplay uses
 the one-character output contract. Messenger does not consume preset sections.
-It resolves the selected preset's `messengerPrompt`, then its shared
-`systemPrompt`, then the built-in Messenger fallback. Built-in fallbacks are
-assembled at request time rather than persisted into blank presets, and there is
-no conversation-owned prompt override.
+A stored non-empty custom active-branch prompt wins first; otherwise Messenger
+resolves the selected preset's `messengerPrompt`, then its shared `systemPrompt`,
+then the built-in Messenger fallback. Built-in fallbacks are assembled at
+request time rather than persisted into blank presets. Ordinary Messenger
+settings do not expose a custom prompt editor.
 
 ## Slice 7 Dynamic Variable Persistence
 
 The resolver still treats variables as caller-owned context and never reads
 storage. Messenger and Roleplay generation build a request-local variable map
-from global `MacroVariableScope` state overlaid with the active thread scope,
+from global `MacroVariableScope` state overlaid with the active branch scope,
 then record committed prompt-order mutations for the caller.
 
 Before prompt text resolves, selected prompt presets overlay static
@@ -350,29 +351,29 @@ Before prompt text resolves, selected prompt presets overlay static
 `presetChoiceSelectionsByPresetId` into the
 request-local variable map, then resolve those preset-supplied variable values
 once with a scratch macro context. Those preset variables can override stored
-global or thread macro variables for the current request, but they are not
+global or branch macro variables for the current request, but they are not
 persisted in `macro-variable-states`. Mutations targeting those request-local
 names can affect later prompt text in the same request, but they are ignored
 when macro variable state is committed.
-Prompt-preset choices are deterministic. Native thread selections use stable
+Prompt-preset choices are deterministic. Native branch selections use stable
 choice-block and option IDs, preserve multi-select order, and join resolved
 values with the block separator. Every choice block is always visible and
-resolved independently before applying thread overrides and preset defaults.
+resolved independently before applying branch overrides and preset defaults.
 Choice blocks do not support
 `randomPick`; random and roll macros are the only prompt randomness mechanism.
 Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the
-scope that supplied them at generation start: thread keys stay thread-scoped,
+scope that supplied them at generation start: branch keys stay branch-scoped,
 keys that existed only in global state stay global, and new keys are saved to
-the thread scope. Deleting or clearing a thread removes its thread-scoped macro
-variable state.
+the branch scope. Deleting a thread or clearing its active branch removes that
+branch's macro variable state.
 
 Legacy import can seed the same storage collection from old `globalVariables`
 and Messenger thread `variables`. Import-time behavior does not change resolver
-precedence: thread variables still overlay global variables during generation.
+precedence: branch variables still overlay global variables during generation.
 On commit, imported global keys merge into the current global scope with
 imported values taking precedence for same-name keys, while imported thread
-variables stay attached to their converted Messenger thread.
+variables stay attached to their converted Messenger branch.
 
 ## Reserved Later Semantics
 

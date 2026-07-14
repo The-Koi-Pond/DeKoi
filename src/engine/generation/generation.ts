@@ -483,7 +483,7 @@ export interface LoreGenerationContextOptions {
   /** Transcript sources scanned according to each lorebook's scan depth. */
   scanSources?: LorebookScanSource[];
   contextTokens?: number | null;
-  /** Already-loaded per-thread lore timer state for sticky and cooldown effects. */
+  /** Already-loaded per-branch lore timer state for sticky and cooldown effects. */
   runtimeState?: LoreRuntimeState | null;
   /** Final ordering strategy after all source buckets have been activated. */
   insertionStrategy?: LoreInsertionStrategy;

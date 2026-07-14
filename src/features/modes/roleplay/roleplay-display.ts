@@ -1,39 +1,37 @@
+import type { RoleplayModeThread } from "../../../engine/contracts/types/mode-thread";
 import {
-  getRoleplayThreadActivityAt,
-  type RoleplayThread,
-} from "../../../engine/contracts/types/roleplay";
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+  getModeThreadActivityAt,
+} from "../../../engine/modes/mode-thread/mode-thread-actions";
 import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 
-export function sortRoleplayThreadsByUpdatedAt(threads: RoleplayThread[]) {
+export function sortRoleplayThreadsByUpdatedAt(threads: RoleplayModeThread[]) {
   return [...threads].sort((a, b) =>
-    getRoleplayThreadActivityAt(b).localeCompare(getRoleplayThreadActivityAt(a)),
+    getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
   );
 }
 
-export function sortRoleplayThreads(threads: RoleplayThread[], sortMode: ShoalSortMode) {
+export function sortRoleplayThreads(threads: RoleplayModeThread[], sortMode: ShoalSortMode) {
   const sortedThreads = [...threads];
-
-  if (sortMode === "oldest") {
+  if (sortMode === "oldest")
     return sortedThreads.sort((a, b) =>
-      getRoleplayThreadActivityAt(a).localeCompare(getRoleplayThreadActivityAt(b)),
+      getModeThreadActivityAt(a).localeCompare(getModeThreadActivityAt(b)),
     );
-  }
-
-  if (sortMode === "title") {
+  if (sortMode === "title")
     return sortedThreads.sort(
       (a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-        getRoleplayThreadActivityAt(b).localeCompare(getRoleplayThreadActivityAt(a)),
+        getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
     );
-  }
-
   return sortedThreads.sort((a, b) =>
-    getRoleplayThreadActivityAt(b).localeCompare(getRoleplayThreadActivityAt(a)),
+    getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
   );
 }
 
-export function getRoleplayThreadPreview(thread: RoleplayThread) {
-  const lastEntry = thread.entries.at(-1);
-  if (lastEntry) return `${lastEntry.label}: ${lastEntry.body}`;
-  return thread.sceneText || "No messages yet";
+export function getRoleplayThreadPreview(thread: RoleplayModeThread) {
+  const lastMessage = getActiveModeBranchMessages(thread).at(-1);
+  if (lastMessage)
+    return `${lastMessage.author.label}: ${getActiveModeMessageVersion(lastMessage).body}`;
+  return "No messages yet";
 }

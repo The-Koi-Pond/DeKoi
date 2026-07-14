@@ -11,7 +11,7 @@ const now = "2026-07-06T00:00:00.000Z";
 function scope(input: Partial<MacroVariableScope> & Pick<MacroVariableScope, "id">) {
   return {
     schemaVersion: 1,
-    ownerKind: "messenger-thread",
+    ownerKind: "mode-branch",
     ownerId: "thread-1",
     variables: {},
     createdAt: now,
@@ -36,7 +36,7 @@ describe("macro variable generation state", () => {
     ];
     const selection = buildGenerationMacroVariableState({
       macroVariableStates,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -56,7 +56,7 @@ describe("macro variable generation state", () => {
       ),
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -81,7 +81,7 @@ describe("macro variable generation state", () => {
     ];
     const selection = buildGenerationMacroVariableState({
       macroVariableStates,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -96,7 +96,7 @@ describe("macro variable generation state", () => {
       ],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -110,7 +110,7 @@ describe("macro variable generation state", () => {
   it("creates an owner scope for the first owner mutation when the owner still exists", () => {
     const selection = buildGenerationMacroVariableState({
       macroVariableStates: [],
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -120,7 +120,7 @@ describe("macro variable generation state", () => {
       macroVariableStates: [],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -129,7 +129,7 @@ describe("macro variable generation state", () => {
       {
         id: "macro-variable-state-new",
         schemaVersion: 1,
-        ownerKind: "messenger-thread",
+        ownerKind: "mode-branch",
         ownerId: "thread-1",
         variables: { mood: "thread-settled" },
         createdAt: "2026-07-06T01:00:00.000Z",
@@ -141,7 +141,7 @@ describe("macro variable generation state", () => {
   it("does not persist mutations for ephemeral request variables", () => {
     const selection = buildGenerationMacroVariableState({
       macroVariableStates: [],
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -155,7 +155,7 @@ describe("macro variable generation state", () => {
       macroVariableStates: [],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -164,7 +164,7 @@ describe("macro variable generation state", () => {
       {
         id: "macro-variable-state-new",
         schemaVersion: 1,
-        ownerKind: "messenger-thread",
+        ownerKind: "mode-branch",
         ownerId: "thread-1",
         variables: { mood: "settled" },
         createdAt: "2026-07-06T01:00:00.000Z",
@@ -176,7 +176,7 @@ describe("macro variable generation state", () => {
   it("does not create a first owner scope when the owner was removed before commit", () => {
     const selection = buildGenerationMacroVariableState({
       macroVariableStates: [],
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -186,7 +186,7 @@ describe("macro variable generation state", () => {
       macroVariableStates: [],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: false,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -203,7 +203,7 @@ describe("macro variable generation state", () => {
     ];
     const selection = buildGenerationMacroVariableState({
       macroVariableStates,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -213,7 +213,7 @@ describe("macro variable generation state", () => {
       macroVariableStates: [],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });
@@ -232,7 +232,7 @@ describe("macro variable generation state", () => {
     ];
     const selection = buildGenerationMacroVariableState({
       macroVariableStates,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
     });
 
@@ -242,7 +242,7 @@ describe("macro variable generation state", () => {
       macroVariableStates: [],
       now: "2026-07-06T01:00:00.000Z",
       ownerExists: true,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "thread-1",
       selection,
     });

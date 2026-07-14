@@ -1,7 +1,7 @@
 # Mode Impact Map
 
 Use this before touching Messenger, Roleplay, shared generation, or shared
-per-thread state.
+per-branch state.
 
 ## Messenger
 
@@ -33,7 +33,7 @@ Must not own:
 
 Owner paths:
 
-- `src/engine/contracts/types/roleplay.ts`
+- `src/engine/contracts/types/mode-thread.ts`
 - `src/engine/modes/roleplay/roleplay-actions.ts`
 - `src/engine/generation/roleplay-generation.ts`
 - `src/features/modes/roleplay`
@@ -79,7 +79,7 @@ Must not own:
 - concrete mode UI, app state, storage, or compatibility aliases
 - Roleplay scene text or a native narrator
 
-## Shared Per-Thread State
+## Shared Per-Branch State
 
 Owner paths:
 
@@ -91,9 +91,9 @@ Owner paths:
 
 Owns:
 
-- dynamic per-thread state records
+- dynamic per-branch state records
 - deterministic ripple mutations
-- global and per-thread macro variable state selection/commit mutations
+- global and per-branch macro variable state selection/commit mutations
 - shared ripple workflows used by mode surfaces
 
 Must not own:
@@ -108,9 +108,8 @@ Allowed shared homes:
 
 - `src/engine`: native record types, deterministic actions, and pure helpers
   that do not encode concrete mode orchestration.
-- `src/engine/modes/mode-thread`: additive shared branch/message/version
-  substrate; concrete mode records remain authoritative until their later
-  cutover.
+- `src/engine/modes/mode-thread`: shared branch/message/version substrate used
+  by both concrete modes; mode-owned orchestration remains separate.
 - `src/engine/shared`: engine-local helpers shared by engine owners without
   importing generic frontend/shared code.
 - `src/engine/generation-core`: mode-neutral activation and prompt-selection

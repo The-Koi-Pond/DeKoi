@@ -78,7 +78,7 @@ export interface LorebookActivationOptions {
   messageCount?: number | null;
   /** Random source used by weighted inclusion groups and probability gates. */
   rand?: () => number;
-  /** Already-advanced per-thread mutable lore timer state. Engine treats this as pure input. */
+  /** Already-advanced per-branch mutable lore timer state. Engine treats this as pure input. */
   runtimeState?: LoreRuntimeState | null;
   entryHasBody?: (entry: LoreEntryRecord) => boolean;
   recursionBody?: (entry: ActivatedLoreEntry) => string;

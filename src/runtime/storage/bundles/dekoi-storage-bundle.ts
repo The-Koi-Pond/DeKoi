@@ -1,21 +1,12 @@
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
+import type { ModeMessage, ModeThread } from "../../../engine/contracts/types/mode-thread";
 import {
-  extractRoleplayEntries,
-  toRoleplayThreadRecord,
-  type RoleplayEntry,
-  type RoleplayThread,
-  type RoleplayThreadRecord,
-} from "../../../engine/contracts/types/roleplay";
+  projectModeThreadCollections,
+  type ModeThreadStorageRecord,
+} from "../app-storage-collection-projection";
 import type { LorebookRecord } from "../../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
-import {
-  extractMessengerMessages,
-  toMessengerThreadRecord,
-  type MessengerMessage,
-  type MessengerThread,
-  type MessengerThreadRecord,
-} from "../../../engine/contracts/types/messenger";
 import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
@@ -28,49 +19,51 @@ import type { AppSettings } from "../../../engine/contracts/types/app-settings";
 import { normalizeAppSettings } from "../../../engine/contracts/types/app-settings";
 import { isRecord, normalizeStorageRecordList } from "../storage-json";
 import { normalizeCharacterRecord } from "../collections/character-storage";
-import { normalizeRoleplayThreadWithMetadata } from "../collections/roleplay-storage";
-import { normalizeRoleplayEntryRecord } from "../collections/roleplay-storage";
 import { normalizeLorebookRecord } from "../collections/lorebook-storage";
 import { normalizeLoreRuntimeState } from "../collections/lore-runtime-state-storage";
 import { normalizeMacroVariableScope } from "../collections/macro-variable-state-storage";
-import { normalizeMessengerThreadWithMetadata } from "../collections/messenger-storage";
-import { normalizeMessengerMessageRecord } from "../collections/messenger-storage";
+import {
+  normalizeModeThreadRecord,
+  normalizeModeThreadRecordWithChange,
+} from "../collections/mode-thread-storage";
+import { normalizeModeMessageRecord } from "../collections/mode-message-storage";
 import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
-import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
 import { normalizePromptPresetImportRecord } from "../../../engine/prompt-presets/prompt-preset-package";
 import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
+import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
+import {
+  getDuplicateModeBranchIds,
+  getDuplicateModeThreadIds,
+} from "../../../engine/modes/mode-thread/mode-thread-validation";
 
 export const DEKOI_STORAGE_BUNDLE_KIND = "dekoi.storage-bundle";
-export const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 1;
+const DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION = 2;
 
 interface DeKoiStorageBundleData {
   characters: CharacterRecord[];
-  roleplayThreads: RoleplayThreadRecord[];
-  roleplayEntries: RoleplayEntry[];
+  modeThreads: ModeThreadStorageRecord[];
+  modeMessages: ModeMessage[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   promptPresets: PromptPresetRecord[];
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
-  messengerThreads: MessengerThreadRecord[];
-  messengerMessages: MessengerMessage[];
   rippleStates: RippleState[];
   appSettings: AppSettings;
 }
 
 export interface DeKoiStorageBundleSourceData {
   characters: CharacterRecord[];
-  roleplayThreads: RoleplayThread[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
   promptPresets: PromptPresetRecord[];
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
-  messengerThreads: MessengerThread[];
+  modeThreads: ModeThread[];
   rippleStates: RippleState[];
   appSettings: AppSettings;
 }
@@ -84,8 +77,7 @@ export interface DeKoiStorageBundle {
 
 export interface DeKoiStorageBundleCounts {
   characters: number;
-  roleplayThreads: number;
-  roleplayEntries: number;
+  modeThreads: number;
   personas: number;
   lorebooks: number;
   promptPresets: number;
@@ -95,8 +87,8 @@ export interface DeKoiStorageBundleCounts {
   macroVariableStates: number;
   macroVariables: number;
   providerConnections: number;
-  messengerThreads: number;
-  messengerMessages: number;
+  modeThreadKinds: { messenger: number; roleplay: number };
+  modeMessages: number;
   rippleStates: number;
   ripples: number;
 }
@@ -143,12 +135,16 @@ function fnv1a32(input: string) {
   return `fnv1a32:${hash.toString(16).padStart(8, "0")}`;
 }
 
-export function createDeKoiStorageBundleFingerprint(bundle: DeKoiStorageBundle): string {
+export function createDeKoiStorageBundleFingerprint(
+  bundle: DeKoiStorageBundle,
+  includedData?: unknown,
+): string {
   return fnv1a32(
     stableStringify({
       kind: bundle.kind,
       schemaVersion: bundle.schemaVersion,
       data: bundle.data,
+      includedData,
     }),
   );
 }
@@ -231,49 +227,19 @@ function normalizeOptionalList<T extends { id: string }>(
   return normalizeList(value, label, normalizeRecord, warnings);
 }
 
-function filterTranscriptRowsForImportedThreads<T extends { threadId: string }>(
-  records: T[],
-  importedThreadIds: ReadonlySet<string>,
-  label: string,
-  warnings: string[],
-) {
-  const validRecords = records.filter((record) => importedThreadIds.has(record.threadId));
-  if (validRecords.length !== records.length) {
-    warnings.push(
-      `${label} skipped ${records.length - validRecords.length} record(s) without an imported thread.`,
-    );
-  }
-  return validRecords;
-}
-
-function mergeBundleTranscriptRows<T extends { id: string }>(
-  embeddedRows: readonly T[],
-  storedRows: readonly T[],
-) {
-  if (storedRows.length === 0) return [...embeddedRows];
-
-  const storedRowIds = new Set(storedRows.map((row) => row.id));
-  const embeddedOnlyRows = embeddedRows.filter((row) => !storedRowIds.has(row.id));
-
-  return [...embeddedOnlyRows, ...storedRows];
-}
-
 export function getDeKoiStorageBundleCounts(
   data: DeKoiStorageBundleData | DeKoiStorageBundleSourceData,
 ): DeKoiStorageBundleCounts {
-  const roleplayEntryCount =
-    "roleplayEntries" in data
-      ? data.roleplayEntries.length
-      : data.roleplayThreads.reduce((count, thread) => count + thread.entries.length, 0);
-  const messengerMessageCount =
-    "messengerMessages" in data
-      ? data.messengerMessages.length
-      : data.messengerThreads.reduce((count, thread) => count + thread.messages.length, 0);
+  const modeMessages =
+    "modeMessages" in data
+      ? data.modeMessages.length
+      : data.modeThreads.reduce((count, thread) => count + thread.messages.length, 0);
+  const modeThreads = data.modeThreads;
 
   return {
     characters: data.characters.length,
-    roleplayThreads: data.roleplayThreads.length,
-    roleplayEntries: roleplayEntryCount,
+    modeThreads: modeThreads.length,
+    modeMessages,
     personas: data.personas.length,
     lorebooks: data.lorebooks.length,
     promptPresets: data.promptPresets.length,
@@ -289,8 +255,10 @@ export function getDeKoiStorageBundleCounts(
       0,
     ),
     providerConnections: data.providerConnections.length,
-    messengerThreads: data.messengerThreads.length,
-    messengerMessages: messengerMessageCount,
+    modeThreadKinds: {
+      messenger: modeThreads.filter((thread) => thread.kind === "messenger").length,
+      roleplay: modeThreads.filter((thread) => thread.kind === "roleplay").length,
+    },
     rippleStates: data.rippleStates.length,
     ripples: data.rippleStates.reduce((count, state) => count + state.ripples.length, 0),
   };
@@ -299,12 +267,11 @@ export function getDeKoiStorageBundleCounts(
 export function createDeKoiStorageBundle({
   appSettings,
   characters,
-  roleplayThreads,
+  modeThreads,
   lorebooks,
   promptPresets,
   loreRuntimeStates,
   macroVariableStates,
-  messengerThreads,
   personas,
   providerConnections,
   rippleStates,
@@ -316,16 +283,13 @@ export function createDeKoiStorageBundle({
     data: {
       appSettings: normalizeAppSettings(appSettings),
       characters: cloneRecords(characters),
-      roleplayThreads: roleplayThreads.map(toRoleplayThreadRecord),
-      roleplayEntries: extractRoleplayEntries(roleplayThreads),
+      ...projectModeThreadCollections(modeThreads),
       personas: cloneRecords(personas),
       lorebooks: cloneRecords(lorebooks),
       promptPresets: cloneRecords(promptPresets),
       loreRuntimeStates: cloneRecords(loreRuntimeStates),
       macroVariableStates: cloneRecords(macroVariableStates),
       providerConnections: redactProviderConnectionSecrets(providerConnections),
-      messengerThreads: messengerThreads.map(toMessengerThreadRecord),
-      messengerMessages: extractMessengerMessages(messengerThreads),
       rippleStates: cloneRecords(rippleStates),
     },
   };
@@ -348,71 +312,68 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     return { ok: false, error: "Bundle data is missing." };
   }
 
+  if (!Array.isArray(value.data.modeMessages)) {
+    return { ok: false, error: "Bundle mode messages are missing or invalid." };
+  }
+
   const warnings: string[] = [];
   const rawProviderConnections = value.data.providerConnections;
   const providerConnectionSecretFieldCount = Array.isArray(rawProviderConnections)
     ? rawProviderConnections.filter(hasProviderConnectionSecretField).length
     : 0;
-  const normalizedRoleplayChoiceSelectionRecordIds = new Set<string>();
-  const normalizedRoleplayThreads = normalizeList(
-    value.data.roleplayThreads,
-    "Roleplay threads",
-    (thread) => {
-      const normalized = normalizeRoleplayThreadWithMetadata(thread);
-      if (normalized?.presetChoiceSelectionsChanged) {
-        normalizedRoleplayChoiceSelectionRecordIds.add(normalized.thread.id);
-      }
-      return normalized?.thread ?? null;
-    },
+  const normalizedModeThreads = normalizeList(
+    value.data.modeThreads,
+    "Mode threads",
+    normalizeModeThreadRecord,
     warnings,
   );
-  const finalRoleplayThreadRecords = normalizedRoleplayThreads.map(toRoleplayThreadRecord);
-  const normalizedRoleplayEntries = normalizeOptionalList(
-    value.data.roleplayEntries,
-    "Roleplay entries",
-    normalizeRoleplayEntryRecord,
-    warnings,
-  );
-  const roleplayThreadIdSet = new Set(finalRoleplayThreadRecords.map((thread) => thread.id));
-  const validRoleplaySplitEntries = filterTranscriptRowsForImportedThreads(
-    normalizedRoleplayEntries,
-    roleplayThreadIdSet,
-    "Roleplay entries",
-    warnings,
-  );
-  const validRoleplayEntries = mergeBundleTranscriptRows(
-    extractRoleplayEntries(normalizedRoleplayThreads),
-    validRoleplaySplitEntries,
-  );
-  const normalizedMessengerChoiceSelectionRecordIds = new Set<string>();
-  const normalizedMessengerThreads = Array.isArray(value.data.messengerThreads)
-    ? value.data.messengerThreads.flatMap((thread) => {
-        const normalized = normalizeMessengerThreadWithMetadata(thread);
-        if (!normalized) return [];
-        if (normalized.presetChoiceSelectionsChanged) {
-          normalizedMessengerChoiceSelectionRecordIds.add(normalized.thread.id);
-        }
-        return [normalized.thread];
-      })
+  const normalizedModeThreadCandidates = Array.isArray(value.data.modeThreads)
+    ? value.data.modeThreads
+        .map(normalizeModeThreadRecord)
+        .filter((thread): thread is ModeThreadStorageRecord => thread !== null)
     : [];
-  const finalMessengerThreadRecords = normalizedMessengerThreads.map(toMessengerThreadRecord);
-  const normalizedMessengerMessages = normalizeOptionalList(
-    value.data.messengerMessages,
-    "Messenger messages",
-    normalizeMessengerMessageRecord,
+  const duplicateThreadId = getDuplicateModeThreadIds(normalizedModeThreadCandidates)[0];
+  if (duplicateThreadId) {
+    return {
+      ok: false,
+      error: `Mode thread ID ${duplicateThreadId} is duplicated.`,
+    };
+  }
+  const normalizedHistoryChangeCount = Array.isArray(value.data.modeThreads)
+    ? value.data.modeThreads.reduce(
+        (count, rawThread) =>
+          count + (normalizeModeThreadRecordWithChange(rawThread)?.changed ? 1 : 0),
+        0,
+      )
+    : 0;
+  const threadIds = new Set(normalizedModeThreads.map((thread) => thread.id));
+  const duplicateBranchId = getDuplicateModeBranchIds(normalizedModeThreads)[0];
+  if (duplicateBranchId) {
+    return {
+      ok: false,
+      error: `Mode branch ID ${duplicateBranchId} is duplicated across threads.`,
+    };
+  }
+  const branchOwners = new Map(
+    normalizedModeThreads.flatMap((thread) =>
+      thread.branches.map((branch) => [branch.id, thread.id] as const),
+    ),
+  );
+  const parsedModeMessages = normalizeList(
+    value.data.modeMessages,
+    "Mode messages",
+    normalizeModeMessageRecord,
     warnings,
   );
-  const messengerThreadIdSet = new Set(finalMessengerThreadRecords.map((thread) => thread.id));
-  const validMessengerSplitMessages = filterTranscriptRowsForImportedThreads(
-    normalizedMessengerMessages,
-    messengerThreadIdSet,
-    "Messenger messages",
-    warnings,
+  const normalizedModeMessages = parsedModeMessages.filter(
+    (message) =>
+      threadIds.has(message.threadId) && branchOwners.get(message.branchId) === message.threadId,
   );
-  const validMessengerMessages = mergeBundleTranscriptRows(
-    extractMessengerMessages(normalizedMessengerThreads),
-    validMessengerSplitMessages,
-  );
+  if (normalizedModeMessages.length !== parsedModeMessages.length) {
+    warnings.push(
+      `Mode messages skipped ${parsedModeMessages.length - normalizedModeMessages.length} orphan or mismatched record(s).`,
+    );
+  }
   const normalizedAppSettings = normalizeAppSettings(value.data.appSettings);
   const importedPromptPresets = normalizeOptionalList(
     value.data.promptPresets,
@@ -430,6 +391,24 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     null;
   const defaultWasRepaired =
     repairedDefaultPromptPresetId !== normalizedAppSettings.defaultPromptPresetId;
+  let repairedModeThreadCount = 0;
+  let clearedModePresetReferenceCount = 0;
+  let repairedModeChoiceSelectionCount = 0;
+  const repairedModeThreads = normalizedModeThreads.map((thread) => {
+    const repaired = repairPromptPresetRelationships<(typeof thread.branches)[number]>(
+      thread.branches,
+      normalizedPromptPresets,
+      new Set(),
+      repairedDefaultPromptPresetId,
+    );
+    if (repaired.clearedPresetReferenceCount > 0 || repaired.repairedChoiceSelectionCount > 0) {
+      repairedModeThreadCount += 1;
+      clearedModePresetReferenceCount += repaired.clearedPresetReferenceCount;
+      repairedModeChoiceSelectionCount += repaired.repairedChoiceSelectionCount;
+      return { ...thread, branches: repaired.records } as ModeThread;
+    }
+    return thread;
+  });
   const data: DeKoiStorageBundleData = {
     appSettings: {
       ...normalizedAppSettings,
@@ -441,8 +420,8 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       normalizeCharacterRecord,
       warnings,
     ),
-    roleplayThreads: finalRoleplayThreadRecords,
-    roleplayEntries: validRoleplayEntries,
+    modeThreads: repairedModeThreads,
+    modeMessages: normalizedModeMessages,
     personas: normalizeList(value.data.personas, "Personas", normalizePersonaRecord, warnings),
     lorebooks: normalizeList(
       value.data.lorebooks,
@@ -470,8 +449,6 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
       normalizeProviderConnectionRecord,
       warnings,
     ),
-    messengerThreads: finalMessengerThreadRecords,
-    messengerMessages: validMessengerMessages,
     rippleStates: normalizeList(
       value.data.rippleStates,
       "Ripple states",
@@ -483,6 +460,23 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
   if (defaultWasRepaired) {
     warnings.push("App settings repaired the default prompt preset reference.");
   }
+  if (repairedModeThreadCount > 0) {
+    if (clearedModePresetReferenceCount > 0) {
+      warnings.push(
+        `Mode threads reassigned ${clearedModePresetReferenceCount} dangling preset reference(s) to the imported default.`,
+      );
+    }
+    if (repairedModeChoiceSelectionCount > 0) {
+      warnings.push(
+        `Mode threads pruned stale preset choice selections from ${repairedModeChoiceSelectionCount} branch(es).`,
+      );
+    }
+  }
+  if (normalizedHistoryChangeCount > 0) {
+    warnings.push(
+      `Mode threads normalized prompt preset histories in ${normalizedHistoryChangeCount} thread(s).`,
+    );
+  }
   if (importedPromptPresets.length === 0) {
     warnings.push("Prompt presets was empty; restored the bundled starter preset.");
   }
@@ -493,56 +487,14 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
     );
   }
 
-  if (!Array.isArray(value.data.messengerThreads)) {
-    warnings.push("Messenger threads was missing or not an array; imported as empty.");
-  } else if (data.messengerThreads.length !== value.data.messengerThreads.length) {
-    warnings.push(
-      `Messenger threads skipped ${value.data.messengerThreads.length - data.messengerThreads.length} invalid record(s).`,
-    );
-  }
-
-  const repairedRoleplayThreads = repairPromptPresetRelationships(
-    data.roleplayThreads,
-    data.promptPresets,
-    normalizedRoleplayChoiceSelectionRecordIds,
-    repairedDefaultPromptPresetId,
+  const modeThreadIds = new Set(data.modeThreads.map((thread) => thread.id));
+  const modeBranchIds = new Set(
+    data.modeThreads.flatMap((thread) => thread.branches.map((branch) => branch.id)),
   );
-  data.roleplayThreads = repairedRoleplayThreads.records;
-  if (repairedRoleplayThreads.clearedPresetReferenceCount > 0) {
-    warnings.push(
-      `Roleplay threads reassigned ${repairedRoleplayThreads.clearedPresetReferenceCount} dangling preset reference(s) to the imported default.`,
-    );
-  }
-  if (repairedRoleplayThreads.repairedChoiceSelectionCount > 0) {
-    warnings.push(
-      `Roleplay threads pruned stale preset choice selections from ${repairedRoleplayThreads.repairedChoiceSelectionCount} thread(s).`,
-    );
-  }
-
-  const repairedMessengerThreads = repairPromptPresetRelationships(
-    data.messengerThreads,
-    data.promptPresets,
-    normalizedMessengerChoiceSelectionRecordIds,
-    repairedDefaultPromptPresetId,
-  );
-  data.messengerThreads = repairedMessengerThreads.records;
-  if (repairedMessengerThreads.clearedPresetReferenceCount > 0) {
-    warnings.push(
-      `Messenger threads reassigned ${repairedMessengerThreads.clearedPresetReferenceCount} dangling preset reference(s) to the imported default.`,
-    );
-  }
-  if (repairedMessengerThreads.repairedChoiceSelectionCount > 0) {
-    warnings.push(
-      `Messenger threads pruned stale preset choice selections from ${repairedMessengerThreads.repairedChoiceSelectionCount} thread(s).`,
-    );
-  }
-
-  const roleplayThreadIds = new Set(data.roleplayThreads.map((thread) => thread.id));
-  const messengerThreadIds = new Set(data.messengerThreads.map((thread) => thread.id));
   const validRippleStates = data.rippleStates.filter((state) =>
-    state.ownerKind === "roleplay-thread"
-      ? roleplayThreadIds.has(state.ownerId)
-      : messengerThreadIds.has(state.ownerId),
+    state.ownerKind === "mode-branch"
+      ? modeBranchIds.has(state.ownerId)
+      : modeThreadIds.has(state.ownerId),
   );
   if (validRippleStates.length !== data.rippleStates.length) {
     warnings.push(
@@ -552,9 +504,9 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
   }
 
   const validLoreRuntimeStates = data.loreRuntimeStates.filter((state) =>
-    state.ownerKind === "roleplay-thread"
-      ? roleplayThreadIds.has(state.ownerId)
-      : messengerThreadIds.has(state.ownerId),
+    state.ownerKind === "mode-branch"
+      ? modeBranchIds.has(state.ownerId)
+      : modeThreadIds.has(state.ownerId),
   );
   if (validLoreRuntimeStates.length !== data.loreRuntimeStates.length) {
     warnings.push(
@@ -565,9 +517,9 @@ export function normalizeDeKoiStorageBundle(value: unknown): DeKoiStorageBundleP
 
   const validMacroVariableStates = data.macroVariableStates.filter((state) => {
     if (state.ownerKind === "global") return true;
-    return state.ownerKind === "roleplay-thread"
-      ? roleplayThreadIds.has(state.ownerId)
-      : messengerThreadIds.has(state.ownerId);
+    return state.ownerKind === "mode-branch"
+      ? modeBranchIds.has(state.ownerId)
+      : state.ownerKind === "global";
   });
   if (validMacroVariableStates.length !== data.macroVariableStates.length) {
     warnings.push(

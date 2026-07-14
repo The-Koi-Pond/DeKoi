@@ -26,7 +26,7 @@ function readNonNegativeInteger(value: unknown, fallback: number) {
 }
 
 function normalizeOwnerKind(value: unknown): LoreRuntimeStateOwnerKind | null {
-  if (value === "messenger-thread" || value === "roleplay-thread") return value;
+  if (value === "mode-branch") return value;
   return null;
 }
 

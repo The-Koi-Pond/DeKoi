@@ -1,4 +1,4 @@
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 import type { ChatSettingsRoleplaySettings } from "./chat-settings-controller-groups";
 import {
   getChatSettingsAdvancedDrawerModel,
@@ -15,7 +15,7 @@ import {
 } from "./chat-settings-resource-drawer-models";
 
 export interface ChatSettingsRoleplayDrawerModels {
-  activeRoleplayThread: RoleplayThread | null;
+  activeRoleplayThread: ChatSettingsThreadRecord | null;
   activeRoleplayThreadId: string | null;
   advanced: ChatSettingsAdvancedDrawerModel;
   companionSelectorOpen: boolean;

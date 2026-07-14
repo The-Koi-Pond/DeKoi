@@ -4,7 +4,7 @@ import type { LorebookRecord } from "../../../../engine/contracts/types/lorebook
 import type { PersonaRecord } from "../../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../../engine/contracts/types/provider-connection";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type { RoleplayModeThread } from "../../../../engine/contracts/types/mode-thread";
 import {
   getThreadReferenceNotices,
   getThreadReferenceSummary,
@@ -37,7 +37,7 @@ export function getRoleplayThreadReferenceSummary({
   personas: readonly PersonaRecord[];
   promptPresets: readonly PromptPresetRecord[];
   providerConnections: readonly ProviderConnectionRecord[];
-  thread: RoleplayThread;
+  thread: RoleplayModeThread;
 }): RoleplayThreadReferenceSummary {
   return getThreadReferenceSummary({
     characters,
@@ -47,7 +47,20 @@ export function getRoleplayThreadReferenceSummary({
     personas,
     promptPresets,
     providerConnections,
-    thread,
+    thread: {
+      activePersonaId:
+        thread.branches.find((branch) => branch.id === thread.activeBranchId)?.activePersonaId ??
+        null,
+      characterIds:
+        thread.branches.find((branch) => branch.id === thread.activeBranchId)?.characterIds ?? [],
+      lorebookIds:
+        thread.branches.find((branch) => branch.id === thread.activeBranchId)?.lorebookIds ?? [],
+      presetId:
+        thread.branches.find((branch) => branch.id === thread.activeBranchId)?.presetId ?? null,
+      providerConnectionId:
+        thread.branches.find((branch) => branch.id === thread.activeBranchId)
+          ?.providerConnectionId ?? null,
+    },
   });
 }
 

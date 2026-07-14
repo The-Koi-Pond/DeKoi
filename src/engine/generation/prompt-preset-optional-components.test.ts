@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createCharacterRecord } from "../catalog/character-actions";
-import type { MessengerMessage } from "../contracts/types/messenger";
+import type {
+  MessengerModeThread,
+  ModeMessage,
+  RoleplayModeThread,
+} from "../contracts/types/mode-thread";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { createMessengerThread } from "../modes/messenger/messenger-actions";
+import { createModeMessage } from "../modes/mode-thread/mode-thread-actions";
 import { createRoleplayThread } from "../modes/roleplay/roleplay-actions";
 import { normalizePromptPresetImportRecord } from "../prompt-presets/prompt-preset-package";
 import {
@@ -70,43 +75,59 @@ function roleplaySections(systemPrompt = "") {
   });
 }
 
-function selectedMessengerThread() {
+function selectedMessengerThread(): MessengerModeThread {
+  const thread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: ["character-1"],
+    id: "messenger-thread-1",
+    branchId: "messenger-thread-1-branch",
+    now,
+    title: "Test chat",
+  });
+  const selected: MessengerModeThread = {
+    ...thread,
+    branches: [
+      {
+        ...thread.branches[0],
+        presetId: "preset-1",
+      },
+    ],
+  };
+  return { ...selected, messages: [userMessage(selected)] };
+}
+
+function selectedRoleplayThread(): RoleplayModeThread {
+  const thread = createRoleplayThread({
+    activePersonaId: null,
+    characterIds: ["character-1"],
+    id: "roleplay-thread-1",
+    branchId: "roleplay-thread-1-branch",
+    openingCharacter: null,
+    now,
+    title: "Test scene",
+  });
   return {
-    ...createMessengerThread({
-      activePersonaId: null,
-      characterIds: ["character-1"],
-      id: "messenger-thread-1",
-      now,
-      title: "Test chat",
-    }),
-    presetId: "preset-1",
+    ...thread,
+    branches: [
+      {
+        ...thread.branches[0],
+        presetId: "preset-1",
+      },
+    ],
   };
 }
 
-function selectedRoleplayThread() {
-  return {
-    ...createRoleplayThread({
-      activePersonaId: null,
-      characterIds: ["character-1"],
-      id: "roleplay-thread-1",
-      now,
-      title: "Test scene",
-    }),
-    presetId: "preset-1",
-  };
-}
-
-function userMessage(threadId: string): MessengerMessage {
-  return {
+function userMessage(thread: MessengerModeThread): ModeMessage {
+  return createModeMessage({
     id: "message-1",
-    schemaVersion: 1,
-    threadId,
+    versionId: "message-version-1",
+    threadId: thread.id,
+    branchId: thread.activeBranchId,
     author: { kind: "unknown", label: "Alex" },
     body: "Hello.",
     origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
+    now,
+  });
 }
 
 function promptText(messages: readonly { content: string }[]) {
@@ -148,7 +169,7 @@ describe("optional prompt preset generation components", () => {
       context,
       id: "request-1",
       now,
-      userMessage: userMessage(thread.id),
+      userMessage: userMessage(thread),
     });
     const text = promptText(assembly.request.promptMessages);
 
@@ -272,7 +293,7 @@ describe("optional prompt preset generation components", () => {
       context: messengerContext,
       id: "messenger-request-1",
       now,
-      userMessage: userMessage(messengerThread.id),
+      userMessage: userMessage(messengerThread),
     });
     const messengerText = promptText(messengerAssembly.request.promptMessages);
 

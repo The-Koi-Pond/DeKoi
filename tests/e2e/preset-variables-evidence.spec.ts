@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { join } from "node:path";
 import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
-import { toMessengerThreadRecord } from "../../src/engine/contracts/types/messenger";
 import { createMessengerThread } from "../../src/engine/modes/messenger/messenger-actions";
 import { createPromptPresetRecord } from "../../src/engine/prompt-presets/prompt-preset-actions";
+import { toModeThreadStorageRecord } from "../../src/runtime/storage/app-storage-collection-projection";
 import {
   connectRemoteRuntime,
   installRemoteRuntime,
@@ -149,31 +149,37 @@ test("Messenger repairs only existing invalid preset history after storage loads
       ],
     },
   });
-  const unconfirmed = toMessengerThreadRecord(
+  const unconfirmed = toModeThreadStorageRecord(
     createMessengerThread({
       activePersonaId: null,
       characterIds: [],
       defaultPromptPresetId: preset.id,
       id: "messenger-unconfirmed",
+      branchId: "messenger-unconfirmed-branch",
       now,
       title: "Unconfirmed",
     }),
   );
-  const invalid = {
-    ...toMessengerThreadRecord(
-      createMessengerThread({
-        activePersonaId: null,
-        characterIds: [],
-        defaultPromptPresetId: preset.id,
-        id: "messenger-invalid",
-        now,
-        title: "Invalid history",
-      }),
-    ),
-    presetChoiceSelectionsByPresetId: {
-      [preset.id]: { tone: { kind: "option" as const, optionId: "removed-option" } },
-    },
-  };
+  const invalidThread = createMessengerThread({
+    activePersonaId: null,
+    characterIds: [],
+    defaultPromptPresetId: preset.id,
+    id: "messenger-invalid",
+    branchId: "messenger-invalid-branch",
+    now,
+    title: "Invalid history",
+  });
+  const invalid = toModeThreadStorageRecord({
+    ...invalidThread,
+    branches: [
+      {
+        ...invalidThread.branches[0],
+        presetChoiceSelectionsByPresetId: {
+          [preset.id]: { tone: { kind: "option" as const, optionId: "removed-option" } },
+        },
+      },
+    ],
+  });
   const runtime = await installRemoteRuntime(page, {
     "app-settings": [
       {
@@ -182,7 +188,7 @@ test("Messenger repairs only existing invalid preset history after storage loads
         promptPresetStarterInitialized: true,
       },
     ],
-    "messenger-threads": [unconfirmed, invalid],
+    "mode-threads": [unconfirmed, invalid],
     "prompt-presets": [preset],
   });
 
@@ -193,20 +199,22 @@ test("Messenger repairs only existing invalid preset history after storage loads
     .poll(
       () =>
         runtime.calls.filter(
-          (call) => call.command === "storage_replace" && call.entity === "messenger-threads",
+          (call) => call.command === "storage_replace" && call.entity === "mode-threads",
         ).length,
       { timeout: 8_000 },
     )
     .toBe(1);
-  const storedThreads = runtime.records.get("messenger-threads") as Array<{
+  const storedThreads = runtime.records.get("mode-threads") as Array<{
     id: string;
-    presetChoiceSelectionsByPresetId?: Record<string, unknown>;
+    branches: Array<{ presetChoiceSelectionsByPresetId: Record<string, unknown> }>;
   }>;
   expect(
-    storedThreads.find((thread) => thread.id === unconfirmed.id)?.presetChoiceSelectionsByPresetId,
+    storedThreads.find((thread) => thread.id === unconfirmed.id)?.branches[0]
+      .presetChoiceSelectionsByPresetId,
   ).toEqual({});
   expect(
-    storedThreads.find((thread) => thread.id === invalid.id)?.presetChoiceSelectionsByPresetId,
+    storedThreads.find((thread) => thread.id === invalid.id)?.branches[0]
+      .presetChoiceSelectionsByPresetId,
   ).toEqual({
     [preset.id]: { tone: { kind: "option", optionId: "warm" } },
   });

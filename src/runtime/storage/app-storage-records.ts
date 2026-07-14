@@ -3,12 +3,11 @@ import type { CharacterRecord } from "../../engine/contracts/types/character";
 import type { LorebookRecord } from "../../engine/contracts/types/lorebook";
 import type { LoreRuntimeState } from "../../engine/contracts/types/lore-runtime-state";
 import type { MacroVariableScope } from "../../engine/contracts/types/macro-variables";
-import type { MessengerThread } from "../../engine/contracts/types/messenger";
+import type { ModeThread } from "../../engine/contracts/types/mode-thread";
 import type { PersonaRecord } from "../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../engine/contracts/types/provider-connection";
 import type { RippleState } from "../../engine/contracts/types/ripples";
-import type { RoleplayThread } from "../../engine/contracts/types/roleplay";
 
 export type AppStorageRecords = {
   appSettings: AppSettings;
@@ -19,8 +18,7 @@ export type AppStorageRecords = {
   loreRuntimeStates: LoreRuntimeState[];
   macroVariableStates: MacroVariableScope[];
   providerConnections: ProviderConnectionRecord[];
-  roleplayThreads: RoleplayThread[];
-  messengerThreads: MessengerThread[];
+  modeThreads: ModeThread[];
   rippleStates: RippleState[];
 };
 
@@ -33,10 +31,8 @@ export type AppStorageCollectionKey =
   | "loreRuntimeStates"
   | "macroVariableStates"
   | "providerConnections"
-  | "roleplayThreads"
-  | "roleplayEntries"
-  | "messengerThreads"
-  | "messengerMessages"
+  | "modeThreads"
+  | "modeMessages"
   | "rippleStates";
 
 export const APP_STORAGE_COLLECTION_KEYS = [
@@ -48,9 +44,7 @@ export const APP_STORAGE_COLLECTION_KEYS = [
   "loreRuntimeStates",
   "macroVariableStates",
   "providerConnections",
-  "roleplayThreads",
-  "roleplayEntries",
-  "messengerThreads",
-  "messengerMessages",
+  "modeThreads",
+  "modeMessages",
   "rippleStates",
 ] as const satisfies readonly AppStorageCollectionKey[];

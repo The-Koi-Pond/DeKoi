@@ -2,34 +2,54 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createCharacterRecord } from "../../../engine/catalog/character-actions";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
-import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
-import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import { generateMessengerThreadReply } from "./messenger-generation";
 import { generateRoleplayThreadTurn } from "./roleplay-generation";
 import {
   generateWithConfiguredProvider,
   type ProviderGenerationRequest,
 } from "./provider-generation";
+import {
+  messengerMessage,
+  messengerThread,
+  roleplayMessage,
+  roleplayThread,
+} from "./test-fixtures";
 
 vi.mock("../../../shared/browser/current-time", () => ({
   currentIsoTimestamp: () => "2026-07-02T00:00:00.000Z",
   currentLocalTimeZone: () => "Australia/Sydney",
 }));
-
-vi.mock("./provider-generation", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./provider-generation")>();
-  return {
-    ...actual,
-    generateWithConfiguredProvider: vi.fn(),
-  };
-});
+vi.mock("./provider-generation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./provider-generation")>()),
+  generateWithConfiguredProvider: vi.fn(),
+}));
 
 const now = "2026-07-02T00:00:00.000Z";
 const localTimeZone = "Australia/Sydney";
-
 let capturedRequest: ProviderGenerationRequest | null = null;
-
+const createId = (prefix: string) => `${prefix}-1`;
+const companion = () =>
+  createCharacterRecord({ id: "character-1", input: { displayName: "Mara" }, now });
+const macroPreset = {
+  id: "preset-time",
+  schemaVersion: 1 as const,
+  title: "Time",
+  systemPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
+  messengerPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
+  sampling: null,
+  parameters: null,
+  sectionOrder: [],
+  groupOrder: [],
+  variableOrder: [],
+  variableGroups: [],
+  variableValues: {},
+  defaultChoices: {},
+  sections: [],
+  groups: [],
+  choiceBlocks: [],
+  createdAt: now,
+  updatedAt: now,
+};
 function expectedLocalTimeParts() {
   const date = new Date(now);
   return {
@@ -46,125 +66,13 @@ function expectedLocalTimeParts() {
     }).format(date),
     timeZone: new Intl.DateTimeFormat("en-US", { timeZone: localTimeZone }).resolvedOptions()
       .timeZone,
-    weekday: new Intl.DateTimeFormat("en-US", {
-      timeZone: localTimeZone,
-      weekday: "long",
-    }).format(date),
+    weekday: new Intl.DateTimeFormat("en-US", { timeZone: localTimeZone, weekday: "long" }).format(
+      date,
+    ),
   };
 }
-
-function companion() {
-  return createCharacterRecord({
-    id: "character-1",
-    input: { displayName: "Mara" },
-    now,
-  });
-}
-
-function createId(prefix: string) {
-  return `${prefix}-1`;
-}
-
-function messengerMessage(): MessengerMessage {
-  return {
-    id: "message-1",
-    schemaVersion: 1,
-    threadId: "messenger-thread-1",
-    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
-    body: "What time is it?",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function messengerThread(message: MessengerMessage): MessengerThread {
-  return {
-    id: "messenger-thread-1",
-    schemaVersion: 1,
-    kind: "messenger",
-    mode: "direct",
-    title: "Thread",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: [],
-    presetId: "preset-1",
-    providerConnectionId: null,
-    messages: [message],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function messengerPreset(): PromptPresetRecord {
-  return {
-    id: "preset-1",
-    schemaVersion: 1,
-    title: "Messenger test",
-    summary: null,
-    systemPrompt: "Fallback",
-    messengerPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
-    sampling: null,
-    parameters: null,
-    sectionOrder: [],
-    groupOrder: [],
-    variableOrder: [],
-    variableGroups: [],
-    variableValues: {},
-    defaultChoices: {},
-    sections: [],
-    groups: [],
-    choiceBlocks: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function roleplayEntry(): RoleplayEntry {
-  return {
-    id: "entry-1",
-    schemaVersion: 1,
-    threadId: "roleplay-thread-1",
-    role: "persona",
-    characterId: null,
-    personaId: "persona-1",
-    label: "Alex",
-    body: "What time is it?",
-    origin: "manual",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function roleplayThread(entry: RoleplayEntry): RoleplayThread {
-  return {
-    id: "roleplay-thread-1",
-    schemaVersion: 1,
-    kind: "roleplay",
-    mode: "scene",
-    title: "Scene",
-    sceneText: "Scene local: {{timezone}} {{weekday}} {{date}} {{time}}",
-    characterIds: ["character-1"],
-    activePersonaId: null,
-    lorebookIds: [],
-    presetId: null,
-    providerConnectionId: null,
-    entries: [entry],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function requireCapturedRequest() {
-  if (capturedRequest === null) {
-    throw new Error("Expected provider generation to receive a request.");
-  }
-  return capturedRequest;
-}
-
-function assembledPromptText(request: ProviderGenerationRequest) {
-  return request.promptMessages.map((message) => message.content).join("\n\n");
-}
+const assembledPromptText = (request: ProviderGenerationRequest) =>
+  request.promptMessages.map((message) => message.content).join("\n\n");
 
 describe("generation time zone wiring", () => {
   beforeEach(() => {
@@ -187,29 +95,31 @@ describe("generation time zone wiring", () => {
   });
 
   it("uses the local time zone for Messenger prompt macros", async () => {
-    const message = messengerMessage();
+    const message = messengerMessage("What time is it?");
+    const thread = messengerThread(message);
+    thread.branches[0].presetId = macroPreset.id;
     await generateMessengerThreadReply({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
       createId,
       lorebooks: [],
-      promptPresets: [messengerPreset()],
       now,
       personas: [],
+      promptPresets: [macroPreset],
       providerConnections: [],
-      thread: messengerThread(message),
+      thread,
       userMessage: message,
     });
-
-    const request = requireCapturedRequest();
     const expected = expectedLocalTimeParts();
-    expect(assembledPromptText(request)).toContain(
+    expect(assembledPromptText(capturedRequest!)).toContain(
       `Local: ${expected.timeZone} ${expected.weekday} ${expected.date} ${expected.time}`,
     );
   });
 
   it("uses the local time zone for Roleplay prompt macros", async () => {
-    const entry = roleplayEntry();
+    const message = roleplayMessage("What time is it?");
+    const thread = roleplayThread(message);
+    thread.branches[0].presetId = macroPreset.id;
     await generateRoleplayThreadTurn({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: [companion()],
@@ -217,14 +127,13 @@ describe("generation time zone wiring", () => {
       lorebooks: [],
       now,
       personas: [],
+      promptPresets: [macroPreset],
       providerConnections: [],
-      thread: roleplayThread(entry),
+      thread,
     });
-
-    const request = requireCapturedRequest();
     const expected = expectedLocalTimeParts();
-    expect(assembledPromptText(request)).toContain(
-      `Scene local: ${expected.timeZone} ${expected.weekday} ${expected.date} ${expected.time}`,
+    expect(assembledPromptText(capturedRequest!)).toContain(
+      `Local: ${expected.timeZone} ${expected.weekday} ${expected.date} ${expected.time}`,
     );
   });
 });

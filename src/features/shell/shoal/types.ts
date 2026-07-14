@@ -52,7 +52,7 @@ export type ShoalNav = Pick<
     "setActiveMessengerConnectionId" | "setShoalSortMode" | "updateAppSettings"
   > &
   Pick<NavSettingsState, "appSettings"> &
-  Pick<NavThreadState, "roleplayThreads" | "messengerThreads"> &
+  Pick<NavThreadState, "modeThreads"> &
   Pick<
     NavViewActions,
     "openRoleplayThread" | "openMessengerThread" | "setSideRailView" | "setView"

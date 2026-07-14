@@ -27,7 +27,7 @@ export type MacroVariableStateStorageSaveResult = Omit<
 };
 
 function normalizeOwnerKind(value: unknown): MacroVariableScopeOwnerKind | null {
-  if (value === "messenger-thread" || value === "roleplay-thread" || value === "global") {
+  if (value === "mode-branch" || value === "global") {
     return value;
   }
   return null;

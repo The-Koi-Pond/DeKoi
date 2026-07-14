@@ -117,6 +117,7 @@ test("provider connection storage upgrades old runtime-kind rows and skips remov
     activePersonaId: null,
     characterIds: [],
     id: "thread-existing-connection",
+    branchId: "thread-existing-connection-branch",
     now: createdAt,
     providerConnectionId: upgradedConnection.id,
     title: "Existing connection thread",

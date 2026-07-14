@@ -7,13 +7,15 @@ import type { PersonaRecord } from "../../../engine/contracts/types/persona";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../../../engine/contracts/types/provider-connection";
 import {
-  appendRoleplayEntries,
-  createGeneratedRoleplayEntry,
+  appendRoleplayMessages,
+  createGeneratedRoleplayMessage,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { RoleplayModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
 import {
   createRoleplayGenerationContext,
   createRoleplayGenerationRequestAssembly,
+  type RoleplayGenerationContext,
+  type RoleplayGenerationRequest,
   type RoleplayGenerationResponse,
 } from "../../../engine/generation/roleplay-generation";
 import { runGenerationWorkflow } from "./generation-workflow";
@@ -26,7 +28,7 @@ import {
 import { resolveGenerationTimeZone } from "./generation-time-zone";
 
 export interface GenerateRoleplayThreadTurnInput {
-  thread: RoleplayThread;
+  thread: RoleplayModeThread;
   appSettings: AppSettings;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
@@ -51,12 +53,12 @@ export interface GenerateRoleplayThreadTurnInput {
 }
 
 export interface GenerateRoleplayThreadTurnResult {
-  thread: RoleplayThread;
+  thread: RoleplayModeThread;
   loreRuntimeState: LoreRuntimeState | null;
   macroVariableCommit: MacroVariableStateCommit;
   warnings: string[];
-  generatedEntries: RoleplayEntry[];
-  generatedEntryCount: number;
+  generatedMessages: ModeMessage[];
+  generatedMessageCount: number;
 }
 
 async function generateRoleplayResponse(
@@ -88,8 +90,14 @@ export async function generateRoleplayThreadTurn({
   timeZone,
 }: GenerateRoleplayThreadTurnInput): Promise<GenerateRoleplayThreadTurnResult> {
   const generationTimeZone = resolveGenerationTimeZone(timeZone);
-  const result = await runGenerationWorkflow({
-    appendRecords: appendRoleplayEntries,
+  const result = await runGenerationWorkflow<
+    RoleplayModeThread,
+    RoleplayGenerationContext,
+    RoleplayGenerationRequest,
+    RoleplayGenerationResponse,
+    ModeMessage
+  >({
+    appendRecords: (target, records, branchId) => appendRoleplayMessages(target, records, branchId),
     createContext: (variables) =>
       createRoleplayGenerationContext({
         appSettings,
@@ -103,11 +111,12 @@ export async function generateRoleplayThreadTurn({
         variables,
       }),
     createId,
-    createRecord: ({ body, companion, id, now }) =>
-      createGeneratedRoleplayEntry({
+    createRecord: ({ body, companion, id, now, versionId }) =>
+      createGeneratedRoleplayMessage({
         body,
         companion,
         id,
+        versionId,
         now,
         thread,
       }),
@@ -124,8 +133,9 @@ export async function generateRoleplayThreadTurn({
     generateResponse: generateRoleplayResponse,
     macroVariableStates,
     now,
-    ownerKind: "roleplay-thread",
-    recordIdPrefix: "roleplay-entry",
+    ownerKind: "mode-branch",
+    recordIdPrefix: "roleplay-message",
+    versionIdPrefix: "roleplay-message-version",
     requestIdPrefix: "roleplay-generation-request",
     thread,
   });
@@ -135,7 +145,7 @@ export async function generateRoleplayThreadTurn({
     loreRuntimeState: result.loreRuntimeState,
     macroVariableCommit: result.macroVariableCommit,
     warnings: result.warnings,
-    generatedEntries: result.generatedRecords,
-    generatedEntryCount: result.generatedRecords.length,
+    generatedMessages: result.generatedRecords,
+    generatedMessageCount: result.generatedRecords.length,
   };
 }

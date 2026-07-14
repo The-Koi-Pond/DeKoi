@@ -1,4 +1,4 @@
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
+import type { ChatSettingsThreadRecord } from "./chat-settings-thread-record";
 import type { ChatSettingsMessengerSettings } from "./chat-settings-controller-groups";
 import {
   getChatSettingsIdentityDrawerModels,
@@ -10,7 +10,7 @@ import {
 } from "./chat-settings-resource-drawer-models";
 
 export interface ChatSettingsMessengerDrawerModels {
-  activeMessengerThread: MessengerThread | null;
+  activeMessengerThread: ChatSettingsThreadRecord | null;
   companionSelectorOpen: boolean;
   identity: ChatSettingsIdentityDrawerModels;
   resources: ChatSettingsResourceDrawerModels;

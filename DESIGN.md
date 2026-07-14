@@ -379,7 +379,7 @@ The shell is a fixed grid of named water regions:
 | **Tide**      | Status strip    | `water`           | Bottom (≈46px): runtime/provider health, storage/save state, quiet background-activity notices. The honest strip — always current, never nagging.                                                            |
 | **Care**      | Settings drawer | `shallow`/`raise` | Right drawer (clamp 360px–430px), glides over the pond: Pond Care sections (General, Appearance, Behavior, Generation, Data & Backup). Floating layer — this is where a real drop shadow belongs.            |
 
-The **Ripple Dock** (per-thread state panel) docks inside the pond region alongside a thread, as a
+The **Ripple Dock** (active-branch state panel) docks inside the pond region alongside a thread, as a
 `shallow` sibling panel — not a second care drawer.
 
 ### Responsive behavior

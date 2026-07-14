@@ -1,6 +1,8 @@
 import type { CharacterRecord } from "../../../../engine/contracts/types/character";
-import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import type { RoleplayThread } from "../../../../engine/contracts/types/roleplay";
+import type {
+  MessengerModeThread,
+  RoleplayModeThread,
+} from "../../../../engine/contracts/types/mode-thread";
 import { MessengerThreadShoalList } from "./MessengerThreadShoalList";
 import { RoleplayThreadShoalList } from "./RoleplayThreadShoalList";
 import { ThreadShoalEmptyState } from "./ThreadShoalEmptyState";
@@ -10,8 +12,8 @@ interface ThreadShoalListProps {
   activeRoleplayThreadId: string | null;
   characterById: Map<string, CharacterRecord>;
   isRoleplaySurface: boolean;
-  messengerThreads: readonly MessengerThread[];
-  roleplayThreads: readonly RoleplayThread[];
+  messengerThreads: readonly MessengerModeThread[];
+  roleplayThreads: readonly RoleplayModeThread[];
   onCreateActiveThread: () => void;
   onDeleteMessengerThread: (threadId: string, displayName: string) => void;
   onDeleteRoleplayThread: (threadId: string, title: string) => void;

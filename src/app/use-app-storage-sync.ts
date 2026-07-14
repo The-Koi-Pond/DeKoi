@@ -93,8 +93,7 @@ export function mergeAffectedAppStorageCollections(
 ): AppStorageRecords {
   const merged = { ...current };
   for (const key of affectedKeys) {
-    if (key === "messengerThreads") merged.messengerThreads = candidate.messengerThreads;
-    if (key === "roleplayThreads") merged.roleplayThreads = candidate.roleplayThreads;
+    if (key === "modeThreads") merged.modeThreads = candidate.modeThreads;
     if (key === "promptPresets") merged.promptPresets = candidate.promptPresets;
     if (key === "appSettings") merged.appSettings = candidate.appSettings;
   }
@@ -110,7 +109,7 @@ const EMPTY_IMPORT_RECOVERY_STATE: AppStorageImportRecoveryState = {
   desktopBackupPath: null,
   reason: null,
 };
-const LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE = "__legacy_transcript_migration__";
+const APP_STORAGE_MIGRATION_SIGNATURE = "__app_storage_migration_pending__";
 const DROPPED_RECORD_SAVE_BLOCK_MESSAGE =
   "Storage save blocked because unreadable records were skipped during load. Restore from backup or repair storage before saving affected collections.";
 const STORAGE_RELOAD_ACTIVE_WORK_MESSAGE =
@@ -120,10 +119,8 @@ const STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE =
 const STORAGE_RELOAD_INTERRUPTED_MESSAGE =
   "Reload was interrupted because the storage target changed. Retry on the current storage target.";
 const STORAGE_SAVE_IDLE_TIMEOUT_MS = 1_000;
-const APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS = [
-  ["roleplayThreads", "roleplayEntries"],
-  ["messengerThreads", "messengerMessages"],
-] as const satisfies readonly (readonly AppStorageCollectionKey[])[];
+/** A rejected thread or message projection blocks automatic replacement of both. */
+const APP_STORAGE_MODE_COLLECTION_GROUP = ["modeThreads", "modeMessages"] as const;
 
 export type AppStorageReloadDecision = "proceed" | "confirm-local-discard" | "block-active-work";
 
@@ -223,7 +220,7 @@ function createAppStorageSignatures(snapshot: AppStorageRecords): AppStorageColl
   return signatures;
 }
 
-export function appStorageSnapshotsHaveMatchingSignatures(
+function appStorageSnapshotsHaveMatchingSignatures(
   left: AppStorageRecords,
   right: AppStorageRecords,
 ) {
@@ -234,13 +231,13 @@ export function appStorageSnapshotsHaveMatchingSignatures(
   );
 }
 
-function createLoadedAppStorageSignatures(
+export function createLoadedAppStorageSignatures(
   snapshot: AppStorageSnapshot,
   migrationCollectionKeys: readonly AppStorageCollectionKey[],
 ): AppStorageCollectionSignatures {
   const signatures = createAppStorageSignatures(snapshot);
   for (const collectionKey of migrationCollectionKeys) {
-    signatures[collectionKey] = LEGACY_TRANSCRIPT_MIGRATION_SIGNATURE;
+    signatures[collectionKey] = APP_STORAGE_MIGRATION_SIGNATURE;
   }
   return signatures;
 }
@@ -272,10 +269,10 @@ export function appStorageAutoMigrationCollectionKeys({
     (droppedRecordCountByCollection[collectionKey] ?? 0) > 0;
   const migrationCollectionIsSafe = (collectionKey: AppStorageCollectionKey) => {
     if (collectionHadDroppedRecords(collectionKey)) return false;
-    const splitTranscriptGroup = APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS.find((group) =>
-      (group as readonly AppStorageCollectionKey[]).includes(collectionKey),
-    );
-    return !splitTranscriptGroup?.some(collectionHadDroppedRecords);
+    if (APP_STORAGE_MODE_COLLECTION_GROUP.includes(collectionKey as never)) {
+      return !APP_STORAGE_MODE_COLLECTION_GROUP.some(collectionHadDroppedRecords);
+    }
+    return true;
   };
   const appSettingsMigrationIsSafe = migrationCollectionIsSafe("appSettings");
   const promptPresetMigrationIsSafe = migrationCollectionIsSafe("promptPresets");
@@ -291,13 +288,11 @@ export function appStorageAutoMigrationCollectionKeys({
     handledMigrationCollectionKeys.add("promptPresets");
     if (promptPresetMigrationIsSafe) safeMigrationCollectionKeys.push("promptPresets");
   }
-  for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
-    if (!group.every((collectionKey) => migrationCollectionKeySet.has(collectionKey))) continue;
-    for (const collectionKey of group) {
-      handledMigrationCollectionKeys.add(collectionKey);
+  if (APP_STORAGE_MODE_COLLECTION_GROUP.every((key) => migrationCollectionKeySet.has(key))) {
+    APP_STORAGE_MODE_COLLECTION_GROUP.forEach((key) => handledMigrationCollectionKeys.add(key));
+    if (!APP_STORAGE_MODE_COLLECTION_GROUP.some(collectionHadDroppedRecords)) {
+      safeMigrationCollectionKeys.push(...APP_STORAGE_MODE_COLLECTION_GROUP);
     }
-    if (group.some(collectionHadDroppedRecords)) continue;
-    safeMigrationCollectionKeys.push(...group);
   }
   for (const collectionKey of migrationCollectionKeys) {
     if (handledMigrationCollectionKeys.has(collectionKey)) continue;
@@ -307,7 +302,7 @@ export function appStorageAutoMigrationCollectionKeys({
   return safeMigrationCollectionKeys;
 }
 
-export function shouldBlockAppSettingsPromptPresetStarterSave({
+function shouldBlockAppSettingsPromptPresetStarterSave({
   pendingAppSettingsPromptPresetStarterInitialized,
   savedAppSettingsPromptPresetStarterInitialized,
 }: {
@@ -330,12 +325,10 @@ export function appStorageDroppedRecordSaveBlockCollectionKeys(
     }
   }
 
-  for (const group of APP_STORAGE_SPLIT_TRANSCRIPT_COLLECTION_GROUPS) {
-    if (group.some((collectionKey) => (droppedRecordCountByCollection[collectionKey] ?? 0) > 0)) {
-      for (const collectionKey of group) {
-        blockedCollectionKeys.add(collectionKey);
-      }
-    }
+  if (
+    APP_STORAGE_MODE_COLLECTION_GROUP.some((key) => (droppedRecordCountByCollection[key] ?? 0) > 0)
+  ) {
+    APP_STORAGE_MODE_COLLECTION_GROUP.forEach((key) => blockedCollectionKeys.add(key));
   }
 
   return APP_STORAGE_COLLECTION_KEYS.filter((collectionKey) =>
@@ -405,7 +398,7 @@ export function reconcileMigrationAppStorageSignatures({
   };
 }
 
-export function reconcilePublishedAppStorageTransactionBookkeeping({
+function reconcilePublishedAppStorageTransactionBookkeeping({
   savedSignatures,
   unsavedSignatures,
   snapshot,
@@ -435,7 +428,7 @@ export function reconcilePublishedAppStorageTransactionBookkeeping({
   };
 }
 
-export function reconcileCurrentAppStorageTransactionBookkeeping({
+function reconcileCurrentAppStorageTransactionBookkeeping({
   savedSignatures,
   snapshot,
 }: {
@@ -454,7 +447,7 @@ export function reconcileCurrentAppStorageTransactionBookkeeping({
   return { unsavedSignatures: nextUnsavedSignatures, dirtyCollectionKeys };
 }
 
-export function mergePersistedAppStorageTransactionSignatures(
+function mergePersistedAppStorageTransactionSignatures(
   savedSignatures: AppStorageCollectionSignatures | null,
   persistedSignatures: PartialAppStorageCollectionSignatures | undefined,
 ) {
@@ -588,8 +581,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setLoreRuntimeStates: StateSetter<AppStorageRecords["loreRuntimeStates"]>;
   setMacroVariableStates: StateSetter<AppStorageRecords["macroVariableStates"]>;
   setProviderConnections: StateSetter<AppStorageRecords["providerConnections"]>;
-  setRoleplayThreads: StateSetter<AppStorageRecords["roleplayThreads"]>;
-  setMessengerThreads: StateSetter<AppStorageRecords["messengerThreads"]>;
+  setModeThreads: StateSetter<AppStorageRecords["modeThreads"]>;
   setRippleStates: StateSetter<AppStorageRecords["rippleStates"]>;
   setMessengerStorageMode: StateSetter<MessengerStorageMode>;
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
@@ -611,8 +603,7 @@ export function useAppStorageSync({
   loreRuntimeStates,
   macroVariableStates,
   providerConnections,
-  roleplayThreads,
-  messengerThreads,
+  modeThreads,
   rippleStates,
   remoteRuntimeUrl,
   storageReady,
@@ -624,8 +615,7 @@ export function useAppStorageSync({
   setLoreRuntimeStates,
   setMacroVariableStates,
   setProviderConnections,
-  setRoleplayThreads,
-  setMessengerThreads,
+  setModeThreads,
   setRippleStates,
   setMessengerStorageMode,
   setMessengerStorageStatus,
@@ -672,8 +662,7 @@ export function useAppStorageSync({
     loreRuntimeStates,
     macroVariableStates,
     providerConnections,
-    roleplayThreads,
-    messengerThreads,
+    modeThreads,
     rippleStates,
   });
   const storageTransactionCoordinatorRef = useRef<StorageTransactionCoordinator | null>(null);
@@ -754,8 +743,7 @@ export function useAppStorageSync({
       setLoreRuntimeStates(records.loreRuntimeStates);
       setMacroVariableStates(records.macroVariableStates);
       setProviderConnections(records.providerConnections);
-      setRoleplayThreads(records.roleplayThreads);
-      setMessengerThreads(records.messengerThreads);
+      setModeThreads(records.modeThreads);
       setRippleStates(records.rippleStates);
     },
     [
@@ -765,12 +753,11 @@ export function useAppStorageSync({
       setLorebooks,
       setLoreRuntimeStates,
       setMacroVariableStates,
-      setMessengerThreads,
+      setModeThreads,
       setPersonas,
       setPromptPresets,
       setProviderConnections,
       setRippleStates,
-      setRoleplayThreads,
     ],
   );
 
@@ -784,8 +771,7 @@ export function useAppStorageSync({
       loreRuntimeStates,
       macroVariableStates,
       providerConnections,
-      roleplayThreads,
-      messengerThreads,
+      modeThreads,
       rippleStates,
     };
     publishCurrentStorageState(currentAppStorageRecords.current);
@@ -795,14 +781,13 @@ export function useAppStorageSync({
     lorebooks,
     loreRuntimeStates,
     macroVariableStates,
-    messengerThreads,
+    modeThreads,
     personas,
     promptPresets,
     providerConnections,
     publishCurrentStorageState,
     remoteRuntimeUrl,
     rippleStates,
-    roleplayThreads,
   ]);
 
   const applyLoadedAppStorageSnapshot = useCallback(
@@ -1435,8 +1420,7 @@ export function useAppStorageSync({
             loreRuntimeStates: snapshot.loreRuntimeStates,
             macroVariableStates: snapshot.macroVariableStates,
             providerConnections: snapshot.providerConnections,
-            roleplayThreads: snapshot.roleplayThreads,
-            messengerThreads: snapshot.messengerThreads,
+            modeThreads: snapshot.modeThreads,
             rippleStates: snapshot.rippleStates,
           };
         },
@@ -2373,8 +2357,7 @@ export function useAppStorageSync({
       loreRuntimeStates,
       macroVariableStates,
       providerConnections,
-      roleplayThreads,
-      messengerThreads,
+      modeThreads,
       rippleStates,
     };
     const changedCollectionKeys = changedAppStorageCollectionKeys(
@@ -2472,11 +2455,10 @@ export function useAppStorageSync({
   }, [
     appSettings,
     characters,
-    roleplayThreads,
+    modeThreads,
     lorebooks,
     loreRuntimeStates,
     macroVariableStates,
-    messengerThreads,
     personas,
     promptPresets,
     providerConnections,

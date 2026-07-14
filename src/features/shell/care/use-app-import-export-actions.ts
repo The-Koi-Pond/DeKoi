@@ -2,18 +2,15 @@ import { useCallback } from "react";
 import type { SurfaceId } from "../../../engine/contracts/constants/surfaces";
 import { MESSENGER } from "../../../engine/contracts/constants/surfaces";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
-import {
-  attachMessengerMessagesToThreads,
-  type MessengerMessageAuthor,
-} from "../../../engine/contracts/types/messenger";
 import type { MacroVariableScope } from "../../../engine/contracts/types/macro-variables";
-import { attachRoleplayEntriesToThreads } from "../../../engine/contracts/types/roleplay";
 import { createRecordId } from "../../../shared/browser/record-id";
 import {
   APP_STORAGE_COLLECTION_KEYS,
+  assembleModeThreads,
   appStorageCollectionCount,
   type AppStorageRecords,
   type AppStorageReplaceResult,
+  restampLegacyImportData,
 } from "../../runtime";
 import {
   createDeKoiStorageBundle,
@@ -39,8 +36,6 @@ type ImportCommitOptions = {
   desktopBackupPath?: string | null;
 };
 
-type RecordIdPrefix = "character" | "connection" | "persona";
-const GLOBAL_MACRO_VARIABLE_OWNER_ID = "global";
 const LEGACY_GLOBAL_MACRO_VARIABLE_OVERWRITE_WARNING =
   "Imported global macro variables will overwrite same-name current global macro variables.";
 
@@ -65,52 +60,6 @@ function createImportActionErrorResult(
     rollbackMessage:
       "No automatic rollback was performed. Use the pre-import backup bundle to restore if needed.",
     storageMetadata: {},
-  };
-}
-
-function remapIds<T extends { id: string }>(records: T[], prefix: RecordIdPrefix) {
-  const idMap = new Map<string, string>();
-  const remapped = records.map((record) => {
-    const id = createRecordId(prefix);
-    if (!idMap.has(record.id)) {
-      idMap.set(record.id, id);
-    }
-    return {
-      ...record,
-      id,
-    };
-  });
-  return [remapped, idMap] as const;
-}
-
-function remapImportedReferences(idMap: ReadonlyMap<string, string>, ids: string[]) {
-  return ids.flatMap((id) => {
-    const remapped = idMap.get(id);
-    return remapped ? [remapped] : [];
-  });
-}
-
-function remapImportedNullableReference(idMap: ReadonlyMap<string, string>, id: string | null) {
-  if (id === null) return null;
-  return idMap.get(id) ?? null;
-}
-
-function remapLegacyGlobalMacroVariableState(state: MacroVariableScope): MacroVariableScope {
-  return {
-    ...state,
-    id: createRecordId("macro-variable-state"),
-    ownerId: GLOBAL_MACRO_VARIABLE_OWNER_ID,
-  };
-}
-
-function remapLegacyThreadMacroVariableState(
-  state: MacroVariableScope,
-  ownerId: string,
-): MacroVariableScope {
-  return {
-    ...state,
-    id: createRecordId("macro-variable-state"),
-    ownerId,
   };
 }
 
@@ -191,84 +140,20 @@ export function getLegacyImportPreviewWarnings(
   return [...importWarnings, LEGACY_GLOBAL_MACRO_VARIABLE_OVERWRITE_WARNING];
 }
 
-function remapLegacyMessageAuthor(
-  author: MessengerMessageAuthor,
-  characterIds: ReadonlyMap<string, string>,
-  personaIds: ReadonlyMap<string, string>,
-): MessengerMessageAuthor {
-  switch (author.kind) {
-    case "character": {
-      const characterId = characterIds.get(author.characterId);
-      if (!characterId) return { kind: "unknown", label: author.label };
-      return {
-        ...author,
-        characterId,
-      };
-    }
-    case "persona": {
-      const personaId = personaIds.get(author.personaId);
-      if (!personaId) return { kind: "unknown", label: author.label };
-      return {
-        ...author,
-        personaId,
-      };
-    }
-    default:
-      return author;
-  }
+export function prepareLegacyImportData(
+  data: DeKoiLegacyImportData,
+  createId: (prefix: string) => string = createRecordId,
+): DeKoiLegacyImportData {
+  return restampLegacyImportData(data, createId);
 }
 
-export function prepareLegacyImportData(data: DeKoiLegacyImportData): DeKoiLegacyImportData {
-  const [characters, characterIdMap] = remapIds(data.characters, "character");
-  const [personas, personaIdMap] = remapIds(data.personas, "persona");
-  const [providerConnections, providerConnectionIdMap] = remapIds(
-    data.providerConnections,
-    "connection",
-  );
-  const globalMacroVariableStates = data.macroVariableStates
-    .filter((state) => state.ownerKind === "global")
-    .map(remapLegacyGlobalMacroVariableState);
-  const threadResults = data.messengerThreads.map((thread, index) => {
-    const id = createRecordId("messenger-thread");
-    const threadMacroVariableState = data.messengerThreadMacroVariableStates[index] ?? null;
-    return {
-      thread: {
-        ...thread,
-        id,
-        characterIds: remapImportedReferences(characterIdMap, thread.characterIds),
-        activePersonaId: remapImportedNullableReference(personaIdMap, thread.activePersonaId),
-        providerConnectionId: remapImportedNullableReference(
-          providerConnectionIdMap,
-          thread.providerConnectionId,
-        ),
-        messages: thread.messages.map((message) => ({
-          ...message,
-          id: createRecordId("messenger-message"),
-          threadId: id,
-          author: remapLegacyMessageAuthor(message.author, characterIdMap, personaIdMap),
-        })),
-      },
-      macroVariableState: threadMacroVariableState
-        ? remapLegacyThreadMacroVariableState(threadMacroVariableState, id)
-        : null,
-    };
-  });
-  const messengerThreads = threadResults.map((result) => result.thread);
-  const macroVariableStates = [
-    ...globalMacroVariableStates,
-    ...threadResults.flatMap((result) =>
-      result.macroVariableState ? [result.macroVariableState] : [],
-    ),
-  ];
-
-  return {
-    ...data,
-    characters,
-    personas,
-    providerConnections,
-    macroVariableStates,
-    messengerThreads,
-  };
+export function verifyAndPrepareLegacyImportData(
+  data: DeKoiLegacyImportData,
+  previewFingerprint: string,
+  createId: (prefix: string) => string = createRecordId,
+) {
+  if (createLegacyImportDataFingerprint(data) !== previewFingerprint) return null;
+  return prepareLegacyImportData(data, createId);
 }
 
 export function createLegacyImportDataFingerprint(data: DeKoiLegacyImportData) {
@@ -276,16 +161,16 @@ export function createLegacyImportDataFingerprint(data: DeKoiLegacyImportData) {
     createDeKoiStorageBundle({
       appSettings: DEFAULT_APP_SETTINGS,
       characters: data.characters,
-      roleplayThreads: [],
+      modeThreads: data.modeThreads,
       personas: data.personas,
       lorebooks: [],
       promptPresets: [],
       loreRuntimeStates: [],
       macroVariableStates: data.macroVariableStates,
       providerConnections: data.providerConnections,
-      messengerThreads: data.messengerThreads,
       rippleStates: [],
     }),
+    { messengerThreadMacroVariableStates: data.messengerThreadMacroVariableStates },
   );
 }
 
@@ -298,8 +183,7 @@ export function useAppImportExportActions({
   loreRuntimeStates,
   macroVariableStates,
   providerConnections,
-  roleplayThreads,
-  messengerThreads,
+  modeThreads,
   rippleStates,
   setSelectedSurface,
   setView,
@@ -310,12 +194,11 @@ export function useAppImportExportActions({
       createDeKoiStorageBundle({
         appSettings,
         characters,
-        roleplayThreads,
+        modeThreads,
         lorebooks,
         promptPresets,
         loreRuntimeStates,
         macroVariableStates,
-        messengerThreads,
         personas,
         providerConnections,
         rippleStates,
@@ -323,12 +206,11 @@ export function useAppImportExportActions({
     [
       appSettings,
       characters,
-      roleplayThreads,
       lorebooks,
       promptPresets,
       loreRuntimeStates,
       macroVariableStates,
-      messengerThreads,
+      modeThreads,
       personas,
       providerConnections,
       rippleStates,
@@ -338,13 +220,9 @@ export function useAppImportExportActions({
   const importStorageBundle = useCallback(
     async (bundle: DeKoiStorageBundle, options: ImportCommitOptions) => {
       const importedConnections = bundle.data.providerConnections;
-      const importedRoleplayThreads = attachRoleplayEntriesToThreads(
-        bundle.data.roleplayThreads,
-        bundle.data.roleplayEntries,
-      );
-      const importedMessengerThreads = attachMessengerMessagesToThreads(
-        bundle.data.messengerThreads,
-        bundle.data.messengerMessages,
+      const importedModeThreads = assembleModeThreads(
+        bundle.data.modeThreads,
+        bundle.data.modeMessages,
       );
       const importedSettings = { ...bundle.data.appSettings };
       const hasActiveConnection = importedConnections.some(
@@ -367,8 +245,7 @@ export function useAppImportExportActions({
         loreRuntimeStates: bundle.data.loreRuntimeStates,
         macroVariableStates: bundle.data.macroVariableStates,
         providerConnections: importedConnections,
-        roleplayThreads: importedRoleplayThreads,
-        messengerThreads: importedMessengerThreads,
+        modeThreads: importedModeThreads,
         rippleStates: bundle.data.rippleStates,
       };
 
@@ -397,32 +274,42 @@ export function useAppImportExportActions({
 
   const importLegacyData = useCallback(
     async (data: DeKoiLegacyImportData, options: ImportCommitOptions) => {
-      const firstImportedThreadId = data.messengerThreads[0]?.id ?? null;
+      const preparedData = verifyAndPrepareLegacyImportData(data, options.previewFingerprint);
+      if (!preparedData) {
+        const previewRecords: AppStorageRecords = {
+          appSettings,
+          characters,
+          personas,
+          lorebooks,
+          promptPresets,
+          loreRuntimeStates,
+          macroVariableStates,
+          providerConnections,
+          modeThreads,
+          rippleStates,
+        };
+        return createImportActionErrorResult(
+          previewRecords,
+          "Legacy import preview no longer matches the converted records to commit. Preview the file again before importing.",
+        );
+      }
 
+      const firstImportedThreadId = preparedData.modeThreads[0]?.id ?? null;
       const importedRecords: AppStorageRecords = {
         appSettings,
-        characters: [...data.characters, ...characters],
-        personas: [...data.personas, ...personas],
+        characters: [...preparedData.characters, ...characters],
+        personas: [...preparedData.personas, ...personas],
         lorebooks,
         promptPresets,
         loreRuntimeStates,
         macroVariableStates: mergeLegacyImportMacroVariableStates(
-          data.macroVariableStates,
+          preparedData.macroVariableStates,
           macroVariableStates,
         ),
-        providerConnections: [...data.providerConnections, ...providerConnections],
-        roleplayThreads,
-        messengerThreads: [...data.messengerThreads, ...messengerThreads],
+        providerConnections: [...preparedData.providerConnections, ...providerConnections],
+        modeThreads: [...preparedData.modeThreads, ...modeThreads],
         rippleStates,
       };
-
-      const actualFingerprint = createLegacyImportDataFingerprint(data);
-      if (actualFingerprint !== options.previewFingerprint) {
-        return createImportActionErrorResult(
-          importedRecords,
-          "Legacy import preview no longer matches the converted records to commit. Preview the file again before importing.",
-        );
-      }
 
       const storageResult = await commitAppStorageImport(importedRecords, {
         desktopBackupPath: options.desktopBackupPath,
@@ -445,11 +332,10 @@ export function useAppImportExportActions({
       promptPresets,
       loreRuntimeStates,
       macroVariableStates,
-      messengerThreads,
+      modeThreads,
       personas,
       providerConnections,
       rippleStates,
-      roleplayThreads,
       setSelectedSurface,
       setView,
     ],

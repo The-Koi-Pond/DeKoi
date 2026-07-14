@@ -1,21 +1,23 @@
+import type { MessengerModeThread } from "../../../engine/contracts/types/mode-thread";
 import {
-  getMessengerThreadActivityAt,
-  type MessengerThread,
-} from "../../../engine/contracts/types/messenger";
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+  getModeThreadActivityAt,
+} from "../../../engine/modes/mode-thread/mode-thread-actions";
 import type { ShoalSortMode } from "../../../engine/contracts/types/app-settings";
 
-export function sortMessengerThreadsByUpdatedAt(threads: MessengerThread[]) {
+export function sortMessengerThreadsByUpdatedAt(threads: MessengerModeThread[]) {
   return [...threads].sort((a, b) =>
-    getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
+    getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
   );
 }
 
-export function sortMessengerThreads(threads: MessengerThread[], sortMode: ShoalSortMode) {
+export function sortMessengerThreads(threads: MessengerModeThread[], sortMode: ShoalSortMode) {
   const sortedThreads = [...threads];
 
   if (sortMode === "oldest") {
     return sortedThreads.sort((a, b) =>
-      getMessengerThreadActivityAt(a).localeCompare(getMessengerThreadActivityAt(b)),
+      getModeThreadActivityAt(a).localeCompare(getModeThreadActivityAt(b)),
     );
   }
 
@@ -23,12 +25,12 @@ export function sortMessengerThreads(threads: MessengerThread[], sortMode: Shoal
     return sortedThreads.sort(
       (a, b) =>
         a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-        getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
+        getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
     );
   }
 
   return sortedThreads.sort((a, b) =>
-    getMessengerThreadActivityAt(b).localeCompare(getMessengerThreadActivityAt(a)),
+    getModeThreadActivityAt(b).localeCompare(getModeThreadActivityAt(a)),
   );
 }
 
@@ -44,12 +46,12 @@ export function getMessengerThreadInitials(title: string) {
   return initials || "M";
 }
 
-export function getMessengerThreadPreview(thread: MessengerThread) {
-  const lastMessage = thread.messages.at(-1);
+export function getMessengerThreadPreview(thread: MessengerModeThread) {
+  const lastMessage = getActiveModeBranchMessages(thread).at(-1);
   if (!lastMessage) return "No messages yet";
 
   const author = lastMessage.author.kind === "persona" ? "You" : lastMessage.author.label;
-  return `${author}: ${lastMessage.body}`;
+  return `${author}: ${getActiveModeMessageVersion(lastMessage).body}`;
 }
 
 export function getMessengerThreadTimeLabel(updatedAt: string, now = Date.now()) {

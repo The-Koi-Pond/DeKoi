@@ -49,8 +49,7 @@ function appStorageRecords(promptPresets: PromptPresetRecord[]): AppStorageRecor
     loreRuntimeStates: [],
     macroVariableStates: [],
     providerConnections: [],
-    roleplayThreads: [],
-    messengerThreads: [],
+    modeThreads: [],
     rippleStates: [],
   };
 }

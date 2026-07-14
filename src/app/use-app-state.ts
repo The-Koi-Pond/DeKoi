@@ -31,8 +31,7 @@ export function useAppState() {
   const [providerConnections, setProviderConnections] = useState(
     initialStorageRecords.providerConnections,
   );
-  const [roleplayThreads, setRoleplayThreads] = useState(initialStorageRecords.roleplayThreads);
-  const [messengerThreads, setMessengerThreads] = useState(initialStorageRecords.messengerThreads);
+  const [modeThreads, setModeThreads] = useState(initialStorageRecords.modeThreads);
   const [rippleStates, setRippleStates] = useState(initialStorageRecords.rippleStates);
   const [messengerStorageMode, setMessengerStorageMode] =
     useState<MessengerStorageMode>("unavailable");
@@ -76,10 +75,8 @@ export function useAppState() {
     setMacroVariableStates,
     providerConnections,
     setProviderConnections,
-    roleplayThreads,
-    setRoleplayThreads,
-    messengerThreads,
-    setMessengerThreads,
+    modeThreads,
+    setModeThreads,
     rippleStates,
     setRippleStates,
     messengerStorageMode,

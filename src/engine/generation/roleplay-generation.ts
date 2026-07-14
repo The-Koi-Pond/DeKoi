@@ -6,7 +6,14 @@ import type { PersonaRecord } from "../contracts/types/persona";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { resolvePromptPresetChoiceVariables } from "../prompt-presets/prompt-preset-normalization";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
-import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
+import type { RoleplayModeThread, ModeMessage } from "../contracts/types/mode-thread";
+import {
+  createActiveModeThreadSnapshot,
+  getActiveModeBranch,
+  getActiveModeBranchMessages,
+  getActiveModeMessageVersion,
+} from "../modes/mode-thread/mode-thread-actions";
+import { getNextRoleplayCompanion } from "../modes/roleplay/roleplay-actions";
 import { assemblePromptPresetMessages } from "../prompt-presets/prompt-preset-assembler";
 import type {
   ActivatedLoreEntry,
@@ -62,7 +69,7 @@ type RoleplayGenerationPromptMessage = GenerationPromptMessage;
 export type RoleplayGenerationParameters = GenerationParameters;
 export type RoleplayGenerationResponse = GenerationResponse;
 
-export type RoleplayGenerationRequest = GenerationRequestEnvelope<RoleplayThread>;
+export type RoleplayGenerationRequest = GenerationRequestEnvelope<RoleplayModeThread>;
 
 export type RoleplayGenerationRequestAssembly =
   GenerationRequestAssemblyResult<RoleplayGenerationRequest>;
@@ -76,14 +83,14 @@ export interface RoleplayGenerationContext {
   providerConnectionId: string | null;
   providerConnection: ProviderConnectionRecord | null;
   promptPreset: PromptPresetRecord | null;
-  requestThread: RoleplayThread;
+  requestThread: RoleplayModeThread;
   ephemeralVariableNames: string[];
   variables: Record<string, string>;
   warnings: string[];
 }
 
 export interface RoleplayGenerationContextInput {
-  thread: RoleplayThread;
+  thread: RoleplayModeThread;
   characters: CharacterRecord[];
   personas: PersonaRecord[];
   lorebooks: LorebookRecord[];
@@ -94,45 +101,34 @@ export interface RoleplayGenerationContextInput {
   variables?: Record<string, string>;
 }
 
-function roleplayEntryRole(entry: RoleplayEntry): RoleplayGenerationPromptMessage["role"] {
-  return entry.role === "character" ? "assistant" : "user";
+function roleplayMessageRole(message: ModeMessage): RoleplayGenerationPromptMessage["role"] {
+  return message.author.kind === "character"
+    ? "assistant"
+    : message.author.kind === "system"
+      ? "system"
+      : "user";
 }
 
-function roleplayEntryContent(entry: RoleplayEntry) {
-  const label = cleanGenerationText(entry.label) || "Unknown";
-  if (entry.role === "scene") return `Scene: ${entry.body.trim()}`;
-  if (entry.role === "narration") return `Narration: ${entry.body.trim()}`;
-  return `${label}: ${entry.body.trim()}`;
+function roleplayMessageContent(message: ModeMessage) {
+  const label = cleanGenerationText(message.author.label) || "Unknown";
+  return `${label}: ${getActiveModeMessageVersion(message).body.trim()}`;
 }
 
-function roleplayLoreScanSources(thread: RoleplayThread): LorebookScanSource[] {
-  return thread.entries.map((entry) => ({
-    name: cleanGenerationText(entry.label) || null,
-    body: entry.body,
+function roleplayLoreScanSources(thread: RoleplayModeThread): LorebookScanSource[] {
+  return getActiveModeBranchMessages(thread).map((message) => ({
+    name: cleanGenerationText(message.author.label) || null,
+    body: getActiveModeMessageVersion(message).body,
   }));
 }
 
-function latestRoleplayInput(thread: RoleplayThread) {
-  for (let index = thread.entries.length - 1; index >= 0; index -= 1) {
-    if (thread.entries[index].body.trim()) return thread.entries[index].body;
+function latestRoleplayInput(thread: RoleplayModeThread) {
+  const messages = getActiveModeBranchMessages(thread);
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const body = getActiveModeMessageVersion(messages[index]).body;
+    if (body.trim()) return body;
   }
 
   return null;
-}
-
-function getNextRoleplayCompanion(thread: RoleplayThread, companions: CharacterRecord[]) {
-  const availableCompanions = companions.filter((companion) =>
-    thread.characterIds.includes(companion.id),
-  );
-  if (availableCompanions.length === 0) return null;
-
-  const companionEntryCount = thread.entries.filter(
-    (entry) =>
-      entry.role === "character" &&
-      !!entry.characterId &&
-      thread.characterIds.includes(entry.characterId),
-  ).length;
-  return availableCompanions[companionEntryCount % availableCompanions.length];
 }
 
 export function createRoleplayGenerationContext({
@@ -146,26 +142,26 @@ export function createRoleplayGenerationContext({
   thread,
   variables = {},
 }: RoleplayGenerationContextInput): RoleplayGenerationContext {
+  const branch = getActiveModeBranch(thread);
   const records = resolveGenerationRecords({
-    activePersonaId: thread.activePersonaId,
+    activePersonaId: branch.activePersonaId,
     appSettings,
-    characterIds: thread.characterIds,
+    characterIds: branch.characterIds,
     characters,
     fallbackProviderConnectionId,
-    lorebookIds: thread.lorebookIds,
+    lorebookIds: branch.lorebookIds,
     lorebooks,
     personas,
-    promptPresetId: thread.presetId,
+    promptPresetId: branch.presetId,
     promptPresets,
-    providerConnectionId: thread.providerConnectionId,
+    providerConnectionId: branch.providerConnectionId,
     providerConnections,
     warningPrefix: "Roleplay thread",
   });
+  const resolvedPresetId = records.promptPreset?.id ?? null;
   const presetChoiceVariables = resolvePromptPresetChoiceVariables({
     preset: records.promptPreset,
-    selections: thread.presetId
-      ? (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId]
-      : {},
+    selections: resolvedPresetId ? branch.presetChoiceSelectionsByPresetId[resolvedPresetId] : {},
   });
 
   return {
@@ -183,19 +179,22 @@ export function createRoleplayGenerationContext({
       ...presetChoiceVariables.variables,
     },
     requestThread: {
-      ...thread,
-      activePersonaId: records.activePersona?.id ?? null,
-      characterIds: records.companions.map((companion) => companion.id),
-      lorebookIds: records.lorebookSources.chat.map((lorebook) => lorebook.id),
-      presetId: records.promptPreset?.id ?? null,
-      presetChoiceSelectionsByPresetId:
-        records.promptPreset && thread.presetId
-          ? {
-              [thread.presetId]:
-                (thread.presetChoiceSelectionsByPresetId ?? {})[thread.presetId] ?? {},
-            }
-          : {},
-      providerConnectionId: records.providerConnectionId,
+      ...createActiveModeThreadSnapshot(thread),
+      branches: [
+        {
+          ...branch,
+          activePersonaId: records.activePersona?.id ?? null,
+          characterIds: records.companions.map((c) => c.id),
+          lorebookIds: records.lorebookSources.chat.map((l) => l.id),
+          presetId: resolvedPresetId,
+          providerConnectionId: records.providerConnectionId,
+          presetChoiceSelectionsByPresetId: resolvedPresetId
+            ? {
+                [resolvedPresetId]: branch.presetChoiceSelectionsByPresetId[resolvedPresetId] ?? {},
+              }
+            : {},
+        },
+      ],
     },
     warnings: records.warnings,
   };
@@ -352,25 +351,30 @@ function buildRoleplayMarkerLines({
   }
 }
 
-function roleplaySelectedPromptSource(promptPreset: PromptPresetRecord | null) {
+function roleplaySelectedPromptSource(
+  thread: RoleplayModeThread,
+  promptPreset: PromptPresetRecord | null,
+) {
+  const branch = getActiveModeBranch(thread);
+  if (branch.systemPromptMode === "custom" && branch.systemPrompt) return branch.systemPrompt;
   return promptPreset?.systemPrompt.trim() || DEFAULT_ROLEPLAY_SYSTEM_PROMPT;
 }
 
-function resolveRoleplaySceneLines(thread: RoleplayThread, macroContext: GenerationMacroContext) {
-  return [
-    thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : "",
-    thread.sceneText ? resolveGenerationMacros(thread.sceneText, macroContext) : "",
-  ];
+function resolveRoleplaySceneLines(
+  thread: RoleplayModeThread,
+  macroContext: GenerationMacroContext,
+) {
+  return [thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : ""];
 }
 
 function resolveRoleplayPromptPrelude(
-  thread: RoleplayThread,
+  thread: RoleplayModeThread,
   macroContext: GenerationMacroContext,
   promptPreset: PromptPresetRecord | null,
 ) {
   return {
     selectedPrompt: resolveGenerationMacros(
-      roleplaySelectedPromptSource(promptPreset),
+      roleplaySelectedPromptSource(thread, promptPreset),
       macroContext,
     ),
     sceneLines: resolveRoleplaySceneLines(thread, macroContext),
@@ -446,12 +450,19 @@ function createRoleplayPromptAssembly({
   now: string;
   promptPreset: PromptPresetRecord | null;
   providerConnection: ProviderConnectionRecord | null;
-  thread: RoleplayThread;
+  thread: RoleplayModeThread;
   targetCompanion: CharacterRecord | null;
   timeZone?: string | null;
   variables?: Record<string, string>;
   variableNames?: string[];
 }): GenerationPromptAssemblyResult {
+  if (
+    loreRuntimeState &&
+    (loreRuntimeState.ownerKind !== "mode-branch" ||
+      loreRuntimeState.ownerId !== getActiveModeBranch(thread).id)
+  ) {
+    throw new Error("Invalid Roleplay lore runtime state owner");
+  }
   const macroVariableMutations: MacroVariableMutation[] = [];
   const macroContext = createGenerationMacroContext({
     activePersona,
@@ -483,11 +494,11 @@ function createRoleplayPromptAssembly({
     scanSources: roleplayLoreScanSources(thread),
   });
   const activatedLoreEntries = loreActivation.entries;
-  const transcript = thread.entries
-    .filter((entry) => entry.body.trim())
-    .map((entry) => ({
-      role: roleplayEntryRole(entry),
-      content: roleplayEntryContent(entry),
+  const transcript = getActiveModeBranchMessages(thread)
+    .filter((message) => getActiveModeMessageVersion(message).body.trim())
+    .map((message) => ({
+      role: roleplayMessageRole(message),
+      content: roleplayMessageContent(message),
     }));
   const summarizedLorebookIds = new Set<string>();
   let transcriptWithDepthLoreCache: RoleplayGenerationPromptMessage[] | null = null;
@@ -518,7 +529,7 @@ function createRoleplayPromptAssembly({
   };
   const promptMessages: RoleplayGenerationPromptMessage[] = promptPreset?.sections.length
     ? assemblePromptPresetMessages({
-        fallbackSystemPrompt: () => roleplaySelectedPromptSource(promptPreset),
+        fallbackSystemPrompt: () => roleplaySelectedPromptSource(thread, promptPreset),
         macroContext,
         markerLines: (markerType) =>
           buildRoleplayMarkerLines({
@@ -627,7 +638,7 @@ export function createRoleplayGenerationRequestAssembly({
     variableNames: context.ephemeralVariableNames,
   });
 
-  return createGenerationRequestAssemblyResult<RoleplayThread, RoleplayGenerationRequest>({
+  return createGenerationRequestAssemblyResult<RoleplayModeThread, RoleplayGenerationRequest>({
     context,
     createRequest: (request) => request,
     id,
@@ -635,6 +646,6 @@ export function createRoleplayGenerationRequestAssembly({
     parameters,
     promptAssembly,
     targetCompanion,
-    thread: context.requestThread,
+    thread: createActiveModeThreadSnapshot(context.requestThread),
   });
 }

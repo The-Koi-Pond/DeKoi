@@ -38,7 +38,7 @@ rules and the current decisions.
 | Persona catalog               | Personas           | persona record      | User-facing identities for participation in Messenger and Roleplay threads.   |
 | Lorebook/knowledge catalog    | Lorebooks          | lorebook record     | Reusable facts, setting notes, references, and continuity material.           |
 | Prompt presets                | Presets            | prompt preset       | Reusable generation settings and prompt structure.                            |
-| Game-state/tracker-style data | Ripples            | ripple state        | Dynamic per-thread state, counters, summaries, and continuity changes.        |
+| Game-state/tracker-style data | Ripples            | ripple state        | Dynamic per-branch state, counters, summaries, and continuity changes.        |
 | Tracker sidebar panel         | Ripple Dock        | ripple dock         | Sidebar surface for viewing and editing Ripples.                              |
 | Automation/helper catalog     | Agents             | agent               | Optional automated reviewers, trackers, or generators.                        |
 | Connections/providers         | Connections        | provider connection | Model, local runtime, and service configuration.                              |
@@ -63,7 +63,7 @@ Suggested Messenger language:
 - One-on-one subtype: `Direct Messenger`
 - Multi-participant subtype: `Group Messenger`
 - Internal kind: `messenger`
-- Core record: `MessengerThread`
+- Core record: `ModeThread` with `kind: "messenger"`
 - Import adapter alias only: `legacy conversation source`
 
 Avoid using `Conversation Mode` as public text or `conversation` as a native
@@ -77,13 +77,13 @@ Suggested Roleplay language:
 - Public navigation: `Roleplay`
 - Primary action: `New Roleplay`
 - Internal kind: `roleplay`
-- Core record: `RoleplayThread`
+- Core record: `ModeThread` with `kind: "roleplay"`
 - Import adapter alias only: `legacy roleplay source`
 
 Avoid using `Roleplay Mode` as public text. Use `roleplay` only as the native
 surface ID, not as a legacy mode label.
 
-Use **Ripples** as the public label for dynamic per-thread state.
+Use **Ripples** as the public label for dynamic per-branch state.
 
 This covers things that may eventually include:
 
@@ -159,9 +159,9 @@ characters. It should feel like a private or group message chat: compact turns,
 quick replies, clear speakers, and saved history.
 
 Roleplay now exists as the second native surface. It reuses characters,
-personas, lorebooks, providers, generation contracts, split transcript storage,
-and Ripples where that makes sense, while keeping room for scene presentation
-and continuity needs that diverge from Messenger.
+personas, lorebooks, providers, the shared mode-thread substrate, and Ripples
+where that makes sense, while keeping its prompt assembly, generation behavior,
+and scene presentation distinct from Messenger.
 
 Game/adventure-style play is intentionally out of scope for now.
 
@@ -243,7 +243,7 @@ Current implementation:
   assembly. Constant entries activate unless blocked by timing delay or delayed
   until recursion, selective entries match keys against recent transcript text
   and opted-in companion/persona fields, recursive scan can let resolved
-  activated entry bodies unlock further entries, per-thread lore runtime state
+  activated entry bodies unlock further entries, per-branch lore runtime state
   applies sticky and cooldown timers, inclusion groups collapse to one winner
   before per-entry probability runs except for sticky activations, and activated
   entries are ordered by the saved insertion strategy, placed, and
@@ -274,7 +274,7 @@ Likely relationships:
 
 - A Messenger thread may use one active prompt preset.
 - A Roleplay thread may use one active prompt preset.
-- Messenger and Roleplay threads may store per-thread choices for the selected
+- Messenger and Roleplay branches may store branch-specific choices for the selected
   preset without changing the reusable preset record.
 - A future Thread Preset may hold broader chat-specific settings that should
   travel with one saved thread instead of with reusable generation defaults.
@@ -312,10 +312,10 @@ Current implementation:
   single-character Roleplay uses the Roleplay-owned one-character output
   contract.
 - Prompt-preset static `variableValues` and the active preset's confirmed
-  per-thread choice selections become request-local prompt variables at
-  generation time. Choice selections
-  are saved on the Messenger or Roleplay thread, not in `MacroVariableScope`.
-  Thread selections use stable choice-block and option IDs and retain separate
+  per-branch choice selections become request-local prompt variables at
+  generation time. Choice selections are saved on the active Messenger or
+  Roleplay branch, not in `MacroVariableScope`. Branch selections use stable
+  choice-block and option IDs and retain separate
   histories per preset. Messenger and Roleplay mode owners repair invalid
   confirmed choices after live preset edits, persist the valid defaults, and
   surface a repair notice without creating confirmations for unanswered
@@ -328,7 +328,9 @@ Current implementation:
   without opening the dialog. Returning to a preset restores its separate
   history, and the active preset's variables can be reopened manually.
 - Switching Messenger to a different preset changes the selected preset and its
-  per-preset choice history; there is no conversation-owned prompt override.
+  per-preset choice history. A stored non-empty custom branch prompt overrides
+  preset prompt sources, although ordinary Messenger settings do not expose an
+  arbitrary prompt editor.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 
@@ -361,8 +363,8 @@ Not fully settled yet:
 
 ## Unified Mode-Thread Foundation
 
-`ModeThread` is the additive React-free substrate for the future Messenger and
-Roleplay record cutover. It keeps `messenger` and `roleplay` as truthful
+`ModeThread` is the native React-free substrate for Messenger and Roleplay. It
+keeps `messenger` and `roleplay` as truthful
 discriminated kinds rather than erasing their product differences. A thread has
 one or more same-kind branches; messages belong to exactly one thread and
 branch and have one or more versions with one active version.
@@ -373,7 +375,7 @@ Roleplay branches additionally own their reply strategy, while a Roleplay
 thread may record its opening Companion. Message authors use the native
 `persona`, `character`, `system`, or `unknown` discriminators and store a
 historical display label; Character is presented publicly as Companion. System
-is a neutral author kind, not a native narrator or generated-reply target.
+is the neutral author kind and is not a generated-reply target.
 
 The foundation validates exact native shapes, canonical IDs, ownership,
 discriminators, nonempty branches and versions, active references, and
@@ -381,18 +383,18 @@ monotonic parseable timestamps. Its pure actions isolate branch mutations,
 retain preset choice histories when presets change, and order activity from
 thread metadata plus message and active-version updates.
 
-This slice does not replace `MessengerThread`, `MessengerMessage`,
-`RoleplayThread`, or `RoleplayEntry`. Their factories, generation, UI, app
-state, and durable collections remain authoritative until a later atomic
-cutover. The foundation deliberately has no generic cross-mode thread factory,
-native narrator, `sceneText`, conversation-level prompt override, legacy
-aliases, or visible branch/swipe UI.
+Messenger and Roleplay use mode-owned factories, actions, prompt builders, and
+screens over this shared substrate. App state uses one `modeThreads` array and
+durable storage projects it into `mode-threads` plus `mode-messages`. The
+foundation deliberately has no generic cross-mode thread factory, `sceneText`,
+conversation-level prompt override, legacy aliases, or visible branch/version
+UI.
 
 ## Messenger Records
 
-### MessengerThread
+### Messenger Mode Thread
 
-A MessengerThread is a saved DM-style conversation.
+A Messenger mode thread is a `ModeThread` with `kind: "messenger"`.
 
 Purpose:
 
@@ -405,7 +407,7 @@ Likely relationships:
 
 - Has one or more character participants.
 - May have one active persona.
-- Contains many MessengerMessages.
+- Contains branch-owned `ModeMessage` records.
 - May attach chat-specific lorebooks, choose an active prompt preset, and choose
   prompt-preset choice selections and a provider connection; media can attach
   later.
@@ -414,10 +416,11 @@ Important behavior:
 
 - One-on-one and group Messenger threads should be the same record kind with different
   participant counts.
-- A MessengerThread should not require Roleplay scene state.
-- A MessengerThread should be understandable even before generation support exists.
-- Durable storage keeps MessengerMessages in a separate collection keyed by
-  thread ID, while UI and generation receive assembled MessengerThread objects.
+- A Messenger thread does not require Roleplay scene state.
+- The Messenger UI and generation path use only the active branch and active
+  message versions while keeping Messenger-specific behavior in its mode owner.
+- Durable storage keeps thread metadata and messages in the shared native
+  collection pair, while UI and generation receive assembled mode threads.
 
 Still evolving:
 
@@ -425,9 +428,10 @@ Still evolving:
 - Whether group Messenger threads use one shared character response or separate character
   turns.
 
-### MessengerMessage
+### ModeMessage
 
-A MessengerMessage is one visible message inside a MessengerThread.
+A `ModeMessage` is one versioned transcript item inside a Messenger or Roleplay
+branch.
 
 Purpose:
 
@@ -437,9 +441,10 @@ Purpose:
 
 Likely relationships:
 
-- Belongs to exactly one MessengerThread.
+- Belongs to exactly one mode thread and branch.
 - Has an author reference: user persona, character, system/app, or unknown
   imported source.
+- Has one or more complete versions and one active version.
 
 Important behavior:
 
@@ -451,14 +456,13 @@ Still evolving:
 
 - Future author metadata beyond the current persona, character, system, and
   unknown author kinds.
-- Edit history.
 - Attachment format.
 
 ## Roleplay Records
 
-### RoleplayThread
+### Roleplay Mode Thread
 
-A RoleplayThread is a saved visual-novel-style character scene.
+A Roleplay mode thread is a `ModeThread` with `kind: "roleplay"`.
 
 Purpose:
 
@@ -473,7 +477,7 @@ Likely relationships:
 - May have one active persona.
 - May attach lorebooks and choose a provider connection.
 - May choose one active prompt preset and prompt-preset choice selections.
-- Contains RoleplayEntries.
+- Contains branch-owned `ModeMessage` records.
 - May reference scene media later.
 
 Important behavior:
@@ -483,31 +487,32 @@ Important behavior:
   Messenger records.
 - Thread settings expose preset-variable choices for the selected prompt
   preset. Choosing the preset default removes the thread override.
-- Durable storage keeps RoleplayEntries in a separate collection keyed by thread
-  ID, while UI and generation receive assembled RoleplayThread objects.
+- Durable storage uses the same mode-thread/message collection pair as
+  Messenger, while Roleplay keeps its own prompt, generation, and display
+  behavior.
 
 Still evolving:
 
-- Deeper Roleplay turn semantics beyond the first RoleplayEntry shape.
+- Deeper Roleplay turn semantics beyond the current mode-message shape.
 - Sprite/background ownership.
 
 ## Shared State Records
 
 ### LoreRuntimeState
 
-LoreRuntimeState is internal per-thread state for timed lorebook effects.
+LoreRuntimeState is internal per-branch state for timed lorebook effects.
 
 Purpose:
 
 - Keep sticky and cooldown timers durable without putting mutable counters on
   reusable lorebook entries.
-- Scope lore timing to one MessengerThread or RoleplayThread.
+- Scope lore timing to one mode branch.
 - Let prompt assembly reset timers when a lore entry changes or when a thread is
   deleted or cleared.
 
 Current implementation:
 
-- LoreRuntimeState belongs to one MessengerThread or RoleplayThread.
+- LoreRuntimeState uses `ownerKind: "mode-branch"` and the owning branch ID.
 - It stores active timers by lorebook entry, using the lore entry's `updatedAt`
   to discard stale timers after edits.
 - It is saved locally and included in DeKoi storage bundles, with orphaned
@@ -522,25 +527,25 @@ Purpose:
 
 - Keep variable macro values durable without putting prompt scratch state on
   thread records.
-- Share global variables with Messenger and Roleplay while allowing thread-level
+- Share global variables with Messenger and Roleplay while allowing branch-level
   overrides.
 - Persist only variable mutations that survive successful generation.
 
 Current implementation:
 
 - One global scope uses `ownerKind: "global"` and `ownerId: "global"`.
-- MessengerThread and RoleplayThread scopes use the owning thread ID, are saved
-  locally, and are included in DeKoi storage bundles.
-- Generation starts with global variables overlaid by the active thread scope;
+- Mode branch scopes use `ownerKind: "mode-branch"` and the owning branch ID,
+  are saved locally, and are included in DeKoi storage bundles.
+- Generation starts with global variables overlaid by the active branch scope;
   existing global-only keys stay global when mutated, and new keys are saved to
-  the thread scope.
-- Thread deletion, transcript clearing, and bundle import orphan cleanup remove
-  thread-scoped macro variable state. Prompt-preset static and choice variables
+  the branch scope.
+- Thread deletion, branch transcript clearing, and bundle import orphan cleanup
+  remove branch-scoped macro variable state. Prompt-preset static and choice variables
   are request inputs, not MacroVariableScope records.
 
 ### RippleState
 
-RippleState is the DeKoi name for dynamic per-thread state.
+RippleState is the DeKoi name for dynamic per-branch state.
 The current public sidebar/panel label for this state is **Ripple Dock**.
 
 Purpose:
@@ -552,7 +557,8 @@ Purpose:
 
 Likely relationships:
 
-- Belongs to one MessengerThread or RoleplayThread.
+- Belongs to one mode branch through `ownerKind: "mode-branch"` and its branch
+  ID.
 - May be updated manually or by future helper modules.
 - May contain many individual Ripples.
 
@@ -573,7 +579,7 @@ Purpose:
 
 Likely relationships:
 
-- Reads and edits RippleState for the active MessengerThread or RoleplayThread.
+- Reads and edits RippleState for the active Messenger or Roleplay branch.
 - May be hidden, docked, or expanded depending on layout.
 
 Not fully settled yet:
@@ -622,11 +628,11 @@ provider's API shape.
 
 `AppSettings.defaultPromptPresetId` is the single native default authority;
 `PromptPresetRecord` does not carry a default flag. Messenger and Roleplay
-threads keep confirmed variable choices in
+branches keep confirmed variable choices in
 `presetChoiceSelectionsByPresetId`, retaining history when switching presets
-or when a deleted preset ID remains in history. New threads use the current
-default. The default and last preset cannot be deleted; deleting another preset
-reassigns its active threads to the default without erasing their histories.
+or when a deleted preset ID remains in history. New thread branches use the
+current default. The default and last preset cannot be deleted; deleting another
+preset reassigns every branch using it to the default without erasing history.
 
 Snapshot/bundle normalization restores the exact bundled starter when no usable
 preset remains, repairs a missing default to the first usable preset, and

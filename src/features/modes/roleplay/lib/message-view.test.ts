@@ -1,31 +1,35 @@
 import { describe, expect, it } from "vitest";
-import type { RoleplayEntry } from "../../../../engine/contracts/types/roleplay";
-import { getCopyableRoleplayEntryBody } from "./message-view";
+import type { ModeMessage } from "../../../../engine/contracts/types/mode-thread";
+import { getCopyableRoleplayMessageBody } from "./message-view";
 
-function createEntry(body: string): RoleplayEntry {
+function createMessage(body: string): ModeMessage {
   return {
-    id: "entry-1",
+    id: "message-1",
     schemaVersion: 1,
     threadId: "thread-1",
-    role: "narration",
-    characterId: null,
-    personaId: null,
-    label: "Narrator",
-    body,
-    origin: "manual",
+    branchId: "branch-1",
+    author: { kind: "system", label: "Scene" },
+    versions: [
+      {
+        id: "version-1",
+        body,
+        origin: "manual",
+        createdAt: "2026-07-04T00:00:00.000Z",
+        updatedAt: "2026-07-04T00:00:00.000Z",
+      },
+    ],
+    activeVersionId: "version-1",
     createdAt: "2026-07-04T00:00:00.000Z",
     updatedAt: "2026-07-04T00:00:00.000Z",
   };
 }
 
-describe("getCopyableRoleplayEntryBody", () => {
+describe("getCopyableRoleplayMessageBody", () => {
   it("preserves scene-formatting whitespace", () => {
     const body = "  The room goes quiet.\n\n";
-
-    expect(getCopyableRoleplayEntryBody(createEntry(body))).toBe(body);
+    expect(getCopyableRoleplayMessageBody(createMessage(body))).toBe(body);
   });
-
-  it("returns null for whitespace-only entries", () => {
-    expect(getCopyableRoleplayEntryBody(createEntry(" \n\t "))).toBeNull();
+  it("returns null for whitespace-only messages", () => {
+    expect(getCopyableRoleplayMessageBody(createMessage(" \n\t "))).toBeNull();
   });
 });

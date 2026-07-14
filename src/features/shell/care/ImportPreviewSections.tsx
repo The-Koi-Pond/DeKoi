@@ -31,8 +31,7 @@ export function BundleCounts({ counts }: BundleCountsProps) {
       items={[
         { value: counts.characters, label: "companions" },
         { value: counts.personas, label: "personas" },
-        { value: counts.roleplayThreads, label: "Roleplay threads" },
-        { value: counts.roleplayEntries, label: "Roleplay turns" },
+        { value: counts.modeThreads, label: "Mode threads" },
         { value: counts.lorebooks, label: "lorebooks" },
         { value: counts.promptPresets, label: "prompt presets" },
         { value: counts.lorebookEntries, label: "lore entries" },
@@ -41,8 +40,9 @@ export function BundleCounts({ counts }: BundleCountsProps) {
         { value: counts.macroVariableStates, label: "macro variable scopes" },
         { value: counts.macroVariables, label: "macro variables" },
         { value: counts.providerConnections, label: "connections" },
-        { value: counts.messengerThreads, label: "threads" },
-        { value: counts.messengerMessages, label: "messages" },
+        { value: counts.modeThreadKinds.messenger, label: "Messenger threads" },
+        { value: counts.modeThreadKinds.roleplay, label: "Roleplay threads" },
+        { value: counts.modeMessages, label: "Mode messages" },
         { value: counts.rippleStates, label: "Ripple states" },
         { value: counts.ripples, label: "Ripples" },
       ]}
@@ -130,8 +130,8 @@ function LegacyImportCounts({ counts }: { counts: DeKoiLegacyImportPreview["coun
         { value: counts.macroVariableStates, label: "macro variable scopes" },
         { value: counts.macroVariables, label: "macro variables" },
         { value: counts.providerConnections, label: "connections" },
-        { value: counts.messengerThreads, label: "Messenger threads" },
-        { value: counts.messengerMessages, label: "messages" },
+        { value: counts.messengerThreads, label: "Messenger threads (legacy source)" },
+        { value: counts.messengerMessages, label: "Messenger messages (legacy source)" },
       ]}
     />
   );

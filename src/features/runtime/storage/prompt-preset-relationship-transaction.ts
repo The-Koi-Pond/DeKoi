@@ -55,8 +55,7 @@ export async function runPromptPresetRelationshipTransaction({
     const domain: PromptPresetRelationshipSnapshot = {
       appSettings: current.appSettings,
       promptPresets: current.promptPresets,
-      messengerThreads: current.messengerThreads,
-      roleplayThreads: current.roleplayThreads,
+      modeThreads: current.modeThreads,
     };
     let nextDomain: PromptPresetRelationshipSnapshot | null;
     let keys: AppStorageCollectionKey[];
@@ -78,11 +77,7 @@ export async function runPromptPresetRelationshipTransaction({
         };
       }
       nextDomain = plan.snapshot;
-      keys = [
-        ...(plan.reassignedMessenger > 0 ? ["messengerThreads" as const] : []),
-        ...(plan.reassignedRoleplay > 0 ? ["roleplayThreads" as const] : []),
-        "promptPresets",
-      ];
+      keys = [...(plan.reassignedModeThreads > 0 ? ["modeThreads" as const] : []), "promptPresets"];
     } else {
       nextDomain = planPromptPresetDefault(domain, mutation.presetId);
       if (!nextDomain)

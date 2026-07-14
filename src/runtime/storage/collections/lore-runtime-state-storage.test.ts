@@ -7,7 +7,7 @@ describe("normalizeLoreRuntimeState", () => {
     const record = normalizeLoreRuntimeState({
       id: "lore-runtime-state-under-test",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "messenger-thread-1",
       lastEvaluatedMessageCount: 4.9,
       entries: [
@@ -40,7 +40,7 @@ describe("normalizeLoreRuntimeState", () => {
     expect(record).toEqual({
       id: "lore-runtime-state-under-test",
       schemaVersion: 1,
-      ownerKind: "messenger-thread",
+      ownerKind: "mode-branch",
       ownerId: "messenger-thread-1",
       lastEvaluatedMessageCount: 4,
       entries: [
@@ -63,7 +63,7 @@ describe("normalizeLoreRuntimeState", () => {
       normalizeLoreRuntimeState({
         id: "state",
         schemaVersion: 2,
-        ownerKind: "messenger-thread",
+        ownerKind: "mode-branch",
         ownerId: "thread",
       }),
     ).toBeNull();
@@ -72,6 +72,14 @@ describe("normalizeLoreRuntimeState", () => {
         id: "state",
         schemaVersion: 1,
         ownerKind: "unknown",
+        ownerId: "thread",
+      }),
+    ).toBeNull();
+    expect(
+      normalizeLoreRuntimeState({
+        id: "state",
+        schemaVersion: 1,
+        ownerKind: "messenger-thread",
         ownerId: "thread",
       }),
     ).toBeNull();
