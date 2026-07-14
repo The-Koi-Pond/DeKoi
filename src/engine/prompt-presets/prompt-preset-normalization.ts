@@ -973,7 +973,7 @@ function normalizePromptPresetRecordFromParts({
   return {
     id,
     schemaVersion,
-    title: title.trim() || "Untitled preset",
+    title: title.trim(),
     summary: summary?.trim() || null,
     systemPrompt: resolvedSystemPrompt,
     messengerPrompt: resolvedMessengerPrompt,
@@ -1041,10 +1041,18 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
 
   const id = readString(value.id).trim();
   const systemPrompt = readString(value.systemPrompt).trim();
-  if (!id) return null;
+  const title = readString(value.title).trim();
+  if (!id || !title) return null;
+
+  if (
+    [value.sections, value.groups, value.choiceBlocks].some(
+      (collection) => collection !== undefined && !Array.isArray(collection),
+    )
+  ) {
+    return null;
+  }
 
   const now = new Date().toISOString();
-  const title = readString(value.title).trim() || "Untitled preset";
   const parameters =
     normalizePromptPresetParameters(value.parameters) ??
     normalizePromptPresetParameters(value.sampling);

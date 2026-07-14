@@ -196,6 +196,27 @@ describe("prompt preset packages", () => {
     });
   });
 
+  it.each([{}, { name: null }, { name: "   " }])(
+    "rejects a promptless package without a nonblank title",
+    (titleFields) => {
+      expect(
+        normalizePromptPresetImportRecord({
+          type: "dekoi_preset",
+          version: 1,
+          exportedAt,
+          data: {
+            preset: {
+              id: "prompt-preset-missing-title",
+              ...titleFields,
+              createdAt,
+              updatedAt: createdAt,
+            },
+          },
+        }),
+      ).toBeNull();
+    },
+  );
+
   it("round-trips every supported native prompt-preset field through the stable package", () => {
     const preset = richPromptPreset();
 

@@ -52,6 +52,50 @@ describe("normalizePromptPresetRecord", () => {
     ).toBeNull();
   });
 
+  it("normalizes omitted recipe arrays to empty arrays", () => {
+    const record = normalizePromptPresetRecord({
+      id: "minimal-promptless",
+      schemaVersion: 1,
+      title: "Minimal Promptless",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).toMatchObject({
+      sections: [],
+      groups: [],
+      choiceBlocks: [],
+    });
+  });
+
+  it.each(["sections", "groups", "choiceBlocks"])(
+    "rejects an explicitly malformed %s collection",
+    (field) => {
+      expect(
+        normalizePromptPresetRecord({
+          id: "malformed-recipe",
+          schemaVersion: 1,
+          title: "Malformed Recipe",
+          [field]: {},
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  it.each([undefined, null, "", "   "])("rejects missing or blank title %j", (title) => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "missing-title",
+        schemaVersion: 1,
+        title,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
   it("creates and updates promptless records without injecting fallback text", () => {
     const created = createPromptPresetRecord({
       id: "promptless",
