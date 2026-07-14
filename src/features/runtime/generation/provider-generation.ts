@@ -103,11 +103,13 @@ export function providerErrorMessage(error: unknown) {
 }
 
 const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
+const PROVIDER_CREDENTIAL_FIELD_PATTERN =
+  /(["']?)((?:api[_-]?key|x-api-key|x-goog-api-key|access[_-]?token|token))\1\s*([:=])\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}]+)/gi;
 
 function cleanProviderErrorDetail(detail: string) {
   const cleaned = detail
     .replace(/\b(Authorization\s*[:=]\s*)?(?:Bearer|Basic)\s+[^\s,;]+/gi, "$1[redacted]")
-    .replace(/\b(?:api[_-]?key|x-api-key|x-goog-api-key)\s*[:=]\s*[^\s,;]+/gi, "api_key=[redacted]")
+    .replace(PROVIDER_CREDENTIAL_FIELD_PATTERN, "$1$2$1$3[redacted]")
     .replace(/\b(?:sk-[A-Za-z0-9._-]{4,}|AIza[A-Za-z0-9_-]{8,})/g, "[redacted]")
     .replace(/(https?:\/\/)[^\s/@:]+(?::[^\s/@]*)?@/gi, "$1[redacted]@")
     .replace(/\s+/g, " ")

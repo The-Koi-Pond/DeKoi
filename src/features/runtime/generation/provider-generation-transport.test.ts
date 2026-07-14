@@ -102,4 +102,16 @@ describe("configured provider transport", () => {
     expect(message).not.toMatch(/secret-token|password|sk-secret|AIzaSyExampleGoogleKey/);
     expect(message.length).toBeLessThanOrEqual(300);
   });
+
+  it.each([
+    ['access_token=access-secret', "access-secret"],
+    ['token: token-secret', "token-secret"],
+    ['"api_key":"json-secret"', "json-secret"],
+    ["'accessToken': 'quoted secret'", "quoted secret"],
+  ])("redacts protected credential field in %s", (detail, secret) => {
+    const message = providerErrorMessage(new Error(detail));
+
+    expect(message).not.toContain(secret);
+    expect(message).toContain("[redacted]");
+  });
 });
