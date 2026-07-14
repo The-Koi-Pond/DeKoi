@@ -589,8 +589,10 @@ fields during normalization. Current generated requests consume the sampling
 projection, and cap preset `maxTokens` to the selected provider connection's
 positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
 as its selected-preset source when present, then falls back to `systemPrompt`.
-A non-empty custom Messenger Prompt still overrides the selected preset at
-generation time and Messenger does not consume prompt preset sections. Roleplay
+A non-empty Messenger Prompt overrides the selected preset at generation time
+only while `systemPromptMode` is `custom`. Selecting a different preset returns
+that mode to `default`; reconfirming the current preset preserves it. Messenger
+does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a
 selected preset has sections; otherwise it uses `systemPrompt` as the fallback
 prelude. Roleplay marker sections expand scene, lore, persona, character,

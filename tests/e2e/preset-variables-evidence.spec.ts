@@ -92,6 +92,13 @@ test("Messenger confirms its default preset before reopening variables", async (
 
   const dialog = page.getByRole("dialog", { name: "Preset Variables" });
   await expect(dialog).toBeVisible();
+  const evidenceDir = process.env.NO_MISTAKES_EVIDENCE_DIR;
+  if (evidenceDir) {
+    await page.screenshot({
+      path: join(evidenceDir, "messenger-first-use-preset-variables.png"),
+      fullPage: true,
+    });
+  }
   await dialog.getByRole("button", { name: "Use Defaults" }).click();
   await expect(dialog).toBeHidden();
 

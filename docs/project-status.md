@@ -56,11 +56,15 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   visible. It preserves other advanced compatible fields that do not have
   dedicated controls yet. Roleplay generation consumes section/group assembly
   when present. Both Messenger and Roleplay generation consume stable-ID choice
-  values, while Roleplay thread settings can edit them through a Preset Variables
-  popup without changing the preset catalog record. Questions and option
-  descriptions remain visible across the supported dropdown, checkbox, button,
-  and list presentations. Messenger keeps the Messenger Prompt Source/system
-  prompt path.
+  values. Both thread settings flows edit them transactionally through Preset
+  Variables without changing the preset catalog record: first use requires
+  Confirm or Use Defaults, cancel preserves the prior preset and history,
+  returning restores per-preset history, and choice-free presets confirm without
+  opening the dialog. Questions and option descriptions remain visible across
+  the supported dropdown, checkbox, button, and list presentations. Invalid live
+  histories repair to valid defaults with a notice. Messenger keeps its
+  Messenger Prompt Source/system prompt path and resets a custom prompt only
+  when switching to a different preset.
 - App settings own the default prompt preset. New Messenger and Roleplay threads
   start with it, and each thread retains independent confirmed-choice history per
   preset. The default and last preset are protected from deletion; deleting
@@ -103,7 +107,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   narrow recovery actions through mode-native records.
 - Messenger and Roleplay thread surfaces expose thread settings, pre-send
   missing-reference notices, and touch-friendly confirmation-aware edit/delete
-  message or entry actions.
+  message or entry actions. Generation is also blocked until a selected
+  variable-bearing preset has confirmed thread choices.
 - Roleplay thread settings now update thread name, connection, persona,
   companions, lorebooks, prompt preset, and preset choice selections through
   Roleplay-native records, while exposing the shared advanced generation drawer
@@ -151,9 +156,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Prompt preset advanced compatible parameters, static variable values, and
   metadata do not all have dedicated catalog controls yet. Choice-block
   definitions and their reusable defaults are editable in the Presets catalog;
-  the Roleplay Preset Variables popup selects thread-specific values. Messenger
-  also consumes stable-ID thread choice values when they are present. Catalog
-  controls for designating the app default are not exposed yet.
+  Messenger and Roleplay Preset Variables dialogs select thread-specific values.
+  Catalog controls for designating the app default are not exposed yet.
 - Ripples have engine records, actions, persistence, and bundle support, but no
   dedicated routed editor surface yet.
 - Media rails are placeholder-only.

@@ -180,10 +180,20 @@ first valid option; a block with no prior answer is not materialized. Unknown
 blocks are removed, histories for missing presets are retained, and affected
 thread collections are queued for rewrite. DeKoi does not create aliases or
 tombstones for renamed or removed IDs.
+At runtime, the presence of the active preset ID as a history key records
+confirmation. First use of a variable-bearing preset does not write that key
+until the user confirms choices or materialized defaults, so generation remains
+blocked and cancel can preserve the previous preset. A choice-free preset writes
+an empty history entry immediately. If a live preset edit makes an existing
+history incomplete or invalid, the Messenger or Roleplay mode owner
+materializes valid defaults, updates only the latest matching thread record,
+persists the repair once, and surfaces a review notice.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
-Prompt still overrides both at generation time. Messenger does not consume
-prompt preset sections for prompt assembly.
+Prompt still overrides both at generation time. Selecting a different preset
+returns Messenger to preset/default prompt mode; reconfirming the current preset
+preserves its custom prompt. Messenger does not consume prompt preset sections
+for prompt assembly.
 In Roleplay, a selected prompt preset can replace the system prelude, sampling,
 and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
@@ -604,7 +614,7 @@ Current relationships:
 | `messenger-threads`     | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from thread participants.                                                                                                                                                                                   |
 | `messenger-threads`     | `activePersonaId`                              | `personas.id`                                                  | Deleted personas clear the active persona.                                                                                                                                                                                                 |
 | `messenger-threads`     | `lorebookIds[]`                                | `lorebooks.id`                                                 | Deleted lorebooks are removed from thread context.                                                                                                                                                                                         |
-| `messenger-threads`     | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories. Non-empty custom Messenger Prompt overrides the selected preset at generation time. |
+| `messenger-threads`     | `presetId`, `presetChoiceSelectionsByPresetId` | `prompt-presets.id`                                            | New threads select the app default. Deleting a non-default preset reassigns active threads to the default while retaining per-preset choice histories. `systemPromptMode: "custom"` lets a non-empty Messenger Prompt override the selected preset until the thread switches presets. |
 | `messenger-threads`     | `providerConnectionId`                         | `provider-connections.id`                                      | Deleted connections clear the selected connection.                                                                                                                                                                                         |
 | `messenger-messages`    | `threadId`                                     | `messenger-threads.id`                                         | Deleting a Messenger thread removes its messages from the projected message collection.                                                                                                                                                    |
 | `roleplay-threads`      | `characterIds[]`                               | `characters.id`                                                | Deleted characters are removed from scene participants.                                                                                                                                                                                    |
