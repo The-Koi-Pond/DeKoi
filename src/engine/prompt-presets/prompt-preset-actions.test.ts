@@ -22,6 +22,94 @@ describe("normalizePromptPresetRecord", () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    ["omitted", {}],
+    ["null", { systemPrompt: null }],
+    ["blank", { systemPrompt: "   " }],
+  ])("normalizes a %s prompt to a blank persisted prompt", (_label, promptField) => {
+    const record = normalizePromptPresetRecord({
+      id: "promptless",
+      schemaVersion: 1,
+      title: "Promptless",
+      ...promptField,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record?.systemPrompt).toBe("");
+  });
+
+  it.each([42, {}, [], true])("rejects malformed prompt value %j", (systemPrompt) => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "malformed-prompt",
+        schemaVersion: 1,
+        title: "Malformed Prompt",
+        systemPrompt,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it("normalizes omitted recipe arrays to empty arrays", () => {
+    const record = normalizePromptPresetRecord({
+      id: "minimal-promptless",
+      schemaVersion: 1,
+      title: "Minimal Promptless",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(record).toMatchObject({
+      sections: [],
+      groups: [],
+      choiceBlocks: [],
+    });
+  });
+
+  it.each(["sections", "groups", "choiceBlocks"])(
+    "rejects an explicitly malformed %s collection",
+    (field) => {
+      expect(
+        normalizePromptPresetRecord({
+          id: "malformed-recipe",
+          schemaVersion: 1,
+          title: "Malformed Recipe",
+          [field]: {},
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  it.each([undefined, null, "", "   "])("rejects missing or blank title %j", (title) => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "missing-title",
+        schemaVersion: 1,
+        title,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it("creates and updates promptless records without injecting fallback text", () => {
+    const created = createPromptPresetRecord({
+      id: "promptless",
+      input: { title: "Promptless" },
+      now,
+    });
+
+    expect(created.systemPrompt).toBe("");
+    expect(
+      updatePromptPresetRecord(created, { title: "Promptless", systemPrompt: "" }, now)
+        .systemPrompt,
+    ).toBe("");
+  });
+
   it("falls back when prompt preset timestamps are malformed", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(now));

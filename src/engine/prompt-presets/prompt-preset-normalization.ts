@@ -14,8 +14,6 @@ import type {
   PromptPresetThreadChoiceSelections,
 } from "../contracts/types/prompt-presets";
 
-export const DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT = "Write the next response in character.";
-
 export interface PromptPresetNumericConstraint {
   minimum: number;
   maximum: number;
@@ -970,12 +968,12 @@ function normalizePromptPresetRecordFromParts({
   const normalizedParameters = parameters ?? null;
   const sampling = normalizePromptPresetSampling(normalizedParameters);
   const resolvedMessengerPrompt = messengerPrompt?.trim() || null;
-  const resolvedSystemPrompt = systemPrompt.trim() || DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT;
+  const resolvedSystemPrompt = systemPrompt.trim();
 
   return {
     id,
     schemaVersion,
-    title: title.trim() || "Untitled preset",
+    title: title.trim(),
     summary: summary?.trim() || null,
     systemPrompt: resolvedSystemPrompt,
     messengerPrompt: resolvedMessengerPrompt,
@@ -1033,12 +1031,28 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
 
   if (value.schemaVersion !== 1) return null;
 
+  if (
+    value.systemPrompt !== undefined &&
+    value.systemPrompt !== null &&
+    typeof value.systemPrompt !== "string"
+  ) {
+    return null;
+  }
+
   const id = readString(value.id).trim();
   const systemPrompt = readString(value.systemPrompt).trim();
-  if (!id || !systemPrompt) return null;
+  const title = readString(value.title).trim();
+  if (!id || !title) return null;
+
+  if (
+    [value.sections, value.groups, value.choiceBlocks].some(
+      (collection) => collection !== undefined && !Array.isArray(collection),
+    )
+  ) {
+    return null;
+  }
 
   const now = new Date().toISOString();
-  const title = readString(value.title).trim() || "Untitled preset";
   const parameters =
     normalizePromptPresetParameters(value.parameters) ??
     normalizePromptPresetParameters(value.sampling);

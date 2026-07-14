@@ -282,9 +282,10 @@ Likely relationships:
 Current implementation:
 
 - Prompt presets are `schemaVersion: 1` catalog records with a title, optional
-  summary, required system prompt, optional Messenger Prompt Source, normalized
-  parameters, a current generation sampling projection, static variable values,
-  ordered sections/groups, and choice blocks.
+  summary, optional system and Messenger Prompt Source text, nullable metadata
+  and parameters, a current generation sampling projection, static variable
+  values, ordered sections/groups, and choice blocks. Native records retain
+  stable empty arrays/maps and `systemPrompt: ""` when optional parts are absent.
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
   sections, section roles, enabled state, wrapping, depth placement, choice
   blocks, options, reusable defaults, questions, option descriptions,
@@ -300,12 +301,16 @@ Current implementation:
   preset. Each thread can later select one prompt preset. Messenger uses
   the selected preset's `messengerPrompt`, then its shared `systemPrompt`, and
   falls back to built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable
-  selected preset prompt exists. Ordinary Messenger settings have no
+  selected preset prompt exists. A blank preset does not store that built-in
+  fallback text. Ordinary Messenger settings have no
   conversation-owned arbitrary prompt or model-parameter override. Messenger
-  does not consume preset sections. Roleplay uses
-  sections and groups when the selected preset has them, otherwise it uses the
-  selected preset system prompt as its system prelude, then still appends the
-  Roleplay-owned one-character output contract.
+  does not consume preset sections. Roleplay uses sections and groups when the
+  selected preset has usable sections; otherwise it uses the selected preset
+  system prompt, then the built-in Roleplay prelude when neither has usable
+  text. Either form preserves the preset's narration and other-NPC output
+  behavior. Only no-preset,
+  single-character Roleplay uses the Roleplay-owned one-character output
+  contract.
 - Prompt-preset static `variableValues` and the active preset's confirmed
   per-thread choice selections become request-local prompt variables at
   generation time. Choice selections

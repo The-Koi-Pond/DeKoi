@@ -579,14 +579,16 @@ New Messenger and Roleplay threads use it. `promptPresetStarterInitialized`
 records that starter initialization occurred; it does not prevent recovery of a
 cleanly loaded empty prompt-preset collection.
 
-`prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
-`title`, optional `summary`, required non-empty `systemPrompt`, optional
-`messengerPrompt`, normalized `parameters`, a `sampling` projection with
-`temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
-`choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
-author/folder metadata. Native prompt preset records do not carry a default
-flag. DeKoi drops invalid parameter and sampling
-fields during normalization. Current generated requests consume the sampling
+`prompt-presets` records use `schemaVersion: 1` and require a non-empty `id` and
+`title`. Prompt text and the rest of the recipe are optional. Omitted or null
+shared prompt text normalizes to `systemPrompt: ""`; nullable text and metadata
+normalize to `null`; parameters normalize to an object or `null`; and omitted
+ordering fields, `sections`, `groups`, `choiceBlocks`, variable groups, static
+`variableValues`, and `defaultChoices` normalize to stable empty arrays or maps.
+An explicitly non-string shared prompt or present non-array `sections`, `groups`,
+or `choiceBlocks` rejects the record. Native prompt preset records do not carry
+a default flag. DeKoi drops invalid parameter and sampling fields during
+normalization. Current generated requests consume the sampling
 projection, and cap preset `maxTokens` to the selected provider connection's
 positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
 as its selected-preset source when present, then falls back to `systemPrompt`.
@@ -595,17 +597,18 @@ preset-authored Variables; they do not own an arbitrary prompt or model-
 parameter override. Generation uses the selected preset's `messengerPrompt`,
 then shared `systemPrompt`, and falls back to the built-in
 `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
-Messenger
-does not consume prompt preset sections. Roleplay
-consumes enabled sections and adjacent enabled groups for prompt assembly when a
-selected preset has sections; otherwise it uses `systemPrompt` as the fallback
-prelude. Roleplay marker sections expand scene, lore, persona, character,
+That fallback is generated at request time and is not stored in a blank preset.
+Messenger does not consume prompt preset sections. Roleplay consumes enabled
+sections and adjacent enabled groups for prompt assembly when a selected preset
+has sections; when those sections have no usable text, it uses `systemPrompt` as
+the fallback prelude, then the built-in Roleplay prelude when neither has usable
+text. Roleplay marker sections expand scene, lore, persona, character,
 example-dialogue, and chat-history context, with transcript history included
 only by an enabled `chat_history` marker. Depth sections are anchored to that
 marker when present, or to the sectioned prompt message stream when it is
-absent. If a sectioned preset materializes no messages after filtering,
-Roleplay falls back to `systemPrompt` without automatically including
-transcript history.
+absent. If a sectioned preset materializes no messages after filtering, Roleplay
+falls back to `systemPrompt`, then the built-in Roleplay prelude when neither has
+usable text, without automatically including transcript history.
 DeKoi appends a post-history contract that keeps the target companion primary
 and prevents generation of the user's dialogue, intent, decisions, or
 deliberate actions. With a selected preset, narration and other-character
@@ -623,7 +626,11 @@ choice is visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged
 `dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
-they are not remote storage record shapes.
+they are not remote storage record shapes. Package-level `sections`, `groups`,
+and `choiceBlocks` may be omitted and normalize to empty arrays, but any present
+value must be an actual JSON array. Nested choice `options` retain their
+supported JSON-string compatibility form. A malformed present prompt or
+non-array top-level recipe collection rejects the package.
 
 Default changes and non-default preset deletion are staged storage
 transactions. The app writes only affected collections before publishing the

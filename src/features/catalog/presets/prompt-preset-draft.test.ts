@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
-import {
-  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
-  updatePromptPresetRecord,
-} from "../../../engine/prompt-presets/prompt-preset-actions";
+import { updatePromptPresetRecord } from "../../../engine/prompt-presets/prompt-preset-actions";
 import { promptPresetHasEnabledMarker } from "../../../engine/prompt-presets/prompt-preset-section-policy";
 import {
   canSavePromptPresetDraft,
@@ -448,7 +445,7 @@ describe("prompt preset draft conversion", () => {
     expect(input.sections?.[1]?.xmlTagName).toBe("role_tag");
   });
 
-  it("allows saving a titled draft with system prompt or structured sections", () => {
+  it("allows saving a titled draft with or without system prompt or structured sections", () => {
     const draft = draftFromPromptPreset(promptPresetRecord());
 
     expect(
@@ -474,7 +471,7 @@ describe("prompt preset draft conversion", () => {
         systemPrompt: "",
         sections: [createPromptPresetDraftSection("marker")],
       }).systemPrompt,
-    ).toBe(DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT);
+    ).toBe("");
     expect(
       canSavePromptPresetDraft({
         ...draft,
@@ -490,7 +487,7 @@ describe("prompt preset draft conversion", () => {
         systemPrompt: "",
         sections: [],
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canSavePromptPresetDraft({
         ...draft,
@@ -525,7 +522,7 @@ describe("prompt preset draft conversion", () => {
     ).toBe(false);
   });
 
-  it("submits the engine fallback when a section-only draft clears the system prompt", () => {
+  it("preserves a cleared system prompt when updating a sectioned draft", () => {
     const record = promptPresetRecord({
       systemPrompt: "Old prompt that should not survive.",
       sections: [
@@ -545,11 +542,11 @@ describe("prompt preset draft conversion", () => {
       systemPrompt: "   ",
     });
 
-    expect(input.systemPrompt).toBe(DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT);
+    expect(input.systemPrompt).toBe("");
 
     const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
 
-    expect(updated.systemPrompt).toBe(DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT);
+    expect(updated.systemPrompt).toBe("");
   });
 
   it("preserves compatible variable-order slots while choices move or disappear", () => {

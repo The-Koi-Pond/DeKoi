@@ -148,7 +148,10 @@ Focused checks for narrow changes are mapped to change types in
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
   current sampling controls, and structured Roleplay section/group editing,
   then select a prompt preset from thread settings. New threads start with the
-  current app default. The bundled Universal V2 starter is an ordinary native
+  current app default. A title is enough to create and save a preset; prompt
+  text, variables, metadata, parameters, and structured recipe rows may all be
+  absent. A blank System Prompt stays blank in storage rather than receiving a
+  built-in prompt. The bundled Universal V2 starter is an ordinary native
   preset that can be edited or duplicated. It becomes deletable after another
   preset is designated as default, but that designation control is not exposed
   in the catalog yet. The default and last preset cannot be deleted.
@@ -160,18 +163,22 @@ Focused checks for narrow changes are mapped to change types in
   preset-authored Variables. Generation uses the selected preset's
   `messengerPrompt`, then shared `systemPrompt`, and falls back to the built-in
   `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists;
-  conversations have no arbitrary prompt or model-parameter override. The
-  catalog can add,
-  remove, and reorder
-  reusable choice blocks and options; edit defaults, questions, option
-  descriptions, multi-select separators, manual or alphabetical option order,
+  Roleplay uses usable sections, then the shared prompt, then its built-in
+  prelude. Roleplay sections never become Messenger's shared prompt. These
+  built-in fallbacks are assembled only for generation. A selected Roleplay
+  preset retains its narration and other-character output behavior through the
+  fallback chain; only no-preset, single-character Roleplay uses the
+  one-character output contract. Conversations have no arbitrary prompt or
+  model-parameter override. The catalog can add, remove, and reorder reusable
+  choice blocks and options; edit defaults, questions, option descriptions,
+  multi-select separators, manual or alphabetical option order, and
   button/list/automatic presentation. Choice questions are always visible.
-  Compatible data may carry static variables, richer
-  parameters, and metadata that the catalog preserves even when those fields do
-  not have visible editors yet. Roleplay generation consumes saved section/group
-  structure when present. Both Messenger and Roleplay generation consume stored
-  stable-ID choices and retain independent confirmed-choice histories when a
-  thread switches presets. Selecting a variable-bearing preset for the first
+  Compatible data may carry static variables, richer parameters, and metadata
+  that the catalog preserves even when those fields do not have visible editors
+  yet. Roleplay generation consumes usable saved section/group structure. Both
+  Messenger and Roleplay generation consume stored stable-ID choices and retain
+  independent confirmed-choice histories when a thread switches presets.
+  Selecting a variable-bearing preset for the first
   time opens Preset Variables in both modes and leaves the previous preset
   active until Confirm or Use Defaults; Cancel discards the draft. New threads
   whose default preset has variables open settings immediately, and generation
@@ -184,9 +191,10 @@ Focused checks for narrow changes are mapped to change types in
   are repaired from valid defaults and reported even when settings was closed.
   The Presets catalog can import a compatible `.json` or
   `.marinara.json` package as a new preset and export the selected saved preset
-  as `Preset Name.json`. These single-preset files are separate from Pond Care
-  backups. Browser imports without a configured storage target are session-only
-  and show that warning in the catalog.
+  as `Preset Name.json`, including promptless packages. These single-preset
+  files are separate from Pond Care backups. Browser imports without a
+  configured storage target are session-only and show that warning in the
+  catalog.
 - Use Pond Care > Data & Backup for DeKoi-native bundle import and export.
   Imports preview first, require confirmation, create a pre-import backup, and
   then replace collections through the storage commit path.

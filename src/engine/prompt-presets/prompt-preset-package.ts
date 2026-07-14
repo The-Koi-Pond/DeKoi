@@ -2,8 +2,6 @@ import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import {
   isRecord,
   normalizePromptPresetRecord,
-  normalizePromptPresetSections,
-  normalizeStringArray,
   parseJsonIfString,
   readNullableString,
   readString,
@@ -13,7 +11,6 @@ import {
   readPromptPresetPackageData,
   type PromptPresetPackageRows,
 } from "./prompt-preset-package-schema";
-import { promptPresetSectionsInOrder } from "./prompt-preset-section-policy";
 
 const DEKOI_PROMPT_PRESET_PACKAGE_TYPE = "dekoi_preset";
 const DEKOI_PROMPT_PRESET_PACKAGE_VERSION = 1;
@@ -21,19 +18,6 @@ const COMPATIBLE_PROMPT_PRESET_PACKAGE_TYPES = new Set([
   DEKOI_PROMPT_PRESET_PACKAGE_TYPE,
   "marinara_preset",
 ]);
-
-function normalizeUniqueStringArray(value: unknown): string[] {
-  return [...new Set(normalizeStringArray(value))];
-}
-
-function systemPromptFromPackageSections(sectionsValue: unknown, sectionOrderValue: unknown) {
-  const sections = normalizePromptPresetSections(sectionsValue);
-
-  return promptPresetSectionsInOrder(sections, normalizeUniqueStringArray(sectionOrderValue))
-    .filter((section) => section.enabled && !section.isMarker && section.content.trim())
-    .map((section) => section.content.trim())
-    .join("\n\n");
-}
 
 function stampPresetIdOnRows(rows: Record<string, unknown>[], presetId: string) {
   return rows.map((row) => ({ ...row, presetId }));
@@ -89,11 +73,7 @@ function normalizePromptPresetPackageRecord(
 
   const preset = packageData.preset;
   const id = readString(preset.id).trim() || readString(value.id).trim();
-  const systemPrompt =
-    readString(preset.systemPrompt).trim() ||
-    systemPromptFromPackageSections(packageData.sections, preset.sectionOrder);
-  if (!systemPrompt) return null;
-
+  const systemPrompt = readString(preset.systemPrompt).trim();
   const normalized = normalizePromptPresetRecord({
     id,
     schemaVersion: 1,

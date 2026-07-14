@@ -3,10 +3,7 @@ import type {
   PromptPresetRecord,
   PromptPresetSection,
 } from "../../../engine/contracts/types/prompt-presets";
-import {
-  DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT,
-  type PromptPresetInput,
-} from "../../../engine/prompt-presets/prompt-preset-actions";
+import { type PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import {
   DEFAULT_PROMPT_PRESET_MARKER_TYPE,
   normalizePromptPresetMarkerType,
@@ -233,17 +230,7 @@ export function updatePromptPresetDraftSectionMarkerType(
 }
 
 export function canSavePromptPresetDraft(draft: PromptPresetDraftState) {
-  return (
-    draft.title.trim().length > 0 &&
-    (draft.systemPrompt.trim().length > 0 || draft.sections.length > 0) &&
-    validatePromptPresetChoiceDraft(draft).length === 0
-  );
-}
-
-function cleanDraftSystemPrompt(systemPrompt: string, sections: readonly PromptPresetSection[]) {
-  const trimmedSystemPrompt = systemPrompt.trim();
-  if (trimmedSystemPrompt || sections.length === 0) return trimmedSystemPrompt;
-  return DEFAULT_PROMPT_PRESET_SYSTEM_PROMPT;
+  return draft.title.trim().length > 0 && validatePromptPresetChoiceDraft(draft).length === 0;
 }
 
 function createVariableOrderTemplate(preset: PromptPresetRecord) {
@@ -310,7 +297,7 @@ export function promptPresetDraftToInput(draft: PromptPresetDraftState): PromptP
   };
   const sections = cleanSections(draft.sections);
   const groups = cleanGroups(draft.groups);
-  const systemPrompt = cleanDraftSystemPrompt(draft.systemPrompt, sections);
+  const systemPrompt = draft.systemPrompt.trim();
   const choiceInput = promptPresetChoiceDraftToInput(draft);
 
   return {
