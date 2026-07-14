@@ -296,7 +296,7 @@ describe("prompt preset generation", () => {
     expect(assembly.request.promptMessages[0]?.content).not.toContain("Section prompt");
   });
 
-  it("uses a custom Messenger prompt over a selected Messenger preset", () => {
+  it("uses a selected Messenger preset even when legacy override keys are present", () => {
     const thread = {
       ...createMessengerThread({
         activePersonaId: null,
@@ -306,8 +306,8 @@ describe("prompt preset generation", () => {
         title: "Test chat",
       }),
       presetId: "preset-1",
-      systemPrompt: "Custom prompt for {{char}}.",
-      systemPromptMode: "custom" as const,
+      systemPrompt: "Legacy custom prompt for {{char}}.",
+      systemPromptMode: "custom",
     };
     const context = createMessengerGenerationContext({
       characters: [companion()],
@@ -323,8 +323,8 @@ describe("prompt preset generation", () => {
       userMessage: userMessage(thread.id),
     });
 
-    expect(assembly.request.promptMessages[0]?.content).toContain("Custom prompt for Mara.");
-    expect(assembly.request.promptMessages[0]?.content).not.toContain("Preset prompt");
+    expect(assembly.request.promptMessages[0]?.content).toContain("Preset prompt for Mara.");
+    expect(assembly.request.promptMessages[0]?.content).not.toContain("Legacy custom prompt");
     expect(assembly.request.thread.presetId).toBe("preset-1");
   });
 

@@ -228,8 +228,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: "legacy-connection",
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [
             {
               id: "legacy-message",
@@ -312,8 +310,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: "connection-skipped",
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -346,8 +342,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: null,
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [
             {
               id: "legacy-message-character",
@@ -428,8 +422,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: "legacy-connection",
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [
             {
               id: "legacy-message-character",
@@ -546,8 +538,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: null,
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -563,8 +553,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: null,
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -630,8 +618,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: null,
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -647,8 +633,6 @@ describe("prepareLegacyImportData", () => {
           lorebookIds: [],
           presetId: null,
           providerConnectionId: null,
-          systemPromptMode: "default",
-          systemPrompt: "",
           messages: [],
           createdAt: now,
           updatedAt: now,

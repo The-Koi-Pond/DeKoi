@@ -3,7 +3,7 @@ import type { LorebookRecord, LoreInsertionStrategy } from "../contracts/types/l
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { AppSettings } from "../contracts/types/app-settings";
 import {
-  resolveMessengerSystemPrompt,
+  DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerMessage,
   type MessengerThread,
 } from "../contracts/types/messenger";
@@ -286,7 +286,7 @@ function createMessengerPromptAssembly({
   });
   resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
   const selectedPrompt = resolveGenerationMacros(
-    resolveMessengerSystemPrompt(thread, resolvePromptPresetMessengerPrompt(promptPreset)),
+    resolvePromptPresetMessengerPrompt(promptPreset)?.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT,
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {

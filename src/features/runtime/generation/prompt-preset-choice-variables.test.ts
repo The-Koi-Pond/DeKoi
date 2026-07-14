@@ -123,8 +123,6 @@ function messengerThread(message: MessengerMessage): MessengerThread {
       },
     },
     providerConnectionId: null,
-    systemPromptMode: "default",
-    systemPrompt: "",
     messages: [message],
     createdAt: now,
     updatedAt: now,

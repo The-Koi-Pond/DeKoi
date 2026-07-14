@@ -1,20 +1,16 @@
 import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
-import { resolvePromptPresetMessengerPrompt } from "../../../../engine/contracts/types/prompt-presets";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
 import { ChatSettingsPresetVariablesDialog } from "./ChatSettingsPresetVariablesDialog";
 import { ChatSettingsCompanionResourceDrawer } from "./ChatSettingsCompanionResourceDrawer";
 import { ChatSettingsLorebookResourceDrawer } from "./ChatSettingsLorebookResourceDrawer";
 import { ChatSettingsPresetDrawer } from "./ChatSettingsPresetDrawer";
-import { ChatSettingsPromptEditor } from "./ChatSettingsPromptEditor";
-import { useChatSettingsPromptEditor } from "../hooks/use-chat-settings-prompt-editor";
 import { useChatSettingsPresetChoiceFlow } from "../hooks/use-chat-settings-preset-choice-flow";
 import type { ChatSettingsMessengerActionGroup } from "../lib/chat-settings-controller-groups";
 import type { ChatSettingsResourceDrawerModels } from "../lib/chat-settings-resource-drawer-models";
 import type { ShoalRailProps } from "../types";
 
 interface ChatSettingsMessengerResourceSectionProps {
-  actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "preset" | "prompt" | "resources">;
-  activeMessengerThreadId: string | null;
+  actions: Pick<ChatSettingsMessengerActionGroup, "drawers" | "preset" | "resources">;
   activeMessengerThreadRecord: MessengerThread | null;
   characters: ShoalRailProps["nav"]["characters"];
   companionSelectorOpen: boolean;
@@ -27,7 +23,6 @@ interface ChatSettingsMessengerResourceSectionProps {
 
 export function ChatSettingsMessengerResourceSection({
   actions,
-  activeMessengerThreadId,
   activeMessengerThreadRecord,
   characters,
   companionSelectorOpen,
@@ -62,24 +57,6 @@ export function ChatSettingsMessengerResourceSection({
     }
     selectPreset(preset);
   }
-  const selectedPromptSource = activeMessengerThreadRecord?.presetId
-    ? resolvePromptPresetMessengerPrompt(
-        promptPresets.find((preset) => preset.id === activeMessengerThreadRecord.presetId),
-      )
-    : null;
-  const {
-    activePromptEditor,
-    closePromptEditor,
-    openPromptEditor,
-    savePromptEditor,
-    updatePromptEditorValue,
-  } = useChatSettingsPromptEditor({
-    activeMessengerThread: activeMessengerThreadRecord,
-    activeMessengerThreadId,
-    sourcePrompt: selectedPromptSource,
-    onSaveCustomPrompt: actions.prompt.onSaveCustomPrompt,
-  });
-
   return (
     <>
       <ChatSettingsCompanionResourceDrawer
@@ -97,25 +74,15 @@ export function ChatSettingsMessengerResourceSection({
         model={models.preset}
         promptPresets={promptPresets}
         actionDisabled={!activeMessengerThreadRecord}
-        actionLabel="Edit"
         fieldLabel="Prompt Source"
         surfaceLabel="Messenger"
         title="Prompt Preset"
         onClearMissingPreset={actions.preset.onClearMissingPreset}
-        onPresetAction={openPromptEditor}
         onPresetChange={handlePresetChange}
         secondaryActionLabel="Variables"
         secondaryActionDisabled={!activePreset}
         onSecondaryAction={() => activePreset && openVariables(activePreset.id)}
         onToggle={actions.drawers.onToggle}
-      />
-
-      <ChatSettingsPromptEditor
-        open={activePromptEditor.open && !!activeMessengerThreadRecord}
-        value={activePromptEditor.value}
-        onClose={closePromptEditor}
-        onSave={savePromptEditor}
-        onValueChange={updatePromptEditorValue}
       />
 
       {repairNoticeVisible && (

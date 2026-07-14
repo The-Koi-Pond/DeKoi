@@ -156,11 +156,12 @@ Focused checks for narrow changes are mapped to change types in
   ordered, grouped, enabled or disabled, assigned provider roles, wrapped, and
   placed at transcript depth; marker sections insert saved Roleplay context,
   including conversation history through an enabled Chat History marker.
-  Messenger uses the preset's Messenger prompt source when present, falls back
-  to the preset system prompt, and lets a non-empty edited Messenger Prompt
-  override both for that thread. Switching Messenger to another preset returns
-  the thread to preset/default prompt behavior; reconfirming the same preset
-  preserves an intentional custom Messenger Prompt. The catalog can add,
+  Messenger ordinary conversation settings select a prompt preset and its
+  preset-authored Variables. Generation uses the selected preset's
+  `messengerPrompt`, then shared `systemPrompt`, and falls back to the built-in
+  `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists;
+  conversations have no arbitrary prompt or model-parameter override. The
+  catalog can add,
   remove, and reorder
   reusable choice blocks and options; edit defaults, questions, option
   descriptions, multi-select separators, manual or alphabetical option order,

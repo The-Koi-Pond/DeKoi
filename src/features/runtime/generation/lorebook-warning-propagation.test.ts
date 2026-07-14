@@ -113,8 +113,6 @@ function messengerThread(message: MessengerMessage): MessengerThread {
     lorebookIds: ["lorebook-1"],
     presetId: null,
     providerConnectionId: null,
-    systemPromptMode: "default",
-    systemPrompt: "",
     messages: [message],
     createdAt: now,
     updatedAt: now,

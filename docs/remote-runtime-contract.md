@@ -341,8 +341,6 @@ Request:
         "presetId": null,
         "presetChoiceSelectionsByPresetId": {},
         "providerConnectionId": "connection-local-provider",
-        "systemPromptMode": "default",
-        "systemPrompt": "<default messenger system prompt>",
         "messages": [],
         "createdAt": "2026-06-24T07:10:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
@@ -589,9 +587,12 @@ fields during normalization. Current generated requests consume the sampling
 projection, and cap preset `maxTokens` to the selected provider connection's
 positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
 as its selected-preset source when present, then falls back to `systemPrompt`.
-A non-empty Messenger Prompt overrides the selected preset at generation time
-only while `systemPromptMode` is `custom`. Selecting a different preset returns
-that mode to `default`; reconfirming the current preset preserves it. Messenger
+Messenger ordinary conversation settings select a prompt preset and its
+preset-authored Variables; they do not own an arbitrary prompt or model-
+parameter override. Generation uses the selected preset's `messengerPrompt`,
+then shared `systemPrompt`, and falls back to the built-in
+`DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists.
+Messenger
 does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a
 selected preset has sections; otherwise it uses `systemPrompt` as the fallback
@@ -783,8 +784,6 @@ runtimes do not send dropped-record counts separately.
         "presetId": null,
         "presetChoiceSelectionsByPresetId": {},
         "providerConnectionId": null,
-        "systemPromptMode": "default",
-        "systemPrompt": "",
         "createdAt": "2026-06-24T07:20:00.000Z",
         "updatedAt": "2026-06-24T07:20:00.000Z"
       }

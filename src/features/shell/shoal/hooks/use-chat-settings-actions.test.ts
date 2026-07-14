@@ -16,8 +16,6 @@ const messenger = (input: Partial<MessengerThread> = {}): MessengerThread =>
     lorebookIds: [],
     presetId: "old",
     providerConnectionId: null,
-    systemPromptMode: "custom",
-    systemPrompt: "custom text",
     messages: [{ id: "message-1" } as never],
     createdAt: "now",
     updatedAt: "now",
@@ -42,13 +40,12 @@ const roleplay = (input: Partial<RoleplayThread> = {}): RoleplayThread =>
   }) as RoleplayThread;
 
 describe("chat settings preset transforms", () => {
-  it("resets Messenger custom prompt only when switching presets", () => {
+  it("changes Messenger presets without changing messages", () => {
     const switched = transformMessengerPresetConfirm(messenger(), "new", {}, "later");
-    expect(switched.systemPromptMode).toBe("default");
+    expect(switched.presetId).toBe("new");
     expect(switched.messages).toHaveLength(1);
     const same = transformMessengerPresetConfirm(messenger(), "old", {}, "later");
-    expect(same.systemPromptMode).toBe("custom");
-    expect(same.systemPrompt).toBe("custom text");
+    expect(same.presetId).toBe("old");
   });
 
   it("transforms the latest supplied thread without dropping concurrent content", () => {

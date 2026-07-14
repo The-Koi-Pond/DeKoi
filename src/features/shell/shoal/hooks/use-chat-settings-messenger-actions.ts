@@ -5,16 +5,11 @@ import {
   setMessengerThreadPreset,
   setMessengerThreadPresetChoiceSelections,
   setMessengerThreadProviderConnection,
-  setMessengerThreadSystemPrompt,
 } from "../../../../engine/modes/messenger/messenger-actions";
-import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerThread,
-} from "../../../../engine/contracts/types/messenger";
+import type { MessengerThread } from "../../../../engine/contracts/types/messenger";
 import type { PromptPresetThreadChoiceSelections } from "../../../../engine/contracts/types/prompt-presets";
 import type {
   ChatSettingsMessengerIdentityActions,
-  ChatSettingsMessengerPromptActions,
   ChatSettingsMessengerThreadResourceActions,
   ChatSettingsThreadPresetActions,
 } from "../lib/chat-settings-controller-groups";
@@ -36,14 +31,7 @@ export function transformMessengerPresetConfirm(
   updatedAt: string,
 ): MessengerThread {
   const next = setMessengerThreadPreset(thread, presetId, updatedAt, selections);
-  return next.presetId !== thread.presetId
-    ? setMessengerThreadSystemPrompt(
-        next,
-        "default",
-        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
-        updatedAt,
-      )
-    : next;
+  return next;
 }
 
 export function useChatSettingsMessengerActions({
@@ -96,12 +84,7 @@ export function useChatSettingsMessengerActions({
 
   function handleMessengerPresetChange(presetId: string) {
     updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(
-        setMessengerThreadPreset(thread, presetId.trim() || null, updatedAt),
-        "default",
-        thread.systemPrompt || DEFAULT_MESSENGER_SYSTEM_PROMPT,
-        updatedAt,
-      ),
+      setMessengerThreadPreset(thread, presetId.trim() || null, updatedAt),
     );
   }
 
@@ -157,20 +140,10 @@ export function useChatSettingsMessengerActions({
     );
   }
 
-  function saveCustomMessengerPrompt(threadId: string, prompt: string) {
-    if (activeMessengerThread?.id !== threadId) return;
-    updateActiveMessengerThread((thread, updatedAt) =>
-      setMessengerThreadSystemPrompt(thread, "custom", prompt, updatedAt),
-    );
-  }
-
   const identityActions: ChatSettingsMessengerIdentityActions = {
     onConnectionChange: handleMessengerConnectionChange,
     onPersonaChange: handleMessengerPersonaChange,
     onResolveMissingConnection: resolveMissingMessengerConnection,
-  };
-  const promptActions: ChatSettingsMessengerPromptActions = {
-    onSaveCustomPrompt: saveCustomMessengerPrompt,
   };
   const presetActions: ChatSettingsThreadPresetActions = {
     onClearMissingPreset: clearMissingMessengerPreset,
@@ -188,7 +161,6 @@ export function useChatSettingsMessengerActions({
   return {
     identityActions,
     presetActions,
-    promptActions,
     resourceActions,
   };
 }

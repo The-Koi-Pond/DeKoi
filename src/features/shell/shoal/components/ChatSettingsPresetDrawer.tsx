@@ -15,7 +15,7 @@ interface ChatSettingsPresetDrawerProps {
   surfaceLabel?: string;
   title?: string;
   onClearMissingPreset: () => void;
-  onPresetAction: () => void;
+  onPresetAction?: () => void;
   onPresetChange: (presetId: string) => void;
   onSecondaryAction?: () => void;
   onToggle: (drawerId: ChatSettingsDrawerId) => void;
@@ -76,14 +76,16 @@ export function ChatSettingsPresetDrawer({
             onChange={onPresetChange}
           />
           <div className="chat-settings-prompt-actions">
-            <button
-              type="button"
-              className="chat-settings-edit-button"
-              disabled={actionDisabled}
-              onClick={onPresetAction}
-            >
-              {actionLabel}
-            </button>
+            {onPresetAction && (
+              <button
+                type="button"
+                className="chat-settings-edit-button"
+                disabled={actionDisabled}
+                onClick={onPresetAction}
+              >
+                {actionLabel}
+              </button>
+            )}
             {secondaryActionLabel && onSecondaryAction && (
               <button
                 type="button"

@@ -1,9 +1,4 @@
-import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
-  type MessengerMessage,
-  type MessengerSystemPromptMode,
-  type MessengerThread,
-} from "../../contracts/types/messenger";
+import { type MessengerMessage, type MessengerThread } from "../../contracts/types/messenger";
 import type { CharacterRecord } from "../../contracts/types/character";
 import type { PersonaRecord } from "../../contracts/types/persona";
 import type { PromptPresetThreadChoiceSelections } from "../../contracts/types/prompt-presets";
@@ -41,8 +36,6 @@ export function createMessengerThread({
     presetId: defaultPromptPresetId?.trim() || null,
     presetChoiceSelectionsByPresetId: {},
     providerConnectionId,
-    systemPromptMode: "default",
-    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages: [],
     createdAt: now,
     updatedAt: now,
@@ -200,20 +193,6 @@ export function setMessengerThreadPresetChoiceSelections(
         ? { [thread.presetId]: normalizePromptPresetThreadChoiceSelections(selections) }
         : {}),
     },
-    updatedAt,
-  };
-}
-
-export function setMessengerThreadSystemPrompt(
-  thread: MessengerThread,
-  systemPromptMode: MessengerSystemPromptMode,
-  systemPrompt: string,
-  updatedAt: string,
-): MessengerThread {
-  return {
-    ...thread,
-    systemPromptMode,
-    systemPrompt,
     updatedAt,
   };
 }

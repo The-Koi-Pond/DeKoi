@@ -31,12 +31,7 @@ export function ChatSettingsMessengerRailContent({
         onCloseChatSettings={onCloseChatSettings}
         onRenameThread={nav.renameMessengerThread}
       />
-      <ChatSettingsMessengerDrawerHost
-        actions={actions}
-        nav={nav}
-        settings={settings}
-        settingsLabel={settingsLabel}
-      />
+      <ChatSettingsMessengerDrawerHost actions={actions} nav={nav} settings={settings} />
     </>
   );
 }

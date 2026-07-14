@@ -38,14 +38,13 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     : null;
   const [openDrawers, setOpenDrawers] = useState(CHAT_SETTINGS_DRAWER_DEFAULTS);
   const [companionSelectorOpen, setCompanionSelectorOpen] = useState(false);
-  const { identityActions, presetActions, promptActions, resourceActions } =
-    useChatSettingsMessengerActions({
-      activeMessengerThread,
-      characters: nav.characters,
-      lorebooks: nav.lorebooks,
-      onCompanionSelectorOpenChange: setCompanionSelectorOpen,
-      onUpdateMessengerThreadById: nav.updateMessengerThreadById,
-    });
+  const { identityActions, presetActions, resourceActions } = useChatSettingsMessengerActions({
+    activeMessengerThread,
+    characters: nav.characters,
+    lorebooks: nav.lorebooks,
+    onCompanionSelectorOpenChange: setCompanionSelectorOpen,
+    onUpdateMessengerThreadById: nav.updateMessengerThreadById,
+  });
   const {
     identityActions: roleplayIdentityActions,
     presetActions: roleplayPresetActions,
@@ -122,7 +121,6 @@ export function useChatSettingsRailController({ nav }: UseChatSettingsRailContro
     },
     identity: identityActions,
     preset: presetActions,
-    prompt: promptActions,
     resources: {
       ...resourceActions,
       onSelectorOpenChange: setCompanionSelectorOpen,

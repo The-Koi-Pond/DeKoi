@@ -298,9 +298,11 @@ Current implementation:
   `.json` package. Standalone preset files are not full storage bundles.
 - New Messenger and Roleplay threads select the current app default prompt
   preset. Each thread can later select one prompt preset. Messenger uses
-  the selected preset's Messenger Prompt Source when present, then falls back to
-  the preset system prompt; a non-empty custom thread Messenger Prompt still
-  wins over both. Messenger does not consume preset sections. Roleplay uses
+  the selected preset's `messengerPrompt`, then its shared `systemPrompt`, and
+  falls back to built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable
+  selected preset prompt exists. Ordinary Messenger settings have no
+  conversation-owned arbitrary prompt or model-parameter override. Messenger
+  does not consume preset sections. Roleplay uses
   sections and groups when the selected preset has them, otherwise it uses the
   selected preset system prompt as its system prelude, then still appends the
   Roleplay-owned one-character output contract.
@@ -320,9 +322,8 @@ Current implementation:
   confirmed, while choice-free presets record an empty confirmed history
   without opening the dialog. Returning to a preset restores its separate
   history, and the active preset's variables can be reopened manually.
-- Switching Messenger to a different preset restores preset/default system
-  prompt behavior. Reconfirming the same preset preserves an intentional custom
-  Messenger Prompt.
+- Switching Messenger to a different preset changes the selected preset and its
+  per-preset choice history; there is no conversation-owned prompt override.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 

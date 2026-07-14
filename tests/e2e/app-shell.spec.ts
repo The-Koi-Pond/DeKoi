@@ -39,7 +39,6 @@ test("app shell renders the primary DeKoi surfaces", async ({ page }) => {
 test("chat settings drawer models align active state with open state", () => {
   const openDrawers = createOpenChatSettingsDrawers();
   const inactiveModels = getChatSettingsMessengerDrawerModels({
-    appSettings: DEFAULT_APP_SETTINGS,
     settings: {
       activeMessengerThread: null,
       activeMessengerThreadId: null,
@@ -47,10 +46,9 @@ test("chat settings drawer models align active state with open state", () => {
       companionSelectorOpen: true,
       openDrawers,
     },
-    settingsLabel: "Messenger Settings",
   });
 
-  expect(inactiveModels.advanced.open).toBe(false);
+  expect(inactiveModels).not.toHaveProperty("advanced");
   expect(inactiveModels.identity.connection.open).toBe(false);
   expect(inactiveModels.identity.persona.open).toBe(false);
   expect(inactiveModels.resources.companion.open).toBe(false);
@@ -65,7 +63,6 @@ test("chat settings drawer models align active state with open state", () => {
     title: "Messenger",
   });
   const activeModels = getChatSettingsMessengerDrawerModels({
-    appSettings: DEFAULT_APP_SETTINGS,
     settings: {
       activeMessengerThread,
       activeMessengerThreadId: activeMessengerThread.id,
@@ -73,10 +70,9 @@ test("chat settings drawer models align active state with open state", () => {
       companionSelectorOpen: true,
       openDrawers,
     },
-    settingsLabel: "Messenger Settings",
   });
 
-  expect(activeModels.advanced.open).toBe(true);
+  expect(activeModels).not.toHaveProperty("advanced");
   expect(activeModels.identity.connection.open).toBe(true);
   expect(activeModels.identity.persona.open).toBe(true);
   expect(activeModels.resources.companion.open).toBe(true);
