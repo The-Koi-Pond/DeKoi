@@ -4,6 +4,7 @@ import { createCharacterRecord } from "../../../engine/catalog/character-actions
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import type { MessengerMessage, MessengerThread } from "../../../engine/contracts/types/messenger";
 import type { RoleplayEntry, RoleplayThread } from "../../../engine/contracts/types/roleplay";
+import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import { generateMessengerThreadReply } from "./messenger-generation";
 import { generateRoleplayThreadTurn } from "./roleplay-generation";
 import {
@@ -87,11 +88,33 @@ function messengerThread(message: MessengerMessage): MessengerThread {
     characterIds: ["character-1"],
     activePersonaId: null,
     lorebookIds: [],
-    presetId: null,
+    presetId: "preset-1",
     providerConnectionId: null,
-    systemPromptMode: "custom",
-    systemPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
     messages: [message],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function messengerPreset(): PromptPresetRecord {
+  return {
+    id: "preset-1",
+    schemaVersion: 1,
+    title: "Messenger test",
+    summary: null,
+    systemPrompt: "Fallback",
+    messengerPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
+    sampling: null,
+    parameters: null,
+    sectionOrder: [],
+    groupOrder: [],
+    variableOrder: [],
+    variableGroups: [],
+    variableValues: {},
+    defaultChoices: {},
+    sections: [],
+    groups: [],
+    choiceBlocks: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -170,6 +193,7 @@ describe("generation time zone wiring", () => {
       characters: [companion()],
       createId,
       lorebooks: [],
+      promptPresets: [messengerPreset()],
       now,
       personas: [],
       providerConnections: [],

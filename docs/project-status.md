@@ -62,9 +62,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   returning restores per-preset history, and choice-free presets confirm without
   opening the dialog. Questions and option descriptions remain visible across
   the supported dropdown, checkbox, button, and list presentations. Invalid live
-  histories repair to valid defaults with a notice. Messenger keeps its
-  Messenger Prompt Source/system prompt path and resets a custom prompt only
-  when switching to a different preset.
+  histories repair to valid defaults with a notice. Messenger ordinary
+  conversation settings select a prompt preset and its preset-authored
+  Variables; generation uses `messengerPrompt`, then shared `systemPrompt`,
+  then built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT`, with no conversation-owned
+  arbitrary prompt or model-parameter override.
 - App settings own the default prompt preset. New Messenger and Roleplay threads
   start with it, and each thread retains independent confirmed-choice history per
   preset. The default and last preset are protected from deletion; deleting

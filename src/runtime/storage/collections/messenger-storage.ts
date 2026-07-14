@@ -1,7 +1,5 @@
 import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
   attachMessengerMessagesToThreads,
-  normalizeMessengerSystemPromptMode,
   type MessengerMessage,
   type MessengerThread,
   type MessengerThreadRecord,
@@ -25,7 +23,7 @@ export type MessengerStorageSnapshot = {
   threads: MessengerThread[];
   hasLegacyEmbeddedMessages: boolean;
   droppedRecordCount: number;
-  /** Thread IDs whose accepted choice selections changed during normalization. */
+  /** Thread IDs whose accepted persisted shape changed during normalization. */
   normalizationChangedRecordIds: string[];
   mode: MessengerStorageMode;
   status: Exclude<MessengerStorageStatus, "loading" | "saving">;
@@ -40,6 +38,8 @@ type LegacyMessengerThreadStorageRecord = Omit<
   Partial<MessengerThread>,
   "presetChoiceSelectionsByPresetId"
 > & {
+  systemPromptMode?: unknown;
+  systemPrompt?: unknown;
   kind?: unknown;
   presetChoiceSelections?: unknown;
   presetChoiceSelectionsByPresetId?: unknown;
@@ -49,7 +49,9 @@ type LegacyMessengerThreadStorageRecord = Omit<
 export type NormalizedMessengerThread = {
   thread: MessengerThread;
   droppedRecordCount: number;
-  /** Whether native preset choice selections changed shape or were cleared. */
+  /** Whether the accepted record changed persisted shape during normalization. */
+  normalizationChanged: boolean;
+  /** @deprecated Bundle import still reports this narrower subset of changes. */
   presetChoiceSelectionsChanged: boolean;
 };
 
@@ -128,6 +130,8 @@ export function normalizeMessengerThreadWithMetadata(
       candidate,
       "presetChoiceSelections",
     );
+    const hasLegacyPromptMode = Object.prototype.hasOwnProperty.call(candidate, "systemPromptMode");
+    const hasLegacyPrompt = Object.prototype.hasOwnProperty.call(candidate, "systemPrompt");
     const legacySelections = candidate.presetChoiceSelections;
     const normalizedHistory = normalizePromptPresetThreadChoiceSelectionHistories({
       presetId,
@@ -138,6 +142,8 @@ export function normalizeMessengerThreadWithMetadata(
     const candidateWithoutHistory = { ...candidate };
     delete candidateWithoutHistory.presetChoiceSelections;
     delete candidateWithoutHistory.presetChoiceSelectionsByPresetId;
+    delete candidateWithoutHistory.systemPromptMode;
+    delete candidateWithoutHistory.systemPrompt;
 
     return {
       thread: {
@@ -151,14 +157,10 @@ export function normalizeMessengerThreadWithMetadata(
             : null,
         presetId,
         presetChoiceSelectionsByPresetId: normalizedHistory.histories,
-        systemPromptMode: normalizeMessengerSystemPromptMode(candidate.systemPromptMode),
-        systemPrompt:
-          typeof candidate.systemPrompt === "string"
-            ? candidate.systemPrompt
-            : DEFAULT_MESSENGER_SYSTEM_PROMPT,
         messages,
       } as MessengerThread,
       droppedRecordCount,
+      normalizationChanged: normalizedHistory.changed || hasLegacyPromptMode || hasLegacyPrompt,
       presetChoiceSelectionsChanged: normalizedHistory.changed,
     };
   }
@@ -181,7 +183,7 @@ function normalizeMessengerThreadStorageRecord(
   return {
     record: thread.messages.length > 0 ? { ...record, messages: thread.messages } : record,
     droppedRecordCount: normalized.droppedRecordCount,
-    normalizationChanged: normalized.presetChoiceSelectionsChanged,
+    normalizationChanged: normalized.normalizationChanged,
   };
 }
 

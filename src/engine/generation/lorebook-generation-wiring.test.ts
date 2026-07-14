@@ -9,6 +9,7 @@ import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
 import type { MessengerMessage, MessengerThread } from "../contracts/types/messenger";
 import type { RoleplayEntry, RoleplayThread } from "../contracts/types/roleplay";
+import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
 import {
   activateLoreGenerationEntriesWithWarnings,
@@ -184,6 +185,30 @@ function messengerCharacterMessage(
   };
 }
 
+function messengerPreset(messengerPrompt: string): PromptPresetRecord {
+  return {
+    id: "preset-1",
+    schemaVersion: 1,
+    title: "Messenger test",
+    summary: null,
+    systemPrompt: "Fallback",
+    messengerPrompt,
+    sampling: null,
+    parameters: null,
+    sectionOrder: [],
+    groupOrder: [],
+    variableOrder: [],
+    variableGroups: [],
+    variableValues: {},
+    defaultChoices: {},
+    sections: [],
+    groups: [],
+    choiceBlocks: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 function roleplayEntry(id: string, body: string): RoleplayEntry {
   return {
     id,
@@ -232,10 +257,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1"],
       activePersonaId: null,
       lorebookIds: ["city-lore"],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Did you see the canal?")],
       createdAt: now,
       updatedAt: now,
@@ -290,8 +313,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Use literal /[bad/ text.")],
       createdAt: now,
       updatedAt: now,
@@ -338,10 +359,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["city-lore"],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "No matching key here.")],
       createdAt: now,
       updatedAt: now,
@@ -426,8 +445,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Only the canal is here.")],
       createdAt: now,
       updatedAt: now,
@@ -478,8 +495,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [
         messengerMessage("message-1", "Did you see the canal?"),
         messengerMessage("message-2", "   "),
@@ -981,8 +996,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2277,8 +2290,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: [lorebook.id],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2605,8 +2616,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Did you see the canal?")],
       createdAt: now,
       updatedAt: now,
@@ -2673,8 +2682,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2732,8 +2739,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2807,8 +2812,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "custom",
-      systemPrompt: `{{setvar::detail::${longDetail}}}`,
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2867,8 +2870,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -2933,11 +2934,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["city-lore"],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: connection.id,
-      systemPromptMode: "custom",
-      systemPrompt:
-        "Custom {{char}}/{{user}}/{{input}}/{{model}}/{{chatId}}/{{isotime}} {{unknownMacro}} {{// hidden}}",
       messages: [messengerMessage("message-1", "  Canal please.  ")],
       createdAt: now,
       updatedAt: now,
@@ -2997,6 +2995,11 @@ describe("generation lorebook activation wiring", () => {
         }),
       ],
       providerConnections: [connection],
+      promptPresets: [
+        messengerPreset(
+          "Custom {{char}}/{{user}}/{{input}}/{{model}}/{{chatId}}/{{isotime}} {{unknownMacro}} {{// hidden}}",
+        ),
+      ],
     });
 
     const request = createMessengerGenerationRequest({
@@ -3033,10 +3036,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: [],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: null,
-      systemPromptMode: "custom",
-      systemPrompt: "Base prompt.",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -3084,10 +3085,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1"],
       activePersonaId: "persona-1",
       lorebookIds: ["order-lore"],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: null,
-      systemPromptMode: "custom",
-      systemPrompt: "{{setvar::loreMood::system}}System mood {{getvar::loreMood}}.",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -3104,6 +3103,9 @@ describe("generation lorebook activation wiring", () => {
         persona({
           description: "Persona mood {{getvar::loreMood}}.",
         }),
+      ],
+      promptPresets: [
+        messengerPreset("{{setvar::loreMood::system}}System mood {{getvar::loreMood}}."),
       ],
       lorebooks: [
         selectiveLorebook({
@@ -3164,11 +3166,8 @@ describe("generation lorebook activation wiring", () => {
       characterIds: ["character-1", "character-2"],
       activePersonaId: "persona-1",
       lorebookIds: [],
-      presetId: null,
+      presetId: "preset-1",
       providerConnectionId: null,
-      systemPromptMode: "custom",
-      systemPrompt:
-        '{{#if char == "Koi"}}Speaker {{char}}: {{creatorNotes}}{{else}}Wrong speaker {{char}}: {{creatorNotes}}{{/if}}',
       messages: [
         messengerCharacterMessage("message-1", "character-1", "Mara", "First reply."),
         userMessage,
@@ -3192,6 +3191,11 @@ describe("generation lorebook activation wiring", () => {
       ],
       personas: [persona()],
       lorebooks: [],
+      promptPresets: [
+        messengerPreset(
+          '{{#if char == "Koi"}}Speaker {{char}}: {{creatorNotes}}{{else}}Wrong speaker {{char}}: {{creatorNotes}}{{/if}}',
+        ),
+      ],
     });
 
     const request = createMessengerGenerationRequest({
@@ -3251,8 +3255,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["chat-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [messengerMessage("message-1", "Hello.")],
       createdAt: now,
       updatedAt: now,
@@ -3350,8 +3352,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: null,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [
         messengerMessage("message-1", "First turn."),
         messengerMessage("message-2", "Newest turn."),
@@ -3413,8 +3413,6 @@ describe("generation lorebook activation wiring", () => {
       lorebookIds: ["city-lore"],
       presetId: null,
       providerConnectionId: connection.id,
-      systemPromptMode: "default",
-      systemPrompt: "",
       messages: [
         messengerMessage("message-1", "First turn."),
         messengerMessage("message-2", "Newest turn."),
@@ -3479,8 +3477,6 @@ describe("generation lorebook activation wiring", () => {
         lorebookIds: ["city-lore"],
         presetId: null,
         providerConnectionId: connection.id,
-        systemPromptMode: "default",
-        systemPrompt: "",
         messages: [
           messengerMessage("message-1", "First turn."),
           messengerMessage("message-2", "Newest turn."),

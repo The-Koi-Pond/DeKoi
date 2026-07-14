@@ -33,10 +33,6 @@ interface ChatSettingsResourceActions extends ChatSettingsThreadResourceActions 
   onSelectorOpenChange: (open: boolean) => void;
 }
 
-interface ChatSettingsPromptActions {
-  onSaveCustomPrompt: (threadId: string, prompt: string) => void;
-}
-
 interface ChatSettingsPresetActions {
   onClearMissingPreset: () => void;
   onPresetChoiceChange: (selections: PromptPresetThreadChoiceSelections) => void;
@@ -46,14 +42,12 @@ interface ChatSettingsPresetActions {
 
 export type ChatSettingsMessengerIdentityActions = ChatSettingsIdentityActions;
 export type ChatSettingsMessengerThreadResourceActions = ChatSettingsThreadResourceActions;
-export type ChatSettingsMessengerPromptActions = ChatSettingsPromptActions;
 export type ChatSettingsThreadPresetActions = ChatSettingsPresetActions;
 
 export interface ChatSettingsMessengerActionGroup {
   drawers: ChatSettingsDrawerActions;
   identity: ChatSettingsIdentityActions;
   preset: ChatSettingsPresetActions;
-  prompt: ChatSettingsPromptActions;
   resources: ChatSettingsResourceActions;
 }
 

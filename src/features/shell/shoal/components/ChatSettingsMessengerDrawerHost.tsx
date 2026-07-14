@@ -9,20 +9,17 @@ interface ChatSettingsMessengerDrawerHostProps {
   actions: ChatSettingsMessengerActionGroup;
   nav: ShoalRailProps["nav"];
   settings: ChatSettingsMessengerSettings;
-  settingsLabel: string;
 }
 
 export function ChatSettingsMessengerDrawerHost({
   actions,
   nav,
   settings,
-  settingsLabel,
 }: ChatSettingsMessengerDrawerHostProps) {
   return (
     <ChatSettingsMessengerDrawers
       actions={actions}
       catalog={{
-        appSettings: nav.appSettings,
         characters: nav.characters,
         lorebooks: nav.lorebooks,
         personas: nav.personas,
@@ -33,10 +30,8 @@ export function ChatSettingsMessengerDrawerHost({
         onCreateConnection: () => nav.setView({ kind: "connections", mode: "new" }),
         onCreateLorebook: () => nav.setView({ kind: "lorebooks", mode: "new-lorebook" }),
         onCreateMessengerThread: nav.createMessengerThread,
-        onUpdateAppSettings: nav.updateAppSettings,
       }}
       settings={settings}
-      settingsLabel={settingsLabel}
     />
   );
 }

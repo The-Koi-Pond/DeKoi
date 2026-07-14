@@ -1,4 +1,3 @@
-import { ChatSettingsAdvancedDrawer } from "./ChatSettingsAdvancedDrawer";
 import { ChatSettingsIdentityDrawers } from "./ChatSettingsIdentityDrawers";
 import { ChatSettingsMessengerResourceSection } from "./ChatSettingsMessengerResourceSection";
 import { ChatSettingsNotice } from "./ChatSettingsBlocks";
@@ -14,11 +13,9 @@ interface ChatSettingsMessengerDrawersProps {
   catalog: ChatSettingsMessengerDrawerCatalog;
   navigation: ChatSettingsMessengerDrawerNavigation;
   settings: ChatSettingsMessengerSettings;
-  settingsLabel: string;
 }
 
 interface ChatSettingsMessengerDrawerCatalog {
-  appSettings: ShoalRailProps["nav"]["appSettings"];
   characters: ShoalRailProps["nav"]["characters"];
   lorebooks: ShoalRailProps["nav"]["lorebooks"];
   personas: ShoalRailProps["nav"]["personas"];
@@ -30,7 +27,6 @@ interface ChatSettingsMessengerDrawerNavigation {
   onCreateConnection: () => void;
   onCreateLorebook: () => void;
   onCreateMessengerThread: () => void;
-  onUpdateAppSettings: ShoalRailProps["nav"]["updateAppSettings"];
 }
 
 export function ChatSettingsMessengerDrawers({
@@ -38,34 +34,18 @@ export function ChatSettingsMessengerDrawers({
   catalog,
   navigation,
   settings,
-  settingsLabel,
 }: ChatSettingsMessengerDrawersProps) {
-  const { appSettings, characters, lorebooks, personas, promptPresets } = catalog;
-  const {
-    onCreateCompanion,
-    onCreateConnection,
-    onCreateLorebook,
-    onCreateMessengerThread,
-    onUpdateAppSettings,
-  } = navigation;
-  const {
-    activeMessengerThread,
-    activeMessengerThreadId,
-    advanced,
-    companionSelectorOpen,
-    identity,
-    resources,
-  } = getChatSettingsMessengerDrawerModels({
-    appSettings,
-    settings,
-    settingsLabel,
-  });
+  const { characters, lorebooks, personas, promptPresets } = catalog;
+  const { onCreateCompanion, onCreateConnection, onCreateLorebook, onCreateMessengerThread } =
+    navigation;
+  const { activeMessengerThread, companionSelectorOpen, identity, resources } =
+    getChatSettingsMessengerDrawerModels({ settings });
 
   return (
     <div className="shoal-list chat-settings-list">
       {!activeMessengerThread && (
         <ChatSettingsNotice actionLabel="New Messenger" onAction={onCreateMessengerThread}>
-          Open or create a Messenger thread to edit connection, persona, companion, prompt, and lore
+          Open or create a Messenger thread to edit connection, persona, companion, and lore
           settings.
         </ChatSettingsNotice>
       )}
@@ -79,7 +59,6 @@ export function ChatSettingsMessengerDrawers({
       <ChatSettingsMessengerResourceSection
         actions={actions}
         activeMessengerThreadRecord={activeMessengerThread}
-        activeMessengerThreadId={activeMessengerThreadId}
         characters={characters}
         companionSelectorOpen={companionSelectorOpen}
         lorebooks={lorebooks}
@@ -87,12 +66,6 @@ export function ChatSettingsMessengerDrawers({
         promptPresets={promptPresets}
         onCreateCompanion={onCreateCompanion}
         onCreateLorebook={onCreateLorebook}
-      />
-
-      <ChatSettingsAdvancedDrawer
-        model={advanced}
-        onToggle={actions.drawers.onToggle}
-        onUpdateAppSettings={onUpdateAppSettings}
       />
     </div>
   );

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_MESSENGER_SYSTEM_PROMPT,
   type MessengerMessage,
   type MessengerMessageAuthor,
   type MessengerMessageOrigin,
@@ -378,8 +377,6 @@ function normalizeLegacyThread(value: unknown, index: number): LegacyThreadImpor
     presetId: readNullableString(value.presetId),
     presetChoiceSelectionsByPresetId: {},
     providerConnectionId: readNullableString(value.providerConnectionId),
-    systemPromptMode: "default",
-    systemPrompt: DEFAULT_MESSENGER_SYSTEM_PROMPT,
     messages,
     createdAt: readTimestamp(value.createdAt, now),
     updatedAt: readTimestamp(value.updatedAt, now),

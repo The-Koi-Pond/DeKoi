@@ -370,7 +370,7 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
   const repairedMessengerThreads = repairPromptPresetRelationships(
     messengerThreads,
     promptPresets,
-    new Set(messengerSnapshot.normalizationChangedRecordIds),
+    new Set(),
     repairedDefaultPromptPresetId,
   );
   const shouldInitializePromptPresetStarter =
@@ -408,6 +408,9 @@ export async function loadAppStorageSnapshot(rawUrl: string): Promise<AppStorage
     repairedMessengerThreads.clearedPresetReferenceCount > 0 ||
     repairedMessengerThreads.repairedChoiceSelectionCount > 0
   ) {
+    addMigrationCollectionKeys("messengerThreads");
+  }
+  if (messengerSnapshot.normalizationChangedRecordIds.length > 0) {
     addMigrationCollectionKeys("messengerThreads");
   }
   if (messengerSnapshot.hasLegacyEmbeddedMessages) {

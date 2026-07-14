@@ -279,6 +279,50 @@ describe("loadAppStorageSnapshot prompt preset seeding", () => {
     ]);
   });
 
+  it("schedules Messenger rewrite when raw threads only contain obsolete prompt keys", async () => {
+    const rawMessengerThread = {
+      ...createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        id: "messenger-thread-obsolete-prompt",
+        now: "2026-06-24T07:00:00.000Z",
+        title: "Messenger obsolete prompt",
+      }),
+      presetId: STARTER_PROMPT_PRESET.id,
+      presetChoiceSelectionsByPresetId: {
+        [STARTER_PROMPT_PRESET.id]: {
+          choice_v2_pacing: { kind: "option", optionId: "pacing_balanced" },
+        },
+      },
+      systemPromptMode: "custom",
+      systemPrompt: "Legacy override",
+    };
+    mockRemoteStorage({
+      "app-settings": [
+        {
+          id: "app-settings",
+          promptPresetStarterInitialized: true,
+          defaultPromptPresetId: STARTER_PROMPT_PRESET.id,
+        },
+      ],
+      "prompt-presets": [STARTER_PROMPT_PRESET],
+      "messenger-threads": [rawMessengerThread],
+    });
+
+    const snapshot = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(snapshot.messengerThreads[0]?.id).toBe(rawMessengerThread.id);
+    expect(snapshot.messengerThreads[0]?.presetId).toBe(STARTER_PROMPT_PRESET.id);
+    expect(snapshot.messengerThreads[0]?.presetChoiceSelectionsByPresetId).toEqual({
+      [STARTER_PROMPT_PRESET.id]: {
+        choice_v2_pacing: { kind: "option", optionId: "pacing_balanced" },
+      },
+    });
+    expect(snapshot.messengerThreads[0]).not.toHaveProperty("systemPromptMode");
+    expect(snapshot.messengerThreads[0]).not.toHaveProperty("systemPrompt");
+    expect(snapshot.migrationCollectionKeys).toEqual(["messengerThreads"]);
+  });
+
   it("migrates orphaned choice selections without preset references in both thread modes", async () => {
     const messengerThread = {
       ...createMessengerThread({

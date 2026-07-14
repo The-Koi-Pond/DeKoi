@@ -9,5 +9,4 @@ export interface ChatSettingsThreadRecord {
   presetId: string | null;
   presetChoiceSelectionsByPresetId?: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
-  systemPromptMode?: "default" | "custom";
 }

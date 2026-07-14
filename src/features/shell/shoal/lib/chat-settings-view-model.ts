@@ -42,7 +42,6 @@ export function getChatSettingsViewModel({
   const sanitizedProviderConnections = providerConnections.map((connection) =>
     sanitizeProviderConnectionRecord(connection),
   );
-  const systemPromptMode = activeThread?.systemPromptMode ?? "default";
   const selectedPresetId = activeThread?.presetId ?? null;
   const selectedPreset =
     selectedPresetId !== null
@@ -78,18 +77,12 @@ export function getChatSettingsViewModel({
     presetChoiceSelections: activeThread?.presetId
       ? ((activeThread.presetChoiceSelectionsByPresetId ?? {})[activeThread.presetId] ?? {})
       : {},
-    presetDrawerSummary:
-      activeThread?.systemPromptMode === "custom"
-        ? selectedPreset
-          ? `Custom override (${selectedPreset.title})`
-          : "Custom override"
-        : selectedPreset
-          ? selectedPreset.title
-          : missingPresetId
-            ? "Missing preset"
-            : "No preset",
+    presetDrawerSummary: selectedPreset
+      ? selectedPreset.title
+      : missingPresetId
+        ? "Missing preset"
+        : "No preset",
     selectedPresetId,
-    systemPromptMode,
   };
 }
 
