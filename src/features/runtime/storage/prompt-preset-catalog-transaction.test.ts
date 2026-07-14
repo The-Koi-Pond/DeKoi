@@ -179,6 +179,44 @@ describe("prompt preset catalog transaction", () => {
     expect(h.coordinator.hasActiveTransaction()).toBe(false);
   });
 
+  it("rolls back the latest snapshot after a save error", async () => {
+    const h = setup();
+    const latest = { ...h.get(), characters: [character("character-2", "Newer")] };
+    let rollbackSnapshot: AppStorageRecords | null = null;
+    const result = await run(h, {
+      save: async () => {
+        h.set(latest);
+        return { status: "error", message: "response lost" };
+      },
+      rollback: async (snapshot) => {
+        rollbackSnapshot = snapshot;
+        return { status: "ready", message: "restored" };
+      },
+    });
+    expect(result.saved).toBe(false);
+    expect(result.published).toBe(false);
+    expect(result.message).toBe("response lost");
+    expect(rollbackSnapshot).toBe(latest);
+    expect(h.count()).toBe(0);
+    expect(h.get().promptPresets[0].title).toBe("Old");
+  });
+
+  it("reports rollback failure after a save error", async () => {
+    const h = setup();
+    const result = await run(h, {
+      save: async () => ({ status: "error", message: "response lost" }),
+      rollback: async () => ({ status: "error", message: "rollback disk full" }),
+    });
+    expect(result.saved).toBe(false);
+    expect(result.published).toBe(false);
+    expect(result.message).toContain("response lost");
+    expect(result.message).toContain("rollback failed");
+    expect(result.message).toContain("rollback disk full");
+    expect(h.count()).toBe(0);
+    expect(h.get().promptPresets[0].title).toBe("Old");
+    expect(h.coordinator.hasActiveTransaction()).toBe(false);
+  });
+
   it.each([
     ["stale", records("2"), "1"],
     ["missing", records("1"), ""],

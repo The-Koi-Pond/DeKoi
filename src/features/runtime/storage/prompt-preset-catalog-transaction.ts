@@ -121,8 +121,23 @@ export async function runPromptPresetCatalogTransaction({
         message: error instanceof Error ? error.message : String(error),
       };
     }
-    if (result.status === "error")
-      return { saved: false, published: false, blocked: false, message: result.message, preset };
+    if (result.status === "error") {
+      const restored = await rollback(
+        transaction.getRollbackSnapshot(),
+        transaction.target.rawUrl,
+        transaction.target,
+      );
+      return {
+        saved: false,
+        published: false,
+        blocked: false,
+        message:
+          restored.status === "ready"
+            ? result.message
+            : `${result.message} Prompt preset rollback failed: ${restored.message}`,
+        preset,
+      };
+    }
     if (
       !transaction.isTargetCurrent() ||
       appStorageCollectionSignature(transaction.getLatestSnapshot(), "promptPresets") !==
