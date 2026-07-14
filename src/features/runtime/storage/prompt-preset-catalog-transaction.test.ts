@@ -1,14 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
   createStorageTransactionCoordinator,
   type StorageTransactionTarget,
 } from "./storage-transaction-coordinator";
-import { runPromptPresetCatalogTransaction } from "./prompt-preset-catalog-transaction";
+import {
+  runPromptPresetCatalogTransaction,
+  type PromptPresetCatalogMutation,
+} from "./prompt-preset-catalog-transaction";
 import type { AppStorageRecords } from "./app-storage-workflows";
+import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 
 const records = (updatedAt = "1"): AppStorageRecords => ({
-  appSettings: { ...DEFAULT_APP_SETTINGS, defaultPromptPresetId: "p" },
+  appSettings: {
+    ...DEFAULT_APP_SETTINGS,
+    defaultPromptPresetId: "p",
+    promptPresetStarterInitialized: true,
+  },
   characters: [character("character-1", "Keep me")],
   personas: [],
   lorebooks: [],
@@ -99,6 +107,7 @@ function setup(initial = records()) {
 }
 
 type RunOptions = {
+  flush?: () => Promise<{ flushed: boolean; message: string }>;
   save?: (
     snapshot: AppStorageRecords,
     rawUrl: string,
@@ -120,7 +129,7 @@ type RunOptions = {
 function run(
   h: ReturnType<typeof setup>,
   options: RunOptions = {},
-  mutation = {
+  mutation: PromptPresetCatalogMutation = {
     kind: "update" as const,
     presetId: "p",
     originalUpdatedAt: "1",
@@ -132,7 +141,7 @@ function run(
     mutation,
     coordinator: h.coordinator,
     getLatestSnapshot: h.get,
-    flush: async () => ({ flushed: true, message: "" }),
+    flush: options.flush ?? (async () => ({ flushed: true, message: "" })),
     saveCollection: options.save ?? (async () => ({ status: "ready", message: "" })),
     rollback: options.rollback ?? (async () => ({ status: "ready", message: "" })),
     publish: options.publish ?? h.publish,
@@ -157,6 +166,100 @@ describe("prompt preset catalog transaction", () => {
     await promise;
     expect(h.count()).toBe(1);
     expect(h.get().promptPresets[0].title).toBe("New");
+  });
+
+  it("restores starter additively from the bundled record and preserves settings", async () => {
+    const editedStarter = { ...STARTER_PROMPT_PRESET, title: "Edited bundled starter" };
+    const h = setup({ ...records(), promptPresets: [editedStarter] });
+    const result = await run(h, {}, { kind: "restore-starter", id: "restored", now: "2" });
+
+    expect(result.saved).toBe(true);
+    expect(h.get().promptPresets).toHaveLength(2);
+    expect(h.get().promptPresets[1]).toEqual(editedStarter);
+    expect(h.get().promptPresets[0].id).toBe("restored");
+    expect(h.get().promptPresets[0].title).toBe(STARTER_PROMPT_PRESET.title);
+    expect(h.get().appSettings.defaultPromptPresetId).toBe("p");
+    expect(h.get().appSettings.promptPresetStarterInitialized).toBe(true);
+  });
+
+  it("does not publish a restore before delayed persistence completes", async () => {
+    const h = setup({ ...records(), promptPresets: [] });
+    let resolveSave!: () => void;
+    const promise = run(
+      h,
+      {
+        save: async () => {
+          await new Promise<void>((resolve) => {
+            resolveSave = resolve;
+          });
+          return { status: "ready", message: "" };
+        },
+      },
+      { kind: "restore-starter", id: "restored", now: "2" },
+    );
+
+    expect(h.count()).toBe(0);
+    await Promise.resolve();
+    expect(h.get().promptPresets).toEqual([]);
+    resolveSave();
+    await promise;
+    expect(h.count()).toBe(1);
+  });
+
+  it("restores when the bundled starter is missing and each restore is distinct", async () => {
+    const h = setup({ ...records(), promptPresets: [] });
+    await run(h, {}, { kind: "restore-starter", id: "restored-1", now: "2" });
+    await run(h, {}, { kind: "restore-starter", id: "restored-2", now: "3" });
+
+    expect(h.get().promptPresets.map((preset) => preset.id)).toEqual(["restored-2", "restored-1"]);
+    expect(h.get().promptPresets[0]).not.toEqual(h.get().promptPresets[1]);
+    expect(
+      h.get().promptPresets[0].sections.every((section) => section.presetId === "restored-2"),
+    ).toBe(true);
+  });
+
+  it.each<PromptPresetCatalogMutation>([
+    { kind: "create", id: "p", now: "2", input: { title: "Collision" } },
+    { kind: "restore-starter", id: "p", now: "2" },
+  ])("rejects a $kind identity collision before flushing or persistence", async (mutation) => {
+    const h = setup();
+    const flush = vi.fn(async () => ({ flushed: true, message: "" }));
+    const save = vi.fn(async () => ({ status: "ready" as const, message: "saved" }));
+    const publish = vi.fn(h.publish);
+    const result = await run(
+      h,
+      {
+        flush,
+        save,
+        publish,
+      },
+      mutation,
+    );
+
+    expect(result).toMatchObject({ saved: false, published: false, blocked: false });
+    expect(result.message).toMatch(/identity already exists/);
+    expect(flush).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(h.count()).toBe(0);
+  });
+
+  it.each([
+    ["save error", async () => ({ status: "error" as const, message: "disk full" })],
+    [
+      "thrown save",
+      async () => {
+        throw new Error("host disconnected");
+      },
+    ],
+  ])("restore does not publish after a %s", async (_label, save) => {
+    const h = setup({ ...records(), promptPresets: [] });
+    const result = await run(h, { save }, { kind: "restore-starter", id: "restored", now: "2" });
+
+    expect(result).toMatchObject({ saved: false, published: false });
+    expect(h.count()).toBe(0);
+    expect(h.get().promptPresets).toEqual([]);
+    expect(h.coordinator.hasActiveTransaction()).toBe(false);
   });
 
   it.each([

@@ -1,5 +1,6 @@
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import deKoiUniversalPreset from "./DeKoiUniversalPreset.json" with { type: "json" };
+import { createImportedPromptPresetRecord } from "./prompt-preset-actions";
 import { normalizePromptPresetPackage } from "./prompt-preset-package";
 
 // Chai authored this Universal V2 package for the DeKoi team. Keep the approved
@@ -10,3 +11,7 @@ if (!normalizedStarterPromptPreset) {
 }
 
 export const STARTER_PROMPT_PRESET: PromptPresetRecord = normalizedStarterPromptPreset;
+
+export function createRestoredStarterPromptPreset(id: string, now: string): PromptPresetRecord {
+  return createImportedPromptPresetRecord(STARTER_PROMPT_PRESET, id, now);
+}

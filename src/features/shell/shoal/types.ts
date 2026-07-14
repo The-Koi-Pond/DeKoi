@@ -25,6 +25,7 @@ export type ShoalNav = Pick<
     | "exportPromptPresetFile"
     | "importPromptPresetFile"
     | "openPromptPresetFile"
+    | "restoreStarterPromptPreset"
     | "setPromptPresetFileStatus"
   > &
   Pick<

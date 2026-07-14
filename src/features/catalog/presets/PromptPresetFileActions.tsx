@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
+import { useId, useRef, useState, type ChangeEvent } from "react";
 import type {
   NavCatalogState,
   NavPromptPresetActions,
@@ -10,6 +10,7 @@ import {
   runPromptPresetImport,
   unexpectedPromptPresetFileErrorStatus,
 } from "./prompt-preset-file-import";
+import { useCatalogNavigationLifecycle } from "./useCatalogNavigationLifecycle";
 
 interface PromptPresetFileActionsBaseProps {
   host: NavCatalogState["promptPresetFileHost"];
@@ -17,6 +18,7 @@ interface PromptPresetFileActionsBaseProps {
   openPromptPresetFile: NavPromptPresetActions["openPromptPresetFile"];
   exportPromptPresetFile: NavPromptPresetActions["exportPromptPresetFile"];
   navigationContext: NavViewState["view"];
+  sideRailView: NavViewState["sideRailView"];
   originActive: boolean;
   status: string;
   onImportedPresetReady: (presetId: string) => void;
@@ -61,6 +63,7 @@ export function PromptPresetFileActions({
   openPromptPresetFile,
   exportPromptPresetFile,
   navigationContext,
+  sideRailView,
   originActive,
   status,
   onImportedPresetReady,
@@ -69,44 +72,25 @@ export function PromptPresetFileActions({
   const headingId = useId();
   const exportReasonId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const mountedRef = useRef(false);
-  const navigationContextRef = useRef(navigationContext);
-  const originActiveRef = useRef(originActive);
-  const navigationVersionRef = useRef(0);
+  const { captureOriginCurrent, isMounted } = useCatalogNavigationLifecycle(
+    navigationContext,
+    sideRailView,
+    originActive,
+  );
   const [busyAction, setBusyAction] = useState<"import" | "export" | null>(null);
 
-  useLayoutEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    const contextChanged = navigationContextRef.current !== navigationContext;
-    const activeChanged = originActiveRef.current !== originActive;
-    if (contextChanged || activeChanged) {
-      navigationContextRef.current = navigationContext;
-      originActiveRef.current = originActive;
-      navigationVersionRef.current += 1;
-    }
-  }, [navigationContext, originActive]);
-
   async function runImport(importFile: () => Promise<NavPromptPresetFileImportResult>) {
-    const originNavigationVersion = navigationVersionRef.current;
+    const isOriginCurrent = captureOriginCurrent();
     setBusyAction("import");
     try {
       await runPromptPresetImport({
         importFile,
-        isOriginCurrent: () =>
-          mountedRef.current &&
-          originActiveRef.current &&
-          navigationVersionRef.current === originNavigationVersion,
+        isOriginCurrent,
         onImportedPresetReady,
         onStatusChange,
       });
     } finally {
-      if (mountedRef.current) setBusyAction(null);
+      if (isMounted()) setBusyAction(null);
     }
   }
 

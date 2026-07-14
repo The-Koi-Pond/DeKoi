@@ -8,10 +8,12 @@ import {
   updatePromptPresetRecord,
   type PromptPresetInput,
 } from "../../../engine/prompt-presets/prompt-preset-actions";
+import { createRestoredStarterPromptPreset } from "../../../engine/prompt-presets/starter-preset";
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 
 export type PromptPresetCatalogMutation =
   | { kind: "create"; id: string; now: string; input: PromptPresetInput }
+  | { kind: "restore-starter"; id: string; now: string }
   | {
       kind: "update";
       presetId: string;
@@ -75,6 +77,16 @@ export async function runPromptPresetCatalogTransaction({
   ) => Promise<StorageOperationResult>;
   publish: (snapshot: AppStorageRecords) => void;
 }): Promise<PromptPresetCatalogTransactionResult> {
+  if (
+    mutation.kind !== "update" &&
+    getLatestSnapshot().promptPresets.some((preset) => preset.id === mutation.id)
+  )
+    return {
+      saved: false,
+      published: false,
+      blocked: false,
+      message: "Prompt preset identity already exists; retry the action.",
+    };
   const flushed = await flush();
   if (!flushed.flushed)
     return { saved: false, published: false, blocked: true, message: flushed.message };
@@ -90,6 +102,16 @@ export async function runPromptPresetCatalogTransaction({
   try {
     const current = transaction.getLatestSnapshot() ?? getLatestSnapshot();
     const baselineSignature = appStorageCollectionSignature(current, "promptPresets");
+    if (
+      mutation.kind !== "update" &&
+      current.promptPresets.some((preset) => preset.id === mutation.id)
+    )
+      return {
+        saved: false,
+        published: false,
+        blocked: false,
+        message: "Prompt preset identity already exists; retry the action.",
+      };
     const existing = current.promptPresets.find(
       (preset) => preset.id === (mutation.kind === "update" ? mutation.presetId : ""),
     );
@@ -100,6 +122,8 @@ export async function runPromptPresetCatalogTransaction({
         input: mutation.input,
         now: mutation.now,
       });
+    } else if (mutation.kind === "restore-starter") {
+      preset = createRestoredStarterPromptPreset(mutation.id, mutation.now);
     } else {
       if (!existing)
         return {
@@ -118,7 +142,7 @@ export async function runPromptPresetCatalogTransaction({
       preset = updatePromptPresetRecord(existing, mutation.input, mutation.now);
     }
     const promptPresets =
-      mutation.kind === "create"
+      mutation.kind === "create" || mutation.kind === "restore-starter"
         ? [preset, ...current.promptPresets]
         : current.promptPresets.map((item) => (item.id === preset.id ? preset : item));
     const candidate = { ...current, promptPresets };

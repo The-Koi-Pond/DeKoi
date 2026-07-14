@@ -1,5 +1,6 @@
 import type { PromptPresetRelationshipTransactionResult } from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
 import type { NavViewActions } from "../../navigation";
+import type { PromptPresetCatalogTransactionResult } from "../../navigation";
 
 export async function deletePromptPresetAndNavigate({
   presetId,
@@ -18,6 +19,26 @@ export async function deletePromptPresetAndNavigate({
     setView({ kind: "presets" });
   } else {
     setPromptPresetFileStatus(result.message);
+  }
+  return result;
+}
+
+export async function restoreStarterPromptPresetAndNavigate({
+  restoreStarterPromptPreset,
+  onRestoredPresetReady,
+  setPromptPresetCatalogStatus,
+  isOriginCurrent,
+}: {
+  restoreStarterPromptPreset: () => Promise<PromptPresetCatalogTransactionResult>;
+  onRestoredPresetReady: (presetId: string) => void;
+  setPromptPresetCatalogStatus: (message: string) => void;
+  isOriginCurrent: () => boolean;
+}): Promise<PromptPresetCatalogTransactionResult> {
+  const result = await restoreStarterPromptPreset();
+  if (result.published && result.preset) {
+    if (isOriginCurrent()) onRestoredPresetReady(result.preset.id);
+  } else {
+    setPromptPresetCatalogStatus(`Restore failed. ${result.message}`);
   }
   return result;
 }

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PromptPresetRelationshipTransactionResult } from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
-import { deletePromptPresetAndNavigate } from "./prompt-presets-navigation";
+import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
+import type { PromptPresetCatalogTransactionResult } from "../../navigation";
+import {
+  deletePromptPresetAndNavigate,
+  restoreStarterPromptPresetAndNavigate,
+} from "./prompt-presets-navigation";
 
 function result(
   overrides: Partial<PromptPresetRelationshipTransactionResult> = {},
@@ -11,6 +16,18 @@ function result(
     published: false,
     blocked: false,
     message: "Prompt preset deletion failed.",
+    ...overrides,
+  };
+}
+
+function catalogResult(
+  overrides: Partial<PromptPresetCatalogTransactionResult> = {},
+): PromptPresetCatalogTransactionResult {
+  return {
+    saved: false,
+    published: false,
+    blocked: false,
+    message: "Starter preset restore failed.",
     ...overrides,
   };
 }
@@ -52,5 +69,85 @@ describe("deletePromptPresetAndNavigate", () => {
 
     expect(setView).not.toHaveBeenCalled();
     expect(setPromptPresetFileStatus).toHaveBeenLastCalledWith(transactionResult.message);
+  });
+});
+
+describe("restoreStarterPromptPresetAndNavigate", () => {
+  it("navigates to a published restored preset", async () => {
+    const restoreStarterPromptPreset = vi.fn(async () =>
+      catalogResult({
+        saved: true,
+        published: true,
+        preset: { ...STARTER_PROMPT_PRESET, id: "fresh" },
+      }),
+    );
+    const onRestoredPresetReady = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
+
+    await restoreStarterPromptPresetAndNavigate({
+      restoreStarterPromptPreset,
+      onRestoredPresetReady,
+      setPromptPresetCatalogStatus,
+      isOriginCurrent: () => true,
+    });
+
+    expect(onRestoredPresetReady).toHaveBeenCalledWith("fresh");
+    expect(setPromptPresetCatalogStatus).not.toHaveBeenCalled();
+  });
+
+  it("surfaces failure without navigating", async () => {
+    const transaction = catalogResult({ message: "restore failed" });
+    const onRestoredPresetReady = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
+
+    await restoreStarterPromptPresetAndNavigate({
+      restoreStarterPromptPreset: vi.fn(async () => transaction),
+      onRestoredPresetReady,
+      setPromptPresetCatalogStatus,
+      isOriginCurrent: () => true,
+    });
+
+    expect(onRestoredPresetReady).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).toHaveBeenCalledWith("Restore failed. restore failed");
+  });
+
+  it("does not hijack a stale origin after a published result", async () => {
+    const onRestoredPresetReady = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
+
+    await restoreStarterPromptPresetAndNavigate({
+      restoreStarterPromptPreset: vi.fn(async () =>
+        catalogResult({
+          saved: true,
+          published: true,
+          preset: { ...STARTER_PROMPT_PRESET, id: "fresh" },
+        }),
+      ),
+      onRestoredPresetReady,
+      setPromptPresetCatalogStatus,
+      isOriginCurrent: () => false,
+    });
+
+    expect(onRestoredPresetReady).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).not.toHaveBeenCalled();
+  });
+
+  it("keeps a failed restore observable after its origin is stale", async () => {
+    const onRestoredPresetReady = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
+
+    await restoreStarterPromptPresetAndNavigate({
+      restoreStarterPromptPreset: vi.fn(async () =>
+        catalogResult({ message: "late restore failure" }),
+      ),
+      onRestoredPresetReady,
+      setPromptPresetCatalogStatus,
+      isOriginCurrent: () => false,
+    });
+
+    expect(onRestoredPresetReady).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).toHaveBeenCalledWith(
+      "Restore failed. late restore failure",
+    );
   });
 });

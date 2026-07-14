@@ -105,6 +105,109 @@ async function waitForRemoteStorageReady(page: Page) {
   await expect(page.locator(".runtime-status.ready").first()).toBeVisible();
 }
 
+async function openPromptPresetCatalog(page: Page) {
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Restore Starter Preset" })).toBeVisible();
+}
+
+test("restoring the starter prompt preset opens a fresh record", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  const runtime = await installDeferredReplaceRemoteRuntime(page, "prompt-presets");
+  await openPromptPresetCatalog(page);
+
+  const countText = page.locator(".shoal-title .count");
+  const beforeCount = await countText.textContent();
+  const beforeReplaceCount = runtime.calls.filter(
+    (call) => call.command === "storage_replace" && call.entity === "prompt-presets",
+  ).length;
+  const restore = page.getByRole("button", { name: /Restore Starter Preset|Restoring/ });
+  await restore.click();
+  await runtime.waitForDeferredReplace;
+  await expect(restore).toBeDisabled();
+  await expect(restore).toHaveText("Restoring…");
+  await expect(countText).toHaveText(beforeCount ?? "");
+  await restore.click({ force: true });
+  expect(
+    runtime.calls.filter(
+      (call) => call.command === "storage_replace" && call.entity === "prompt-presets",
+    ),
+  ).toHaveLength(beforeReplaceCount + 1);
+  runtime.releaseDeferredReplace();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await expect(page.getByLabel("Title")).not.toHaveValue("");
+});
+
+test("repeated starter restores add distinct records", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await openPromptPresetCatalog(page);
+
+  const countText = page.locator(".shoal-title .count");
+  const before = Number((await countText.textContent())?.match(/\d+/)?.[0] ?? 0);
+  await page.getByRole("button", { name: "Restore Starter Preset" }).click();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await openPromptPresetCatalog(page);
+  await page.getByRole("button", { name: "Restore Starter Preset" }).click();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await openPromptPresetCatalog(page);
+  await expect(countText).toContainText(`${before + 2} stocked`);
+});
+
+test("starter restore failure leaves catalog selection unchanged", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await openPromptPresetCatalog(page);
+  const countText = page.locator(".shoal-title .count");
+  const before = await countText.textContent();
+  await installFailingRemoteRuntime(page, "prompt-presets");
+
+  await page.getByRole("button", { name: "Restore Starter Preset" }).click();
+  await expect(page.getByRole("alert")).toContainText("Simulated prompt-presets replace failure.");
+  await expect(page.getByRole("button", { name: "Restore Starter Preset" })).toBeVisible();
+  await expect(countText).toHaveText(before ?? "");
+});
+
+test("delayed starter restore from bare Presets does not hijack a newer side rail", async ({
+  page,
+}) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  const runtime = await installDeferredReplaceRemoteRuntime(page, "prompt-presets");
+  await openPromptPresetCatalog(page);
+
+  const countText = page.locator(".shoal-title .count");
+  const before = Number((await countText.textContent())?.match(/\d+/)?.[0] ?? 0);
+  await page.getByRole("button", { name: "Restore Starter Preset" }).click();
+  await runtime.waitForDeferredReplace;
+  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Connections" })).toBeVisible();
+  runtime.releaseDeferredReplace();
+
+  await expect.poll(() => runtime.records.get("prompt-presets")?.length ?? 0).toBe(before + 1);
+  await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await expect(page.locator(".shoal-title .count")).toContainText(`${before + 1} stocked`);
+  await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toHaveCount(0);
+});
+
 test("prompt preset choice definitions can be authored and saved", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
