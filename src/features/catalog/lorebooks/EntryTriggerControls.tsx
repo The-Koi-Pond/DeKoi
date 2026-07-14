@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import type { LoreGenerationTriggerType } from "../../../engine/contracts/types/lorebook";
 import type { LorebookEntryDraft } from "./lorebook-entry-draft";
@@ -19,6 +21,7 @@ interface EntryTriggerControlsProps {
 }
 
 export function EntryTriggerControls({ draft, onDraftChange }: EntryTriggerControlsProps) {
+  const scopeSelectId = useId();
   const triggerTypes = draft.triggers?.types ?? [];
   const importedTypes = triggerTypes.filter((type) => type !== SUPPORTED_TRIGGER);
   const normalSelected = triggerTypes.includes(SUPPORTED_TRIGGER);
@@ -27,9 +30,9 @@ export function EntryTriggerControls({ draft, onDraftChange }: EntryTriggerContr
     <details className="catalog-editor-section">
       <summary>Generation triggers</summary>
       <div className="catalog-editor-field">
-        <label htmlFor="lore-trigger-scope">Trigger scope</label>
+        <label htmlFor={scopeSelectId}>Trigger scope</label>
         <select
-          id="lore-trigger-scope"
+          id={scopeSelectId}
           className="pondinput"
           value={draft.triggers ? "restricted" : "all"}
           onChange={(event) =>

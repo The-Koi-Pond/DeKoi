@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import type { CharacterRecord } from "../../../engine/contracts/types/character";
 import { Switch } from "../../../shared/ui/primitives/Switch";
 import type { LorebookEntryDraft } from "./lorebook-entry-draft";
@@ -13,6 +15,7 @@ export function EntryCharacterFilterControls({
   draft,
   onDraftChange,
 }: EntryCharacterFilterControlsProps) {
+  const modeSelectId = useId();
   const selectedIds = draft.characterFilter?.characterIds ?? [];
   const availableIds = new Set(characters.map((character) => character.id));
   const unavailableIds = selectedIds.filter((id) => !availableIds.has(id));
@@ -21,9 +24,9 @@ export function EntryCharacterFilterControls({
     <details className="catalog-editor-section">
       <summary>Companion filter</summary>
       <div className="catalog-editor-field">
-        <label htmlFor="lore-character-filter-mode">Filter mode</label>
+        <label htmlFor={modeSelectId}>Filter mode</label>
         <select
-          id="lore-character-filter-mode"
+          id={modeSelectId}
           className="pondinput"
           value={draft.characterFilter?.mode ?? "none"}
           onChange={(event) =>

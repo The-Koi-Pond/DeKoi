@@ -47,6 +47,45 @@ describe("lorebook entry generation context", () => {
     ).toBe(true);
   });
 
+  it("applies trigger restrictions to direct and recursive activation", () => {
+    const directBlocked = entry({
+      title: "Direct blocked",
+      key: ["gate"],
+      triggers: { types: ["regenerate"] },
+    });
+    const recursionStarter = entry({
+      title: "Recursion starter",
+      key: ["gate"],
+      body: "Hidden sigil.",
+    });
+    const recursiveBlocked = entry({
+      title: "Recursive blocked",
+      key: ["hidden sigil"],
+      triggers: { types: ["regenerate"] },
+    });
+    const baseLorebook = createLorebookRecord({
+      id: "lorebook-under-test",
+      input: { title: "Lore" },
+      now,
+    });
+    const lorebook = {
+      ...baseLorebook,
+      activation: {
+        ...baseLorebook.activation,
+        recursiveScan: true,
+      },
+      entries: [directBlocked, recursionStarter, recursiveBlocked],
+    };
+
+    const result = activateLorebookEntriesWithWarnings(lorebook, "Open the gate.", {
+      generationTrigger: "normal",
+    });
+
+    expect(result.entries.map(({ entry: activatedEntry }) => activatedEntry.title)).toEqual([
+      "Recursion starter",
+    ]);
+  });
+
   it("matches include and exclude filters against only the current target", () => {
     const include = entry({ characterFilter: { mode: "include", characterIds: ["mara"] } });
     const exclude = entry({ characterFilter: { mode: "exclude", characterIds: ["mara"] } });

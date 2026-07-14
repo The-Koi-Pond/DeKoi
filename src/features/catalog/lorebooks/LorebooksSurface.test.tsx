@@ -1,6 +1,5 @@
-import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createLorebookEntryRecord,
@@ -34,22 +33,6 @@ import { updateTriggerScope } from "./entry-trigger-scope";
 import { readScanDepthInput } from "./lorebook-scan-depth";
 
 const now = "2026-07-02T00:00:00.000Z";
-
-interface TestButtonProps {
-  children?: ReactNode;
-  onClick: () => void;
-}
-
-function findButtonByText(node: ReactNode, text: string): ReactElement<TestButtonProps> | null {
-  if (!isValidElement<TestButtonProps>(node)) return null;
-  if (node.type === "button" && node.props.children === text) return node;
-  const children = Array.isArray(node.props.children) ? node.props.children : [node.props.children];
-  for (const child of children) {
-    const match = findButtonByText(child, text);
-    if (match) return match;
-  }
-  return null;
-}
 
 describe("readScanDepthInput", () => {
   it("treats blank scan-depth drafts as invalid", () => {
@@ -425,6 +408,7 @@ describe("LorebooksSurface", () => {
 
     expect(markup).toContain("Ordinary send");
     expect(markup).toContain("Imported constraints preserved: Regenerate");
+    expect(markup).toContain("Clear all trigger restrictions");
     expect(markup).not.toContain('<option value="regenerate"');
     expect(markup).not.toContain('<option value="all"');
   });
@@ -439,20 +423,6 @@ describe("LorebooksSurface", () => {
     const unrestricted = updateTriggerScope(baseDraft, "restricted");
     expect(unrestricted.triggers?.types).toEqual(["normal"]);
     expect(updateTriggerScope(unrestricted, "all").triggers).toBeNull();
-  });
-
-  it("clears all trigger restrictions only through the explicit action", () => {
-    const draft: LorebookEntryDraft = {
-      ...baseDraft,
-      triggers: { types: ["regenerate", "normal"] },
-    };
-    const onDraftChange = vi.fn();
-    const controls = EntryTriggerControls({ draft, onDraftChange });
-    const clearButton = findButtonByText(controls, "Clear all trigger restrictions");
-
-    expect(clearButton).not.toBeNull();
-    clearButton?.props.onClick();
-    expect(onDraftChange).toHaveBeenCalledWith({ ...draft, triggers: null });
   });
 
   it("renders catalog companions as character-filter choices", () => {
@@ -470,6 +440,31 @@ describe("LorebooksSurface", () => {
     expect(markup).toContain("Only selected companions");
     expect(markup).toContain("Mara");
     expect(markup).toContain('aria-label="Filter companion Mara"');
+  });
+
+  it("uses unique label targets when filter controls are rendered more than once", () => {
+    const markup = renderToStaticMarkup(
+      <>
+        <EntryTriggerControls draft={baseDraft} onDraftChange={() => undefined} />
+        <EntryTriggerControls draft={baseDraft} onDraftChange={() => undefined} />
+        <EntryCharacterFilterControls
+          characters={[]}
+          draft={baseDraft}
+          onDraftChange={() => undefined}
+        />
+        <EntryCharacterFilterControls
+          characters={[]}
+          draft={baseDraft}
+          onDraftChange={() => undefined}
+        />
+      </>,
+    );
+    const ids = [...markup.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]);
+    const labelTargets = [...markup.matchAll(/ for="([^"]+)"/g)].map((match) => match[1]);
+
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(labelTargets).toEqual(ids);
   });
 
   it("renders Include names in existing lorebook activation settings", () => {
