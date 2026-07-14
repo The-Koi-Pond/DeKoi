@@ -11,10 +11,12 @@ export interface CatalogNavigationLifecycle {
 
 export function useCatalogNavigationLifecycle(
   navigationContext: NavViewState["view"],
+  sideRailView: NavViewState["sideRailView"],
   originActive: boolean,
 ): CatalogNavigationLifecycle {
   const mountedRef = useRef(false);
   const navigationContextRef = useRef(navigationContext);
+  const sideRailViewRef = useRef(sideRailView);
   const originActiveRef = useRef(originActive);
   const navigationVersionRef = useRef(0);
 
@@ -27,13 +29,15 @@ export function useCatalogNavigationLifecycle(
 
   useLayoutEffect(() => {
     const contextChanged = navigationContextRef.current !== navigationContext;
+    const sideRailChanged = sideRailViewRef.current !== sideRailView;
     const activeChanged = originActiveRef.current !== originActive;
-    if (contextChanged || activeChanged) {
+    if (contextChanged || sideRailChanged || activeChanged) {
       navigationContextRef.current = navigationContext;
+      sideRailViewRef.current = sideRailView;
       originActiveRef.current = originActive;
       navigationVersionRef.current += 1;
     }
-  }, [navigationContext, originActive]);
+  }, [navigationContext, originActive, sideRailView]);
 
   const isMounted = useCallback(() => mountedRef.current, []);
   const captureOriginCurrent = useCallback(() => {

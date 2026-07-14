@@ -40,6 +40,7 @@ function renderFileActions({
         openPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         exportPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         navigationContext={{ kind: "presets" }}
+        sideRailView="presets"
         originActive
         status={status}
         onImportedPresetReady={vi.fn()}
@@ -55,6 +56,7 @@ function renderFileActions({
         openPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         exportPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         navigationContext={{ kind: "presets", presetId: "preset-selected" }}
+        sideRailView="presets"
         originActive
         status={status}
         onImportedPresetReady={vi.fn()}
@@ -68,6 +70,7 @@ function renderFileActions({
         openPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         exportPromptPresetFile={vi.fn(async () => ({ ok: false as const, error: "not used" }))}
         navigationContext={{ kind: "presets" }}
+        sideRailView="presets"
         originActive
         status={status}
         onImportedPresetReady={vi.fn()}

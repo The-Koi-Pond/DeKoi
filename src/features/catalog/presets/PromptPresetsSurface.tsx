@@ -51,7 +51,7 @@ export type PromptPresetsSurfaceNav = Pick<NavCatalogState, "promptPresets"> &
   > &
   Pick<NavCatalogState, "promptPresetFileHost" | "promptPresetFileStatus"> &
   Pick<NavViewActions, "setView" | "registerViewLeaveGuard"> &
-  Pick<NavViewState, "view">;
+  Pick<NavViewState, "sideRailView" | "view">;
 
 interface PromptPresetEditorProps {
   editingId: string | null;
@@ -371,6 +371,7 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
     openPromptPresetFile: nav.openPromptPresetFile,
     exportPromptPresetFile: nav.exportPromptPresetFile,
     navigationContext: nav.view,
+    sideRailView: nav.sideRailView,
     originActive: true,
     status: nav.promptPresetFileStatus,
     onImportedPresetReady: (presetId: string) => nav.setView({ kind: "presets", presetId }),
@@ -403,6 +404,7 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
             <RestoreStarterPresetAction
               restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
               navigationContext={nav.view}
+              sideRailView={nav.sideRailView}
               originActive
               onRestoredPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
             />

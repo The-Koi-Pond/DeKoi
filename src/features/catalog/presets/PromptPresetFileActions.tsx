@@ -18,6 +18,7 @@ interface PromptPresetFileActionsBaseProps {
   openPromptPresetFile: NavPromptPresetActions["openPromptPresetFile"];
   exportPromptPresetFile: NavPromptPresetActions["exportPromptPresetFile"];
   navigationContext: NavViewState["view"];
+  sideRailView: NavViewState["sideRailView"];
   originActive: boolean;
   status: string;
   onImportedPresetReady: (presetId: string) => void;
@@ -62,6 +63,7 @@ export function PromptPresetFileActions({
   openPromptPresetFile,
   exportPromptPresetFile,
   navigationContext,
+  sideRailView,
   originActive,
   status,
   onImportedPresetReady,
@@ -72,6 +74,7 @@ export function PromptPresetFileActions({
   const inputRef = useRef<HTMLInputElement>(null);
   const { captureOriginCurrent, isMounted } = useCatalogNavigationLifecycle(
     navigationContext,
+    sideRailView,
     originActive,
   );
   const [busyAction, setBusyAction] = useState<"import" | "export" | null>(null);

@@ -180,7 +180,9 @@ test("starter restore failure leaves catalog selection unchanged", async ({ page
   await expect(countText).toHaveText(before ?? "");
 });
 
-test("delayed starter restore does not hijack a newer catalog route", async ({ page }) => {
+test("delayed starter restore from bare Presets does not hijack a newer side rail", async ({
+  page,
+}) => {
   await installRemoteRuntime(page);
   await page.goto("/");
   await openDataAndBackupSettings(page);
@@ -194,6 +196,7 @@ test("delayed starter restore does not hijack a newer catalog route", async ({ p
   await page.getByRole("button", { name: "Restore Starter Preset" }).click();
   await runtime.waitForDeferredReplace;
   await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Connections" })).toBeVisible();
   runtime.releaseDeferredReplace();
 
   await expect.poll(() => runtime.records.get("prompt-presets")?.length ?? 0).toBe(before + 1);

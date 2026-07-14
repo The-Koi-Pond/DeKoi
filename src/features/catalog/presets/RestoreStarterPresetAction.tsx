@@ -7,6 +7,7 @@ import { useCatalogNavigationLifecycle } from "./useCatalogNavigationLifecycle";
 interface RestoreStarterPresetActionProps {
   restoreStarterPromptPreset: NavPromptPresetActions["restoreStarterPromptPreset"];
   navigationContext: NavViewState["view"];
+  sideRailView: NavViewState["sideRailView"];
   originActive: boolean;
   onRestoredPresetReady: (presetId: string) => void;
 }
@@ -14,12 +15,14 @@ interface RestoreStarterPresetActionProps {
 export function RestoreStarterPresetAction({
   restoreStarterPromptPreset,
   navigationContext,
+  sideRailView,
   originActive,
   onRestoredPresetReady,
 }: RestoreStarterPresetActionProps) {
   const headingId = useId();
   const { captureOriginCurrent, isMounted } = useCatalogNavigationLifecycle(
     navigationContext,
+    sideRailView,
     originActive,
   );
   const [pending, setPending] = useState(false);

@@ -14,6 +14,7 @@ type PresetsCatalogRailProps = Omit<StaticCatalogRailProps, "nav"> & {
     | "promptPresets"
     | "restoreStarterPromptPreset"
     | "selectedSurface"
+    | "sideRailView"
     | "setPromptPresetFileStatus"
     | "setView"
     | "view"

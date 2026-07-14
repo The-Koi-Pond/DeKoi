@@ -14,6 +14,7 @@ type PresetsCatalogRailBodyProps = {
     | "promptPresetFileStatus"
     | "promptPresets"
     | "restoreStarterPromptPreset"
+    | "sideRailView"
     | "setPromptPresetFileStatus"
     | "setView"
     | "view"
@@ -55,6 +56,7 @@ export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRail
           <RestoreStarterPresetAction
             restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
             navigationContext={nav.view}
+            sideRailView={nav.sideRailView}
             originActive={originActive}
             onRestoredPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
           />
@@ -65,6 +67,7 @@ export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRail
             openPromptPresetFile={nav.openPromptPresetFile}
             exportPromptPresetFile={nav.exportPromptPresetFile}
             navigationContext={nav.view}
+            sideRailView={nav.sideRailView}
             originActive={originActive}
             status={nav.promptPresetFileStatus}
             onImportedPresetReady={(presetId) => nav.setView({ kind: "presets", presetId })}
