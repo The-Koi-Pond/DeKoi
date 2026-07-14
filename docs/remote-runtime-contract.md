@@ -548,7 +548,10 @@ compatible runtimes should not expose those legacy fields in normal records.
 Messenger and Roleplay transcript storage is split. `messenger-threads` records
 omit `messages`, and `roleplay-threads` records omit `entries`; transcript items
 live in `messenger-messages` and `roleplay-entries` with `schemaVersion: 1` and
-`threadId`. Thread records may carry `presetChoiceSelectionsByPresetId`;
+`threadId`. Messenger thread records do not carry `systemPromptMode` or
+`systemPrompt`; DeKoi drops those obsolete development fields during
+normalization and queues accepted records for rewrite. Thread records may carry
+`presetChoiceSelectionsByPresetId`;
 runtimes should preserve that per-preset history map with the thread metadata.
 Each history is keyed by stable choice-block ID. Each value is
 an option object such as `{ "kind": "option", "optionId": "tone-soft" }`, or

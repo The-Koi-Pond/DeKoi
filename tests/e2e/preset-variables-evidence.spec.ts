@@ -112,7 +112,17 @@ test("Messenger confirms its default preset before reopening variables", async (
   await expect(dialog).toBeHidden();
 
   await page.getByRole("button", { name: /^Prompt Preset/ }).click();
-  await page.getByRole("button", { name: "Variables", exact: true }).click();
+  const presetDrawer = page.locator("#chat-settings-preset-drawer");
+  await expect(presetDrawer.getByRole("button", { name: "Variables", exact: true })).toBeVisible();
+  await expect(presetDrawer.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Advanced Parameters", { exact: true })).toHaveCount(0);
+  if (evidenceDir) {
+    await page.screenshot({
+      path: join(evidenceDir, "messenger-preset-controls-without-overrides.png"),
+      fullPage: true,
+    });
+  }
+  await presetDrawer.getByRole("button", { name: "Variables", exact: true }).click();
   await expect(dialog).toBeVisible();
   await expect(dialog.locator(".preset-variables-field")).toHaveCount(starterQuestions.length);
   await dialog.getByRole("button", { name: "Cancel" }).click();

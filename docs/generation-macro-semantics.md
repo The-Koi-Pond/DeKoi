@@ -330,7 +330,9 @@ presets that omit a non-depth lore marker do not emit that lore text, so no
 prompt mutations from the omitted text commit. If enabled section/group
 filtering leaves no materialized messages, Roleplay falls back to the selected
 system prompt without transcript history. Messenger does not consume preset
-sections; it continues to render its Messenger prompt source/system prompt path.
+sections. It resolves the selected preset's `messengerPrompt`, then its shared
+`systemPrompt`, then the built-in Messenger fallback; there is no
+conversation-owned prompt override.
 
 ## Slice 7 Dynamic Variable Persistence
 
