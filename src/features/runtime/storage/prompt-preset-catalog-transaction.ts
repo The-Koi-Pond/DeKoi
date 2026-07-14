@@ -77,6 +77,16 @@ export async function runPromptPresetCatalogTransaction({
   ) => Promise<StorageOperationResult>;
   publish: (snapshot: AppStorageRecords) => void;
 }): Promise<PromptPresetCatalogTransactionResult> {
+  if (
+    mutation.kind !== "update" &&
+    getLatestSnapshot().promptPresets.some((preset) => preset.id === mutation.id)
+  )
+    return {
+      saved: false,
+      published: false,
+      blocked: false,
+      message: "Prompt preset identity already exists; retry the action.",
+    };
   const flushed = await flush();
   if (!flushed.flushed)
     return { saved: false, published: false, blocked: true, message: flushed.message };

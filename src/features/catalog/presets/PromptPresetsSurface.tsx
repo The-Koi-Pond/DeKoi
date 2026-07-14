@@ -403,6 +403,7 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
           <div className="pond-inner catalog-inner catalog-editor-only">
             <RestoreStarterPresetAction
               restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
+              setPromptPresetCatalogStatus={nav.setPromptPresetFileStatus}
               navigationContext={nav.view}
               sideRailView={nav.sideRailView}
               originActive

@@ -55,6 +55,7 @@ export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRail
         <>
           <RestoreStarterPresetAction
             restoreStarterPromptPreset={nav.restoreStarterPromptPreset}
+            setPromptPresetCatalogStatus={nav.setPromptPresetFileStatus}
             navigationContext={nav.view}
             sideRailView={nav.sideRailView}
             originActive={originActive}

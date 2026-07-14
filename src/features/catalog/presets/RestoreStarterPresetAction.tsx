@@ -6,6 +6,7 @@ import { useCatalogNavigationLifecycle } from "./useCatalogNavigationLifecycle";
 
 interface RestoreStarterPresetActionProps {
   restoreStarterPromptPreset: NavPromptPresetActions["restoreStarterPromptPreset"];
+  setPromptPresetCatalogStatus: (status: string) => void;
   navigationContext: NavViewState["view"];
   sideRailView: NavViewState["sideRailView"];
   originActive: boolean;
@@ -14,6 +15,7 @@ interface RestoreStarterPresetActionProps {
 
 export function RestoreStarterPresetAction({
   restoreStarterPromptPreset,
+  setPromptPresetCatalogStatus,
   navigationContext,
   sideRailView,
   originActive,
@@ -26,23 +28,23 @@ export function RestoreStarterPresetAction({
     originActive,
   );
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleRestore() {
     if (pending) return;
     const isOriginCurrent = captureOriginCurrent();
 
     setPending(true);
-    setError(null);
+    setPromptPresetCatalogStatus("");
     try {
       await restoreStarterPromptPresetAndNavigate({
         restoreStarterPromptPreset,
         onRestoredPresetReady,
-        setError,
+        setPromptPresetCatalogStatus,
         isOriginCurrent,
       });
     } catch (cause) {
-      if (isOriginCurrent()) setError(cause instanceof Error ? cause.message : String(cause));
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setPromptPresetCatalogStatus(`Restore failed. ${message}`);
     } finally {
       if (isMounted()) setPending(false);
     }
@@ -65,11 +67,6 @@ export function RestoreStarterPresetAction({
         Create a fresh copy of DeKoi&apos;s bundled starter. Existing presets and your default stay
         unchanged.
       </p>
-      {error && (
-        <p role="alert" className="catalog-surface-error">
-          {error}
-        </p>
-      )}
     </section>
   );
 }

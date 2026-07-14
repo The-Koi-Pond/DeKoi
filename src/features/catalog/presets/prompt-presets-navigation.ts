@@ -26,19 +26,19 @@ export async function deletePromptPresetAndNavigate({
 export async function restoreStarterPromptPresetAndNavigate({
   restoreStarterPromptPreset,
   onRestoredPresetReady,
-  setError,
+  setPromptPresetCatalogStatus,
   isOriginCurrent,
 }: {
   restoreStarterPromptPreset: () => Promise<PromptPresetCatalogTransactionResult>;
   onRestoredPresetReady: (presetId: string) => void;
-  setError: (message: string) => void;
+  setPromptPresetCatalogStatus: (message: string) => void;
   isOriginCurrent: () => boolean;
 }): Promise<PromptPresetCatalogTransactionResult> {
   const result = await restoreStarterPromptPreset();
   if (result.published && result.preset) {
     if (isOriginCurrent()) onRestoredPresetReady(result.preset.id);
-  } else if (isOriginCurrent()) {
-    setError(result.message);
+  } else {
+    setPromptPresetCatalogStatus(`Restore failed. ${result.message}`);
   }
   return result;
 }

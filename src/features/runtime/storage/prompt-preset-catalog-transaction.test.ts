@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_APP_SETTINGS } from "../../../engine/contracts/types/app-settings";
 import {
   createStorageTransactionCoordinator,
@@ -107,6 +107,7 @@ function setup(initial = records()) {
 }
 
 type RunOptions = {
+  flush?: () => Promise<{ flushed: boolean; message: string }>;
   save?: (
     snapshot: AppStorageRecords,
     rawUrl: string,
@@ -140,7 +141,7 @@ function run(
     mutation,
     coordinator: h.coordinator,
     getLatestSnapshot: h.get,
-    flush: async () => ({ flushed: true, message: "" }),
+    flush: options.flush ?? (async () => ({ flushed: true, message: "" })),
     saveCollection: options.save ?? (async () => ({ status: "ready", message: "" })),
     rollback: options.rollback ?? (async () => ({ status: "ready", message: "" })),
     publish: options.publish ?? h.publish,
@@ -217,23 +218,29 @@ describe("prompt preset catalog transaction", () => {
     ).toBe(true);
   });
 
-  it("rejects a restore identity collision before persistence", async () => {
+  it.each<PromptPresetCatalogMutation>([
+    { kind: "create", id: "p", now: "2", input: { title: "Collision" } },
+    { kind: "restore-starter", id: "p", now: "2" },
+  ])("rejects a $kind identity collision before flushing or persistence", async (mutation) => {
     const h = setup();
-    let writes = 0;
+    const flush = vi.fn(async () => ({ flushed: true, message: "" }));
+    const save = vi.fn(async () => ({ status: "ready" as const, message: "saved" }));
+    const publish = vi.fn(h.publish);
     const result = await run(
       h,
       {
-        save: async () => {
-          writes++;
-          return { status: "ready", message: "saved" };
-        },
+        flush,
+        save,
+        publish,
       },
-      { kind: "restore-starter", id: "p", now: "2" },
+      mutation,
     );
 
     expect(result).toMatchObject({ saved: false, published: false, blocked: false });
     expect(result.message).toMatch(/identity already exists/);
-    expect(writes).toBe(0);
+    expect(flush).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
     expect(h.count()).toBe(0);
   });
 

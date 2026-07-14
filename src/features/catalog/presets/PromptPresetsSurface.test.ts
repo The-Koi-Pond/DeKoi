@@ -82,38 +82,38 @@ describe("restoreStarterPromptPresetAndNavigate", () => {
       }),
     );
     const onRestoredPresetReady = vi.fn();
-    const setError = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
 
     await restoreStarterPromptPresetAndNavigate({
       restoreStarterPromptPreset,
       onRestoredPresetReady,
-      setError,
+      setPromptPresetCatalogStatus,
       isOriginCurrent: () => true,
     });
 
     expect(onRestoredPresetReady).toHaveBeenCalledWith("fresh");
-    expect(setError).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).not.toHaveBeenCalled();
   });
 
   it("surfaces failure without navigating", async () => {
     const transaction = catalogResult({ message: "restore failed" });
     const onRestoredPresetReady = vi.fn();
-    const setError = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
 
     await restoreStarterPromptPresetAndNavigate({
       restoreStarterPromptPreset: vi.fn(async () => transaction),
       onRestoredPresetReady,
-      setError,
+      setPromptPresetCatalogStatus,
       isOriginCurrent: () => true,
     });
 
     expect(onRestoredPresetReady).not.toHaveBeenCalled();
-    expect(setError).toHaveBeenCalledWith("restore failed");
+    expect(setPromptPresetCatalogStatus).toHaveBeenCalledWith("Restore failed. restore failed");
   });
 
   it("does not hijack a stale origin after a published result", async () => {
     const onRestoredPresetReady = vi.fn();
-    const setError = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
 
     await restoreStarterPromptPresetAndNavigate({
       restoreStarterPromptPreset: vi.fn(async () =>
@@ -124,28 +124,30 @@ describe("restoreStarterPromptPresetAndNavigate", () => {
         }),
       ),
       onRestoredPresetReady,
-      setError,
+      setPromptPresetCatalogStatus,
       isOriginCurrent: () => false,
     });
 
     expect(onRestoredPresetReady).not.toHaveBeenCalled();
-    expect(setError).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).not.toHaveBeenCalled();
   });
 
-  it("does not surface a failed restore after its origin is stale", async () => {
+  it("keeps a failed restore observable after its origin is stale", async () => {
     const onRestoredPresetReady = vi.fn();
-    const setError = vi.fn();
+    const setPromptPresetCatalogStatus = vi.fn();
 
     await restoreStarterPromptPresetAndNavigate({
       restoreStarterPromptPreset: vi.fn(async () =>
         catalogResult({ message: "late restore failure" }),
       ),
       onRestoredPresetReady,
-      setError,
+      setPromptPresetCatalogStatus,
       isOriginCurrent: () => false,
     });
 
     expect(onRestoredPresetReady).not.toHaveBeenCalled();
-    expect(setError).not.toHaveBeenCalled();
+    expect(setPromptPresetCatalogStatus).toHaveBeenCalledWith(
+      "Restore failed. late restore failure",
+    );
   });
 });
