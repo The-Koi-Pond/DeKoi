@@ -1,8 +1,16 @@
-import { useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import type {
   NavCatalogState,
   NavPromptPresetActions,
+  PromptPresetCatalogTransactionResult,
   NavViewActions,
   NavViewState,
 } from "../../navigation";
@@ -40,16 +48,22 @@ export type PromptPresetsSurfaceNav = Pick<NavCatalogState, "promptPresets"> &
     | "setPromptPresetFileStatus"
   > &
   Pick<NavCatalogState, "promptPresetFileHost" | "promptPresetFileStatus"> &
-  Pick<NavViewActions, "setView"> &
+  Pick<NavViewActions, "setView" | "registerViewLeaveGuard"> &
   Pick<NavViewState, "view">;
 
 interface PromptPresetEditorProps {
   editingId: string | null;
   initialDraft: PromptPresetDraftState;
+  originalUpdatedAt: string | null;
   onBack: () => void;
   onDelete?: () => Promise<void>;
   onDuplicate?: () => void;
-  onSave: (input: PromptPresetInput) => void;
+  onSave: (
+    input: PromptPresetInput,
+    expectedUpdatedAt: string | null,
+  ) => Promise<PromptPresetCatalogTransactionResult>;
+  onSaveSuccess: (result: PromptPresetCatalogTransactionResult) => void;
+  registerViewLeaveGuard: NavViewActions["registerViewLeaveGuard"];
   fileActions: Omit<
     ComponentProps<typeof PromptPresetFileActions>,
     "visibility" | "selectedPresetId" | "exportBlockedReason"
@@ -59,40 +73,112 @@ interface PromptPresetEditorProps {
 function PromptPresetEditor({
   editingId,
   initialDraft,
+  originalUpdatedAt,
   onBack,
   onDelete,
   onDuplicate,
   onSave,
+  onSaveSuccess,
+  registerViewLeaveGuard,
   fileActions,
 }: PromptPresetEditorProps) {
   const [draft, setDraft] = useState<PromptPresetDraftState>(initialDraft);
-  const hasPendingChanges = !promptPresetDraftsMatch(draft, initialDraft);
+  const [baseline, setBaseline] = useState(initialDraft);
+  const [baselineVersion, setBaselineVersion] = useState(originalUpdatedAt);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const allowNextNavigationRef = useRef(false);
+  const dirty = !promptPresetDraftsMatch(draft, baseline);
+  const dirtyRef = useRef(dirty);
+  const savingRef = useRef(saving);
+  useLayoutEffect(() => {
+    dirtyRef.current = dirty;
+    savingRef.current = saving;
+  }, [dirty, saving]);
   const canSave = canSavePromptPresetDraft(draft);
   const systemPromptHint =
     draft.sections.length > 0
       ? "Roleplay uses its sections first. System Prompt is next, followed by the built-in Roleplay prelude when neither has usable text."
       : "Roleplay uses System Prompt first, followed by the built-in Roleplay prelude when it has no usable text. Messenger uses Messenger Prompt Source first, then System Prompt, then its built-in prelude when neither has usable text.";
 
-  function handleSave() {
-    if (!canSave) return;
-    onSave(promptPresetDraftToInput(draft));
+  const leavePolicy = useCallback(() => {
+    if (allowNextNavigationRef.current) {
+      allowNextNavigationRef.current = false;
+      return "clean" as const;
+    }
+    if (savingRef.current) return "deny-silently" as const;
+    return dirtyRef.current ? ("confirm-discard" as const) : ("clean" as const);
+  }, []);
+  const requestLeave = useCallback(() => {
+    const policy = leavePolicy();
+    if (policy === "deny-silently") return false;
+    return policy !== "confirm-discard" || window.confirm("Discard unsaved changes?");
+  }, [leavePolicy]);
+
+  useEffect(() => {
+    if (!dirty && !saving) return registerViewLeaveGuard(null);
+    return registerViewLeaveGuard(leavePolicy);
+  }, [dirty, leavePolicy, registerViewLeaveGuard, saving]);
+
+  async function handleSave() {
+    if (!canSave || !dirty || saving) return;
+    setSaving(true);
+    setError(null);
+    let result: PromptPresetCatalogTransactionResult;
+    try {
+      result = await onSave(promptPresetDraftToInput(draft), baselineVersion);
+    } catch (cause) {
+      setSaving(false);
+      setError(cause instanceof Error ? cause.message : String(cause));
+      return;
+    }
+    setSaving(false);
+    if (!result.published || !result.preset) {
+      setError(result.message);
+      return;
+    }
+    const next = draftFromPromptPreset(result.preset);
+    setDraft(next);
+    setBaseline(next);
+    setBaselineVersion(result.preset.updatedAt);
+    allowNextNavigationRef.current = true;
+    onSaveSuccess(result);
   }
 
   return (
     <>
       <CatalogSurfaceBanner
         icon="≡"
+        backDisabled={saving}
         onBack={onBack}
-        onDelete={onDelete}
+        onDelete={
+          onDelete
+            ? async () => {
+                if (!requestLeave()) return;
+                allowNextNavigationRef.current = true;
+                try {
+                  await onDelete();
+                } finally {
+                  allowNextNavigationRef.current = false;
+                }
+              }
+            : undefined
+        }
+        deleteDisabled={saving}
         onSave={handleSave}
-        saveDisabled={!canSave || !hasPendingChanges}
+        saveDisabled={!canSave || !dirty || saving}
         saveLabel={editingId ? "Save Changes" : "Create"}
-        saveState={hasPendingChanges ? "pending" : "clean"}
+        saveState={dirty ? "pending" : "clean"}
         subtitle={draft.summary || "Prompt preset"}
         title={draft.title || "New Preset"}
       />
+      {error && (
+        <p role="alert" className="catalog-surface-error">
+          {error}
+        </p>
+      )}
       <div className="pond-inner catalog-inner catalog-editor-only">
-        <div className="catalog-editor">
+        <fieldset className="catalog-editor" disabled={saving} aria-busy={saving}>
           <section className="catalog-editor-section" aria-labelledby="preset-core-heading">
             <h4 id="preset-core-heading">Preset</h4>
             <div className="catalog-editor-grid">
@@ -201,7 +287,20 @@ function PromptPresetEditor({
           {editingId && onDuplicate && (
             <section className="catalog-editor-section" aria-labelledby="preset-actions-heading">
               <h4 id="preset-actions-heading">Actions</h4>
-              <button type="button" className="catalog-new-btn" onClick={onDuplicate}>
+              <button
+                type="button"
+                className="catalog-new-btn"
+                onClick={() => {
+                  if (!requestLeave()) return;
+                  allowNextNavigationRef.current = true;
+                  try {
+                    onDuplicate();
+                  } finally {
+                    allowNextNavigationRef.current = false;
+                  }
+                }}
+                disabled={saving}
+              >
                 Duplicate Preset
               </button>
             </section>
@@ -212,14 +311,12 @@ function PromptPresetEditor({
               {...fileActions}
               visibility="editor"
               selectedPresetId={editingId}
-              exportBlockedReason={
-                hasPendingChanges ? "Save changes before exporting this preset." : undefined
-              }
+              exportBlockedReason={dirty ? "Save changes before exporting this preset." : undefined}
             />
           ) : (
             <PromptPresetFileActions {...fileActions} visibility="status" />
           )}
-        </div>
+        </fieldset>
       </div>
     </>
   );
@@ -237,15 +334,13 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
     ? draftFromPromptPreset(activePreset)
     : EMPTY_PROMPT_PRESET_DRAFT;
 
-  function handleSave(input: PromptPresetInput) {
+  async function handleSave(input: PromptPresetInput, expectedUpdatedAt: string | null) {
     if (editingId) {
-      nav.updatePromptPreset(editingId, input);
-      nav.setView({ kind: "presets", presetId: editingId });
-      return;
+      const result = await nav.updatePromptPreset(editingId, input, expectedUpdatedAt ?? "");
+      return result;
     }
-
-    const preset = nav.createPromptPreset(input);
-    nav.setView({ kind: "presets", presetId: preset.id });
+    const result = await nav.createPromptPreset(input);
+    return result;
   }
 
   function handleBack() {
@@ -287,10 +382,16 @@ export function PromptPresetsSurface({ nav }: PromptPresetsSurfaceProps) {
           key={editingId ?? "new-preset"}
           editingId={editingId}
           initialDraft={initialDraft}
+          originalUpdatedAt={activePreset?.updatedAt ?? null}
           onBack={handleBack}
           onDelete={editingId ? handleDelete : undefined}
           onDuplicate={editingId ? handleDuplicate : undefined}
           onSave={handleSave}
+          onSaveSuccess={(result) => {
+            if (result.published && result.preset)
+              nav.setView({ kind: "presets", presetId: result.preset.id });
+          }}
+          registerViewLeaveGuard={nav.registerViewLeaveGuard}
           fileActions={fileActions}
         />
       ) : (

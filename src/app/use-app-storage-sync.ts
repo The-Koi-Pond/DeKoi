@@ -24,9 +24,11 @@ import {
   type PromptPresetImportSaveResult,
   type PromptPresetRelationshipMutation,
   type StorageTransactionCoordinator,
+  type PromptPresetCatalogMutation,
 } from "../features/runtime";
 import type { StateSetter } from "../shared/react/state-setter";
 import { appStorageReplaceResultNeedsReload } from "./app-storage-import-recovery";
+import { runPromptPresetStorageAdapter } from "./prompt-preset-storage-adapter";
 
 export type AppStorageCollectionSignatures = Record<AppStorageCollectionKey, string>;
 export type PartialAppStorageCollectionSignatures = Partial<
@@ -597,6 +599,7 @@ type UseAppStorageSyncInput = AppStorageRecords & {
     Partial<Record<AppStorageCollectionKey, string>>
   >;
   setStorageReady: StateSetter<boolean>;
+  prepareForStorageReplacement: () => boolean;
 };
 
 export function useAppStorageSync({
@@ -630,6 +633,7 @@ export function useAppStorageSync({
   setDroppedRecordCountByCollection,
   setStorageLoadErrorMessageByCollection,
   setStorageReady,
+  prepareForStorageReplacement,
 }: UseAppStorageSyncInput) {
   const [storageHasUnsavedChanges, setStorageHasUnsavedChanges] = useState(false);
   const [importRecoveryState, setImportRecoveryState] = useState<AppStorageImportRecoveryState>(
@@ -1323,6 +1327,49 @@ export function useAppStorageSync({
     ],
   );
 
+  const reconcilePromptPresetTransactionSettlement = useCallback(
+    ({
+      persistedSignatures,
+      publishedSnapshot,
+    }: {
+      persistedSignatures?: PartialAppStorageCollectionSignatures;
+      publishedSnapshot?: AppStorageRecords | null;
+    } = {}) => {
+      const currentSnapshot = publishedSnapshot ?? currentAppStorageRecords.current;
+      savedSignatures.current = mergePersistedAppStorageTransactionSignatures(
+        savedSignatures.current,
+        persistedSignatures,
+      );
+      const reconciled = reconcileCurrentAppStorageTransactionBookkeeping({
+        savedSignatures: savedSignatures.current,
+        snapshot: currentSnapshot,
+      });
+      unsavedSignatures.current = reconciled.unsavedSignatures;
+      lastSeenSnapshot.current = currentSnapshot;
+      const { blockedDirtyCollectionKeys, saveableDirtyCollectionKeys } =
+        partitionAppStorageDirtyCollectionKeys({
+          dirtyCollectionKeys: reconciled.dirtyCollectionKeys,
+          blockedCollectionKeys: droppedRecordSaveBlockedCollectionKeys.current,
+        });
+      for (const collectionKey of blockedDirtyCollectionKeys) {
+        saveErrors.current[collectionKey] = DROPPED_RECORD_SAVE_BLOCK_MESSAGE;
+      }
+      if (saveableDirtyCollectionKeys.length > 0) {
+        const signatures = createAppStorageSignatures(currentSnapshot);
+        enqueueAppStorageCollectionSaves({
+          snapshot: currentSnapshot,
+          collectionKeys: saveableDirtyCollectionKeys,
+          rawUrl: remoteRuntimeUrl,
+          generation: storageGeneration.current,
+          signatures,
+        });
+        drainSaveQueue();
+      }
+      refreshSaveStatus(storageGeneration.current);
+    },
+    [drainSaveQueue, enqueueAppStorageCollectionSaves, refreshSaveStatus, remoteRuntimeUrl],
+  );
+
   const runPromptPresetRelationshipMutation = useCallback(
     async (mutation: PromptPresetRelationshipMutation) => {
       if (!storageReady) {
@@ -1424,53 +1471,103 @@ export function useAppStorageSync({
           setMessengerStorageMessage("Prompt preset change saved.");
         },
       });
-      const currentSnapshot =
-        result.published && publishedSnapshot
-          ? publishedSnapshot
-          : currentAppStorageRecords.current;
-      savedSignatures.current = mergePersistedAppStorageTransactionSignatures(
-        savedSignatures.current,
-        result.persistedSignatures,
-      );
-      const reconciled = reconcileCurrentAppStorageTransactionBookkeeping({
-        savedSignatures: savedSignatures.current,
-        snapshot: currentSnapshot,
+      reconcilePromptPresetTransactionSettlement({
+        persistedSignatures: result.persistedSignatures,
+        publishedSnapshot: result.published && publishedSnapshot ? publishedSnapshot : null,
       });
-      unsavedSignatures.current = reconciled.unsavedSignatures;
-      lastSeenSnapshot.current = currentSnapshot;
-      const { blockedDirtyCollectionKeys, saveableDirtyCollectionKeys } =
-        partitionAppStorageDirtyCollectionKeys({
-          dirtyCollectionKeys: reconciled.dirtyCollectionKeys,
-          blockedCollectionKeys: droppedRecordSaveBlockedCollectionKeys.current,
-        });
-      for (const collectionKey of blockedDirtyCollectionKeys) {
-        saveErrors.current[collectionKey] = DROPPED_RECORD_SAVE_BLOCK_MESSAGE;
-      }
-      if (saveableDirtyCollectionKeys.length > 0) {
-        const signatures = createAppStorageSignatures(currentSnapshot);
-        enqueueAppStorageCollectionSaves({
-          snapshot: currentSnapshot,
-          collectionKeys: saveableDirtyCollectionKeys,
-          rawUrl: remoteRuntimeUrl,
-          generation: storageGeneration.current,
-          signatures,
-        });
-        drainSaveQueue();
-      }
-      refreshSaveStatus(storageGeneration.current);
       return result;
     },
     [
       applyAppStorageRecords,
       applyLoadedAppStorageSnapshot,
-      drainSaveQueue,
-      enqueueAppStorageCollectionSaves,
       flushAppStorageSaves,
       mergeLoadedStorageMetadata,
       remoteRuntimeUrl,
       refreshSaveStatus,
+      reconcilePromptPresetTransactionSettlement,
       setMessengerStorageMessage,
       setMessengerStorageStatus,
+      storageReady,
+      storageTransactionCoordinator,
+    ],
+  );
+
+  const runPromptPresetCatalogMutation = useCallback(
+    async (mutation: PromptPresetCatalogMutation) => {
+      return runPromptPresetStorageAdapter(mutation, {
+        storageReady,
+        droppedRecordSaveBlocked:
+          droppedRecordSaveBlockedCollectionKeys.current.has("promptPresets"),
+        droppedRecordSaveBlockMessage: DROPPED_RECORD_SAVE_BLOCK_MESSAGE,
+        coordinator: storageTransactionCoordinator,
+        getLatestSnapshot: () => currentAppStorageRecords.current,
+        flush: async () => {
+          const flushed = await flushAppStorageSaves({ reason: "manual" });
+          return { flushed: flushed.flushed, message: flushed.message };
+        },
+        saveCollections: (snapshot, target) =>
+          saveAppStorageCollections(snapshot, ["promptPresets"], target.rawUrl),
+        rollbackCollection: (snapshot, target) =>
+          saveAppStorageCollections(snapshot, ["promptPresets"], target.rawUrl),
+        isTargetCurrent: (target) =>
+          storageGeneration.current === target.generation &&
+          currentStorageRawUrl.current === target.rawUrl,
+        mergeLoadedStorageMetadata,
+        onSaveError: (message) => {
+          saveErrors.current.promptPresets = message;
+        },
+        onRollbackReady: (snapshot) => {
+          const persistedSignature = appStorageCollectionSignature(snapshot, "promptPresets");
+          const currentSignature = appStorageCollectionSignature(
+            currentAppStorageRecords.current,
+            "promptPresets",
+          );
+          if (savedSignatures.current)
+            savedSignatures.current = {
+              ...savedSignatures.current,
+              promptPresets: persistedSignature,
+            };
+          if (persistedSignature === currentSignature) {
+            delete unsavedSignatures.current.promptPresets;
+            delete saveErrors.current.promptPresets;
+          } else {
+            unsavedSignatures.current.promptPresets = currentSignature;
+            delete saveErrors.current.promptPresets;
+          }
+        },
+        onRollbackError: (message) => {
+          saveErrors.current.promptPresets = message;
+        },
+        onPublish: (snapshot) => {
+          const merged = mergeAffectedAppStorageCollections(
+            currentAppStorageRecords.current,
+            snapshot,
+            ["promptPresets"],
+          );
+          const bookkeeping = reconcilePublishedAppStorageTransactionBookkeeping({
+            savedSignatures: savedSignatures.current,
+            unsavedSignatures: unsavedSignatures.current,
+            snapshot: merged,
+            affectedKeys: ["promptPresets"],
+          });
+          savedSignatures.current = bookkeeping.savedSignatures;
+          unsavedSignatures.current = bookkeeping.unsavedSignatures;
+          lastSeenSnapshot.current = merged;
+          delete pendingSaves.current.promptPresets;
+          delete saveErrors.current.promptPresets;
+          applyAppStorageRecords(merged);
+          refreshSaveStatus(storageGeneration.current);
+        },
+        onTransactionSettled: reconcilePromptPresetTransactionSettlement,
+        refreshSaveStatus: () => refreshSaveStatus(storageGeneration.current),
+      });
+    },
+    [
+      applyAppStorageRecords,
+      flushAppStorageSaves,
+      mergeLoadedStorageMetadata,
+      reconcilePromptPresetTransactionSettlement,
+      refreshSaveStatus,
       storageReady,
       storageTransactionCoordinator,
     ],
@@ -1548,6 +1645,13 @@ export function useAppStorageSync({
         setMessengerStorageStatus("error");
         setMessengerStorageMessage(result.message);
         return result;
+      }
+
+      if (!prepareForStorageReplacement()) {
+        return createImportErrorResult(
+          records,
+          "Import cancelled because unsaved changes were kept.",
+        );
       }
 
       const generation = advanceStorageGeneration();
@@ -1678,6 +1782,7 @@ export function useAppStorageSync({
       setStorageReady,
       storageTransactionCoordinator,
       waitForActiveSaveToSettle,
+      prepareForStorageReplacement,
     ],
   );
 
@@ -1736,6 +1841,13 @@ export function useAppStorageSync({
       setMessengerStorageStatus("error");
       setMessengerStorageMessage(result.message);
       return result;
+    }
+
+    if (!prepareForStorageReplacement()) {
+      return createImportErrorResult(
+        records,
+        "Restore cancelled because unsaved changes were kept.",
+      );
     }
 
     const generation = advanceStorageGeneration();
@@ -1861,6 +1973,7 @@ export function useAppStorageSync({
     setStorageReady,
     storageTransactionCoordinator,
     waitForActiveSaveToSettle,
+    prepareForStorageReplacement,
   ]);
 
   const checkAppStorageStale = useCallback(async (): Promise<AppStorageStaleCheckResult> => {
@@ -1954,7 +2067,6 @@ export function useAppStorageSync({
       currentBlockToken,
       confirmedBlockToken: confirmedReloadBlockToken.current,
     });
-    confirmedReloadBlockToken.current = confirmedBlockToken;
     const reloadDecision = decideAppStorageReload({
       activeStorageWork: hasActiveStorageWork(),
       currentBlockToken,
@@ -1977,6 +2089,16 @@ export function useAppStorageSync({
         mode: currentStorageMode.current,
         status: "error",
         message: STORAGE_RELOAD_CONFIRM_LOCAL_CHANGES_MESSAGE,
+        blocked: true,
+        reloaded: false,
+      };
+    }
+
+    if (!prepareForStorageReplacement()) {
+      return {
+        mode: currentStorageMode.current,
+        status: "error",
+        message: "Reload cancelled because unsaved changes were kept.",
         blocked: true,
         reloaded: false,
       };
@@ -2093,6 +2215,7 @@ export function useAppStorageSync({
     setMessengerStorageStatus,
     setStorageLoadErrorMessageByCollection,
     setStorageReady,
+    prepareForStorageReplacement,
   ]);
 
   useEffect(() => {
@@ -2378,6 +2501,7 @@ export function useAppStorageSync({
     restoreLastPreImportBackup,
     savePromptPresetImport,
     runPromptPresetRelationshipMutation,
+    runPromptPresetCatalogMutation,
     storageHasUnsavedChanges,
   };
 }

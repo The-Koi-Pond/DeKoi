@@ -1,5 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import {
+  connectRemoteRuntime,
+  installDeferredReplaceRemoteRuntime,
+  installFailingRemoteRuntime,
+  installRemoteRuntime,
+  openDataAndBackupSettings,
+} from "./app-test-utils";
 
 type DelayedFileReadWindow = Window & {
   __delayedPromptPresetRead: {
@@ -94,11 +101,20 @@ async function releaseDelayedPromptPresetRead(page: Page) {
   await page.evaluate(() => (window as DelayedFileReadWindow).__delayedPromptPresetRead.release());
 }
 
+async function waitForRemoteStorageReady(page: Page) {
+  await expect(page.locator(".runtime-status.ready").first()).toBeVisible();
+}
+
 test("prompt preset choice definitions can be authored and saved", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
+  await installRemoteRuntime(page);
   await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
 
@@ -132,7 +148,12 @@ test("promptless prompt presets can be created and reopened", async ({ page }) =
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
+  await installRemoteRuntime(page);
   await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
   await page.getByLabel("Title").fill("Promptless Catalog Proof");
@@ -146,6 +167,129 @@ test("promptless prompt presets can be created and reopened", async ({ page }) =
   await expect(page.getByLabel("Title")).toHaveValue("Promptless Catalog Proof");
   await expect(page.getByLabel("System Prompt")).toHaveValue("");
   expect(pageErrors).toEqual([]);
+});
+
+test("failed prompt preset create retains the draft and retry persists", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await installFailingRemoteRuntime(page, "prompt-presets");
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Retry Draft");
+  await page.getByLabel("System Prompt").fill("Keep this exact text.");
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(page.getByRole("alert")).toContainText("Simulated prompt-presets replace failure.");
+  await expect(page.getByLabel("Title")).toHaveValue("Retry Draft");
+  await expect(page.getByLabel("System Prompt")).toHaveValue("Keep this exact text.");
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await expect(page.getByLabel("Title")).toHaveValue("Retry Draft");
+});
+
+test("deferred prompt preset save blocks duplicate clicks and route changes", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  const runtime = await installDeferredReplaceRemoteRuntime(page, "prompt-presets");
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Deferred Draft");
+  const save = page.getByRole("button", { name: "Create" });
+  await save.click();
+  await runtime.waitForDeferredReplace;
+  await expect(save).toBeDisabled();
+  await expect(page.getByLabel("Title")).toBeDisabled();
+  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  const unloadAllowedWhileSaving = await page.evaluate(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    return window.dispatchEvent(event);
+  });
+  expect(unloadAllowedWhileSaving).toBe(false);
+  await save.click({ force: true });
+  await page.getByRole("button", { name: "Back to Pond" }).click({ force: true });
+  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  await page.locator(".settings-button").click();
+  await page.getByRole("tab", { name: /Data & Backup/ }).click();
+  await page.getByLabel("Remote Runtime URL").fill("http://127.0.0.1:7342");
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  await page.getByRole("button", { name: "Close Settings" }).click();
+  runtime.releaseDeferredReplace();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+});
+
+test("dirty prompt preset back can cancel or accept discard", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Unsaved Draft");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Draft");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
+});
+
+test("dirty prompt preset route switch can cancel or accept discard", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Unsaved Route Draft");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Route Draft");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
+});
+
+test("dirty prompt preset storage target switch can cancel or accept discard", async ({ page }) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await page.getByRole("button", { name: "Go to Home" }).click();
+  await page.getByRole("button", { name: "Presets", exact: true }).click();
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+  await page.getByLabel("Title").fill("Unsaved Target Draft");
+  await page.locator(".settings-button").click();
+  await page.getByRole("tab", { name: /Data & Backup/ }).click();
+  let noOpDialogCount = 0;
+  const dismissUnexpectedNoOpDialog = async (dialog: import("@playwright/test").Dialog) => {
+    noOpDialogCount++;
+    await dialog.dismiss();
+  };
+  page.on("dialog", dismissUnexpectedNoOpDialog);
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Target Draft");
+  expect(noOpDialogCount).toBe(0);
+  page.off("dialog", dismissUnexpectedNoOpDialog);
+  await page.getByLabel("Remote Runtime URL").fill("http://127.0.0.1:7342");
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Target Draft");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByLabel("Title")).toHaveCount(0);
 });
 
 test("standalone prompt preset files reject bad content and round-trip a fresh native copy", async ({
