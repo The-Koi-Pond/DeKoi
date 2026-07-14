@@ -145,6 +145,11 @@ Focused checks for narrow changes are mapped to change types in
 - Use Pond Care > Data & Backup to confirm the selected runtime path.
 - Use Pond Care > Generation for default model parameters, global lorebooks, and
   lore insertion strategy.
+- Use a Lorebook entry's advanced Generation triggers and Companion filter to
+  restrict ordinary-send activation to selected reply targets. Imported trigger
+  actions that DeKoi cannot initiate yet and unavailable companion IDs remain
+  preserved until you explicitly change or clear those restrictions. Exact
+  activation semantics live in [storage-model.md](./storage-model.md).
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
   current sampling controls, and structured Roleplay section/group editing,
   then select a prompt preset from thread settings. New threads start with the

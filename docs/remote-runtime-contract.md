@@ -775,11 +775,8 @@ hoisted out of stream order.
 Secondary-key logic is already applied before the runtime receives
 `promptMessages`.
 DeKoi also applies lore entry trigger and character filters before the runtime
-receives `promptMessages`. Current Messenger and Roleplay sends use the
-`normal` trigger. Non-empty include/exclude filters compare only with the
-selected reply target, not every thread participant; an include filter rejects
-a generation with no target, while an exclude filter allows it. Null or empty
-restrictions are unrestricted.
+receives `promptMessages`; exact activation semantics live in
+[storage-model.md](./storage-model.md).
 
 `storage_list`:
 

@@ -247,17 +247,18 @@ Current implementation:
   applies sticky and cooldown timers, inclusion groups collapse to one winner
   before per-entry probability runs except for sticky activations, and activated
   entries are ordered by the saved insertion strategy, placed, and
-  budget-trimmed deterministically using resolved prompt text. The catalog UI
-  exposes the matching, inclusion, probability, placement, recursion, timed
-  effect, and budget controls; companion, persona, thread, and global settings
-  choose which lorebooks participate.
+  budget-trimmed deterministically using resolved prompt text. Generation
+  triggers and character filters restrict activation to the current action and
+  selected reply target. The catalog UI exposes the matching, inclusion,
+  probability, placement, recursion, timed effect, trigger, character-filter,
+  and budget controls; companion, persona, thread, and global settings choose
+  which lorebooks participate.
 - Exact activation, ordering, and budgeting mechanics live in
   [docs/storage-model.md](./docs/storage-model.md).
 
 Not fully settled yet:
 
-- Triggers, character filters, and exact tokenizer-backed budgeting.
-- UI for triggers and character filters.
+- Exact tokenizer-backed budgeting.
 - Import format.
 
 ### Prompt Preset
