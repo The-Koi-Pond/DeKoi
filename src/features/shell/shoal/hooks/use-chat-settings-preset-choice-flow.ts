@@ -99,7 +99,7 @@ export function useChatSettingsPresetChoiceFlow({
         return;
       }
       if (projection.hasHistory) {
-        if (projection.needsRepair) {
+        if (projection.repairReason === "invalid-history") {
           repair(preset, projection, `${threadId ?? ""}:${preset.id}:${projection.fingerprint}`);
         } else {
           onPresetChange(preset.id);

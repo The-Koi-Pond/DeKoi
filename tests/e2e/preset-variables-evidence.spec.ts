@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { join } from "node:path";
+import { DEFAULT_APP_SETTINGS } from "../../src/engine/contracts/types/app-settings";
+import { toMessengerThreadRecord } from "../../src/engine/contracts/types/messenger";
+import { createMessengerThread } from "../../src/engine/modes/messenger/messenger-actions";
+import { createPromptPresetRecord } from "../../src/engine/prompt-presets/prompt-preset-actions";
+import {
+  connectRemoteRuntime,
+  installRemoteRuntime,
+  openDataAndBackupSettings,
+} from "./app-test-utils";
 
 const starterQuestions = [
   "Choose the primary mode.",
@@ -108,4 +117,87 @@ test("Messenger confirms its default preset before reopening variables", async (
   await expect(dialog.locator(".preset-variables-field")).toHaveCount(starterQuestions.length);
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
+});
+
+test("Messenger repairs only existing invalid preset history after storage loads", async ({
+  page,
+}) => {
+  const now = "2026-07-14T00:00:00.000Z";
+  const preset = createPromptPresetRecord({
+    id: "preset-repair-proof",
+    now,
+    input: {
+      title: "Repair Proof",
+      systemPrompt: "Write a reply.",
+      choiceBlocks: [
+        {
+          id: "tone",
+          variableName: "tone",
+          label: "Tone",
+          options: [{ id: "warm", label: "Warm", value: "warm" }],
+        },
+      ],
+    },
+  });
+  const unconfirmed = toMessengerThreadRecord(
+    createMessengerThread({
+      activePersonaId: null,
+      characterIds: [],
+      defaultPromptPresetId: preset.id,
+      id: "messenger-unconfirmed",
+      now,
+      title: "Unconfirmed",
+    }),
+  );
+  const invalid = {
+    ...toMessengerThreadRecord(
+      createMessengerThread({
+        activePersonaId: null,
+        characterIds: [],
+        defaultPromptPresetId: preset.id,
+        id: "messenger-invalid",
+        now,
+        title: "Invalid history",
+      }),
+    ),
+    presetChoiceSelectionsByPresetId: {
+      [preset.id]: { tone: { kind: "option" as const, optionId: "removed-option" } },
+    },
+  };
+  const runtime = await installRemoteRuntime(page, {
+    "app-settings": [
+      {
+        ...DEFAULT_APP_SETTINGS,
+        defaultPromptPresetId: preset.id,
+        promptPresetStarterInitialized: true,
+      },
+    ],
+    "messenger-threads": [unconfirmed, invalid],
+    "prompt-presets": [preset],
+  });
+
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+
+  await expect
+    .poll(
+      () =>
+        runtime.calls.filter(
+          (call) => call.command === "storage_replace" && call.entity === "messenger-threads",
+        ).length,
+      { timeout: 8_000 },
+    )
+    .toBe(1);
+  const storedThreads = runtime.records.get("messenger-threads") as Array<{
+    id: string;
+    presetChoiceSelectionsByPresetId?: Record<string, unknown>;
+  }>;
+  expect(
+    storedThreads.find((thread) => thread.id === unconfirmed.id)?.presetChoiceSelectionsByPresetId,
+  ).toEqual({});
+  expect(
+    storedThreads.find((thread) => thread.id === invalid.id)?.presetChoiceSelectionsByPresetId,
+  ).toEqual({
+    [preset.id]: { tone: { kind: "option", optionId: "warm" } },
+  });
 });

@@ -41,7 +41,7 @@ describe("projectPresetChoiceState", () => {
     expect(result.materializedSelections).toEqual({
       tone: { kind: "option", optionId: "warm" },
     });
-    expect(result.needsRepair).toBe(false);
+    expect(result.repairReason).toBeNull();
     expect(result.controls[0]?.selectedOptionIds).toEqual([]);
   });
 
@@ -51,7 +51,7 @@ describe("projectPresetChoiceState", () => {
     });
 
     expect(result.hasHistory).toBe(true);
-    expect(result.needsRepair).toBe(false);
+    expect(result.repairReason).toBeNull();
     expect(result.materializedSelections).toEqual(result.storedSelections);
     expect(result.controls[0]?.selectedOptionIds).toEqual(["cool"]);
   });
@@ -78,7 +78,7 @@ describe("projectPresetChoiceState", () => {
       },
     });
 
-    expect(result.needsRepair).toBe(false);
+    expect(result.repairReason).toBeNull();
   });
 
   it("flags invalid history and materializes valid defaults", () => {
@@ -87,7 +87,7 @@ describe("projectPresetChoiceState", () => {
     });
 
     expect(result.hasHistory).toBe(true);
-    expect(result.needsRepair).toBe(true);
+    expect(result.repairReason).toBe("invalid-history");
     expect(result.materializedSelections).toEqual({
       tone: { kind: "option", optionId: "warm" },
     });

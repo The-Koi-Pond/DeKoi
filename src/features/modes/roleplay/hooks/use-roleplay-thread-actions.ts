@@ -158,7 +158,7 @@ export function useRoleplayThreadActions({
       if (!thread.presetId) return;
       const preset = promptPresets.find((candidate) => candidate.id === thread.presetId);
       const projection = projectPresetChoiceState(preset, thread.presetChoiceSelectionsByPresetId);
-      if (!preset || !projection.needsRepair) return;
+      if (!preset || projection.repairReason !== "invalid-history") return;
       const key = `${thread.id}:${preset.id}:${projection.fingerprint}`;
       if (repairedPresetKeys.current.has(key) || pendingRepairs.current.has(key)) return;
       const repairedAt = currentIsoTimestamp();
@@ -183,7 +183,10 @@ export function useRoleplayThreadActions({
             preset,
             currentThread.presetChoiceSelectionsByPresetId,
           );
-          if (latest.fingerprint !== projection.fingerprint || !latest.needsRepair)
+          if (
+            latest.fingerprint !== projection.fingerprint ||
+            latest.repairReason !== "invalid-history"
+          )
             return currentThread;
           return setRoleplayThreadPresetChoiceSelections(
             currentThread,
@@ -210,7 +213,11 @@ export function useRoleplayThreadActions({
         pendingRepairs.current.delete(key);
         continue;
       }
-      if (projection.fingerprint === pending.sourceFingerprint && projection.needsRepair) continue;
+      if (
+        projection.fingerprint === pending.sourceFingerprint &&
+        projection.repairReason === "invalid-history"
+      )
+        continue;
       if (
         thread.presetId !== pending.presetId ||
         projection.fingerprint !== pending.repairedFingerprint

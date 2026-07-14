@@ -13,7 +13,7 @@ export interface PresetChoiceProjection {
   storedSelections: PromptPresetThreadChoiceSelections;
   controls: PromptPresetChoiceControl[];
   materializedSelections: PromptPresetThreadChoiceSelections;
-  needsRepair: boolean;
+  repairReason: "invalid-history" | null;
   fingerprint: string;
 }
 
@@ -43,7 +43,7 @@ export function projectPresetChoiceState(
       storedSelections: {},
       controls: [],
       materializedSelections: {},
-      needsRepair: false,
+      repairReason: null,
       fingerprint: "{}",
     };
   }
@@ -63,7 +63,10 @@ export function projectPresetChoiceState(
     storedSelections,
     controls,
     materializedSelections,
-    needsRepair: hasHistory && !selectionsEqual(storedSelections, materializedSelections),
+    repairReason:
+      hasHistory && !selectionsEqual(storedSelections, materializedSelections)
+        ? "invalid-history"
+        : null,
     fingerprint,
   };
 }
