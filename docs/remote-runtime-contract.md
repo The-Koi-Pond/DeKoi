@@ -774,7 +774,9 @@ and later Roleplay sectioned-preset system messages that would otherwise be
 hoisted out of stream order.
 Secondary-key logic is already applied before the runtime receives
 `promptMessages`.
-Character filters and triggers are still not applied by DeKoi prompt assembly.
+DeKoi also applies lore entry trigger and character filters before the runtime
+receives `promptMessages`; exact activation semantics live in
+[storage-model.md](./storage-model.md).
 
 `storage_list`:
 

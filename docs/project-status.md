@@ -167,8 +167,9 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   provider checks, and model listing.
 - Roleplay now has native thread settings and send guards, but deeper
   scene-specific semantics, media, and visual-novel presentation remain early.
-- Lorebook triggers and character filters are normalized and stored, but
-  activation behavior and advanced UI for those fields are not implemented yet.
+- Lorebook generation triggers and selected-reply-target character filters are
+  applied and editable; exact activation mechanics live in
+  [storage-model.md](./storage-model.md).
 - Prompt preset advanced compatible parameters, static variable values, and
   metadata do not all have dedicated catalog controls yet. Choice-block
   definitions and their reusable defaults are editable in the Presets catalog;

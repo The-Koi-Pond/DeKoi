@@ -2,10 +2,15 @@ import type { LorebookEntryInput } from "../../../engine/catalog/lorebook-action
 import {
   DEFAULT_LORE_ENTRY_TIMING,
   DEFAULT_LORE_ENTRY_RECURSION,
+  resolveEntryRecursion,
+  resolveEntryTiming,
+  type LoreEntryRecord,
   type LoreEntryTiming,
   type LoreEntryRecursion,
   type LoreEntryRole,
   type LoreEntryStrategy,
+  type LoreEntryTriggers,
+  type LoreCharacterFilter,
   type LoreInsertionPosition,
   type LoreMatchSources,
   type LoreSelectiveLogic,
@@ -37,6 +42,8 @@ export interface LorebookEntryDraft {
   cooldown: string;
   delay: string;
   matchSources: LoreMatchSources;
+  triggers: LoreEntryTriggers | null;
+  characterFilter: LoreCharacterFilter | null;
 }
 
 export const EMPTY_LORE_MATCH_SOURCES: LoreMatchSources = {
@@ -145,7 +152,12 @@ export function parseLorebookEntryKeys(value: string) {
 }
 
 export function canSaveLorebookEntryDraft(draft: LorebookEntryDraft) {
-  return draft.strategy !== "selective" || parseLorebookEntryKeys(draft.key) !== null;
+  const hasRequiredSelectiveKey =
+    draft.strategy !== "selective" || parseLorebookEntryKeys(draft.key) !== null;
+  const hasTriggerSelection = !draft.triggers || (draft.triggers.types?.length ?? 0) > 0;
+  const hasCharacterSelection =
+    !draft.characterFilter || draft.characterFilter.characterIds.some((id) => id.trim());
+  return hasRequiredSelectiveKey && hasTriggerSelection && hasCharacterSelection;
 }
 
 export function readFiniteNumberInput(value: string, fallback: number) {
@@ -197,6 +209,22 @@ function compactLoreMatchSources(value: LoreMatchSources) {
   return Object.values(value).some(Boolean) ? value : null;
 }
 
+function cleanUniqueIds(ids: string[]) {
+  return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+}
+
+function compactLoreEntryTriggers(triggers: LoreEntryTriggers | null) {
+  if (!triggers) return null;
+  const types = [...new Set(triggers.types ?? [])];
+  return types.length > 0 ? { types } : null;
+}
+
+function compactLoreCharacterFilter(characterFilter: LoreCharacterFilter | null) {
+  if (!characterFilter) return null;
+  const characterIds = cleanUniqueIds(characterFilter.characterIds);
+  return characterIds.length > 0 ? { ...characterFilter, characterIds } : null;
+}
+
 function compactLoreEntryRecursion(draft: LorebookEntryDraft): LoreEntryRecursion | null {
   const recursion: LoreEntryRecursion = {
     nonRecursable: draft.nonRecursable,
@@ -236,6 +264,44 @@ export function entryDraftDisablesBannerSave({
   return showEditor && !showLorebookEditor && !canSaveLorebookEntryDraft(draft);
 }
 
+export function lorebookEntryDraftFromRecord(entry: LoreEntryRecord): LorebookEntryDraft {
+  const recursion = resolveEntryRecursion(entry);
+  const timing = resolveEntryTiming(entry);
+  return {
+    title: entry.title,
+    body: entry.body,
+    enabled: entry.enabled,
+    strategy: entry.strategy,
+    key: entry.key?.join(", ") ?? "",
+    keySecondary: entry.keySecondary?.join(", ") ?? "",
+    selectiveLogic: entry.selectiveLogic ?? "and-any",
+    probability: String(entry.probability),
+    inclusionGroup: entry.inclusionGroup ?? "",
+    groupWeight: String(entry.groupWeight),
+    prioritizeInclusion: entry.prioritizeInclusion,
+    insertionOrder: String(entry.insertionOrder),
+    insertionPosition: entry.insertionPosition,
+    depth: String(entry.depth ?? 0),
+    role: entry.role ?? "system",
+    nonRecursable: recursion.nonRecursable,
+    preventFurther: recursion.preventFurther,
+    delayUntilRecursion: recursion.delayUntilRecursion,
+    recursionLevel: String(recursion.recursionLevel),
+    sticky: String(timing.sticky),
+    cooldown: String(timing.cooldown),
+    delay: String(timing.delay),
+    matchSources: normalizeLoreMatchSources(entry.matchSources),
+    triggers:
+      entry.triggers?.types && entry.triggers.types.length > 0
+        ? { types: [...entry.triggers.types] }
+        : null,
+    characterFilter:
+      entry.characterFilter && entry.characterFilter.characterIds.length > 0
+        ? { ...entry.characterFilter, characterIds: [...entry.characterFilter.characterIds] }
+        : null,
+  };
+}
+
 export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEntryInput {
   const keySecondary = parseLorebookEntryKeys(draft.keySecondary);
   const depth =
@@ -259,5 +325,7 @@ export function lorebookEntryDraftToInput(draft: LorebookEntryDraft): LorebookEn
     recursion: compactLoreEntryRecursion(draft),
     timing: compactLoreEntryTiming(draft),
     matchSources: compactLoreMatchSources(draft.matchSources),
+    triggers: compactLoreEntryTriggers(draft.triggers),
+    characterFilter: compactLoreCharacterFilter(draft.characterFilter),
   };
 }

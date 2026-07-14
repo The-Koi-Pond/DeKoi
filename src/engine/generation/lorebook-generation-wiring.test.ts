@@ -1,17 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import { createProviderConnectionRecord } from "../catalog/provider-connection-actions";
-import type { CharacterRecord } from "../contracts/types/character";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type { LorebookActivationSettings, LorebookRecord } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { ProviderConnectionProvider } from "../contracts/types/provider-connection";
-import type {
-  MessengerModeThread,
-  ModeMessage,
-  RoleplayModeThread,
-} from "../contracts/types/mode-thread";
+import type { ModeMessage } from "../contracts/types/mode-thread";
 import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { activateLorebookEntries } from "../generation-core/lorebook-activation";
 import {
@@ -30,10 +23,15 @@ import {
   createRoleplayGenerationRequest,
 } from "./roleplay-generation";
 import { createModeMessage } from "../modes/mode-thread/mode-thread-actions";
-import { createMessengerThread as createMessengerMode } from "../modes/messenger/messenger-actions";
-import { createRoleplayThread as createRoleplayMode } from "../modes/roleplay/roleplay-actions";
-
-const now = "2026-07-02T00:00:00.000Z";
+import {
+  LOREBOOK_GENERATION_TEST_NOW as now,
+  lorebookGenerationCharacter as character,
+  messengerMessageFixture as messengerMessage,
+  messengerThreadFixture as messengerThread,
+  roleplayMessageFixture as roleplayMessage,
+  roleplayThreadFixture as roleplayThread,
+  selectiveLorebookFixture as selectiveLorebook,
+} from "./lorebook-generation-wiring-fixtures";
 
 function sequenceRandom(values: number[]) {
   let index = 0;
@@ -42,37 +40,6 @@ function sequenceRandom(values: number[]) {
     const value = values[Math.min(index, values.length - 1)] ?? 0;
     index += 1;
     return value;
-  };
-}
-
-function character(input: Partial<CharacterRecord> = {}): CharacterRecord {
-  return {
-    id: "character-1",
-    schemaVersion: 1,
-    displayName: "Mara",
-    nickname: null,
-    description: "",
-    personality: "",
-    scenario: "",
-    firstMessage: "",
-    alternateGreetings: [],
-    groupOnlyGreetings: [],
-    exampleMessages: "",
-    systemPrompt: "",
-    postHistoryInstructions: "",
-    creator: "",
-    characterVersion: "",
-    creatorNotes: "",
-    tags: [],
-    characterNote: "",
-    characterNoteDepth: 0,
-    characterNoteRole: "system",
-    talkativeness: 0.5,
-    avatarUrl: null,
-    createdAt: now,
-    updatedAt: now,
-    ...input,
-    lorebookIds: input.lorebookIds ?? [],
   };
 }
 
@@ -117,78 +84,6 @@ function providerConnection(provider: ProviderConnectionProvider) {
   });
 }
 
-function selectiveLorebook({
-  entries,
-  id,
-  summary = "",
-  title,
-  activation,
-}: {
-  id: string;
-  title: string;
-  summary?: string;
-  activation?: Partial<LorebookActivationSettings>;
-  entries: {
-    body: string;
-    id: string;
-    input?: Partial<Parameters<typeof createLorebookEntryRecord>[0]["input"]>;
-    key?: string[];
-    title: string;
-  }[];
-}): LorebookRecord {
-  const record = createLorebookRecord({
-    id,
-    input: { title, summary, activation },
-    now,
-  });
-
-  return {
-    ...record,
-    entries: entries.map((entry) =>
-      createLorebookEntryRecord({
-        id: entry.id,
-        input: {
-          title: entry.title,
-          body: entry.body,
-          strategy: "selective",
-          key: entry.key ?? [],
-          ...entry.input,
-        },
-        now,
-      }),
-    ),
-  };
-}
-
-function messengerThread(
-  input: Omit<Parameters<typeof createMessengerMode>[0], "branchId" | "now"> & {
-    messages?: ModeMessage[];
-    presetId?: string | null;
-  },
-): MessengerModeThread {
-  const { messages = [], presetId, ...creationInput } = input;
-  const thread = createMessengerMode({
-    ...creationInput,
-    branchId: `${creationInput.id}-branch`,
-    defaultPromptPresetId: presetId,
-    now,
-  });
-  return { ...thread, messages };
-}
-
-function messengerMessage(id: string, body: string): ModeMessage {
-  return createModeMessage({
-    id,
-    versionId: `${id}-v1`,
-    threadId: "messenger-thread-1",
-    branchId: "messenger-thread-1-branch",
-    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
-    body,
-    origin: "manual",
-    now,
-  });
-}
-
 function messengerCharacterMessage(
   id: string,
   characterId: string,
@@ -229,37 +124,6 @@ function messengerPreset(messengerPrompt: string): PromptPresetRecord {
     createdAt: now,
     updatedAt: now,
   };
-}
-
-function roleplayThread(
-  input: Omit<Parameters<typeof createRoleplayMode>[0], "branchId" | "now" | "openingCharacter"> & {
-    openingCharacter?: Parameters<typeof createRoleplayMode>[0]["openingCharacter"];
-    messages?: ModeMessage[];
-    presetId?: string | null;
-  },
-): RoleplayModeThread {
-  const { messages = [], openingCharacter = null, presetId, ...creationInput } = input;
-  const thread = createRoleplayMode({
-    ...creationInput,
-    branchId: `${creationInput.id}-branch`,
-    defaultPromptPresetId: presetId,
-    openingCharacter,
-    now,
-  });
-  return { ...thread, messages };
-}
-
-function roleplayMessage(id: string, body: string): ModeMessage {
-  return createModeMessage({
-    id,
-    versionId: `${id}-v1`,
-    threadId: "roleplay-thread-1",
-    branchId: "roleplay-thread-1-branch",
-    author: { kind: "persona", personaId: "persona-1", label: "Alex" },
-    body,
-    origin: "manual",
-    now,
-  });
 }
 
 function roleplayCharacterMessage(
