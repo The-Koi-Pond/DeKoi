@@ -33,7 +33,7 @@ Must not own:
 
 Owner paths:
 
-- `src/engine/contracts/types/roleplay.ts`
+- `src/engine/contracts/types/mode-thread.ts`
 - `src/engine/modes/roleplay/roleplay-actions.ts`
 - `src/engine/generation/roleplay-generation.ts`
 - `src/features/modes/roleplay`

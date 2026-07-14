@@ -396,6 +396,26 @@ instead of pretending success when storage is not ready, an import is active,
 the storage target changes, unreadable dropped records block replacement saves,
 or records change while the flush is running.
 
+Prompt preset create and update are explicit catalog save transactions, not
+optimistic React edits. The transaction first flushes existing storage work,
+stages the complete `prompt-presets` collection, writes that collection through
+the active storage target, and publishes the new preset state only after the
+write succeeds. Updates require the editor's original `updatedAt`; a stale
+editor, changed prompt-preset collection signature, changed storage target, or
+overlapping storage transaction is rejected without overwriting newer state.
+If the write fails, DeKoi replaces the collection with the transaction's
+rollback snapshot before reporting failure. The editor keeps its exact draft
+and route so the user can retry. Transaction settlement reconciles unrelated
+state changes that arrived while the save ran and queues those collections for
+normal saving.
+
+The prompt preset editor disables edits and duplicate save actions while its
+transaction is active. A dirty editor asks for explicit discard confirmation
+before in-app navigation, thread opening, runtime-target changes, reload,
+import, or restore replaces its view. An active save denies those in-app and
+desktop close requests. Browser unload uses the browser's native confirmation
+because a page cannot silently cancel that operation.
+
 Desktop collection files expose explicit per-collection metadata:
 
 - entity

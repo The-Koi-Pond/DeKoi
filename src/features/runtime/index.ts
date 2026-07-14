@@ -23,6 +23,7 @@ export {
   repairAppStorageCollection,
   runPromptPresetImportStorageTransaction,
   runPromptPresetRelationshipTransaction,
+  runPromptPresetCatalogTransaction,
   createStorageTransactionCoordinator,
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
@@ -31,7 +32,10 @@ export {
   type MessengerStorageStatus,
   type PromptPresetImportSaveResult,
   type PromptPresetRelationshipMutation,
+  type PromptPresetCatalogMutation,
+  type PromptPresetCatalogTransactionResult,
   type StorageTransactionCoordinator,
+  type StorageTransactionTarget,
 } from "./storage";
 export {
   addRippleToOwnerState,

@@ -648,14 +648,20 @@ Remote runtimes should expose native prompt preset records in storage. Packaged
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
 they are not remote storage record shapes.
 
+Prompt preset create and update stage and replace the complete
+`prompt-presets` collection before the app publishes the new catalog state.
+Updates reject a stale record version, and create or update rejects a changed
+collection or storage target. A failed write is followed by replacement with
+the transaction's prior collection snapshot; the save is not reported as
+successful unless the staged collection remains current and is published.
 Default changes and non-default preset deletion are staged storage
-transactions. The app writes only affected collections before publishing the
-new state. The default and last preset cannot be deleted; deleting another
-preset reassigns active thread references to the default and retains their
-per-preset choice histories. Standalone preset imports receive fresh IDs and do
-not change the default. Native bundle import preserves IDs, restores the bundled
-starter if no usable preset remains, repairs the default, and reassigns dangling
-active references to it.
+transactions that write only affected collections before publishing the new
+state. The default and last preset cannot be deleted; deleting another preset
+reassigns active thread references to the default and retains their per-preset
+choice histories. Standalone preset imports receive fresh IDs and do not change
+the default. Native bundle import preserves IDs, restores the bundled starter
+if no usable preset remains, repairs the default, and reassigns dangling active
+references to it.
 
 `personas` records include `lorebookIds`, matching character lorebook bindings.
 Runtimes should preserve those IDs when listing or replacing persona storage.

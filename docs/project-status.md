@@ -52,6 +52,13 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   browser or desktop file workflows.
   A title-only preset can be created and saved, and promptless presets can be
   imported, reopened, and exported without persisting built-in fallback text.
+  Create and update stage the complete prompt-preset collection and publish the
+  catalog or navigate only after durable storage succeeds. Failed saves roll
+  the collection back while preserving the editor draft and route for retry;
+  stale versions, changed storage state or targets, and overlapping saves are
+  rejected. Dirty editors require explicit discard before navigation or
+  storage replacement, active saves block leaving, and browser unload uses its
+  native confirmation.
   Native prompt preset records also
   normalize richer parameters, choice blocks, static variable values, and
   defaults for compatible import. The catalog edits choice-block definitions,

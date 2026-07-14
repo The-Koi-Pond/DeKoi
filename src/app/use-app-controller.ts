@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import {
   useCharacterActions,
   useLorebookActions,
@@ -69,6 +70,8 @@ export function useAppController(): NavContextType {
 
   const {
     setView: setNavView,
+    registerViewLeaveGuard,
+    requestLeaveCurrentView,
     setSideRailView: setNavSideRailView,
     setSelectedSurface: setNavSelectedSurface,
     openRoleplayThread,
@@ -78,6 +81,11 @@ export function useAppController(): NavContextType {
     setSideRailView,
     setSelectedSurface,
   });
+  const prepareForStorageReplacement = useCallback(() => {
+    if (!requestLeaveCurrentView()) return false;
+    setView({ kind: "pond" });
+    return true;
+  }, [requestLeaveCurrentView, setView]);
 
   const {
     checkAppStorageStale,
@@ -88,6 +96,7 @@ export function useAppController(): NavContextType {
     restoreLastPreImportBackup,
     savePromptPresetImport,
     runPromptPresetRelationshipMutation,
+    runPromptPresetCatalogMutation,
     storageHasUnsavedChanges,
   } = useAppStorageSync({
     appSettings,
@@ -114,6 +123,7 @@ export function useAppController(): NavContextType {
     setMessengerStorageMode,
     setMessengerStorageStatus,
     setMessengerStorageMessage,
+    prepareForStorageReplacement,
     setDroppedRecordCountByCollection,
     setStorageLoadErrorMessageByCollection,
     setStorageReady,
@@ -129,11 +139,13 @@ export function useAppController(): NavContextType {
     setActiveMessengerConnectionId,
     updateAppSettings,
   } = useAppSettingsActions({
+    remoteRuntimeUrl,
     setAppSettings,
     setRemoteRuntimeUrlState,
     setStorageReady,
     setMessengerStorageStatus,
     setMessengerStorageMessage,
+    prepareForStorageReplacement,
   });
 
   const { createStorageBundle, importStorageBundle, importLegacyData } = useAppImportExportActions({
@@ -198,6 +210,7 @@ export function useAppController(): NavContextType {
   } = usePromptPresetActions({
     promptPresets,
     runPromptPresetRelationshipMutation,
+    runPromptPresetCatalogMutation,
     setPromptPresets,
   });
   const {
@@ -321,6 +334,8 @@ export function useAppController(): NavContextType {
     careOpen,
     careTab,
     setView: setNavView,
+    registerViewLeaveGuard,
+    requestLeaveCurrentView,
     setSideRailView: setNavSideRailView,
     setSelectedSurface: setNavSelectedSurface,
     createCharacter,

@@ -15,6 +15,14 @@ export async function closeDesktopWindow() {
   await currentWindow()?.close();
 }
 
+export async function listenDesktopWindowCloseRequest(handler: () => boolean) {
+  const window = currentWindow();
+  if (!window) return null;
+  return window.onCloseRequested((event) => {
+    if (!handler()) event.preventDefault();
+  });
+}
+
 export async function getDesktopWindowState(): Promise<DesktopWindowState> {
   const window = currentWindow();
   if (!window) return { minimized: false, maximized: false };

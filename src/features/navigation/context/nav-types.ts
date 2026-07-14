@@ -18,6 +18,11 @@ import type { PersonaRecordInput } from "../../../engine/catalog/persona-actions
 import type { PromptPresetRecord } from "../../../engine/contracts/types/prompt-presets";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import type { PromptPresetRelationshipTransactionResult } from "../../../engine/prompt-presets/prompt-preset-relationship-actions";
+import type { PromptPresetCatalogTransactionResult } from "../../runtime";
+export type {
+  PromptPresetCatalogMutation,
+  PromptPresetCatalogTransactionResult,
+} from "../../runtime";
 import type {
   ProviderConnectionId,
   ProviderConnectionRecord,
@@ -59,6 +64,8 @@ export interface NavViewState {
   sideRailView: SideRailView;
   selectedSurface: SurfaceId;
 }
+
+export type ViewLeavePolicy = "clean" | "confirm-discard" | "deny-silently";
 
 export interface NavCatalogState {
   characters: CharacterRecord[];
@@ -123,6 +130,8 @@ interface NavState
 
 export interface NavViewActions {
   setView: (view: PondView) => void;
+  registerViewLeaveGuard: (guard: (() => ViewLeavePolicy) | null) => () => void;
+  requestLeaveCurrentView: () => boolean;
   setSideRailView: (view: SideRailView) => void;
   setSelectedSurface: (surface: SurfaceId) => void;
   openRoleplayThread: (threadId: string) => void;
@@ -130,7 +139,7 @@ export interface NavViewActions {
 }
 
 export interface NavSettingsActions {
-  setRemoteRuntimeUrl: (url: string) => void;
+  setRemoteRuntimeUrl: (url: string) => boolean;
   updateAppSettings: (patch: AppSettingsPatch) => void;
   setSendOnEnterSurface: (surface: SurfaceId) => void;
   setConfirmRelease: (confirmRelease: boolean) => void;
@@ -164,8 +173,12 @@ export interface NavLorebookActions {
 }
 
 export interface NavPromptPresetActions {
-  createPromptPreset: (input: PromptPresetInput) => PromptPresetRecord;
-  updatePromptPreset: (presetId: string, input: PromptPresetInput) => void;
+  createPromptPreset: (input: PromptPresetInput) => Promise<PromptPresetCatalogTransactionResult>;
+  updatePromptPreset: (
+    presetId: string,
+    input: PromptPresetInput,
+    expectedUpdatedAt: string,
+  ) => Promise<PromptPresetCatalogTransactionResult>;
   duplicatePromptPreset: (presetId: string) => PromptPresetRecord | null;
   deletePromptPreset: (presetId: string) => Promise<PromptPresetRelationshipTransactionResult>;
   importPromptPresetFile: (file: File) => Promise<NavPromptPresetFileImportResult>;

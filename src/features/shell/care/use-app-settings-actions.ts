@@ -11,33 +11,42 @@ import { type MessengerStorageStatus, writeRuntimeTargetUrl } from "../../runtim
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppSettingsActionsInput = {
+  remoteRuntimeUrl: string;
   setAppSettings: StateSetter<AppSettings>;
   setRemoteRuntimeUrlState: StateSetter<string>;
   setStorageReady: StateSetter<boolean>;
   setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
   setMessengerStorageMessage: StateSetter<string>;
+  prepareForStorageReplacement: () => boolean;
 };
 
 export function useAppSettingsActions({
+  remoteRuntimeUrl,
   setAppSettings,
   setRemoteRuntimeUrlState,
   setStorageReady,
   setMessengerStorageStatus,
   setMessengerStorageMessage,
+  prepareForStorageReplacement,
 }: UseAppSettingsActionsInput) {
   const setRemoteRuntimeUrl = useCallback(
     (url: string) => {
+      if (url.trim() === remoteRuntimeUrl) return true;
+      if (!prepareForStorageReplacement()) return false;
       const runtimeTargetUrl = writeRuntimeTargetUrl(url);
       setStorageReady(false);
       setMessengerStorageStatus("loading");
       setMessengerStorageMessage("Loading Messenger storage.");
       setRemoteRuntimeUrlState(runtimeTargetUrl);
+      return true;
     },
     [
       setMessengerStorageMessage,
       setMessengerStorageStatus,
       setRemoteRuntimeUrlState,
       setStorageReady,
+      prepareForStorageReplacement,
+      remoteRuntimeUrl,
     ],
   );
 

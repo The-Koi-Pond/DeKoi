@@ -93,24 +93,24 @@ export function CareDrawer({ nav }: CareDrawerProps) {
 
   function handleRuntimeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!nav.setRemoteRuntimeUrl(runtimeUrl)) return;
     setRuntimeHealth("");
     clearStorageImportRecoveryUi();
-    nav.setRemoteRuntimeUrl(runtimeUrl);
   }
 
   function handleUseLocalStorage() {
+    if (!nav.setRemoteRuntimeUrl("")) return;
     setRuntimeUrl("");
     clearStorageImportRecoveryUi();
-    nav.setRemoteRuntimeUrl("");
     setRuntimeHealth(
       "Using desktop host storage when available; otherwise this browser session is temporary.",
     );
   }
 
   function handleUseDesktopRuntime() {
+    if (!nav.setRemoteRuntimeUrl(DESKTOP_RUNTIME_URL)) return;
     setRuntimeUrl(DESKTOP_RUNTIME_URL);
     clearStorageImportRecoveryUi();
-    nav.setRemoteRuntimeUrl(DESKTOP_RUNTIME_URL);
     setRuntimeHealth("Desktop runtime selected for storage and profile data.");
   }
 

@@ -2,6 +2,7 @@ import type { AppStorageRecords } from "./app-storage-workflows";
 
 type StorageTransactionKind =
   | "prompt-preset-import"
+  | "prompt-preset-catalog-save"
   | "prompt-preset-relationship"
   | "bundle-import"
   | "pre-import-backup-restore";

@@ -61,9 +61,15 @@ export {
 export {
   createStorageTransactionCoordinator,
   type StorageTransactionCoordinator,
+  type StorageTransactionTarget,
 } from "./storage-transaction-coordinator";
 export {
   runPromptPresetRelationshipTransaction,
   type PromptPresetRelationshipMutation,
 } from "./prompt-preset-relationship-transaction";
 export { restampLegacyImportData } from "./legacy-import-commit";
+export {
+  runPromptPresetCatalogTransaction,
+  type PromptPresetCatalogMutation,
+  type PromptPresetCatalogTransactionResult,
+} from "./prompt-preset-catalog-transaction";
