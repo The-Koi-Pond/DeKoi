@@ -404,8 +404,10 @@ Response:
 }
 ```
 
-`messages[].characterId` must match `targetCharacterId`. DeKoi drops response
-drafts for any other character and surfaces a warning.
+DeKoi keeps each response draft whose `messages[].characterId` resolves in the
+mode-owned companions collection. Drafts for unknown or no-longer-available
+companions are dropped with a warning; the ID does not need to equal
+`targetCharacterId`.
 
 `source` identifies who produced the normalized generation response. Compatible
 remote HTTP runtimes return `"remote-runtime"`; DeKoi's built-in desktop and
@@ -416,7 +418,8 @@ which use `kind: "provider"`.
 Non-fatal DeKoi-side context and lore activation warnings remain app-owned and
 are not included in this transport DTO. After the runtime call, DeKoi surfaces
 runtime response warnings first, then warnings for response drafts whose
-character ID does not match `targetCharacterId`, then the app-owned warnings.
+character ID does not resolve in the mode-owned companions collection, then the
+app-owned warnings.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
