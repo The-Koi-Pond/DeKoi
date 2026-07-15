@@ -117,9 +117,7 @@ test("Messenger and Roleplay render distinctly from unified mode-thread storage"
     });
   }
 
-  await page
-    .getByText("Messenger keeps its chat-style conversation.", { exact: true })
-    .hover();
+  await page.getByText("Messenger keeps its chat-style conversation.", { exact: true }).hover();
   await page.getByLabel("Copy message from Mara").click();
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
@@ -135,9 +133,7 @@ test("Messenger and Roleplay render distinctly from unified mode-thread storage"
     page.getByText("Are both extracted surfaces still themselves?", { exact: true }),
   ).toBeVisible();
 
-  await page
-    .getByText("Messenger keeps its chat-style conversation.", { exact: true })
-    .hover();
+  await page.getByText("Messenger keeps its chat-style conversation.", { exact: true }).hover();
   await page.getByLabel("Delete message from Mara").click();
   const messengerDeleteConfirm = page.getByRole("button", {
     name: "Confirm delete message from Mara",
