@@ -1,170 +1,133 @@
+mod custom_parameters;
+mod dto;
+mod payload;
+
+use serde_json::Value;
+
+use self::{
+    dto::{
+        validate_generation_args, GenerationConnectionDto, GenerationConnectionStatus,
+        GenerationProvider,
+    },
+    payload::build_provider_payload,
+};
 use super::{
-    auth::provider_connection_api_key,
+    auth::provider_connection_requires_api_key,
     endpoints::{append_endpoint, append_openai_chat_completions_endpoint},
-    http::{post_provider_json, provider_headers, provider_http_client},
-    prompt::{non_system_messages, strip_speaker_prefix, system_prompt},
-    value::{as_object, read_number_field, read_u64_field},
+    http::{
+        post_provider_json, provider_headers, provider_http_client, redact_provider_error_secret,
+    },
+    prompt::strip_speaker_prefix,
     PROVIDER_GENERATION_TIMEOUT,
 };
 use crate::provider_response::{
     extract_provider_text, is_openai_compatible, provider_empty_warning,
 };
-use crate::runtime_args::{read_string_field, runtime_args_object};
+use crate::secrets::provider_secret_read_for_scope;
 
-pub(crate) async fn generation_generate(
-    args: &serde_json::Value,
-) -> Result<serde_json::Value, String> {
-    let args = runtime_args_object(args, "generation_generate")?;
-    let request = args
-        .get("request")
-        .ok_or_else(|| "generation_generate requires args.request.".to_string())?;
-    let request_id = read_string_field(request, "id").trim();
-    if request_id.is_empty() {
-        return Err("generation_generate request requires id.".to_string());
+fn generation_api_key(connection: &GenerationConnectionDto) -> Result<String, String> {
+    let provider = connection.provider.as_str();
+    let requires_key = provider_connection_requires_api_key(provider);
+    if !matches!(connection.status, GenerationConnectionStatus::Ready) {
+        if requires_key {
+            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
+        }
+        return Ok(String::new());
     }
 
-    let provider_connection = request
-        .get("providerConnection")
-        .ok_or_else(|| "generation_generate requires request.providerConnection.".to_string())?;
-    let provider_connection = as_object(provider_connection, "request.providerConnection")?;
-    let provider = provider_connection
-        .get("provider")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim();
-    let base_url = provider_connection
-        .get("baseUrl")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim();
-    let model = provider_connection
-        .get("model")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim();
-    let api_key = provider_connection_api_key(provider, provider_connection)?;
-    if provider.is_empty() || base_url.is_empty() || model.is_empty() {
-        return Err("Provider connection needs provider, base URL, and model.".to_string());
+    match provider_secret_read_for_scope(
+        connection.id.trim(),
+        provider,
+        connection.base_url.trim(),
+        false,
+    )? {
+        Some(secret) if !secret.trim().is_empty() => Ok(secret),
+        _ if requires_key => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
+        _ => Ok(String::new()),
     }
+}
 
-    let prompt_messages = request
-        .get("promptMessages")
-        .and_then(|value| value.as_array())
-        .ok_or_else(|| "generation_generate requires request.promptMessages.".to_string())?;
-    let parameters = request
-        .get("parameters")
-        .unwrap_or(&serde_json::Value::Null);
-    let max_tokens = read_u64_field(parameters, "maxTokens", 1024);
-    let temperature = read_number_field(parameters, "temperature", 0.8);
-    let top_p = read_number_field(parameters, "topP", 0.95);
-    let target_character_id = read_string_field(request, "targetCharacterId").trim();
-    let target_character_name = read_string_field(request, "targetCharacterName").trim();
+fn generation_endpoint(
+    provider: GenerationProvider,
+    base_url: &str,
+    model: &str,
+) -> Result<String, String> {
+    let provider_name = provider.as_str();
+    if is_openai_compatible(provider_name) {
+        Ok(append_openai_chat_completions_endpoint(base_url))
+    } else if matches!(provider, GenerationProvider::Anthropic) {
+        Ok(append_endpoint(base_url, "/messages"))
+    } else if matches!(provider, GenerationProvider::Google) {
+        Ok(format!(
+            "{}/models/{}:generateContent",
+            base_url.trim_end_matches('/'),
+            model.trim_start_matches("models/")
+        ))
+    } else {
+        Err(format!("{provider_name} is not supported for generation."))
+    }
+}
+
+pub(crate) async fn generation_generate(args: &Value) -> Result<Value, String> {
+    let request = validate_generation_args(args)?;
+    let connection = &request.connection;
+    let provider = connection.provider;
+    let provider_name = provider.as_str();
+    let base_url = connection.base_url.trim();
+    let model = connection.model.trim();
+    let provider_payload = build_provider_payload(
+        provider,
+        model,
+        &request.prompt_messages,
+        &request.parameters,
+    )?;
+
+    let request_id = request.id.trim();
+    let target_character_id = request
+        .target_character_id
+        .0
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("");
+    let target_character_name = request
+        .target_character_name
+        .0
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("");
     if target_character_id.is_empty() {
         return Ok(serde_json::json!({
             "schemaVersion": 1,
             "requestId": request_id,
             "source": "provider-transport",
-            "createdAt": read_string_field(request, "createdAt"),
+            "createdAt": request.created_at,
             "messages": [],
             "warnings": ["No companion is available for this thread."]
         }));
     }
 
+    let api_key = generation_api_key(connection)?;
     let client = provider_http_client(PROVIDER_GENERATION_TIMEOUT)?;
-    let headers = provider_headers(provider, &api_key)?;
-    let (text, empty_warning) = if is_openai_compatible(provider) {
-        let payload = post_provider_json(
-            &client,
-            append_openai_chat_completions_endpoint(base_url),
-            headers,
-            serde_json::json!({
-                "model": model,
-                "messages": prompt_messages,
-                "temperature": temperature,
-                "top_p": top_p,
-                "max_tokens": max_tokens
-            }),
-            PROVIDER_GENERATION_TIMEOUT,
-        )
-        .await?;
-        (
-            extract_provider_text(provider, &payload),
-            provider_empty_warning(provider, &payload),
-        )
-    } else if provider == "anthropic" {
-        let payload = post_provider_json(
-            &client,
-            append_endpoint(base_url, "/messages"),
-            headers,
-            serde_json::json!({
-                "model": model,
-                "system": system_prompt(prompt_messages),
-                "messages": non_system_messages(prompt_messages),
-                "temperature": temperature,
-                "top_p": top_p,
-                "max_tokens": max_tokens
-            }),
-            PROVIDER_GENERATION_TIMEOUT,
-        )
-        .await?;
-        (
-            extract_provider_text(provider, &payload),
-            provider_empty_warning(provider, &payload),
-        )
-    } else if provider == "google" {
-        let normalized_model = model.trim_start_matches("models/");
-        let payload = post_provider_json(
-            &client,
-            format!(
-                "{}/models/{}:generateContent",
-                base_url.trim_end_matches('/'),
-                normalized_model
-            ),
-            headers,
-            serde_json::json!({
-                "systemInstruction": {
-                    "parts": [{ "text": system_prompt(prompt_messages) }]
-                },
-                "contents": non_system_messages(prompt_messages)
-                    .into_iter()
-                    .map(|message| {
-                        let role = if read_string_field(&message, "role") == "assistant" {
-                            "model"
-                        } else {
-                            "user"
-                        };
-                        serde_json::json!({
-                            "role": role,
-                            "parts": [{ "text": read_string_field(&message, "content") }]
-                        })
-                    })
-                    .collect::<Vec<serde_json::Value>>(),
-                "generationConfig": {
-                    "temperature": temperature,
-                    "topP": top_p,
-                    "maxOutputTokens": max_tokens
-                }
-            }),
-            PROVIDER_GENERATION_TIMEOUT,
-        )
-        .await?;
-        (
-            extract_provider_text(provider, &payload),
-            provider_empty_warning(provider, &payload),
-        )
-    } else {
-        return Err(format!(
-            "{provider} is not supported by the bare-minimum provider adapter yet."
-        ));
-    };
-
+    let headers = provider_headers(provider_name, &api_key)?;
+    let endpoint = generation_endpoint(provider, base_url, model)?;
+    let response_payload = post_provider_json(
+        &client,
+        endpoint,
+        headers,
+        provider_payload,
+        PROVIDER_GENERATION_TIMEOUT,
+    )
+    .await
+    .map_err(|error| redact_provider_error_secret(&error, &api_key))?;
+    let text = extract_provider_text(provider_name, &response_payload);
+    let empty_warning = provider_empty_warning(provider_name, &response_payload);
     let body = strip_speaker_prefix(text, target_character_name);
     if body.trim().is_empty() {
         return Ok(serde_json::json!({
             "schemaVersion": 1,
             "requestId": request_id,
             "source": "provider-transport",
-            "createdAt": read_string_field(request, "createdAt"),
+            "createdAt": request.created_at,
             "messages": [],
             "warnings": [empty_warning]
         }));
@@ -174,13 +137,8 @@ pub(crate) async fn generation_generate(
         "schemaVersion": 1,
         "requestId": request_id,
         "source": "provider-transport",
-        "createdAt": read_string_field(request, "createdAt"),
-        "messages": [
-            {
-                "characterId": target_character_id,
-                "body": body
-            }
-        ],
+        "createdAt": request.created_at,
+        "messages": [{ "characterId": target_character_id, "body": body }],
         "warnings": []
     }))
 }

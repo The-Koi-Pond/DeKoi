@@ -9,9 +9,8 @@ import {
   type ProviderConnectionProvider,
 } from "../../../engine/contracts/types/provider-connection";
 import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common";
-import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { fetchJsonWithTimeout, formatTimeoutDuration } from "../../../shared/api/http-timeout";
-import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
+import { invokeProviderGeneration } from "../../../shared/api/provider-generation";
 import { buildProviderPayloadForPlan } from "./provider-parameter-adaptation";
 import {
   resolveProviderTransportPlan,
@@ -506,8 +505,20 @@ export async function generateWithConfiguredProvider(
       throw new Error("Provider connection needs an API key before it can generate.");
     }
 
-    const response = await invokeDesktopRuntime<unknown>(RUNTIME_COMMANDS.generationGenerate, {
-      request,
+    const response = await invokeProviderGeneration({
+      id: request.id,
+      createdAt: request.createdAt,
+      targetCharacterId: request.targetCharacterId,
+      targetCharacterName: request.targetCharacterName,
+      connection: {
+        id: connection.id,
+        provider: connection.provider,
+        baseUrl: connection.baseUrl,
+        model: connection.model,
+        status: connection.status,
+      },
+      promptMessages: request.promptMessages,
+      parameters: request.parameters,
     });
     return normalizeProviderResponse(response, request);
   }

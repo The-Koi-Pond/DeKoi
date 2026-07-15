@@ -307,10 +307,11 @@ prove a valid OpenAI, Anthropic, or Google connection check.
 
 ## `generation_generate`
 
-The request may carry Messenger or Roleplay native fields for local context.
-Runtimes should use the shared generation fields for provider calls:
-`providerConnection`, `targetCharacterId`, `targetCharacterName`,
-`promptMessages`, and `parameters`.
+The command receives a narrow provider-generation DTO. It deliberately excludes
+threads, transcript records, companions, personas, lorebooks, prompt presets,
+warnings, saved secrets, arbitrary headers, and a provider-ready payload. The
+desktop capability resolves any saved key by `connection.id`, validates the
+trusted connection routing fields, and independently builds the provider body.
 
 `parameters` always carries `temperature`, `maxTokens`, and `topP`. Its
 provider-neutral contract also permits optional `topK`, `minP`,
@@ -345,134 +346,17 @@ Request:
   "command": "generation_generate",
   "args": {
     "request": {
-      "schemaVersion": 1,
       "id": "generation-request-example",
       "createdAt": "2026-06-24T07:20:00.000Z",
-      "thread": {
-        "id": "mode-thread-example",
-        "schemaVersion": 1,
-        "kind": "messenger",
-        "title": "Example Messenger",
-        "activeBranchId": "branch-example",
-        "branches": [
-          {
-            "id": "branch-example",
-            "schemaVersion": 1,
-            "threadId": "mode-thread-example",
-            "kind": "messenger",
-            "participantMode": "direct",
-            "characterIds": ["character-koi"],
-            "activePersonaId": "persona-xel",
-            "lorebookIds": [],
-            "presetId": null,
-            "presetChoiceSelectionsByPresetId": {},
-            "providerConnectionId": "connection-local-provider",
-            "systemPromptMode": "default",
-            "systemPrompt": "",
-            "createdAt": "2026-06-24T07:10:00.000Z",
-            "updatedAt": "2026-06-24T07:20:00.000Z"
-          }
-        ],
-        "messages": [],
-        "createdAt": "2026-06-24T07:10:00.000Z",
-        "updatedAt": "2026-06-24T07:20:00.000Z"
-      },
-      "userMessage": {
-        "id": "messenger-message-user",
-        "schemaVersion": 1,
-        "threadId": "mode-thread-example",
-        "branchId": "branch-example",
-        "author": {
-          "kind": "persona",
-          "personaId": "persona-xel",
-          "label": "Xel"
-        },
-        "versions": [
-          {
-            "id": "messenger-message-user-v1",
-            "body": "Can you hear me?",
-            "origin": "manual",
-            "createdAt": "2026-06-24T07:20:00.000Z",
-            "updatedAt": "2026-06-24T07:20:00.000Z"
-          }
-        ],
-        "activeVersionId": "messenger-message-user-v1",
-        "createdAt": "2026-06-24T07:20:00.000Z",
-        "updatedAt": "2026-06-24T07:20:00.000Z"
-      },
-      "companions": [
-        {
-          "id": "character-koi",
-          "schemaVersion": 1,
-          "displayName": "Koi",
-          "nickname": "Koi",
-          "description": "Used for remote runtime contract checks.",
-          "personality": "A local test companion.",
-          "scenario": "Koi is helping test the remote runtime contract.",
-          "firstMessage": "Fixture check ready.",
-          "alternateGreetings": [],
-          "groupOnlyGreetings": [],
-          "exampleMessages": "<START>\n{{user}}: Can you hear me?\n{{char}}: Fixture channel is clear.",
-          "systemPrompt": "",
-          "postHistoryInstructions": "",
-          "creator": "DeKoi",
-          "characterVersion": "contract",
-          "creatorNotes": "Used for remote runtime contract checks.",
-          "tags": ["fixture"],
-          "characterNote": "",
-          "characterNoteDepth": 4,
-          "characterNoteRole": "system",
-          "talkativeness": 50,
-          "avatarUrl": null,
-          "lorebookIds": [],
-          "createdAt": "2026-06-24T07:00:00.000Z",
-          "updatedAt": "2026-06-24T07:00:00.000Z"
-        }
-      ],
-      "activePersona": {
-        "id": "persona-xel",
-        "schemaVersion": 1,
-        "displayName": "Xel",
-        "nickname": "Xel",
-        "description": "Used for remote runtime contract checks.",
-        "personality": "The active user persona.",
-        "scenario": "Xel is testing a remote runtime request.",
-        "systemPrompt": "",
-        "postHistoryInstructions": "",
-        "creator": "DeKoi",
-        "characterVersion": "contract",
-        "creatorNotes": "Used for remote runtime contract checks.",
-        "tags": ["fixture"],
-        "characterNote": "",
-        "characterNoteDepth": 4,
-        "characterNoteRole": "system",
-        "talkativeness": 50,
-        "avatarUrl": null,
-        "lorebookIds": [],
-        "createdAt": "2026-06-24T07:00:00.000Z",
-        "updatedAt": "2026-06-24T07:00:00.000Z"
-      },
-      "lorebooks": [],
-      "providerConnectionId": "connection-local-provider",
-      "providerConnection": {
-        "id": "connection-local-provider",
-        "schemaVersion": 1,
-        "kind": "provider",
-        "provider": "custom",
-        "label": "Local OpenAI-compatible provider",
-        "baseUrl": "http://127.0.0.1:1234/v1",
-        "model": "local-model",
-        "summary": "",
-        "status": "ready",
-        "modelLabel": null,
-        "agentDefault": false,
-        "maxContext": null,
-        "maxOutput": 1024,
-        "createdAt": "2026-06-24T07:00:00.000Z",
-        "updatedAt": "2026-06-24T07:00:00.000Z"
-      },
       "targetCharacterId": "character-koi",
       "targetCharacterName": "Koi",
+      "connection": {
+        "id": "connection-local-provider",
+        "provider": "custom",
+        "baseUrl": "http://127.0.0.1:1234/v1",
+        "model": "local-model",
+        "status": "ready"
+      },
       "promptMessages": [
         {
           "role": "system",
@@ -486,13 +370,21 @@ Request:
       "parameters": {
         "temperature": 0.8,
         "maxTokens": 1024,
-        "topP": 0.95
-      },
-      "warnings": []
+        "topP": 0.95,
+        "stopSequences": ["END"]
+      }
     }
   }
 }
 ```
+
+The optional parameter names above are provider-neutral. DeKoi maps only fields
+documented for the selected provider and omits known-incompatible fields.
+Anthropic requires `maxTokens`; if it is absent, DeKoi fails before HTTP rather
+than inventing a value. Unknown `customParameters` are accepted only for
+`provider: "custom"`, cannot replace core or mapped fields, and must contain
+bounded JSON-safe values. Provider rejection is surfaced once as a cleaned,
+bounded error; DeKoi does not retry by guessing which field to remove.
 
 Response:
 

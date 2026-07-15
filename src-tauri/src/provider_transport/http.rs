@@ -15,8 +15,86 @@ pub(super) fn provider_request_error(
     if error.is_timeout() {
         format!("{action} timed out after {} seconds.", timeout.as_secs())
     } else {
-        format!("{action} failed. {error}")
+        format!(
+            "{action} failed. {}",
+            clean_provider_error_detail(&error.to_string())
+        )
     }
+}
+
+fn redact_marker_value(input: &str, marker: &str) -> String {
+    let mut result = String::new();
+    let mut remaining = input;
+    loop {
+        let lowercase = remaining.to_ascii_lowercase();
+        let Some(start) = lowercase.find(marker) else {
+            result.push_str(remaining);
+            break;
+        };
+        let value_start = start + marker.len();
+        let value_len = remaining[value_start..]
+            .find(|character: char| character.is_whitespace() || matches!(character, ',' | ';'))
+            .unwrap_or(remaining.len() - value_start);
+        result.push_str(&remaining[..value_start]);
+        result.push_str("[redacted]");
+        remaining = &remaining[value_start + value_len..];
+    }
+    result
+}
+
+fn redact_url_userinfo(token: &str) -> String {
+    let Some(scheme) = token.find("://") else {
+        return token.to_string();
+    };
+    let authority_start = scheme + 3;
+    let authority_end = token[authority_start..]
+        .find('/')
+        .map(|index| authority_start + index)
+        .unwrap_or(token.len());
+    let Some(at) = token[authority_start..authority_end].find('@') else {
+        return token.to_string();
+    };
+    let at = authority_start + at;
+    format!("{}[redacted]{}", &token[..authority_start], &token[at..])
+}
+
+fn clean_provider_error_detail(detail: &str) -> String {
+    let collapsed = detail.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut cleaned = collapsed
+        .split(' ')
+        .map(redact_url_userinfo)
+        .collect::<Vec<_>>()
+        .join(" ");
+    for marker in [
+        "bearer ",
+        "basic ",
+        "api_key=",
+        "api_key:",
+        "api-key=",
+        "api-key:",
+        "x-api-key=",
+        "x-api-key:",
+        "x-goog-api-key=",
+        "x-goog-api-key:",
+        "sk-",
+        "aiza",
+    ] {
+        cleaned = redact_marker_value(&cleaned, marker);
+    }
+    let cleaned = cleaned.chars().take(300).collect::<String>();
+    if cleaned.is_empty() {
+        "Unknown provider error.".to_string()
+    } else {
+        cleaned
+    }
+}
+
+pub(super) fn redact_provider_error_secret(detail: &str, api_key: &str) -> String {
+    let key = api_key.trim();
+    if key.is_empty() {
+        return clean_provider_error_detail(detail);
+    }
+    clean_provider_error_detail(&detail.replace(key, "[redacted]"))
 }
 
 fn parse_provider_json_body(
@@ -67,7 +145,10 @@ pub(super) fn provider_error(payload: &serde_json::Value, status: reqwest::Statu
 
     match message.map(|message| message.trim().to_string()) {
         Some(message) if !message.is_empty() => {
-            format!("Provider returned HTTP {status}: {message}")
+            format!(
+                "Provider returned HTTP {status}: {}",
+                clean_provider_error_detail(&message)
+            )
         }
         _ => format!("Provider returned HTTP {status}."),
     }
@@ -123,7 +204,7 @@ pub(super) async fn post_provider_json(
     }
 
     if let Some(error) = provider_payload_error(&payload) {
-        return Err(error);
+        return Err(clean_provider_error_detail(&error));
     }
 
     Ok(payload)
@@ -241,5 +322,36 @@ mod tests {
             error,
             "Provider returned HTTP 401 Unauthorized: invalid_api_key"
         );
+    }
+
+    #[test]
+    fn provider_error_redacts_credentials_and_caps_detail() {
+        let error = provider_error(
+            &serde_json::json!({
+                "error": {
+                    "message": format!(
+                        "Authorization: Bearer secret-token https://user:password@provider.test api_key=sk-secret AIzaSyExampleGoogleKey123456789 {}",
+                        "x".repeat(500)
+                    )
+                }
+            }),
+            reqwest::StatusCode::BAD_REQUEST,
+        );
+
+        assert!(!error.contains("secret-token"));
+        assert!(!error.contains("password"));
+        assert!(!error.contains("sk-secret"));
+        assert!(!error.contains("AIzaSyExampleGoogleKey"));
+        assert!(error.chars().count() <= 340);
+    }
+
+    #[test]
+    fn provider_error_redacts_the_exact_in_memory_secret() {
+        let error = redact_provider_error_secret(
+            "Provider echoed totally-custom-secret in an error.",
+            "totally-custom-secret",
+        );
+
+        assert_eq!(error, "Provider echoed [redacted] in an error.");
     }
 }

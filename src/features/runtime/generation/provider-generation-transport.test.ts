@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ProviderConnectionProvider } from "../../../engine/contracts/types/provider-connection";
 import type { GenerationParameters } from "../../../engine/generation/generation";
+import { invokeProviderGeneration } from "../../../shared/api/provider-generation";
 import {
   generateWithConfiguredProvider,
   providerErrorMessage,
@@ -9,19 +10,19 @@ import {
 } from "./provider-generation";
 
 const host = vi.hoisted(() => ({ desktop: false }));
-const desktopRuntime = vi.hoisted(() => ({ invoke: vi.fn() }));
 
 vi.mock("../../../shared/api/desktop-host-common", () => ({
   isDesktopHostAvailable: () => host.desktop,
 }));
-
-vi.mock("../../../shared/api/desktop-runtime", () => ({
-  invokeDesktopRuntime: desktopRuntime.invoke,
-}));
+vi.mock("../../../shared/api/provider-generation", () => ({ invokeProviderGeneration: vi.fn() }));
 
 function request(
   provider: ProviderConnectionProvider = "custom",
-  parameters: GenerationParameters = { maxTokens: 1_024, temperature: 0.8, topP: 0.95 },
+  parameters: GenerationParameters = {
+    temperature: 0.8,
+    maxTokens: 1_024,
+    topP: 0.95,
+  },
 ): ProviderGenerationRequest {
   return {
     schemaVersion: 1,
@@ -60,33 +61,8 @@ function request(
 describe("configured provider transport", () => {
   beforeEach(() => {
     host.desktop = false;
-    desktopRuntime.invoke.mockReset();
+    vi.mocked(invokeProviderGeneration).mockReset();
     vi.unstubAllGlobals();
-  });
-
-  it("sends the full request through desktop transport without browser HTTP", async () => {
-    host.desktop = true;
-    const providerRequest = request("anthropic");
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    desktopRuntime.invoke.mockResolvedValue({
-      schemaVersion: 1,
-      requestId: providerRequest.id,
-      source: "provider-transport",
-      createdAt: "2026-07-15T00:00:01.000Z",
-      messages: [{ characterId: "character-1", body: "Desktop reply" }],
-      warnings: [],
-    });
-
-    await expect(generateWithConfiguredProvider(providerRequest)).resolves.toMatchObject({
-      requestId: providerRequest.id,
-      messages: [{ characterId: "character-1", body: "Desktop reply" }],
-    });
-    expect(desktopRuntime.invoke).toHaveBeenCalledOnce();
-    expect(desktopRuntime.invoke).toHaveBeenCalledWith("generation_generate", {
-      request: providerRequest,
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("sends exactly one browser request when the provider rejects", async () => {
@@ -120,6 +96,64 @@ describe("configured provider transport", () => {
         request(provider as ProviderConnectionProvider, parameters as GenerationParameters),
       ),
     ).rejects.toThrow(error);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["anthropic missing max", "anthropic", { temperature: 0.5 }, "requires maxTokens"],
+    [
+      "protected custom collision",
+      "custom",
+      { customParameters: { maxOutputTokens: 10 } },
+      "reserved",
+    ],
+    ["unsupported provider", "openai_chatgpt", {}, "not supported for generation"],
+  ] as const)("stops %s before desktop invoke", async (_name, provider, parameters, error) => {
+    host.desktop = true;
+
+    await expect(
+      generateWithConfiguredProvider(
+        request(provider as ProviderConnectionProvider, parameters as GenerationParameters),
+      ),
+    ).rejects.toThrow(error);
+    expect(invokeProviderGeneration).not.toHaveBeenCalled();
+  });
+
+  it("narrows desktop generation without using browser HTTP", async () => {
+    host.desktop = true;
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.mocked(invokeProviderGeneration).mockResolvedValueOnce({
+      schemaVersion: 1,
+      requestId: "request-1",
+      source: "provider-transport",
+      createdAt: "2026-07-15T00:00:01.000Z",
+      messages: [{ characterId: "character-1", body: "Hi" }],
+      warnings: [],
+    });
+
+    await generateWithConfiguredProvider(
+      request("custom", { maxTokens: 100 } as GenerationParameters),
+    );
+
+    expect(invokeProviderGeneration).toHaveBeenCalledWith({
+      id: "request-1",
+      createdAt: "2026-07-15T00:00:00.000Z",
+      targetCharacterId: "character-1",
+      targetCharacterName: "Koi",
+      connection: {
+        id: "connection-1",
+        provider: "custom",
+        baseUrl: "https://provider.test/v1",
+        model: "test-model",
+        status: "ready",
+      },
+      promptMessages: [{ role: "user", content: "Hello" }],
+      parameters: { maxTokens: 100 },
+    });
+    expect(JSON.stringify(vi.mocked(invokeProviderGeneration).mock.calls)).not.toMatch(
+      /thread|companions|activePersona|lorebooks|warnings|summary/,
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
