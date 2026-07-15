@@ -62,17 +62,17 @@ package. It preserves who made and received the attestation, its exact claim,
 its complete scope, and the immutable artifact it covers; maintainer approval
 is recorded separately and is not used as evidence of authorship.
 
-| Evidence field              | Recorded evidence                                                                                                                                                                                                                                                                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Evidence type               | Primary author attestation supplied with the source package                                                                                                                                                                                                                                                                        |
-| Attestor                    | Chai, the package author                                                                                                                                                                                                                                                                                                           |
-| Recipient and custodian     | The De-Koi team; retained by DeKoi maintainer Xel with the approved team-owned source material                                                                                                                                                                                                                                     |
-| Attested claim              | Chai independently authored all prompt prose, choice text, package structure, and metadata enumerated below for the team; no Marinara prompt text or structure was copied, adapted, or translated                                                                                                                                  |
-| Authorship artifact covered | Git blob `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, 40,225 bytes, SHA-256 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`                                                                                                                                                                                      |
-| Checked-in derived artifact | Git blob `683174d2a66dd2067895ed49c1d2014768e243a4`, 39,410 bytes, SHA-256 `e1c94f96550fca3073563cff3b099a0db4229aa3ac06080cc46c1bad2a2f1b98`                                                                                                                                                                                      |
-| Transformation              | Delete `data.choiceBlocks[2].visibilityRule`; wrap the ten outbound parameter values in DeKoi's `{ send, value }` contract, with the three previously consumed fields enabled and the others disabled; normalize `reasoningEffort` from `maximum` to the native `max` enum. Prompt prose, choice text, and metadata are unchanged. |
-| Scope evidence              | The complete source-level inventory below; every prompt section, choice block, Messenger field, and metadata surface is accounted for                                                                                                                                                                                              |
-| Permission evidence         | Xel's maintainer approval to retain and distribute both the attested source and the derived artifact in DeKoi                                                                                                                                                                                                                      |
+| Evidence field              | Recorded evidence                                                                                                                                                                                                                                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evidence type               | Primary author attestation supplied with the source package                                                                                                                                                                                                                                                             |
+| Attestor                    | Chai, the package author                                                                                                                                                                                                                                                                                                |
+| Recipient and custodian     | The De-Koi team; retained by DeKoi maintainer Xel with the approved team-owned source material                                                                                                                                                                                                                          |
+| Attested claim              | Chai independently authored all prompt prose, choice text, package structure, and metadata enumerated below for the team; no Marinara prompt text or structure was copied, adapted, or translated                                                                                                                       |
+| Authorship artifact covered | Git blob `74eb456624f1a2bc56b9e860e3ca68889765d8f3`, 40,225 bytes, SHA-256 `975ec5eb2f4fa1043e5b9683db366068278c15ef556734eb240a61f9cf4591ab`                                                                                                                                                                           |
+| Checked-in derived artifact | Git blob `683174d2a66dd2067895ed49c1d2014768e243a4`, 39,410 bytes, SHA-256 `e1c94f96550fca3073563cff3b099a0db4229aa3ac06080cc46c1bad2a2f1b98`                                                                                                                                                                           |
+| Transformation              | Delete `data.choiceBlocks[2].visibilityRule`; wrap the ten outbound parameter values in DeKoi's `{ send, value }` contract, with the three previously consumed fields enabled and the others disabled; normalize `reasoningEffort` from `maximum` to the native `max` enum. Prompt prose and choice text are unchanged. |
+| Scope evidence              | The complete source-level inventory below; every prompt section, choice block, Messenger field, and metadata surface is accounted for                                                                                                                                                                                   |
+| Permission evidence         | Xel's maintainer approval to retain and distribute both the attested source and the derived artifact in DeKoi                                                                                                                                                                                                           |
 
 Reviewers can reproduce the evidence check without trusting a package label:
 
@@ -106,7 +106,8 @@ Chai's authorship statement applies specifically to the 40,225-byte Git blob
 Xel separately approved retaining and distributing the 39,410-byte derived
 artifact after verifying the abandoned `visibilityRule` deletion and the
 DeKoi-owned parameter-contract transformation recorded above. Neither
-transformation adds or alters prompt prose, choice text, or metadata. This
+transformation adds or alters prompt prose or choice text; they do change
+metadata and outbound parameter representation exactly as recorded above. This
 approval does not claim that Chai attested the derived blob. The integrity check
 prevents the reviewed derived artifact or this provenance record from being
 silently reused for different prompt content.
@@ -116,10 +117,11 @@ context/marker rows, context contract, world autonomy, agency boundaries,
 erotic tone, style, pacing, examples, history, and output), the context group,
 all 11 choice blocks and their options, default selections, the source
 artifact's one visibility rule, generation parameters, Messenger prompt, and
-package metadata. The derived artifact retains every listed surface except that
-visibility rule. The compatibility envelope is retained only as an import
-fixture; DeKoi normalizes it into a native editable record before storage or
-generation.
+package metadata. The derived artifact retains the authored prompt and choice
+content, deletes that visibility rule, and transforms the outbound parameter
+representation as recorded above. The compatibility envelope is retained only
+as an import fixture; DeKoi normalizes it into a native editable record before
+storage or generation.
 
 The following source-level inventory is the scope of Chai's authorship
 attestation and the team's retention permission. In every row, "Chai-authored"
