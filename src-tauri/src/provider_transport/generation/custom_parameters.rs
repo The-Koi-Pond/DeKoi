@@ -1,7 +1,11 @@
 use serde_json::{Map, Value};
 
 fn protected_custom_parameter_name(name: &str) -> bool {
-    let normalized = name.trim().to_ascii_lowercase();
+    let trimmed = name.trim();
+    let normalized = trimmed.to_ascii_lowercase();
+    if name != trimmed {
+        return true;
+    }
     matches!(
         normalized.as_str(),
         "" | "__proto__" | "constructor" | "prototype"
@@ -10,7 +14,9 @@ fn protected_custom_parameter_name(name: &str) -> bool {
 
 const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "accept",
+    "access_key",
     "access_token",
+    "accesskey",
     "accesstoken",
     "activepersona",
     "anthropic-version",
@@ -23,11 +29,15 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "baseurl",
     "basic",
     "bearer",
+    "client_secret",
+    "clientsecret",
     "companions",
     "content-type",
     "contents",
     "cookie",
     "createdat",
+    "credential",
+    "credentials",
     "customparameters",
     "endpoint",
     "frequency_penalty",
@@ -51,17 +61,25 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "organization",
     "output_config",
     "parameters",
+    "passwd",
+    "password",
     "presence_penalty",
     "presencepenalty",
+    "private_key",
+    "privatekey",
     "project",
     "prompt",
     "prompt_messages",
     "promptmessages",
     "provider",
     "provider_connection_id",
+    "provider_key",
     "provider_routing",
+    "provider_secret",
     "providerconnection",
     "providerconnectionid",
+    "providerkey",
+    "providersecret",
     "reasoning_effort",
     "reasoningeffort",
     "request_id",
@@ -72,6 +90,9 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "routing",
     "schema_version",
     "schemaversion",
+    "secret",
+    "secret_key",
+    "secretkey",
     "service_tier",
     "servicetier",
     "set-cookie",
@@ -205,6 +226,16 @@ mod tests {
             "request_id",
             "schema_version",
             "base_url",
+            "secret",
+            "secretKey",
+            "secret_key",
+            "privateKey",
+            "private_key",
+            "accessKey",
+            "access_key",
+            "password",
+            "clientSecret",
+            " repetition_penalty ",
         ] {
             let custom = serde_json::json!({ name: "blocked" });
             let error =

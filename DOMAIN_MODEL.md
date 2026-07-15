@@ -284,8 +284,10 @@ Current implementation:
 
 - Prompt presets are `schemaVersion: 1` catalog records with a title, optional
   summary, optional system and Messenger Prompt Source text, nullable metadata
-  and parameters, a current generation sampling projection, static variable
-  values, ordered sections/groups, and choice blocks. Native records retain
+  and provider-neutral parameters, static variable values, ordered
+  sections/groups, and choice blocks. Each optional outbound parameter stores
+  an independent Send state and value; local prompt-assembly controls remain
+  separate from provider request fields. Native records retain
   stable empty arrays/maps and `systemPrompt: ""` when optional parts are absent.
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
   sections, section roles, enabled state, wrapping, depth placement, choice
@@ -337,7 +339,7 @@ Current implementation:
 
 Still evolving:
 
-- UI for editing advanced compatible parameters, static variables, and metadata.
+- UI for editing static variables and metadata.
 - Whether Thread Presets become a separate saved record.
 
 ### Provider Connection

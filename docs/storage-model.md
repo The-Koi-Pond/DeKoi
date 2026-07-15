@@ -146,19 +146,22 @@ requires compatibility.
 
 Prompt presets use `schemaVersion: 1`. Each record stores title, optional
 summary, required string `systemPrompt` (which may be empty), optional
-`messengerPrompt`, optional normalized `parameters`, a provider-ready `sampling`
-projection, section/group ordering fields, `sections`, `groups`, `choiceBlocks`,
+`messengerPrompt`, optional normalized provider-neutral `parameters`,
+section/group ordering fields, `sections`, `groups`, `choiceBlocks`,
 static `variableValues`, `defaultChoices`, and optional author/folder metadata.
 Native preset records do not store a default flag;
 `AppSettings.defaultPromptPresetId` is the sole native default authority. The `parameters`
-object preserves normalized prompt-preset controls such as `temperature`,
-`topP`, `maxTokens`, `topK`, `minP`, `maxContext`, penalties, service/model
-effort strings, stop sequences, custom parameters, and provider-shaping
-booleans. Current provider requests consume the `sampling` projection
-(`temperature`, `topP`, and `maxTokens`) from the selected preset. Invalid
-parameter and sampling fields are dropped during load. Preset `maxTokens` can
-override request parameters, but the final generation request is capped by the
-selected provider connection's positive `maxOutput` when one is configured. The
+object gives each optional outbound field an explicit `{ send, value }` entry.
+`send: true` contributes the value to the provider-neutral generation request;
+`send: false` deliberately omits it and prevents an app default from silently
+reintroducing it. An absent entry may still use the deliberate app default for
+temperature, top P, or maximum output tokens. Local prompt-assembly controls
+remain scalar fields because they are never sent to a provider. Unknown custom
+JSON fields are package/import-only and can reach only a `custom` connection
+after reserved routing, authentication, prompt, and DeKoi-owned parameter names
+are rejected. Invalid entries are dropped during load. A sent preset
+`maxTokens` can override the app default, but it is capped by the selected
+provider connection's positive `maxOutput` when one is configured. The
 bundled starter preset is ordinary user-editable data except while it is the
 default. Any successful load with no usable prompt presets restores the exact
 bundled starter in memory. A genuinely empty collection is queued for the normal
@@ -167,6 +170,11 @@ until explicit storage repair preserves or resolves that evidence. The starter
 initialization marker is recorded in app settings, but it does not suppress
 empty-collection recovery. Ordinary deletion cannot empty the collection
 because the default and last preset cannot be deleted.
+
+This early-development contract intentionally does not migrate the removed
+scalar-parameter, `enabledParameters`, or `sampling` shapes. Delete the local
+prompt-preset collection and restart, or re-export presets with the current
+build, when old development data was created against those shapes.
 
 ### Restoring or resetting the starter preset
 
@@ -218,7 +226,7 @@ Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
 when present, then falls back to `systemPrompt`; a non-empty custom Messenger
 Prompt still overrides both at generation time. Messenger does not consume
 prompt preset sections for prompt assembly.
-In Roleplay, a selected prompt preset can replace the system prelude, sampling,
+In Roleplay, a selected prompt preset can replace the system prelude, generation
 and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections

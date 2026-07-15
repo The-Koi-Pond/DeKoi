@@ -27,7 +27,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
     summary: null,
     systemPrompt: "Stay in character.",
     messengerPrompt: null,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

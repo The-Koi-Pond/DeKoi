@@ -110,7 +110,6 @@ function messengerPreset(messengerPrompt: string): PromptPresetRecord {
     summary: null,
     systemPrompt: "Fallback",
     messengerPrompt,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

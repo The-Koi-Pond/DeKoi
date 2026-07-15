@@ -26,7 +26,7 @@ function promptPresetPackage(id: string, name: string) {
         name,
         description: "Imported by content.",
         systemPrompt: "Write the next response.",
-        parameters: { temperature: 0.65 },
+        parameters: { temperature: { send: true, value: 0.65 } },
         createdAt: "2026-07-11T00:00:00.000Z",
         updatedAt: "2026-07-11T00:00:00.000Z",
       },
@@ -110,6 +110,56 @@ async function openPromptPresetCatalog(page: Page) {
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await expect(page.getByRole("button", { name: "Restore Starter Preset" })).toBeVisible();
 }
+
+test("prompt preset parameter Send controls retain values and show invalid input", async ({
+  page,
+}) => {
+  await installRemoteRuntime(page);
+  await page.goto("/");
+  await openDataAndBackupSettings(page);
+  await connectRemoteRuntime(page);
+  await waitForRemoteStorageReady(page);
+  await openPromptPresetCatalog(page);
+  await page.getByRole("button", { name: "＋ Preset" }).click();
+
+  await page.getByLabel("Title").fill("Parameter Send Proof");
+  const temperature = page.getByLabel("Temperature", { exact: true });
+  const sendTemperature = page.getByRole("checkbox", { name: "Send Temperature" });
+  await temperature.fill("0.65");
+  await sendTemperature.check();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  await temperature.fill("");
+  await expect(page.getByRole("alert")).toContainText("Enter a valid value");
+  await expect(page.getByRole("button", { name: "Create" })).toBeDisabled();
+
+  await temperature.fill("3");
+  await expect(page.getByRole("alert")).toContainText("Enter a value from 0 to 2");
+  await expect(page.getByRole("button", { name: "Create" })).toBeDisabled();
+
+  await sendTemperature.uncheck();
+  await expect(temperature).toHaveValue("3");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create" })).toBeEnabled();
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await page.getByRole("button", { name: "Parameter Send Proof" }).click();
+  await expect(page.getByLabel("Temperature", { exact: true })).toHaveValue("3");
+  await expect(page.getByRole("checkbox", { name: "Send Temperature" })).not.toBeChecked();
+
+  await page.getByRole("checkbox", { name: "Send Temperature" }).check();
+  await expect(page.getByRole("alert")).toContainText("Enter a value from 0 to 2");
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  await page.getByLabel("Temperature", { exact: true }).fill("0.65");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "Save Changes" }).click();
+  await expect(page.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  await page.getByRole("button", { name: "Back to Pond" }).click();
+  await page.getByRole("button", { name: "Parameter Send Proof" }).click();
+  await expect(page.getByLabel("Temperature", { exact: true })).toHaveValue("0.65");
+  await expect(page.getByRole("checkbox", { name: "Send Temperature" })).toBeChecked();
+});
 
 test("restoring the starter prompt preset opens a fresh record", async ({ page }) => {
   await installRemoteRuntime(page);

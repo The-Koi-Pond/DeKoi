@@ -313,16 +313,16 @@ warnings, saved secrets, arbitrary headers, and a provider-ready payload. The
 desktop capability resolves any saved key by `connection.id`, validates the
 trusted connection routing fields, and independently builds the provider body.
 
-`parameters` always carries `temperature`, `maxTokens`, and `topP`. Its
+`parameters` may carry `temperature`, `maxTokens`, and `topP`. Its
 provider-neutral contract also permits optional `topK`, `minP`,
 `frequencyPenalty`, `presencePenalty`, `reasoningEffort`, `verbosity`,
 `serviceTier`, `stopSequences`, and JSON-safe `customParameters`. The browser
 adapter maps only fields supported by its selected provider plan. Custom fields
 are accepted only by the custom-provider payload, are bounded before
 serialization, and cannot shadow routing, authentication, message, or mapped
-parameter names. Current app-side prompt preset generation still populates only
-the existing sampling projection; this contract does not activate advanced
-preset values. Desktop generation receives only this narrow DTO through
+parameter names. App-side prompt preset generation projects only entries whose
+Send state is enabled; a disabled entry remains omitted even when the app has a
+fallback for that field. Desktop generation receives only this narrow DTO through
 `generation_generate` and owns its provider payload adaptation behind that
 command boundary.
 
@@ -529,15 +529,16 @@ records that starter initialization occurred; it does not prevent recovery of a
 cleanly loaded empty prompt-preset collection.
 
 `prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
-`title`, optional `summary`, required non-empty `systemPrompt`, optional
-`messengerPrompt`, normalized `parameters`, a `sampling` projection with
-`temperature`, `topP`, and `maxTokens`, ordering fields, `sections`, `groups`,
+`title`, optional `summary`, required string `systemPrompt` (which may be empty), optional
+`messengerPrompt`, normalized provider-neutral `parameters`, ordering fields, `sections`, `groups`,
 `choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
 author/folder metadata. Native prompt preset records do not carry a default
-flag. DeKoi drops invalid parameter and sampling
-fields during normalization. Current generated requests consume the sampling
-projection, and cap preset `maxTokens` to the selected provider connection's
-positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
+flag. Each optional outbound parameter has an independent `{ send, value }`
+entry. Sent fields enter the provider-neutral request, disabled fields are
+omitted without falling back, and absent temperature, top P, or max-token
+entries may use deliberate app defaults. DeKoi drops invalid entries during
+normalization and caps a sent preset `maxTokens` to the selected provider
+connection's positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
 as its selected-preset source when present, then falls back to `systemPrompt`.
 A non-empty custom Messenger Prompt still overrides the selected preset at
 generation time and Messenger does not consume prompt preset sections. Roleplay

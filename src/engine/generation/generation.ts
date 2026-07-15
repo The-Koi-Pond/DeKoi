@@ -9,13 +9,7 @@ import type {
 } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
 import type { PersonaRecord } from "../contracts/types/persona";
-import type { PromptPresetRecord, PromptPresetSampling } from "../contracts/types/prompt-presets";
-import type {
-  GenerationJsonValue,
-  GenerationReasoningEffort,
-  GenerationServiceTier,
-  GenerationVerbosity,
-} from "../generation-core/generation-parameter-contract";
+import type { PromptPresetParameters, PromptPresetRecord } from "../contracts/types/prompt-presets";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import type { AppSettings } from "../contracts/types/app-settings";
 import {
@@ -32,6 +26,10 @@ import {
 } from "../generation-core/lorebook-activation";
 import { activatedLoreEntryKey } from "../generation-core/lorebook-activation-types";
 import {
+  createGenerationParameters as createCoreGenerationParameters,
+  type GenerationParameters,
+} from "../generation-core/generation-parameter-contract";
+import {
   createScratchMacroContext,
   resolveMacros,
   type MacroContext,
@@ -46,26 +44,19 @@ import {
 import { cleanTextArray } from "../shared/text";
 
 export type GenerationResponseSource = "remote-runtime" | "provider-transport";
-export type { MacroVariableMutation };
+export type { GenerationParameters, MacroVariableMutation };
+
+export function createGenerationParameters(
+  parameters: Partial<GenerationParameters> | undefined,
+  providerConnection: ProviderConnectionRecord | null,
+  promptPresetParameters: PromptPresetParameters | null | undefined,
+) {
+  return createCoreGenerationParameters(parameters, providerConnection, promptPresetParameters);
+}
 
 export interface GenerationPromptMessage {
   role: "system" | "user" | "assistant";
   content: string;
-}
-
-export interface GenerationParameters {
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  topK?: number;
-  minP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  reasoningEffort?: GenerationReasoningEffort;
-  verbosity?: GenerationVerbosity;
-  serviceTier?: GenerationServiceTier;
-  stopSequences?: string[];
-  customParameters?: Record<string, GenerationJsonValue>;
 }
 
 export interface GeneratedMessageDraft {
@@ -171,7 +162,7 @@ function createGenerationRequestEnvelope<Thread>({
     parameters: createGenerationParameters(
       parameters,
       context.providerConnection,
-      context.promptPreset?.sampling,
+      context.promptPreset?.parameters,
     ),
     warnings: [...context.warnings, ...promptWarnings],
   };
@@ -1707,32 +1698,6 @@ export function exampleDialogueGenerationContext(
 
     return exampleMessages ? [`${displayName}\n${exampleMessages}`] : [];
   });
-}
-
-function createGenerationParameters(
-  parameters: Partial<GenerationParameters> | undefined,
-  providerConnection: ProviderConnectionRecord | null,
-  promptPresetSampling: PromptPresetSampling | null | undefined,
-): GenerationParameters {
-  const presetTemperature =
-    promptPresetSampling?.temperature === undefined ? null : promptPresetSampling.temperature;
-  const presetMaxTokens =
-    promptPresetSampling?.maxTokens === undefined ? null : promptPresetSampling.maxTokens;
-  const presetTopP = promptPresetSampling?.topP === undefined ? null : promptPresetSampling.topP;
-  const providerMaxOutput =
-    typeof providerConnection?.maxOutput === "number" && providerConnection.maxOutput > 0
-      ? providerConnection.maxOutput
-      : null;
-  const requestedMaxTokens = presetMaxTokens ?? parameters?.maxTokens ?? providerMaxOutput ?? 1024;
-
-  return {
-    temperature: presetTemperature ?? parameters?.temperature ?? 0.8,
-    maxTokens:
-      providerMaxOutput === null
-        ? requestedMaxTokens
-        : Math.min(requestedMaxTokens, providerMaxOutput),
-    topP: presetTopP ?? parameters?.topP ?? 0.95,
-  };
 }
 
 export function resolveGenerationRecords({

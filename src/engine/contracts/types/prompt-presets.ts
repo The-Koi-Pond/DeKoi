@@ -1,26 +1,12 @@
-export interface PromptPresetSampling {
-  maxTokens?: number | null;
-  temperature?: number | null;
-  topP?: number | null;
-}
+import type { GenerationParameterSettings } from "../../generation-core/generation-parameter-contract";
 
-export interface PromptPresetParameters extends PromptPresetSampling {
-  topK?: number | null;
-  minP?: number | null;
+export interface PromptPresetParameters extends GenerationParameterSettings {
   maxContext?: number | null;
-  frequencyPenalty?: number | null;
-  presencePenalty?: number | null;
-  reasoningEffort?: string | null;
-  verbosity?: string | null;
-  serviceTier?: string | null;
   assistantPrefill?: string | null;
   customThinkingTags?: string | null;
-  customParameters?: Record<string, unknown> | null;
-  enabledParameters?: Record<string, boolean> | null;
   squashSystemMessages?: boolean | null;
   showThoughts?: boolean | null;
   useMaxContext?: boolean | null;
-  stopSequences?: string[];
   strictRoleFormatting?: boolean | null;
   singleUserMessage?: boolean | null;
 }
@@ -113,7 +99,6 @@ export interface PromptPresetRecord {
   summary?: string | null;
   systemPrompt: string;
   messengerPrompt?: string | null;
-  sampling?: PromptPresetSampling | null;
   parameters?: PromptPresetParameters | null;
   sectionOrder: string[];
   groupOrder: string[];

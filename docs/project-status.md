@@ -42,8 +42,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
 - Presets catalog controls expose prompt preset title, summary, optional system
-  prompt, Messenger Prompt Source, optional temperature, `topP`, max-token
-  sampling, Roleplay section groups, ordered sections, markers, section roles,
+  prompt, Messenger Prompt Source, eleven optional generation parameters with
+  independent Send controls, Roleplay section groups, ordered sections, markers, section roles,
   enabled state, wrapping, and depth placement, with create, edit, duplicate,
   delete, and Restore Starter Preset actions. Restore adds a fresh ordinary
   native record normalized from the bundled Universal V2 package. The
@@ -59,11 +59,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   rejected. Dirty editors require explicit discard before navigation or
   storage replacement, active saves block leaving, and browser unload uses its
   native confirmation.
-  Native prompt preset records also
-  normalize richer parameters, choice blocks, static variable values, and
-  defaults for compatible import. The catalog edits choice-block definitions,
+  Native prompt preset records also normalize typed parameter Send/value entries,
+  choice blocks, static variable values, and defaults for compatible import.
+  The catalog edits choice-block definitions,
   options, defaults, and presentation settings; all choice questions are always
-  visible. It preserves other advanced compatible fields that do not have
+  visible. It preserves static-variable and metadata fields that do not have
   dedicated controls yet. Roleplay generation consumes usable section/group
   assembly. Both Messenger and Roleplay generation consume stable-ID choice
   values. Both thread settings flows edit them transactionally through Preset
@@ -170,8 +170,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
 - Lorebook generation triggers and selected-reply-target character filters are
   applied and editable; exact activation mechanics live in
   [storage-model.md](./storage-model.md).
-- Prompt preset advanced compatible parameters, static variable values, and
-  metadata do not all have dedicated catalog controls yet. Choice-block
+- Prompt preset static variable values and metadata do not all have dedicated
+  catalog controls yet. Choice-block
   definitions and their reusable defaults are editable in the Presets catalog;
   Messenger and Roleplay Preset Variables dialogs select branch-specific values.
   Catalog controls for designating the app default are not exposed yet.

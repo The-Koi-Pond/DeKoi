@@ -130,7 +130,6 @@ export function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPre
     summary: null,
     systemPrompt: "Preset prompt for {{char}}.",
     messengerPrompt: null,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

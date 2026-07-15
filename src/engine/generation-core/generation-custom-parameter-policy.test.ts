@@ -8,6 +8,7 @@ import {
   validateGenerationCustomParameters,
   validateGenerationCustomParameterValue,
 } from "./generation-custom-parameter-policy";
+import { normalizePromptPresetParameters } from "../prompt-presets/prompt-preset-normalization";
 
 describe("generation custom parameter policy", () => {
   it("matches the canonical protected-name roster exactly", () => {
@@ -44,6 +45,28 @@ describe("generation custom parameter policy", () => {
 
     expect(result).toEqual({ valid: false, reason: "protected-name" });
     expect(JSON.stringify(result)).not.toContain("sensitive-value");
+  });
+
+  it.each([
+    "secret",
+    "password",
+    "passwd",
+    "clientSecret",
+    "client_secret",
+    "secretKey",
+    "secret_key",
+    "privateKey",
+    "private_key",
+    "accessKey",
+    "access_key",
+    "providerSecret",
+    "provider_key",
+    "credentials",
+  ])("rejects credential-like custom name %s", (name) => {
+    expect(validateGenerationCustomParameter(name, "do-not-export")).toEqual({
+      valid: false,
+      reason: "protected-name",
+    });
   });
 
   it.each([
@@ -143,16 +166,17 @@ describe("generation custom parameter policy", () => {
     "service_tier",
     "stop",
     "stop_sequences",
-  ])("rejects every protected name case-insensitively after trimming: %s", (name) => {
-    expect(validateGenerationCustomParameter(`  ${name.toUpperCase()}  `, true)).toEqual({
+  ])("rejects every protected name case-insensitively: %s", (name) => {
+    expect(validateGenerationCustomParameter(name.toUpperCase(), true)).toEqual({
       valid: false,
       reason: "protected-name",
     });
   });
 
-  it("preserves whitespace trimming for non-protected names", () => {
+  it("rejects noncanonical whitespace instead of silently collapsing names", () => {
     expect(validateGenerationCustomParameter("  repetition_penalty  ", true)).toEqual({
-      valid: true,
+      valid: false,
+      reason: "invalid-name",
     });
     expect(validateGenerationCustomParameter("   ", true)).toEqual({
       valid: false,
@@ -186,5 +210,57 @@ describe("generation custom parameter policy", () => {
     expect(validateGenerationCustomParameters({ ["x".repeat(129)]: false })).toBe(false);
     expect(validateGenerationCustomParameters({ unicode: "鯉".repeat(22_000) })).toBe(false);
     expect(validateGenerationCustomParameters({ unicode: "鯉" })).toBe(true);
+  });
+
+  it("omits invalid native entries while preserving valid tombstones and empty values", () => {
+    expect(
+      normalizePromptPresetParameters({
+        reasoningEffort: { send: true, value: "maximum" },
+        temperature: { send: false, value: null },
+        stopSequences: { send: true, value: [] },
+        customParameters: {
+          messages: { send: true, value: [] },
+          unsafe: { send: true, value: { constructor: "blocked" } },
+          safe: { send: false, value: false },
+          " safe": { send: true, value: true },
+        },
+      }),
+    ).toEqual({
+      temperature: { send: false, value: null },
+      stopSequences: { send: true, value: [] },
+      customParameters: { safe: { send: false, value: false } },
+    });
+  });
+
+  it("preserves disabled numeric drafts and sent custom null values", () => {
+    expect(
+      normalizePromptPresetParameters({
+        temperature: { send: false, value: 3 },
+        customParameters: { nullable_feature: { send: true, value: null } },
+      }),
+    ).toEqual({
+      temperature: { send: false, value: 3 },
+      customParameters: { nullable_feature: { send: true, value: null } },
+    });
+  });
+
+  it("drops invalid sent numeric values instead of clamping them", () => {
+    expect(
+      normalizePromptPresetParameters({
+        temperature: { send: true, value: 3 },
+        maxTokens: { send: true, value: 1.5 },
+      }),
+    ).toBeNull();
+  });
+
+  it("omits an aggregate-invalid custom parameter object during normalization", () => {
+    const customParameters = Object.fromEntries(
+      Array.from({ length: 600 }, (_, index) => [
+        `field_${index}`,
+        { send: true, value: { nested: false } },
+      ]),
+    );
+
+    expect(normalizePromptPresetParameters({ customParameters })).toBeNull();
   });
 });

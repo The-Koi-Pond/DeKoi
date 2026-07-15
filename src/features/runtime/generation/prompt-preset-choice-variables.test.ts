@@ -52,7 +52,6 @@ function promptPreset(): PromptPresetRecord {
     summary: null,
     systemPrompt: "Preset tone {{tone}} style {{style}}.",
     messengerPrompt: "Messenger tone {{tone}} style {{style}}.",
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

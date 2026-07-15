@@ -151,8 +151,11 @@ Focused checks for narrow changes are mapped to change types in
   preserved until you explicitly change or clear those restrictions. Exact
   activation semantics live in [storage-model.md](./storage-model.md).
 - Use the Presets catalog for reusable Messenger and Roleplay prompt sources,
-  current sampling controls, and structured Roleplay section/group editing,
-  then select a prompt preset from thread settings. New threads start with the
+  optional generation parameters, and structured Roleplay section/group editing.
+  Every parameter has its own **Send** control: off means the preset deliberately
+  omits that field; on requires a valid value. Anthropic requests additionally
+  require Maximum Output Tokens to be sent because that provider has no default.
+  After editing, select a prompt preset from thread settings. New threads start with the
   current app default. A title is enough to create and save a preset; prompt
   text, variables, metadata, parameters, and structured recipe rows may all be
   absent. A blank System Prompt stays blank in storage rather than receiving a

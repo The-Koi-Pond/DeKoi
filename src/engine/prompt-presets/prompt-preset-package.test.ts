@@ -18,31 +18,25 @@ function richPromptPreset(): PromptPresetRecord {
     summary: "Exercises the portable prompt-preset contract.",
     systemPrompt: "Write the next response.",
     messengerPrompt: "Reply like a private message.",
-    sampling: {
-      maxTokens: 2048,
-      temperature: 0.8,
-      topP: 0.9,
-    },
     parameters: {
-      maxTokens: 2048,
-      temperature: 0.8,
-      topP: 0.9,
-      topK: 40,
-      minP: 0.05,
+      maxTokens: { send: true, value: 2048 },
+      temperature: { send: true, value: 0.8 },
+      topP: { send: true, value: 0.9 },
+      topK: { send: true, value: 40 },
+      minP: { send: true, value: 0.05 },
       maxContext: 32_768,
-      frequencyPenalty: 0.2,
-      presencePenalty: 0.1,
-      reasoningEffort: "medium",
-      verbosity: "low",
-      serviceTier: "priority",
+      frequencyPenalty: { send: true, value: 0.2 },
+      presencePenalty: { send: true, value: 0.1 },
+      reasoningEffort: { send: true, value: "medium" },
+      verbosity: { send: true, value: "low" },
+      serviceTier: { send: true, value: "priority" },
       assistantPrefill: "<reply>",
       customThinkingTags: "<think></think>",
-      customParameters: { repetition_penalty: 1.1 },
-      enabledParameters: { topK: true },
+      customParameters: { repetition_penalty: { send: true, value: 1.1 } },
       squashSystemMessages: true,
       showThoughts: false,
       useMaxContext: true,
-      stopSequences: ["</reply>"],
+      stopSequences: { send: true, value: ["</reply>"] },
       strictRoleFormatting: true,
       singleUserMessage: false,
     },
@@ -149,7 +143,6 @@ describe("prompt preset packages", () => {
       summary: null,
       systemPrompt: "",
       messengerPrompt: null,
-      sampling: null,
       parameters: null,
       sectionOrder: [],
       groupOrder: [],
@@ -236,27 +229,10 @@ describe("prompt preset packages", () => {
         },
       },
     });
+    expect(packageValue.data.preset).not.toHaveProperty("sampling");
+    expect(packageValue.data.preset.parameters).not.toHaveProperty("enabledParameters");
     const serializedPackage = JSON.parse(JSON.stringify(packageValue)) as unknown;
     expect(normalizePromptPresetImportRecord(serializedPackage)).toEqual(preset);
-  });
-
-  it("merges compatible sampling fields into parameters without overriding parameters", () => {
-    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
-
-    const record = normalizePromptPresetPackage({
-      ...packageValue,
-      data: {
-        ...packageValue.data,
-        preset: {
-          ...packageValue.data.preset,
-          sampling: { maxTokens: 1024, temperature: 0.4 },
-          parameters: { temperature: 0.7, topK: 40 },
-        },
-      },
-    });
-
-    expect(record?.parameters).toMatchObject({ maxTokens: 1024, temperature: 0.7, topK: 40 });
-    expect(record?.sampling).toEqual({ maxTokens: 1024, temperature: 0.7 });
   });
 
   it("resolves whitespace-wrapped compatible default values after canonical trimming", () => {
@@ -712,7 +688,10 @@ describe("prompt preset packages", () => {
             ...validPackage.data,
             preset: {
               ...validPackage.data.preset,
-              parameters: { ...(validPackage.data.preset.parameters ?? {}), temperature: "hot" },
+              parameters: {
+                ...(validPackage.data.preset.parameters ?? {}),
+                temperature: { send: true, value: "hot" },
+              },
             },
           },
         },
@@ -806,31 +785,24 @@ describe("prompt preset packages", () => {
     }
   });
 
-  it.each<[string, "sampling" | "parameters", string, number]>([
-    ["sampling maxTokens below range", "sampling", "maxTokens", 0],
-    ["sampling maxTokens above range", "sampling", "maxTokens", 131_073],
-    ["sampling maxTokens fraction", "sampling", "maxTokens", 1.5],
-    ["sampling temperature below range", "sampling", "temperature", -0.1],
-    ["sampling temperature above range", "sampling", "temperature", 2.1],
-    ["sampling topP below range", "sampling", "topP", -0.1],
-    ["sampling topP above range", "sampling", "topP", 1.1],
-    ["parameters maxTokens above range", "parameters", "maxTokens", 131_073],
-    ["parameters maxTokens fraction", "parameters", "maxTokens", 1.5],
-    ["parameters temperature above range", "parameters", "temperature", 2.1],
-    ["parameters topP above range", "parameters", "topP", 1.1],
-    ["parameters topK below range", "parameters", "topK", -1],
-    ["parameters topK above range", "parameters", "topK", 1_001],
-    ["parameters topK fraction", "parameters", "topK", 0.5],
-    ["parameters minP below range", "parameters", "minP", -0.1],
-    ["parameters minP above range", "parameters", "minP", 1.1],
-    ["parameters maxContext below range", "parameters", "maxContext", 0],
-    ["parameters maxContext above range", "parameters", "maxContext", 2_000_001],
-    ["parameters maxContext fraction", "parameters", "maxContext", 1.5],
-    ["parameters frequencyPenalty below range", "parameters", "frequencyPenalty", -2.1],
-    ["parameters frequencyPenalty above range", "parameters", "frequencyPenalty", 2.1],
-    ["parameters presencePenalty below range", "parameters", "presencePenalty", -2.1],
-    ["parameters presencePenalty above range", "parameters", "presencePenalty", 2.1],
-  ])("rejects %s before normalization", (_label, target, field, value) => {
+  it.each<[string, string, number]>([
+    ["maxTokens above range", "maxTokens", 131_073],
+    ["maxTokens fraction", "maxTokens", 1.5],
+    ["temperature above range", "temperature", 2.1],
+    ["topP above range", "topP", 1.1],
+    ["topK below range", "topK", -1],
+    ["topK above range", "topK", 1_001],
+    ["topK fraction", "topK", 0.5],
+    ["minP below range", "minP", -0.1],
+    ["minP above range", "minP", 1.1],
+    ["maxContext below range", "maxContext", 0],
+    ["maxContext above range", "maxContext", 2_000_001],
+    ["maxContext fraction", "maxContext", 1.5],
+    ["frequencyPenalty below range", "frequencyPenalty", -2.1],
+    ["frequencyPenalty above range", "frequencyPenalty", 2.1],
+    ["presencePenalty below range", "presencePenalty", -2.1],
+    ["presencePenalty above range", "presencePenalty", 2.1],
+  ])("rejects %s before normalization", (_label, field, value) => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
     const preset = validPackage.data.preset;
 
@@ -841,7 +813,10 @@ describe("prompt preset packages", () => {
           ...validPackage.data,
           preset: {
             ...preset,
-            [target]: { ...(preset[target] ?? {}), [field]: value },
+            parameters: {
+              ...(preset.parameters ?? {}),
+              [field]: field === "maxContext" ? value : { send: true, value },
+            },
           },
         },
       }),
@@ -903,16 +878,16 @@ describe("prompt preset packages", () => {
     [
       "lower",
       {
-        sampling: { maxTokens: 1, temperature: 0, topP: 0 },
         parameters: {
-          maxTokens: 1,
-          temperature: 0,
-          topP: 0,
-          topK: 0,
-          minP: 0,
+          maxTokens: { send: true, value: 1 },
+          temperature: { send: true, value: 0 },
+          topP: { send: true, value: 0 },
+          topK: { send: false, value: 0 },
+          minP: { send: false, value: 0 },
           maxContext: 1,
-          frequencyPenalty: -2,
-          presencePenalty: -2,
+          frequencyPenalty: { send: true, value: -2 },
+          presencePenalty: { send: true, value: -2 },
+          stopSequences: { send: true, value: [] },
         },
         injectionOrder: Number.MIN_SAFE_INTEGER,
         injectionDepth: Number.MIN_SAFE_INTEGER,
@@ -923,16 +898,15 @@ describe("prompt preset packages", () => {
     [
       "upper",
       {
-        sampling: { maxTokens: 131_072, temperature: 2, topP: 1 },
         parameters: {
-          maxTokens: 131_072,
-          temperature: 2,
-          topP: 1,
-          topK: 1_000,
-          minP: 1,
+          maxTokens: { send: true, value: 131_072 },
+          temperature: { send: true, value: 2 },
+          topP: { send: true, value: 1 },
+          topK: { send: true, value: 1_000 },
+          minP: { send: true, value: 1 },
           maxContext: 2_000_000,
-          frequencyPenalty: 2,
-          presencePenalty: 2,
+          frequencyPenalty: { send: true, value: 2 },
+          presencePenalty: { send: true, value: 2 },
         },
         injectionOrder: Number.MAX_SAFE_INTEGER,
         injectionDepth: Number.MAX_SAFE_INTEGER,
@@ -953,7 +927,6 @@ describe("prompt preset packages", () => {
           ...validPackage.data,
           preset: {
             ...validPackage.data.preset,
-            sampling: values.sampling,
             parameters: values.parameters,
           },
           sections: [

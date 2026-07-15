@@ -7,45 +7,27 @@ import type {
   PromptPresetGroup,
   PromptPresetParameters,
   PromptPresetRecord,
-  PromptPresetSampling,
   PromptPresetSection,
   PromptPresetSectionRole,
   PromptPresetThreadChoiceSelection,
   PromptPresetThreadChoiceSelections,
 } from "../contracts/types/prompt-presets";
-
-export interface PromptPresetNumericConstraint {
-  minimum: number;
-  maximum: number;
-  integer: boolean;
-}
-
-export const PROMPT_PRESET_NUMERIC_CONSTRAINTS = {
-  maxTokens: { minimum: 1, maximum: 131_072, integer: true },
-  temperature: { minimum: 0, maximum: 2, integer: false },
-  topP: { minimum: 0, maximum: 1, integer: false },
-  topK: { minimum: 0, maximum: 1_000, integer: true },
-  minP: { minimum: 0, maximum: 1, integer: false },
-  maxContext: { minimum: 1, maximum: 2_000_000, integer: true },
-  frequencyPenalty: { minimum: -2, maximum: 2, integer: false },
-  presencePenalty: { minimum: -2, maximum: 2, integer: false },
-  sectionInjectionDepth: {
-    minimum: Number.MIN_SAFE_INTEGER,
-    maximum: Number.MAX_SAFE_INTEGER,
-    integer: true,
-  },
-  sectionInjectionOrder: {
-    minimum: Number.MIN_SAFE_INTEGER,
-    maximum: Number.MAX_SAFE_INTEGER,
-    integer: true,
-  },
-  groupOrder: {
-    minimum: Number.MIN_SAFE_INTEGER,
-    maximum: Number.MAX_SAFE_INTEGER,
-    integer: true,
-  },
-  choiceSortOrder: { minimum: 0, maximum: Number.MAX_SAFE_INTEGER, integer: true },
-} as const satisfies Record<string, PromptPresetNumericConstraint>;
+import {
+  normalizeGenerationParameterEntries,
+  normalizeGenerationParameterValueEntry,
+  type GenerationJsonValue,
+  type GenerationParameterEntry,
+} from "../generation-core/generation-parameter-contract";
+import {
+  validateGenerationCustomParameter,
+  validateGenerationCustomParameters,
+  validateGenerationCustomParameterValue,
+} from "../generation-core/generation-custom-parameter-policy";
+import {
+  PROMPT_PRESET_NUMERIC_CONSTRAINTS,
+  promptPresetParametersAreValid,
+  type PromptPresetNumericConstraint,
+} from "./prompt-preset-parameter-contract";
 
 function cleanNullableNumber(value: unknown, constraint: PromptPresetNumericConstraint) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -57,92 +39,54 @@ function cleanNullableBoolean(value: unknown) {
   return typeof value === "boolean" ? value : null;
 }
 
-export function normalizePromptPresetSampling(
-  value: PromptPresetSampling | null | undefined,
-): PromptPresetSampling | null {
-  if (!value) return null;
+function normalizeCustomParameterEntries(
+  value: unknown,
+): Record<string, GenerationParameterEntry<GenerationJsonValue>> | null {
+  const source = parseJsonIfString(value);
+  if (!isRecord(source)) return null;
 
-  const maxTokens = cleanNullableNumber(
-    value.maxTokens,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxTokens,
+  const result: Record<string, GenerationParameterEntry<GenerationJsonValue>> = {};
+  for (const [name, rawEntry] of Object.entries(source)) {
+    const entry = normalizeGenerationParameterValueEntry(
+      rawEntry,
+      validateGenerationCustomParameterValue,
+    );
+    if (!entry || !validateGenerationCustomParameter(name, entry.value).valid) continue;
+    result[name] = entry;
+  }
+
+  if (Object.keys(result).length === 0) return null;
+  const effectiveValues = Object.fromEntries(
+    Object.entries(result).map(([name, entry]) => [name, entry.value]),
   );
-  const temperature = cleanNullableNumber(
-    value.temperature,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.temperature,
-  );
-  const topP = cleanNullableNumber(value.topP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topP);
-
-  const sampling: PromptPresetSampling = {};
-  if (maxTokens !== null) sampling.maxTokens = maxTokens;
-  if (temperature !== null) sampling.temperature = temperature;
-  if (topP !== null) sampling.topP = topP;
-
-  return Object.keys(sampling).length > 0 ? sampling : null;
+  return validateGenerationCustomParameters(effectiveValues) ? result : null;
 }
 
 export function normalizePromptPresetParameters(value: unknown): PromptPresetParameters | null {
   const source = parseJsonIfString(value);
   if (!isRecord(source)) return null;
 
-  const parameters: PromptPresetParameters = {};
-  const maxTokens = cleanNullableNumber(
-    source.maxTokens,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxTokens,
-  );
-  const temperature = cleanNullableNumber(
-    source.temperature,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.temperature,
-  );
-  const topP = cleanNullableNumber(source.topP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topP);
-  const topK = cleanNullableNumber(source.topK, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topK);
-  const minP = cleanNullableNumber(source.minP, PROMPT_PRESET_NUMERIC_CONSTRAINTS.minP);
+  const parameters: PromptPresetParameters = normalizeGenerationParameterEntries(source);
   const maxContext = cleanNullableNumber(
     source.maxContext,
     PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxContext,
   );
-  const frequencyPenalty = cleanNullableNumber(
-    source.frequencyPenalty,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.frequencyPenalty,
-  );
-  const presencePenalty = cleanNullableNumber(
-    source.presencePenalty,
-    PROMPT_PRESET_NUMERIC_CONSTRAINTS.presencePenalty,
-  );
-  const reasoningEffort = readNullableString(source.reasoningEffort);
-  const verbosity = readNullableString(source.verbosity);
-  const serviceTier = readNullableString(source.serviceTier);
   const assistantPrefill = readNullableString(source.assistantPrefill);
   const customThinkingTags = readNullableString(source.customThinkingTags);
-  const customParameters = isRecord(source.customParameters)
-    ? { ...source.customParameters }
-    : null;
-  const enabledParameters = normalizeBooleanRecord(source.enabledParameters);
+  const customParameters = normalizeCustomParameterEntries(source.customParameters);
   const squashSystemMessages = cleanNullableBoolean(source.squashSystemMessages);
   const showThoughts = cleanNullableBoolean(source.showThoughts);
   const useMaxContext = cleanNullableBoolean(source.useMaxContext);
-  const stopSequences = normalizeStringArray(source.stopSequences);
   const strictRoleFormatting = cleanNullableBoolean(source.strictRoleFormatting);
   const singleUserMessage = cleanNullableBoolean(source.singleUserMessage);
 
-  if (maxTokens !== null) parameters.maxTokens = maxTokens;
-  if (temperature !== null) parameters.temperature = temperature;
-  if (topP !== null) parameters.topP = topP;
-  if (topK !== null) parameters.topK = topK;
-  if (minP !== null) parameters.minP = minP;
   if (maxContext !== null) parameters.maxContext = maxContext;
-  if (frequencyPenalty !== null) parameters.frequencyPenalty = frequencyPenalty;
-  if (presencePenalty !== null) parameters.presencePenalty = presencePenalty;
-  if (reasoningEffort !== null) parameters.reasoningEffort = reasoningEffort;
-  if (verbosity !== null) parameters.verbosity = verbosity;
-  if (serviceTier !== null) parameters.serviceTier = serviceTier;
   if (assistantPrefill !== null) parameters.assistantPrefill = assistantPrefill;
   if (customThinkingTags !== null) parameters.customThinkingTags = customThinkingTags;
   if (customParameters !== null) parameters.customParameters = customParameters;
-  if (enabledParameters !== null) parameters.enabledParameters = enabledParameters;
   if (squashSystemMessages !== null) parameters.squashSystemMessages = squashSystemMessages;
   if (showThoughts !== null) parameters.showThoughts = showThoughts;
   if (useMaxContext !== null) parameters.useMaxContext = useMaxContext;
-  if (stopSequences.length > 0) parameters.stopSequences = stopSequences;
   if (strictRoleFormatting !== null) parameters.strictRoleFormatting = strictRoleFormatting;
   if (singleUserMessage !== null) parameters.singleUserMessage = singleUserMessage;
 
@@ -217,20 +161,6 @@ export function normalizeStringRecord(value: unknown): Record<string, string> {
   }
 
   return record;
-}
-
-function normalizeBooleanRecord(value: unknown): Record<string, boolean> | null {
-  const source = parseJsonIfString(value);
-  if (!isRecord(source)) return null;
-
-  const record: Record<string, boolean> = {};
-  for (const [rawKey, rawValue] of Object.entries(source)) {
-    const key = rawKey.trim();
-    if (!key || typeof rawValue !== "boolean") continue;
-    record[key] = rawValue;
-  }
-
-  return Object.keys(record).length > 0 ? record : null;
 }
 
 function createPromptPresetChoiceOptionSelection(
@@ -966,7 +896,6 @@ function normalizePromptPresetRecordFromParts({
   if (!id) return null;
 
   const normalizedParameters = parameters ?? null;
-  const sampling = normalizePromptPresetSampling(normalizedParameters);
   const resolvedMessengerPrompt = messengerPrompt?.trim() || null;
   const resolvedSystemPrompt = systemPrompt.trim();
 
@@ -977,7 +906,6 @@ function normalizePromptPresetRecordFromParts({
     summary: summary?.trim() || null,
     systemPrompt: resolvedSystemPrompt,
     messengerPrompt: resolvedMessengerPrompt,
-    sampling,
     parameters: normalizedParameters,
     sectionOrder,
     groupOrder,
@@ -1030,6 +958,14 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
   if (!isRecord(value)) return null;
 
   if (value.schemaVersion !== 1) return null;
+  if (Object.prototype.hasOwnProperty.call(value, "sampling")) return null;
+  if (
+    value.parameters !== undefined &&
+    value.parameters !== null &&
+    !promptPresetParametersAreValid(value.parameters)
+  ) {
+    return null;
+  }
 
   if (
     value.systemPrompt !== undefined &&
@@ -1053,9 +989,7 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
   }
 
   const now = new Date().toISOString();
-  const parameters =
-    normalizePromptPresetParameters(value.parameters) ??
-    normalizePromptPresetParameters(value.sampling);
+  const parameters = normalizePromptPresetParameters(value.parameters);
   const sectionOrder = normalizeStringArray(value.sectionOrder);
   const groupOrder = normalizeStringArray(value.groupOrder);
   const variableOrder = normalizeStringArray(value.variableOrder);

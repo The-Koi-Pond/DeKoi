@@ -4,7 +4,6 @@ import type {
   PromptPresetGroup,
   PromptPresetParameters,
   PromptPresetRecord,
-  PromptPresetSampling,
   PromptPresetSection,
 } from "../contracts/types/prompt-presets";
 import { cleanNullableText, cleanText } from "../shared/text";
@@ -13,7 +12,6 @@ import {
   normalizePromptPresetChoiceBlocks,
   normalizePromptPresetGroups,
   normalizePromptPresetParameters,
-  normalizePromptPresetSampling,
   normalizePromptPresetSections,
   normalizeStringArray,
   normalizeStringRecord,
@@ -38,7 +36,6 @@ export interface PromptPresetInput {
   summary?: string | null;
   systemPrompt?: string;
   messengerPrompt?: string | null;
-  sampling?: PromptPresetSampling | null;
   parameters?: PromptPresetParameters | null;
   choiceBlocks?: PromptPresetChoiceBlock[] | null;
   sectionOrder?: string[] | null;
@@ -54,55 +51,9 @@ export interface PromptPresetInput {
   groups?: PromptPresetGroup[] | null;
 }
 
-type PromptPresetSamplingKey = keyof PromptPresetSampling;
-
-const PROMPT_PRESET_SAMPLING_KEYS: PromptPresetSamplingKey[] = ["maxTokens", "temperature", "topP"];
-
-function compactPromptPresetParameters(parameters: PromptPresetParameters) {
-  return Object.keys(parameters).length > 0 ? parameters : null;
-}
-
-function recordPromptPresetParameters(record: PromptPresetRecord) {
-  return record.parameters ?? normalizePromptPresetParameters(record.sampling);
-}
-
-function hasOwnProperty(value: object, key: string) {
-  return Object.prototype.hasOwnProperty.call(value, key);
-}
-
-function mergePromptPresetSamplingParameters(
-  record: PromptPresetRecord,
-  sampling: PromptPresetSampling | null,
-): PromptPresetParameters | null {
-  const parameters: PromptPresetParameters = { ...(recordPromptPresetParameters(record) ?? {}) };
-
-  if (sampling === null) {
-    for (const key of PROMPT_PRESET_SAMPLING_KEYS) {
-      delete parameters[key];
-    }
-    return compactPromptPresetParameters(parameters);
-  }
-
-  const normalizedSampling = normalizePromptPresetSampling(sampling);
-  for (const key of PROMPT_PRESET_SAMPLING_KEYS) {
-    if (!hasOwnProperty(sampling, key)) continue;
-
-    const value = normalizedSampling?.[key];
-    if (value === undefined) {
-      delete parameters[key];
-    } else {
-      parameters[key] = value;
-    }
-  }
-
-  return compactPromptPresetParameters(parameters);
-}
-
 function updatePromptPresetParameters(record: PromptPresetRecord, input: PromptPresetInput) {
   if (input.parameters !== undefined) return normalizePromptPresetParameters(input.parameters);
-  if (input.sampling !== undefined)
-    return mergePromptPresetSamplingParameters(record, input.sampling);
-  return recordPromptPresetParameters(record);
+  return record.parameters ?? null;
 }
 
 export function createPromptPresetRecord({
@@ -114,9 +65,7 @@ export function createPromptPresetRecord({
   input: PromptPresetInput;
   now: string;
 }): PromptPresetRecord {
-  const parameters =
-    normalizePromptPresetParameters(input.parameters) ??
-    normalizePromptPresetParameters(input.sampling);
+  const parameters = normalizePromptPresetParameters(input.parameters);
   const messengerPrompt = cleanNullableText(input.messengerPrompt);
   const rawDefaultChoices = normalizeChoiceSelectionRecord(input.defaultChoices);
   const choiceBlocks = normalizePromptPresetChoiceBlocks(input.choiceBlocks, rawDefaultChoices);
@@ -129,7 +78,6 @@ export function createPromptPresetRecord({
     summary: cleanNullableText(input.summary),
     systemPrompt: cleanText(input.systemPrompt),
     messengerPrompt,
-    sampling: normalizePromptPresetSampling(parameters),
     parameters,
     sectionOrder: normalizeStringArray(input.sectionOrder),
     groupOrder: normalizeStringArray(input.groupOrder),
@@ -178,7 +126,6 @@ export function updatePromptPresetRecord(
     systemPrompt:
       input.systemPrompt === undefined ? record.systemPrompt : cleanText(input.systemPrompt),
     messengerPrompt,
-    sampling: normalizePromptPresetSampling(parameters),
     parameters,
     sectionOrder:
       input.sectionOrder === undefined

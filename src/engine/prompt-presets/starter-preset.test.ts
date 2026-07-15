@@ -69,6 +69,21 @@ describe("Universal V2 starter prompt preset", () => {
     expect(normalizePromptPresetRecord(STARTER_PROMPT_PRESET)).toEqual(STARTER_PROMPT_PRESET);
   });
 
+  it("declares provider send choices without enabling model-dependent fields", () => {
+    expect(STARTER_PROMPT_PRESET.parameters).toMatchObject({
+      maxTokens: { send: true, value: 8192 },
+      temperature: { send: true, value: 1 },
+      topP: { send: true, value: 1 },
+      topK: { send: false, value: 0 },
+      minP: { send: false, value: 0 },
+      frequencyPenalty: { send: false, value: 0 },
+      presencePenalty: { send: false, value: 0 },
+      reasoningEffort: { send: false, value: "max" },
+      verbosity: { send: false, value: "high" },
+      stopSequences: { send: false, value: [] },
+    });
+  });
+
   it("assembles the normalized starter through the native prompt path", () => {
     const messages = assemblePromptPresetMessages({
       fallbackSystemPrompt: "Fallback prompt.",

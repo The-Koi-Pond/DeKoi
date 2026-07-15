@@ -40,7 +40,6 @@ function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPresetReco
     title: "Optional component preset",
     systemPrompt: "",
     messengerPrompt: null,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

@@ -28,6 +28,7 @@ import { PromptPresetChoiceEditor } from "./PromptPresetChoiceEditor";
 import { PromptPresetFileActions } from "./PromptPresetFileActions";
 import { RestoreStarterPresetAction } from "./RestoreStarterPresetAction";
 import { PromptPresetStructureEditor } from "./PromptPresetStructureEditor";
+import { PromptPresetParametersEditor } from "./PromptPresetParametersEditor";
 import { deletePromptPresetAndNavigate } from "./prompt-presets-navigation";
 import "../shared/CatalogSurface.css";
 import "./PromptPresetsSurface.css";
@@ -239,52 +240,7 @@ function PromptPresetEditor({
 
           <PromptPresetChoiceEditor draft={draft} onDraftChange={setDraft} />
 
-          <section className="catalog-editor-section" aria-labelledby="preset-sampling-heading">
-            <h4 id="preset-sampling-heading">Sampling</h4>
-            <div className="catalog-editor-grid compact">
-              <div className="catalog-editor-field">
-                <label htmlFor="preset-temperature">Temperature</label>
-                <input
-                  id="preset-temperature"
-                  className="pondinput"
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.05"
-                  value={draft.temperature}
-                  onChange={(event) => setDraft({ ...draft, temperature: event.target.value })}
-                  placeholder="Provider default"
-                />
-              </div>
-              <div className="catalog-editor-field">
-                <label htmlFor="preset-top-p">Top P</label>
-                <input
-                  id="preset-top-p"
-                  className="pondinput"
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={draft.topP}
-                  onChange={(event) => setDraft({ ...draft, topP: event.target.value })}
-                  placeholder="Provider default"
-                />
-              </div>
-              <div className="catalog-editor-field">
-                <label htmlFor="preset-max-tokens">Max Tokens</label>
-                <input
-                  id="preset-max-tokens"
-                  className="pondinput"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={draft.maxTokens}
-                  onChange={(event) => setDraft({ ...draft, maxTokens: event.target.value })}
-                  placeholder="Provider default"
-                />
-              </div>
-            </div>
-          </section>
+          <PromptPresetParametersEditor draft={draft} onDraftChange={setDraft} />
 
           {editingId && onDuplicate && (
             <section className="catalog-editor-section" aria-labelledby="preset-actions-heading">

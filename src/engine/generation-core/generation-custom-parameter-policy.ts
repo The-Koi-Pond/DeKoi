@@ -30,6 +30,23 @@ export const PROTECTED_CUSTOM_PARAMETER_NAMES = new Set(
     "bearer",
     "basic",
     "token",
+    "accessKey",
+    "access_key",
+    "secret",
+    "secretKey",
+    "secret_key",
+    "privateKey",
+    "private_key",
+    "password",
+    "passwd",
+    "clientSecret",
+    "client_secret",
+    "providerKey",
+    "provider_key",
+    "providerSecret",
+    "provider_secret",
+    "credential",
+    "credentials",
     "accessToken",
     "apiKey",
     "headers",
@@ -216,11 +233,13 @@ export function validateGenerationCustomParameter(
   name: string,
   value: unknown,
 ): GenerationCustomParameterValidation {
-  const normalized = name.trim().toLowerCase();
+  const trimmed = name.trim();
+  const normalized = trimmed.toLowerCase();
   if (
+    name !== trimmed ||
     !normalized ||
     UNSAFE_RECORD_KEYS.has(normalized) ||
-    utf8ByteLength(name.trim()) > MAX_CUSTOM_PARAMETER_NAME_BYTES
+    utf8ByteLength(trimmed) > MAX_CUSTOM_PARAMETER_NAME_BYTES
   ) {
     return { valid: false, reason: "invalid-name" };
   }

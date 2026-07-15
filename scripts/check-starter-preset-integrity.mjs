@@ -6,13 +6,13 @@ const source = await readFile(
 );
 const sha256 = createHash("sha256").update(source).digest("hex");
 
-if (source.byteLength !== 39_137) {
+if (source.byteLength !== 39_410) {
   throw new Error(
-    `Universal V2 starter size changed: expected 39137, received ${source.byteLength}.`,
+    `Universal V2 starter size changed: expected 39410, received ${source.byteLength}.`,
   );
 }
 
-if (sha256 !== "eefc3759e23cd4ea505f06baa5fcf5485c1f055b1db9b9c9a0aa4e91579c4b17") {
+if (sha256 !== "e1c94f96550fca3073563cff3b099a0db4229aa3ac06080cc46c1bad2a2f1b98") {
   throw new Error(`Universal V2 starter SHA-256 changed: ${sha256}.`);
 }
 

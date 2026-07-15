@@ -13,8 +13,10 @@ function promptPreset(): PromptPresetRecord {
     summary: "Standalone package proof.",
     systemPrompt: "Write the next response.",
     messengerPrompt: null,
-    sampling: { temperature: 0.7, maxTokens: 1024 },
-    parameters: { temperature: 0.7, maxTokens: 1024 },
+    parameters: {
+      temperature: { send: true, value: 0.7 },
+      maxTokens: { send: true, value: 1024 },
+    },
     sectionOrder: [],
     groupOrder: [],
     variableOrder: [],
