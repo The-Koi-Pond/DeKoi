@@ -196,7 +196,10 @@ src-tauri/src/provider_response.rs
   the Rust desktop provider path.
 
 src-tauri/src/storage.rs
-  App-data collection storage.
+  App-data collection commands, metadata, validation, and repair policy.
+
+src-tauri/src/storage/json_file.rs
+  Private durable JSON writes, recovery artifacts, and write-mechanics tests.
 
 src-tauri/src/file_dialog.rs
   Bundle import/export file dialogs.

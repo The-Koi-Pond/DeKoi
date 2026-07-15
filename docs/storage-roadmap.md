@@ -66,10 +66,6 @@ These are intentionally not current contracts:
   spends more than 500 ms p95 in ordinary append/save work, spends more than 2 s
   p95 in reload/assembly, or needs range reads, indexed search, or transcript
   pagination. It goes behind `src/runtime/storage/storage-repository-factory.ts`.
-- Desktop storage split: move desktop storage into a dedicated capability
-  module or crate once record repair, cleanup, or profile import makes
-  `src-tauri/src/storage.rs` too broad.
-
 ## Guardrails
 
 - Keep collection entity names unchanged unless the canonical storage model and
