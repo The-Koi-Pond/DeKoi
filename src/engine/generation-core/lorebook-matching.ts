@@ -50,6 +50,7 @@ interface LoreEntryMatchResult {
 interface RegexGroupSafety {
   hasInnerVariableQuantifier: boolean;
   hasAlternation: boolean;
+  outerVariableAtomChain: string[];
 }
 
 type RegexSafetyAtom =
@@ -89,10 +90,10 @@ function parseRegexKey(key: string) {
 function regexQuantifierAt(pattern: string, index: number) {
   const char = pattern[index];
   if (char === "*" || char === "+") {
-    return { endIndex: index, canRepeat: true, canVary: true };
+    return { endIndex: index, canRepeat: true, canVary: true, canBeEmpty: char === "*" };
   }
   if (char === "?") {
-    return { endIndex: index, canRepeat: false, canVary: true };
+    return { endIndex: index, canRepeat: false, canVary: true, canBeEmpty: true };
   }
   if (char !== "{") return null;
 
@@ -109,21 +110,36 @@ function regexQuantifierAt(pattern: string, index: number) {
     endIndex: closeIndex,
     canRepeat: maximum > 1,
     canVary: minimum !== maximum,
+    canBeEmpty: minimum === 0,
   };
 }
 
 function unsafeRegexPatternReason(pattern: string) {
   const groups: RegexGroupSafety[] = [];
   let atom: RegexSafetyAtom = { kind: "none" };
+  let atomIdentity: string | null = null;
+  let variableAtomChain: string[] = [];
   let escaped = false;
   let inCharacterClass = false;
+  let characterClassStartIndex = -1;
+
+  const beginAtom = (identity: string) => {
+    if (atom.kind !== "none") variableAtomChain = [];
+    atom = { kind: "atom" };
+    atomIdentity = identity;
+  };
 
   for (let index = 0; index < pattern.length; index += 1) {
     const char = pattern[index];
 
     if (escaped) {
       escaped = false;
-      if (!inCharacterClass) atom = { kind: "atom" };
+      if (!inCharacterClass) {
+        if (/^[1-9]$/.test(char) || (char === "k" && pattern[index + 1] === "<")) {
+          return "backreferences can cause catastrophic matching work";
+        }
+        if (char !== "b" && char !== "B") beginAtom(`escaped:${char}`);
+      }
       continue;
     }
     if (char === "\\") {
@@ -133,18 +149,27 @@ function unsafeRegexPatternReason(pattern: string) {
     if (inCharacterClass) {
       if (char === "]") {
         inCharacterClass = false;
-        atom = { kind: "atom" };
+        beginAtom(`class:${pattern.slice(characterClassStartIndex, index + 1)}`);
       }
       continue;
     }
     if (char === "[") {
+      if (atom.kind !== "none") variableAtomChain = [];
       inCharacterClass = true;
+      characterClassStartIndex = index;
       atom = { kind: "none" };
+      atomIdentity = null;
       continue;
     }
     if (char === "(") {
-      groups.push({ hasInnerVariableQuantifier: false, hasAlternation: false });
+      if (atom.kind !== "none") variableAtomChain = [];
+      groups.push({
+        hasInnerVariableQuantifier: false,
+        hasAlternation: false,
+        outerVariableAtomChain: variableAtomChain,
+      });
       atom = { kind: "none" };
+      atomIdentity = null;
       continue;
     }
     if (char === ")") {
@@ -158,13 +183,17 @@ function unsafeRegexPatternReason(pattern: string) {
         parentGroup.hasInnerVariableQuantifier ||= group.hasInnerVariableQuantifier;
         parentGroup.hasAlternation ||= group.hasAlternation;
       }
+      variableAtomChain = group.outerVariableAtomChain;
       atom = { kind: "group", group };
+      atomIdentity = "any";
       continue;
     }
     if (char === "|") {
       const group = groups[groups.length - 1];
       if (group) group.hasAlternation = true;
       atom = { kind: "none" };
+      atomIdentity = null;
+      variableAtomChain = [];
       continue;
     }
 
@@ -177,14 +206,39 @@ function unsafeRegexPatternReason(pattern: string) {
       ) {
         return "nested variable quantifiers or repeated alternation can hang generation";
       }
+      if (
+        quantifier.canVary &&
+        atomIdentity !== null &&
+        variableAtomChain.some(
+          (previousIdentity) =>
+            atomIdentity === previousIdentity ||
+            atomIdentity === "any" ||
+            previousIdentity === "any",
+        )
+      ) {
+        return "overlapping sequential variable quantifiers can hang generation";
+      }
       const group = groups[groups.length - 1];
       if (group && quantifier.canVary) group.hasInnerVariableQuantifier = true;
+      variableAtomChain = quantifier.canVary
+        ? quantifier.canBeEmpty
+          ? [...variableAtomChain, ...(atomIdentity === null ? [] : [atomIdentity])]
+          : atomIdentity === null
+            ? []
+            : [atomIdentity]
+        : [];
       index = quantifier.endIndex;
       if (pattern[index + 1] === "?") index += 1;
       atom = { kind: "none" };
+      atomIdentity = null;
       continue;
     }
-    atom = { kind: "atom" };
+    if (char === "^" || char === "$") {
+      atom = { kind: "none" };
+      atomIdentity = null;
+      continue;
+    }
+    beginAtom(char === "." ? "any" : `literal:${char}`);
   }
 
   return null;

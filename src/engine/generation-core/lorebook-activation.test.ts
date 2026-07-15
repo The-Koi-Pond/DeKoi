@@ -823,6 +823,125 @@ describe("lorebook activation", () => {
     expect(activation.warnings[0]).toContain('Unsafe regex key "/(a+)+$/" treated as plaintext');
   });
 
+  it("rejects numeric and named backreferences before compiling or caching them", () => {
+    const numericKey = "/^(a+)\\1+$/";
+    const namedKey = "/^(?<run>a+)\\k<run>+$/";
+    const blockedPatterns = new Set(["^(a+)\\1+$", "^(?<run>a+)\\k<run>+$"]);
+    const RealRegExp = RegExp;
+    const blockedCompilation = vi.fn();
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      if (typeof pattern === "string" && blockedPatterns.has(pattern)) {
+        blockedCompilation(pattern);
+        return new RealRegExp("does-not-match", flags);
+      }
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook(
+          [
+            entry({ title: "Numeric Backreference", strategy: "selective", key: [numericKey] }),
+            entry({
+              title: "Cached Numeric Backreference",
+              strategy: "selective",
+              key: [numericKey],
+            }),
+            entry({ title: "Named Backreference", strategy: "selective", key: [namedKey] }),
+          ],
+          { matchWholeWords: false },
+        ),
+        `${"a".repeat(20_000)}!\n${numericKey}\n${namedKey}`,
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual([
+        "Numeric Backreference",
+        "Cached Numeric Backreference",
+        "Named Backreference",
+      ]);
+      expect(
+        activation.entries.every((item) => item.warnings[0]?.includes("Unsafe regex key")),
+      ).toBe(true);
+      expect(activation.warnings).toHaveLength(2);
+      expect(blockedCompilation).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects repeated sequential variable quantifiers before compiling or caching them", () => {
+    const unsafeKey = "/a*a*a*a*a*a*b/u";
+    const groupedUnsafeKey = "/a*(a)*b/u";
+    const RealRegExp = RegExp;
+    const blockedCompilation = vi.fn();
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      if (pattern === "a*a*a*a*a*a*b" || pattern === "a*(a)*b") {
+        blockedCompilation(pattern);
+        return new RealRegExp("does-not-match", flags);
+      }
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook(
+          [
+            entry({
+              title: "Sequential Quantifiers",
+              strategy: "selective",
+              key: [unsafeKey],
+            }),
+            entry({
+              title: "Cached Sequential Quantifiers",
+              strategy: "selective",
+              key: [unsafeKey],
+            }),
+            entry({
+              title: "Grouped Sequential Quantifiers",
+              strategy: "selective",
+              key: [groupedUnsafeKey],
+            }),
+          ],
+          { matchWholeWords: false },
+        ),
+        `${"a".repeat(20_000)}!\n${unsafeKey}\n${groupedUnsafeKey}`,
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual([
+        "Sequential Quantifiers",
+        "Cached Sequential Quantifiers",
+        "Grouped Sequential Quantifiers",
+      ]);
+      expect(
+        activation.entries.every((item) => item.warnings[0]?.includes("Unsafe regex key")),
+      ).toBe(true);
+      expect(activation.warnings).toHaveLength(2);
+      expect(blockedCompilation).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("allows distinct sequential variable quantifiers", () => {
+    const safeSequential = entry({
+      title: "Safe Sequential Quantifiers",
+      strategy: "selective",
+      key: ["/a*b+c? gate/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([safeSequential], { matchWholeWords: false }),
+      "aaabbb gate",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Safe Sequential Quantifiers",
+    ]);
+    expect(activation.warnings).toEqual([]);
+  });
+
   it("allows optional and exact-one group quantifiers in regex keys", () => {
     const optionalGroup = entry({
       title: "Optional Group",
