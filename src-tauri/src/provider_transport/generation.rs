@@ -12,7 +12,7 @@ use self::{
     payload::build_provider_payload,
 };
 use super::{
-    auth::provider_connection_requires_api_key,
+    auth::provider_connection_api_key_for_scope,
     endpoints::{append_endpoint, append_openai_chat_completions_endpoint},
     http::{
         post_provider_json, provider_headers, provider_http_client, redact_provider_error_secret,
@@ -23,28 +23,14 @@ use super::{
 use crate::provider_response::{
     extract_provider_text, is_openai_compatible, provider_empty_warning,
 };
-use crate::secrets::provider_secret_read_for_scope;
 
 fn generation_api_key(connection: &GenerationConnectionDto) -> Result<String, String> {
-    let provider = connection.provider.as_str();
-    let requires_key = provider_connection_requires_api_key(provider);
-    if !matches!(connection.status, GenerationConnectionStatus::Ready) {
-        if requires_key {
-            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
-        }
-        return Ok(String::new());
-    }
-
-    match provider_secret_read_for_scope(
+    provider_connection_api_key_for_scope(
+        connection.provider.as_str(),
         connection.id.trim(),
-        provider,
         connection.base_url.trim(),
-        false,
-    )? {
-        Some(secret) if !secret.trim().is_empty() => Ok(secret),
-        _ if requires_key => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
-        _ => Ok(String::new()),
-    }
+        matches!(connection.status, GenerationConnectionStatus::Ready),
+    )
 }
 
 fn generation_endpoint(

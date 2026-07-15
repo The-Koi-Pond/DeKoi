@@ -1,10 +1,49 @@
 use crate::secrets::provider_secret_read_for_scope;
 
+const PROVIDER_API_KEY_REQUIRED_ERROR: &str = "Provider connection needs an API key before it can make provider requests. Re-enter the key.";
+
 pub(super) fn provider_connection_requires_api_key(provider: &str) -> bool {
     matches!(
         provider,
         "openai" | "anthropic" | "google" | "mistral" | "cohere" | "openrouter" | "nanogpt" | "xai"
     )
+}
+
+fn resolve_provider_connection_api_key(
+    provider: &str,
+    connection_id: &str,
+    ready: bool,
+    read_secret: impl FnOnce() -> Result<Option<String>, String>,
+) -> Result<String, String> {
+    let requires_key = provider_connection_requires_api_key(provider);
+    if connection_id.trim().is_empty() || !ready {
+        if requires_key {
+            return Err(PROVIDER_API_KEY_REQUIRED_ERROR.to_string());
+        }
+        return Ok(String::new());
+    }
+
+    let secret = if requires_key {
+        read_secret()?
+    } else {
+        read_secret().ok().flatten()
+    };
+    match secret {
+        Some(secret) if !secret.trim().is_empty() => Ok(secret),
+        _ if requires_key => Err(PROVIDER_API_KEY_REQUIRED_ERROR.to_string()),
+        _ => Ok(String::new()),
+    }
+}
+
+pub(super) fn provider_connection_api_key_for_scope(
+    provider: &str,
+    connection_id: &str,
+    base_url: &str,
+    ready: bool,
+) -> Result<String, String> {
+    resolve_provider_connection_api_key(provider, connection_id, ready, || {
+        provider_secret_read_for_scope(connection_id, provider, base_url, false)
+    })
 }
 
 pub(super) fn provider_connection_api_key(
@@ -25,13 +64,6 @@ pub(super) fn provider_connection_api_key(
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .trim();
-    if connection_id.is_empty() {
-        if provider_connection_requires_api_key(provider) {
-            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
-        }
-        return Ok(String::new());
-    }
-
     let base_url = connection
         .get("baseUrl")
         .and_then(|value| value.as_str())
@@ -43,26 +75,7 @@ pub(super) fn provider_connection_api_key(
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .trim();
-    if status != "ready" {
-        if provider_connection_requires_api_key(provider) {
-            return Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string());
-        }
-        return Ok(String::new());
-    }
-
-    if !provider_connection_requires_api_key(provider) {
-        return Ok(
-            provider_secret_read_for_scope(connection_id, provider, base_url, false)
-                .ok()
-                .flatten()
-                .unwrap_or_default(),
-        );
-    }
-
-    match provider_secret_read_for_scope(connection_id, provider, base_url, false)? {
-        Some(secret) if !secret.trim().is_empty() => Ok(secret),
-        _ => Err("Provider connection needs an API key before it can make provider requests. Re-enter the key.".to_string()),
-    }
+    provider_connection_api_key_for_scope(provider, connection_id, base_url, status == "ready")
 }
 
 #[cfg(test)]
@@ -79,6 +92,32 @@ mod tests {
             .expect("Optional-key providers should ignore missing stored secrets");
 
         assert_eq!(api_key, "");
+    }
+
+    #[test]
+    fn optional_provider_ignores_secret_store_read_failures() {
+        let api_key = resolve_provider_connection_api_key(
+            "custom",
+            "connection-custom",
+            true,
+            || Err("Credential store unavailable".to_string()),
+        )
+        .expect("Optional-key providers should tolerate secret-store failures");
+
+        assert_eq!(api_key, "");
+    }
+
+    #[test]
+    fn required_provider_propagates_secret_store_read_failures() {
+        let error = resolve_provider_connection_api_key(
+            "openai",
+            "connection-openai",
+            true,
+            || Err("Credential store unavailable".to_string()),
+        )
+        .expect_err("Required-key providers should surface secret-store failures");
+
+        assert_eq!(error, "Credential store unavailable");
     }
 
     #[test]

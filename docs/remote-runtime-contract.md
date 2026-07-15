@@ -322,9 +322,9 @@ are accepted only by the custom-provider payload, are bounded before
 serialization, and cannot shadow routing, authentication, message, or mapped
 parameter names. Current app-side prompt preset generation still populates only
 the existing sampling projection; this contract does not activate advanced
-preset values. Desktop generation continues to receive the complete unchanged
-generation request through `generation_generate` and owns its provider payload
-adaptation behind that command boundary.
+preset values. Desktop generation receives only this narrow DTO through
+`generation_generate` and owns its provider payload adaptation behind that
+command boundary.
 
 DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
@@ -404,8 +404,8 @@ Response:
 }
 ```
 
-`messages[].characterId` must match a selected companion in the request. DeKoi
-drops unknown companion drafts and surfaces a warning.
+`messages[].characterId` must match `targetCharacterId`. DeKoi drops response
+drafts for any other character and surfaces a warning.
 
 `source` identifies who produced the normalized generation response. Compatible
 remote HTTP runtimes return `"remote-runtime"`; DeKoi's built-in desktop and
@@ -413,12 +413,10 @@ browser provider transport returns `"provider-transport"`. This field is
 generation response metadata and is separate from provider connection records,
 which use `kind: "provider"`.
 
-`request.warnings` contains non-fatal DeKoi-side context and lore activation
-warnings discovered before the runtime call, such as invalid or unsafe regex
-keys that fell back to plaintext or recursive lore activation stopped by the
-hard pass cap. Runtimes do not need to echo these warnings; DeKoi surfaces
-runtime response warnings first, then unknown companion draft warnings, then
-`request.warnings`.
+Non-fatal DeKoi-side context and lore activation warnings remain app-owned and
+are not included in this transport DTO. After the runtime call, DeKoi surfaces
+runtime response warnings first, then warnings for response drafts whose
+character ID does not match `targetCharacterId`, then the app-owned warnings.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
