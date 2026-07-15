@@ -209,6 +209,19 @@ export function buildProviderPayloadForPlan(
   input: ProviderPayloadInput,
   plan: ProviderTransportPlan,
 ): ProviderJson {
+  if (
+    plan.payloadKind !== "custom" &&
+    Object.keys(input.parameters.customParameters ?? {}).length > 0
+  ) {
+    throw new Error("Custom parameters are supported only by the custom provider.");
+  }
+  if (
+    (plan.payloadKind === "anthropic" || plan.payloadKind === "google") &&
+    nonSystemMessages(input.messages).length === 0
+  ) {
+    throw new Error("Provider generation requires at least one user or assistant prompt message.");
+  }
+
   if (plan.payloadKind === "openai") return buildOpenAiPayload(input);
   if (plan.payloadKind === "conservative-oai") return buildConservativeOaiPayload(input);
   if (plan.payloadKind === "openrouter") return buildOpenRouterPayload(input);

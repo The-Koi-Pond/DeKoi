@@ -14,9 +14,8 @@ use self::{
 use super::{
     auth::provider_connection_api_key_for_scope,
     endpoints::{append_endpoint, append_openai_chat_completions_endpoint},
-    http::{
-        post_provider_json, provider_headers, provider_http_client, redact_provider_error_secret,
-    },
+    error_sanitization::redact_provider_error_secret,
+    http::{post_provider_json, provider_headers, provider_http_client},
     prompt::strip_speaker_prefix,
     PROVIDER_GENERATION_TIMEOUT,
 };

@@ -272,12 +272,12 @@
       }
     },
     {
-      "name": "non custom providers omit custom values",
+      "name": "non custom providers reject custom values",
       "provider": "openrouter",
       "model": "test-model",
       "messages": [{ "role": "user", "content": "Hello" }],
       "parameters": { "customParameters": { "feature_enabled": false } },
-      "expected": { "model": "test-model", "messages": [{ "role": "user", "content": "Hello" }] }
+      "expectedError": "Custom parameters are supported only by the custom provider."
     },
     {
       "name": "custom rejects protected collisions",
@@ -294,6 +294,22 @@
       "messages": [{ "role": "user", "content": "Hello" }],
       "parameters": { "temperature": 0.5 },
       "expectedError": "Anthropic generation requires maxTokens."
+    },
+    {
+      "name": "anthropic rejects system only prompts before transport",
+      "provider": "anthropic",
+      "model": "test-model",
+      "messages": [{ "role": "system", "content": "Stay concise." }],
+      "parameters": { "maxTokens": 100 },
+      "expectedError": "Provider generation requires at least one user or assistant prompt message."
+    },
+    {
+      "name": "google rejects system only prompts before transport",
+      "provider": "google",
+      "model": "test-model",
+      "messages": [{ "role": "system", "content": "Stay concise." }],
+      "parameters": {},
+      "expectedError": "Provider generation requires at least one user or assistant prompt message."
     },
     {
       "name": "unsupported provider remains explicit",

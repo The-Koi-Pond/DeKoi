@@ -86,6 +86,12 @@ describe("configured provider transport", () => {
       { customParameters: { maxOutputTokens: 10 } },
       "reserved",
     ],
+    [
+      "custom parameters on non-custom provider",
+      "openai",
+      { customParameters: { feature_enabled: true } },
+      "only by the custom provider",
+    ],
     ["unsupported provider", "openai_chatgpt", {}, "not supported for generation"],
   ] as const)("stops %s before HTTP", async (_name, provider, parameters, error) => {
     const fetchMock = vi.fn();
@@ -106,6 +112,12 @@ describe("configured provider transport", () => {
       "custom",
       { customParameters: { maxOutputTokens: 10 } },
       "reserved",
+    ],
+    [
+      "custom parameters on non-custom provider",
+      "openai",
+      { customParameters: { feature_enabled: true } },
+      "only by the custom provider",
     ],
     ["unsupported provider", "openai_chatgpt", {}, "not supported for generation"],
   ] as const)("stops %s before desktop invoke", async (_name, provider, parameters, error) => {

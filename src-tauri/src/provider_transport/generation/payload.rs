@@ -82,6 +82,36 @@ fn conservative_oai_payload(
     payload
 }
 
+fn validate_provider_payload_input(
+    provider: GenerationProvider,
+    messages: &[GenerationPromptMessageDto],
+    parameters: &GenerationParametersDto,
+) -> Result<(), String> {
+    if !matches!(provider, GenerationProvider::Custom)
+        && parameters
+            .custom_parameters
+            .as_ref()
+            .is_some_and(|custom| !custom.is_empty())
+    {
+        return Err("Custom parameters are supported only by the custom provider.".to_string());
+    }
+    if matches!(
+        provider,
+        GenerationProvider::Anthropic | GenerationProvider::Google
+    ) && !messages.iter().any(|message| {
+        matches!(
+            message.role,
+            GenerationPromptRole::User | GenerationPromptRole::Assistant
+        )
+    }) {
+        return Err(
+            "Provider generation requires at least one user or assistant prompt message."
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
 // Provider wire boundaries verified 2026-07-15 against the OpenAI Chat,
 // Anthropic Messages, Google generateContent, and OpenRouter parameter docs.
 pub(super) fn build_provider_payload(
@@ -90,6 +120,8 @@ pub(super) fn build_provider_payload(
     messages: &[GenerationPromptMessageDto],
     parameters: &GenerationParametersDto,
 ) -> Result<Value, String> {
+    validate_provider_payload_input(provider, messages, parameters)?;
+
     let payload = match provider {
         GenerationProvider::Openai => {
             let mut payload = base_oai_payload(model, messages);
