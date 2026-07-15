@@ -547,10 +547,14 @@ Desktop collection JSON writes use an operation-owned sibling temp file and a
   existing sibling
 - write and sync the temp file
 - preserve the readable current file as `<entity>.json.bak`
+- for replacement writes, atomically claim the current destination into an
+  operation-owned rollback artifact, compare the claimed bytes with the backup
+  or rollback snapshot, then install only if the destination remains absent
 - atomically install only that operation's temp file without overwriting a
   destination that appeared concurrently, using native no-replace rename with
   an atomic hard-link fallback
-- leave the destination untouched on install failure and keep recovery artifacts
+- restore the claimed destination when installation fails while the path remains
+  absent; if another writer recreated the path, leave its bytes untouched
 - best-effort sync the final file and parent directory
 
 DeKoi storage bundle files use the same temp-file write and sync path, but they
