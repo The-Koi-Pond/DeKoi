@@ -550,6 +550,8 @@ Desktop collection JSON writes use an operation-owned sibling temp file and a
 - atomically install only that operation's temp file without overwriting a
   destination that appeared concurrently, using native no-replace rename with
   an atomic hard-link fallback
+- before replacing an existing destination, compare it with the operation's
+  backup or rollback snapshot and reject the install when the bytes changed
 - leave the destination untouched on install failure and keep recovery artifacts
 - best-effort sync the final file and parent directory
 

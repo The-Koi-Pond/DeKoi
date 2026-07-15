@@ -1,7 +1,7 @@
 use std::{
     ffi::OsString,
     fs::{self, File, OpenOptions},
-    io::{self, Write},
+    io::{self, BufReader, Read, Write},
     path::{Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
@@ -191,13 +191,21 @@ impl Drop for OwnedJsonArtifact {
 enum BackupState {
     NotRequested,
     NoSourceFile,
-    Created,
+    Created { snapshot_path: PathBuf },
     RollbackCreated { artifact: OwnedJsonArtifact },
 }
 
 impl BackupState {
     fn created(&self) -> bool {
-        matches!(self, BackupState::Created)
+        matches!(self, BackupState::Created { .. })
+    }
+
+    fn recovery_snapshot_path(&self) -> Option<&Path> {
+        match self {
+            BackupState::Created { snapshot_path } => Some(snapshot_path),
+            BackupState::RollbackCreated { artifact } => Some(artifact.path()),
+            BackupState::NotRequested | BackupState::NoSourceFile => None,
+        }
     }
 
     fn retained_rollback_message(&self) -> String {
@@ -208,7 +216,7 @@ impl BackupState {
                     artifact.path().to_string_lossy()
                 )
             }
-            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created => {
+            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created { .. } => {
                 String::new()
             }
         }
@@ -223,7 +231,9 @@ impl BackupState {
     fn cleanup_transient_rollback(&mut self) -> Result<(), String> {
         match self {
             BackupState::RollbackCreated { artifact } => artifact.cleanup_as("rollback file"),
-            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created => Ok(()),
+            BackupState::NotRequested | BackupState::NoSourceFile | BackupState::Created { .. } => {
+                Ok(())
+            }
         }
     }
 }
@@ -248,7 +258,9 @@ fn preserve_existing_backup(
     sync_file_best_effort(&backup_path);
     sync_parent_directory_best_effort(&backup_path);
 
-    Ok(BackupState::Created)
+    Ok(BackupState::Created {
+        snapshot_path: backup_path,
+    })
 }
 
 fn preserve_current_for_rollback(
@@ -299,11 +311,49 @@ fn install_temporary_json_file(
     path: &Path,
     backup_state: &BackupState,
 ) -> io::Result<()> {
-    let replace_existing = matches!(
-        backup_state,
-        BackupState::Created | BackupState::RollbackCreated { .. }
-    );
+    let replace_existing = backup_state.recovery_snapshot_path().is_some();
+    if let Some(snapshot_path) = backup_state.recovery_snapshot_path() {
+        ensure_destination_matches_recovery_snapshot(path, snapshot_path)?;
+    }
     replace_temporary_json_file(temporary_path, path, replace_existing)
+}
+
+fn ensure_destination_matches_recovery_snapshot(
+    path: &Path,
+    snapshot_path: &Path,
+) -> io::Result<()> {
+    if files_have_same_contents(path, snapshot_path)? {
+        return Ok(());
+    }
+
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "DeKoi JSON destination changed after its recovery snapshot was captured; refusing to replace concurrent data",
+    ))
+}
+
+fn files_have_same_contents(left_path: &Path, right_path: &Path) -> io::Result<bool> {
+    let left = File::open(left_path)?;
+    let right = File::open(right_path)?;
+    if left.metadata()?.len() != right.metadata()?.len() {
+        return Ok(false);
+    }
+
+    let mut left = BufReader::new(left);
+    let mut right = BufReader::new(right);
+    let mut left_buffer = [0_u8; 8192];
+    let mut right_buffer = [0_u8; 8192];
+    loop {
+        let left_length = left.read(&mut left_buffer)?;
+        let right_length = right.read(&mut right_buffer)?;
+        if left_length != right_length || left_buffer[..left_length] != right_buffer[..right_length]
+        {
+            return Ok(false);
+        }
+        if left_length == 0 {
+            return Ok(true);
+        }
+    }
 }
 
 #[cfg(any(not(windows), test))]
@@ -477,7 +527,9 @@ fn preserve_pre_repair_json(path: &Path) -> Result<BackupState, String> {
     sync_file_best_effort(&pre_repair_path);
     sync_parent_directory_best_effort(&pre_repair_path);
 
-    Ok(BackupState::Created)
+    Ok(BackupState::Created {
+        snapshot_path: pre_repair_path,
+    })
 }
 
 fn cleanup_json_write_artifacts(
@@ -692,6 +744,35 @@ mod tests {
     }
 
     #[test]
+    fn collection_write_rejects_destination_changed_after_backup_capture() {
+        let directory = temp_test_dir("collection-concurrent-replacement");
+        let path = directory.join("characters.json");
+        let old_value = serde_json::json!([{ "id": "old" }]);
+        let new_value = serde_json::json!([{ "id": "new" }]);
+        let concurrent_value = serde_json::json!([{ "id": "concurrent" }]);
+        write_collection_json_file(&path, &old_value, "collection file")
+            .expect("initial write should succeed");
+
+        let error = write_json_file_with_installer(
+            &path,
+            &new_value,
+            "collection file",
+            true,
+            |temporary_path, target_path, backup_state| {
+                fs::write(target_path, concurrent_value.to_string())?;
+                install_temporary_json_file(temporary_path, target_path, backup_state)
+            },
+        )
+        .expect_err("a destination changed after backup capture must reject installation");
+
+        assert!(error.contains("destination changed after its recovery snapshot was captured"));
+        assert_eq!(read_json(&path), concurrent_value);
+        assert_eq!(read_json(&backup_json_path(&path)), old_value);
+        assert!(!temporary_json_exists(&path));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
     fn collection_write_cleans_temp_when_created_backup_disappears() {
         let directory = temp_test_dir("missing-created-backup");
         let path = directory.join("characters.json");
@@ -707,7 +788,7 @@ mod tests {
             "collection file",
             true,
             |_temporary_path, _target_path, backup_state| {
-                assert!(matches!(backup_state, BackupState::Created));
+                assert!(matches!(backup_state, BackupState::Created { .. }));
                 fs::remove_file(&backup_path)?;
                 Err(io::Error::other("simulated missing backup failure"))
             },
@@ -748,6 +829,38 @@ mod tests {
         .expect_err("simulated install failure should be reported");
 
         assert!(error.contains("Rollback file retained at"));
+        assert_eq!(read_json(&path), concurrent_value);
+        assert_eq!(rollback_file_count(&directory), 1);
+        assert!(!json_artifact_exists(&path, JSON_WRITE_ARTIFACT_KIND));
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn export_write_rejects_destination_changed_after_rollback_capture() {
+        let directory = temp_test_dir("export-concurrent-replacement");
+        let path = directory.join("Portable Preset.json");
+        let old_value = serde_json::json!({ "version": 1 });
+        let new_value = serde_json::json!({ "version": 2 });
+        let concurrent_value = serde_json::json!({ "source": "other writer" });
+        write_export_json_file(&path, &old_value, "prompt preset file")
+            .expect("initial export should succeed");
+        let rollback_state =
+            preserve_current_for_rollback(&path, "existing prompt preset file for replacement")
+                .expect("rollback should be created");
+
+        let error = write_json_file_with_backup_state(
+            &path,
+            &new_value,
+            "prompt preset file",
+            rollback_state,
+            |temporary_path, target_path, backup_state| {
+                fs::write(target_path, concurrent_value.to_string())?;
+                install_temporary_json_file(temporary_path, target_path, backup_state)
+            },
+        )
+        .expect_err("a destination changed after rollback capture must reject installation");
+
+        assert!(error.contains("destination changed after its recovery snapshot was captured"));
         assert_eq!(read_json(&path), concurrent_value);
         assert_eq!(rollback_file_count(&directory), 1);
         assert!(!json_artifact_exists(&path, JSON_WRITE_ARTIFACT_KIND));
@@ -967,7 +1080,7 @@ mod tests {
                     owned: true,
                 },
             },
-            install_temporary_json_file,
+            |temporary_path, target_path, _backup_state| fs::rename(temporary_path, target_path),
         )
         .expect_err("committed export should report rollback cleanup failure");
 

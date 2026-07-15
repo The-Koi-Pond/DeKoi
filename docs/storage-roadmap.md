@@ -66,6 +66,7 @@ These are intentionally not current contracts:
   spends more than 500 ms p95 in ordinary append/save work, spends more than 2 s
   p95 in reload/assembly, or needs range reads, indexed search, or transcript
   pagination. It goes behind `src/runtime/storage/storage-repository-factory.ts`.
+
 ## Guardrails
 
 - Keep collection entity names unchanged unless the canonical storage model and
