@@ -1,6 +1,5 @@
 import type {
   GeneratedMessageDraft,
-  GenerationPromptMessage,
   GenerationRequestBase,
   GenerationResponse,
   GenerationResponseSource,
@@ -13,7 +12,11 @@ import { isDesktopHostAvailable } from "../../../shared/api/desktop-host-common"
 import { invokeDesktopRuntime } from "../../../shared/api/desktop-runtime";
 import { fetchJsonWithTimeout, formatTimeoutDuration } from "../../../shared/api/http-timeout";
 import { RUNTIME_COMMANDS } from "../../../shared/api/runtime-commands";
-import { errorMessage } from "../../../shared/errors";
+import { buildProviderPayloadForPlan } from "./provider-parameter-adaptation";
+import {
+  resolveProviderTransportPlan,
+  type ProviderTransportPlan,
+} from "./provider-transport-plan";
 
 type ProviderJson = Record<string, unknown>;
 export type ProviderTextResult = {
@@ -94,7 +97,25 @@ function normalizeProviderResponse(
 }
 
 export function providerErrorMessage(error: unknown) {
-  return errorMessage(error, "Unknown provider error.");
+  const detail =
+    error instanceof Error ? error.message : String(error || "Unknown provider error.");
+  return cleanProviderErrorDetail(detail);
+}
+
+const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
+const PROVIDER_CREDENTIAL_FIELD_PATTERN =
+  /(["']?)((?:api[_-]?key|x-api-key|x-goog-api-key|access[_-]?token|token))\1\s*([:=])\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}]+)/gi;
+
+function cleanProviderErrorDetail(detail: string) {
+  const cleaned = detail
+    .replace(/\b(Authorization\s*[:=]\s*)?(?:Bearer|Basic)\s+[^\s,;]+/gi, "$1[redacted]")
+    .replace(PROVIDER_CREDENTIAL_FIELD_PATTERN, "$1$2$1$3[redacted]")
+    .replace(/\b(?:sk-[A-Za-z0-9._-]{4,}|AIza[A-Za-z0-9_-]{8,})/g, "[redacted]")
+    .replace(/(https?:\/\/)[^\s/@:]+(?::[^\s/@]*)?@/gi, "$1[redacted]@")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "Unknown provider error.";
+  return cleaned.slice(0, MAX_PROVIDER_ERROR_DETAIL_LENGTH);
 }
 
 function assertProviderConnection(request: ProviderGenerationRequest) {
@@ -111,14 +132,15 @@ function assertProviderConnection(request: ProviderGenerationRequest) {
     throw new Error("Provider connection needs a base URL before it can generate.");
   }
 
-  const providerOption = getProviderConnectionProviderOption(connection.provider);
-  if (providerOption.apiKeyRequired && !isDesktopHostAvailable()) {
+  return connection;
+}
+
+function assertBrowserProviderAccess(provider: ProviderConnectionProvider) {
+  if (getProviderConnectionProviderOption(provider).apiKeyRequired) {
     throw new Error(
       "Provider API keys are stored in the desktop key store and are not available in browser mode.",
     );
   }
-
-  return connection;
 }
 
 function appendEndpoint(baseUrl: string, endpoint: string) {
@@ -136,40 +158,11 @@ function appendOpenAiChatCompletionsEndpoint(baseUrl: string) {
   return `${trimmed}/v1/chat/completions`;
 }
 
-function authHeaders(provider: ProviderConnectionProvider, apiKey: string) {
-  const trimmedKey = apiKey.trim();
-  const headers: Record<string, string> = {
+function browserHeaders() {
+  return {
     Accept: "application/json",
     "Content-Type": "application/json",
   };
-
-  if (!trimmedKey) return headers;
-
-  if (provider === "anthropic") {
-    headers["x-api-key"] = trimmedKey;
-    headers["anthropic-version"] = "2023-06-01";
-    return headers;
-  }
-
-  if (provider === "google") {
-    headers["x-goog-api-key"] = trimmedKey;
-    return headers;
-  }
-
-  headers.Authorization = `Bearer ${trimmedKey}`;
-  return headers;
-}
-
-function openAiCompatibleProviders(provider: ProviderConnectionProvider) {
-  return (
-    provider === "openai" ||
-    provider === "mistral" ||
-    provider === "cohere" ||
-    provider === "openrouter" ||
-    provider === "nanogpt" ||
-    provider === "xai" ||
-    provider === "custom"
-  );
 }
 
 function providerPayloadErrorMessage(payload: unknown) {
@@ -178,37 +171,46 @@ function providerPayloadErrorMessage(payload: unknown) {
   if (typeof payload.error === "string") return payload.error.trim();
   if (!isRecord(payload.error)) return "Provider returned an error response.";
 
-  return (
+  const message = (
     readString(payload.error.message) ||
     readString(payload.error.detail) ||
     readString(payload.error.type) ||
-    readString(payload.error.code) ||
     "Provider returned an error response."
   ).trim();
+  const code = readString(payload.error.code).trim();
+  return code && code !== message ? `${message} (${code})` : message;
 }
 
 async function postJson(url: string, headers: Record<string, string>, body: ProviderJson) {
-  const { response, body: payload } = await fetchJsonWithTimeout(
-    url,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    },
-    PROVIDER_GENERATION_TIMEOUT_MS,
-    `Provider request timed out after ${formatTimeoutDuration(PROVIDER_GENERATION_TIMEOUT_MS)}.`,
-  );
+  let response: Response;
+  let payload: unknown;
+  try {
+    ({ response, body: payload } = await fetchJsonWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      },
+      PROVIDER_GENERATION_TIMEOUT_MS,
+      `Provider request timed out after ${formatTimeoutDuration(PROVIDER_GENERATION_TIMEOUT_MS)}.`,
+    ));
+  } catch (error) {
+    throw new Error(providerErrorMessage(error), { cause: error });
+  }
   const payloadError = providerPayloadErrorMessage(payload);
 
   if (!response.ok) {
     const message =
       payloadError ||
       (isRecord(payload) ? readString(payload.message) || readString(payload.error) : "");
-    throw new Error(message || `Provider returned HTTP ${response.status}.`);
+    throw new Error(
+      cleanProviderErrorDetail(message || `Provider returned HTTP ${response.status}.`),
+    );
   }
 
   if (payloadError) {
-    throw new Error(payloadError);
+    throw new Error(cleanProviderErrorDetail(payloadError));
   }
 
   return payload;
@@ -395,11 +397,19 @@ export function extractProviderTextResult(
   provider: ProviderConnectionProvider,
   payload: unknown,
 ): ProviderTextResult {
-  if (openAiCompatibleProviders(provider)) return openAiText(payload);
-  if (provider === "anthropic") return anthropicText(payload);
-  if (provider === "google") return googleText(payload);
+  const plan = resolveProviderTransportPlan(provider);
+  if (plan) return extractProviderTextResultForPlan(plan, payload);
 
   throw new Error(`${provider} is not supported by the bare-minimum provider adapter yet.`);
+}
+
+function extractProviderTextResultForPlan(
+  plan: ProviderTransportPlan,
+  payload: unknown,
+): ProviderTextResult {
+  if (plan.responseKind === "openai") return openAiText(payload);
+  if (plan.responseKind === "anthropic") return anthropicText(payload);
+  return googleText(payload);
 }
 
 function stripSpeakerPrefix(body: string, speakerName: string | null) {
@@ -448,89 +458,49 @@ function createProviderResponse(
   };
 }
 
-function nonSystemMessages(messages: GenerationPromptMessage[]) {
-  return messages.filter((message) => message.role !== "system");
-}
-
-function systemPrompt(messages: GenerationPromptMessage[]) {
-  return messages
-    .filter((message) => message.role === "system")
-    .map((message) => message.content)
-    .join("\n\n");
-}
-
 async function generateWithBrowserProvider(
   request: ProviderGenerationRequest,
+  payload: ProviderJson,
+  plan: ProviderTransportPlan,
 ): Promise<GenerationResponse> {
   const connection = assertProviderConnection(request);
-  const headers = authHeaders(connection.provider, "");
-  const { maxTokens, temperature, topP } = request.parameters;
+  assertBrowserProviderAccess(connection.provider);
 
   if (!request.targetCharacterId) {
     return createProviderResponse(request, { text: "" });
   }
 
-  if (openAiCompatibleProviders(connection.provider)) {
-    const payload = await postJson(
-      appendOpenAiChatCompletionsEndpoint(connection.baseUrl),
-      headers,
-      {
-        model: connection.model,
-        messages: request.promptMessages,
-        temperature,
-        top_p: topP,
-        max_tokens: maxTokens,
-      },
-    );
-    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
-  }
-
-  if (connection.provider === "anthropic") {
-    const payload = await postJson(appendEndpoint(connection.baseUrl, "/messages"), headers, {
-      model: connection.model,
-      system: systemPrompt(request.promptMessages),
-      messages: nonSystemMessages(request.promptMessages),
-      temperature,
-      top_p: topP,
-      max_tokens: maxTokens,
-    });
-    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
-  }
-
-  if (connection.provider === "google") {
+  let endpoint: string;
+  if (plan.endpointKind === "openai") {
+    endpoint = appendOpenAiChatCompletionsEndpoint(connection.baseUrl);
+  } else if (plan.endpointKind === "anthropic") {
+    endpoint = appendEndpoint(connection.baseUrl, "/messages");
+  } else {
     const baseUrl = connection.baseUrl.trim().replace(/\/+$/, "");
     const model = connection.model.replace(/^models\//, "");
-    const payload = await postJson(
-      `${baseUrl}/models/${encodeURIComponent(model)}:generateContent`,
-      headers,
-      {
-        systemInstruction: {
-          parts: [{ text: systemPrompt(request.promptMessages) }],
-        },
-        contents: nonSystemMessages(request.promptMessages).map((message) => ({
-          role: message.role === "assistant" ? "model" : "user",
-          parts: [{ text: message.content }],
-        })),
-        generationConfig: {
-          temperature,
-          topP,
-          maxOutputTokens: maxTokens,
-        },
-      },
-    );
-    return createProviderResponse(request, extractProviderTextResult(connection.provider, payload));
+    endpoint = `${baseUrl}/models/${encodeURIComponent(model)}:generateContent`;
   }
-
-  throw new Error(
-    `${connection.provider} is not supported by the bare-minimum provider adapter yet.`,
-  );
+  const responsePayload = await postJson(endpoint, browserHeaders(), payload);
+  return createProviderResponse(request, extractProviderTextResultForPlan(plan, responsePayload));
 }
 
 export async function generateWithConfiguredProvider(
   request: ProviderGenerationRequest,
 ): Promise<GenerationResponse> {
+  const connection = assertProviderConnection(request);
+  const plan = resolveProviderTransportPlan(connection.provider);
+  if (!plan) throw new Error(`${connection.provider} is not supported for generation.`);
+  const payload = buildProviderPayloadForPlan(
+    {
+      provider: connection.provider,
+      model: connection.model,
+      messages: request.promptMessages,
+      parameters: request.parameters,
+    },
+    plan,
+  );
+
   if (isDesktopHostAvailable()) {
-    const connection = assertProviderConnection(request);
     const providerOption = getProviderConnectionProviderOption(connection.provider);
     if (providerOption.apiKeyRequired && connection.status !== "ready") {
       throw new Error("Provider connection needs an API key before it can generate.");
@@ -542,5 +512,5 @@ export async function generateWithConfiguredProvider(
     return normalizeProviderResponse(response, request);
   }
 
-  return await generateWithBrowserProvider(request);
+  return await generateWithBrowserProvider(request, payload, plan);
 }
