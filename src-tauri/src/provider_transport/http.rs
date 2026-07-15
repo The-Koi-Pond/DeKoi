@@ -17,11 +17,12 @@ pub(super) fn provider_request_error(
     if error.is_timeout() {
         format!("{action} timed out after {} seconds.", timeout.as_secs())
     } else {
-        format!(
-            "{action} failed. {}",
-            clean_provider_error_detail(&error.to_string())
-        )
+        provider_request_failure(action, &error.to_string())
     }
+}
+
+fn provider_request_failure(action: &str, detail: &str) -> String {
+    format!("{action} failed. {}", clean_provider_error_detail(detail))
 }
 
 fn parse_provider_json_body(
@@ -193,6 +194,18 @@ mod tests {
     use super::*;
     use crate::provider_transport::error_sanitization::redact_provider_error_secret;
 
+    const PROTECTED_CREDENTIAL_DETAILS: [(&str, &str); 9] = [
+        ("access_token=access-secret", "access-secret"),
+        ("token: token-secret", "token-secret"),
+        (r#""api_key":"json-secret""#, "json-secret"),
+        ("'accessToken': 'quoted secret'", "quoted secret"),
+        ("Authorization: raw-secret", "raw-secret"),
+        ("authorization=assignment-secret", "assignment-secret"),
+        (r#""authorization":"quoted-secret""#, "quoted-secret"),
+        ("Authorization: Bearer bearer-secret", "bearer-secret"),
+        ("Authorization: Basic basic-secret", "basic-secret"),
+    ];
+
     #[test]
     fn provider_json_payload_rejects_empty_success_body() {
         let error = parse_provider_json_body(reqwest::StatusCode::OK, b"", "Model fetch")
@@ -275,12 +288,7 @@ mod tests {
 
     #[test]
     fn provider_error_redacts_protected_credential_field_forms() {
-        for (detail, secret) in [
-            ("access_token=access-secret", "access-secret"),
-            ("token: token-secret", "token-secret"),
-            (r#""api_key":"json-secret""#, "json-secret"),
-            ("'accessToken': 'quoted secret'", "quoted secret"),
-        ] {
+        for (detail, secret) in PROTECTED_CREDENTIAL_DETAILS {
             let http_error = provider_error(
                 &serde_json::json!({ "error": { "message": detail } }),
                 reqwest::StatusCode::BAD_REQUEST,
@@ -297,6 +305,16 @@ mod tests {
                 embedded_error.contains("[redacted]"),
                 "embedded error: {detail}"
             );
+        }
+    }
+
+    #[test]
+    fn provider_request_failure_redacts_protected_credential_field_forms() {
+        for (detail, secret) in PROTECTED_CREDENTIAL_DETAILS {
+            let error = provider_request_failure("Provider request", detail);
+
+            assert!(!error.contains(secret), "request error leaked {detail}");
+            assert!(error.contains("[redacted]"), "request error: {detail}");
         }
     }
 

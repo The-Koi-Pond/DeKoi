@@ -185,6 +185,11 @@ describe("configured provider transport", () => {
     ["token: token-secret", "token-secret"],
     ['"api_key":"json-secret"', "json-secret"],
     ["'accessToken': 'quoted secret'", "quoted secret"],
+    ["Authorization: raw-secret", "raw-secret"],
+    ["authorization=assignment-secret", "assignment-secret"],
+    ['"authorization":"quoted-secret"', "quoted-secret"],
+    ["Authorization: Bearer bearer-secret", "bearer-secret"],
+    ["Authorization: Basic basic-secret", "basic-secret"],
   ])("redacts protected credential field in %s", (detail, secret) => {
     const message = providerErrorMessage(new Error(detail));
 

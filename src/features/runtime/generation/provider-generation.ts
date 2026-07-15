@@ -103,7 +103,7 @@ export function providerErrorMessage(error: unknown) {
 
 const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
 const PROVIDER_CREDENTIAL_FIELD_PATTERN =
-  /(["']?)((?:api[_-]?key|x-api-key|x-goog-api-key|access[_-]?token|token))\1\s*([:=])\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}]+)/gi;
+  /(["']?)((?:api[_-]?key|x-api-key|x-goog-api-key|access[_-]?token|authorization|token))\1\s*([:=])\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:(?:Bearer|Basic)\s+)?[^\s,;}]+)/gi;
 
 function cleanProviderErrorDetail(detail: string) {
   const cleaned = detail

@@ -47,6 +47,7 @@ fn protected_credential_field(name: &str) -> bool {
             | "accesstoken"
             | "access_token"
             | "access-token"
+            | "authorization"
             | "token"
     )
 }
@@ -143,6 +144,17 @@ fn redact_credential_fields(input: &str) -> String {
             }
             position
         } else {
+            if name == "authorization" {
+                for scheme in ["bearer ", "basic "] {
+                    if lowercase[value_start..].starts_with(scheme) {
+                        position = value_start + scheme.len();
+                        while position < bytes.len() && bytes[position].is_ascii_whitespace() {
+                            position += 1;
+                        }
+                        break;
+                    }
+                }
+            }
             while position < bytes.len()
                 && !bytes[position].is_ascii_whitespace()
                 && !matches!(bytes[position], b',' | b';' | b'}' | b']' | b')')
