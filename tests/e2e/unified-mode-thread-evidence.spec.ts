@@ -23,7 +23,9 @@ import {
 
 test("Messenger and Roleplay render distinctly from unified mode-thread storage", async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const now = "2026-07-14T10:00:00.000Z";
   const companion = createCharacterRecord({
     id: "companion-evidence",
@@ -115,6 +117,40 @@ test("Messenger and Roleplay render distinctly from unified mode-thread storage"
     });
   }
 
+  await page.getByText("Messenger keeps its chat-style conversation.", { exact: true }).hover();
+  await page.getByLabel("Copy message from Mara").click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe("Messenger keeps its chat-style conversation.");
+
+  await page.getByText("Are both modes still themselves?", { exact: true }).hover();
+  await page.getByLabel("Edit message from Anonymous").click();
+  const messengerEdit = page.getByLabel("Edit message from Anonymous");
+  await expect(messengerEdit).toBeFocused();
+  await messengerEdit.fill("Are both extracted surfaces still themselves?");
+  await page.getByLabel("Save edited message from Anonymous").click();
+  await expect(
+    page.getByText("Are both extracted surfaces still themselves?", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByText("Messenger keeps its chat-style conversation.", { exact: true }).hover();
+  await page.getByLabel("Delete message from Mara").click();
+  const messengerDeleteConfirm = page.getByRole("button", {
+    name: "Confirm delete message from Mara",
+    exact: true,
+  });
+  await expect(messengerDeleteConfirm).toBeFocused();
+  if (evidenceDir) {
+    await page.locator(".messenger-thread").screenshot({
+      path: join(evidenceDir, "messenger-delete-confirmation.png"),
+    });
+  }
+  await messengerDeleteConfirm.press("Escape");
+  await expect(messengerDeleteConfirm).toBeHidden();
+  await expect(
+    page.getByText("Messenger keeps its chat-style conversation.", { exact: true }),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Roleplay", exact: true }).first().click();
   await page.getByRole("button", { name: "Unified Roleplay Evidence — Roleplay" }).click();
   await expect(page.getByLabel("Roleplay scene", { exact: true })).toBeVisible();
@@ -125,14 +161,73 @@ test("Messenger and Roleplay render distinctly from unified mode-thread storage"
     }),
   ).toBeVisible();
 
+  await page
+    .getByText("A separate roleplay scene continues under the same storage substrate.", {
+      exact: true,
+    })
+    .hover();
+  await page.getByLabel("Copy Roleplay entry from System").click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe("A separate roleplay scene continues under the same storage substrate.");
+
+  await page
+    .getByText("A separate roleplay scene continues under the same storage substrate.", {
+      exact: true,
+    })
+    .hover();
+  await page.getByLabel("Edit Roleplay entry from System").click();
+  const roleplayEdit = page.getByLabel("Edit Roleplay entry from System");
+  await expect(roleplayEdit).toBeFocused();
+  await roleplayEdit.fill("The separate roleplay scene still owns its entry list.");
+  await page.getByLabel("Save edited Roleplay entry from System").click();
+  await expect(
+    page.getByText("The separate roleplay scene still owns its entry list.", { exact: true }),
+  ).toBeVisible();
+
+  await page.getByText("The lanterns wake across the pond.", { exact: true }).hover();
+  await page.getByLabel("Delete Roleplay entry from Mara").click();
+  const roleplayDeleteConfirm = page.getByRole("button", {
+    name: "Confirm delete Roleplay entry from Mara",
+    exact: true,
+  });
+  await expect(roleplayDeleteConfirm).toBeFocused();
+  if (evidenceDir) {
+    await page.locator(".roleplay-thread").screenshot({
+      path: join(evidenceDir, "roleplay-delete-confirmation.png"),
+    });
+  }
+  await roleplayDeleteConfirm.press("Escape");
+  await expect(roleplayDeleteConfirm).toBeHidden();
+  await expect(page.getByText("The lanterns wake across the pond.", { exact: true })).toBeVisible();
+
+  await expect
+    .poll(() => JSON.stringify(runtime.records.get("mode-messages")))
+    .toContain("Are both extracted surfaces still themselves?");
+  await expect
+    .poll(() => JSON.stringify(runtime.records.get("mode-messages")))
+    .toContain("The separate roleplay scene still owns its entry list.");
+
   expect(runtime.calls).toEqual(
     expect.arrayContaining([
       { command: "storage_list", entity: "mode-threads" },
       { command: "storage_list", entity: "mode-messages" },
     ]),
   );
-  expect(runtime.records.get("mode-threads")).toEqual(projected.modeThreads);
-  expect(runtime.records.get("mode-messages")).toEqual(projected.modeMessages);
+  expect(runtime.records.get("mode-threads")).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: messengerThread.id, kind: "messenger" }),
+      expect.objectContaining({ id: roleplayThread.id, kind: "roleplay" }),
+    ]),
+  );
+  expect(runtime.records.get("mode-messages")).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: "messenger-user-message" }),
+      expect.objectContaining({ id: "messenger-companion-message" }),
+      expect.objectContaining({ id: "roleplay-greeting-message" }),
+      expect.objectContaining({ id: "roleplay-narration-message" }),
+    ]),
+  );
 
   if (evidenceDir) {
     await page.screenshot({

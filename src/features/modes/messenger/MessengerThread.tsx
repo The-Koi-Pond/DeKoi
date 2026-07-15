@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import type {
   NavCatalogState,
   NavLoreRuntimeActions,
@@ -11,7 +11,7 @@ import type {
   NavViewActions,
   NavViewState,
 } from "../../navigation";
-import type { MessengerModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
+import type { MessengerModeThread } from "../../../engine/contracts/types/mode-thread";
 import {
   getActiveModeBranch,
   getActiveModeBranchMessages,
@@ -23,9 +23,7 @@ import {
   appendMessengerMessages,
   createAnonymousMessengerMessage,
   createPersonaMessengerMessage,
-  deleteMessengerMessage,
   setMessengerThreadProviderConnection,
-  updateMessengerMessageBody,
 } from "../../../engine/modes/messenger/messenger-actions";
 import {
   describeGenerationFailureNotice,
@@ -43,24 +41,13 @@ import {
 } from "../shared";
 import { waitForGeneratedTypingDelay } from "../shared/generation-delay";
 import { generationOriginStillExists } from "../shared/generation-origin";
-import { copyTextToClipboard } from "../../../shared/browser/clipboard";
-import {
-  getMessageDateKey,
-  getMessageDateSeparatorLabel,
-  getMessageDateTimeTitle,
-  getMessageTimeLabel,
-} from "../shared/message-time";
-import {
-  getCopyableMessageBody,
-  getInitials,
-  getMessageAuthorKey,
-  getMessageClassName,
-} from "./lib/message-view";
+import { getInitials } from "./lib/message-view";
 import {
   getMessengerThreadReferenceNotices,
   getMessengerThreadReferenceSummary,
   getMessengerThreadSendBlocker,
 } from "./lib/thread-reference-summary";
+import { MessengerMessageList } from "./components/MessengerMessageList";
 import "./messenger-thread.css";
 
 export type MessengerThreadNav = Pick<
@@ -91,24 +78,6 @@ function createLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** DESIGN.md §8 Messenger: pending turns show a quiet jade shimmer-dot row with
- * reserved layout space. */
-function MessengerPendingRow() {
-  return (
-    <div className="messenger-pending-row" role="status" aria-live="polite">
-      <span className="messenger-pending-dots" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
-      <span className="messenger-pending-label">Generating…</span>
-    </div>
-  );
-}
-
-/** Consecutive same-author messages within this window (ms) share one header. */
-const MESSENGER_GROUP_WINDOW_MS = 5 * 60 * 1000;
-
 interface MessengerThreadProps {
   nav: MessengerThreadNav;
   onOpenSideRail?: () => void;
@@ -133,19 +102,6 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     message: string;
     action: GenerationNoticeAction | null;
   }>({ threadId: null, status: "idle", message: "", action: null });
-  const [editingMessage, setEditingMessage] = useState<{
-    threadId: string;
-    id: string;
-    body: string;
-  } | null>(null);
-  const [deleteRequest, setDeleteRequest] = useState<{
-    threadId: string;
-    id: string;
-    label: string;
-  } | null>(null);
-  const messageListRef = useRef<HTMLDivElement>(null);
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   const messengerThreadsRef = useRef(nav.modeThreads);
   const threadCompanions = messengerThread
     ? nav.characters.filter((companion) => activeBranch?.characterIds.includes(companion.id))
@@ -200,158 +156,9 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     !isGenerating &&
     !sendBlocker;
   const generationTransport = describeGenerationTransport();
-  const activeEditingMessage = editingMessage?.threadId === activeThreadId ? editingMessage : null;
-  const activeDeleteRequest =
-    nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
-      ? deleteRequest
-      : null;
-  const activeMessageInteractionMode = activeDeleteRequest
-    ? "delete"
-    : activeEditingMessage
-      ? "edit"
-      : "idle";
-  const getMessageAuthorAvatar = (message: ModeMessage) => {
-    const { author } = message;
-
-    if (author.kind === "persona") {
-      const persona = nav.personas.find((candidate) => candidate.id === author.personaId) ?? null;
-      return {
-        avatarUrl: persona?.avatarUrl ?? null,
-        initials: getInitials(persona?.displayName ?? author.label),
-      };
-    }
-
-    if (author.kind === "character") {
-      const character =
-        nav.characters.find((candidate) => candidate.id === author.characterId) ?? null;
-      return {
-        avatarUrl: character?.avatarUrl ?? null,
-        initials: getInitials(character?.displayName ?? author.label),
-      };
-    }
-
-    return {
-      avatarUrl: null,
-      initials: getInitials(author.label),
-    };
-  };
-
   useLayoutEffect(() => {
     messengerThreadsRef.current = nav.modeThreads;
   }, [nav.modeThreads]);
-
-  useEffect(() => {
-    if (!messageListRef.current) return;
-    if (!messengerThread) return;
-    messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-  }, [messengerThread, messengerThread?.messages.length]);
-
-  useEffect(() => {
-    if (activeMessageInteractionMode !== "edit") return;
-    const textarea = editTextareaRef.current;
-    if (!textarea) return;
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-  }, [activeEditingMessage?.id, activeMessageInteractionMode]);
-
-  useEffect(() => {
-    if (activeMessageInteractionMode !== "delete") return;
-    if (!activeDeleteRequest?.id) return;
-    deleteConfirmRef.current?.focus();
-  }, [activeDeleteRequest?.id, activeMessageInteractionMode]);
-
-  function handleEditMessage(message: ModeMessage) {
-    if (!messengerThread) return;
-    setDeleteRequest(null);
-    setEditingMessage({
-      threadId: messengerThread.id,
-      id: message.id,
-      body: getActiveModeMessageVersion(message).body,
-    });
-  }
-
-  function handleCancelEditMessage() {
-    setEditingMessage(null);
-  }
-
-  function handleSaveEditedMessage() {
-    if (!messengerThread || !activeEditingMessage) return;
-    const trimmedBody = activeEditingMessage.body.trim();
-    if (!trimmedBody) return;
-    const originalMessage =
-      messages.find((message) => message.id === activeEditingMessage.id) ?? null;
-    if (!originalMessage) {
-      setEditingMessage(null);
-      return;
-    }
-    if (getActiveModeMessageVersion(originalMessage).body === trimmedBody) {
-      setEditingMessage(null);
-      return;
-    }
-
-    nav.updateMessengerThread(
-      updateMessengerMessageBody(
-        messengerThread,
-        activeEditingMessage.id,
-        trimmedBody,
-        new Date().toISOString(),
-      ),
-    );
-    setEditingMessage(null);
-  }
-
-  function commitDeleteMessage(messageId: string) {
-    if (!messengerThread) return;
-    nav.updateMessengerThread(deleteMessengerMessage(messengerThread, messageId));
-    if (activeEditingMessage?.id === messageId) {
-      setEditingMessage(null);
-    }
-    setDeleteRequest(null);
-  }
-
-  function handleDeleteMessage(message: ModeMessage) {
-    if (!messengerThread) return;
-    if (!messages.some((candidate) => candidate.id === message.id)) {
-      return;
-    }
-
-    if (nav.appSettings.confirmRelease) {
-      setEditingMessage(null);
-      setDeleteRequest({
-        threadId: messengerThread.id,
-        id: message.id,
-        label: message.author.label,
-      });
-      return;
-    }
-
-    commitDeleteMessage(message.id);
-  }
-
-  function handleCancelDeleteMessage() {
-    setDeleteRequest(null);
-  }
-
-  function handleEditMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.nativeEvent.isComposing) return;
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      handleCancelEditMessage();
-      return;
-    }
-
-    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      handleSaveEditedMessage();
-    }
-  }
-
-  function handleDeleteConfirmKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    handleCancelDeleteMessage();
-  }
 
   async function sendDraft() {
     if (!messengerThread) return false;
@@ -594,12 +401,6 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
     );
   }
 
-  function handleCopyMessage(message: ModeMessage) {
-    const body = getCopyableMessageBody(message);
-    if (!body) return;
-    void copyTextToClipboard(body);
-  }
-
   function openMessengerThreadSettings() {
     onOpenSideRail?.();
     nav.setSideRailView("chat-settings");
@@ -698,184 +499,15 @@ export function MessengerThread({ nav, onOpenSideRail }: MessengerThreadProps) {
         </div>
       )}
 
-      <div className="message-list" aria-label="Messenger messages" ref={messageListRef}>
-        {messages.length === 0 && !isGenerating && (
-          <p className="messenger-empty-note">No messages yet.</p>
-        )}
-        {messages.map((message, index) => {
-          const messageVersion = getActiveModeMessageVersion(message);
-          const messageBody = messageVersion.body;
-          const authorAvatar = getMessageAuthorAvatar(message);
-          const dateKey = getMessageDateKey(message.createdAt);
-          const previousDateKey = index > 0 ? getMessageDateKey(messages[index - 1].createdAt) : "";
-          const showDateSeparator = !!dateKey && dateKey !== previousDateKey;
-          const isEditing = activeEditingMessage?.id === message.id;
-          const isConfirmingDelete = activeDeleteRequest?.id === message.id;
-          const deleteRequestLabel = isConfirmingDelete
-            ? (activeDeleteRequest?.label ?? message.author.label)
-            : message.author.label;
-          const timeLabel = getMessageTimeLabel(message.createdAt);
-          // Grouping: consecutive same-author messages within the window share one
-          // header. A date separator or a different author re-opens the header.
-          const previousMessage = index > 0 ? messages[index - 1] : null;
-          const previousTime = previousMessage ? Date.parse(previousMessage.createdAt) : NaN;
-          const currentTime = Date.parse(message.createdAt);
-          const opensGroup =
-            !previousMessage ||
-            showDateSeparator ||
-            getMessageAuthorKey(previousMessage) !== getMessageAuthorKey(message) ||
-            Number.isNaN(previousTime) ||
-            Number.isNaN(currentTime) ||
-            currentTime - previousTime > MESSENGER_GROUP_WINDOW_MS;
-
-          return (
-            <Fragment key={message.id}>
-              {showDateSeparator && (
-                <div className="message-date-separator">
-                  <time dateTime={dateKey}>{getMessageDateSeparatorLabel(message.createdAt)}</time>
-                </div>
-              )}
-              <article
-                className={`${getMessageClassName(message)}${
-                  opensGroup ? " group-head" : " group-continuation"
-                }${isEditing ? " editing" : ""}${isConfirmingDelete ? " confirming-delete" : ""}`}
-              >
-                <span className="message-avatar" aria-hidden="true">
-                  {opensGroup &&
-                    (authorAvatar.avatarUrl ? (
-                      <img src={authorAvatar.avatarUrl} alt="" />
-                    ) : (
-                      authorAvatar.initials
-                    ))}
-                </span>
-                <div className="message-content">
-                  {opensGroup ? (
-                    <div className="message-heading">
-                      <div className="message-author">
-                        <span className="message-author-name">{message.author.label}</span>
-                        {timeLabel && (
-                          <time
-                            className="message-timestamp"
-                            dateTime={message.createdAt}
-                            title={getMessageDateTimeTitle(message.createdAt)}
-                          >
-                            {timeLabel}
-                          </time>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    timeLabel && (
-                      <time
-                        className="message-hover-timestamp"
-                        dateTime={message.createdAt}
-                        title={getMessageDateTimeTitle(message.createdAt)}
-                      >
-                        {timeLabel}
-                      </time>
-                    )
-                  )}
-                  {isEditing ? (
-                    <div className="message-edit-form">
-                      <textarea
-                        ref={editTextareaRef}
-                        aria-label={`Edit message from ${message.author.label}`}
-                        value={activeEditingMessage?.body ?? ""}
-                        onKeyDown={handleEditMessageKeyDown}
-                        onChange={(event) =>
-                          setEditingMessage({
-                            threadId: messengerThread.id,
-                            id: message.id,
-                            body: event.target.value,
-                          })
-                        }
-                      />
-                      <div className="message-edit-actions">
-                        <button
-                          type="button"
-                          onClick={handleSaveEditedMessage}
-                          aria-label={`Save edited message from ${message.author.label}`}
-                          disabled={!activeEditingMessage?.body.trim()}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Cancel editing message from ${message.author.label}`}
-                          onClick={handleCancelEditMessage}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <p>{messageBody}</p>
-                      <div className="message-actions" aria-label="Message actions">
-                        {isConfirmingDelete ? (
-                          <div
-                            className="message-delete-confirm"
-                            role="group"
-                            aria-label={`Confirm delete message from ${deleteRequestLabel}`}
-                            onKeyDown={handleDeleteConfirmKeyDown}
-                          >
-                            <button
-                              ref={deleteConfirmRef}
-                              type="button"
-                              aria-label={`Confirm delete message from ${deleteRequestLabel}`}
-                              onClick={() => commitDeleteMessage(message.id)}
-                            >
-                              Delete
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Cancel delete message from ${deleteRequestLabel}`}
-                              onClick={handleCancelDeleteMessage}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="message-action-pill"
-                              aria-label={`Copy message from ${message.author.label}`}
-                              title="Copy"
-                              onClick={() => handleCopyMessage(message)}
-                            >
-                              ⧉
-                            </button>
-                            <button
-                              type="button"
-                              className="message-action-pill"
-                              aria-label={`Edit message from ${message.author.label}`}
-                              title="Edit"
-                              onClick={() => handleEditMessage(message)}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              type="button"
-                              className="message-action-pill"
-                              aria-label={`Delete message from ${message.author.label}`}
-                              title="Delete"
-                              onClick={() => handleDeleteMessage(message)}
-                            >
-                              ×
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </article>
-            </Fragment>
-          );
-        })}
-        {isGenerating && <MessengerPendingRow />}
-      </div>
+      <MessengerMessageList
+        characters={nav.characters}
+        confirmRelease={nav.appSettings.confirmRelease}
+        isGenerating={isGenerating}
+        messages={messages}
+        onUpdateThread={nav.updateMessengerThread}
+        personas={nav.personas}
+        thread={messengerThread}
+      />
 
       <GenerationNotice
         action={generationNoticeAction}

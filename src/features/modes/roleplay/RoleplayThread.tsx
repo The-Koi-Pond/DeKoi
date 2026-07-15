@@ -1,20 +1,16 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   appendRoleplayMessages,
   createPersonaRoleplayMessage,
   createSystemRoleplayMessage,
-  deleteRoleplayMessage,
-  updateRoleplayMessageBody,
 } from "../../../engine/modes/roleplay/roleplay-actions";
-import type { RoleplayModeThread, ModeMessage } from "../../../engine/contracts/types/mode-thread";
+import type { RoleplayModeThread } from "../../../engine/contracts/types/mode-thread";
 import {
   getActiveModeBranch,
   getActiveModeBranchMessages,
-  getActiveModeMessageVersion,
 } from "../../../engine/modes/mode-thread/mode-thread-actions";
 import { getProviderConnectionById } from "../../../engine/contracts/types/provider-connection";
 import { ROLEPLAY } from "../../../engine/contracts/constants/surfaces";
-import { copyTextToClipboard } from "../../../shared/browser/clipboard";
 import {
   describeGenerationFailureNotice,
   describeGenerationReadinessFailure,
@@ -42,17 +38,13 @@ import {
   type GenerationNoticeAction,
 } from "../shared";
 import { generationOriginStillExists } from "../shared/generation-origin";
-import { getMessageDateTimeTitle, getMessageTimeLabel } from "../shared/message-time";
-import {
-  getCopyableRoleplayMessageBody,
-  getInitials,
-  isOwnRoleplayMessage,
-} from "./lib/message-view";
+import { getInitials } from "./lib/message-view";
 import {
   getRoleplayThreadReferenceNotices,
   getRoleplayThreadReferenceSummary,
   getRoleplayThreadSendBlocker,
 } from "./lib/thread-reference-summary";
+import { RoleplayEntryList } from "./components/RoleplayEntryList";
 import "./roleplay-thread.css";
 
 export type RoleplayThreadNav = Pick<
@@ -102,21 +94,6 @@ function RoleplayChatSettingsButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** DESIGN.md §8: pending turns show a quiet jade shimmer-dot row inside the
- * scene flow, reserving layout space so the scene does not jump. */
-function RoleplayPendingRow({ label }: { label: string }) {
-  return (
-    <div className="roleplay-pending-row" role="status" aria-live="polite">
-      <span className="roleplay-pending-dots" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
-      <span className="roleplay-pending-label">{label} is replying…</span>
-    </div>
-  );
-}
-
 export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   const activeThreadId = nav.view.kind === "roleplay" ? nav.view.threadId : null;
   const thread =
@@ -136,19 +113,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     message: string;
     action: GenerationNoticeAction | null;
   }>({ threadId: null, status: "idle", message: "", action: null });
-  const [editingEntry, setEditingEntry] = useState<{
-    threadId: string;
-    id: string;
-    body: string;
-  } | null>(null);
-  const [deleteRequest, setDeleteRequest] = useState<{
-    threadId: string;
-    id: string;
-    label: string;
-  } | null>(null);
-  const entryListRef = useRef<HTMLDivElement>(null);
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   const roleplayThreadsRef = useRef(nav.modeThreads);
   const draft = draftState.threadId === activeThreadId ? draftState.body : "";
   const threadConnection = getProviderConnectionById(
@@ -195,16 +159,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     (threadReferenceSummary ? getRoleplayThreadSendBlocker(threadReferenceSummary) : "");
   const canSend =
     !!thread && nav.storageReady && draft.trim().length > 0 && !isGenerating && !sendBlocker;
-  const activeEditingEntry = editingEntry?.threadId === activeThreadId ? editingEntry : null;
-  const activeDeleteRequest =
-    nav.appSettings.confirmRelease && deleteRequest?.threadId === activeThreadId
-      ? deleteRequest
-      : null;
-  const activeEntryInteractionMode = activeDeleteRequest
-    ? "delete"
-    : activeEditingEntry
-      ? "edit"
-      : "idle";
   const castCompanions = activeBranch
     ? nav.characters.filter((companion) => activeBranch.characterIds.includes(companion.id))
     : [];
@@ -215,118 +169,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
   useLayoutEffect(() => {
     roleplayThreadsRef.current = nav.modeThreads;
   }, [nav.modeThreads]);
-
-  useEffect(() => {
-    if (!entryListRef.current) return;
-    if (!thread) return;
-    entryListRef.current.scrollTop = entryListRef.current.scrollHeight;
-  }, [thread, messages.length]);
-
-  useEffect(() => {
-    if (activeEntryInteractionMode !== "edit") return;
-    const textarea = editTextareaRef.current;
-    if (!textarea) return;
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-  }, [activeEditingEntry?.id, activeEntryInteractionMode]);
-
-  useEffect(() => {
-    if (activeEntryInteractionMode !== "delete") return;
-    if (!activeDeleteRequest?.id) return;
-    deleteConfirmRef.current?.focus();
-  }, [activeDeleteRequest?.id, activeEntryInteractionMode]);
-
-  function handleEditEntry(entry: ModeMessage) {
-    if (!thread) return;
-    setDeleteRequest(null);
-    setEditingEntry({
-      threadId: thread.id,
-      id: entry.id,
-      body: getActiveModeMessageVersion(entry).body,
-    });
-  }
-
-  function handleCancelEditEntry() {
-    setEditingEntry(null);
-  }
-
-  function handleSaveEditedEntry() {
-    if (!thread || !activeEditingEntry) return;
-    const trimmedBody = activeEditingEntry.body.trim();
-    if (!trimmedBody) return;
-    const originalEntry = messages.find((entry) => entry.id === activeEditingEntry.id) ?? null;
-    if (!originalEntry) {
-      setEditingEntry(null);
-      return;
-    }
-    if (getActiveModeMessageVersion(originalEntry).body === trimmedBody) {
-      setEditingEntry(null);
-      return;
-    }
-
-    nav.updateRoleplayThread(
-      updateRoleplayMessageBody(
-        thread,
-        activeEditingEntry.id,
-        trimmedBody,
-        new Date().toISOString(),
-      ),
-    );
-    setEditingEntry(null);
-  }
-
-  function commitDeleteEntry(entryId: string) {
-    if (!thread) return;
-    nav.updateRoleplayThread(deleteRoleplayMessage(thread, entryId));
-    if (activeEditingEntry?.id === entryId) {
-      setEditingEntry(null);
-    }
-    setDeleteRequest(null);
-  }
-
-  function handleDeleteEntry(entry: ModeMessage) {
-    if (!thread) return;
-    if (!messages.some((candidate) => candidate.id === entry.id)) {
-      return;
-    }
-
-    if (nav.appSettings.confirmRelease) {
-      setEditingEntry(null);
-      setDeleteRequest({
-        threadId: thread.id,
-        id: entry.id,
-        label: entry.author.label,
-      });
-      return;
-    }
-
-    commitDeleteEntry(entry.id);
-  }
-
-  function handleCancelDeleteEntry() {
-    setDeleteRequest(null);
-  }
-
-  function handleEditEntryKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.nativeEvent.isComposing) return;
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      handleCancelEditEntry();
-      return;
-    }
-
-    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      handleSaveEditedEntry();
-    }
-  }
-
-  function handleDeleteConfirmKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    handleCancelDeleteEntry();
-  }
 
   async function sendDraft() {
     if (!thread) return false;
@@ -532,12 +374,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
     );
   }
 
-  function handleCopyEntry(entry: ModeMessage) {
-    const body = getCopyableRoleplayMessageBody(entry);
-    if (!body) return;
-    void copyTextToClipboard(body);
-  }
-
   function openRoleplayThreadSettings() {
     nav.setSelectedSurface(ROLEPLAY);
     onOpenSideRail?.();
@@ -559,31 +395,6 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
 
     event.preventDefault();
     void sendDraft();
-  }
-
-  function getEntryAuthorAvatar(entry: ModeMessage) {
-    if (entry.author.kind === "character") {
-      const characterId = entry.author.characterId;
-      const character = nav.characters.find((candidate) => candidate.id === characterId) ?? null;
-      return {
-        avatarUrl: character?.avatarUrl ?? null,
-        initials: getInitials(character?.displayName ?? entry.author.label),
-      };
-    }
-
-    if (entry.author.kind === "persona") {
-      const personaId = entry.author.personaId;
-      const persona = nav.personas.find((candidate) => candidate.id === personaId) ?? null;
-      return {
-        avatarUrl: persona?.avatarUrl ?? null,
-        initials: getInitials(persona?.displayName ?? entry.author.label),
-      };
-    }
-
-    return {
-      avatarUrl: null,
-      initials: getInitials(entry.author.label),
-    };
   }
 
   const sceneStatus = sendBlocker
@@ -690,164 +501,16 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         </div>
       )}
 
-      <div className="roleplay-entries" aria-label="Roleplay scene" ref={entryListRef}>
-        {messages.length === 0 && !isGenerating && (
-          <p className="roleplay-empty-note">No messages yet.</p>
-        )}
-        {messages.map((entry) => {
-          const body = getActiveModeMessageVersion(entry).body;
-          const label = entry.author.label;
-          const isEditing = activeEditingEntry?.id === entry.id;
-          const isConfirmingDelete = activeDeleteRequest?.id === entry.id;
-          const deleteRequestLabel = isConfirmingDelete
-            ? (activeDeleteRequest?.label ?? label)
-            : label;
-          const authorAvatar = getEntryAuthorAvatar(entry);
-          const timeLabel = getMessageTimeLabel(entry.createdAt);
-          const own = isOwnRoleplayMessage(entry);
-          const speakerChip =
-            entry.author.kind === "character"
-              ? "Character"
-              : entry.author.kind === "persona"
-                ? "Persona"
-                : "Scene";
-
-          return (
-            <Fragment key={entry.id}>
-              <article
-                className={`roleplay-entry ${entry.author.kind}${own ? " own" : ""}${
-                  isEditing ? " editing" : ""
-                }${isConfirmingDelete ? " confirming-delete" : ""}`}
-                aria-label={`${speakerChip} entry from ${label}`}
-              >
-                <span
-                  className={`roleplay-entry-avatar ${own ? "persona" : "character"}`}
-                  aria-hidden="true"
-                >
-                  {authorAvatar.avatarUrl ? (
-                    <img src={authorAvatar.avatarUrl} alt="" />
-                  ) : (
-                    authorAvatar.initials
-                  )}
-                </span>
-                <div className="roleplay-entry-content">
-                  <div className="roleplay-entry-head">
-                    <div className="roleplay-entry-author">
-                      <b>{label}</b>
-                      {timeLabel && (
-                        <time
-                          className="roleplay-entry-timestamp"
-                          dateTime={entry.createdAt}
-                          title={getMessageDateTimeTitle(entry.createdAt)}
-                        >
-                          {timeLabel}
-                        </time>
-                      )}
-                    </div>
-                  </div>
-                  <div className="roleplay-entry-bubble">
-                    {isEditing ? (
-                      <div className="roleplay-entry-edit-form">
-                        <textarea
-                          ref={editTextareaRef}
-                          aria-label={`Edit Roleplay entry from ${label}`}
-                          value={activeEditingEntry?.body ?? ""}
-                          onKeyDown={handleEditEntryKeyDown}
-                          onChange={(event) =>
-                            setEditingEntry({
-                              threadId: thread.id,
-                              id: entry.id,
-                              body: event.target.value,
-                            })
-                          }
-                        />
-                        <div className="roleplay-entry-edit-actions">
-                          <button
-                            type="button"
-                            onClick={handleSaveEditedEntry}
-                            aria-label={`Save edited Roleplay entry from ${label}`}
-                            disabled={!activeEditingEntry?.body.trim()}
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Cancel editing Roleplay entry from ${label}`}
-                            onClick={handleCancelEditEntry}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p>{body}</p>
-                        <div className="roleplay-entry-actions" aria-label="Entry actions">
-                          {isConfirmingDelete ? (
-                            <div
-                              className="roleplay-entry-delete-confirm"
-                              role="group"
-                              aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
-                              onKeyDown={handleDeleteConfirmKeyDown}
-                            >
-                              <button
-                                ref={deleteConfirmRef}
-                                type="button"
-                                aria-label={`Confirm delete Roleplay entry from ${deleteRequestLabel}`}
-                                onClick={() => commitDeleteEntry(entry.id)}
-                              >
-                                Delete
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`Cancel delete Roleplay entry from ${deleteRequestLabel}`}
-                                onClick={handleCancelDeleteEntry}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="roleplay-action-pill"
-                                aria-label={`Copy Roleplay entry from ${label}`}
-                                title="Copy"
-                                onClick={() => handleCopyEntry(entry)}
-                              >
-                                ⧉
-                              </button>
-                              <button
-                                type="button"
-                                className="roleplay-action-pill"
-                                aria-label={`Edit Roleplay entry from ${label}`}
-                                title="Edit"
-                                onClick={() => handleEditEntry(entry)}
-                              >
-                                ✎
-                              </button>
-                              <button
-                                type="button"
-                                className="roleplay-action-pill"
-                                aria-label={`Delete Roleplay entry from ${label}`}
-                                title="Delete"
-                                onClick={() => handleDeleteEntry(entry)}
-                              >
-                                ×
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </article>
-            </Fragment>
-          );
-        })}
-        {isGenerating && <RoleplayPendingRow label={generationTransport.label} />}
-      </div>
+      <RoleplayEntryList
+        characters={nav.characters}
+        confirmRelease={nav.appSettings.confirmRelease}
+        generationLabel={generationTransport.label}
+        isGenerating={isGenerating}
+        messages={messages}
+        onUpdateThread={nav.updateRoleplayThread}
+        personas={nav.personas}
+        thread={thread}
+      />
 
       <GenerationNotice
         action={generationNoticeAction}
