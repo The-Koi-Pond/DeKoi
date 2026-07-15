@@ -1,9 +1,11 @@
 import {
   PROMPT_PRESET_NUMERIC_CONSTRAINTS,
-  isRecord,
-  parseJsonIfString,
   type PromptPresetNumericConstraint,
-} from "./prompt-preset-normalization";
+  promptPresetParametersAreValid,
+} from "./prompt-preset-parameter-contract";
+import { isRecord, parseJsonIfString } from "./prompt-preset-normalization";
+
+export { promptPresetParametersAreValid as promptPresetPackageParametersAreValid } from "./prompt-preset-parameter-contract";
 
 type FieldValidator = (value: unknown) => boolean;
 
@@ -48,10 +50,6 @@ function isBooleanLike(value: unknown) {
 
 function isNullableBooleanLike(value: unknown) {
   return value === null || isBooleanLike(value);
-}
-
-function isNullableBoolean(value: unknown) {
-  return value === null || typeof value === "boolean";
 }
 
 function isTimestamp(value: unknown) {
@@ -103,16 +101,6 @@ function isStringRecordValue(value: unknown) {
   );
 }
 
-function isBooleanRecordValue(value: unknown) {
-  const source = readJsonRecord(value);
-  return (
-    source !== null &&
-    Object.entries(source).every(
-      ([key, fieldValue]) => key.trim().length > 0 && typeof fieldValue === "boolean",
-    )
-  );
-}
-
 function isChoiceSelectionValue(value: unknown) {
   return (
     isNonEmptyString(value) ||
@@ -140,41 +128,6 @@ function isChoiceSelectionRecordValue(value: unknown) {
   );
 }
 
-const PARAMETER_FIELD_VALIDATORS: Record<string, FieldValidator> = {
-  maxTokens: (value) =>
-    isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxTokens),
-  temperature: (value) =>
-    isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.temperature),
-  topP: (value) => isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topP),
-  topK: (value) => isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.topK),
-  minP: (value) => isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.minP),
-  maxContext: (value) =>
-    isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.maxContext),
-  frequencyPenalty: (value) =>
-    isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.frequencyPenalty),
-  presencePenalty: (value) =>
-    isNullableNumberWithinConstraint(value, PROMPT_PRESET_NUMERIC_CONSTRAINTS.presencePenalty),
-  reasoningEffort: isNullableString,
-  verbosity: isNullableString,
-  serviceTier: isNullableString,
-  assistantPrefill: isNullableString,
-  customThinkingTags: isNullableString,
-  customParameters: (value) => value === null || isRecord(value),
-  enabledParameters: (value) => value === null || isBooleanRecordValue(value),
-  squashSystemMessages: isNullableBoolean,
-  showThoughts: isNullableBoolean,
-  useMaxContext: isNullableBoolean,
-  stopSequences: (value) => value === null || isStringArrayValue(value),
-  strictRoleFormatting: isNullableBoolean,
-  singleUserMessage: isNullableBoolean,
-};
-
-function isParametersValue(value: unknown) {
-  if (value === null) return true;
-  const source = readJsonRecord(value);
-  return source !== null && hasValidOptionalFields(source, PARAMETER_FIELD_VALIDATORS);
-}
-
 const PRESET_FIELD_VALIDATORS: Record<string, FieldValidator> = {
   id: (value) => typeof value === "string",
   schemaVersion: (value) => value === 1,
@@ -185,8 +138,7 @@ const PRESET_FIELD_VALIDATORS: Record<string, FieldValidator> = {
   systemPrompt: isNullableString,
   messengerPrompt: isNullableString,
   conversationPrompt: isNullableString,
-  sampling: isParametersValue,
-  parameters: isParametersValue,
+  parameters: promptPresetParametersAreValid,
   sectionOrder: isStringArrayValue,
   groupOrder: isStringArrayValue,
   variableOrder: isStringArrayValue,
@@ -201,7 +153,7 @@ const PRESET_FIELD_VALIDATORS: Record<string, FieldValidator> = {
 };
 
 function promptPresetPackagePresetIsValid(preset: Record<string, unknown>) {
-  return hasValidOptionalFields(preset, PRESET_FIELD_VALIDATORS);
+  return preset.sampling === undefined && hasValidOptionalFields(preset, PRESET_FIELD_VALIDATORS);
 }
 
 function markerConfigIsValid(value: unknown) {

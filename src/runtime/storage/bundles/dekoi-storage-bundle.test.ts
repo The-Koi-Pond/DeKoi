@@ -65,6 +65,18 @@ function source() {
 }
 
 describe("DeKoi storage bundle v2", () => {
+  it("refuses to export credential-like prompt preset custom fields", () => {
+    const unsafePreset = structuredClone(STARTER_PROMPT_PRESET);
+    unsafePreset.parameters = {
+      ...unsafePreset.parameters,
+      customParameters: { password: { send: false, value: "do-not-export" } },
+    };
+
+    expect(() => createDeKoiStorageBundle({ ...source(), promptPresets: [unsafePreset] })).toThrow(
+      "unsupported generation parameters",
+    );
+  });
+
   it("preserves roleplay opening metadata and repairs every branch preset reference", () => {
     const roleplay = createRoleplayThread({
       id: "roleplay-thread",
@@ -117,6 +129,28 @@ describe("DeKoi storage bundle v2", () => {
     expect(parsed.preview.bundle.data.modeMessages).toEqual([msg]);
     expect(parsed.preview.fingerprint).toBe(
       createDeKoiStorageBundleFingerprint(parsed.preview.bundle),
+    );
+  });
+  it("skips malformed native prompt presets and restores the existing bundle fallback", () => {
+    const bundle = createDeKoiStorageBundle(source());
+    const malformedPreset = {
+      ...STARTER_PROMPT_PRESET,
+      sampling: { temperature: 0.7 },
+    };
+
+    const parsed = normalizeDeKoiStorageBundle({
+      ...bundle,
+      data: { ...bundle.data, promptPresets: [malformedPreset] },
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.preview.bundle.data.promptPresets).toEqual([STARTER_PROMPT_PRESET]);
+    expect(parsed.preview.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Prompt presets did not contain valid schema version 1 records"),
+        expect.stringContaining("restored the bundled starter preset"),
+      ]),
     );
   });
   it("rejects bundles without the required mode message collection", () => {

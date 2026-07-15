@@ -20,7 +20,6 @@ function promptPreset(id: string): PromptPresetRecord {
     summary: null,
     systemPrompt: "Write the next response.",
     messengerPrompt: null,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],

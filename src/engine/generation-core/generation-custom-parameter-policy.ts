@@ -6,6 +6,32 @@ const MAX_CUSTOM_PARAMETER_ENTRIES = 1_024;
 const MAX_CUSTOM_PARAMETER_NAME_BYTES = 128;
 const MAX_CUSTOM_PARAMETER_BYTES = 65_536;
 
+export const PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES = new Set([
+  "accesskey",
+  "accesstoken",
+  "apikey",
+  "auth",
+  "authentication",
+  "authorization",
+  "basic",
+  "bearer",
+  "clientsecret",
+  "cookie",
+  "credential",
+  "credentials",
+  "passwd",
+  "password",
+  "privatekey",
+  "providerkey",
+  "providersecret",
+  "secret",
+  "secretkey",
+  "setcookie",
+  "token",
+  "xapikey",
+  "xgoogapikey",
+]);
+
 /**
  * Names owned by DeKoi request routing, authentication, messages, or the
  * provider-neutral parameter contract cannot be shadowed by custom fields.
@@ -30,6 +56,23 @@ export const PROTECTED_CUSTOM_PARAMETER_NAMES = new Set(
     "bearer",
     "basic",
     "token",
+    "accessKey",
+    "access_key",
+    "secret",
+    "secretKey",
+    "secret_key",
+    "privateKey",
+    "private_key",
+    "password",
+    "passwd",
+    "clientSecret",
+    "client_secret",
+    "providerKey",
+    "provider_key",
+    "providerSecret",
+    "provider_secret",
+    "credential",
+    "credentials",
     "accessToken",
     "apiKey",
     "headers",
@@ -139,6 +182,11 @@ function utf8ByteLength(value: string) {
   return bytes;
 }
 
+function isProtectedCredentialCustomParameterName(name: string) {
+  const canonical = name.trim().toLowerCase().replace(/[-_]/g, "");
+  return PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES.has(canonical);
+}
+
 function validateCustomJsonTree(value: unknown) {
   let entries = 0;
   const ancestors = new WeakSet<object>();
@@ -164,6 +212,7 @@ function validateCustomJsonTree(value: unknown) {
     for (const [key, fieldValue] of fields) {
       if (
         UNSAFE_RECORD_KEYS.has(key.toLowerCase()) ||
+        isProtectedCredentialCustomParameterName(key) ||
         utf8ByteLength(key) > MAX_CUSTOM_PARAMETER_NAME_BYTES ||
         !visit(fieldValue, depth + 1)
       ) {
@@ -216,15 +265,20 @@ export function validateGenerationCustomParameter(
   name: string,
   value: unknown,
 ): GenerationCustomParameterValidation {
-  const normalized = name.trim().toLowerCase();
+  const trimmed = name.trim();
+  const normalized = trimmed.toLowerCase();
   if (
+    name !== trimmed ||
     !normalized ||
     UNSAFE_RECORD_KEYS.has(normalized) ||
-    utf8ByteLength(name.trim()) > MAX_CUSTOM_PARAMETER_NAME_BYTES
+    utf8ByteLength(trimmed) > MAX_CUSTOM_PARAMETER_NAME_BYTES
   ) {
     return { valid: false, reason: "invalid-name" };
   }
-  if (PROTECTED_CUSTOM_PARAMETER_NAMES.has(normalized)) {
+  if (
+    PROTECTED_CUSTOM_PARAMETER_NAMES.has(normalized) ||
+    isProtectedCredentialCustomParameterName(normalized)
+  ) {
     return { valid: false, reason: "protected-name" };
   }
   if (!validateGenerationCustomParameterValue(value)) {

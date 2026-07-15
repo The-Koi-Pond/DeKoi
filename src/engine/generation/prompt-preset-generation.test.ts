@@ -142,10 +142,10 @@ describe("prompt preset generation", () => {
     const preset = promptPreset({
       systemPrompt: "Roleplay-only preset for {{char}}.",
       messengerPrompt: "Messenger preset for {{char}}.",
-      sampling: {
-        maxTokens: 8192,
-        temperature: 1.2,
-        topP: 0.7,
+      parameters: {
+        maxTokens: { send: true, value: 8192 },
+        temperature: { send: true, value: 1.2 },
+        topP: { send: true, value: 0.7 },
       },
     });
     const context = createMessengerGenerationContext({

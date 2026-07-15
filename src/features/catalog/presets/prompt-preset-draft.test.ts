@@ -9,6 +9,7 @@ import {
   draftFromPromptPreset,
   movePromptPresetDraftSection,
   promptPresetDraftToInput,
+  promptPresetDraftValidationErrors,
   removePromptPresetDraftGroup,
   updatePromptPresetDraftSectionKind,
   updatePromptPresetDraftSectionMarkerType,
@@ -24,7 +25,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
     summary: null,
     systemPrompt: "Fallback prompt.",
     messengerPrompt: null,
-    sampling: null,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
@@ -45,6 +45,44 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
 }
 
 describe("prompt preset draft conversion", () => {
+  it("rejects send-on parameters without a valid value", () => {
+    const draft = draftFromPromptPreset(promptPresetRecord());
+    draft.parameters.temperature = { send: true, value: null };
+    expect(promptPresetDraftValidationErrors(draft)).toContain(
+      "temperature: Enter a valid value or turn Send off.",
+    );
+    draft.parameters.temperature = { send: false, value: null };
+    expect(canSavePromptPresetDraft(draft)).toBe(true);
+  });
+
+  it("rejects sent numeric values that would be silently clamped or rounded", () => {
+    const draft = draftFromPromptPreset(promptPresetRecord());
+    draft.parameters.temperature = { send: true, value: 3 };
+    expect(promptPresetDraftValidationErrors(draft)).toContain(
+      "temperature: Enter a value from 0 to 2, or turn Send off.",
+    );
+    draft.parameters.temperature = { send: false, value: 3 };
+    draft.parameters.maxTokens = { send: true, value: 1.5 };
+    expect(promptPresetDraftValidationErrors(draft)).toContain(
+      "maxTokens: Enter a whole number or turn Send off.",
+    );
+  });
+
+  it("rejects non-finite disabled numbers while preserving valid disabled drafts", () => {
+    const draft = draftFromPromptPreset(promptPresetRecord());
+    draft.parameters.temperature = { send: false, value: Number.POSITIVE_INFINITY };
+    expect(promptPresetDraftValidationErrors(draft)).toContain(
+      "temperature: Enter a valid value or turn Send off.",
+    );
+
+    draft.parameters.temperature = { send: false, value: 3 };
+    draft.parameters.maxTokens = { send: false, value: null };
+    expect(canSavePromptPresetDraft(draft)).toBe(true);
+    expect(promptPresetDraftToInput(draft).parameters).toMatchObject({
+      temperature: { send: false, value: 3 },
+      maxTokens: { send: false, value: null },
+    });
+  });
   it("keeps structured sections and groups in editable order", () => {
     const draft = draftFromPromptPreset(
       promptPresetRecord({
@@ -114,8 +152,10 @@ describe("prompt preset draft conversion", () => {
 
   it("lets the engine preserve compatible hidden fields while editing visible fields", () => {
     const record = promptPresetRecord({
-      parameters: { topK: 40, temperature: 0.8 },
-      sampling: { temperature: 0.8 },
+      parameters: {
+        topK: { send: true, value: 40 },
+        temperature: { send: true, value: 0.8 },
+      },
       variableOrder: ["choice-tone"],
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },
@@ -139,7 +179,7 @@ describe("prompt preset draft conversion", () => {
     const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
 
     expect(input.title).toBe("Edited Preset");
-    expect(input).not.toHaveProperty("parameters");
+    expect(input.parameters).toEqual(record.parameters);
     expect(input).not.toHaveProperty("variableGroups");
     expect(input).not.toHaveProperty("variableValues");
     expect(input).not.toHaveProperty("isDefault");
@@ -152,7 +192,10 @@ describe("prompt preset draft conversion", () => {
     expect(input.choiceBlocks).toEqual(record.choiceBlocks);
     expect(updated).toMatchObject({
       title: "Edited Preset",
-      parameters: { topK: 40, temperature: 0.8 },
+      parameters: {
+        topK: { send: true, value: 40 },
+        temperature: { send: true, value: 0.8 },
+      },
       variableOrder: ["choice-tone"],
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },

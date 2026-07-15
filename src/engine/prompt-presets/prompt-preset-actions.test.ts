@@ -52,6 +52,50 @@ describe("normalizePromptPresetRecord", () => {
     ).toBeNull();
   });
 
+  it("rejects the removed sampling source instead of silently erasing it", () => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "removed-sampling",
+        schemaVersion: 1,
+        title: "Removed Sampling",
+        sampling: { temperature: 0.7 },
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it.each([
+    ["scalar parameters", { temperature: 0.7 }],
+    ["removed enabledParameters", { enabledParameters: { temperature: true } }],
+    ["JSON-string standard entry", { temperature: '{"send":true,"value":0.7}' }],
+    ["noncanonical stop value", { stopSequences: { send: true, value: ["  END  "] } }],
+  ])("rejects malformed native %s", (_label, parameters) => {
+    expect(
+      normalizePromptPresetRecord({
+        id: "malformed-parameters",
+        schemaVersion: 1,
+        title: "Malformed Parameters",
+        parameters,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it.each([[undefined], [null]])("accepts omitted or null parameters: %j", (parameters) => {
+    const value: Record<string, unknown> = {
+      id: "empty-parameters",
+      schemaVersion: 1,
+      title: "Empty Parameters",
+      createdAt: now,
+      updatedAt: now,
+    };
+    if (parameters !== undefined) value.parameters = parameters;
+
+    expect(normalizePromptPresetRecord(value)?.parameters).toBeNull();
+  });
+
   it("normalizes omitted recipe arrays to empty arrays", () => {
     const record = normalizePromptPresetRecord({
       id: "minimal-promptless",
@@ -794,7 +838,7 @@ describe("normalizePromptPresetRecord", () => {
 });
 
 describe("updatePromptPresetRecord", () => {
-  it("preserves rich parameters when legacy sampling is edited", () => {
+  it("preserves typed parameters, including omission tombstones, when omitted", () => {
     const record = createPromptPresetRecord({
       id: "preset-1",
       now,
@@ -803,12 +847,12 @@ describe("updatePromptPresetRecord", () => {
         summary: "Rich preset",
         systemPrompt: "Write the next response.",
         parameters: {
-          maxTokens: 400,
-          temperature: 0.8,
-          topP: 0.9,
-          topK: 42,
+          maxTokens: { send: true, value: 400 },
+          temperature: { send: false, value: 0.8 },
+          topP: { send: true, value: 0.9 },
+          topK: { send: true, value: 42 },
           maxContext: 100_000,
-          stopSequences: ["END"],
+          stopSequences: { send: true, value: ["END"] },
           strictRoleFormatting: true,
         },
       },
@@ -820,26 +864,18 @@ describe("updatePromptPresetRecord", () => {
         title: record.title,
         summary: record.summary,
         systemPrompt: record.systemPrompt,
-        sampling: {
-          maxTokens: null,
-          temperature: 0.7,
-          topP: 0.95,
-        },
       },
       "2026-07-08T01:00:00.000Z",
     );
 
     expect(updated.parameters).toEqual({
-      temperature: 0.7,
-      topP: 0.95,
-      topK: 42,
+      maxTokens: { send: true, value: 400 },
+      temperature: { send: false, value: 0.8 },
+      topP: { send: true, value: 0.9 },
+      topK: { send: true, value: 42 },
       maxContext: 100_000,
-      stopSequences: ["END"],
+      stopSequences: { send: true, value: ["END"] },
       strictRoleFormatting: true,
-    });
-    expect(updated.sampling).toEqual({
-      temperature: 0.7,
-      topP: 0.95,
     });
   });
 
@@ -851,9 +887,9 @@ describe("updatePromptPresetRecord", () => {
         title: "Preset One",
         systemPrompt: "Write the next response.",
         parameters: {
-          temperature: 0.8,
-          topK: 42,
-          stopSequences: ["END"],
+          temperature: { send: true, value: 0.8 },
+          topK: { send: true, value: 42 },
+          stopSequences: { send: true, value: ["END"] },
         },
       },
     });
@@ -865,20 +901,14 @@ describe("updatePromptPresetRecord", () => {
         summary: record.summary,
         systemPrompt: record.systemPrompt,
         parameters: {
-          temperature: 1.1,
-        },
-        sampling: {
-          maxTokens: 800,
+          temperature: { send: false, value: 1.1 },
         },
       },
       "2026-07-08T01:00:00.000Z",
     );
 
     expect(updated.parameters).toEqual({
-      temperature: 1.1,
-    });
-    expect(updated.sampling).toEqual({
-      temperature: 1.1,
+      temperature: { send: false, value: 1.1 },
     });
   });
 });

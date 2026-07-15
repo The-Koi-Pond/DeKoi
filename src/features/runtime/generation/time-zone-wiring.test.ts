@@ -36,7 +36,6 @@ const macroPreset = {
   title: "Time",
   systemPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
   messengerPrompt: "Local: {{timezone}} {{weekday}} {{date}} {{time}}",
-  sampling: null,
   parameters: null,
   sectionOrder: [],
   groupOrder: [],

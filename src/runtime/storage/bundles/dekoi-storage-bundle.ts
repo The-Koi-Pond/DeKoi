@@ -31,6 +31,7 @@ import { normalizePersonaRecord } from "../collections/persona-storage";
 import { normalizeProviderConnectionRecord } from "../collections/provider-connection-storage";
 import { normalizeRippleState } from "../collections/ripple-state-storage";
 import { normalizePromptPresetImportRecord } from "../../../engine/prompt-presets/prompt-preset-package";
+import { promptPresetPackageParametersAreValid } from "../../../engine/prompt-presets/prompt-preset-package-schema";
 import { STARTER_PROMPT_PRESET } from "../../../engine/prompt-presets/starter-preset";
 import { repairPromptPresetRelationships } from "../prompt-preset-relationship-repair";
 import {
@@ -276,6 +277,16 @@ export function createDeKoiStorageBundle({
   providerConnections,
   rippleStates,
 }: DeKoiStorageBundleSourceData): DeKoiStorageBundle {
+  if (
+    promptPresets.some(
+      (preset) => !promptPresetPackageParametersAreValid(preset.parameters ?? null),
+    )
+  ) {
+    throw new Error(
+      "Prompt preset contains unsupported generation parameters and cannot be exported.",
+    );
+  }
+
   return {
     kind: DEKOI_STORAGE_BUNDLE_KIND,
     schemaVersion: DEKOI_STORAGE_BUNDLE_SCHEMA_VERSION,

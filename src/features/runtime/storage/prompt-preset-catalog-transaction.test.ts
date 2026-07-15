@@ -28,7 +28,6 @@ const records = (updatedAt = "1"): AppStorageRecords => ({
       summary: null,
       systemPrompt: "",
       messengerPrompt: null,
-      sampling: null,
       parameters: null,
       sectionOrder: [],
       groupOrder: [],

@@ -1,8 +1,18 @@
 import type {
   PromptPresetGroup,
+  PromptPresetParameters,
   PromptPresetRecord,
   PromptPresetSection,
 } from "../../../engine/contracts/types/prompt-presets";
+import {
+  GENERATION_PARAMETER_SPEC,
+  STANDARD_GENERATION_PARAMETER_KEYS,
+  isGenerationNumericParameterKey,
+  type GenerationDraftParameterEntries,
+  type GenerationDraftParameterEntry,
+  type StandardGenerationParameterKey,
+  type StandardGenerationParameterValue,
+} from "../../../engine/generation-core/generation-parameter-contract";
 import { type PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
 import {
   DEFAULT_PROMPT_PRESET_MARKER_TYPE,
@@ -17,14 +27,18 @@ import {
   type PromptPresetChoiceDraftState,
 } from "./prompt-preset-choice-draft";
 
+export type PromptPresetDraftParameters = Omit<
+  PromptPresetParameters,
+  StandardGenerationParameterKey
+> &
+  GenerationDraftParameterEntries;
+
 export interface PromptPresetDraftState extends PromptPresetChoiceDraftState {
   title: string;
   summary: string;
   systemPrompt: string;
   messengerPrompt: string;
-  maxTokens: string;
-  temperature: string;
-  topP: string;
+  parameters: PromptPresetDraftParameters;
   wrapFormat: string;
   variableOrderTemplate: PromptPresetVariableOrderTemplateEntry[];
   sections: PromptPresetSection[];
@@ -39,9 +53,7 @@ export const EMPTY_PROMPT_PRESET_DRAFT: PromptPresetDraftState = {
   summary: "",
   systemPrompt: "",
   messengerPrompt: "",
-  maxTokens: "",
-  temperature: "",
-  topP: "",
+  parameters: {},
   wrapFormat: "",
   variableOrderTemplate: [],
   sections: [],
@@ -55,12 +67,6 @@ let draftIdCounter = 0;
 function createDraftId(prefix: string) {
   draftIdCounter += 1;
   return `${prefix}-${Date.now()}-${draftIdCounter}`;
-}
-
-function optionalNumber(value: string) {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function cloneSections(sections: readonly PromptPresetSection[]) {
@@ -230,7 +236,62 @@ export function updatePromptPresetDraftSectionMarkerType(
 }
 
 export function canSavePromptPresetDraft(draft: PromptPresetDraftState) {
-  return draft.title.trim().length > 0 && validatePromptPresetChoiceDraft(draft).length === 0;
+  return promptPresetDraftValidationErrors(draft).length === 0;
+}
+
+export function promptPresetDraftParameterError<Key extends StandardGenerationParameterKey>(
+  field: Key,
+  entry: GenerationDraftParameterEntries[Key],
+) {
+  if (!entry) return null;
+
+  if (isGenerationNumericParameterKey(field)) {
+    const value = entry.value;
+    if (value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
+      return "Enter a valid value or turn Send off.";
+    }
+    if (!entry.send) return null;
+    if (value === null) return "Enter a valid value or turn Send off.";
+
+    const constraint = GENERATION_PARAMETER_SPEC[field];
+    if (value < constraint.minimum || value > constraint.maximum) {
+      return `Enter a value from ${constraint.minimum} to ${constraint.maximum}, or turn Send off.`;
+    }
+    if (constraint.integer && !Number.isInteger(value)) {
+      return "Enter a whole number or turn Send off.";
+    }
+    return null;
+  }
+
+  return entry.send && entry.value === null ? "Enter a valid value or turn Send off." : null;
+}
+
+export function promptPresetDraftValidationErrors(draft: PromptPresetDraftState) {
+  const errors = validatePromptPresetChoiceDraft(draft).map((issue) => issue.message);
+  if (!draft.title.trim()) errors.push("Title is required.");
+  for (const field of STANDARD_GENERATION_PARAMETER_KEYS) {
+    const error = promptPresetDraftParameterError(field, draft.parameters[field]);
+    if (error) errors.push(`${field}: ${error}`);
+  }
+  return errors;
+}
+
+export function promptPresetDraftParameterEntry<Key extends StandardGenerationParameterKey>(
+  parameters: PromptPresetDraftParameters,
+  key: Key,
+): GenerationDraftParameterEntries[Key] {
+  return parameters[key];
+}
+
+export function withPromptPresetDraftParameterEntry<Key extends StandardGenerationParameterKey>(
+  draft: PromptPresetDraftState,
+  key: Key,
+  entry: GenerationDraftParameterEntry<StandardGenerationParameterValue<Key>>,
+): PromptPresetDraftState {
+  return {
+    ...draft,
+    parameters: { ...draft.parameters, [key]: entry },
+  };
 }
 
 function createVariableOrderTemplate(preset: PromptPresetRecord) {
@@ -279,9 +340,7 @@ export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetD
     summary: preset.summary ?? "",
     systemPrompt: preset.systemPrompt,
     messengerPrompt: preset.messengerPrompt ?? "",
-    maxTokens: preset.sampling?.maxTokens?.toString() ?? "",
-    temperature: preset.sampling?.temperature?.toString() ?? "",
-    topP: preset.sampling?.topP?.toString() ?? "",
+    parameters: preset.parameters ? structuredClone(preset.parameters) : {},
     wrapFormat: preset.wrapFormat ?? "",
     variableOrderTemplate: createVariableOrderTemplate(preset),
     sections: cloneSections(promptPresetSectionsInOrder(preset.sections, preset.sectionOrder)),
@@ -290,11 +349,6 @@ export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetD
 }
 
 export function promptPresetDraftToInput(draft: PromptPresetDraftState): PromptPresetInput {
-  const sampling = {
-    maxTokens: optionalNumber(draft.maxTokens),
-    temperature: optionalNumber(draft.temperature),
-    topP: optionalNumber(draft.topP),
-  };
   const sections = cleanSections(draft.sections);
   const groups = cleanGroups(draft.groups);
   const systemPrompt = draft.systemPrompt.trim();
@@ -307,7 +361,7 @@ export function promptPresetDraftToInput(draft: PromptPresetDraftState): PromptP
     summary: draft.summary.trim() || null,
     systemPrompt,
     messengerPrompt: draft.messengerPrompt.trim() || null,
-    sampling,
+    parameters: structuredClone(draft.parameters) as PromptPresetParameters,
     sectionOrder: sections.map((section) => section.id),
     groupOrder: groups.map((group) => group.id),
     wrapFormat: draft.wrapFormat.trim() || null,

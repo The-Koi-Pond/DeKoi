@@ -209,6 +209,19 @@ describe("unified mode storage", () => {
       expect.arrayContaining(["modeThreads", "modeMessages"]),
     );
   });
+  it("drops malformed native prompt preset parameters instead of repairing them to null", async () => {
+    mockList({
+      [STORAGE_ENTITIES.promptPresets]: [
+        { ...STARTER_PROMPT_PRESET, parameters: { temperature: 0.7 } },
+      ],
+    });
+
+    const result = await loadAppStorageSnapshot("http://runtime.test");
+
+    expect(result.promptPresets).toEqual([]);
+    expect(result.droppedRecordCountByCollection.promptPresets).toBe(1);
+    expect(result.migrationCollectionKeys).not.toContain("promptPresets");
+  });
   it("saves and replaces unified collections, while exposing dropped-record warnings", async () => {
     mockList({});
     const snapshot = {

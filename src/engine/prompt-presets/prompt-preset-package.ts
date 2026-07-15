@@ -8,6 +8,7 @@ import {
 } from "./prompt-preset-normalization";
 import {
   promptPresetPackageEnvelopeIsValid,
+  promptPresetPackageParametersAreValid,
   readPromptPresetPackageData,
   type PromptPresetPackageRows,
 } from "./prompt-preset-package-schema";
@@ -21,17 +22,6 @@ const COMPATIBLE_PROMPT_PRESET_PACKAGE_TYPES = new Set([
 
 function stampPresetIdOnRows(rows: Record<string, unknown>[], presetId: string) {
   return rows.map((row) => ({ ...row, presetId }));
-}
-
-function mergedPackageParameters(parameters: unknown, sampling: unknown) {
-  const parameterRecord = parseJsonIfString(parameters);
-  const samplingRecord = parseJsonIfString(sampling);
-
-  if (isRecord(parameterRecord) && isRecord(samplingRecord)) {
-    return { ...samplingRecord, ...parameterRecord };
-  }
-
-  return parameters ?? sampling;
 }
 
 function packageRowsWerePreserved(rows: PromptPresetPackageRows, normalized: PromptPresetRecord) {
@@ -82,8 +72,7 @@ function normalizePromptPresetPackageRecord(
     systemPrompt,
     messengerPrompt:
       readNullableString(preset.messengerPrompt) ?? readNullableString(preset.conversationPrompt),
-    parameters: mergedPackageParameters(preset.parameters, preset.sampling),
-    sampling: preset.sampling,
+    parameters: preset.parameters,
     sectionOrder: preset.sectionOrder,
     groupOrder: preset.groupOrder,
     variableOrder: preset.variableOrder,
@@ -103,6 +92,12 @@ function normalizePromptPresetPackageRecord(
 }
 
 export function createPromptPresetPackage(record: PromptPresetRecord, exportedAt: string) {
+  if (!promptPresetPackageParametersAreValid(record.parameters ?? null)) {
+    throw new Error(
+      "Prompt preset contains unsupported generation parameters and cannot be exported.",
+    );
+  }
+
   return {
     type: DEKOI_PROMPT_PRESET_PACKAGE_TYPE,
     version: DEKOI_PROMPT_PRESET_PACKAGE_VERSION,
@@ -115,7 +110,6 @@ export function createPromptPresetPackage(record: PromptPresetRecord, exportedAt
         description: record.summary,
         systemPrompt: record.systemPrompt,
         messengerPrompt: record.messengerPrompt,
-        sampling: record.sampling,
         parameters: record.parameters,
         sectionOrder: record.sectionOrder,
         groupOrder: record.groupOrder,

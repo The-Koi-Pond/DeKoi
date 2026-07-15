@@ -1,16 +1,58 @@
 use serde_json::{Map, Value};
 
-fn protected_custom_parameter_name(name: &str) -> bool {
+const PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES: &[&str] = &[
+    "accesskey",
+    "accesstoken",
+    "apikey",
+    "auth",
+    "authentication",
+    "authorization",
+    "basic",
+    "bearer",
+    "clientsecret",
+    "cookie",
+    "credential",
+    "credentials",
+    "passwd",
+    "password",
+    "privatekey",
+    "providerkey",
+    "providersecret",
+    "secret",
+    "secretkey",
+    "setcookie",
+    "token",
+    "xapikey",
+    "xgoogapikey",
+];
+
+fn protected_credential_custom_parameter_name(name: &str) -> bool {
     let normalized = name.trim().to_ascii_lowercase();
+    let canonical: String = normalized
+        .chars()
+        .filter(|character| !matches!(*character, '-' | '_'))
+        .collect();
+    PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES.contains(&canonical.as_str())
+}
+
+fn protected_custom_parameter_name(name: &str) -> bool {
+    let trimmed = name.trim();
+    let normalized = trimmed.to_ascii_lowercase();
+    if name != trimmed {
+        return true;
+    }
     matches!(
         normalized.as_str(),
         "" | "__proto__" | "constructor" | "prototype"
     ) || PROTECTED_CUSTOM_PARAMETER_NAMES.contains(&normalized.as_str())
+        || protected_credential_custom_parameter_name(&normalized)
 }
 
 const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "accept",
+    "access_key",
     "access_token",
+    "accesskey",
     "accesstoken",
     "activepersona",
     "anthropic-version",
@@ -23,11 +65,15 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "baseurl",
     "basic",
     "bearer",
+    "client_secret",
+    "clientsecret",
     "companions",
     "content-type",
     "contents",
     "cookie",
     "createdat",
+    "credential",
+    "credentials",
     "customparameters",
     "endpoint",
     "frequency_penalty",
@@ -51,17 +97,25 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "organization",
     "output_config",
     "parameters",
+    "passwd",
+    "password",
     "presence_penalty",
     "presencepenalty",
+    "private_key",
+    "privatekey",
     "project",
     "prompt",
     "prompt_messages",
     "promptmessages",
     "provider",
     "provider_connection_id",
+    "provider_key",
     "provider_routing",
+    "provider_secret",
     "providerconnection",
     "providerconnectionid",
+    "providerkey",
+    "providersecret",
     "reasoning_effort",
     "reasoningeffort",
     "request_id",
@@ -72,6 +126,9 @@ const PROTECTED_CUSTOM_PARAMETER_NAMES: &[&str] = &[
     "routing",
     "schema_version",
     "schemaversion",
+    "secret",
+    "secret_key",
+    "secretkey",
     "service_tier",
     "servicetier",
     "set-cookie",
@@ -126,7 +183,8 @@ fn custom_value_within_limits(value: &Value, depth: usize, entries: &mut usize) 
                     !matches!(
                         name.to_ascii_lowercase().as_str(),
                         "__proto__" | "constructor" | "prototype"
-                    ) && name.len() <= 128
+                    ) && !protected_credential_custom_parameter_name(name)
+                        && name.len() <= 128
                         && custom_value_within_limits(value, depth + 1, entries)
                 })
         }
@@ -183,6 +241,16 @@ mod tests {
     }
 
     #[test]
+    fn matches_the_canonical_credential_name_roster_exactly() {
+        let fixture: Vec<String> = serde_json::from_str(include_str!(
+            "../../../../test-fixtures/protected-credential-custom-parameter-names.json"
+        ))
+        .expect("protected credential-name fixture should be valid JSON");
+        let implementation: Vec<&str> = PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES.to_vec();
+        assert_eq!(implementation, fixture);
+    }
+
+    #[test]
     fn rejects_reserved_custom_parameter_names_without_echoing_values() {
         for name in [
             "organization",
@@ -205,6 +273,20 @@ mod tests {
             "request_id",
             "schema_version",
             "base_url",
+            "secret",
+            "secretKey",
+            "secret_key",
+            "privateKey",
+            "private_key",
+            "accessKey",
+            "access_key",
+            "password",
+            "clientSecret",
+            "api-key",
+            "access-token",
+            "secret-key",
+            "client-secret",
+            " repetition_penalty ",
         ] {
             let custom = serde_json::json!({ name: "blocked" });
             let error =
@@ -212,6 +294,35 @@ mod tests {
             assert!(error.contains("reserved"), "{name}: {error}");
             assert!(!error.contains("blocked"), "{name}: {error}");
         }
+    }
+
+    #[test]
+    fn rejects_nested_credential_names_without_echoing_values() {
+        for name in ["password", "api-key", "access_token", "clientSecret"] {
+            let custom = serde_json::json!({
+                "safe_container": {
+                    "providerOptions": { name: "nested-sensitive-value" }
+                }
+            });
+            let error =
+                validate_custom_parameters(custom.as_object().expect(name)).expect_err(name);
+            assert!(error.contains("safety limits"), "{name}: {error}");
+            assert!(!error.contains("nested-sensitive-value"), "{name}: {error}");
+        }
+    }
+
+    #[test]
+    fn allows_request_reserved_names_inside_non_secret_nested_structures() {
+        let custom = serde_json::json!({
+            "safe_container": {
+                "provider": { "model": "provider-model" },
+                "messages": [],
+                "parameters": { "temperature": 0.5 }
+            }
+        });
+
+        validate_custom_parameters(custom.as_object().expect("object"))
+            .expect("non-secret nested provider fields should remain valid");
     }
 
     #[test]
