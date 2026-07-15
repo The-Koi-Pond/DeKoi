@@ -386,6 +386,16 @@ than inventing a value. Unknown `customParameters` are accepted only for
 bounded JSON-safe values. Provider rejection is surfaced once as a cleaned,
 bounded error; DeKoi does not retry by guessing which field to remove.
 
+The DTO rejects unknown fields at every fixed level, including inline `apiKey`
+values and arbitrary connection headers. Numeric parameters must be finite and
+stay within these inclusive ranges: `maxTokens` 1 to 131072, `temperature` 0 to
+2, `topP` and `minP` 0 to 1, `topK` 0 to 1000, and both penalties -2 to 2. Stop
+sequences must be non-empty and already trimmed. `customParameters` permits at
+most 1024 aggregate array items and object fields, 16 levels of nesting, 128
+UTF-8 bytes per field name, and 65536 UTF-8 bytes after JSON serialization. The
+canonical protected name roster shared by the TypeScript and Rust validators is
+`test-fixtures/protected-custom-parameter-names.json`.
+
 Response:
 
 ```json
@@ -621,13 +631,13 @@ Legacy conversion is limited to recognized Messenger records; lorebook and
 prompt-preset references are cleared, not imported. Development data may be
 reset when storage shape changes.
 
-When `generation_generate` includes resolved lorebooks, they use the same v2
-shape. Current DeKoi prompt assembly resolves lorebook sources from the
-chat/thread, active persona, selected companions, and app-wide global settings,
-then scans each lorebook at most once before sending the request. Duplicate
-lorebooks keep the first source bucket in deterministic order: chat, persona,
-character, then global. Compatible runtimes should use `promptMessages` for
-provider calls and do not need to re-run lorebook activation. Activation uses
+Current DeKoi prompt assembly resolves lorebook sources from the chat/thread,
+active persona, selected companions, and app-wide global settings, then scans
+each lorebook at most once before provider generation. The narrow generation
+DTO does not include lorebook records. Duplicate lorebooks keep the first source
+bucket in deterministic order: chat, persona, character, then global.
+Compatible runtimes should use `promptMessages` for provider calls and do not
+need to re-run lorebook activation. Activation uses
 macro-resolved lorebook summaries, lore entry bodies, and entry-opted additional
 match sources through scratch macro contexts, so variable mutations do not
 commit while scanning. It includes enabled constant entries with non-empty

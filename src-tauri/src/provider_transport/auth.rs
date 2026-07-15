@@ -1,6 +1,7 @@
 use crate::secrets::provider_secret_read_for_scope;
 
-const PROVIDER_API_KEY_REQUIRED_ERROR: &str = "Provider connection needs an API key before it can make provider requests. Re-enter the key.";
+const PROVIDER_API_KEY_REQUIRED_ERROR: &str =
+    "Provider connection needs an API key before it can make provider requests. Re-enter the key.";
 
 pub(super) fn provider_connection_requires_api_key(provider: &str) -> bool {
     matches!(
@@ -96,26 +97,22 @@ mod tests {
 
     #[test]
     fn optional_provider_ignores_secret_store_read_failures() {
-        let api_key = resolve_provider_connection_api_key(
-            "custom",
-            "connection-custom",
-            true,
-            || Err("Credential store unavailable".to_string()),
-        )
-        .expect("Optional-key providers should tolerate secret-store failures");
+        let api_key =
+            resolve_provider_connection_api_key("custom", "connection-custom", true, || {
+                Err("Credential store unavailable".to_string())
+            })
+            .expect("Optional-key providers should tolerate secret-store failures");
 
         assert_eq!(api_key, "");
     }
 
     #[test]
     fn required_provider_propagates_secret_store_read_failures() {
-        let error = resolve_provider_connection_api_key(
-            "openai",
-            "connection-openai",
-            true,
-            || Err("Credential store unavailable".to_string()),
-        )
-        .expect_err("Required-key providers should surface secret-store failures");
+        let error =
+            resolve_provider_connection_api_key("openai", "connection-openai", true, || {
+                Err("Credential store unavailable".to_string())
+            })
+            .expect_err("Required-key providers should surface secret-store failures");
 
         assert_eq!(error, "Credential store unavailable");
     }
