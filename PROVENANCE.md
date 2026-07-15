@@ -51,8 +51,9 @@ legacy application record model.
   with attribution when the maintainer has approved them as DeKoi source
   material.
 - The bundled Universal V2 starter package is derived from Chai-authored,
-  team-owned prompt material by deleting only the abandoned `visibilityRule`
-  metadata described below.
+  team-owned prompt material by deleting the abandoned `visibilityRule`
+  metadata and applying the DeKoi-owned outbound parameter-contract
+  transformation described below. Prompt prose and choice text are unchanged.
 
 ### Universal V2 provenance review
 
