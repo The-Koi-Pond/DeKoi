@@ -16,15 +16,17 @@ import {
   advanceLoreRuntimeStateForEvaluation,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
-  buildMatchSources,
-  buildScanBuffer,
   compareActivatedEntryBudgetPriority,
   sortActivatedEntriesForInsertion,
   updateLoreRuntimeStateFromActivation,
   type ActivatedLoreEntry,
-  type LorebookScanSource,
 } from "../generation-core/lorebook-activation";
 import { activatedLoreEntryKey } from "../generation-core/lorebook-activation-types";
+import {
+  buildMatchSources,
+  buildScanBuffer,
+  type LorebookScanSource,
+} from "../generation-core/lorebook-matching";
 import {
   createGenerationParameters as createCoreGenerationParameters,
   type GenerationParameters,

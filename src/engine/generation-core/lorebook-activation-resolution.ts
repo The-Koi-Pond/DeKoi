@@ -3,11 +3,8 @@ import type {
   LoreInsertionStrategy,
   LoreSourceKind,
 } from "../contracts/types/lorebook";
-import {
-  activatedLoreEntryKey,
-  type ActivatedLoreEntry,
-  type PrimaryMatchCountResult,
-} from "./lorebook-activation-types";
+import { activatedLoreEntryKey, type ActivatedLoreEntry } from "./lorebook-activation-types";
+import type { PrimaryMatchCountResult } from "./lorebook-matching";
 
 interface FinalizeActivationResultOptions {
   activation: LorebookActivationSettings;

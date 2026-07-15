@@ -10,10 +10,8 @@ import {
   getActiveModeBranchMessages,
   getActiveModeMessageVersion,
 } from "../modes/mode-thread/mode-thread-actions";
-import type {
-  ActivatedLoreEntry,
-  LorebookScanSource,
-} from "../generation-core/lorebook-activation";
+import type { ActivatedLoreEntry } from "../generation-core/lorebook-activation";
+import type { LorebookScanSource } from "../generation-core/lorebook-matching";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
 import {

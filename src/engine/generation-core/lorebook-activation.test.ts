@@ -5,13 +5,11 @@ import {
   activateLorebookEntries,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
-  buildMatchSources,
-  buildScanBuffer,
-  matchKey,
   sortActivatedEntriesForInsertion,
 } from "./lorebook-activation";
 import { finalizeActivationResult } from "./lorebook-activation-resolution";
 import type { ActivatedLoreEntry } from "./lorebook-activation-types";
+import { buildMatchSources } from "./lorebook-matching";
 import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
@@ -546,40 +544,6 @@ describe("lorebook activation", () => {
     expect(activateLorebookEntries(lorebook([disabled]), "Disabled")).toEqual([]);
   });
 
-  it("builds a scan buffer from only the last N sources", () => {
-    const buffer = buildScanBuffer(
-      [
-        { name: "A", body: "first" },
-        { name: "B", body: "second" },
-        { name: "C", body: "third" },
-      ],
-      { scanDepth: 2, includeNames: true },
-    );
-
-    expect(buffer).toBe("B: second\nC: third");
-  });
-
-  it("drops empty-body sources before applying scan depth", () => {
-    const buffer = buildScanBuffer(
-      [
-        { name: "Alex", body: "open the moon gate" },
-        { name: "Moon Gate", body: "   " },
-      ],
-      { scanDepth: 1, includeNames: true },
-    );
-
-    expect(buffer).toBe("Alex: open the moon gate");
-  });
-
-  it("includes or excludes names from the scan buffer", () => {
-    const sources = [{ name: "SecretName", body: "ordinary body" }];
-
-    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: true })).toContain("SecretName");
-    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: false })).not.toContain(
-      "SecretName",
-    );
-  });
-
   it("activates from opted-in companion and persona match sources only", () => {
     const fromDescription = entry({
       title: "Description Match",
@@ -698,62 +662,6 @@ describe("lorebook activation", () => {
         matchSources,
       }),
     ).toEqual([]);
-  });
-
-  it("matches whole words separately from substrings", () => {
-    expect(
-      matchKey("cat", "A cat appears.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(true);
-    expect(
-      matchKey("cat", "The catalog opens.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(false);
-    expect(
-      matchKey("cat", "The catalog opens.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-  });
-
-  it("respects case-sensitive matching", () => {
-    expect(
-      matchKey("moon gate", "Moon Gate", {
-        caseSensitiveKeys: true,
-        matchWholeWords: false,
-      }),
-    ).toBe(false);
-    expect(
-      matchKey("moon gate", "Moon Gate", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-  });
-
-  it("uses locale-independent lowercasing for case-insensitive keys", () => {
-    const localeLowerSpy = vi
-      .spyOn(String.prototype, "toLocaleLowerCase")
-      .mockImplementation(() => {
-        throw new Error("locale-sensitive lowercasing used");
-      });
-    const matched = (() => {
-      try {
-        return matchKey("IRIS", "iris blooms", {
-          caseSensitiveKeys: false,
-          matchWholeWords: true,
-        });
-      } finally {
-        localeLowerSpy.mockRestore();
-      }
-    })();
-
-    expect(matched).toBe(true);
   });
 
   it.each([
@@ -983,30 +891,6 @@ describe("lorebook activation", () => {
     expect(activation.warnings[0]).toContain(
       'Unsafe regex key "/(cat|dog)+ gate/" treated as plaintext',
     );
-  });
-
-  it("applies case-sensitivity defaults to regex keys without explicit flags", () => {
-    expect(
-      matchKey("/moon gate/", "MOON GATE", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-    expect(
-      matchKey("/moon gate/", "MOON GATE", {
-        caseSensitiveKeys: true,
-        matchWholeWords: false,
-      }),
-    ).toBe(false);
-  });
-
-  it("does not apply whole-word wrapping to regex keys", () => {
-    expect(
-      matchKey("/cat/", "catalog", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(true);
   });
 
   it("sorts activated entries by insertion order with stable source tiebreaks", () => {

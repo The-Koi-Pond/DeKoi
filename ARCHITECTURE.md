@@ -186,7 +186,7 @@ architecture-level rules:
 - `src/engine` owns native record contracts under `contracts/types`,
   deterministic catalog/mode/prompt-preset/lore-runtime/macro-variable/ripple actions,
   engine-local shared text/error helpers, and provider-neutral generation
-  assembly, including lorebook activation, prompt preset section-message
+  assembly, including split lorebook matching/activation owners, prompt preset section-message
   assembly, the macro resolver and active editor macro catalog under
   `generation-core`, and Messenger/Roleplay prompt macro wiring under
   `generation`. `contracts/types/mode-thread.ts` and `modes/mode-thread` define

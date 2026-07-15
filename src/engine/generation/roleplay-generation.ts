@@ -15,10 +15,8 @@ import {
 } from "../modes/mode-thread/mode-thread-actions";
 import { getNextRoleplayCompanion } from "../modes/roleplay/roleplay-actions";
 import { assemblePromptPresetMessages } from "../prompt-presets/prompt-preset-assembler";
-import type {
-  ActivatedLoreEntry,
-  LorebookScanSource,
-} from "../generation-core/lorebook-activation";
+import type { ActivatedLoreEntry } from "../generation-core/lorebook-activation";
+import type { LorebookScanSource } from "../generation-core/lorebook-matching";
 import {
   activateLoreGenerationEntriesWithWarnings,
   characterGenerationContext,
