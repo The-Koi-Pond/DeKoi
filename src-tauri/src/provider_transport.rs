@@ -1,6 +1,7 @@
 mod auth;
 mod connection_check;
 mod endpoints;
+mod error_sanitization;
 mod generation;
 mod http;
 mod models;

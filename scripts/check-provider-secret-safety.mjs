@@ -85,6 +85,23 @@ function exportedFunctionBody(source, name) {
   fail(`Could not parse ${name} body.`);
 }
 
+function rustFunctionBody(source, name) {
+  const signatureIndex = source.search(new RegExp(`\\bfn ${name}\\s*\\(`));
+  if (signatureIndex === -1) fail(`Could not find Rust function ${name}.`);
+  const bodyStart = source.indexOf("{", signatureIndex);
+  if (bodyStart === -1) fail(`Could not find Rust function ${name} body.`);
+
+  let depth = 0;
+  for (let index = bodyStart; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === "{") depth += 1;
+    if (char === "}") depth -= 1;
+    if (depth === 0) return source.slice(bodyStart + 1, index);
+  }
+
+  fail(`Could not parse Rust function ${name} body.`);
+}
+
 function firstReturnedObjectKeys(source, name) {
   const body = exportedFunctionBody(source, name);
   const returnIndex = body.indexOf("return {");
@@ -221,14 +238,46 @@ const desktopProviderTransportSource = [
   readFile("src-tauri/src/provider_transport.rs"),
   readRustSources("src-tauri/src/provider_transport"),
 ].join("\n");
+const desktopProviderAuthSource = readFile("src-tauri/src/provider_transport/auth.rs");
+const desktopProviderGenerationSource = readFile("src-tauri/src/provider_transport/generation.rs");
 if (/provider_secret_read_for_scope\([^)]*true\)/.test(desktopProviderTransportSource)) {
   fail("Desktop runtime provider secret reads must not use unscoped fallback.");
 }
 
+const resolveProviderApiKeyBody = rustFunctionBody(
+  desktopProviderAuthSource,
+  "resolve_provider_connection_api_key",
+);
+const scopedProviderApiKeyBody = rustFunctionBody(
+  desktopProviderAuthSource,
+  "provider_connection_api_key_for_scope",
+);
+const recordProviderApiKeyBody = rustFunctionBody(
+  desktopProviderAuthSource,
+  "provider_connection_api_key",
+);
+const generationApiKeyBody = rustFunctionBody(
+  desktopProviderGenerationSource,
+  "generation_api_key",
+);
+const readyGuardIndex = resolveProviderApiKeyBody.indexOf(
+  "if connection_id.trim().is_empty() || !ready",
+);
+const secretReadIndex = scopedProviderApiKeyBody.indexOf("provider_secret_read_for_scope(");
+
 if (
-  !/get\("status"\)/.test(desktopProviderTransportSource) ||
-  !/status != "ready"/.test(desktopProviderTransportSource) ||
-  !/return Ok\(String::new\(\)\);/.test(desktopProviderTransportSource)
+  readyGuardIndex === -1 ||
+  !/return Ok\(String::new\(\)\);/.test(resolveProviderApiKeyBody) ||
+  secretReadIndex === -1 ||
+  !/resolve_provider_connection_api_key\(provider, connection_id, ready,/.test(
+    scopedProviderApiKeyBody,
+  ) ||
+  !/provider_connection_api_key_for_scope\([\s\S]*status == "ready"/.test(
+    recordProviderApiKeyBody,
+  ) ||
+  !/provider_connection_api_key_for_scope\([\s\S]*matches!\(\s*connection\.status,\s*GenerationConnectionStatus::Ready\s*\)/.test(
+    generationApiKeyBody,
+  )
 ) {
   fail("Desktop runtime must only read keyring secrets for ready connections.");
 }

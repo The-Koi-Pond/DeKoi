@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 
+import protectedCustomParameterNames from "../../../test-fixtures/protected-custom-parameter-names.json";
+
 import {
+  PROTECTED_CUSTOM_PARAMETER_NAMES,
   validateGenerationCustomParameter,
   validateGenerationCustomParameters,
   validateGenerationCustomParameterValue,
 } from "./generation-custom-parameter-policy";
 
 describe("generation custom parameter policy", () => {
+  it("matches the canonical protected-name roster exactly", () => {
+    expect([...PROTECTED_CUSTOM_PARAMETER_NAMES].sort()).toEqual(protectedCustomParameterNames);
+  });
+
   it("accepts recursively JSON-safe custom values", () => {
     expect(
       validateGenerationCustomParameter("repetition_penalty", {

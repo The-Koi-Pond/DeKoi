@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use super::error_sanitization::clean_provider_error_detail;
+
 pub(super) fn provider_http_client(timeout: Duration) -> Result<reqwest::Client, String> {
     reqwest::ClientBuilder::new()
         .timeout(timeout)
@@ -15,8 +17,12 @@ pub(super) fn provider_request_error(
     if error.is_timeout() {
         format!("{action} timed out after {} seconds.", timeout.as_secs())
     } else {
-        format!("{action} failed. {error}")
+        provider_request_failure(action, &error.to_string())
     }
+}
+
+fn provider_request_failure(action: &str, detail: &str) -> String {
+    format!("{action} failed. {}", clean_provider_error_detail(detail))
 }
 
 fn parse_provider_json_body(
@@ -67,7 +73,10 @@ pub(super) fn provider_error(payload: &serde_json::Value, status: reqwest::Statu
 
     match message.map(|message| message.trim().to_string()) {
         Some(message) if !message.is_empty() => {
-            format!("Provider returned HTTP {status}: {message}")
+            format!(
+                "Provider returned HTTP {status}: {}",
+                clean_provider_error_detail(&message)
+            )
         }
         _ => format!("Provider returned HTTP {status}."),
     }
@@ -123,7 +132,7 @@ pub(super) async fn post_provider_json(
     }
 
     if let Some(error) = provider_payload_error(&payload) {
-        return Err(error);
+        return Err(clean_provider_error_detail(&error));
     }
 
     Ok(payload)
@@ -183,6 +192,19 @@ pub(super) fn provider_headers(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::provider_transport::error_sanitization::redact_provider_error_secret;
+
+    const PROTECTED_CREDENTIAL_DETAILS: [(&str, &str); 9] = [
+        ("access_token=access-secret", "access-secret"),
+        ("token: token-secret", "token-secret"),
+        (r#""api_key":"json-secret""#, "json-secret"),
+        ("'accessToken': 'quoted secret'", "quoted secret"),
+        ("Authorization: raw-secret", "raw-secret"),
+        ("authorization=assignment-secret", "assignment-secret"),
+        (r#""authorization":"quoted-secret""#, "quoted-secret"),
+        ("Authorization: Bearer bearer-secret", "bearer-secret"),
+        ("Authorization: Basic basic-secret", "basic-secret"),
+    ];
 
     #[test]
     fn provider_json_payload_rejects_empty_success_body() {
@@ -241,5 +263,75 @@ mod tests {
             error,
             "Provider returned HTTP 401 Unauthorized: invalid_api_key"
         );
+    }
+
+    #[test]
+    fn provider_error_redacts_credentials_and_caps_detail() {
+        let error = provider_error(
+            &serde_json::json!({
+                "error": {
+                    "message": format!(
+                        "Authorization: Bearer secret-token https://user:password@provider.test api_key=sk-secret AIzaSyExampleGoogleKey123456789 {}",
+                        "x".repeat(500)
+                    )
+                }
+            }),
+            reqwest::StatusCode::BAD_REQUEST,
+        );
+
+        assert!(!error.contains("secret-token"));
+        assert!(!error.contains("password"));
+        assert!(!error.contains("sk-secret"));
+        assert!(!error.contains("AIzaSyExampleGoogleKey"));
+        assert!(error.chars().count() <= 340);
+    }
+
+    #[test]
+    fn provider_error_redacts_protected_credential_field_forms() {
+        for (detail, secret) in PROTECTED_CREDENTIAL_DETAILS {
+            let http_error = provider_error(
+                &serde_json::json!({ "error": { "message": detail } }),
+                reqwest::StatusCode::BAD_REQUEST,
+            );
+            let embedded_error = clean_provider_error_detail(detail);
+
+            assert!(!http_error.contains(secret), "HTTP error leaked {detail}");
+            assert!(http_error.contains("[redacted]"), "HTTP error: {detail}");
+            assert!(
+                !embedded_error.contains(secret),
+                "embedded error leaked {detail}"
+            );
+            assert!(
+                embedded_error.contains("[redacted]"),
+                "embedded error: {detail}"
+            );
+        }
+    }
+
+    #[test]
+    fn provider_request_failure_redacts_protected_credential_field_forms() {
+        for (detail, secret) in PROTECTED_CREDENTIAL_DETAILS {
+            let error = provider_request_failure("Provider request", detail);
+
+            assert!(!error.contains(secret), "request error leaked {detail}");
+            assert!(error.contains("[redacted]"), "request error: {detail}");
+        }
+    }
+
+    #[test]
+    fn provider_error_preserves_noncredential_similar_fields() {
+        let detail = "token_count=42 tokenizer: sentencepiece";
+
+        assert_eq!(clean_provider_error_detail(detail), detail);
+    }
+
+    #[test]
+    fn provider_error_redacts_the_exact_in_memory_secret() {
+        let error = redact_provider_error_secret(
+            "Provider echoed totally-custom-secret in an error.",
+            "totally-custom-secret",
+        );
+
+        assert_eq!(error, "Provider echoed [redacted] in an error.");
     }
 }

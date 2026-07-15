@@ -307,10 +307,11 @@ prove a valid OpenAI, Anthropic, or Google connection check.
 
 ## `generation_generate`
 
-The request may carry Messenger or Roleplay native fields for local context.
-Runtimes should use the shared generation fields for provider calls:
-`providerConnection`, `targetCharacterId`, `targetCharacterName`,
-`promptMessages`, and `parameters`.
+The command receives a narrow provider-generation DTO. It deliberately excludes
+threads, transcript records, companions, personas, lorebooks, prompt presets,
+warnings, saved secrets, arbitrary headers, and a provider-ready payload. The
+desktop capability resolves any saved key by `connection.id`, validates the
+trusted connection routing fields, and independently builds the provider body.
 
 `parameters` always carries `temperature`, `maxTokens`, and `topP`. Its
 provider-neutral contract also permits optional `topK`, `minP`,
@@ -321,9 +322,9 @@ are accepted only by the custom-provider payload, are bounded before
 serialization, and cannot shadow routing, authentication, message, or mapped
 parameter names. Current app-side prompt preset generation still populates only
 the existing sampling projection; this contract does not activate advanced
-preset values. Desktop generation continues to receive the complete unchanged
-generation request through `generation_generate` and owns its provider payload
-adaptation behind that command boundary.
+preset values. Desktop generation receives only this narrow DTO through
+`generation_generate` and owns its provider payload adaptation behind that
+command boundary.
 
 DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
@@ -345,134 +346,17 @@ Request:
   "command": "generation_generate",
   "args": {
     "request": {
-      "schemaVersion": 1,
       "id": "generation-request-example",
       "createdAt": "2026-06-24T07:20:00.000Z",
-      "thread": {
-        "id": "mode-thread-example",
-        "schemaVersion": 1,
-        "kind": "messenger",
-        "title": "Example Messenger",
-        "activeBranchId": "branch-example",
-        "branches": [
-          {
-            "id": "branch-example",
-            "schemaVersion": 1,
-            "threadId": "mode-thread-example",
-            "kind": "messenger",
-            "participantMode": "direct",
-            "characterIds": ["character-koi"],
-            "activePersonaId": "persona-xel",
-            "lorebookIds": [],
-            "presetId": null,
-            "presetChoiceSelectionsByPresetId": {},
-            "providerConnectionId": "connection-local-provider",
-            "systemPromptMode": "default",
-            "systemPrompt": "",
-            "createdAt": "2026-06-24T07:10:00.000Z",
-            "updatedAt": "2026-06-24T07:20:00.000Z"
-          }
-        ],
-        "messages": [],
-        "createdAt": "2026-06-24T07:10:00.000Z",
-        "updatedAt": "2026-06-24T07:20:00.000Z"
-      },
-      "userMessage": {
-        "id": "messenger-message-user",
-        "schemaVersion": 1,
-        "threadId": "mode-thread-example",
-        "branchId": "branch-example",
-        "author": {
-          "kind": "persona",
-          "personaId": "persona-xel",
-          "label": "Xel"
-        },
-        "versions": [
-          {
-            "id": "messenger-message-user-v1",
-            "body": "Can you hear me?",
-            "origin": "manual",
-            "createdAt": "2026-06-24T07:20:00.000Z",
-            "updatedAt": "2026-06-24T07:20:00.000Z"
-          }
-        ],
-        "activeVersionId": "messenger-message-user-v1",
-        "createdAt": "2026-06-24T07:20:00.000Z",
-        "updatedAt": "2026-06-24T07:20:00.000Z"
-      },
-      "companions": [
-        {
-          "id": "character-koi",
-          "schemaVersion": 1,
-          "displayName": "Koi",
-          "nickname": "Koi",
-          "description": "Used for remote runtime contract checks.",
-          "personality": "A local test companion.",
-          "scenario": "Koi is helping test the remote runtime contract.",
-          "firstMessage": "Fixture check ready.",
-          "alternateGreetings": [],
-          "groupOnlyGreetings": [],
-          "exampleMessages": "<START>\n{{user}}: Can you hear me?\n{{char}}: Fixture channel is clear.",
-          "systemPrompt": "",
-          "postHistoryInstructions": "",
-          "creator": "DeKoi",
-          "characterVersion": "contract",
-          "creatorNotes": "Used for remote runtime contract checks.",
-          "tags": ["fixture"],
-          "characterNote": "",
-          "characterNoteDepth": 4,
-          "characterNoteRole": "system",
-          "talkativeness": 50,
-          "avatarUrl": null,
-          "lorebookIds": [],
-          "createdAt": "2026-06-24T07:00:00.000Z",
-          "updatedAt": "2026-06-24T07:00:00.000Z"
-        }
-      ],
-      "activePersona": {
-        "id": "persona-xel",
-        "schemaVersion": 1,
-        "displayName": "Xel",
-        "nickname": "Xel",
-        "description": "Used for remote runtime contract checks.",
-        "personality": "The active user persona.",
-        "scenario": "Xel is testing a remote runtime request.",
-        "systemPrompt": "",
-        "postHistoryInstructions": "",
-        "creator": "DeKoi",
-        "characterVersion": "contract",
-        "creatorNotes": "Used for remote runtime contract checks.",
-        "tags": ["fixture"],
-        "characterNote": "",
-        "characterNoteDepth": 4,
-        "characterNoteRole": "system",
-        "talkativeness": 50,
-        "avatarUrl": null,
-        "lorebookIds": [],
-        "createdAt": "2026-06-24T07:00:00.000Z",
-        "updatedAt": "2026-06-24T07:00:00.000Z"
-      },
-      "lorebooks": [],
-      "providerConnectionId": "connection-local-provider",
-      "providerConnection": {
-        "id": "connection-local-provider",
-        "schemaVersion": 1,
-        "kind": "provider",
-        "provider": "custom",
-        "label": "Local OpenAI-compatible provider",
-        "baseUrl": "http://127.0.0.1:1234/v1",
-        "model": "local-model",
-        "summary": "",
-        "status": "ready",
-        "modelLabel": null,
-        "agentDefault": false,
-        "maxContext": null,
-        "maxOutput": 1024,
-        "createdAt": "2026-06-24T07:00:00.000Z",
-        "updatedAt": "2026-06-24T07:00:00.000Z"
-      },
       "targetCharacterId": "character-koi",
       "targetCharacterName": "Koi",
+      "connection": {
+        "id": "connection-local-provider",
+        "provider": "custom",
+        "baseUrl": "http://127.0.0.1:1234/v1",
+        "model": "local-model",
+        "status": "ready"
+      },
       "promptMessages": [
         {
           "role": "system",
@@ -486,13 +370,31 @@ Request:
       "parameters": {
         "temperature": 0.8,
         "maxTokens": 1024,
-        "topP": 0.95
-      },
-      "warnings": []
+        "topP": 0.95,
+        "stopSequences": ["END"]
+      }
     }
   }
 }
 ```
+
+The optional parameter names above are provider-neutral. DeKoi maps only fields
+documented for the selected provider and omits known-incompatible fields.
+Anthropic requires `maxTokens`; if it is absent, DeKoi fails before HTTP rather
+than inventing a value. Unknown `customParameters` are accepted only for
+`provider: "custom"`, cannot replace core or mapped fields, and must contain
+bounded JSON-safe values. Provider rejection is surfaced once as a cleaned,
+bounded error; DeKoi does not retry by guessing which field to remove.
+
+The DTO rejects unknown fields at every fixed level, including inline `apiKey`
+values and arbitrary connection headers. Numeric parameters must be finite and
+stay within these inclusive ranges: `maxTokens` 1 to 131072, `temperature` 0 to
+2, `topP` and `minP` 0 to 1, `topK` 0 to 1000, and both penalties -2 to 2. Stop
+sequences must be non-empty and already trimmed. `customParameters` permits at
+most 1024 aggregate array items and object fields, 16 levels of nesting, 128
+UTF-8 bytes per field name, and 65536 UTF-8 bytes after JSON serialization. The
+canonical protected name roster shared by the TypeScript and Rust validators is
+`test-fixtures/protected-custom-parameter-names.json`.
 
 Response:
 
@@ -512,8 +414,10 @@ Response:
 }
 ```
 
-`messages[].characterId` must match a selected companion in the request. DeKoi
-drops unknown companion drafts and surfaces a warning.
+DeKoi keeps each response draft whose `messages[].characterId` resolves in the
+mode-owned companions collection. Drafts for unknown or no-longer-available
+companions are dropped with a warning; the ID does not need to equal
+`targetCharacterId`.
 
 `source` identifies who produced the normalized generation response. Compatible
 remote HTTP runtimes return `"remote-runtime"`; DeKoi's built-in desktop and
@@ -521,12 +425,11 @@ browser provider transport returns `"provider-transport"`. This field is
 generation response metadata and is separate from provider connection records,
 which use `kind: "provider"`.
 
-`request.warnings` contains non-fatal DeKoi-side context and lore activation
-warnings discovered before the runtime call, such as invalid or unsafe regex
-keys that fell back to plaintext or recursive lore activation stopped by the
-hard pass cap. Runtimes do not need to echo these warnings; DeKoi surfaces
-runtime response warnings first, then unknown companion draft warnings, then
-`request.warnings`.
+Non-fatal DeKoi-side context and lore activation warnings remain app-owned and
+are not included in this transport DTO. After the runtime call, DeKoi surfaces
+runtime response warnings first, then warnings for response drafts whose
+character ID does not resolve in the mode-owned companions collection, then the
+app-owned warnings.
 
 When a runtime returns no generated text because the provider refused or blocked
 the response, return a warning that includes the provider detail. Desktop and
@@ -728,13 +631,13 @@ Legacy conversion is limited to recognized Messenger records; lorebook and
 prompt-preset references are cleared, not imported. Development data may be
 reset when storage shape changes.
 
-When `generation_generate` includes resolved lorebooks, they use the same v2
-shape. Current DeKoi prompt assembly resolves lorebook sources from the
-chat/thread, active persona, selected companions, and app-wide global settings,
-then scans each lorebook at most once before sending the request. Duplicate
-lorebooks keep the first source bucket in deterministic order: chat, persona,
-character, then global. Compatible runtimes should use `promptMessages` for
-provider calls and do not need to re-run lorebook activation. Activation uses
+Current DeKoi prompt assembly resolves lorebook sources from the chat/thread,
+active persona, selected companions, and app-wide global settings, then scans
+each lorebook at most once before provider generation. The narrow generation
+DTO does not include lorebook records. Duplicate lorebooks keep the first source
+bucket in deterministic order: chat, persona, character, then global.
+Compatible runtimes should use `promptMessages` for provider calls and do not
+need to re-run lorebook activation. Activation uses
 macro-resolved lorebook summaries, lore entry bodies, and entry-opted additional
 match sources through scratch macro contexts, so variable mutations do not
 commit while scanning. It includes enabled constant entries with non-empty

@@ -10,7 +10,7 @@ const MAX_CUSTOM_PARAMETER_BYTES = 65_536;
  * Names owned by DeKoi request routing, authentication, messages, or the
  * provider-neutral parameter contract cannot be shadowed by custom fields.
  */
-const PROTECTED_CUSTOM_PARAMETER_NAMES = new Set(
+export const PROTECTED_CUSTOM_PARAMETER_NAMES = new Set(
   [
     "id",
     "requestId",

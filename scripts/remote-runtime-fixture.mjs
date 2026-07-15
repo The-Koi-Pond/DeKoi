@@ -184,35 +184,6 @@ function replaceRecords(storage, args) {
   return { ok: true, count: records.length };
 }
 
-function countEnabledLoreEntries(request) {
-  if (!Array.isArray(request.lorebooks)) return 0;
-
-  return request.lorebooks.reduce((count, lorebook) => {
-    if (!isRecord(lorebook) || !Array.isArray(lorebook.entries)) return count;
-    return (
-      count + lorebook.entries.filter((entry) => isRecord(entry) && entry.enabled !== false).length
-    );
-  }, 0);
-}
-
-function selectCompanion(request) {
-  const companions = Array.isArray(request.companions) ? request.companions : [];
-  const validCompanions = companions.filter(
-    (companion) => isRecord(companion) && readString(companion.id).trim(),
-  );
-  if (validCompanions.length === 0) return null;
-
-  const messages =
-    isRecord(request.thread) && Array.isArray(request.thread.messages)
-      ? request.thread.messages
-      : [];
-  const companionMessageCount = messages.filter(
-    (message) =>
-      isRecord(message) && isRecord(message.author) && message.author.kind === "character",
-  ).length;
-  return validCompanions[companionMessageCount % validCompanions.length];
-}
-
 function checkProviderConnection(args) {
   if (!isRecord(args) || !isRecord(args.connection)) {
     throw new Error("provider_connection_check requires args.connection.");
@@ -258,9 +229,9 @@ function generateReply(args) {
   const requestId = readString(request.id).trim();
   if (!requestId) throw new Error("generation_generate request requires id.");
 
-  const companion = selectCompanion(request);
+  const targetCharacterId = readString(request.targetCharacterId).trim();
   const createdAt = readString(request.createdAt) || new Date().toISOString();
-  if (!companion) {
+  if (!targetCharacterId) {
     return {
       schemaVersion: 1,
       requestId,
@@ -271,13 +242,7 @@ function generateReply(args) {
     };
   }
 
-  const companionName =
-    readString(companion.nickname) || readString(companion.displayName, "Companion");
-  const companionId = readString(companion.id).trim();
-  const personaName = isRecord(request.activePersona)
-    ? readString(request.activePersona.displayName, "the active persona")
-    : "no active persona";
-  const loreCount = countEnabledLoreEntries(request);
+  const targetCharacterName = readString(request.targetCharacterName, "Companion");
 
   return {
     schemaVersion: 1,
@@ -286,8 +251,8 @@ function generateReply(args) {
     createdAt,
     messages: [
       {
-        characterId: companionId,
-        body: `Fixture reply from ${companionName}: received ${personaName} with ${loreCount} enabled lore notes.`,
+        characterId: targetCharacterId,
+        body: `Fixture reply from ${targetCharacterName}.`,
       },
     ],
     warnings: [],
