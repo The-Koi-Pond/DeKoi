@@ -243,21 +243,27 @@ export function promptPresetDraftParameterError<Key extends StandardGenerationPa
   field: Key,
   entry: GenerationDraftParameterEntries[Key],
 ) {
-  if (!entry?.send) return null;
-  if (entry.value === null) return "Enter a valid value or turn Send off.";
+  if (!entry) return null;
 
-  if (!isGenerationNumericParameterKey(field)) return null;
-  const constraint = GENERATION_PARAMETER_SPEC[field];
-  if (typeof entry.value !== "number" || !Number.isFinite(entry.value)) {
-    return "Enter a valid value or turn Send off.";
+  if (isGenerationNumericParameterKey(field)) {
+    const value = entry.value;
+    if (value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
+      return "Enter a valid value or turn Send off.";
+    }
+    if (!entry.send) return null;
+    if (value === null) return "Enter a valid value or turn Send off.";
+
+    const constraint = GENERATION_PARAMETER_SPEC[field];
+    if (value < constraint.minimum || value > constraint.maximum) {
+      return `Enter a value from ${constraint.minimum} to ${constraint.maximum}, or turn Send off.`;
+    }
+    if (constraint.integer && !Number.isInteger(value)) {
+      return "Enter a whole number or turn Send off.";
+    }
+    return null;
   }
-  if (entry.value < constraint.minimum || entry.value > constraint.maximum) {
-    return `Enter a value from ${constraint.minimum} to ${constraint.maximum}, or turn Send off.`;
-  }
-  if (constraint.integer && !Number.isInteger(entry.value)) {
-    return "Enter a whole number or turn Send off.";
-  }
-  return null;
+
+  return entry.send && entry.value === null ? "Enter a valid value or turn Send off." : null;
 }
 
 export function promptPresetDraftValidationErrors(draft: PromptPresetDraftState) {

@@ -67,6 +67,22 @@ describe("prompt preset draft conversion", () => {
       "maxTokens: Enter a whole number or turn Send off.",
     );
   });
+
+  it("rejects non-finite disabled numbers while preserving valid disabled drafts", () => {
+    const draft = draftFromPromptPreset(promptPresetRecord());
+    draft.parameters.temperature = { send: false, value: Number.POSITIVE_INFINITY };
+    expect(promptPresetDraftValidationErrors(draft)).toContain(
+      "temperature: Enter a valid value or turn Send off.",
+    );
+
+    draft.parameters.temperature = { send: false, value: 3 };
+    draft.parameters.maxTokens = { send: false, value: null };
+    expect(canSavePromptPresetDraft(draft)).toBe(true);
+    expect(promptPresetDraftToInput(draft).parameters).toMatchObject({
+      temperature: { send: false, value: 3 },
+      maxTokens: { send: false, value: null },
+    });
+  });
   it("keeps structured sections and groups in editable order", () => {
     const draft = draftFromPromptPreset(
       promptPresetRecord({

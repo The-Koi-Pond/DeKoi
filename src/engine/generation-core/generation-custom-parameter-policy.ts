@@ -6,6 +6,32 @@ const MAX_CUSTOM_PARAMETER_ENTRIES = 1_024;
 const MAX_CUSTOM_PARAMETER_NAME_BYTES = 128;
 const MAX_CUSTOM_PARAMETER_BYTES = 65_536;
 
+export const PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES = new Set([
+  "accesskey",
+  "accesstoken",
+  "apikey",
+  "auth",
+  "authentication",
+  "authorization",
+  "basic",
+  "bearer",
+  "clientsecret",
+  "cookie",
+  "credential",
+  "credentials",
+  "passwd",
+  "password",
+  "privatekey",
+  "providerkey",
+  "providersecret",
+  "secret",
+  "secretkey",
+  "setcookie",
+  "token",
+  "xapikey",
+  "xgoogapikey",
+]);
+
 /**
  * Names owned by DeKoi request routing, authentication, messages, or the
  * provider-neutral parameter contract cannot be shadowed by custom fields.
@@ -156,6 +182,11 @@ function utf8ByteLength(value: string) {
   return bytes;
 }
 
+function isProtectedCredentialCustomParameterName(name: string) {
+  const canonical = name.trim().toLowerCase().replace(/[-_]/g, "");
+  return PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES.has(canonical);
+}
+
 function validateCustomJsonTree(value: unknown) {
   let entries = 0;
   const ancestors = new WeakSet<object>();
@@ -181,6 +212,7 @@ function validateCustomJsonTree(value: unknown) {
     for (const [key, fieldValue] of fields) {
       if (
         UNSAFE_RECORD_KEYS.has(key.toLowerCase()) ||
+        isProtectedCredentialCustomParameterName(key) ||
         utf8ByteLength(key) > MAX_CUSTOM_PARAMETER_NAME_BYTES ||
         !visit(fieldValue, depth + 1)
       ) {
@@ -243,7 +275,10 @@ export function validateGenerationCustomParameter(
   ) {
     return { valid: false, reason: "invalid-name" };
   }
-  if (PROTECTED_CUSTOM_PARAMETER_NAMES.has(normalized)) {
+  if (
+    PROTECTED_CUSTOM_PARAMETER_NAMES.has(normalized) ||
+    isProtectedCredentialCustomParameterName(normalized)
+  ) {
     return { valid: false, reason: "protected-name" };
   }
   if (!validateGenerationCustomParameterValue(value)) {

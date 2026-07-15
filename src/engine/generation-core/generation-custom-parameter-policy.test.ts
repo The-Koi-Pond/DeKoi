@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import protectedCustomParameterNames from "../../../test-fixtures/protected-custom-parameter-names.json";
+import protectedCredentialCustomParameterNames from "../../../test-fixtures/protected-credential-custom-parameter-names.json";
 
 import {
+  PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES,
   PROTECTED_CUSTOM_PARAMETER_NAMES,
   validateGenerationCustomParameter,
   validateGenerationCustomParameters,
@@ -13,6 +15,12 @@ import { normalizePromptPresetParameters } from "../prompt-presets/prompt-preset
 describe("generation custom parameter policy", () => {
   it("matches the canonical protected-name roster exactly", () => {
     expect([...PROTECTED_CUSTOM_PARAMETER_NAMES].sort()).toEqual(protectedCustomParameterNames);
+  });
+
+  it("matches the canonical credential-name roster exactly", () => {
+    expect([...PROTECTED_CREDENTIAL_CUSTOM_PARAMETER_NAMES].sort()).toEqual(
+      protectedCredentialCustomParameterNames,
+    );
   });
 
   it("accepts recursively JSON-safe custom values", () => {
@@ -67,6 +75,38 @@ describe("generation custom parameter policy", () => {
       valid: false,
       reason: "protected-name",
     });
+  });
+
+  it.each(["api-key", "access-token", "secret-key", "client-secret"])(
+    "rejects credential separator variant %s without echoing its value",
+    (name) => {
+      const result = validateGenerationCustomParameter(name, "separator-sensitive-value");
+
+      expect(result).toEqual({ valid: false, reason: "protected-name" });
+      expect(JSON.stringify(result)).not.toContain("separator-sensitive-value");
+    },
+  );
+
+  it.each(["password", "api-key", "access_token", "clientSecret"])(
+    "rejects nested credential-like name %s without echoing its value",
+    (name) => {
+      const result = validateGenerationCustomParameter("safe_container", {
+        providerOptions: { [name]: "nested-sensitive-value" },
+      });
+
+      expect(result).toEqual({ valid: false, reason: "unsafe-value" });
+      expect(JSON.stringify(result)).not.toContain("nested-sensitive-value");
+    },
+  );
+
+  it("allows top-level request-reserved names inside non-secret nested structures", () => {
+    expect(
+      validateGenerationCustomParameter("safe_container", {
+        provider: { model: "provider-model" },
+        messages: [],
+        parameters: { temperature: 0.5 },
+      }),
+    ).toEqual({ valid: true });
   });
 
   it.each([
