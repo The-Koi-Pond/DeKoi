@@ -147,6 +147,15 @@ impl OwnedJsonArtifact {
         self.file.take();
     }
 
+    fn claim_existing(path: &Path, kind: &str) -> io::Result<Self> {
+        let mut artifact = Self::create(path, kind)?;
+        artifact.close();
+        fs::remove_file(&artifact.path)?;
+        rename_json_file_no_replace(path, &artifact.path)?;
+        sync_parent_directory_best_effort(path);
+        Ok(artifact)
+    }
+
     fn disarm(&mut self) {
         self.close();
         self.owned = false;
@@ -311,25 +320,100 @@ fn install_temporary_json_file(
     path: &Path,
     backup_state: &BackupState,
 ) -> io::Result<()> {
-    let replace_existing = backup_state.recovery_snapshot_path().is_some();
     if let Some(snapshot_path) = backup_state.recovery_snapshot_path() {
-        ensure_destination_matches_recovery_snapshot(path, snapshot_path)?;
+        return install_replacement_json_file_with(temporary_path, path, snapshot_path, |_| Ok(()));
     }
-    replace_temporary_json_file(temporary_path, path, replace_existing)
+
+    install_new_temporary_json_file(temporary_path, path)
 }
 
-fn ensure_destination_matches_recovery_snapshot(
+fn install_replacement_json_file_with<F>(
+    temporary_path: &Path,
     path: &Path,
     snapshot_path: &Path,
+    before_install: F,
+) -> io::Result<()>
+where
+    F: FnOnce(&Path) -> io::Result<()>,
+{
+    let mut claimed = OwnedJsonArtifact::claim_existing(path, JSON_ROLLBACK_ARTIFACT_KIND)?;
+    match files_have_same_contents(claimed.path(), snapshot_path) {
+        Ok(true) => {}
+        Ok(false) => return reject_changed_claimed_destination(&mut claimed, path),
+        Err(error) => {
+            restore_claimed_destination_after_install_failure(&mut claimed, path)?;
+            return Err(error);
+        }
+    }
+
+    if let Err(error) = before_install(path) {
+        restore_claimed_destination_after_install_failure(&mut claimed, path)?;
+        return Err(error);
+    }
+
+    if let Err(error) = install_new_temporary_json_file(temporary_path, path) {
+        restore_claimed_destination_after_install_failure(&mut claimed, path)?;
+        return Err(error);
+    }
+
+    claimed
+        .cleanup_as("claimed destination")
+        .map_err(io::Error::other)
+}
+
+fn reject_changed_claimed_destination(
+    claimed: &mut OwnedJsonArtifact,
+    path: &Path,
 ) -> io::Result<()> {
-    if files_have_same_contents(path, snapshot_path)? {
-        return Ok(());
+    let retained_path = claimed.path().to_path_buf();
+    match rename_json_file_no_replace(claimed.path(), path) {
+        Ok(()) => {
+            claimed.disarm();
+            sync_parent_directory_best_effort(path);
+        }
+        Err(error) => {
+            claimed.disarm();
+            return Err(io::Error::new(
+                error.kind(),
+                format!(
+                    "DeKoi JSON destination changed after its recovery snapshot was captured; refusing to replace concurrent data. The claimed destination was retained at '{}': {error}",
+                    retained_path.to_string_lossy()
+                ),
+            ));
+        }
     }
 
     Err(io::Error::new(
         io::ErrorKind::AlreadyExists,
         "DeKoi JSON destination changed after its recovery snapshot was captured; refusing to replace concurrent data",
     ))
+}
+
+fn restore_claimed_destination_after_install_failure(
+    claimed: &mut OwnedJsonArtifact,
+    path: &Path,
+) -> io::Result<()> {
+    match rename_json_file_no_replace(claimed.path(), path) {
+        Ok(()) => {
+            claimed.disarm();
+            sync_parent_directory_best_effort(path);
+            Ok(())
+        }
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => claimed
+            .cleanup_as("claimed destination")
+            .map_err(io::Error::other),
+        Err(error) => {
+            let retained_path = claimed.path().to_path_buf();
+            claimed.disarm();
+            Err(io::Error::new(
+                error.kind(),
+                format!(
+                    "Could not restore the claimed DeKoi JSON destination. It was retained at '{}': {error}",
+                    retained_path.to_string_lossy()
+                ),
+            ))
+        }
+    }
 }
 
 fn files_have_same_contents(left_path: &Path, right_path: &Path) -> io::Result<bool> {
@@ -382,77 +466,69 @@ where
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-fn rename_temporary_json_file_no_replace(temporary_path: &Path, path: &Path) -> io::Result<()> {
+fn rename_json_file_no_replace(source: &Path, destination: &Path) -> io::Result<()> {
     use rustix::fs::{renameat_with, RenameFlags, CWD};
 
-    renameat_with(CWD, temporary_path, CWD, path, RenameFlags::NOREPLACE).map_err(io::Error::from)
+    renameat_with(CWD, source, CWD, destination, RenameFlags::NOREPLACE).map_err(io::Error::from)
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-fn replace_temporary_json_file(
-    temporary_path: &Path,
-    path: &Path,
-    replace_existing: bool,
-) -> io::Result<()> {
-    if replace_existing {
-        return fs::rename(temporary_path, path);
-    }
-
+fn install_new_temporary_json_file(temporary_path: &Path, path: &Path) -> io::Result<()> {
     install_new_json_file_with_atomic_rename(
         temporary_path,
         path,
-        rename_temporary_json_file_no_replace,
+        rename_json_file_no_replace,
         |source, destination| fs::hard_link(source, destination),
     )
 }
 
 #[cfg(all(not(windows), not(any(target_os = "linux", target_os = "macos"))))]
-fn replace_temporary_json_file(
-    temporary_path: &Path,
-    path: &Path,
-    replace_existing: bool,
-) -> io::Result<()> {
-    if replace_existing {
-        fs::rename(temporary_path, path)
-    } else {
-        fs::hard_link(temporary_path, path)
-    }
+fn rename_json_file_no_replace(_source: &Path, _destination: &Path) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "atomic no-replace rename is unavailable on this platform",
+    ))
+}
+
+#[cfg(all(not(windows), not(any(target_os = "linux", target_os = "macos"))))]
+fn install_new_temporary_json_file(temporary_path: &Path, path: &Path) -> io::Result<()> {
+    fs::hard_link(temporary_path, path)
 }
 
 #[cfg(windows)]
-fn replace_temporary_json_file(
-    temporary_path: &Path,
-    path: &Path,
-    replace_existing: bool,
-) -> io::Result<()> {
+fn rename_json_file_no_replace(source: &Path, destination: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::Storage::FileSystem::{
-        MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
-    };
+    use windows_sys::Win32::Storage::FileSystem::{MoveFileExW, MOVEFILE_WRITE_THROUGH};
 
-    let temporary_path: Vec<u16> = temporary_path
+    let source: Vec<u16> = source
         .as_os_str()
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
-    let path: Vec<u16> = path
+    let destination: Vec<u16> = destination
         .as_os_str()
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
 
     // SAFETY: Both pointers reference null-terminated buffers that remain alive for the call.
-    let flags = if replace_existing {
-        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH
-    } else {
-        MOVEFILE_WRITE_THROUGH
+    let moved = unsafe {
+        MoveFileExW(
+            source.as_ptr(),
+            destination.as_ptr(),
+            MOVEFILE_WRITE_THROUGH,
+        )
     };
-    let moved = unsafe { MoveFileExW(temporary_path.as_ptr(), path.as_ptr(), flags) };
     if moved == 0 {
         Err(io::Error::last_os_error())
     } else {
         Ok(())
     }
+}
+
+#[cfg(windows)]
+fn install_new_temporary_json_file(temporary_path: &Path, path: &Path) -> io::Result<()> {
+    rename_json_file_no_replace(temporary_path, path)
 }
 
 pub(crate) fn write_export_json_file(
@@ -773,6 +849,33 @@ mod tests {
     }
 
     #[test]
+    fn replacement_install_preserves_destination_created_after_validation() {
+        let directory = temp_test_dir("replacement-install-race");
+        let path = directory.join("characters.json");
+        let temporary_path = directory.join("owned-write.tmp");
+        let snapshot_path = directory.join("characters.json.bak");
+        let old_contents = r#"[{"id":"old"}]"#;
+        let new_contents = r#"[{"id":"new"}]"#;
+        let concurrent_contents = r#"[{"id":"concurrent"}]"#;
+        fs::write(&path, old_contents).expect("destination fixture should be written");
+        fs::write(&snapshot_path, old_contents).expect("snapshot fixture should be written");
+        fs::write(&temporary_path, new_contents).expect("temporary fixture should be written");
+
+        install_replacement_json_file_with(&temporary_path, &path, &snapshot_path, |destination| {
+            fs::write(destination, concurrent_contents)
+        })
+        .expect_err("a destination raced after validation must reject installation");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("concurrent destination should remain"),
+            concurrent_contents
+        );
+        assert!(temporary_path.exists());
+        assert_eq!(rollback_file_count(&directory), 0);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
     fn collection_write_cleans_temp_when_created_backup_disappears() {
         let directory = temp_test_dir("missing-created-backup");
         let path = directory.join("characters.json");
@@ -787,10 +890,10 @@ mod tests {
             &new_value,
             "collection file",
             true,
-            |_temporary_path, _target_path, backup_state| {
+            |temporary_path, target_path, backup_state| {
                 assert!(matches!(backup_state, BackupState::Created { .. }));
                 fs::remove_file(&backup_path)?;
-                Err(io::Error::other("simulated missing backup failure"))
+                install_temporary_json_file(temporary_path, target_path, backup_state)
             },
         )
         .expect_err("simulated install failure should be reported");
@@ -1238,7 +1341,7 @@ mod tests {
         fs::write(&temporary_path, r#"{"source":"dekoi"}"#).expect("temp fixture");
         fs::write(&path, r#"{"source":"other-process"}"#).expect("destination fixture");
 
-        let error = rename_temporary_json_file_no_replace(&temporary_path, &path)
+        let error = rename_json_file_no_replace(&temporary_path, &path)
             .expect_err("native no-replace rename should reject the race");
 
         assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
