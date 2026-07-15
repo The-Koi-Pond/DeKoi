@@ -154,22 +154,27 @@ Native preset records do not store a default flag;
 object gives each optional outbound field an explicit `{ send, value }` entry.
 `send: true` contributes the value to the provider-neutral generation request;
 `send: false` deliberately omits it and prevents an app default from silently
-reintroducing it. An absent entry may still use the deliberate app default for
-temperature, top P, or maximum output tokens. Local prompt-assembly controls
-remain scalar fields because they are never sent to a provider. Unknown custom
-JSON fields are package/import-only and can reach only a `custom` connection
-after reserved routing, authentication, prompt, and DeKoi-owned parameter names
-are rejected. Invalid entries are dropped during load. A sent preset
-`maxTokens` can override the app default, but it is capped by the selected
-provider connection's positive `maxOutput` when one is configured. The
-bundled starter preset is ordinary user-editable data except while it is the
-default. Any successful load with no usable prompt presets restores the exact
-bundled starter in memory. A genuinely empty collection is queued for the normal
-save path; if unreadable records were dropped, automatic saving remains blocked
-until explicit storage repair preserves or resolves that evidence. The starter
-initialization marker is recorded in app settings, but it does not suppress
-empty-collection recovery. Ordinary deletion cannot empty the collection
-because the default and last preset cannot be deleted.
+reintroducing it. When an entry is absent, generation uses the current app
+defaults, initially temperature `0.8`, top P `0.95`, and maximum output tokens
+`1024`. A selected provider connection's positive `maxOutput` caps the final
+maximum output tokens from either the app default or a sent preset value. Local
+prompt-assembly controls remain scalar fields because they are never sent to a
+provider. Unknown custom JSON fields are package/import-only and can reach only
+a `custom` connection after reserved routing, authentication, prompt, and
+DeKoi-owned parameter names are rejected.
+Native records and compatible packages containing malformed, unknown, or
+removed parameter shapes are rejected instead of being repaired; collection or
+bundle loading skips the whole invalid preset record. Standalone-package and
+native-bundle export revalidate the contract before serialization and fail
+without echoing parameter values. The bundled starter preset is ordinary
+user-editable data except while it is the default. Any successful load with no
+usable prompt presets restores the exact bundled starter in memory. A genuinely
+empty collection is queued for the normal save path; if unreadable records were
+dropped, automatic saving remains blocked until explicit storage repair
+preserves or resolves that evidence. The starter initialization marker is
+recorded in app settings, but it does not suppress empty-collection recovery.
+Ordinary deletion cannot empty the collection because the default and last
+preset cannot be deleted.
 
 This early-development contract intentionally does not migrate the removed
 scalar-parameter, `enabledParameters`, or `sampling` shapes. Delete the local

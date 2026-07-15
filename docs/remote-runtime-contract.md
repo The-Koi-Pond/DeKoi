@@ -393,8 +393,10 @@ stay within these inclusive ranges: `maxTokens` 1 to 131072, `temperature` 0 to
 sequences must be non-empty and already trimmed. `customParameters` permits at
 most 1024 aggregate array items and object fields, 16 levels of nesting, 128
 UTF-8 bytes per field name, and 65536 UTF-8 bytes after JSON serialization. The
-canonical protected name roster shared by the TypeScript and Rust validators is
-`test-fixtures/protected-custom-parameter-names.json`.
+TypeScript and Rust validators share the top-level protected-name roster in
+`test-fixtures/protected-custom-parameter-names.json` and the credential-name
+variants blocked at every nesting level in
+`test-fixtures/protected-credential-custom-parameter-names.json`.
 
 Response:
 
@@ -528,18 +530,13 @@ New Messenger and Roleplay threads use it. `promptPresetStarterInitialized`
 records that starter initialization occurred; it does not prevent recovery of a
 cleanly loaded empty prompt-preset collection.
 
-`prompt-presets` records use `schemaVersion: 1`. Each record stores a non-empty
-`title`, optional `summary`, required string `systemPrompt` (which may be empty), optional
-`messengerPrompt`, normalized provider-neutral `parameters`, ordering fields, `sections`, `groups`,
-`choiceBlocks`, static `variableValues`, `defaultChoices`, and optional
-author/folder metadata. Native prompt preset records do not carry a default
-flag. Each optional outbound parameter has an independent `{ send, value }`
-entry. Sent fields enter the provider-neutral request, disabled fields are
-omitted without falling back, and absent temperature, top P, or max-token
-entries may use deliberate app defaults. DeKoi drops invalid entries during
-normalization and caps a sent preset `maxTokens` to the selected provider
-connection's positive `maxOutput` when one is configured. Messenger uses `messengerPrompt`
-as its selected-preset source when present, then falls back to `systemPrompt`.
+`prompt-presets` records use the native contract in
+[Storage Model](./storage-model.md), including its strict provider-neutral
+parameter entries and rejection of removed development shapes. Remote runtimes
+must round-trip that record without flattening parameter entries or synthesizing
+`sampling` or `enabledParameters` fields. Native prompt preset records do not
+carry a default flag. Messenger uses `messengerPrompt` as its selected-preset
+source when present, then falls back to `systemPrompt`.
 A non-empty custom Messenger Prompt still overrides the selected preset at
 generation time and Messenger does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a

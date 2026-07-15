@@ -155,16 +155,19 @@ Focused checks for narrow changes are mapped to change types in
   Every parameter has its own **Send** control: off means the preset deliberately
   omits that field; on requires a valid value. Anthropic requests additionally
   require Maximum Output Tokens to be sent because that provider has no default.
-  After editing, select a prompt preset from thread settings. New threads start with the
-  current app default. A title is enough to create and save a preset; prompt
-  text, variables, metadata, parameters, and structured recipe rows may all be
-  absent. A blank System Prompt stays blank in storage rather than receiving a
-  built-in prompt. The bundled Universal V2 starter is an ordinary native
-  preset that can be edited or duplicated. **Restore Starter Preset**, available
-  in the Presets rail and the empty Presets surface, adds a fresh copy of the
-  exact bundled starter without replacing existing presets or changing the app
-  default or any thread. It becomes deletable after another preset is designated
-  as default, but that designation control is not exposed in the catalog yet.
+  Invalid sent values stay in the editor with an inline error, and Save Changes
+  remains unavailable until you correct the value or turn Send off.
+  After editing, select a prompt preset from thread settings. New threads start
+  with the current app default. A title is enough to create and save a preset;
+  prompt text, variables, metadata, parameters, and structured recipe rows may
+  all be absent. A blank System Prompt stays blank in storage rather than
+  receiving a built-in prompt. The bundled Universal V2 starter is an ordinary
+  native preset that can be edited or duplicated. **Restore Starter Preset**,
+  available in the Presets rail and the empty Presets surface, adds a fresh copy
+  of the exact bundled starter without replacing existing presets or changing
+  the app default or any thread. It becomes deletable after another preset is
+  designated as default, but that designation control is not exposed in the
+  catalog yet.
   The default and last preset cannot be deleted. Create, Restore Starter Preset,
   and Save Changes finish only after the complete prompt-preset catalog is
   stored; failures are shown without navigating away. DeKoi asks before

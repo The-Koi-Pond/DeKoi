@@ -42,11 +42,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
 - Presets catalog controls expose prompt preset title, summary, optional system
-  prompt, Messenger Prompt Source, eleven optional generation parameters with
-  independent Send controls, Roleplay section groups, ordered sections, markers, section roles,
-  enabled state, wrapping, and depth placement, with create, edit, duplicate,
-  delete, and Restore Starter Preset actions. Restore adds a fresh ordinary
-  native record normalized from the bundled Universal V2 package. The
+  prompt, Messenger Prompt Source, supported optional generation parameters with
+  independent Send controls, Roleplay section groups, ordered sections, markers,
+  section roles, enabled state, wrapping, and depth placement, with create, edit,
+  duplicate, delete, and Restore Starter Preset actions. Restore adds a fresh
+  ordinary native record normalized from the bundled Universal V2 package. The
   catalog also imports standalone compatible `.json` or `.marinara.json`
   packages as fresh native copies and exports one selected saved preset through
   browser or desktop file workflows.
