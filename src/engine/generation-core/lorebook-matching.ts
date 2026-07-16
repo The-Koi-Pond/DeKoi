@@ -114,14 +114,24 @@ function regexQuantifierAt(pattern: string, index: number) {
   };
 }
 
-function unsafeRegexPatternReason(pattern: string) {
+const UNKNOWN_REGEX_ATOM = "unknown";
+
+function literalRegexAtomIdentity(char: string, flags: string) {
+  if (!/^[\x20-\x7e]$/.test(char)) return UNKNOWN_REGEX_ATOM;
+  return `literal:${flags.includes("i") ? char.toLowerCase() : char}`;
+}
+
+function regexAtomsAreProvenDisjoint(left: string, right: string) {
+  return left.startsWith("literal:") && right.startsWith("literal:") && left !== right;
+}
+
+function unsafeRegexPatternReason(pattern: string, flags: string) {
   const groups: RegexGroupSafety[] = [];
   let atom: RegexSafetyAtom = { kind: "none" };
   let atomIdentity: string | null = null;
   let variableAtomChain: string[] = [];
   let escaped = false;
   let inCharacterClass = false;
-  let characterClassStartIndex = -1;
 
   const beginAtom = (identity: string) => {
     if (atom.kind !== "none") variableAtomChain = [];
@@ -138,7 +148,7 @@ function unsafeRegexPatternReason(pattern: string) {
         if (/^[1-9]$/.test(char) || (char === "k" && pattern[index + 1] === "<")) {
           return "backreferences can cause catastrophic matching work";
         }
-        if (char !== "b" && char !== "B") beginAtom(`escaped:${char}`);
+        if (char !== "b" && char !== "B") beginAtom(UNKNOWN_REGEX_ATOM);
       }
       continue;
     }
@@ -149,14 +159,13 @@ function unsafeRegexPatternReason(pattern: string) {
     if (inCharacterClass) {
       if (char === "]") {
         inCharacterClass = false;
-        beginAtom(`class:${pattern.slice(characterClassStartIndex, index + 1)}`);
+        beginAtom(UNKNOWN_REGEX_ATOM);
       }
       continue;
     }
     if (char === "[") {
       if (atom.kind !== "none") variableAtomChain = [];
       inCharacterClass = true;
-      characterClassStartIndex = index;
       atom = { kind: "none" };
       atomIdentity = null;
       continue;
@@ -185,7 +194,7 @@ function unsafeRegexPatternReason(pattern: string) {
       }
       variableAtomChain = group.outerVariableAtomChain;
       atom = { kind: "group", group };
-      atomIdentity = "any";
+      atomIdentity = UNKNOWN_REGEX_ATOM;
       continue;
     }
     if (char === "|") {
@@ -206,14 +215,12 @@ function unsafeRegexPatternReason(pattern: string) {
       ) {
         return "nested variable quantifiers or repeated alternation can hang generation";
       }
+      const currentAtomIdentity = atomIdentity;
       if (
         quantifier.canVary &&
-        atomIdentity !== null &&
+        currentAtomIdentity !== null &&
         variableAtomChain.some(
-          (previousIdentity) =>
-            atomIdentity === previousIdentity ||
-            atomIdentity === "any" ||
-            previousIdentity === "any",
+          (previousIdentity) => !regexAtomsAreProvenDisjoint(previousIdentity, currentAtomIdentity),
         )
       ) {
         return "overlapping sequential variable quantifiers can hang generation";
@@ -238,7 +245,7 @@ function unsafeRegexPatternReason(pattern: string) {
       atomIdentity = null;
       continue;
     }
-    beginAtom(char === "." ? "any" : `literal:${char}`);
+    beginAtom(char === "." ? UNKNOWN_REGEX_ATOM : literalRegexAtomIdentity(char, flags));
   }
 
   return null;
@@ -264,7 +271,7 @@ function compileRegexKey(
   const cached = regexCache.get(cacheKey);
   if (cached) return cached;
 
-  const unsafeReason = unsafeRegexPatternReason(parsedKey.pattern);
+  const unsafeReason = unsafeRegexPatternReason(parsedKey.pattern, flags);
   if (unsafeReason) {
     const compiled = {
       regex: null,

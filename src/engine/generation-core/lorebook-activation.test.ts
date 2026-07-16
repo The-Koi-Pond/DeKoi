@@ -873,10 +873,20 @@ describe("lorebook activation", () => {
   it("rejects repeated sequential variable quantifiers before compiling or caching them", () => {
     const unsafeKey = "/a*a*a*a*a*a*b/u";
     const groupedUnsafeKey = "/a*(a)*b/u";
+    const overlappingClassesKey = "/[ab]*[ac]*b/u";
+    const overlappingClassLiteralKey = "/[ab]*a*Z/u";
+    const overlappingEscapesKey = "/\\w*\\d*Z/u";
+    const blockedPatterns = new Set([
+      "a*a*a*a*a*a*b",
+      "a*(a)*b",
+      "[ab]*[ac]*b",
+      "[ab]*a*Z",
+      "\\w*\\d*Z",
+    ]);
     const RealRegExp = RegExp;
     const blockedCompilation = vi.fn();
     const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
-      if (pattern === "a*a*a*a*a*a*b" || pattern === "a*(a)*b") {
+      if (typeof pattern === "string" && blockedPatterns.has(pattern)) {
         blockedCompilation(pattern);
         return new RealRegExp("does-not-match", flags);
       }
@@ -903,21 +913,39 @@ describe("lorebook activation", () => {
               strategy: "selective",
               key: [groupedUnsafeKey],
             }),
+            entry({
+              title: "Overlapping Character Classes",
+              strategy: "selective",
+              key: [overlappingClassesKey],
+            }),
+            entry({
+              title: "Overlapping Class And Literal",
+              strategy: "selective",
+              key: [overlappingClassLiteralKey],
+            }),
+            entry({
+              title: "Overlapping Escape Classes",
+              strategy: "selective",
+              key: [overlappingEscapesKey],
+            }),
           ],
           { matchWholeWords: false },
         ),
-        `${"a".repeat(20_000)}!\n${unsafeKey}\n${groupedUnsafeKey}`,
+        `${"a".repeat(20_000)}!\n${unsafeKey}\n${groupedUnsafeKey}\n${overlappingClassesKey}\n${overlappingClassLiteralKey}\n${overlappingEscapesKey}`,
       );
 
       expect(activation.entries.map((item) => item.entry.title)).toEqual([
         "Sequential Quantifiers",
         "Cached Sequential Quantifiers",
         "Grouped Sequential Quantifiers",
+        "Overlapping Character Classes",
+        "Overlapping Class And Literal",
+        "Overlapping Escape Classes",
       ]);
       expect(
         activation.entries.every((item) => item.warnings[0]?.includes("Unsafe regex key")),
       ).toBe(true);
-      expect(activation.warnings).toHaveLength(2);
+      expect(activation.warnings).toHaveLength(5);
       expect(blockedCompilation).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
