@@ -34,8 +34,6 @@ export interface MessengerThreadCreationInput {
   lorebookIds?: string[];
   defaultPromptPresetId?: string | null;
   providerConnectionId?: string | null;
-  systemPromptMode?: "default" | "custom";
-  systemPrompt?: string;
 }
 
 export function createMessengerThread(input: MessengerThreadCreationInput): MessengerModeThread {

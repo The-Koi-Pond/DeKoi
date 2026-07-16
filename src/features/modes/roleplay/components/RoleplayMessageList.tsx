@@ -19,7 +19,7 @@ import {
   isOwnRoleplayMessage,
 } from "../lib/message-view";
 
-interface RoleplayEntryListProps {
+interface RoleplayMessageListProps {
   characters: CharacterRecord[];
   confirmRelease: boolean;
   generationLabel: string;
@@ -56,7 +56,7 @@ function RoleplayPendingRow({ label }: { label: string }) {
   );
 }
 
-export function RoleplayEntryList({
+export function RoleplayMessageList({
   characters,
   confirmRelease,
   generationLabel,
@@ -65,7 +65,7 @@ export function RoleplayEntryList({
   onUpdateThread,
   personas,
   thread,
-}: RoleplayEntryListProps) {
+}: RoleplayMessageListProps) {
   const [editingEntry, setEditingEntry] = useState<EditingEntry | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const entryListRef = useRef<HTMLDivElement>(null);
@@ -214,7 +214,7 @@ export function RoleplayEntryList({
   }
 
   return (
-    <div className="roleplay-entries" aria-label="Roleplay scene" ref={entryListRef}>
+    <div className="roleplay-messages" aria-label="Roleplay scene" ref={entryListRef}>
       {messages.length === 0 && !isGenerating && (
         <p className="roleplay-empty-note">No messages yet.</p>
       )}

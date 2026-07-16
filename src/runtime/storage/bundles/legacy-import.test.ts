@@ -33,10 +33,8 @@ describe("legacy Messenger import", () => {
     const message = result.preview.data.modeThreads[0]?.messages[0];
     expect(thread?.branches).toHaveLength(1);
     expect(thread?.activeBranchId).toBe(`${thread?.id}-branch-1`);
-    expect(thread?.branches[0]).toMatchObject({
-      systemPromptMode: "default",
-      systemPrompt: "",
-    });
+    expect(thread?.branches[0]).not.toHaveProperty("systemPromptMode");
+    expect(thread?.branches[0]).not.toHaveProperty("systemPrompt");
     expect(thread && normalizeModeThreadRecord(toModeThreadStorageRecord(thread))).not.toBeNull();
     expect(message?.threadId).toBe(thread?.id);
     expect(message?.branchId).toBe(thread?.branches[0]?.id);

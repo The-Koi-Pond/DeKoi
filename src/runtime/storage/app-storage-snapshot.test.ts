@@ -23,7 +23,6 @@ const thread = createMessengerThread({
   title: "Chat",
   characterIds: [],
   activePersonaId: null,
-  systemPrompt: "System",
   now,
 });
 const inactiveBranch = { ...thread.branches[0], id: "branch-inactive", threadId: thread.id };

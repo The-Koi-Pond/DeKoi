@@ -70,7 +70,9 @@ DeKoi and remove the old collection files (or clear the local collections
 directory) before restarting; there is no native compatibility migration. The
 supported compatibility path is the one-way legacy importer, which converts
 recognized legacy Messenger records into these native collections. It does not
-convert legacy Roleplay transcripts.
+convert legacy Roleplay transcripts. Native mode-thread rows that still contain
+the removed branch `systemPromptMode` or `systemPrompt` fields are rejected and
+require the same development reset.
 
 ### Mode thread and message records
 
@@ -78,8 +80,7 @@ convert legacy Roleplay transcripts.
 `roleplay`), `title`, non-empty `branches`, `activeBranchId`, and timestamps.
 The projection deliberately omits transcript messages. Each branch has its own
 `kind`, participant/context IDs, `participantMode`, `presetId`,
-`presetChoiceSelectionsByPresetId`, `providerConnectionId`,
-`systemPromptMode` (`default` or `custom`), `systemPrompt`, and timestamps.
+`presetChoiceSelectionsByPresetId`, `providerConnectionId`, and timestamps.
 Roleplay branches additionally carry `replyStrategy`; Roleplay threads carry
 `openingCharacterId`.
 
@@ -228,9 +229,9 @@ blocks are removed, histories for missing presets are retained, and affected
 thread collections are queued for rewrite. DeKoi does not create aliases or
 tombstones for renamed or removed IDs.
 Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
-when present, then falls back to `systemPrompt`; a non-empty custom Messenger
-Prompt still overrides both at generation time. Messenger does not consume
-prompt preset sections for prompt assembly.
+when present, then falls back to `systemPrompt` and the built-in Messenger
+prompt. Conversation-level arbitrary prompts are not part of the native branch
+contract. Messenger does not consume prompt preset sections for prompt assembly.
 In Roleplay, a selected prompt preset can replace the system prelude, generation
 and narration or other-character output behavior. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and

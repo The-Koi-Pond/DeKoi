@@ -333,11 +333,10 @@ shared system prompt and then the built-in Roleplay prelude, without transcript
 history. A selected preset still owns narration and other-character output
 behavior through either fallback; only no-preset, single-character Roleplay uses
 the one-character output contract. Messenger does not consume preset sections.
-A stored non-empty custom active-branch prompt wins first; otherwise Messenger
-resolves the selected preset's `messengerPrompt`, then its shared `systemPrompt`,
-then the built-in Messenger fallback. Built-in fallbacks are assembled at
-request time rather than persisted into blank presets. Ordinary Messenger
-settings do not expose a custom prompt editor.
+Messenger resolves the selected preset's `messengerPrompt`, then its shared
+`systemPrompt`, then the built-in Messenger fallback. Built-in fallbacks are
+assembled at request time rather than persisted into blank presets. Native
+branches do not own arbitrary prompt text.
 
 ## Slice 7 Dynamic Variable Persistence
 

@@ -44,7 +44,7 @@ import {
   getRoleplayThreadReferenceSummary,
   getRoleplayThreadSendBlocker,
 } from "./lib/thread-reference-summary";
-import { RoleplayEntryList } from "./components/RoleplayEntryList";
+import { RoleplayMessageList } from "./components/RoleplayMessageList";
 import "./roleplay-thread.css";
 
 export type RoleplayThreadNav = Pick<
@@ -501,7 +501,7 @@ export function RoleplayThread({ nav, onOpenSideRail }: RoleplayThreadProps) {
         </div>
       )}
 
-      <RoleplayEntryList
+      <RoleplayMessageList
         characters={nav.characters}
         confirmRelease={nav.appSettings.confirmRelease}
         generationLabel={generationTransport.label}

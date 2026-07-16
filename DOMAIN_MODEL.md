@@ -331,9 +331,8 @@ Current implementation:
   without opening the dialog. Returning to a preset restores its separate
   history, and the active preset's variables can be reopened manually.
 - Switching Messenger to a different preset changes the selected preset and its
-  per-preset choice history. A stored non-empty custom branch prompt overrides
-  preset prompt sources, although ordinary Messenger settings do not expose an
-  arbitrary prompt editor.
+  per-preset choice history. Branch customization is limited to the preset's
+  authored variable choices; branches do not store arbitrary prompt text.
 - DeKoi seeds an editable starter preset on first run and treats later edits or
   deletion as user-owned data.
 

@@ -495,7 +495,9 @@ metadata projections and complete transcript items live in `mode-messages` with
 `schemaVersion: 1`, `threadId`, and `branchId`; DeKoi assembles the pair into
 unified mode threads. A thread has
 `kind`, non-empty `branches`, and `activeBranchId`; each branch has its own
-`systemPromptMode`/`systemPrompt` and context settings. Messages have an author
+participant and context settings. The removed branch `systemPromptMode` and
+`systemPrompt` fields are not native compatibility fields and strict loading
+rejects rows that retain them. Messages have an author
 kind discriminator, complete version records, and an `activeVersionId`.
 Thread and message records form one replacement safety group: a rejected record
 in either collection blocks automatic replacement of both. Operations that
@@ -536,9 +538,8 @@ parameter entries and rejection of removed development shapes. Remote runtimes
 must round-trip that record without flattening parameter entries or synthesizing
 `sampling` or `enabledParameters` fields. Native prompt preset records do not
 carry a default flag. Messenger uses `messengerPrompt` as its selected-preset
-source when present, then falls back to `systemPrompt`.
-A non-empty custom Messenger Prompt still overrides the selected preset at
-generation time and Messenger does not consume prompt preset sections. Roleplay
+source when present, then falls back to `systemPrompt` and its built-in prompt.
+Messenger does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a
 selected preset has sections; otherwise it uses `systemPrompt` as the fallback
 prelude. Roleplay marker sections expand scene, lore, persona, character,
@@ -748,8 +749,6 @@ runtimes do not send dropped-record counts separately.
             "presetId": null,
             "presetChoiceSelectionsByPresetId": {},
             "providerConnectionId": null,
-            "systemPromptMode": "default",
-            "systemPrompt": "",
             "createdAt": "2026-06-24T07:20:00.000Z",
             "updatedAt": "2026-06-24T07:20:00.000Z"
           }
@@ -840,8 +839,6 @@ Example RippleState list:
           "presetId": null,
           "presetChoiceSelectionsByPresetId": {},
           "providerConnectionId": null,
-          "systemPromptMode": "default",
-          "systemPrompt": "",
           "createdAt": "2026-06-24T07:20:00.000Z",
           "updatedAt": "2026-06-24T07:20:00.000Z"
         }

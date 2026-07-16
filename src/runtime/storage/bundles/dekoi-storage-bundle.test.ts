@@ -18,7 +18,6 @@ const thread = createMessengerThread({
   title: "Bundle",
   characterIds: [],
   activePersonaId: null,
-  systemPrompt: "System",
   now,
 });
 const msg: ModeMessage = createModeMessage({

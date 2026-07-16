@@ -44,8 +44,6 @@ export interface ModeBranchCreationInput {
   lorebookIds?: string[];
   presetId?: string | null;
   providerConnectionId?: string | null;
-  systemPromptMode?: "default" | "custom";
-  systemPrompt?: string;
   now: string;
 }
 
@@ -63,8 +61,6 @@ function createModeBranchBase(input: ModeBranchCreationInput) {
     presetId: input.presetId?.trim() || null,
     presetChoiceSelectionsByPresetId: copyPresetChoiceHistory(),
     providerConnectionId: input.providerConnectionId?.trim() || null,
-    systemPromptMode: input.systemPromptMode ?? "default",
-    systemPrompt: input.systemPromptMode === "custom" ? input.systemPrompt?.trim() || "" : "",
     createdAt: now,
     updatedAt: now,
   };
@@ -456,21 +452,6 @@ export function replaceModeThreadProviderConnection<K extends ModeThreadKind>(
         : current,
     thread,
   );
-}
-
-export function setModeBranchSystemPrompt<K extends ModeThreadKind>(
-  thread: ModeThreadOfKind<K>,
-  branchId: string,
-  systemPromptMode: "default" | "custom",
-  systemPrompt: string,
-  updatedAt: string,
-): ModeThreadOfKind<K> {
-  return updateBranch(thread, branchId, (branch) => ({
-    ...branch,
-    systemPromptMode,
-    systemPrompt: systemPromptMode === "custom" ? systemPrompt.trim() : "",
-    updatedAt: branchUpdateTimestamp(branch, updatedAt),
-  }));
 }
 
 export function getModeThreadActivityAt(thread: ModeThread): string {

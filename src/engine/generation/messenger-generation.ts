@@ -175,12 +175,7 @@ function messengerLoreScanSources(thread: MessengerModeThread): LorebookScanSour
   }));
 }
 
-function messengerSelectedPromptSource(
-  thread: MessengerModeThread,
-  promptPreset: PromptPresetRecord | null,
-) {
-  const branch = getActiveModeBranch(thread);
-  if (branch.systemPromptMode === "custom" && branch.systemPrompt) return branch.systemPrompt;
+function messengerSelectedPromptSource(promptPreset: PromptPresetRecord | null) {
   return (
     resolvePromptPresetMessengerPrompt(promptPreset)?.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT
   );
@@ -308,7 +303,7 @@ function createMessengerPromptAssembly({
   });
   resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
   const selectedPrompt = resolveGenerationMacros(
-    messengerSelectedPromptSource(thread, promptPreset),
+    messengerSelectedPromptSource(promptPreset),
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
