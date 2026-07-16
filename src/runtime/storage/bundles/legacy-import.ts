@@ -626,8 +626,6 @@ export function normalizeLegacyImport(value: unknown): DeKoiLegacyImportParseRes
           presetId: thread.presetId,
           presetChoiceSelectionsByPresetId: thread.presetChoiceSelectionsByPresetId ?? {},
           providerConnectionId: thread.providerConnectionId,
-          systemPromptMode: "default",
-          systemPrompt: "",
           createdAt: thread.createdAt,
           updatedAt: thread.updatedAt,
         },

@@ -88,7 +88,6 @@ describe("mode relationship cascades", () => {
       title: "Thread",
       characterIds: ["character-a"],
       activePersonaId: "persona-a",
-      systemPrompt: "System",
       now: "2026-01-01T00:00:00.000Z",
     });
     const inactive: MessengerModeThread["branches"][number] = {
@@ -130,7 +129,6 @@ describe("mode relationship cascades", () => {
       title: "Roleplay",
       characterIds: ["character-a"],
       activePersonaId: "persona-a",
-      systemPrompt: "System",
       openingCharacter: null,
       now: "2026-01-01T00:00:00.000Z",
     });

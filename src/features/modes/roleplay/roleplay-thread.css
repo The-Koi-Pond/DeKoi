@@ -227,7 +227,7 @@
 }
 
 /* ---- scene flow ---- */
-.roleplay-entries {
+.roleplay-messages {
   display: flex;
   flex: 1;
   flex-direction: column;

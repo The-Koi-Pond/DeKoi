@@ -224,36 +224,6 @@ describe("prompt preset generation", () => {
     expect(assembly.request.promptMessages[0]?.content).not.toContain("Section prompt");
   });
 
-  it("preserves a native custom Messenger prompt over the selected preset", () => {
-    const thread = createMessengerThread({
-      activePersonaId: null,
-      characterIds: ["character-1"],
-      id: "messenger-thread-1",
-      now,
-      title: "Test chat",
-      defaultPromptPresetId: "preset-1",
-      systemPrompt: "Legacy custom prompt for {{char}}.",
-      systemPromptMode: "custom",
-    });
-    const context = createMessengerGenerationContext({
-      characters: [companion()],
-      lorebooks: [],
-      personas: [],
-      promptPresets: [promptPreset()],
-      thread,
-    });
-    const assembly = createMessengerGenerationRequestAssembly({
-      context,
-      id: "request-1",
-      now,
-      userMessage: userMessage(thread),
-    });
-
-    expect(assembly.request.promptMessages[0]?.content).toContain("Legacy custom prompt for Mara.");
-    expect(assembly.request.promptMessages[0]?.content).not.toContain("Preset prompt for Mara.");
-    expect(assembly.request.thread.branches[0]?.presetId).toBe("preset-1");
-  });
-
   it("falls back to the default Messenger prompt when the selected preset is missing", () => {
     const thread = {
       ...createMessengerThread({
@@ -430,65 +400,6 @@ describe("prompt preset generation", () => {
 
     expect(assembly.request.thread.branches[0]?.presetId).toBe("preset-1");
     expect(assembly.request.promptMessages[0]?.content).toContain("Roleplay preset for Mara.");
-  });
-
-  it("uses branch custom system prompts ahead of selected preset prompts in both modes", () => {
-    const messengerThread = createMessengerThread({
-      activePersonaId: null,
-      characterIds: ["character-1"],
-      id: "messenger-custom-prompt",
-      now,
-      title: "Custom Messenger",
-      defaultPromptPresetId: "preset-1",
-      systemPromptMode: "custom",
-      systemPrompt: "Messenger custom prompt for {{char}}.",
-    });
-    const messengerAssembly = createMessengerGenerationRequestAssembly({
-      context: createMessengerGenerationContext({
-        characters: [companion()],
-        lorebooks: [],
-        personas: [],
-        promptPresets: [promptPreset({ messengerPrompt: "Preset Messenger prompt." })],
-        thread: messengerThread,
-      }),
-      id: "messenger-custom-request",
-      now,
-      userMessage: userMessage(messengerThread),
-    });
-    expect(messengerAssembly.request.promptMessages[0]?.content).toContain(
-      "Messenger custom prompt for Mara.",
-    );
-    expect(messengerAssembly.request.promptMessages[0]?.content).not.toContain(
-      "Preset Messenger prompt.",
-    );
-
-    const roleplayThread = createRoleplayThread({
-      activePersonaId: null,
-      characterIds: ["character-1"],
-      id: "roleplay-custom-prompt",
-      now,
-      title: "Custom Roleplay",
-      defaultPromptPresetId: "preset-1",
-      systemPromptMode: "custom",
-      systemPrompt: "Roleplay custom prompt for {{char}}.",
-    });
-    const roleplayAssembly = createRoleplayGenerationRequestAssembly({
-      context: createRoleplayGenerationContext({
-        characters: [companion()],
-        lorebooks: [],
-        personas: [],
-        promptPresets: [promptPreset({ systemPrompt: "Preset Roleplay prompt." })],
-        thread: roleplayThread,
-      }),
-      id: "roleplay-custom-request",
-      now,
-    });
-    expect(roleplayAssembly.request.promptMessages[0]?.content).toContain(
-      "Roleplay custom prompt for Mara.",
-    );
-    expect(roleplayAssembly.request.promptMessages[0]?.content).not.toContain(
-      "Preset Roleplay prompt.",
-    );
   });
 
   it("resolves selected prompt preset choice variables without dynamic macro state", () => {

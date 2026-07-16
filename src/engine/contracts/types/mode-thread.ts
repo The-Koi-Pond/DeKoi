@@ -42,8 +42,6 @@ interface ModeBranchBase {
   presetId: string | null;
   presetChoiceSelectionsByPresetId: Record<string, PromptPresetThreadChoiceSelections>;
   providerConnectionId: string | null;
-  systemPromptMode: "default" | "custom";
-  systemPrompt: string;
   createdAt: string;
   updatedAt: string;
 }

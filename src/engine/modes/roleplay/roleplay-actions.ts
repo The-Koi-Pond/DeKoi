@@ -41,8 +41,6 @@ export interface RoleplayThreadCreationInput {
   lorebookIds?: string[];
   defaultPromptPresetId?: string | null;
   providerConnectionId?: string | null;
-  systemPromptMode?: "default" | "custom";
-  systemPrompt?: string;
   greetingText?: string;
   greetingMessageId?: string;
   greetingVersionId?: string;

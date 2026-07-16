@@ -74,10 +74,10 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   the supported dropdown, checkbox, button, and list presentations. Invalid live
   histories repair to valid defaults with a notice. Messenger ordinary
   conversation settings select a prompt preset and its preset-authored
-  Variables; a stored non-empty custom active-branch prompt wins first, then
-  generation uses `messengerPrompt`, shared `systemPrompt`, and built-in
+  Variables; generation uses `messengerPrompt`, shared `systemPrompt`, and built-in
   `DEFAULT_MESSENGER_SYSTEM_PROMPT` in that order. Ordinary settings expose no
-  arbitrary prompt or model-parameter override. Roleplay uses usable sections,
+  arbitrary prompt or model-parameter override, and native branches store no
+  arbitrary prompt text. Roleplay uses usable sections,
   then the shared prompt, then its built-in prelude; Roleplay sections do not
   become Messenger prompt text.
 - App settings own the default prompt preset. New Messenger and Roleplay branches

@@ -256,8 +256,6 @@ export function assertValidModeThread(value: unknown): asserts value is ModeThre
             "presetId",
             "presetChoiceSelectionsByPresetId",
             "providerConnectionId",
-            "systemPromptMode",
-            "systemPrompt",
             "createdAt",
             "updatedAt",
             "replyStrategy",
@@ -274,8 +272,6 @@ export function assertValidModeThread(value: unknown): asserts value is ModeThre
             "presetId",
             "presetChoiceSelectionsByPresetId",
             "providerConnectionId",
-            "systemPromptMode",
-            "systemPrompt",
             "createdAt",
             "updatedAt",
           ],
@@ -295,14 +291,6 @@ export function assertValidModeThread(value: unknown): asserts value is ModeThre
     nullableCanonicalId(branchRecord.activePersonaId, "active persona");
     nullableCanonicalId(branchRecord.presetId, "preset id");
     nullableCanonicalId(branchRecord.providerConnectionId, "provider connection");
-    if (branchRecord.systemPromptMode !== "default" && branchRecord.systemPromptMode !== "custom")
-      fail("system prompt mode");
-    const systemPromptValue = branchRecord.systemPrompt;
-    if (typeof systemPromptValue !== "string") fail("system prompt");
-    const systemPrompt = systemPromptValue as string;
-    if (branchRecord.systemPromptMode === "default" && systemPrompt !== "")
-      fail("default system prompt body");
-    if (systemPrompt !== systemPrompt.trim()) fail("system prompt text");
     const characters = canonicalTextArray(branchRecord.characterIds, "character ids");
     if (branchRecord.participantMode !== (characters.length > 1 ? "group" : "direct"))
       fail("participant mode");

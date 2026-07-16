@@ -349,12 +349,7 @@ function buildRoleplayMarkerLines({
   }
 }
 
-function roleplaySelectedPromptSource(
-  thread: RoleplayModeThread,
-  promptPreset: PromptPresetRecord | null,
-) {
-  const branch = getActiveModeBranch(thread);
-  if (branch.systemPromptMode === "custom" && branch.systemPrompt) return branch.systemPrompt;
+function roleplaySelectedPromptSource(promptPreset: PromptPresetRecord | null) {
   return promptPreset?.systemPrompt.trim() || DEFAULT_ROLEPLAY_SYSTEM_PROMPT;
 }
 
@@ -372,7 +367,7 @@ function resolveRoleplayPromptPrelude(
 ) {
   return {
     selectedPrompt: resolveGenerationMacros(
-      roleplaySelectedPromptSource(thread, promptPreset),
+      roleplaySelectedPromptSource(promptPreset),
       macroContext,
     ),
     sceneLines: resolveRoleplaySceneLines(thread, macroContext),
@@ -529,7 +524,7 @@ function createRoleplayPromptAssembly({
   };
   const promptMessages: RoleplayGenerationPromptMessage[] = promptPreset?.sections.length
     ? assemblePromptPresetMessages({
-        fallbackSystemPrompt: () => roleplaySelectedPromptSource(thread, promptPreset),
+        fallbackSystemPrompt: () => roleplaySelectedPromptSource(promptPreset),
         macroContext,
         markerLines: (markerType) =>
           buildRoleplayMarkerLines({

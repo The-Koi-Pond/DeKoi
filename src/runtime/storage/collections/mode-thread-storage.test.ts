@@ -47,6 +47,23 @@ describe("mode-thread storage normalization", () => {
     ).toBeNull();
   });
 
+  it("rejects obsolete system prompt fields on branches", () => {
+    const metadata = toModeThreadStorageRecord(createThread());
+
+    expect(
+      normalizeModeThreadRecord({
+        ...metadata,
+        branches: [{ ...metadata.branches[0], systemPromptMode: "custom" }],
+      }),
+    ).toBeNull();
+    expect(
+      normalizeModeThreadRecord({
+        ...metadata,
+        branches: [{ ...metadata.branches[0], systemPrompt: "Prompt" }],
+      }),
+    ).toBeNull();
+  });
+
   it("rejects malformed branch values without throwing", () => {
     const metadata = toModeThreadStorageRecord(createThread());
 
