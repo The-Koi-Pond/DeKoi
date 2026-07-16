@@ -1,4 +1,4 @@
 interface:
   display_name: "Improve Codebase Architecture"
   short_description: "Find DeKoi refactors worth doing."
-  default_prompt: "Use $improve-codebase-architecture to inspect DeKoi architecture, identify shallow modules, or plan boundary-aware refactors."
+  default_prompt: "Use $improve-codebase-architecture to inspect DeKoi architecture and write the refactor candidates to a Markdown report."
