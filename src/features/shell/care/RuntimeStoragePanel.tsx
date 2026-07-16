@@ -5,8 +5,8 @@ import type {
   AppStorageRepairCollectionStatus,
   AppStorageRepairStatusResult,
   AppStorageRepairStrategy,
-  MessengerStorageMode,
-  MessengerStorageStatus,
+  StorageMode,
+  AppStorageSyncStatus,
 } from "../../runtime";
 import type { StorageRepairActionState } from "./care-drawer-types";
 import { StorageRepairList } from "./StorageRepairList";
@@ -14,8 +14,8 @@ import { StorageRepairList } from "./StorageRepairList";
 interface RuntimeStoragePanelProps {
   runtimeUrl: string;
   runtimeStatusMessage: string;
-  messengerStorageMode: MessengerStorageMode;
-  messengerStorageStatus: MessengerStorageStatus;
+  appStorageMode: StorageMode;
+  appStorageStatus: AppStorageSyncStatus;
   desktopHostStatus: DeKoiDesktopHostStatus | null;
   desktopHostBusy: boolean;
   storageReloadBusy: boolean;
@@ -45,8 +45,8 @@ interface RuntimeStoragePanelProps {
 export function RuntimeStoragePanel({
   runtimeUrl,
   runtimeStatusMessage,
-  messengerStorageMode,
-  messengerStorageStatus,
+  appStorageMode,
+  appStorageStatus,
   desktopHostStatus,
   desktopHostBusy,
   storageReloadBusy,
@@ -88,11 +88,11 @@ export function RuntimeStoragePanel({
           </div>
         </div>
 
-        <div className={`runtime-status ${messengerStorageStatus}`}>
+        <div className={`runtime-status ${appStorageStatus}`}>
           <b>
-            {messengerStorageMode === "remote"
+            {appStorageMode === "remote"
               ? "Remote runtime"
-              : messengerStorageMode === "desktop"
+              : appStorageMode === "desktop"
                 ? "Desktop host"
                 : "Storage unavailable"}
           </b>

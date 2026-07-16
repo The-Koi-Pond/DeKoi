@@ -44,7 +44,7 @@ import type {
   PromptPresetFileExportResult,
   PromptPresetFileImportResult,
 } from "../../runtime";
-import type { MessengerStorageMode, MessengerStorageStatus } from "../../runtime";
+import type { StorageMode, AppStorageSyncStatus } from "../../runtime";
 
 export type PondView =
   | { kind: "pond" }
@@ -94,9 +94,9 @@ export interface NavMacroVariableState {
 }
 
 export interface NavStorageState {
-  messengerStorageMode: MessengerStorageMode;
-  messengerStorageStatus: MessengerStorageStatus;
-  messengerStorageMessage: string;
+  appStorageMode: StorageMode;
+  appStorageStatus: AppStorageSyncStatus;
+  appStorageMessage: string;
   storageReady: boolean;
   storageHasUnsavedChanges: boolean;
   importRecoveryState: NavStorageImportRecoveryState;
@@ -289,8 +289,8 @@ export interface NavStorageBundleActions {
 }
 
 type NavStorageStaleCheckResult = {
-  mode: MessengerStorageMode;
-  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  mode: StorageMode;
+  status: Exclude<AppStorageSyncStatus, "loading" | "saving">;
   message: string;
   checked: boolean;
   metadataAvailable: boolean;
@@ -299,8 +299,8 @@ type NavStorageStaleCheckResult = {
 };
 
 type NavStorageReloadResult = {
-  mode: MessengerStorageMode;
-  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  mode: StorageMode;
+  status: Exclude<AppStorageSyncStatus, "loading" | "saving">;
   message: string;
   blocked: boolean;
   reloaded: boolean;
@@ -309,8 +309,8 @@ type NavStorageReloadResult = {
 type NavStorageFlushReason = "backup" | "export" | "import" | "reload" | "shutdown" | "manual";
 
 type NavStorageFlushResult = {
-  mode: MessengerStorageMode;
-  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  mode: StorageMode;
+  status: Exclude<AppStorageSyncStatus, "loading" | "saving">;
   message: string;
   flushed: boolean;
   blocked: boolean;

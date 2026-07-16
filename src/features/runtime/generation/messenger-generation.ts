@@ -62,12 +62,6 @@ export interface GenerateMessengerThreadReplyResult {
   warnings: string[];
 }
 
-async function generateMessengerResponse(
-  request: MessengerGenerationRequest,
-): Promise<MessengerGenerationResponse> {
-  return providerMessengerGenerationAdapter.generate(request);
-}
-
 export async function generateMessengerThreadReply({
   appSettings,
   characters,
@@ -129,7 +123,7 @@ export async function generateMessengerThreadReply({
         userMessage,
       }),
     existingLoreRuntimeState: loreRuntimeState,
-    generateResponse: generateMessengerResponse,
+    generateResponse: providerMessengerGenerationAdapter.generate,
     macroVariableStates,
     now,
     ownerKind: "mode-branch",

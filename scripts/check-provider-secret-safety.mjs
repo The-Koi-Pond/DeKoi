@@ -256,9 +256,9 @@ const recordProviderApiKeyBody = rustFunctionBody(
   desktopProviderAuthSource,
   "provider_connection_api_key",
 );
-const generationApiKeyBody = rustFunctionBody(
+const generationGenerateBody = rustFunctionBody(
   desktopProviderGenerationSource,
-  "generation_api_key",
+  "generation_generate",
 );
 const readyGuardIndex = resolveProviderApiKeyBody.indexOf(
   "if connection_id.trim().is_empty() || !ready",
@@ -275,8 +275,8 @@ if (
   !/provider_connection_api_key_for_scope\([\s\S]*status == "ready"/.test(
     recordProviderApiKeyBody,
   ) ||
-  !/provider_connection_api_key_for_scope\([\s\S]*matches!\(\s*connection\.status,\s*GenerationConnectionStatus::Ready\s*\)/.test(
-    generationApiKeyBody,
+  !/provider_connection_api_key_for_scope\(\s*connection\.provider\.as_str\(\),\s*connection\.id\.trim\(\),\s*connection\.base_url\.trim\(\),\s*matches!\(\s*connection\.status,\s*GenerationConnectionStatus::Ready\s*\),?\s*\)/.test(
+    generationGenerateBody,
   )
 ) {
   fail("Desktop runtime must only read keyring secrets for ready connections.");

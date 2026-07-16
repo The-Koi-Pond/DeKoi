@@ -42,9 +42,9 @@ export type CareDrawerNav = Pick<NavCareActions, "setCareOpen" | "setCareTab"> &
   Pick<
     NavStorageState,
     | "importRecoveryState"
-    | "messengerStorageMessage"
-    | "messengerStorageMode"
-    | "messengerStorageStatus"
+    | "appStorageMessage"
+    | "appStorageMode"
+    | "appStorageStatus"
     | "storageHasUnsavedChanges"
     | "droppedRecordCountByCollection"
     | "storageLoadErrorMessageByCollection"

@@ -24,8 +24,8 @@ export {
   type AppStorageRepairCollectionStatus,
   type AppStorageRepairStatusResult,
   type AppStorageRepairStrategy,
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
+  type StorageMode,
+  type AppStorageSyncStatus,
 } from "./app-storage-workflows";
 export {
   createDeKoiStorageBundle,

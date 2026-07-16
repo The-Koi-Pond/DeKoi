@@ -5,10 +5,7 @@ mod payload;
 use serde_json::Value;
 
 use self::{
-    dto::{
-        validate_generation_args, GenerationConnectionDto, GenerationConnectionStatus,
-        GenerationProvider,
-    },
+    dto::{validate_generation_args, GenerationConnectionStatus, GenerationProvider},
     payload::build_provider_payload,
 };
 use super::{
@@ -22,15 +19,6 @@ use super::{
 use crate::provider_response::{
     extract_provider_text, is_openai_compatible, provider_empty_warning,
 };
-
-fn generation_api_key(connection: &GenerationConnectionDto) -> Result<String, String> {
-    provider_connection_api_key_for_scope(
-        connection.provider.as_str(),
-        connection.id.trim(),
-        connection.base_url.trim(),
-        matches!(connection.status, GenerationConnectionStatus::Ready),
-    )
-}
 
 fn generation_endpoint(
     provider: GenerationProvider,
@@ -91,7 +79,12 @@ pub(crate) async fn generation_generate(args: &Value) -> Result<Value, String> {
         }));
     }
 
-    let api_key = generation_api_key(connection)?;
+    let api_key = provider_connection_api_key_for_scope(
+        connection.provider.as_str(),
+        connection.id.trim(),
+        connection.base_url.trim(),
+        matches!(connection.status, GenerationConnectionStatus::Ready),
+    )?;
     let client = provider_http_client(PROVIDER_GENERATION_TIMEOUT)?;
     let headers = provider_headers(provider_name, &api_key)?;
     let endpoint = generation_endpoint(provider, base_url, model)?;

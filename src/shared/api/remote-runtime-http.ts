@@ -21,13 +21,6 @@ export function remoteHeaders(target: RuntimeTarget, extra?: HeadersInit): Heade
   };
 }
 
-function remoteFetchInit(init: RequestInit): RequestInit {
-  return {
-    ...init,
-    cache: "no-store",
-  };
-}
-
 /** Fetches remote-runtime JSON with no-store caching and status-preserving body handling. */
 export async function fetchRemoteRuntimeJson(
   input: RequestInfo | URL,
@@ -37,7 +30,7 @@ export async function fetchRemoteRuntimeJson(
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
   const { response, body } = await fetchJsonWithTimeout(
     input,
-    remoteFetchInit(init),
+    { ...init, cache: "no-store" },
     timeoutMs,
     `Remote runtime request timed out after ${formatTimeoutDuration(timeoutMs)}.`,
     options,

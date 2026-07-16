@@ -21,14 +21,10 @@ export interface DesktopStorageCollectionMetadataResult {
   repairable: boolean;
 }
 
-function requireTauriForDesktopStorageMetadata() {
-  requireTauriForDesktopHost("Desktop storage metadata is only available inside the Tauri app.");
-}
-
 export async function readDesktopStorageCollectionMetadata(
   entity?: string,
 ): Promise<DesktopStorageCollectionMetadataResult[]> {
-  requireTauriForDesktopStorageMetadata();
+  requireTauriForDesktopHost("Desktop storage metadata is only available inside the Tauri app.");
 
   return await invoke<DesktopStorageCollectionMetadataResult[]>(
     DESKTOP_COMMANDS.storageCollectionMetadata,

@@ -7,7 +7,7 @@ import {
   type AppSettingsPatch,
   type ShoalSortMode,
 } from "../../../engine/contracts/types/app-settings";
-import { type MessengerStorageStatus, writeRuntimeTargetUrl } from "../../runtime";
+import { type AppStorageSyncStatus, writeRuntimeTargetUrl } from "../../runtime";
 import type { StateSetter } from "../../../shared/react/state-setter";
 
 type UseAppSettingsActionsInput = {
@@ -15,8 +15,8 @@ type UseAppSettingsActionsInput = {
   setAppSettings: StateSetter<AppSettings>;
   setRemoteRuntimeUrlState: StateSetter<string>;
   setStorageReady: StateSetter<boolean>;
-  setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
-  setMessengerStorageMessage: StateSetter<string>;
+  setAppStorageStatus: StateSetter<AppStorageSyncStatus>;
+  setAppStorageMessage: StateSetter<string>;
   prepareForStorageReplacement: () => boolean;
 };
 
@@ -25,8 +25,8 @@ export function useAppSettingsActions({
   setAppSettings,
   setRemoteRuntimeUrlState,
   setStorageReady,
-  setMessengerStorageStatus,
-  setMessengerStorageMessage,
+  setAppStorageStatus,
+  setAppStorageMessage,
   prepareForStorageReplacement,
 }: UseAppSettingsActionsInput) {
   const setRemoteRuntimeUrl = useCallback(
@@ -35,14 +35,14 @@ export function useAppSettingsActions({
       if (!prepareForStorageReplacement()) return false;
       const runtimeTargetUrl = writeRuntimeTargetUrl(url);
       setStorageReady(false);
-      setMessengerStorageStatus("loading");
-      setMessengerStorageMessage("Loading Messenger storage.");
+      setAppStorageStatus("loading");
+      setAppStorageMessage("Loading app storage.");
       setRemoteRuntimeUrlState(runtimeTargetUrl);
       return true;
     },
     [
-      setMessengerStorageMessage,
-      setMessengerStorageStatus,
+      setAppStorageMessage,
+      setAppStorageStatus,
       setRemoteRuntimeUrlState,
       setStorageReady,
       prepareForStorageReplacement,

@@ -28,7 +28,7 @@ export {
   type AppStorageReplaceResult,
   type AppStorageSnapshot,
 } from "../../../runtime";
-export { type MessengerStorageMode, type MessengerStorageStatus } from "../../../runtime";
+export { type StorageMode, type AppStorageSyncStatus } from "../../../runtime";
 export {
   finishAppStorageCollectionRepair,
   loadAppStorageRepairStatus,

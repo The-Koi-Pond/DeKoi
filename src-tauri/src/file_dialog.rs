@@ -7,10 +7,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn safe_default_bundle_file_name(file_name: Option<String>) -> String {
-    safe_default_json_file_name(file_name, "dekoi-bundle.json")
-}
-
 fn safe_default_prompt_preset_file_name(file_name: Option<String>) -> String {
     safe_default_json_file_name(file_name, "prompt-preset.json")
 }
@@ -56,11 +52,6 @@ fn prompt_preset_json_path(path: PathBuf) -> Result<PathBuf, String> {
     }
 }
 
-fn write_prompt_preset_file(path: &Path, package: &serde_json::Value) -> Result<(), String> {
-    write_export_json_file(path, package, "prompt preset file")
-        .map_err(|error| format!("Could not write prompt preset file. {error}"))
-}
-
 #[tauri::command]
 pub(crate) fn dekoi_file_export_bundle(
     bundle: serde_json::Value,
@@ -68,7 +59,10 @@ pub(crate) fn dekoi_file_export_bundle(
 ) -> Result<Option<StorageBundleInfo>, String> {
     let Some(path) = rfd::FileDialog::new()
         .add_filter("DeKoi bundle", &["json"])
-        .set_file_name(safe_default_bundle_file_name(default_file_name))
+        .set_file_name(safe_default_json_file_name(
+            default_file_name,
+            "dekoi-bundle.json",
+        ))
         .save_file()
     else {
         return Ok(None);
@@ -115,7 +109,8 @@ pub(crate) fn dekoi_file_export_prompt_preset(
     };
     let path = prompt_preset_json_path(path)?;
 
-    write_prompt_preset_file(&path, &package)?;
+    write_export_json_file(&path, &package, "prompt preset file")
+        .map_err(|error| format!("Could not write prompt preset file. {error}"))?;
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
