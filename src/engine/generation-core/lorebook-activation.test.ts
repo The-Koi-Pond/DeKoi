@@ -5,13 +5,11 @@ import {
   activateLorebookEntries,
   activateLorebookEntriesWithWarnings,
   applyTokenBudget,
-  buildMatchSources,
-  buildScanBuffer,
-  matchKey,
   sortActivatedEntriesForInsertion,
 } from "./lorebook-activation";
 import { finalizeActivationResult } from "./lorebook-activation-resolution";
 import type { ActivatedLoreEntry } from "./lorebook-activation-types";
+import { buildMatchSources } from "./lorebook-matching";
 import { createLorebookEntryRecord, createLorebookRecord } from "../catalog/lorebook-actions";
 import type { LorebookRecord } from "../contracts/types/lorebook";
 import type { LoreRuntimeState } from "../contracts/types/lore-runtime-state";
@@ -546,40 +544,6 @@ describe("lorebook activation", () => {
     expect(activateLorebookEntries(lorebook([disabled]), "Disabled")).toEqual([]);
   });
 
-  it("builds a scan buffer from only the last N sources", () => {
-    const buffer = buildScanBuffer(
-      [
-        { name: "A", body: "first" },
-        { name: "B", body: "second" },
-        { name: "C", body: "third" },
-      ],
-      { scanDepth: 2, includeNames: true },
-    );
-
-    expect(buffer).toBe("B: second\nC: third");
-  });
-
-  it("drops empty-body sources before applying scan depth", () => {
-    const buffer = buildScanBuffer(
-      [
-        { name: "Alex", body: "open the moon gate" },
-        { name: "Moon Gate", body: "   " },
-      ],
-      { scanDepth: 1, includeNames: true },
-    );
-
-    expect(buffer).toBe("Alex: open the moon gate");
-  });
-
-  it("includes or excludes names from the scan buffer", () => {
-    const sources = [{ name: "SecretName", body: "ordinary body" }];
-
-    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: true })).toContain("SecretName");
-    expect(buildScanBuffer(sources, { scanDepth: 1, includeNames: false })).not.toContain(
-      "SecretName",
-    );
-  });
-
   it("activates from opted-in companion and persona match sources only", () => {
     const fromDescription = entry({
       title: "Description Match",
@@ -698,62 +662,6 @@ describe("lorebook activation", () => {
         matchSources,
       }),
     ).toEqual([]);
-  });
-
-  it("matches whole words separately from substrings", () => {
-    expect(
-      matchKey("cat", "A cat appears.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(true);
-    expect(
-      matchKey("cat", "The catalog opens.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(false);
-    expect(
-      matchKey("cat", "The catalog opens.", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-  });
-
-  it("respects case-sensitive matching", () => {
-    expect(
-      matchKey("moon gate", "Moon Gate", {
-        caseSensitiveKeys: true,
-        matchWholeWords: false,
-      }),
-    ).toBe(false);
-    expect(
-      matchKey("moon gate", "Moon Gate", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-  });
-
-  it("uses locale-independent lowercasing for case-insensitive keys", () => {
-    const localeLowerSpy = vi
-      .spyOn(String.prototype, "toLocaleLowerCase")
-      .mockImplementation(() => {
-        throw new Error("locale-sensitive lowercasing used");
-      });
-    const matched = (() => {
-      try {
-        return matchKey("IRIS", "iris blooms", {
-          caseSensitiveKeys: false,
-          matchWholeWords: true,
-        });
-      } finally {
-        localeLowerSpy.mockRestore();
-      }
-    })();
-
-    expect(matched).toBe(true);
   });
 
   it.each([
@@ -915,6 +823,153 @@ describe("lorebook activation", () => {
     expect(activation.warnings[0]).toContain('Unsafe regex key "/(a+)+$/" treated as plaintext');
   });
 
+  it("rejects numeric and named backreferences before compiling or caching them", () => {
+    const numericKey = "/^(a+)\\1+$/";
+    const namedKey = "/^(?<run>a+)\\k<run>+$/";
+    const blockedPatterns = new Set(["^(a+)\\1+$", "^(?<run>a+)\\k<run>+$"]);
+    const RealRegExp = RegExp;
+    const blockedCompilation = vi.fn();
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      if (typeof pattern === "string" && blockedPatterns.has(pattern)) {
+        blockedCompilation(pattern);
+        return new RealRegExp("does-not-match", flags);
+      }
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook(
+          [
+            entry({ title: "Numeric Backreference", strategy: "selective", key: [numericKey] }),
+            entry({
+              title: "Cached Numeric Backreference",
+              strategy: "selective",
+              key: [numericKey],
+            }),
+            entry({ title: "Named Backreference", strategy: "selective", key: [namedKey] }),
+          ],
+          { matchWholeWords: false },
+        ),
+        `${"a".repeat(20_000)}!\n${numericKey}\n${namedKey}`,
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual([
+        "Numeric Backreference",
+        "Cached Numeric Backreference",
+        "Named Backreference",
+      ]);
+      expect(
+        activation.entries.every((item) => item.warnings[0]?.includes("Unsafe regex key")),
+      ).toBe(true);
+      expect(activation.warnings).toHaveLength(2);
+      expect(blockedCompilation).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects repeated sequential variable quantifiers before compiling or caching them", () => {
+    const unsafeKey = "/a*a*a*a*a*a*b/u";
+    const groupedUnsafeKey = "/a*(a)*b/u";
+    const overlappingClassesKey = "/[ab]*[ac]*b/u";
+    const overlappingClassLiteralKey = "/[ab]*a*Z/u";
+    const overlappingEscapesKey = "/\\w*\\d*Z/u";
+    const blockedPatterns = new Set([
+      "a*a*a*a*a*a*b",
+      "a*(a)*b",
+      "[ab]*[ac]*b",
+      "[ab]*a*Z",
+      "\\w*\\d*Z",
+    ]);
+    const RealRegExp = RegExp;
+    const blockedCompilation = vi.fn();
+    const regexpSpy = vi.fn(function (pattern: string | RegExp = "", flags?: string) {
+      if (typeof pattern === "string" && blockedPatterns.has(pattern)) {
+        blockedCompilation(pattern);
+        return new RealRegExp("does-not-match", flags);
+      }
+      return new RealRegExp(pattern, flags);
+    });
+    vi.stubGlobal("RegExp", regexpSpy);
+
+    try {
+      const activation = activateLorebookEntriesWithWarnings(
+        lorebook(
+          [
+            entry({
+              title: "Sequential Quantifiers",
+              strategy: "selective",
+              key: [unsafeKey],
+            }),
+            entry({
+              title: "Cached Sequential Quantifiers",
+              strategy: "selective",
+              key: [unsafeKey],
+            }),
+            entry({
+              title: "Grouped Sequential Quantifiers",
+              strategy: "selective",
+              key: [groupedUnsafeKey],
+            }),
+            entry({
+              title: "Overlapping Character Classes",
+              strategy: "selective",
+              key: [overlappingClassesKey],
+            }),
+            entry({
+              title: "Overlapping Class And Literal",
+              strategy: "selective",
+              key: [overlappingClassLiteralKey],
+            }),
+            entry({
+              title: "Overlapping Escape Classes",
+              strategy: "selective",
+              key: [overlappingEscapesKey],
+            }),
+          ],
+          { matchWholeWords: false },
+        ),
+        `${"a".repeat(20_000)}!\n${unsafeKey}\n${groupedUnsafeKey}\n${overlappingClassesKey}\n${overlappingClassLiteralKey}\n${overlappingEscapesKey}`,
+      );
+
+      expect(activation.entries.map((item) => item.entry.title)).toEqual([
+        "Sequential Quantifiers",
+        "Cached Sequential Quantifiers",
+        "Grouped Sequential Quantifiers",
+        "Overlapping Character Classes",
+        "Overlapping Class And Literal",
+        "Overlapping Escape Classes",
+      ]);
+      expect(
+        activation.entries.every((item) => item.warnings[0]?.includes("Unsafe regex key")),
+      ).toBe(true);
+      expect(activation.warnings).toHaveLength(5);
+      expect(blockedCompilation).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("allows distinct sequential variable quantifiers", () => {
+    const safeSequential = entry({
+      title: "Safe Sequential Quantifiers",
+      strategy: "selective",
+      key: ["/a*b+c? gate/"],
+    });
+
+    const activation = activateLorebookEntriesWithWarnings(
+      lorebook([safeSequential], { matchWholeWords: false }),
+      "aaabbb gate",
+    );
+
+    expect(activation.entries.map((item) => item.entry.title)).toEqual([
+      "Safe Sequential Quantifiers",
+    ]);
+    expect(activation.warnings).toEqual([]);
+  });
+
   it("allows optional and exact-one group quantifiers in regex keys", () => {
     const optionalGroup = entry({
       title: "Optional Group",
@@ -983,30 +1038,6 @@ describe("lorebook activation", () => {
     expect(activation.warnings[0]).toContain(
       'Unsafe regex key "/(cat|dog)+ gate/" treated as plaintext',
     );
-  });
-
-  it("applies case-sensitivity defaults to regex keys without explicit flags", () => {
-    expect(
-      matchKey("/moon gate/", "MOON GATE", {
-        caseSensitiveKeys: false,
-        matchWholeWords: false,
-      }),
-    ).toBe(true);
-    expect(
-      matchKey("/moon gate/", "MOON GATE", {
-        caseSensitiveKeys: true,
-        matchWholeWords: false,
-      }),
-    ).toBe(false);
-  });
-
-  it("does not apply whole-word wrapping to regex keys", () => {
-    expect(
-      matchKey("/cat/", "catalog", {
-        caseSensitiveKeys: false,
-        matchWholeWords: true,
-      }),
-    ).toBe(true);
   });
 
   it("sorts activated entries by insertion order with stable source tiebreaks", () => {

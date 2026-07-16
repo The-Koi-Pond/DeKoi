@@ -94,11 +94,15 @@ src/engine/shared/text.ts
   aligned with matching generic helpers in src/shared without importing across
   the engine boundary.
 
+src/engine/generation-core/lorebook-matching.ts
+  Mode-neutral scan-buffer construction, safe regex and key matching, and
+  cache-private matcher state.
+
 src/engine/generation-core/lorebook-activation.ts
 src/engine/generation-core/lorebook-activation-resolution.ts
 src/engine/generation-core/lorebook-activation-types.ts
-  Mode-neutral lore activation, inclusion-group resolution, activation types,
-  deterministic ordering, and budget helpers.
+  Mode-neutral lore activation orchestration, inclusion and probability
+  resolution, deterministic ordering, and budgeting.
 
 src/engine/generation-core/macros/macro-engine.ts
 src/engine/generation-core/macros/macro-definitions.ts
