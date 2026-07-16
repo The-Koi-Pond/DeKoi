@@ -24,8 +24,8 @@ type CareRuntimeStorageNav = Pick<NavStorageActions, "checkAppStorageStale" | "r
     NavStorageState,
     | "droppedRecordCountByCollection"
     | "storageLoadErrorMessageByCollection"
-    | "messengerStorageMessage"
-    | "messengerStorageStatus"
+    | "appStorageMessage"
+    | "appStorageStatus"
     | "remoteRuntimeUrl"
   >;
 
@@ -41,7 +41,7 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
   const [storageRepairBusy, setStorageRepairBusy] = useState<StorageRepairActionState | null>(null);
   const [storageRepairConfirmation, setStorageRepairConfirmation] =
     useState<StorageRepairActionState | null>(null);
-  const runtimeStatusMessage = runtimeHealth || nav.messengerStorageMessage;
+  const runtimeStatusMessage = runtimeHealth || nav.appStorageMessage;
   const droppedRecordsSummary = summarizeAppStorageDroppedRecords(
     nav.droppedRecordCountByCollection,
   );
@@ -54,8 +54,8 @@ export function useCareRuntimeStorageController(nav: CareRuntimeStorageNav) {
   const storageActionBusy =
     storageReloadBusy ||
     storageRepairBusy !== null ||
-    nav.messengerStorageStatus === "loading" ||
-    nav.messengerStorageStatus === "saving";
+    nav.appStorageStatus === "loading" ||
+    nav.appStorageStatus === "saving";
 
   async function handleRuntimeTest() {
     setRuntimeHealth("Checking remote runtime...");

@@ -19,8 +19,8 @@ import {
   type AppStorageReplaceResult,
   type AppStorageRecords,
   type AppStorageSnapshot,
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
+  type StorageMode,
+  type AppStorageSyncStatus,
   type PromptPresetImportSaveResult,
   type PromptPresetRelationshipMutation,
   type StorageTransactionCoordinator,
@@ -46,8 +46,8 @@ type SaveQueueEntries = Partial<Record<AppStorageCollectionKey, SaveQueueEntry>>
 type SaveErrorMessages = Partial<Record<AppStorageCollectionKey, string>>;
 type ActiveSavePromise = Promise<void>;
 type SaveStatusResult = {
-  mode: MessengerStorageMode;
-  status: Exclude<MessengerStorageStatus, "loading" | "saving">;
+  mode: StorageMode;
+  status: Exclude<AppStorageSyncStatus, "loading" | "saving">;
   message: string;
 };
 
@@ -583,9 +583,9 @@ type UseAppStorageSyncInput = AppStorageRecords & {
   setProviderConnections: StateSetter<AppStorageRecords["providerConnections"]>;
   setModeThreads: StateSetter<AppStorageRecords["modeThreads"]>;
   setRippleStates: StateSetter<AppStorageRecords["rippleStates"]>;
-  setMessengerStorageMode: StateSetter<MessengerStorageMode>;
-  setMessengerStorageStatus: StateSetter<MessengerStorageStatus>;
-  setMessengerStorageMessage: StateSetter<string>;
+  setAppStorageMode: StateSetter<StorageMode>;
+  setAppStorageStatus: StateSetter<AppStorageSyncStatus>;
+  setAppStorageMessage: StateSetter<string>;
   setDroppedRecordCountByCollection: StateSetter<Partial<Record<AppStorageCollectionKey, number>>>;
   setStorageLoadErrorMessageByCollection: StateSetter<
     Partial<Record<AppStorageCollectionKey, string>>
@@ -617,9 +617,9 @@ export function useAppStorageSync({
   setProviderConnections,
   setModeThreads,
   setRippleStates,
-  setMessengerStorageMode,
-  setMessengerStorageStatus,
-  setMessengerStorageMessage,
+  setAppStorageMode,
+  setAppStorageStatus,
+  setAppStorageMessage,
   setDroppedRecordCountByCollection,
   setStorageLoadErrorMessageByCollection,
   setStorageReady,
@@ -632,7 +632,7 @@ export function useAppStorageSync({
   const storageGeneration = useRef(0);
   const currentStorageRawUrl = useRef(remoteRuntimeUrl);
   currentStorageRawUrl.current = remoteRuntimeUrl;
-  const currentStorageMode = useRef<MessengerStorageMode>("unavailable");
+  const currentStorageMode = useRef<StorageMode>("unavailable");
   const savedSignatures = useRef<AppStorageCollectionSignatures | null>(null);
   const loadedStorageMetadata = useRef<AppStorageMetadata>({});
   const lastSeenSnapshot = useRef<AppStorageRecords | null>(null);
@@ -712,23 +712,23 @@ export function useAppStorageSync({
       setStorageHasUnsavedChanges(hasLocalStorageWork);
       if (storageResult) {
         currentStorageMode.current = storageResult.mode;
-        setMessengerStorageMode(storageResult.mode);
+        setAppStorageMode(storageResult.mode);
       }
-      setMessengerStorageStatus(
+      setAppStorageStatus(
         saveErrorMessage
           ? "error"
           : hasLocalStorageWork
             ? "saving"
             : (storageResult?.status ?? "ready"),
       );
-      setMessengerStorageMessage(
+      setAppStorageMessage(
         saveErrorMessage ??
           (hasLocalStorageWork
             ? "Saving changes..."
             : (storageResult?.message ?? "All changes saved.")),
       );
     },
-    [setMessengerStorageMessage, setMessengerStorageMode, setMessengerStorageStatus],
+    [setAppStorageMessage, setAppStorageMode, setAppStorageStatus],
   );
 
   const applyAppStorageRecords = useCallback(
@@ -919,7 +919,7 @@ export function useAppStorageSync({
 
       saveQueueRunning.current = entry.generation;
       activeSaveSignatures.current[collectionKey] = entry.signature;
-      setMessengerStorageStatus("saving");
+      setAppStorageStatus("saving");
 
       const savePromise = saveAppStorageCollections(entry.snapshot, [collectionKey], entry.rawUrl)
         .then(
@@ -1010,7 +1010,7 @@ export function useAppStorageSync({
         });
       activeSavePromise.current = savePromise;
     },
-    [mergeLoadedStorageMetadata, refreshSaveStatus, setMessengerStorageStatus],
+    [mergeLoadedStorageMetadata, refreshSaveStatus, setAppStorageStatus],
   );
 
   const flushAppStorageSaves = useCallback(
@@ -1271,8 +1271,8 @@ export function useAppStorageSync({
           waitForActiveSaveToSettle,
           getStorageMode: () => currentStorageMode.current,
           publishSaving: (message) => {
-            setMessengerStorageStatus("saving");
-            setMessengerStorageMessage(message);
+            setAppStorageStatus("saving");
+            setAppStorageMessage(message);
           },
           mergeStorageMetadata: mergeLoadedStorageMetadata,
           setPersistedPromptPresetSignature: (signature) => {
@@ -1304,8 +1304,8 @@ export function useAppStorageSync({
       flushAppStorageSaves,
       mergeLoadedStorageMetadata,
       refreshSaveStatus,
-      setMessengerStorageMessage,
-      setMessengerStorageStatus,
+      setAppStorageMessage,
+      setAppStorageStatus,
       storageTransactionCoordinator,
       storageReady,
       waitForActiveSaveToSettle,
@@ -1450,9 +1450,9 @@ export function useAppStorageSync({
             !hasPendingSave(pendingSaves.current) &&
             !hasUnsavedSignature(unsavedSignatures.current)
           ) {
-            setMessengerStorageStatus("ready");
+            setAppStorageStatus("ready");
           }
-          setMessengerStorageMessage("Prompt preset change saved.");
+          setAppStorageMessage("Prompt preset change saved.");
         },
       });
       reconcilePromptPresetTransactionSettlement({
@@ -1469,8 +1469,8 @@ export function useAppStorageSync({
       remoteRuntimeUrl,
       refreshSaveStatus,
       reconcilePromptPresetTransactionSettlement,
-      setMessengerStorageMessage,
-      setMessengerStorageStatus,
+      setAppStorageMessage,
+      setAppStorageStatus,
       storageReady,
       storageTransactionCoordinator,
     ],
@@ -1625,9 +1625,9 @@ export function useAppStorageSync({
           records,
           "Another import is already in progress. Wait for it to finish before importing again.",
         );
-        setMessengerStorageMode(result.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(result.message);
+        setAppStorageMode(result.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(result.message);
         return result;
       }
 
@@ -1645,16 +1645,16 @@ export function useAppStorageSync({
           records,
           "Another import is already in progress. Wait for it to finish before importing again.",
         );
-        setMessengerStorageMode(result.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(result.message);
+        setAppStorageMode(result.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(result.message);
         return result;
       }
 
       try {
         setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
-        setMessengerStorageStatus("saving");
-        setMessengerStorageMessage("Importing DeKoi bundle...");
+        setAppStorageStatus("saving");
+        setAppStorageMessage("Importing DeKoi bundle...");
 
         cancelQueuedSaveDispatch();
         pendingSaves.current = {};
@@ -1668,9 +1668,9 @@ export function useAppStorageSync({
             records,
             "Import was interrupted because the storage target changed. Retry on the current storage target.",
           );
-          setMessengerStorageMode(result.mode);
-          setMessengerStorageStatus("error");
-          setMessengerStorageMessage(result.message);
+          setAppStorageMode(result.mode);
+          setAppStorageStatus("error");
+          setAppStorageMessage(result.message);
           return result;
         }
 
@@ -1694,9 +1694,9 @@ export function useAppStorageSync({
             { force: true },
           );
           setAvailableImportRecovery(preImportRecovery, "unexpected-import-failure");
-          setMessengerStorageMode(failureResult.mode);
-          setMessengerStorageStatus("error");
-          setMessengerStorageMessage(failureResult.message);
+          setAppStorageMode(failureResult.mode);
+          setAppStorageStatus("error");
+          setAppStorageMessage(failureResult.message);
           return failureResult;
         }
 
@@ -1707,9 +1707,9 @@ export function useAppStorageSync({
             message:
               "Import finished after the storage target changed. Retry on the current storage target before using imported records.",
           };
-          setMessengerStorageMode(result.mode);
-          setMessengerStorageStatus("error");
-          setMessengerStorageMessage(result.message);
+          setAppStorageMode(result.mode);
+          setAppStorageStatus("error");
+          setAppStorageMessage(result.message);
           return result;
         }
 
@@ -1726,9 +1726,9 @@ export function useAppStorageSync({
           setStorageReady(true);
           setStorageHasUnsavedChanges(false);
           currentStorageMode.current = storageResult.mode;
-          setMessengerStorageMode(storageResult.mode);
-          setMessengerStorageStatus("ready");
-          setMessengerStorageMessage(storageResult.message);
+          setAppStorageMode(storageResult.mode);
+          setAppStorageStatus("ready");
+          setAppStorageMessage(storageResult.message);
           lastPreImportRecovery.current = null;
           setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
           return storageResult;
@@ -1745,9 +1745,9 @@ export function useAppStorageSync({
             : "unexpected-import-failure",
         );
 
-        setMessengerStorageMode(failureResult.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(failureResult.message);
+        setAppStorageMode(failureResult.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(failureResult.message);
         return failureResult;
       } finally {
         transaction.finish();
@@ -1760,9 +1760,9 @@ export function useAppStorageSync({
       reloadPersistedStorageAfterImportFailure,
       remoteRuntimeUrl,
       setAvailableImportRecovery,
-      setMessengerStorageMessage,
-      setMessengerStorageMode,
-      setMessengerStorageStatus,
+      setAppStorageMessage,
+      setAppStorageMode,
+      setAppStorageStatus,
       setStorageReady,
       storageTransactionCoordinator,
       waitForActiveSaveToSettle,
@@ -1779,9 +1779,9 @@ export function useAppStorageSync({
         records,
         "No in-session pre-import backup is available. Import the saved pre-import backup file instead.",
       );
-      setMessengerStorageMode(result.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(result.message);
+      setAppStorageMode(result.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(result.message);
       return result;
     }
 
@@ -1792,9 +1792,9 @@ export function useAppStorageSync({
         recovery.records,
         "Pre-import backup restore is no longer available because the storage target changed. Import the saved pre-import backup file instead.",
       );
-      setMessengerStorageMode(result.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(result.message);
+      setAppStorageMode(result.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(result.message);
       return result;
     }
 
@@ -1803,9 +1803,9 @@ export function useAppStorageSync({
         recovery.records,
         "Restore blocked because an import or restore is already in progress.",
       );
-      setMessengerStorageMode(result.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(result.message);
+      setAppStorageMode(result.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(result.message);
       return result;
     }
 
@@ -1821,9 +1821,9 @@ export function useAppStorageSync({
         recovery.records,
         "Restore blocked because DeKoi has active or unsaved storage changes. Wait for saves to finish before restoring the pre-import backup.",
       );
-      setMessengerStorageMode(result.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(result.message);
+      setAppStorageMode(result.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(result.message);
       return result;
     }
 
@@ -1841,15 +1841,15 @@ export function useAppStorageSync({
         recovery.records,
         "Restore blocked because an import or restore is already in progress.",
       );
-      setMessengerStorageMode(result.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(result.message);
+      setAppStorageMode(result.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(result.message);
       return result;
     }
 
     try {
-      setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Restoring pre-import backup...");
+      setAppStorageStatus("saving");
+      setAppStorageMessage("Restoring pre-import backup...");
 
       cancelQueuedSaveDispatch();
       pendingSaves.current = {};
@@ -1864,9 +1864,9 @@ export function useAppStorageSync({
           "Restore was interrupted because the storage target changed. Retry on the current storage target.",
         );
         setAvailableImportRecovery(recovery, "unexpected-import-failure");
-        setMessengerStorageMode(result.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(result.message);
+        setAppStorageMode(result.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(result.message);
         return result;
       }
 
@@ -1886,9 +1886,9 @@ export function useAppStorageSync({
           { force: true },
         );
         setAvailableImportRecovery(recovery, "unexpected-import-failure");
-        setMessengerStorageMode(failureResult.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(failureResult.message);
+        setAppStorageMode(failureResult.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(failureResult.message);
         return failureResult;
       }
 
@@ -1900,9 +1900,9 @@ export function useAppStorageSync({
             "Restore finished after the storage target changed. Retry on the current storage target before using restored records.",
         };
         setAvailableImportRecovery(recovery, "unexpected-import-failure");
-        setMessengerStorageMode(result.mode);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(result.message);
+        setAppStorageMode(result.mode);
+        setAppStorageStatus("error");
+        setAppStorageMessage(result.message);
         return result;
       }
 
@@ -1919,9 +1919,9 @@ export function useAppStorageSync({
         setStorageReady(true);
         setStorageHasUnsavedChanges(false);
         currentStorageMode.current = storageResult.mode;
-        setMessengerStorageMode(storageResult.mode);
-        setMessengerStorageStatus("ready");
-        setMessengerStorageMessage(storageResult.message);
+        setAppStorageMode(storageResult.mode);
+        setAppStorageStatus("ready");
+        setAppStorageMessage(storageResult.message);
         lastPreImportRecovery.current = null;
         setImportRecoveryState(EMPTY_IMPORT_RECOVERY_STATE);
         return storageResult;
@@ -1937,9 +1937,9 @@ export function useAppStorageSync({
           ? "partial-import-failure"
           : "unexpected-import-failure",
       );
-      setMessengerStorageMode(failureResult.mode);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(failureResult.message);
+      setAppStorageMode(failureResult.mode);
+      setAppStorageStatus("error");
+      setAppStorageMessage(failureResult.message);
       return failureResult;
     } finally {
       transaction.finish();
@@ -1951,9 +1951,9 @@ export function useAppStorageSync({
     reloadPersistedStorageAfterImportFailure,
     remoteRuntimeUrl,
     setAvailableImportRecovery,
-    setMessengerStorageMessage,
-    setMessengerStorageMode,
-    setMessengerStorageStatus,
+    setAppStorageMessage,
+    setAppStorageMode,
+    setAppStorageStatus,
     setStorageReady,
     storageTransactionCoordinator,
     waitForActiveSaveToSettle,
@@ -2094,8 +2094,8 @@ export function useAppStorageSync({
     const generation = advanceStorageGeneration();
     setStorageReady(false);
     setStorageLoadErrorMessageByCollection({});
-    setMessengerStorageStatus("loading");
-    setMessengerStorageMessage("Reloading storage...");
+    setAppStorageStatus("loading");
+    setAppStorageMessage("Reloading storage...");
 
     try {
       const snapshot = await loadAppStorageSnapshot(remoteRuntimeUrl);
@@ -2110,14 +2110,14 @@ export function useAppStorageSync({
       }
 
       currentStorageMode.current = snapshot.storageResult.mode;
-      setMessengerStorageMode(snapshot.storageResult.mode);
+      setAppStorageMode(snapshot.storageResult.mode);
       setStorageLoadErrorMessageByCollection(snapshot.loadErrorMessageByCollection);
 
       if (snapshot.storageResult.status !== "ready") {
         const hasLoadedSnapshot = savedSignatures.current !== null;
         setStorageReady(hasLoadedSnapshot);
-        setMessengerStorageStatus("error");
-        setMessengerStorageMessage(snapshot.storageResult.message);
+        setAppStorageStatus("error");
+        setAppStorageMessage(snapshot.storageResult.message);
         return {
           mode: snapshot.storageResult.mode,
           status: "error",
@@ -2154,8 +2154,8 @@ export function useAppStorageSync({
 
       applyLoadedAppStorageSnapshot(snapshot);
       const message = "Reloaded storage from the current runtime target.";
-      setMessengerStorageStatus("ready");
-      setMessengerStorageMessage(message);
+      setAppStorageStatus("ready");
+      setAppStorageMessage(message);
       return {
         mode: snapshot.storageResult.mode,
         status: "ready",
@@ -2177,8 +2177,8 @@ export function useAppStorageSync({
       const message = `Storage reload failed. ${errorMessage(error)}`;
       setStorageLoadErrorMessageByCollection({});
       setStorageReady(savedSignatures.current !== null);
-      setMessengerStorageStatus("error");
-      setMessengerStorageMessage(message);
+      setAppStorageStatus("error");
+      setAppStorageMessage(message);
       return {
         mode: currentStorageMode.current,
         status: "error",
@@ -2194,9 +2194,9 @@ export function useAppStorageSync({
     hasActiveStorageWork,
     refreshSaveStatus,
     remoteRuntimeUrl,
-    setMessengerStorageMessage,
-    setMessengerStorageMode,
-    setMessengerStorageStatus,
+    setAppStorageMessage,
+    setAppStorageMode,
+    setAppStorageStatus,
     setStorageLoadErrorMessageByCollection,
     setStorageReady,
     prepareForStorageReplacement,
@@ -2232,15 +2232,15 @@ export function useAppStorageSync({
       } else {
         applyLoadedAppStorageSnapshot(snapshot);
       }
-      setMessengerStorageMode(snapshot.storageResult.mode);
+      setAppStorageMode(snapshot.storageResult.mode);
       currentStorageMode.current = snapshot.storageResult.mode;
-      setMessengerStorageStatus(snapshot.storageResult.status);
-      setMessengerStorageMessage(snapshot.storageResult.message);
+      setAppStorageStatus(snapshot.storageResult.status);
+      setAppStorageMessage(snapshot.storageResult.message);
 
       if (!shouldSaveAutoMigrations) return;
 
-      setMessengerStorageStatus("saving");
-      setMessengerStorageMessage("Saving storage migrations.");
+      setAppStorageStatus("saving");
+      setAppStorageMessage("Saving storage migrations.");
       const migrationSavePromise = saveAppStorageCollections(
         snapshot,
         migrationCollectionKeys,
@@ -2329,9 +2329,9 @@ export function useAppStorageSync({
     mergeLoadedStorageMetadata,
     remoteRuntimeUrl,
     refreshSaveStatus,
-    setMessengerStorageMessage,
-    setMessengerStorageMode,
-    setMessengerStorageStatus,
+    setAppStorageMessage,
+    setAppStorageMode,
+    setAppStorageStatus,
     setStorageLoadErrorMessageByCollection,
     setStorageReady,
   ]);
@@ -2418,7 +2418,7 @@ export function useAppStorageSync({
       }
       return;
     }
-    setMessengerStorageStatus("saving");
+    setAppStorageStatus("saving");
 
     let idleHandle: IdleHandle | undefined;
 
@@ -2467,9 +2467,9 @@ export function useAppStorageSync({
     drainSaveQueue,
     enqueueAppStorageCollectionSaves,
     refreshSaveStatus,
-    setMessengerStorageMessage,
-    setMessengerStorageMode,
-    setMessengerStorageStatus,
+    setAppStorageMessage,
+    setAppStorageMode,
+    setAppStorageStatus,
     storageReady,
     storageTransactionCoordinator,
   ]);

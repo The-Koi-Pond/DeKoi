@@ -209,10 +209,6 @@ export function changedAppStorageMetadataKeys(
   );
 }
 
-function asAppStorageErrorMessage(error: unknown) {
-  return errorMessage(error, "Unknown storage error.");
-}
-
 function storageResultWithoutCollectionMetadata(result: StorageResult): AppStorageStatusResult {
   return {
     mode: result.mode,
@@ -543,7 +539,7 @@ export async function replaceAppStorageSnapshot(
     try {
       result = await saveAppStorageCollection(records, collectionKey, rawUrl);
     } catch (error) {
-      const message = asAppStorageErrorMessage(error);
+      const message = errorMessage(error, "Unknown storage error.");
       const collectionResult: AppStorageCollectionReplaceResult = {
         collectionKey,
         count: counts[collectionKey],

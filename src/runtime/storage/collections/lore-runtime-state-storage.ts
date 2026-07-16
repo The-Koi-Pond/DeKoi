@@ -8,14 +8,11 @@ import { isRecord, readString, readTimestamp } from "../storage-json";
 import { createStorageRepository, type StorageMode } from "../storage-repository-factory";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-type LoreRuntimeStateStorageMode = StorageMode;
-type LoreRuntimeStateStorageStatus = "ready" | "error";
-
 export type LoreRuntimeStateStorageSnapshot = {
   states: LoreRuntimeState[];
   droppedRecordCount: number;
-  mode: LoreRuntimeStateStorageMode;
-  status: LoreRuntimeStateStorageStatus;
+  mode: StorageMode;
+  status: "ready" | "error";
   message: string;
 };
 

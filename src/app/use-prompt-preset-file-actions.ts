@@ -22,7 +22,6 @@ interface UsePromptPresetFileActionsInput {
   flushAppStorageSaves: NavStorageActions["flushAppStorageSaves"];
 }
 
-type ApplyStateChange = <Result>(change: () => Result) => Result;
 type SavePromptPresetImport = (
   preset: PromptPresetRecord,
 ) => Promise<{ saved: boolean; message: string }>;
@@ -33,11 +32,7 @@ interface CommitPromptPresetFileImportInput {
   addImportedPromptPreset: (record: PromptPresetRecord) => PromptPresetRecord;
   savePromptPresetImport: SavePromptPresetImport;
   flushAppStorageSaves: NavStorageActions["flushAppStorageSaves"];
-  applyStateChange?: ApplyStateChange;
-}
-
-function applyStateChangeWithFlush<Result>(change: () => Result): Result {
-  return flushSync(change);
+  applyStateChange?: typeof flushSync;
 }
 
 function storageSaveErrorMessage(error: unknown) {
@@ -62,7 +57,7 @@ export async function commitPromptPresetFileImport({
   addImportedPromptPreset,
   savePromptPresetImport,
   flushAppStorageSaves,
-  applyStateChange = applyStateChangeWithFlush,
+  applyStateChange = flushSync,
 }: CommitPromptPresetFileImportInput): Promise<PromptPresetFileImportResult> {
   if (!result.ok) return result;
 

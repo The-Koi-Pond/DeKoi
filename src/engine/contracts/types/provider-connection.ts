@@ -206,10 +206,6 @@ export function normalizeProviderConnectionProvider(
   return isProviderConnectionProvider(value) ? value : fallback;
 }
 
-function normalizeProviderConnectionKind(value: unknown): ProviderConnectionKind {
-  return value === "provider" ? value : "provider";
-}
-
 function normalizeProviderConnectionText(value: unknown, fallback = "") {
   if (typeof value === "string") return value;
   if (value === null || value === undefined) return fallback;
@@ -219,7 +215,6 @@ function normalizeProviderConnectionText(value: unknown, fallback = "") {
 export function sanitizeProviderConnectionRecord(
   record: ProviderConnectionRecord,
 ): ProviderConnectionRecord {
-  const kind = normalizeProviderConnectionKind(record.kind);
   const provider = normalizeProviderConnectionProvider(record.provider, "openai");
   const providerOption = getProviderConnectionProviderOption(provider);
   const baseUrl = normalizeProviderConnectionText(record.baseUrl).trim();
@@ -234,7 +229,7 @@ export function sanitizeProviderConnectionRecord(
   return {
     id: record.id,
     schemaVersion: 1,
-    kind,
+    kind: "provider",
     provider,
     label: normalizeProviderConnectionText(record.label).trim() || providerOption.label,
     baseUrl: baseUrl || providerOption.defaultBaseUrl,

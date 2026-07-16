@@ -4,8 +4,8 @@ import {
   readRuntimeTargetUrl,
   type AppStorageCollectionKey,
   type AppStorageRecords,
-  type MessengerStorageMode,
-  type MessengerStorageStatus,
+  type StorageMode,
+  type AppStorageSyncStatus,
 } from "../features/runtime";
 import type { NavViewState, PondView, SideRailView } from "../features/navigation";
 
@@ -33,13 +33,9 @@ export function useAppState() {
   );
   const [modeThreads, setModeThreads] = useState(initialStorageRecords.modeThreads);
   const [rippleStates, setRippleStates] = useState(initialStorageRecords.rippleStates);
-  const [messengerStorageMode, setMessengerStorageMode] =
-    useState<MessengerStorageMode>("unavailable");
-  const [messengerStorageStatus, setMessengerStorageStatus] =
-    useState<MessengerStorageStatus>("loading");
-  const [messengerStorageMessage, setMessengerStorageMessage] = useState(
-    "Loading Messenger storage.",
-  );
+  const [appStorageMode, setAppStorageMode] = useState<StorageMode>("unavailable");
+  const [appStorageStatus, setAppStorageStatus] = useState<AppStorageSyncStatus>("loading");
+  const [appStorageMessage, setAppStorageMessage] = useState("Loading app storage.");
   const [droppedRecordCountByCollection, setDroppedRecordCountByCollection] = useState<
     Partial<Record<AppStorageCollectionKey, number>>
   >({});
@@ -79,12 +75,12 @@ export function useAppState() {
     setModeThreads,
     rippleStates,
     setRippleStates,
-    messengerStorageMode,
-    setMessengerStorageMode,
-    messengerStorageStatus,
-    setMessengerStorageStatus,
-    messengerStorageMessage,
-    setMessengerStorageMessage,
+    appStorageMode,
+    setAppStorageMode,
+    appStorageStatus,
+    setAppStorageStatus,
+    appStorageMessage,
+    setAppStorageMessage,
     droppedRecordCountByCollection,
     setDroppedRecordCountByCollection,
     storageLoadErrorMessageByCollection,

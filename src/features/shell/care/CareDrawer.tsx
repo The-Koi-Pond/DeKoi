@@ -157,8 +157,8 @@ export function CareDrawer({ nav }: CareDrawerProps) {
           <RuntimeStoragePanel
             runtimeUrl={runtimeUrl}
             runtimeStatusMessage={runtimeStatusMessage}
-            messengerStorageMode={nav.messengerStorageMode}
-            messengerStorageStatus={nav.messengerStorageStatus}
+            appStorageMode={nav.appStorageMode}
+            appStorageStatus={nav.appStorageStatus}
             desktopHostStatus={desktopHostStatus}
             desktopHostBusy={desktopHostBusy}
             storageReloadBusy={storageReloadBusy}

@@ -61,8 +61,7 @@ export {
   parsePromptPresetFileText,
   type PromptPresetFileParseResult,
 } from "./storage/prompt-presets/prompt-preset-file";
-export type MessengerStorageMode = import("./storage/storage-repository").StorageMode;
-export type MessengerStorageStatus =
+export type AppStorageSyncStatus =
   "loading" | "saving" | import("./storage/storage-repository").StorageStatus;
 export { loadPersonaRecords } from "./storage/collections/persona-storage";
 export { loadProviderConnectionRecords } from "./storage/collections/provider-connection-storage";

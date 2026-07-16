@@ -1,4 +1,4 @@
-use crate::runtime_args::{read_string_field, runtime_args_object};
+use crate::runtime_args::runtime_args_object;
 use chrono::{SecondsFormat, Utc};
 use std::{
     collections::HashSet,
@@ -317,15 +317,6 @@ fn collection_metadata_result_from_path(
         pre_repair_exists: pre_repair_exists(&path),
         repairable,
     }
-}
-
-fn storage_collection_metadata_result(
-    app: &tauri::AppHandle,
-    entity: &str,
-) -> Result<StorageCollectionMetadataResult, String> {
-    ensure_collection_entity(entity)?;
-    let path = runtime_entity_path(app, entity)?;
-    Ok(collection_metadata_result_from_path(entity, path))
 }
 
 pub(crate) fn bundle_info(path: PathBuf) -> Result<StorageBundleInfo, String> {
@@ -737,7 +728,13 @@ fn record_index_by_id(
 ) -> Result<Option<usize>, String> {
     let mut found = None;
     for (index, record) in records.iter().enumerate() {
-        if read_string_field(record, "id").trim() == id {
+        if record
+            .get("id")
+            .and_then(|field| field.as_str())
+            .unwrap_or("")
+            .trim()
+            == id
+        {
             if found.is_some() {
                 return Err(format!("{command} found duplicate record id '{id}'."));
             }
@@ -991,7 +988,9 @@ pub(crate) fn dekoi_storage_collection_metadata(
         .filter(|value| !value.is_empty());
 
     if let Some(entity) = requested_entity {
-        return Ok(vec![storage_collection_metadata_result(&app, entity)?]);
+        ensure_collection_entity(entity)?;
+        let path = runtime_entity_path(&app, entity)?;
+        return Ok(vec![collection_metadata_result_from_path(entity, path)]);
     }
 
     collection_metadata_results_for_app(&app)

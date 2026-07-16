@@ -9,14 +9,11 @@ import { readRemoteRuntimeUrl } from "../../../shared/api/runtime-target";
 import { isRecord, readString, readTimestamp } from "../storage-json";
 import { STORAGE_ENTITIES } from "../storage-entities";
 
-type RippleStateStorageMode = StorageMode;
-type RippleStateStorageStatus = "ready" | "error";
-
 export type RippleStateStorageSnapshot = {
   states: RippleState[];
   droppedRecordCount: number;
-  mode: RippleStateStorageMode;
-  status: RippleStateStorageStatus;
+  mode: StorageMode;
+  status: "ready" | "error";
   message: string;
 };
 

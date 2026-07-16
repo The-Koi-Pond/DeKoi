@@ -8,14 +8,11 @@ import { STORAGE_ENTITIES } from "../storage-entities";
 import { createStorageRepository, type StorageMode } from "../storage-repository-factory";
 import type { StorageCollectionMetadata } from "../storage-repository";
 
-type MacroVariableStateStorageMode = StorageMode;
-type MacroVariableStateStorageStatus = "ready" | "error";
-
 export type MacroVariableStateStorageSnapshot = {
   states: MacroVariableScope[];
   droppedRecordCount: number;
-  mode: MacroVariableStateStorageMode;
-  status: MacroVariableStateStorageStatus;
+  mode: StorageMode;
+  status: "ready" | "error";
   message: string;
 };
 

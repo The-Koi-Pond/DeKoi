@@ -22,10 +22,6 @@ fn insert_serialized<T: Serialize>(
     }
 }
 
-fn prompt_messages_value(messages: &[GenerationPromptMessageDto]) -> Value {
-    serde_json::to_value(messages).expect("validated prompt messages must serialize")
-}
-
 fn system_prompt(messages: &[GenerationPromptMessageDto]) -> String {
     messages
         .iter()
@@ -51,7 +47,10 @@ fn non_system_messages(messages: &[GenerationPromptMessageDto]) -> Value {
 fn base_oai_payload(model: &str, messages: &[GenerationPromptMessageDto]) -> Map<String, Value> {
     let mut payload = Map::new();
     payload.insert("model".to_string(), Value::String(model.to_string()));
-    payload.insert("messages".to_string(), prompt_messages_value(messages));
+    payload.insert(
+        "messages".to_string(),
+        serde_json::to_value(messages).expect("validated prompt messages must serialize"),
+    );
     payload
 }
 

@@ -3,20 +3,20 @@ import {
   saveAppStorageCollections,
   type AppStorageMetadata,
   type AppStorageRecords,
-  type MessengerStorageMode,
+  type StorageMode,
 } from "./app-storage-workflows";
 import { errorMessage } from "../../../shared/errors";
 import type { StorageTransactionCoordinator } from "./storage-transaction-coordinator";
 
 type PromptPresetRecord = AppStorageRecords["promptPresets"][number];
 type PromptPresetCollectionSaveResult = {
-  mode: MessengerStorageMode;
+  mode: StorageMode;
   status: "ready" | "error";
   message: string;
   storageMetadata: AppStorageMetadata;
 };
 export type PromptPresetImportSaveResult = {
-  mode: MessengerStorageMode;
+  mode: StorageMode;
   status: "ready" | "error";
   message: string;
   saved: boolean;
@@ -27,7 +27,7 @@ export interface PromptPresetImportStoragePorts {
   cancelQueuedSaveDispatch: () => void;
   drainSaveQueue: () => void;
   waitForActiveSaveToSettle: () => Promise<void>;
-  getStorageMode: () => MessengerStorageMode;
+  getStorageMode: () => StorageMode;
   publishSaving: (message: string) => void;
   mergeStorageMetadata: (storageMetadata: AppStorageMetadata) => void;
   setPersistedPromptPresetSignature: (signature: string) => void;
