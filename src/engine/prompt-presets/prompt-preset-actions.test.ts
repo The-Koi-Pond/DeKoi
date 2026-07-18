@@ -59,17 +59,8 @@ describe("normalizePromptPresetRecord", () => {
     ).toBeNull();
   });
 
-  it("normalizes a blank Messenger prompt to an empty persisted prompt", () => {
-    const record = validPromptPresetRecord({
-      id: "promptless",
-      schemaVersion: 2,
-      name: "Promptless",
-      messengerPrompt: "   ",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record?.messengerPrompt).toBe("");
+  it("rejects a whitespace-only native Messenger prompt", () => {
+    expect(validPromptPresetRecord({ messengerPrompt: "   " })).toBeNull();
   });
 
   it("rejects a null flat Messenger prompt", () => {
@@ -107,6 +98,7 @@ describe("normalizePromptPresetRecord", () => {
     ["removed enabledParameters", { enabledParameters: { temperature: true } }],
     ["JSON-string standard entry", { temperature: '{"send":true,"value":0.7}' }],
     ["noncanonical stop value", { stopSequences: { send: true, value: ["  END  "] } }],
+    ["noncanonical assistant prefill", { assistantPrefill: " <reply> " }],
   ])("rejects malformed native %s", (_label, parameters) => {
     expect(
       validPromptPresetRecord({
@@ -381,6 +373,9 @@ describe("normalizePromptPresetRecord", () => {
     ["preset ID", { id: " preset-test " }],
     ["preset name", { name: " Test preset " }],
     ["static variable key collision", { variableValues: { tone: "warm", " tone ": "cool" } }],
+    ["static variable value", { variableValues: { tone: " warm " } }],
+    ["description", { description: " description " }],
+    ["Messenger prompt", { messengerPrompt: " prompt " }],
   ])("rejects noncanonical native %s", (_label, invalid) => {
     expect(validPromptPresetRecord(invalid)).toBeNull();
   });
@@ -536,6 +531,23 @@ describe("normalizePromptPresetRecord", () => {
     expect(record?.defaultChoices).toEqual({ tones: [] });
   });
 
+  it("rejects an empty top-level single-select default", () => {
+    expect(
+      validPromptPresetRecord({
+        defaultChoices: { tone: [] },
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            multiSelect: false,
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
   it("rejects duplicate native choice option IDs", () => {
     expect(
       validPromptPresetRecord({
@@ -572,6 +584,7 @@ describe("normalizePromptPresetRecord", () => {
       },
     ],
     ["group", { groups: [{ id: " group ", name: "Group" }] }],
+    ["group name", { groups: [{ id: "group", name: " Group " }] }],
     [
       "choice block",
       {
@@ -602,6 +615,48 @@ describe("normalizePromptPresetRecord", () => {
       },
     ],
     [
+      "section content",
+      {
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: " content ",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    [
+      "choice label",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: " Tone ",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+    [
+      "choice option text",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: " Warm ", value: " warm " }],
+          },
+        ],
+      },
+    ],
+    [
       "choice variable name collision",
       {
         choiceBlocks: [
@@ -624,26 +679,26 @@ describe("normalizePromptPresetRecord", () => {
     expect(validPromptPresetRecord(nested)).toBeNull();
   });
 
-  it("removes whitespace-only choice separators", () => {
-    const record = validPromptPresetRecord({
-      id: "preset-whitespace-separator",
-      schemaVersion: 2,
-      name: "Whitespace separator",
-      messengerPrompt: "Write the next response.",
-      choiceBlocks: [
-        {
-          id: "choice-tags",
-          variableName: "tags",
-          label: "Tags",
-          options: [{ id: "tag-vivid", label: "Vivid", value: "vivid" }],
-          separator: "   ",
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record?.choiceBlocks[0]).not.toHaveProperty("separator");
+  it("rejects a whitespace-only native choice separator", () => {
+    expect(
+      validPromptPresetRecord({
+        id: "preset-whitespace-separator",
+        schemaVersion: 2,
+        name: "Whitespace separator",
+        messengerPrompt: "Write the next response.",
+        choiceBlocks: [
+          {
+            id: "choice-tags",
+            variableName: "tags",
+            label: "Tags",
+            options: [{ id: "tag-vivid", label: "Vivid", value: "vivid" }],
+            separator: "   ",
+          },
+        ],
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
   });
 
   it("normalizes XML tag names only for non-marker sections", () => {

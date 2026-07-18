@@ -60,6 +60,20 @@ function trimPackageChoiceSelection(value: unknown): unknown {
   return value;
 }
 
+function canonicalizePackageParameters(value: unknown) {
+  const parameters = parseJsonIfString(value);
+  if (!isRecord(parameters)) return value;
+  return {
+    ...parameters,
+    ...(typeof parameters.assistantPrefill === "string"
+      ? { assistantPrefill: readNullableString(parameters.assistantPrefill) }
+      : {}),
+    ...(typeof parameters.customThinkingTags === "string"
+      ? { customThinkingTags: readNullableString(parameters.customThinkingTags) }
+      : {}),
+  };
+}
+
 function trimPackageChoiceBlockOptions(block: Record<string, unknown>) {
   const options = parseJsonIfString(block.options);
   if (!Array.isArray(options)) return block;
@@ -119,7 +133,9 @@ function normalizePromptPresetPackageRecord(
     return null;
   }
   const id = readString(preset.id).trim() || readString(value.id).trim();
-  const variableValues = canonicalizePackageRecord(preset.variableValues);
+  const variableValues = canonicalizePackageRecord(preset.variableValues, (entry) =>
+    typeof entry === "string" ? entry.trim() : entry,
+  );
   const defaultChoices = canonicalizePackageRecord(
     preset.defaultChoices,
     trimPackageChoiceSelection,
@@ -129,12 +145,12 @@ function normalizePromptPresetPackageRecord(
     id,
     schemaVersion: 2,
     name: readString(preset.name).trim(),
-    description: typeof preset.description === "string" ? preset.description : null,
+    description: readNullableString(preset.description),
     messengerPrompt:
       packageType === MARINARA_PROMPT_PRESET_PACKAGE_TYPE
-        ? readString(preset.conversationPrompt)
-        : readString(preset.messengerPrompt),
-    parameters: preset.parameters,
+        ? readString(preset.conversationPrompt).trim()
+        : readString(preset.messengerPrompt).trim(),
+    parameters: canonicalizePackageParameters(preset.parameters),
     sectionOrder: readPackageArray(preset.sectionOrder),
     groupOrder: readPackageArray(preset.groupOrder),
     variableGroups: readPackageArray(preset.variableGroups),

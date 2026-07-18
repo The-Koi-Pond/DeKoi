@@ -269,8 +269,9 @@ describe("prompt preset packages", () => {
     ).toBeNull();
   });
 
-  it("resolves whitespace-wrapped compatible default values after canonical trimming", () => {
+  it("canonicalizes compatible package text and identifiers", () => {
     const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const [firstSection, ...remainingSections] = packageValue.data.sections;
     const [firstBlock, ...remainingBlocks] = packageValue.data.choiceBlocks;
     const [firstOption, ...remainingOptions] = firstBlock.options;
 
@@ -280,16 +281,35 @@ describe("prompt preset packages", () => {
         ...packageValue.data,
         preset: {
           ...packageValue.data.preset,
+          description: " Portable prompt preset. ",
+          messengerPrompt: " Reply like a private message. ",
+          parameters: {
+            ...packageValue.data.preset.parameters,
+            assistantPrefill: " <reply> ",
+            customThinkingTags: " <think></think> ",
+          },
           variableValues: { " register ": " plain " },
           defaultChoices: { tone: " warm " },
         },
+        sections: [
+          { ...firstSection, name: " System ", content: " Write carefully. " },
+          ...remainingSections,
+        ],
         choiceBlocks: [
           {
             ...firstBlock,
             id: ` ${firstBlock.id} `,
             variableName: ` ${firstBlock.variableName} `,
+            question: " Which tone? ",
+            label: " Tone ",
             options: [
-              { ...firstOption, id: ` ${firstOption.id} `, value: " warm " },
+              {
+                ...firstOption,
+                id: ` ${firstOption.id} `,
+                label: " Warm ",
+                value: " warm ",
+                description: " Use a warm tone. ",
+              },
               ...remainingOptions,
             ],
           },
@@ -299,11 +319,48 @@ describe("prompt preset packages", () => {
     });
 
     expect(record?.defaultChoices).toEqual({ tone: "warm" });
+    expect(record?.description).toBe("Portable prompt preset.");
+    expect(record?.messengerPrompt).toBe("Reply like a private message.");
+    expect(record?.parameters).toMatchObject({
+      assistantPrefill: "<reply>",
+      customThinkingTags: "<think></think>",
+    });
     expect(record?.variableValues).toEqual({ register: "plain" });
+    expect(record?.sections[0]).toMatchObject({ name: "System", content: "Write carefully." });
     expect(record?.choiceBlocks[0]?.id).toBe(firstBlock.id);
     expect(record?.choiceBlocks[0]?.variableName).toBe(firstBlock.variableName);
+    expect(record?.choiceBlocks[0]).toMatchObject({ question: "Which tone?", label: "Tone" });
     expect(record?.choiceBlocks[0]?.options[0]?.id).toBe(firstOption.id);
+    expect(record?.choiceBlocks[0]?.options[0]?.label).toBe("Warm");
     expect(record?.choiceBlocks[0]?.options[0]?.value).toBe("warm");
+    expect(record?.choiceBlocks[0]?.options[0]?.description).toBe("Use a warm tone.");
+  });
+
+  it("round-trips empty multi-select defaults and rejects single-select empties", () => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const withEmptyDefault = {
+      ...packageValue,
+      data: {
+        ...packageValue.data,
+        preset: { ...packageValue.data.preset, defaultChoices: { tone: [] } },
+        choiceBlocks: packageValue.data.choiceBlocks.map((block, index) =>
+          index === 0 ? { ...block, multiSelect: true } : block,
+        ),
+      },
+    };
+
+    expect(normalizePromptPresetPackage(withEmptyDefault)?.defaultChoices).toEqual({ tone: [] });
+    expect(
+      normalizePromptPresetPackage({
+        ...withEmptyDefault,
+        data: {
+          ...withEmptyDefault.data,
+          choiceBlocks: withEmptyDefault.data.choiceBlocks.map((block, index) =>
+            index === 0 ? { ...block, multiSelect: false } : block,
+          ),
+        },
+      }),
+    ).toBeNull();
   });
 
   it.each([

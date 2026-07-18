@@ -134,6 +134,7 @@ function promptPresetPackagePresetIsValid(
 interface PackageChoiceOptionIndex {
   optionIds: Set<string>;
   optionValues: Set<string>;
+  multiSelect: boolean;
 }
 
 function packageChoiceOptionIndex(block: Record<string, unknown>): PackageChoiceOptionIndex {
@@ -147,7 +148,7 @@ function packageChoiceOptionIndex(block: Record<string, unknown>): PackageChoice
     optionValues.add(String(option.value).trim());
   }
 
-  return { optionIds, optionValues };
+  return { optionIds, optionValues, multiSelect: block.multiSelect === true };
 }
 
 function packageChoiceSelectionMatchesOption(
@@ -183,6 +184,7 @@ function packageChoiceDefaultsAreValid(
   return Object.entries(defaultChoices).every(([variableName, rawSelection]) => {
     const block = blocksByVariableName.get(variableName.trim());
     if (!block) return false;
+    if (Array.isArray(rawSelection) && rawSelection.length === 0) return block.multiSelect;
 
     const selections = Array.isArray(rawSelection) ? rawSelection : [rawSelection];
     return selections.every((selection) => packageChoiceSelectionMatchesOption(selection, block));

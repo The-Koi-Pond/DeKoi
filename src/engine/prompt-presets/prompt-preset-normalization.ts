@@ -266,7 +266,11 @@ function nativeStringRecordIsValid(value: unknown): value is Record<string, stri
   return (
     isRecord(value) &&
     Object.entries(value).every(
-      ([key, item]) => key.length > 0 && key === key.trim() && typeof item === "string",
+      ([key, item]) =>
+        key.length > 0 &&
+        key === key.trim() &&
+        typeof item === "string" &&
+        item === item.trim(),
     )
   );
 }
@@ -290,7 +294,18 @@ function nativeStringArrayIsValid(value: unknown): value is string[] {
 
 function nativeOptionalStringIsValid(value: unknown) {
   return (
-    value === undefined || value === null || (typeof value === "string" && value.trim() === value)
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.length > 0 && value.trim() === value)
+  );
+}
+
+function nativeParameterTextIsValid(value: unknown) {
+  if (value === undefined || value === null) return true;
+  if (!isRecord(value)) return false;
+  return (
+    nativeOptionalStringIsValid(value.assistantPrefill) &&
+    nativeOptionalStringIsValid(value.customThinkingTags)
   );
 }
 
@@ -357,6 +372,9 @@ function nativeNestedReferencesAreValid(
     if (optionIds.size !== options.length) return false;
     const selection = ownRecordValue(defaultChoices, variableName);
     if (selection === undefined) continue;
+    if (Array.isArray(selection) && selection.length === 0 && block.multiSelect !== true) {
+      return false;
+    }
     const values = Array.isArray(selection) ? selection : [selection];
     if (
       !values.every((item) => {
@@ -1043,7 +1061,10 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
 
   if (!promptPresetNativeNestedRecordsAreValid(value)) return null;
 
-  if (typeof value.messengerPrompt !== "string") {
+  if (
+    typeof value.messengerPrompt !== "string" ||
+    value.messengerPrompt !== value.messengerPrompt.trim()
+  ) {
     return null;
   }
 
@@ -1061,6 +1082,7 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     !isRecord(value.variableValues) ||
     !nativeStringRecordIsValid(value.variableValues) ||
     !isRecord(value.defaultChoices) ||
+    !nativeParameterTextIsValid(value.parameters) ||
     !nativeOptionalStringIsValid(value.description) ||
     !nativeOptionalStringIsValid(value.wrapFormat) ||
     !nativeOptionalStringIsValid(value.author) ||
@@ -1110,7 +1132,7 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     schemaVersion: 2,
     name,
     description: readNullableString(value.description),
-    messengerPrompt: value.messengerPrompt.trim(),
+    messengerPrompt: value.messengerPrompt,
     parameters,
     sectionOrder,
     groupOrder,

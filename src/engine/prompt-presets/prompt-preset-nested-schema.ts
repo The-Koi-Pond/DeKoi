@@ -8,6 +8,7 @@ const MAX_CHOICE_OPTIONS = 1_000;
 const MAX_DEFAULT_SELECTIONS = 1_000;
 const INVALID_BOOLEAN = Symbol("invalid prompt preset boolean");
 const INVALID_NESTED_IDENTIFIER = Symbol("invalid prompt preset nested identifier");
+const INVALID_TEXT = Symbol("invalid prompt preset text");
 
 const SECTION_KEYS = new Set([
   "id",
@@ -101,8 +102,30 @@ function readNullableNestedIdentifier(value: unknown, format: PromptPresetNested
     : INVALID_NESTED_IDENTIFIER;
 }
 
-function isNullableString(value: unknown) {
-  return value === null || typeof value === "string";
+function readCanonicalText(
+  value: unknown,
+  format: PromptPresetNestedFormat,
+  allowEmpty: boolean,
+) {
+  if (typeof value !== "string") return INVALID_TEXT;
+  const text = value.trim();
+  if ((!allowEmpty && !text) || (format === "native" && value !== text)) return INVALID_TEXT;
+  return text;
+}
+
+function readNullableCanonicalText(value: unknown, format: PromptPresetNestedFormat) {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string") return INVALID_TEXT;
+  const text = value.trim();
+  if (!text) return format === "native" ? INVALID_TEXT : null;
+  return format === "native" && value !== text ? INVALID_TEXT : text;
+}
+
+function readNullableRawText(value: unknown, format: PromptPresetNestedFormat) {
+  if (value === undefined || value === null) return value;
+  if (typeof value !== "string") return INVALID_TEXT;
+  if (!value.trim()) return format === "native" ? INVALID_TEXT : null;
+  return value;
 }
 
 function readRequiredBoolean(value: unknown, format: PromptPresetNestedFormat) {
@@ -138,7 +161,8 @@ export function readPromptPresetMarkerConfig(
 ): NonNullable<PromptPresetSection["markerConfig"]> | null {
   const source = format === "marinara_preset" ? parseJson(value) : value;
   if (!isRecord(source) || !hasOnlyKeys(source, MARKER_CONFIG_KEYS)) return null;
-  if (!isNonEmptyString(source.type)) return null;
+  const type = readCanonicalText(source.type, format, false);
+  if (type === INVALID_TEXT) return null;
   if (
     source.characterFields !== undefined &&
     (!Array.isArray(source.characterFields) || !source.characterFields.every(isNonEmptyString))
@@ -169,7 +193,7 @@ export function readPromptPresetMarkerConfig(
       return null;
   }
   const markerConfig: NonNullable<PromptPresetSection["markerConfig"]> = {
-    type: source.type.trim(),
+    type,
   };
   if (Array.isArray(source.characterFields)) {
     markerConfig.characterFields = source.characterFields;
@@ -201,6 +225,11 @@ function readSection(
 ): Record<string, unknown> | null {
   const presetId = readNullableNestedIdentifier(row.presetId, format);
   const groupId = readNullableNestedIdentifier(row.groupId, format);
+  const identifier = readCanonicalText(row.identifier, format, false);
+  const name = readCanonicalText(row.name, format, false);
+  const content = readCanonicalText(row.content, format, true);
+  const injectionPosition = readNullableCanonicalText(row.injectionPosition, format);
+  const xmlTagName = readNullableCanonicalText(row.xmlTagName, format);
   const enabled = readRequiredBoolean(row.enabled, format);
   const isMarker = readRequiredBoolean(row.isMarker, format);
   const wrapInXml = readOptionalBoolean(row.wrapInXml, format);
@@ -208,15 +237,15 @@ function readSection(
   if (
     !hasOnlyKeys(row, SECTION_KEYS) ||
     !isNestedIdentifier(row.id, format) ||
-    !isNonEmptyString(row.identifier) ||
-    !isNonEmptyString(row.name) ||
-    typeof row.content !== "string" ||
+    identifier === INVALID_TEXT ||
+    name === INVALID_TEXT ||
+    content === INVALID_TEXT ||
     (row.role !== "system" && row.role !== "user" && row.role !== "assistant") ||
     enabled === INVALID_BOOLEAN ||
     isMarker === INVALID_BOOLEAN ||
     presetId === INVALID_NESTED_IDENTIFIER ||
     groupId === INVALID_NESTED_IDENTIFIER ||
-    (row.injectionPosition !== undefined && !isNullableString(row.injectionPosition)) ||
+    injectionPosition === INVALID_TEXT ||
     !isNullableNumberWithin(
       row.injectionDepth,
       PROMPT_PRESET_NUMERIC_CONSTRAINTS.sectionInjectionDepth,
@@ -226,7 +255,7 @@ function readSection(
       PROMPT_PRESET_NUMERIC_CONSTRAINTS.sectionInjectionOrder,
     ) ||
     wrapInXml === INVALID_BOOLEAN ||
-    (row.xmlTagName !== undefined && !isNullableString(row.xmlTagName)) ||
+    xmlTagName === INVALID_TEXT ||
     forbidOverrides === INVALID_BOOLEAN
   )
     return null;
@@ -234,11 +263,16 @@ function readSection(
   const section: Record<string, unknown> = {
     ...row,
     id: readNestedIdentifier(row.id, format),
+    identifier,
+    name,
+    content,
     enabled,
     isMarker,
   };
   if (presetId !== undefined) section.presetId = presetId;
   if (groupId !== undefined) section.groupId = groupId;
+  if (injectionPosition !== undefined) section.injectionPosition = injectionPosition;
+  if (xmlTagName !== undefined) section.xmlTagName = xmlTagName;
   if (wrapInXml === undefined) delete section.wrapInXml;
   else section.wrapInXml = wrapInXml;
   if (forbidOverrides === undefined) delete section.forbidOverrides;
@@ -254,21 +288,28 @@ function readGroup(
 ): Record<string, unknown> | null {
   const presetId = readNullableNestedIdentifier(row.presetId, format);
   const parentGroupId = readNullableNestedIdentifier(row.parentGroupId, format);
+  const name = readCanonicalText(row.name, format, false);
+  const createdAt = readNullableCanonicalText(row.createdAt, format);
   const enabled = readOptionalBoolean(row.enabled, format);
   if (
     !hasOnlyKeys(row, GROUP_KEYS) ||
     !isNestedIdentifier(row.id, format) ||
-    !isNonEmptyString(row.name) ||
+    name === INVALID_TEXT ||
     presetId === INVALID_NESTED_IDENTIFIER ||
     parentGroupId === INVALID_NESTED_IDENTIFIER ||
     !isNullableNumberWithin(row.order, PROMPT_PRESET_NUMERIC_CONSTRAINTS.groupOrder) ||
     enabled === INVALID_BOOLEAN ||
-    (row.createdAt !== undefined && !isNullableString(row.createdAt))
+    createdAt === INVALID_TEXT
   )
     return null;
-  const group: Record<string, unknown> = { ...row, id: readNestedIdentifier(row.id, format) };
+  const group: Record<string, unknown> = {
+    ...row,
+    id: readNestedIdentifier(row.id, format),
+    name,
+  };
   if (presetId !== undefined) group.presetId = presetId;
   if (parentGroupId !== undefined) group.parentGroupId = parentGroupId;
+  if (createdAt !== undefined) group.createdAt = createdAt;
   if (enabled === undefined) delete group.enabled;
   else group.enabled = enabled;
   return group;
@@ -279,22 +320,29 @@ function readOptions(value: unknown, format: PromptPresetNestedFormat) {
   if (!Array.isArray(source) || source.length === 0 || source.length > MAX_CHOICE_OPTIONS)
     return null;
   const allowed = format === "marinara_preset" ? MARINARA_OPTION_KEYS : DEKOI_OPTION_KEYS;
-  if (
-    !source.every(
-      (option) =>
-        isRecord(option) &&
-        hasOnlyKeys(option, allowed) &&
-        isNestedIdentifier(option.id, format) &&
-        isNonEmptyString(option.label) &&
-        typeof option.value === "string" &&
-        (option.description === undefined || isNullableString(option.description)),
+  const options: Record<string, unknown>[] = [];
+  for (const option of source) {
+    if (!isRecord(option) || !hasOnlyKeys(option, allowed)) return null;
+    const label = readCanonicalText(option.label, format, false);
+    const optionValue = readCanonicalText(option.value, format, true);
+    const description = readNullableCanonicalText(option.description, format);
+    if (
+      !isNestedIdentifier(option.id, format) ||
+      label === INVALID_TEXT ||
+      optionValue === INVALID_TEXT ||
+      description === INVALID_TEXT
     )
-  )
-    return null;
-  return source.map((option) => ({
-    ...option,
-    id: readNestedIdentifier(option.id as string, format),
-  }));
+      return null;
+    const decoded: Record<string, unknown> = {
+      ...option,
+      id: readNestedIdentifier(option.id, format),
+      label,
+      value: optionValue,
+    };
+    if (description !== undefined) decoded.description = description;
+    options.push(decoded);
+  }
+  return options;
 }
 
 function readChoiceBlock(
@@ -304,19 +352,29 @@ function readChoiceBlock(
   const allowed =
     format === "marinara_preset" ? MARINARA_CHOICE_BLOCK_KEYS : DEKOI_CHOICE_BLOCK_KEYS;
   const presetId = readNullableNestedIdentifier(row.presetId, format);
+  const variableName = isNestedIdentifier(row.variableName, format)
+    ? readNestedIdentifier(row.variableName, format)
+    : INVALID_NESTED_IDENTIFIER;
+  const question = readNullableCanonicalText(row.question, format);
+  const label =
+    format === "marinara_preset"
+      ? question || variableName
+      : readCanonicalText(row.label, format, false);
+  const separator = readNullableRawText(row.separator, format);
+  const createdAt = readNullableCanonicalText(row.createdAt, format);
   const options = readOptions(row.options, format);
   const multiSelect = readOptionalBoolean(row.multiSelect, format);
   const randomPick = readOptionalBoolean(row.randomPick, format);
   if (
     !hasOnlyKeys(row, allowed) ||
     !isNestedIdentifier(row.id, format) ||
-    !isNestedIdentifier(row.variableName, format) ||
+    variableName === INVALID_NESTED_IDENTIFIER ||
     options === null ||
     presetId === INVALID_NESTED_IDENTIFIER ||
-    (row.question !== undefined && !isNullableString(row.question)) ||
-    (format !== "marinara_preset" && !isNonEmptyString(row.label)) ||
+    question === INVALID_TEXT ||
+    label === INVALID_TEXT ||
     multiSelect === INVALID_BOOLEAN ||
-    (row.separator !== undefined && !isNullableString(row.separator)) ||
+    separator === INVALID_TEXT ||
     randomPick === INVALID_BOOLEAN ||
     (row.displayMode !== undefined &&
       row.displayMode !== null &&
@@ -328,19 +386,20 @@ function readChoiceBlock(
       row.optionSort !== "manual" &&
       row.optionSort !== "alphabetical") ||
     !isNullableNumberWithin(row.sortOrder, PROMPT_PRESET_NUMERIC_CONSTRAINTS.choiceSortOrder) ||
-    (row.createdAt !== undefined && !isNullableString(row.createdAt))
+    createdAt === INVALID_TEXT
   )
     return null;
   const block: Record<string, unknown> = {
     ...row,
     id: readNestedIdentifier(row.id, format),
-    variableName: readNestedIdentifier(row.variableName, format),
-    ...(format === "marinara_preset"
-      ? { label: (typeof row.question === "string" && row.question.trim()) || row.variableName }
-      : {}),
+    variableName,
+    label,
     options,
   };
   if (presetId !== undefined) block.presetId = presetId;
+  if (question !== undefined) block.question = question;
+  if (separator !== undefined) block.separator = separator;
+  if (createdAt !== undefined) block.createdAt = createdAt;
   if (multiSelect === undefined) delete block.multiSelect;
   else block.multiSelect = multiSelect;
   if (randomPick === undefined) delete block.randomPick;
@@ -384,7 +443,6 @@ function exactChoiceSelection(value: unknown) {
     isNonEmptyString(value) ||
     exactOptionSelection(value) ||
     (Array.isArray(value) &&
-      value.length > 0 &&
       value.length <= MAX_DEFAULT_SELECTIONS &&
       value.every((item) => isNonEmptyString(item) || exactOptionSelection(item)))
   );
