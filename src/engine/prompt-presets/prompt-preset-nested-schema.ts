@@ -429,7 +429,9 @@ export function readPromptPresetNestedRecords(
   return records;
 }
 
-function exactOptionSelection(value: unknown) {
+function exactOptionSelection(
+  value: unknown,
+): value is { kind: "option"; optionId: string } {
   return (
     isRecord(value) &&
     Object.keys(value).length === 2 &&
@@ -438,14 +440,18 @@ function exactOptionSelection(value: unknown) {
   );
 }
 
+function exactChoiceSelectionKey(value: unknown) {
+  if (isNonEmptyString(value)) return `value:${value.trim()}`;
+  if (exactOptionSelection(value)) return `option:${value.optionId.trim()}`;
+  return null;
+}
+
 function exactChoiceSelection(value: unknown) {
-  return (
-    isNonEmptyString(value) ||
-    exactOptionSelection(value) ||
-    (Array.isArray(value) &&
-      value.length <= MAX_DEFAULT_SELECTIONS &&
-      value.every((item) => isNonEmptyString(item) || exactOptionSelection(item)))
-  );
+  if (exactChoiceSelectionKey(value) !== null) return true;
+  if (!Array.isArray(value) || value.length > MAX_DEFAULT_SELECTIONS) return false;
+
+  const keys = value.map(exactChoiceSelectionKey);
+  return keys.every((key) => key !== null) && new Set(keys).size === keys.length;
 }
 
 /** Strict shape guard for native and package default-choice maps. */

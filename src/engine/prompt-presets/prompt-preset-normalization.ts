@@ -29,6 +29,7 @@ import {
   type PromptPresetNumericConstraint,
 } from "./prompt-preset-parameter-contract";
 import {
+  promptPresetChoiceSelectionRecordIsValid,
   readPromptPresetMarkerConfig,
   readPromptPresetNestedRecords,
 } from "./prompt-preset-nested-schema";
@@ -240,6 +241,7 @@ function promptPresetNativeNestedRecordsAreValid(value: Record<string, unknown>)
     readPromptPresetNestedRecords(value.sections, "sections", "native") !== null &&
     readPromptPresetNestedRecords(value.groups, "groups", "native") !== null &&
     readPromptPresetNestedRecords(value.choiceBlocks, "choiceBlocks", "native") !== null &&
+    promptPresetChoiceSelectionRecordIsValid(value.defaultChoices, false) &&
     nativeChoiceSelectionRecordIsValid(value.defaultChoices)
   );
 }

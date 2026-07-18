@@ -380,6 +380,29 @@ describe("prompt preset packages", () => {
     ).toBeNull();
   });
 
+  it.each([
+    ["values", ["warm", " warm "]],
+    [
+      "option IDs",
+      [
+        { kind: "option", optionId: "tone-warm" },
+        { kind: "option", optionId: " tone-warm " },
+      ],
+    ],
+  ])("rejects colliding canonical package default %s", (_label, tone) => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+
+    expect(
+      normalizePromptPresetPackage({
+        ...packageValue,
+        data: {
+          ...packageValue.data,
+          preset: { ...packageValue.data.preset, defaultChoices: { tone } },
+        },
+      }),
+    ).toBeNull();
+  });
+
   it("accepts default selections by value, id, and option object", () => {
     const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
 

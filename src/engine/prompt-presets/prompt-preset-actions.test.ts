@@ -511,8 +511,50 @@ describe("normalizePromptPresetRecord", () => {
         ],
       },
     ],
+    [
+      "duplicate default selections",
+      {
+        defaultChoices: { tone: ["warm", "warm"] },
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            multiSelect: true,
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
   ])("rejects native %s", (_label, invalid) => {
     expect(validPromptPresetRecord(invalid)).toBeNull();
+  });
+
+  it("rejects more than 1,000 native default selections", () => {
+    const options = Array.from({ length: 1_000 }, (_, index) => ({
+      id: `option-${index}`,
+      label: `Option ${index}`,
+      value: `value-${index}`,
+    }));
+    const defaultChoices = [
+      ...options.map((option) => ({ kind: "option", optionId: option.id })),
+      "value-0",
+    ];
+
+    expect(
+      validPromptPresetRecord({
+        defaultChoices: { tones: defaultChoices },
+        choiceBlocks: [
+          {
+            id: "choice-tones",
+            variableName: "tones",
+            label: "Tones",
+            multiSelect: true,
+            options,
+          },
+        ],
+      }),
+    ).toBeNull();
   });
 
   it("accepts an intentionally empty top-level multi-select default", () => {

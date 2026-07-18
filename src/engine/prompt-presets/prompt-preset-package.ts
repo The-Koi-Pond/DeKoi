@@ -74,19 +74,6 @@ function canonicalizePackageParameters(value: unknown) {
   };
 }
 
-function trimPackageChoiceBlockOptions(block: Record<string, unknown>) {
-  const options = parseJsonIfString(block.options);
-  if (!Array.isArray(options)) return block;
-  return {
-    ...block,
-    options: options.map((option: unknown) =>
-      isRecord(option) && typeof option.value === "string"
-        ? { ...option, value: option.value.trim() }
-        : option,
-    ),
-  };
-}
-
 function packageRowsWerePreserved(rows: PromptPresetPackageRows, normalized: PromptPresetRecord) {
   if (
     normalized.sections.length !== rows.sections.length ||
@@ -160,10 +147,7 @@ function normalizePromptPresetPackageRecord(
     author: readNullableString(preset.author),
     sections: stampPresetIdOnRows(packageData.sections, id),
     groups: stampPresetIdOnRows(packageData.groups, id),
-    choiceBlocks: stampPresetIdOnRows(
-      packageData.choiceBlocks.map(trimPackageChoiceBlockOptions),
-      id,
-    ),
+    choiceBlocks: stampPresetIdOnRows(packageData.choiceBlocks, id),
     createdAt: preset.createdAt,
     updatedAt: preset.updatedAt,
   });
