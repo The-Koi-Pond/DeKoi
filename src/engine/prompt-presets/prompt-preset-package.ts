@@ -36,6 +36,21 @@ function readPackageRecord(value: unknown): Record<string, unknown> {
   return isRecord(parsed) ? parsed : {};
 }
 
+function canonicalizePackageRecord(
+  value: unknown,
+  canonicalizeValue: (entry: unknown) => unknown = (entry) => entry,
+): Record<string, unknown> | null {
+  const entries: [string, unknown][] = [];
+  const seenKeys = new Set<string>();
+  for (const [rawKey, entry] of Object.entries(readPackageRecord(value))) {
+    const key = rawKey.trim();
+    if (!key || seenKeys.has(key)) return null;
+    seenKeys.add(key);
+    entries.push([key, canonicalizeValue(entry)]);
+  }
+  return Object.fromEntries(entries);
+}
+
 function trimPackageChoiceSelection(value: unknown): unknown {
   if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) return value.map(trimPackageChoiceSelection);
@@ -104,6 +119,12 @@ function normalizePromptPresetPackageRecord(
     return null;
   }
   const id = readString(preset.id).trim() || readString(value.id).trim();
+  const variableValues = canonicalizePackageRecord(preset.variableValues);
+  const defaultChoices = canonicalizePackageRecord(
+    preset.defaultChoices,
+    trimPackageChoiceSelection,
+  );
+  if (!variableValues || !defaultChoices) return null;
   const normalized = normalizePromptPresetRecord({
     id,
     schemaVersion: 2,
@@ -117,13 +138,8 @@ function normalizePromptPresetPackageRecord(
     sectionOrder: readPackageArray(preset.sectionOrder),
     groupOrder: readPackageArray(preset.groupOrder),
     variableGroups: readPackageArray(preset.variableGroups),
-    variableValues: readPackageRecord(preset.variableValues),
-    defaultChoices: Object.fromEntries(
-      Object.entries(readPackageRecord(preset.defaultChoices)).map(([key, selection]) => [
-        key.trim(),
-        trimPackageChoiceSelection(selection),
-      ]),
-    ),
+    variableValues,
+    defaultChoices,
     wrapFormat: readNullableString(preset.wrapFormat),
     author: readNullableString(preset.author),
     sections: stampPresetIdOnRows(packageData.sections, id),

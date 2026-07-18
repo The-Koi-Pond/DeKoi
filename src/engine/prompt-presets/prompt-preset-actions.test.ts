@@ -377,6 +377,14 @@ describe("normalizePromptPresetRecord", () => {
     expect(normalizePromptPresetRecordRaw({ ...base, name })).toBeNull();
   });
 
+  it.each([
+    ["preset ID", { id: " preset-test " }],
+    ["preset name", { name: " Test preset " }],
+    ["static variable key collision", { variableValues: { tone: "warm", " tone ": "cool" } }],
+  ])("rejects noncanonical native %s", (_label, invalid) => {
+    expect(validPromptPresetRecord(invalid)).toBeNull();
+  });
+
   it("creates and updates promptless records without injecting fallback text", () => {
     const created = createPromptPresetRecord({
       id: "promptless",

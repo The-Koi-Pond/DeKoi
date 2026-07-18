@@ -280,6 +280,7 @@ describe("prompt preset packages", () => {
         ...packageValue.data,
         preset: {
           ...packageValue.data.preset,
+          variableValues: { " register ": " plain " },
           defaultChoices: { tone: " warm " },
         },
         choiceBlocks: [
@@ -298,10 +299,28 @@ describe("prompt preset packages", () => {
     });
 
     expect(record?.defaultChoices).toEqual({ tone: "warm" });
+    expect(record?.variableValues).toEqual({ register: "plain" });
     expect(record?.choiceBlocks[0]?.id).toBe(firstBlock.id);
     expect(record?.choiceBlocks[0]?.variableName).toBe(firstBlock.variableName);
     expect(record?.choiceBlocks[0]?.options[0]?.id).toBe(firstOption.id);
     expect(record?.choiceBlocks[0]?.options[0]?.value).toBe("warm");
+  });
+
+  it.each([
+    ["default choice", { defaultChoices: { tone: "warm", " tone ": "tone-warm" } }],
+    ["static variable", { variableValues: { register: "plain", " register ": "formal" } }],
+  ])("rejects colliding canonical package %s keys", (_label, presetFields) => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+
+    expect(
+      normalizePromptPresetPackage({
+        ...packageValue,
+        data: {
+          ...packageValue.data,
+          preset: { ...packageValue.data.preset, ...presetFields },
+        },
+      }),
+    ).toBeNull();
   });
 
   it("accepts default selections by value, id, and option object", () => {

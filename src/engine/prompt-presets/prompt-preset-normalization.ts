@@ -255,7 +255,12 @@ function nativeChoiceSelectionRecordIsValid(value: unknown) {
 }
 
 function nativeStringRecordIsValid(value: unknown): value is Record<string, string> {
-  return isRecord(value) && Object.values(value).every((item) => typeof item === "string");
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(
+      ([key, item]) => key.length > 0 && key === key.trim() && typeof item === "string",
+    )
+  );
 }
 
 function nativeTimestampIsValid(value: unknown): value is string {
@@ -1022,9 +1027,9 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     return null;
   }
 
-  const id = readString(value.id).trim();
-  const name = readString(value.name).trim();
-  if (!id || !name) return null;
+  const id = readString(value.id);
+  const name = readString(value.name);
+  if (!id || id !== id.trim() || !name || name !== name.trim()) return null;
 
   if (
     !Array.isArray(value.sections) ||
