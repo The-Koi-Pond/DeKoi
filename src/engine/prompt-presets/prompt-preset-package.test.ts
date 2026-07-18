@@ -286,6 +286,7 @@ describe("prompt preset packages", () => {
           {
             ...firstBlock,
             id: ` ${firstBlock.id} `,
+            variableName: ` ${firstBlock.variableName} `,
             options: [
               { ...firstOption, id: ` ${firstOption.id} `, value: " warm " },
               ...remainingOptions,
@@ -298,6 +299,7 @@ describe("prompt preset packages", () => {
 
     expect(record?.defaultChoices).toEqual({ tone: "warm" });
     expect(record?.choiceBlocks[0]?.id).toBe(firstBlock.id);
+    expect(record?.choiceBlocks[0]?.variableName).toBe(firstBlock.variableName);
     expect(record?.choiceBlocks[0]?.options[0]?.id).toBe(firstOption.id);
     expect(record?.choiceBlocks[0]?.options[0]?.value).toBe("warm");
   });

@@ -544,7 +544,26 @@ describe("normalizePromptPresetRecord", () => {
         ],
       },
     ],
-  ])("rejects whitespace-padded native %s IDs", (_label, nested) => {
+    [
+      "choice variable name collision",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+          {
+            id: "choice-tone-copy",
+            variableName: " tone ",
+            label: "Tone copy",
+            options: [{ id: "cool", label: "Cool", value: "cool" }],
+          },
+        ],
+      },
+    ],
+  ])("rejects whitespace-padded native %s", (_label, nested) => {
     expect(validPromptPresetRecord(nested)).toBeNull();
   });
 
