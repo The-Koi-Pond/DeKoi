@@ -357,8 +357,12 @@ Prompt-preset choices are deterministic. Native branch selections use stable
 choice-block and option IDs, preserve multi-select order, and join resolved
 values with the block separator. Every choice block is always visible and
 resolved independently before applying branch overrides and preset defaults.
-Choice blocks do not support
-`randomPick`; random and roll macros are the only prompt randomness mechanism.
+Choice blocks preserve `randomPick` metadata, but current choice execution is
+deterministic. Per-generation `randomPick` execution remains active-plan Task 6;
+random and roll macros are the only active prompt randomness mechanism.
+Marinara scalar generation-parameter conversion into native per-field
+`{ send, value }` entries and send-switch semantics remains active-plan Task 2.
+Current package decoding does not perform or claim that conversion.
 Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the
 scope that supplied them at generation start: branch keys stay branch-scoped,

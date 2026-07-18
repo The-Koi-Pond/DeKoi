@@ -385,6 +385,55 @@ describe("normalizePromptPresetRecord", () => {
     expect(validPromptPresetRecord(invalid)).toBeNull();
   });
 
+  it("preserves prototype-named defaults, selections, and variables as own properties", () => {
+    const record = validPromptPresetRecord({
+      variableValues: Object.fromEntries([["constructor", "static"]]),
+      defaultChoices: Object.fromEntries([
+        ["__proto__", { kind: "option", optionId: "proto-default" }],
+      ]),
+      choiceBlocks: [
+        {
+          id: "toString",
+          variableName: "toString",
+          label: "String form",
+          options: [
+            { id: "string-default", label: "Default", value: "default" },
+            { id: "string-selected", label: "Selected", value: "selected" },
+          ],
+        },
+        {
+          id: "__proto__",
+          variableName: "__proto__",
+          label: "Prototype",
+          options: [{ id: "proto-default", label: "Prototype", value: "prototype" }],
+        },
+      ],
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) return;
+    expect(Object.prototype.hasOwnProperty.call(record.defaultChoices, "__proto__")).toBe(true);
+    expect(JSON.parse(JSON.stringify(record.defaultChoices))["__proto__"]).toEqual({
+      kind: "option",
+      optionId: "proto-default",
+    });
+
+    const selections = materializePromptPresetThreadChoiceSelections(
+      record,
+      Object.fromEntries([
+        ["toString", { kind: "option", optionId: "string-selected" }],
+      ]),
+    );
+    expect(Object.prototype.hasOwnProperty.call(selections, "toString")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(selections, "__proto__")).toBe(true);
+
+    const { variables } = resolvePromptPresetChoiceVariables({ preset: record, selections });
+    expect(variables["constructor"]).toBe("static");
+    expect(variables["toString"]).toBe("selected");
+    expect(variables["__proto__"]).toBe("prototype");
+    expect(Object.prototype.hasOwnProperty.call(variables, "__proto__")).toBe(true);
+  });
+
   it("creates and updates promptless records without injecting fallback text", () => {
     const created = createPromptPresetRecord({
       id: "promptless",

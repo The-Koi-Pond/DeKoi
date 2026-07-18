@@ -101,6 +101,14 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function createPrototypeSafeRecord<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
+}
+
+function ownRecordValue<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
+
 export function parseJsonIfString(value: unknown): unknown {
   if (typeof value !== "string") return value;
 
@@ -150,9 +158,9 @@ export function normalizeStringArray(value: unknown): string[] {
 
 export function normalizeStringRecord(value: unknown): Record<string, string> {
   const source = parseJsonIfString(value);
-  if (!isRecord(source)) return {};
+  if (!isRecord(source)) return createPrototypeSafeRecord();
 
-  const record: Record<string, string> = {};
+  const record = createPrototypeSafeRecord<string>();
   for (const [rawKey, rawValue] of Object.entries(source)) {
     const key = rawKey.trim();
     if (!key || typeof rawValue !== "string") continue;
@@ -210,9 +218,9 @@ function normalizeChoiceSelection(value: unknown): PromptPresetChoiceSelection |
 
 export function normalizeChoiceSelectionRecord(value: unknown): PromptPresetChoiceSelections {
   const source = parseJsonIfString(value);
-  if (!isRecord(source)) return {};
+  if (!isRecord(source)) return createPrototypeSafeRecord();
 
-  const record: PromptPresetChoiceSelections = {};
+  const record = createPrototypeSafeRecord<PromptPresetChoiceSelection>();
   for (const [rawKey, rawValue] of Object.entries(source)) {
     const key = rawKey.trim();
     const selection = normalizeChoiceSelection(rawValue);
@@ -347,7 +355,7 @@ function nativeNestedReferencesAreValid(
       options.map((option) => String((option as Record<string, unknown>).id)),
     );
     if (optionIds.size !== options.length) return false;
-    const selection = defaultChoices[variableName];
+    const selection = ownRecordValue(defaultChoices, variableName);
     if (selection === undefined) continue;
     const values = Array.isArray(selection) ? selection : [selection];
     if (
@@ -517,7 +525,7 @@ export function prunePromptPresetDefaultChoices(
         ] as const,
     ),
   );
-  const prunedChoices: PromptPresetChoiceSelections = {};
+  const prunedChoices = createPrototypeSafeRecord<PromptPresetChoiceSelection>();
 
   for (const [variableName, selection] of Object.entries(defaultChoices)) {
     const block = blocksByVariableName.get(variableName);
@@ -606,7 +614,10 @@ export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unk
 } {
   const source = parseJsonIfString(value);
   if (!isRecord(source)) {
-    return { selections: {}, changed: value !== undefined };
+    return {
+      selections: createPrototypeSafeRecord<PromptPresetThreadChoiceSelection>(),
+      changed: value !== undefined,
+    };
   }
 
   const selections: PromptPresetThreadChoiceSelections = Object.create(null);
@@ -630,7 +641,7 @@ export function prunePromptPresetThreadChoiceSelections(
   const pruned: PromptPresetThreadChoiceSelections = Object.create(null);
 
   for (const block of preset.choiceBlocks) {
-    const selection = selections[block.id];
+    const selection = ownRecordValue(selections, block.id);
     const candidates = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
     const validOptionIds = new Set(block.options.map((option) => option.id));
     const validSelections = candidates.filter((candidate) =>
@@ -656,7 +667,7 @@ export function materializePromptPresetThreadChoiceSelections(
   );
   for (const block of preset.choiceBlocks) {
     if (Object.prototype.hasOwnProperty.call(materialized, block.id)) continue;
-    const configured = preset.defaultChoices[block.variableName];
+    const configured = ownRecordValue(preset.defaultChoices, block.variableName);
     const candidates = configured === undefined ? block.options[0]?.id : configured;
     const values = Array.isArray(candidates) ? candidates : [candidates];
     const optionIds = values
@@ -788,7 +799,7 @@ function defaultChoiceSelection(
   preset: PromptPresetRecord,
   block: PromptPresetChoiceBlock,
 ): PromptPresetChoiceSelection | null {
-  const presetDefault = preset.defaultChoices[block.variableName];
+  const presetDefault = ownRecordValue(preset.defaultChoices, block.variableName);
   if (presetDefault !== undefined) return presetDefault;
   return block.options[0]?.value ?? null;
 }
@@ -838,8 +849,14 @@ export function resolvePromptPresetChoiceControls({
     multiSelect: block.multiSelect === true,
     displayMode: block.displayMode ?? "auto",
     defaultLabel: defaultChoiceLabel(preset, block),
-    selectedOptionIds: choiceSelectionOptionIds(block, normalizedSelections[block.id]),
-    selectedValues: choiceSelectionValues(block, normalizedSelections[block.id]),
+    selectedOptionIds: choiceSelectionOptionIds(
+      block,
+      ownRecordValue(normalizedSelections, block.id),
+    ),
+    selectedValues: choiceSelectionValues(
+      block,
+      ownRecordValue(normalizedSelections, block.id),
+    ),
     options: choiceControlOptions(block),
   }));
 }
@@ -965,7 +982,10 @@ export function resolvePromptPresetChoiceVariables({
   preset: PromptPresetRecord | null | undefined;
   selections?: PromptPresetThreadChoiceSelections | null;
 }) {
-  const variables: Record<string, string> = { ...(preset?.variableValues ?? {}) };
+  const variables = Object.assign(
+    createPrototypeSafeRecord<string>(),
+    preset?.variableValues ?? {},
+  );
   const variableNames: string[] = [];
   if (!preset) return { variables, variableNames };
 
@@ -975,7 +995,7 @@ export function resolvePromptPresetChoiceVariables({
     const selectedValues = resolvePromptPresetChoiceValues({
       block,
       preset,
-      selection: normalizedSelections[block.id],
+      selection: ownRecordValue(normalizedSelections, block.id),
     });
     if (selectedValues.length === 0) continue;
 

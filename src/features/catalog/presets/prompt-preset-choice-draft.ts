@@ -25,6 +25,14 @@ export interface PromptPresetChoiceDraftIssue {
 
 let choiceDraftIdCounter = 0;
 
+function createPrototypeSafeRecord<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
+}
+
+function ownRecordValue<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
+
 function createChoiceDraftId(prefix: string) {
   choiceDraftIdCounter += 1;
   return `${prefix}-${Date.now()}-${choiceDraftIdCounter}`;
@@ -87,11 +95,14 @@ export function choiceDraftFromPromptPreset(
   preset: PromptPresetRecord,
 ): PromptPresetChoiceDraftState {
   const choiceBlocks = cloneChoiceBlocks(preset.choiceBlocks);
-  const defaultOptionIdsByBlockId = Object.fromEntries(
-    choiceBlocks.map((block) => [
-      block.id,
-      defaultOptionIds(block, preset.defaultChoices[block.variableName]),
-    ]),
+  const defaultOptionIdsByBlockId = Object.assign(
+    createPrototypeSafeRecord<string[]>(),
+    Object.fromEntries(
+      choiceBlocks.map((block) => [
+        block.id,
+        defaultOptionIds(block, ownRecordValue(preset.defaultChoices, block.variableName)),
+      ]),
+    ),
   );
   return { choiceBlocks, defaultOptionIdsByBlockId };
 }
@@ -148,9 +159,9 @@ export function updatePromptPresetChoiceBlock(
   if (!currentBlock) return draft;
 
   const nextBlock = update(currentBlock);
-  const validDefaults = (draft.defaultOptionIdsByBlockId[blockId] ?? []).filter((optionId) =>
-    nextBlock.options.some((option) => option.id === optionId),
-  );
+  const validDefaults = (
+    ownRecordValue(draft.defaultOptionIdsByBlockId, blockId) ?? []
+  ).filter((optionId) => nextBlock.options.some((option) => option.id === optionId));
   const repairedDefaults =
     validDefaults.length > 0
       ? nextBlock.multiSelect
@@ -214,7 +225,7 @@ export function setPromptPresetChoiceDefault(
   const block = draft.choiceBlocks.find((choiceBlock) => choiceBlock.id === blockId);
   if (!block || !block.options.some((option) => option.id === optionId)) return draft;
 
-  const currentDefaults = draft.defaultOptionIdsByBlockId[blockId] ?? [];
+  const currentDefaults = ownRecordValue(draft.defaultOptionIdsByBlockId, blockId) ?? [];
   const nextDefaults = block.multiSelect
     ? selected
       ? [...new Set([...currentDefaults, optionId])]
@@ -330,7 +341,7 @@ export function removePromptPresetChoiceOption(
   if (!controller || !removedOption || controller.options.length <= 1) return draft;
 
   const remainingOptions = controller.options.filter((option) => option.id !== optionId);
-  const currentDefaults = draft.defaultOptionIdsByBlockId[blockId] ?? [];
+  const currentDefaults = ownRecordValue(draft.defaultOptionIdsByBlockId, blockId) ?? [];
   const remainingDefaults = currentDefaults.filter((defaultId) => defaultId !== optionId);
   const repairedDefaults =
     remainingDefaults.length > 0
@@ -413,12 +424,12 @@ export function promptPresetChoiceDraftToInput(
   draft: PromptPresetChoiceDraftState,
 ): Pick<PromptPresetInput, "choiceBlocks" | "defaultChoices"> {
   const choiceBlocks = draft.choiceBlocks.map(cleanChoiceBlock);
-  const defaultChoices: PromptPresetChoiceSelections = {};
+  const defaultChoices = createPrototypeSafeRecord<PromptPresetChoiceSelection>();
 
   for (const block of choiceBlocks) {
     const optionIds = defaultOptionIds(
       block,
-      (draft.defaultOptionIdsByBlockId[block.id] ?? []).map((optionId) => ({
+      (ownRecordValue(draft.defaultOptionIdsByBlockId, block.id) ?? []).map((optionId) => ({
         kind: "option",
         optionId,
       })),

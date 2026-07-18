@@ -89,6 +89,40 @@ describe("prompt preset choice drafts", () => {
     });
   });
 
+  it("round-trips prototype-named choice defaults as own properties", () => {
+    const preset = promptPresetRecord({
+      defaultChoices: Object.fromEntries([
+        ["__proto__", { kind: "option" as const, optionId: "proto-default" }],
+      ]),
+      choiceBlocks: [
+        {
+          id: "toString",
+          variableName: "toString",
+          label: "String form",
+          options: [{ id: "string-default", label: "Default", value: "default" }],
+        },
+        {
+          id: "__proto__",
+          variableName: "__proto__",
+          label: "Prototype",
+          options: [{ id: "proto-default", label: "Prototype", value: "prototype" }],
+        },
+      ],
+    });
+
+    const draft = choiceDraftFromPromptPreset(preset);
+    expect(Object.prototype.hasOwnProperty.call(draft.defaultOptionIdsByBlockId, "toString")).toBe(
+      true,
+    );
+    expect(Object.prototype.hasOwnProperty.call(draft.defaultOptionIdsByBlockId, "__proto__")).toBe(
+      true,
+    );
+
+    const input = promptPresetChoiceDraftToInput(draft);
+    expect(Object.prototype.hasOwnProperty.call(input.defaultChoices, "toString")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(input.defaultChoices, "__proto__")).toBe(true);
+  });
+
   it("rejects deselecting the final multi-select default", () => {
     const draft = choiceDraftFromPromptPreset(promptPresetRecord());
     const oneDefault = setPromptPresetChoiceDefault(draft, "choice-tags", "tag-concise", false);

@@ -559,9 +559,10 @@ stable-ID options with optional descriptions, reusable defaults, multi-select
 and separator settings, `auto`/`buttons`/`listbox` display modes,
 manual/alphabetical option ordering, optional ordering/timestamp metadata and
 preset linkage, and independent option/default data. Runtimes must round-trip
-those fields; the choice-block array is the displayed order. Choice
-evaluation is deterministic and does not support `randomPick`; every normalized
-choice is visible and independent.
+those fields, including `randomPick` metadata; the choice-block array is the
+displayed order. Choice evaluation remains deterministic until active-plan
+Task 6 implements per-generation `randomPick`; every normalized choice is
+visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged
 `dekoi_preset` version 2 or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
