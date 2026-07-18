@@ -1,10 +1,11 @@
 {
   "type": "dekoi_preset",
-  "version": 1,
+  "version": 2,
   "exportedAt": "2026-06-23T00:00:00.000Z",
   "data": {
     "preset": {
       "id": "preset_universal_v2",
+      "schemaVersion": 2,
       "name": "De-Koi Universal Preset V2",
       "description": "Benchmark-focused universal De-Koi roleplay and fiction preset. Built from an audit of Marinara's Universal Preset with cleaner controls for agency, pacing, style, continuity, adult-safe boundaries, and less AI-coded prose.",
       "sectionOrder": [
@@ -24,19 +25,6 @@
         "section_v2_output"
       ],
       "groupOrder": ["group_v2_context"],
-      "variableOrder": [
-        "choice_v2_mode",
-        "choice_v2_content_boundary",
-        "choice_v2_erotic_tone",
-        "choice_v2_agency",
-        "choice_v2_pacing",
-        "choice_v2_style",
-        "choice_v2_narration",
-        "choice_v2_pov",
-        "choice_v2_tense",
-        "choice_v2_length",
-        "choice_v2_language"
-      ],
       "variableGroups": [],
       "variableValues": {},
       "parameters": {
@@ -71,9 +59,7 @@
         "language": "English",
         "eroticTone": "no erotic tone preference: follow the selected content boundary, story context, and character voice; do not add explicit erotic diction or dirty talk just because this selector exists"
       },
-      "isDefault": false,
       "author": "De-Koi",
-      "folderId": null,
       "createdAt": "2026-06-23T00:00:00.000Z",
       "updatedAt": "2026-06-23T00:00:00.000Z",
       "messengerPrompt": "<role>\nYou are {{char}}, texting privately with {{user}} in a casual DM conversation.\nTreat this like an ongoing chat with someone you know, not a roleplay scene, essay, or assistant exchange.\n</role>\n\n<rules>\nHere are the rules for the interaction:\n- Stay in character based on your personality, description, memories, and relationship with {{user}}.\n- Sound like a person texting. Be casual, specific, and reactive. Do not sound like an assistant, therapist, narrator, or writing partner.\n- Default to short replies. One line, a fragment, a quick reaction, or even just an emoji can be enough.\n- Only send longer messages when the moment genuinely calls for it, like telling a story, explaining something personal, arguing a point, or responding to something emotionally complicated.\n- No roleplay formatting: no *actions*, no narration, no quoted dialogue, no stage directions.\n- Do not describe your facial expressions, body language, surroundings, or actions unless {{char}} would naturally text about them.\n- Do not over-explain your feelings. Let subtext, hesitation, teasing, bluntness, silence, or topic changes carry meaning when they fit.\n- Do not turn every message into a polished paragraph. Texts can be messy, brief, lowercase, interrupted, dry, affectionate, sarcastic, or uncertain.\n- React to what {{user}} actually said. Do not summarize the conversation back at them unless that is naturally how {{char}} would talk.\n- Ask questions only when they feel natural. Do not end every message with a question just to keep the chat going.\n- Use emojis, slang, profanity, flirting, dark jokes, or internet language only if they fit {{char}} and the moment.\n- Adult topics are allowed when they fit the conversation and character. Treat them like part of a real private chat, not as a special mode shift.\n- Messages may include timestamps like [12:01] or dates like [18.03.2026]. Use them only to understand timing. Never include timestamps, dates, brackets, or metadata in your replies.\n- Your output must contain only {{char}}'s natural message text.\n</rules>"
@@ -361,6 +347,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "mode",
         "question": "Choose the primary mode.",
+        "label": "Choose the primary mode.",
         "options": [
           {
             "id": "mode_gm",
@@ -392,6 +379,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "contentBoundary",
         "question": "Choose the content level.",
+        "label": "Choose the content level.",
         "options": [
           {
             "id": "boundary_mature_dark",
@@ -423,6 +411,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "eroticTone",
         "question": "Choose the erotic tone.",
+        "label": "Choose the erotic tone.",
         "options": [
           {
             "id": "erotic_tone_none",
@@ -466,6 +455,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "agencyStrictness",
         "question": "Choose how strictly to preserve user agency.",
+        "label": "Choose how strictly to preserve user agency.",
         "options": [
           {
             "id": "agency_strict",
@@ -497,6 +487,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "pacing",
         "question": "Choose the pacing style.",
+        "label": "Choose the pacing style.",
         "options": [
           {
             "id": "pacing_balanced",
@@ -534,6 +525,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "styleFlavor",
         "question": "Choose the prose style.",
+        "label": "Choose the prose style.",
         "options": [
           {
             "id": "style_grounded",
@@ -571,6 +563,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "narration",
         "question": "Choose the narration style.",
+        "label": "Choose the narration style.",
         "options": [
           {
             "id": "narration_second",
@@ -602,6 +595,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "pov",
         "question": "Choose the narrative perspective.",
+        "label": "Choose the narrative perspective.",
         "options": [
           {
             "id": "pov_user_limited",
@@ -633,6 +627,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "tense",
         "question": "Choose the tense.",
+        "label": "Choose the tense.",
         "options": [
           {
             "id": "tense_present",
@@ -664,6 +659,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "length",
         "question": "Choose the response length.",
+        "label": "Choose the response length.",
         "options": [
           {
             "id": "length_flexible",
@@ -713,6 +709,7 @@
         "presetId": "preset_universal_v2",
         "variableName": "language",
         "question": "Choose the response language.",
+        "label": "Choose the response language.",
         "options": [
           {
             "id": "language_english",

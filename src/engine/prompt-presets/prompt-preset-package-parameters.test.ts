@@ -8,9 +8,9 @@ const exportedAt = "2026-07-11T00:00:00.000Z";
 function parameterPreset(): PromptPresetRecord {
   return {
     id: "prompt-preset-parameters",
-    schemaVersion: 1,
-    title: "Parameter Preset",
-    systemPrompt: "Write the next response.",
+    schemaVersion: 2,
+    name: "Parameter Preset",
+    messengerPrompt: "Write the next response.",
     parameters: {
       maxTokens: { send: true, value: 2048 },
       temperature: { send: true, value: 0.8 },
@@ -28,7 +28,6 @@ function parameterPreset(): PromptPresetRecord {
     },
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},

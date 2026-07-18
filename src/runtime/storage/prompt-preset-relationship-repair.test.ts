@@ -14,12 +14,11 @@ const now = "2026-07-11T00:00:00.000Z";
 function promptPreset(): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Preset",
-    systemPrompt: "Use the choices.",
+    schemaVersion: 2,
+    name: "Preset",
+    messengerPrompt: "Use the choices.",
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: ["choice-a", "choice-b"],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},

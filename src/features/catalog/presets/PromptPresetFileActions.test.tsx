@@ -15,7 +15,7 @@ function deferred<Result>() {
 
 const delayedImportResult = {
   ok: true as const,
-  preset: { ...STARTER_PROMPT_PRESET, id: "prompt-preset-delayed", title: "Delayed Preset" },
+  preset: { ...STARTER_PROMPT_PRESET, id: "prompt-preset-delayed", name: "Delayed Preset" },
   sourceName: "Delayed Preset.json",
   storageWarning: "Storage is unavailable; this imported preset exists only for this session.",
 };

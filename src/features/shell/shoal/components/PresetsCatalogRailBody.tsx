@@ -82,9 +82,9 @@ export function PresetsCatalogRailBody({ nav, originActive }: PresetsCatalogRail
           <CatalogRailCard
             key={preset.id}
             active={preset.id === activePresetId}
-            initials={getMessengerThreadInitials(preset.title)}
-            name={preset.title}
-            sub={preset.summary || "No summary yet."}
+            initials={getMessengerThreadInitials(preset.name)}
+            name={preset.name}
+            sub={preset.description || "No description yet."}
             tone="amber"
             onOpen={() => nav.setView({ kind: "presets", presetId: preset.id })}
           />

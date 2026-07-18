@@ -328,13 +328,12 @@ transcript history only when that marker is enabled. Known Roleplay markers
 expand scene, lore, persona, character, and example-dialogue blocks. Sectioned
 presets that omit a non-depth lore marker do not emit that lore text, so no
 prompt mutations from the omitted text commit. If enabled section/group
-filtering leaves no materialized messages, Roleplay falls back to the selected
-shared system prompt and then the built-in Roleplay prelude, without transcript
-history. A selected preset still owns narration and other-character output
-behavior through either fallback; only no-preset, single-character Roleplay uses
+filtering leaves no materialized messages, Roleplay uses the built-in Roleplay
+prelude, without transcript history. A selected preset still owns narration and
+other-character output behavior through this fallback; only no-preset, single-character Roleplay uses
 the one-character output contract. Messenger does not consume preset sections.
-Messenger resolves the selected preset's `messengerPrompt`, then its shared
-`systemPrompt`, then the built-in Messenger fallback. Built-in fallbacks are
+Messenger resolves the selected preset's `messengerPrompt`, then the built-in
+Messenger fallback. Built-in fallbacks are
 assembled at request time rather than persisted into blank presets. Native
 branches do not own arbitrary prompt text.
 

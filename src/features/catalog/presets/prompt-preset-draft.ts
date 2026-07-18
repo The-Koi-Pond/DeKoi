@@ -34,28 +34,21 @@ export type PromptPresetDraftParameters = Omit<
   GenerationDraftParameterEntries;
 
 export interface PromptPresetDraftState extends PromptPresetChoiceDraftState {
-  title: string;
-  summary: string;
-  systemPrompt: string;
+  name: string;
+  description: string;
   messengerPrompt: string;
   parameters: PromptPresetDraftParameters;
   wrapFormat: string;
-  variableOrderTemplate: PromptPresetVariableOrderTemplateEntry[];
   sections: PromptPresetSection[];
   groups: PromptPresetGroup[];
 }
 
-type PromptPresetVariableOrderTemplateEntry =
-  { kind: "choice"; id: string } | { kind: "compatible"; id: string };
-
 export const EMPTY_PROMPT_PRESET_DRAFT: PromptPresetDraftState = {
-  title: "",
-  summary: "",
-  systemPrompt: "",
+  name: "",
+  description: "",
   messengerPrompt: "",
   parameters: {},
   wrapFormat: "",
-  variableOrderTemplate: [],
   sections: [],
   groups: [],
   choiceBlocks: [],
@@ -137,7 +130,7 @@ function cleanSections(sections: readonly PromptPresetSection[]) {
     }
 
     if (markerType) {
-      cleanSection.markerConfig = { type: markerType };
+      cleanSection.markerConfig = { ...section.markerConfig, type: markerType };
     } else {
       delete cleanSection.markerConfig;
     }
@@ -231,7 +224,10 @@ export function updatePromptPresetDraftSectionMarkerType(
 ): PromptPresetSection {
   return {
     ...section,
-    markerConfig: { type: normalizePromptPresetMarkerType(markerType) },
+    markerConfig: {
+      ...section.markerConfig,
+      type: normalizePromptPresetMarkerType(markerType),
+    },
   };
 }
 
@@ -268,7 +264,7 @@ export function promptPresetDraftParameterError<Key extends StandardGenerationPa
 
 export function promptPresetDraftValidationErrors(draft: PromptPresetDraftState) {
   const errors = validatePromptPresetChoiceDraft(draft).map((issue) => issue.message);
-  if (!draft.title.trim()) errors.push("Title is required.");
+  if (!draft.name.trim()) errors.push("Name is required.");
   for (const field of STANDARD_GENERATION_PARAMETER_KEYS) {
     const error = promptPresetDraftParameterError(field, draft.parameters[field]);
     if (error) errors.push(`${field}: ${error}`);
@@ -294,55 +290,14 @@ export function withPromptPresetDraftParameterEntry<Key extends StandardGenerati
   };
 }
 
-function createVariableOrderTemplate(preset: PromptPresetRecord) {
-  const choiceBlockIds = new Set(preset.choiceBlocks.map((block) => block.id));
-  return preset.variableOrder.map((id): PromptPresetVariableOrderTemplateEntry =>
-    choiceBlockIds.has(id) ? { kind: "choice", id } : { kind: "compatible", id },
-  );
-}
-
-function mergeVariableOrder(
-  template: readonly PromptPresetVariableOrderTemplateEntry[],
-  choiceBlockIds: readonly string[],
-) {
-  const lastChoiceSlotIndex = template.reduce(
-    (lastIndex, entry, index) => (entry.kind === "choice" ? index : lastIndex),
-    -1,
-  );
-  const variableOrder: string[] = [];
-  let choiceIndex = 0;
-
-  template.forEach((entry, templateIndex) => {
-    if (entry.kind === "compatible") {
-      variableOrder.push(entry.id);
-      return;
-    }
-
-    const choiceBlockId = choiceBlockIds[choiceIndex];
-    if (choiceBlockId) {
-      variableOrder.push(choiceBlockId);
-      choiceIndex += 1;
-    }
-    if (templateIndex === lastChoiceSlotIndex) {
-      variableOrder.push(...choiceBlockIds.slice(choiceIndex));
-      choiceIndex = choiceBlockIds.length;
-    }
-  });
-
-  if (lastChoiceSlotIndex === -1) variableOrder.push(...choiceBlockIds);
-  return variableOrder;
-}
-
 export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetDraftState {
   return {
     ...choiceDraftFromPromptPreset(preset),
-    title: preset.title,
-    summary: preset.summary ?? "",
-    systemPrompt: preset.systemPrompt,
-    messengerPrompt: preset.messengerPrompt ?? "",
+    name: preset.name,
+    description: preset.description ?? "",
+    messengerPrompt: preset.messengerPrompt,
     parameters: preset.parameters ? structuredClone(preset.parameters) : {},
     wrapFormat: preset.wrapFormat ?? "",
-    variableOrderTemplate: createVariableOrderTemplate(preset),
     sections: cloneSections(promptPresetSectionsInOrder(preset.sections, preset.sectionOrder)),
     groups: cloneGroups(rowsInOrder(preset.groups, preset.groupOrder)),
   };
@@ -351,16 +306,13 @@ export function draftFromPromptPreset(preset: PromptPresetRecord): PromptPresetD
 export function promptPresetDraftToInput(draft: PromptPresetDraftState): PromptPresetInput {
   const sections = cleanSections(draft.sections);
   const groups = cleanGroups(draft.groups);
-  const systemPrompt = draft.systemPrompt.trim();
   const choiceInput = promptPresetChoiceDraftToInput(draft);
 
   return {
     ...choiceInput,
-    variableOrder: mergeVariableOrder(draft.variableOrderTemplate, choiceInput.variableOrder ?? []),
-    title: draft.title.trim(),
-    summary: draft.summary.trim() || null,
-    systemPrompt,
-    messengerPrompt: draft.messengerPrompt.trim() || null,
+    name: draft.name.trim(),
+    description: draft.description.trim() || null,
+    messengerPrompt: draft.messengerPrompt.trim(),
     parameters: structuredClone(draft.parameters) as PromptPresetParameters,
     sectionOrder: sections.map((section) => section.id),
     groupOrder: groups.map((group) => group.id),

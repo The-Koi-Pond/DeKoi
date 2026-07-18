@@ -22,15 +22,13 @@ const now = "2026-07-10T00:00:00.000Z";
 function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Choice Preset",
-    summary: null,
-    systemPrompt: "Stay in character.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Choice Preset",
+    description: null,
+    messengerPrompt: "Stay in character.",
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: ["choice-tags", "choice-tone"],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {
@@ -42,7 +40,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
     },
     wrapFormat: null,
     author: null,
-    folderId: null,
     sections: [],
     groups: [],
     choiceBlocks: [
@@ -54,7 +51,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
           { id: "tone-warm", label: "Warm", value: "warm" },
           { id: "tone-dry", label: "Dry", value: "dry" },
         ],
-        defaultOptionId: "tone-warm",
       },
       {
         id: "choice-tags",
@@ -65,7 +61,6 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
           { id: "tag-vivid", label: "Vivid", value: "vivid" },
           { id: "tag-concise", label: "Concise", value: "concise" },
         ],
-        defaultOptionId: "tag-vivid",
       },
     ],
     createdAt: now,
@@ -77,7 +72,7 @@ function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPres
 describe("prompt preset choice drafts", () => {
   it("preserves authoring order and defaults", () => {
     const draft = choiceDraftFromPromptPreset(promptPresetRecord());
-    expect(draft.choiceBlocks.map((block) => block.id)).toEqual(["choice-tags", "choice-tone"]);
+    expect(draft.choiceBlocks.map((block) => block.id)).toEqual(["choice-tone", "choice-tags"]);
     expect(draft.defaultOptionIdsByBlockId).toEqual({
       "choice-tags": ["tag-vivid", "tag-concise"],
       "choice-tone": ["tone-warm"],
@@ -85,7 +80,6 @@ describe("prompt preset choice drafts", () => {
 
     const input = promptPresetChoiceDraftToInput(draft);
 
-    expect(input.variableOrder).toEqual(["choice-tags", "choice-tone"]);
     expect(input.defaultChoices).toEqual({
       tags: [
         { kind: "option", optionId: "tag-vivid" },
@@ -163,9 +157,9 @@ describe("prompt preset choice drafts", () => {
 
     draft = movePromptPresetChoiceBlock(draft, addedId!, -1);
     expect(draft.choiceBlocks.map((block) => block.id)).toEqual([
-      "choice-tags",
-      addedId,
       "choice-tone",
+      addedId,
+      "choice-tags",
     ]);
 
     draft = movePromptPresetChoiceOption(draft, addedId!, firstOptionId, 1);
@@ -190,13 +184,12 @@ describe("prompt preset choice drafts", () => {
 
     draft = setPromptPresetChoiceDefault(draft, addedId!, secondOptionId, true);
     expect(draft.defaultOptionIdsByBlockId[addedId!]).toEqual([secondOptionId]);
-    expect(addedBlock().defaultOptionId).toBe(secondOptionId);
 
     draft = removePromptPresetChoiceOption(draft, addedId!, firstOptionId);
     expect(addedBlock().options.map((option) => option.id)).toEqual([secondOptionId]);
 
     draft = removePromptPresetChoiceBlock(draft, addedId!);
-    expect(draft.choiceBlocks.map((block) => block.id)).toEqual(["choice-tags", "choice-tone"]);
+    expect(draft.choiceBlocks.map((block) => block.id)).toEqual(["choice-tone", "choice-tags"]);
     expect(draft.defaultOptionIdsByBlockId).not.toHaveProperty(addedId!);
   });
 

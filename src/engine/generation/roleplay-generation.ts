@@ -349,29 +349,11 @@ function buildRoleplayMarkerLines({
   }
 }
 
-function roleplaySelectedPromptSource(promptPreset: PromptPresetRecord | null) {
-  return promptPreset?.systemPrompt.trim() || DEFAULT_ROLEPLAY_SYSTEM_PROMPT;
-}
-
 function resolveRoleplaySceneLines(
   thread: RoleplayModeThread,
   macroContext: GenerationMacroContext,
 ) {
   return [thread.title ? `Title: ${resolveGenerationMacros(thread.title, macroContext)}` : ""];
-}
-
-function resolveRoleplayPromptPrelude(
-  thread: RoleplayModeThread,
-  macroContext: GenerationMacroContext,
-  promptPreset: PromptPresetRecord | null,
-) {
-  return {
-    selectedPrompt: resolveGenerationMacros(
-      roleplaySelectedPromptSource(promptPreset),
-      macroContext,
-    ),
-    sceneLines: resolveRoleplaySceneLines(thread, macroContext),
-  };
 }
 
 function buildPostHistoryPrompt({
@@ -471,11 +453,8 @@ function createRoleplayPromptAssembly({
     variableMutations: macroVariableMutations,
   });
   resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
-  let preludeCache: ReturnType<typeof resolveRoleplayPromptPrelude> | null = null;
   let sceneLinesCache: string[] | null = null;
   const sceneLines = () => (sceneLinesCache ??= resolveRoleplaySceneLines(thread, macroContext));
-  const prelude = () =>
-    (preludeCache ??= resolveRoleplayPromptPrelude(thread, macroContext, promptPreset));
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {
     activePersona,
     companions,
@@ -524,7 +503,7 @@ function createRoleplayPromptAssembly({
   };
   const promptMessages: RoleplayGenerationPromptMessage[] = promptPreset?.sections.length
     ? assemblePromptPresetMessages({
-        fallbackSystemPrompt: () => roleplaySelectedPromptSource(promptPreset),
+        fallbackSystemPrompt: () => DEFAULT_ROLEPLAY_SYSTEM_PROMPT,
         macroContext,
         markerLines: (markerType) =>
           buildRoleplayMarkerLines({
@@ -549,7 +528,10 @@ function createRoleplayPromptAssembly({
           activatedLoreEntries,
           companions,
           macroContext,
-          prelude: prelude(),
+          prelude: {
+            selectedPrompt: resolveGenerationMacros(DEFAULT_ROLEPLAY_SYSTEM_PROMPT, macroContext),
+            sceneLines: sceneLines(),
+          },
           summarizedLorebookIds,
           targetCompanion,
         });

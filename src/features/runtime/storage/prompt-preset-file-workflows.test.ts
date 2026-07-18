@@ -27,21 +27,18 @@ const now = "2026-07-11T00:00:00.000Z";
 function promptPreset(): PromptPresetRecord {
   return {
     id: "preset-portable",
-    schemaVersion: 1,
-    title: "Portable Preset",
-    summary: null,
-    systemPrompt: "Write the next response.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Portable Preset",
+    description: null,
+    messengerPrompt: "Write the next response.",
     parameters: { temperature: { send: true, value: 0.7 } },
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
     author: null,
-    folderId: null,
     sections: [],
     groups: [],
     choiceBlocks: [],
@@ -53,13 +50,14 @@ function promptPreset(): PromptPresetRecord {
 function compatiblePackage() {
   return {
     type: "dekoi_preset",
-    version: 1,
+    version: 2,
     exportedAt: now,
     data: {
       preset: {
         id: "preset-portable",
+        schemaVersion: 2,
         name: "Portable Preset",
-        systemPrompt: "Write the next response.",
+        messengerPrompt: "Write the next response.",
         parameters: { temperature: { send: true, value: 0.7 } },
         createdAt: now,
         updatedAt: now,
@@ -87,7 +85,7 @@ describe("prompt preset file workflows", () => {
       expect(result).toMatchObject({
         ok: true,
         sourceName: name,
-        preset: { id: "preset-portable", title: "Portable Preset" },
+        preset: { id: "preset-portable", name: "Portable Preset" },
       });
     },
   );
@@ -106,12 +104,12 @@ describe("prompt preset file workflows", () => {
     });
   });
 
-  it("downloads the stable package with the title-based filename", () => {
+  it("downloads the stable package with the name-based filename", () => {
     const result = downloadPromptPresetBrowserFile(promptPreset(), now);
 
     expect(result).toEqual({ ok: true, filename: "Portable Preset.json", path: null });
     expect(downloadJsonFile).toHaveBeenCalledWith({
-      data: expect.objectContaining({ type: "dekoi_preset", version: 1 }),
+      data: expect.objectContaining({ type: "dekoi_preset", version: 2 }),
       filename: "Portable Preset.json",
     });
   });
@@ -128,10 +126,10 @@ describe("prompt preset file workflows", () => {
     await expect(readPromptPresetDesktopFile()).resolves.toMatchObject({
       ok: true,
       sourceName: null,
-      preset: { id: "preset-portable", title: "Portable Preset" },
+      preset: { id: "preset-portable", name: "Portable Preset" },
     });
     expect(exportDesktopPromptPresetFile).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "dekoi_preset", version: 1 }),
+      expect.objectContaining({ type: "dekoi_preset", version: 2 }),
       "Portable Preset.json",
     );
     expect(importDesktopPromptPresetFile).toHaveBeenCalledOnce();

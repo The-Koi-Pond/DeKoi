@@ -32,7 +32,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role", "section-history", "section-role", "section-output"],
           sections: [
             {
@@ -99,7 +98,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role"],
           sections: [
             {
@@ -148,7 +146,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt for {{char}}.",
           sectionOrder: ["section-role"],
           sections: [
             {
@@ -175,7 +172,8 @@ describe("structured Roleplay prompt preset generation", () => {
       .map((message) => message.content)
       .join("\n\n");
 
-    expect(promptText).toContain("Fallback prompt for Mara.");
+    expect(promptText).toContain("You are Mara, writing the next in-character turn");
+    expect(promptText).not.toContain("Fallback prompt for Mara.");
     expect(promptText).not.toContain("Alex: Open the airlock.");
   });
 
@@ -197,7 +195,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role", "section-history", "section-output", "section-depth"],
           sections: [
             {
@@ -279,7 +276,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role", "section-history", "section-output", "section-depth"],
           sections: [
             {
@@ -367,7 +363,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role", "section-history", "section-output", "section-depth"],
           sections: [
             {
@@ -448,7 +443,6 @@ describe("structured Roleplay prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "{{setvar::unusedSystem::bad}}Fallback prompt.",
           sectionOrder: ["section-role", "section-history"],
           sections: [
             {

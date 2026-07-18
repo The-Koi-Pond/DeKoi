@@ -23,21 +23,18 @@ const records = (updatedAt = "1"): AppStorageRecords => ({
   promptPresets: [
     {
       id: "p",
-      schemaVersion: 1,
-      title: "Old",
-      summary: null,
-      systemPrompt: "",
-      messengerPrompt: null,
+      schemaVersion: 2,
+      name: "Old",
+      description: null,
+      messengerPrompt: "",
       parameters: null,
       sectionOrder: [],
       groupOrder: [],
-      variableOrder: [],
       variableGroups: [],
       variableValues: {},
       defaultChoices: {},
       wrapFormat: null,
       author: null,
-      folderId: null,
       sections: [],
       groups: [],
       choiceBlocks: [],
@@ -133,7 +130,7 @@ function run(
     presetId: "p",
     originalUpdatedAt: "1",
     now: "2",
-    input: { title: "New" },
+    input: { name: "New" },
   },
 ) {
   return runPromptPresetCatalogTransaction({
@@ -164,11 +161,11 @@ describe("prompt preset catalog transaction", () => {
     resolveSave();
     await promise;
     expect(h.count()).toBe(1);
-    expect(h.get().promptPresets[0].title).toBe("New");
+    expect(h.get().promptPresets[0].name).toBe("New");
   });
 
   it("restores starter additively from the bundled record and preserves settings", async () => {
-    const editedStarter = { ...STARTER_PROMPT_PRESET, title: "Edited bundled starter" };
+    const editedStarter = { ...STARTER_PROMPT_PRESET, name: "Edited bundled starter" };
     const h = setup({ ...records(), promptPresets: [editedStarter] });
     const result = await run(h, {}, { kind: "restore-starter", id: "restored", now: "2" });
 
@@ -176,7 +173,7 @@ describe("prompt preset catalog transaction", () => {
     expect(h.get().promptPresets).toHaveLength(2);
     expect(h.get().promptPresets[1]).toEqual(editedStarter);
     expect(h.get().promptPresets[0].id).toBe("restored");
-    expect(h.get().promptPresets[0].title).toBe(STARTER_PROMPT_PRESET.title);
+    expect(h.get().promptPresets[0].name).toBe(STARTER_PROMPT_PRESET.name);
     expect(h.get().appSettings.defaultPromptPresetId).toBe("p");
     expect(h.get().appSettings.promptPresetStarterInitialized).toBe(true);
   });
@@ -218,7 +215,7 @@ describe("prompt preset catalog transaction", () => {
   });
 
   it.each<PromptPresetCatalogMutation>([
-    { kind: "create", id: "p", now: "2", input: { title: "Collision" } },
+    { kind: "create", id: "p", now: "2", input: { name: "Collision" } },
     { kind: "restore-starter", id: "p", now: "2" },
   ])("rejects a $kind identity collision before flushing or persistence", async (mutation) => {
     const h = setup();
@@ -276,7 +273,7 @@ describe("prompt preset catalog transaction", () => {
     expect(result.published).toBe(false);
     expect(result.message).toMatch(/disk full|host disconnected/);
     expect(h.count()).toBe(0);
-    expect(h.get().promptPresets[0].title).toBe("Old");
+    expect(h.get().promptPresets[0].name).toBe("Old");
     expect(h.coordinator.hasActiveTransaction()).toBe(false);
   });
 
@@ -299,7 +296,7 @@ describe("prompt preset catalog transaction", () => {
     expect(result.message).toBe("response lost");
     expect(rollbackSnapshot).toBe(latest);
     expect(h.count()).toBe(0);
-    expect(h.get().promptPresets[0].title).toBe("Old");
+    expect(h.get().promptPresets[0].name).toBe("Old");
   });
 
   it("reports rollback failure after a save error", async () => {
@@ -314,7 +311,7 @@ describe("prompt preset catalog transaction", () => {
     expect(result.message).toContain("rollback failed");
     expect(result.message).toContain("rollback disk full");
     expect(h.count()).toBe(0);
-    expect(h.get().promptPresets[0].title).toBe("Old");
+    expect(h.get().promptPresets[0].name).toBe("Old");
     expect(h.coordinator.hasActiveTransaction()).toBe(false);
   });
 
@@ -332,7 +329,7 @@ describe("prompt preset catalog transaction", () => {
           return { status: "ready", message: "" };
         },
       },
-      { kind: "update", presetId: "p", originalUpdatedAt, now: "3", input: { title: "New" } },
+      { kind: "update", presetId: "p", originalUpdatedAt, now: "3", input: { name: "New" } },
     );
     expect(result.saved).toBe(false);
     expect(result.message).toMatch(/changed elsewhere/);
@@ -362,7 +359,7 @@ describe("prompt preset catalog transaction", () => {
           presetId: "p",
           originalUpdatedAt: "2",
           now: "3",
-          input: { title: "Again" },
+          input: { name: "Again" },
         })
       ).saved,
     ).toBe(true);
@@ -379,7 +376,7 @@ describe("prompt preset catalog transaction", () => {
       (h: ReturnType<typeof setup>, snapshot: AppStorageRecords) =>
         h.set({
           ...snapshot,
-          promptPresets: snapshot.promptPresets.map((p) => ({ ...p, title: "Concurrent" })),
+          promptPresets: snapshot.promptPresets.map((p) => ({ ...p, name: "Concurrent" })),
         }),
     ],
   ])("rolls back after a successful save followed by a stale %s", async (_label, change) => {
@@ -416,7 +413,7 @@ describe("prompt preset catalog transaction", () => {
       save: async (snapshot) => {
         h.set({
           ...snapshot,
-          promptPresets: snapshot.promptPresets.map((p) => ({ ...p, title: "Concurrent" })),
+          promptPresets: snapshot.promptPresets.map((p) => ({ ...p, name: "Concurrent" })),
         });
         return { status: "ready", message: "saved" };
       },
@@ -450,7 +447,7 @@ describe("prompt preset catalog transaction", () => {
           ...snapshot,
           promptPresets: snapshot.promptPresets.map((preset) => ({
             ...preset,
-            title: "Concurrent",
+            name: "Concurrent",
           })),
         });
         return { status: "ready", message: "saved" };
@@ -480,7 +477,7 @@ describe("prompt preset catalog transaction", () => {
         presetId: "p",
         originalUpdatedAt: "1",
         now: "3",
-        input: { title: "Retry" },
+        input: { name: "Retry" },
       },
     );
     expect(retry.saved).toBe(true);
@@ -496,7 +493,7 @@ describe("prompt preset catalog transaction", () => {
       },
     });
     expect(result.published).toBe(true);
-    expect(h.get().promptPresets[0].title).toBe("New");
+    expect(h.get().promptPresets[0].name).toBe("New");
     expect(h.get().characters).toEqual([character("character-2", "Newer")]);
   });
 });

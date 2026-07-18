@@ -122,18 +122,33 @@ export function lorebookWithSplitEntries(beforeBody = "Check suit seals.") {
   };
 }
 
-export function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPresetRecord {
+type PromptPresetFixtureInput = Partial<PromptPresetRecord> & {
+  messengerPrompt?: string | null;
+};
+
+export function roleplayPromptSection(content: string) {
+  return {
+    id: "fixture-roleplay-prompt",
+    identifier: "fixture-roleplay-prompt",
+    name: "Fixture Roleplay prompt",
+    content,
+    role: "system" as const,
+    enabled: true,
+    isMarker: false,
+  };
+}
+
+export function promptPreset(input: PromptPresetFixtureInput = {}): PromptPresetRecord {
+  const { messengerPrompt, ...recordInput } = input;
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Preset One",
-    summary: null,
-    systemPrompt: "Preset prompt for {{char}}.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Preset One",
+    description: null,
+    messengerPrompt: messengerPrompt ?? "",
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
@@ -142,7 +157,7 @@ export function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPre
     choiceBlocks: [],
     createdAt: now,
     updatedAt: now,
-    ...input,
+    ...recordInput,
   };
 }
 

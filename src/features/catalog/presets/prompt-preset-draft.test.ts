@@ -20,21 +20,18 @@ const now = "2026-07-08T00:00:00.000Z";
 function promptPresetRecord(input: Partial<PromptPresetRecord> = {}): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Structured Preset",
-    summary: null,
-    systemPrompt: "Fallback prompt.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Structured Preset",
+    description: null,
+    messengerPrompt: "",
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
     author: null,
-    folderId: null,
     sections: [],
     groups: [],
     choiceBlocks: [],
@@ -150,58 +147,119 @@ describe("prompt preset draft conversion", () => {
     ]);
   });
 
-  it("lets the engine preserve compatible hidden fields while editing visible fields", () => {
+  it("preserves advanced marker configuration through draft save", () => {
+    const record = promptPresetRecord({
+      sections: [
+        {
+          id: "section-character",
+          identifier: "character",
+          name: "Character",
+          content: "",
+          role: "system",
+          enabled: true,
+          isMarker: true,
+          markerConfig: {
+            type: "character",
+            characterFields: ["name", "description"],
+            lorebookFormat: "full",
+            chatHistoryOptions: { maxMessages: 12, includeSystemMessages: true },
+            agentType: "assistant",
+          },
+        },
+      ],
+    });
+
+    const draft = draftFromPromptPreset(record);
+    const input = promptPresetDraftToInput(draft);
+    const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
+
+    expect(input.sections?.[0]?.markerConfig).toEqual(record.sections[0]?.markerConfig);
+    expect(updated.sections[0]?.markerConfig).toEqual(record.sections[0]?.markerConfig);
+  });
+
+  it("preserves advanced marker configuration when changing marker type", () => {
+    const record = promptPresetRecord({
+      sections: [
+        {
+          id: "section-character",
+          identifier: "character",
+          name: "Character",
+          content: "",
+          role: "system",
+          enabled: true,
+          isMarker: true,
+          markerConfig: {
+            type: "character",
+            characterFields: ["name", "description"],
+            lorebookFormat: "full",
+            chatHistoryOptions: { maxMessages: 12, includeSystemMessages: true },
+            agentType: "assistant",
+          },
+        },
+      ],
+    });
+
+    const draft = draftFromPromptPreset(record);
+    const changedSection = updatePromptPresetDraftSectionMarkerType(
+      draft.sections[0],
+      "chat_summary",
+    );
+    const input = promptPresetDraftToInput({ ...draft, sections: [changedSection] });
+    const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
+
+    expect(updated.sections[0]?.markerConfig).toEqual({
+      type: "chat_summary",
+      characterFields: ["name", "description"],
+      lorebookFormat: "full",
+      chatHistoryOptions: { maxMessages: 12, includeSystemMessages: true },
+      agentType: "assistant",
+    });
+  });
+
+  it("lets the engine preserve hidden native fields while editing visible fields", () => {
     const record = promptPresetRecord({
       parameters: {
         topK: { send: true, value: 40 },
         temperature: { send: true, value: 0.8 },
       },
-      variableOrder: ["choice-tone"],
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },
       defaultChoices: { tone: { kind: "option", optionId: "warm" } },
       author: "Preset Author",
-      folderId: "folder-a",
       choiceBlocks: [
         {
           id: "choice-tone",
           variableName: "tone",
           label: "Tone",
-          defaultOptionId: "warm",
           options: [{ id: "warm", label: "Warm", value: "warm prose" }],
         },
       ],
     });
     const draft = draftFromPromptPreset(record);
-    draft.title = "Edited Preset";
+    draft.name = "Edited Preset";
 
     const input = promptPresetDraftToInput(draft);
     const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
 
-    expect(input.title).toBe("Edited Preset");
+    expect(input.name).toBe("Edited Preset");
     expect(input.parameters).toEqual(record.parameters);
     expect(input).not.toHaveProperty("variableGroups");
     expect(input).not.toHaveProperty("variableValues");
-    expect(input).not.toHaveProperty("isDefault");
     expect(input).not.toHaveProperty("author");
-    expect(input).not.toHaveProperty("folderId");
-    expect(input.variableOrder).toEqual(["choice-tone"]);
     expect(input.defaultChoices).toEqual({
       tone: { kind: "option", optionId: "warm" },
     });
     expect(input.choiceBlocks).toEqual(record.choiceBlocks);
     expect(updated).toMatchObject({
-      title: "Edited Preset",
+      name: "Edited Preset",
       parameters: {
         topK: { send: true, value: 40 },
         temperature: { send: true, value: 0.8 },
       },
-      variableOrder: ["choice-tone"],
       variableGroups: [{ id: "group-tone" }],
       variableValues: { style: "cinematic" },
       defaultChoices: { tone: { kind: "option", optionId: "warm" } },
       author: "Preset Author",
-      folderId: "folder-a",
       choiceBlocks: record.choiceBlocks,
     });
   });
@@ -494,48 +552,48 @@ describe("prompt preset draft conversion", () => {
     expect(
       canSavePromptPresetDraft({
         ...draft,
-        title: "Roleplay Sections",
-        systemPrompt: "",
+        name: "Roleplay Sections",
+        messengerPrompt: "",
         sections: [createPromptPresetDraftSection("section")],
       }),
     ).toBe(true);
     expect(
       canSavePromptPresetDraft({
         ...draft,
-        title: "Marker Only",
-        systemPrompt: "",
+        name: "Marker Only",
+        messengerPrompt: "",
         sections: [createPromptPresetDraftSection("marker")],
       }),
     ).toBe(true);
     expect(
       promptPresetDraftToInput({
         ...draft,
-        title: "Marker Only",
-        systemPrompt: "",
+        name: "Marker Only",
+        messengerPrompt: "",
         sections: [createPromptPresetDraftSection("marker")],
-      }).systemPrompt,
+      }).messengerPrompt,
     ).toBe("");
     expect(
       canSavePromptPresetDraft({
         ...draft,
-        title: "System Prompt",
-        systemPrompt: "Fallback prompt.",
+        name: "System Prompt",
+        messengerPrompt: "Fallback prompt.",
         sections: [],
       }),
     ).toBe(true);
     expect(
       canSavePromptPresetDraft({
         ...draft,
-        title: "Empty Preset",
-        systemPrompt: "",
+        name: "Empty Preset",
+        messengerPrompt: "",
         sections: [],
       }),
     ).toBe(true);
     expect(
       canSavePromptPresetDraft({
         ...draft,
-        title: "",
-        systemPrompt: "Fallback prompt.",
+        name: "",
+        messengerPrompt: "Fallback prompt.",
         sections: [createPromptPresetDraftSection("section")],
       }),
     ).toBe(false);
@@ -567,7 +625,7 @@ describe("prompt preset draft conversion", () => {
 
   it("preserves a cleared system prompt when updating a sectioned draft", () => {
     const record = promptPresetRecord({
-      systemPrompt: "Old prompt that should not survive.",
+      messengerPrompt: "Old prompt that should not survive.",
       sections: [
         {
           id: "section-role",
@@ -582,71 +640,18 @@ describe("prompt preset draft conversion", () => {
     });
     const input = promptPresetDraftToInput({
       ...draftFromPromptPreset(record),
-      systemPrompt: "   ",
+      messengerPrompt: "   ",
     });
 
-    expect(input.systemPrompt).toBe("");
+    expect(input.messengerPrompt).toBe("");
 
     const updated = updatePromptPresetRecord(record, input, "2026-07-08T01:00:00.000Z");
 
-    expect(updated.systemPrompt).toBe("");
-  });
-
-  it("preserves compatible variable-order slots while choices move or disappear", () => {
-    const record = promptPresetRecord({
-      variableOrder: [
-        "compatible-before",
-        "choice-tone",
-        "compatible-middle",
-        "choice-style",
-        "compatible-after",
-      ],
-      choiceBlocks: [
-        {
-          id: "choice-tone",
-          variableName: "tone",
-          label: "Tone",
-          options: [{ id: "tone-warm", label: "Warm", value: "warm" }],
-        },
-        {
-          id: "choice-style",
-          variableName: "style",
-          label: "Style",
-          options: [{ id: "style-direct", label: "Direct", value: "direct" }],
-        },
-      ],
-    });
-    const draft = draftFromPromptPreset(record);
-
-    expect(
-      promptPresetDraftToInput({
-        ...draft,
-        choiceBlocks: [draft.choiceBlocks[1]!, draft.choiceBlocks[0]!],
-      }).variableOrder,
-    ).toEqual([
-      "compatible-before",
-      "choice-style",
-      "compatible-middle",
-      "choice-tone",
-      "compatible-after",
-    ]);
-    expect(
-      promptPresetDraftToInput({
-        ...draft,
-        choiceBlocks: [draft.choiceBlocks[1]!],
-      }).variableOrder,
-    ).toEqual(["compatible-before", "choice-style", "compatible-middle", "compatible-after"]);
+    expect(updated.messengerPrompt).toBe("");
   });
 
   it("preserves displayed choice order when a new choice moves between existing choices", () => {
     const record = promptPresetRecord({
-      variableOrder: [
-        "compatible-before",
-        "choice-tone",
-        "compatible-middle",
-        "choice-style",
-        "compatible-after",
-      ],
       choiceBlocks: [
         {
           id: "choice-tone",
@@ -678,13 +683,10 @@ describe("prompt preset draft conversion", () => {
       },
     });
 
-    expect(input.variableOrder).toEqual([
-      "compatible-before",
+    expect(input.choiceBlocks?.map((block) => block.id)).toEqual([
       "choice-style",
-      "compatible-middle",
       "choice-format",
       "choice-tone",
-      "compatible-after",
     ]);
 
     const reopened = draftFromPromptPreset(

@@ -5,12 +5,11 @@ import { projectPresetChoiceState } from "../../../modes";
 function preset(): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Test",
-    systemPrompt: "",
+    schemaVersion: 2,
+    name: "Test",
+    messengerPrompt: "",
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},

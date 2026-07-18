@@ -538,16 +538,16 @@ parameter entries and rejection of removed development shapes. Remote runtimes
 must round-trip that record without flattening parameter entries or synthesizing
 `sampling` or `enabledParameters` fields. Native prompt preset records do not
 carry a default flag. Messenger uses `messengerPrompt` as its selected-preset
-source when present, then falls back to `systemPrompt` and its built-in prompt.
+source when present, then falls back to its built-in prompt.
 Messenger does not consume prompt preset sections. Roleplay
 consumes enabled sections and adjacent enabled groups for prompt assembly when a
-selected preset has sections; otherwise it uses `systemPrompt` as the fallback
+selected preset has sections; otherwise it uses its built-in fallback
 prelude. Roleplay marker sections expand scene, lore, persona, character,
 example-dialogue, and chat-history context, with transcript history included
 only by an enabled `chat_history` marker. Depth sections are anchored to that
 marker when present, or to the sectioned prompt message stream when it is
 absent. If a sectioned preset materializes no messages after filtering,
-Roleplay falls back to `systemPrompt` without automatically including
+Roleplay falls back to its built-in prelude without automatically including
 transcript history.
 DeKoi appends a post-history contract that keeps the target companion primary
 and prevents generation of the user's dialogue, intent, decisions, or
@@ -559,8 +559,7 @@ stable-ID options with optional descriptions, reusable defaults, multi-select
 and separator settings, `auto`/`buttons`/`listbox` display modes,
 manual/alphabetical option ordering, optional ordering/timestamp metadata and
 preset linkage, and independent option/default data. Runtimes must round-trip
-those fields and all `variableOrder` entries; the catalog preserves
-compatibility-only order slots while reordering choice-block slots. Choice
+those fields; the choice-block array is the displayed order. Choice
 evaluation is deterministic and does not support `randomPick`; every normalized
 choice is visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged

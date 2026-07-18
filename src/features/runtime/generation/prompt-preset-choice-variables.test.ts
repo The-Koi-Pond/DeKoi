@@ -47,21 +47,29 @@ function createId(prefix: string) {
 function promptPreset(): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Preset One",
-    summary: null,
-    systemPrompt: "Preset tone {{tone}} style {{style}}.",
+    schemaVersion: 2,
+    name: "Preset One",
+    description: null,
     messengerPrompt: "Messenger tone {{tone}} style {{style}}.",
     parameters: null,
-    sectionOrder: [],
+    sectionOrder: ["preset-roleplay"],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {
       style: "preset crisp",
     },
     defaultChoices: {},
-    sections: [],
+    sections: [
+      {
+        id: "preset-roleplay",
+        identifier: "preset-roleplay",
+        name: "Roleplay prompt",
+        content: "Preset tone {{tone}} style {{style}}.",
+        role: "system",
+        enabled: true,
+        isMarker: false,
+      },
+    ],
     groups: [],
     choiceBlocks: [
       {
@@ -73,7 +81,6 @@ function promptPreset(): PromptPresetRecord {
           { id: "calm", label: "Calm", value: "calm" },
           { id: "urgent", label: "Urgent", value: "urgent" },
         ],
-        defaultOptionId: "calm",
       },
     ],
     createdAt: now,

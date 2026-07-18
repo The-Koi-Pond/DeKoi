@@ -39,7 +39,7 @@ export function ChatSettingsPresetDrawer({
 }: ChatSettingsPresetDrawerProps) {
   const options: ChatSettingsDropdownOption[] = [
     { label: "No preset", value: "" },
-    ...promptPresets.map((preset) => ({ label: preset.title, value: preset.id })),
+    ...promptPresets.map((preset) => ({ label: preset.name, value: preset.id })),
     ...(model.missingPresetId
       ? [
           {

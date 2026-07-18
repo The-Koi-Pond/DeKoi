@@ -34,7 +34,6 @@ describe("structured Roleplay prompt preset lore markers", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-lorebook", "section-history"],
           sections: [
             {
@@ -93,7 +92,6 @@ describe("structured Roleplay prompt preset lore markers", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-history"],
           sections: [
             {
@@ -141,7 +139,6 @@ describe("structured Roleplay prompt preset lore markers", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-before", "section-after"],
           sections: [
             {
@@ -210,7 +207,6 @@ describe("structured Roleplay prompt preset lore markers", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-lorebook"],
           sections: [
             {
@@ -261,7 +257,6 @@ describe("structured Roleplay prompt preset lore markers", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-lorebook", "section-before"],
           sections: [
             {

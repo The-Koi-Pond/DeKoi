@@ -45,31 +45,6 @@ function cloneChoiceBlocks(choiceBlocks: readonly PromptPresetChoiceBlock[]) {
   }));
 }
 
-function choiceBlocksInOrder(
-  choiceBlocks: readonly PromptPresetChoiceBlock[],
-  variableOrder: readonly string[],
-) {
-  const blockById = new Map(choiceBlocks.map((block) => [block.id, block] as const));
-  const seen = new Set<string>();
-  const orderedBlocks: PromptPresetChoiceBlock[] = [];
-
-  for (const blockId of variableOrder) {
-    if (seen.has(blockId)) continue;
-    const block = blockById.get(blockId);
-    if (!block) continue;
-    seen.add(blockId);
-    orderedBlocks.push(block);
-  }
-
-  for (const block of choiceBlocks) {
-    if (seen.has(block.id)) continue;
-    seen.add(block.id);
-    orderedBlocks.push(block);
-  }
-
-  return orderedBlocks;
-}
-
 function selectedOptionId(
   block: PromptPresetChoiceBlock,
   selection: PromptPresetChoiceSelectionValue,
@@ -100,9 +75,7 @@ function defaultOptionIds(
         : [selection];
   const optionIds = selections.flatMap((value) => selectedOptionId(block, value) ?? []);
   const uniqueOptionIds = [...new Set(optionIds)];
-  const fallbackOptionId = block.options.some((option) => option.id === block.defaultOptionId)
-    ? block.defaultOptionId
-    : block.options[0]?.id;
+  const fallbackOptionId = block.options[0]?.id;
 
   if (uniqueOptionIds.length > 0) {
     return block.multiSelect ? uniqueOptionIds : uniqueOptionIds.slice(0, 1);
@@ -113,9 +86,7 @@ function defaultOptionIds(
 export function choiceDraftFromPromptPreset(
   preset: PromptPresetRecord,
 ): PromptPresetChoiceDraftState {
-  const choiceBlocks = cloneChoiceBlocks(
-    choiceBlocksInOrder(preset.choiceBlocks, preset.variableOrder),
-  );
+  const choiceBlocks = cloneChoiceBlocks(preset.choiceBlocks);
   const defaultOptionIdsByBlockId = Object.fromEntries(
     choiceBlocks.map((block) => [
       block.id,
@@ -138,7 +109,6 @@ export function addPromptPresetChoiceBlock(
     variableName: `choice_${variableIndex}`,
     label: "New Choice",
     options: [option],
-    defaultOptionId: option.id,
     displayMode: "auto",
     optionSort: "manual",
   };
@@ -192,9 +162,7 @@ export function updatePromptPresetChoiceBlock(
 
   return {
     ...draft,
-    choiceBlocks: draft.choiceBlocks.map((block) =>
-      block.id === blockId ? { ...nextBlock, defaultOptionId: repairedDefaults[0] ?? null } : block,
-    ),
+    choiceBlocks: draft.choiceBlocks.map((block) => (block.id === blockId ? nextBlock : block)),
     defaultOptionIdsByBlockId: {
       ...draft.defaultOptionIdsByBlockId,
       [blockId]: repairedDefaults,
@@ -258,11 +226,6 @@ export function setPromptPresetChoiceDefault(
 
   return {
     ...draft,
-    choiceBlocks: draft.choiceBlocks.map((choiceBlock) =>
-      choiceBlock.id === blockId
-        ? { ...choiceBlock, defaultOptionId: nextDefaults[0] ?? null }
-        : choiceBlock,
-    ),
     defaultOptionIdsByBlockId: {
       ...draft.defaultOptionIdsByBlockId,
       [blockId]: nextDefaults,
@@ -380,7 +343,6 @@ export function removePromptPresetChoiceOption(
       return {
         ...block,
         options: remainingOptions,
-        defaultOptionId: repairedDefaults[0] ?? null,
       };
     }
     return block;
@@ -412,7 +374,7 @@ export function removePromptPresetChoiceBlock(
   };
 }
 
-function cleanChoiceBlock(block: PromptPresetChoiceBlock, defaultOptionIds: readonly string[]) {
+function cleanChoiceBlock(block: PromptPresetChoiceBlock) {
   const options = block.options.map((option) => {
     const cleanedOption = {
       ...option,
@@ -425,18 +387,12 @@ function cleanChoiceBlock(block: PromptPresetChoiceBlock, defaultOptionIds: read
     else delete cleanedOption.description;
     return cleanedOption;
   });
-  const validDefaultOptionIds = defaultOptionIds.filter((optionId) =>
-    options.some((option) => option.id === optionId),
-  );
-  const firstDefaultOptionId = validDefaultOptionIds[0] ?? options[0]?.id ?? null;
-
   const cleanedBlock = {
     ...block,
     id: block.id.trim(),
     variableName: block.variableName.trim(),
     label: block.label.trim(),
     options,
-    defaultOptionId: firstDefaultOptionId,
   } satisfies PromptPresetChoiceBlock;
   const question = block.question?.trim();
   if (question) cleanedBlock.question = question;
@@ -455,10 +411,8 @@ function defaultChoiceSelection(optionIds: readonly string[]) {
 
 export function promptPresetChoiceDraftToInput(
   draft: PromptPresetChoiceDraftState,
-): Pick<PromptPresetInput, "choiceBlocks" | "defaultChoices" | "variableOrder"> {
-  const choiceBlocks = draft.choiceBlocks.map((block) =>
-    cleanChoiceBlock(block, draft.defaultOptionIdsByBlockId[block.id] ?? []),
-  );
+): Pick<PromptPresetInput, "choiceBlocks" | "defaultChoices"> {
+  const choiceBlocks = draft.choiceBlocks.map(cleanChoiceBlock);
   const defaultChoices: PromptPresetChoiceSelections = {};
 
   for (const block of choiceBlocks) {
@@ -476,6 +430,5 @@ export function promptPresetChoiceDraftToInput(
   return {
     choiceBlocks,
     defaultChoices,
-    variableOrder: choiceBlocks.map((block) => block.id),
   };
 }
