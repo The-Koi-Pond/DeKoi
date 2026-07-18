@@ -330,9 +330,9 @@ DeKoi owns generation macro resolution in app-side prompt assembly; see
 [Generation Macro Semantics](./generation-macro-semantics.md). Runtimes should
 treat `promptMessages` as the final provider input and must not re-run macro
 resolution or interpret unresolved macro-looking text. This includes current
-built-in macros in Messenger and Roleplay system prompts, selected prompt
-preset system prompts, selected Messenger preset prompt sources, prompt-preset
-static and choice variables, selected Roleplay prompt preset sections and
+built-in macros in Messenger and Roleplay system prompts, selected Messenger
+preset prompts, prompt-preset static and choice variables, selected Roleplay
+prompt preset sections and
 markers, Roleplay scene setup, persona and character context fields,
 post-history instructions, lorebook summaries and bodies, at-depth lore, and
 example dialogue. It also includes request-local variable macro side effects:
@@ -513,10 +513,10 @@ preset still exists, DeKoi prunes unknown block IDs and repairs invalid confirme
 values to preset defaults and then valid block options, but unanswered blocks
 are not materialized. Histories for inactive or missing preset IDs remain
 round-trippable. The removed `presetChoiceSelections` field is accepted only for
-one-way migration into an absent active-preset history. Prompt preset
-`defaultChoices` separately retain the compatible package shape keyed by
-variable name, including string values. Runtimes should round-trip native thread option objects so empty
-or duplicate option values keep their option identity. Native loading does not
+one-way migration into an absent active-preset history. Prompt preset defaults
+and native thread option-object shapes are defined in
+[Storage Model](./storage-model.md). Runtimes should round-trip those option
+objects so empty or duplicate option values keep their option identity. Native loading does not
 create aliases or tombstones for removed IDs; repaired thread rows are written
 back through the normal collection path. DeKoi assembles thread
 records with their transcript items before rendering or generating. Embedded
@@ -554,19 +554,15 @@ and prevents generation of the user's dialogue, intent, decisions, or
 deliberate actions. With a selected preset, narration and other-character
 behavior remain controlled by that preset; without one, Roleplay keeps its
 single-character output contract.
-Choice blocks contain stable IDs and variable names, optional questions,
-stable-ID options with optional descriptions, reusable defaults, multi-select
-and separator settings, `auto`/`buttons`/`listbox` display modes,
-manual/alphabetical option ordering, optional ordering/timestamp metadata and
-preset linkage, and independent option/default data. Runtimes must round-trip
-those fields, including `randomPick` metadata; the choice-block array is the
-displayed order. Choice evaluation remains deterministic until active-plan
-Task 6 implements per-generation `randomPick`; every normalized choice is
-visible and independent.
-Remote runtimes should expose native prompt preset records in storage. Packaged
-`dekoi_preset` version 2 or compatible `marinara_preset` version 1 envelopes are
-normalized only at DeKoi's bundle and standalone preset-file import boundaries;
-they are not remote storage record shapes.
+Choice-block fields, preset defaults, and ordering are defined in
+[Storage Model](./storage-model.md). Runtimes must round-trip those fields,
+including `randomPick` metadata, without reordering the `choiceBlocks` array.
+Choice execution is defined by
+[Generation Macro Semantics](./generation-macro-semantics.md).
+Remote runtimes should expose native prompt preset records in storage. Supported
+package versions and normalization rules live in
+[Storage Model](./storage-model.md); those envelopes exist only at DeKoi's bundle
+and standalone preset-file import boundaries, not in remote storage.
 
 Prompt preset create, starter restore, and update stage and replace the complete
 `prompt-presets` collection before the app publishes the new catalog state.

@@ -415,9 +415,7 @@ describe("normalizePromptPresetRecord", () => {
 
     const selections = materializePromptPresetThreadChoiceSelections(
       record,
-      Object.fromEntries([
-        ["toString", { kind: "option", optionId: "string-selected" }],
-      ]),
+      Object.fromEntries([["toString", { kind: "option", optionId: "string-selected" }]]),
     );
     expect(Object.prototype.hasOwnProperty.call(selections, "toString")).toBe(true);
     expect(Object.prototype.hasOwnProperty.call(selections, "__proto__")).toBe(true);

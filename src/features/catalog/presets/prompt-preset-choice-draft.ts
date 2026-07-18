@@ -2,7 +2,6 @@ import type {
   PromptPresetChoiceBlock,
   PromptPresetChoiceSelection,
   PromptPresetChoiceSelectionValue,
-  PromptPresetChoiceSelections,
   PromptPresetRecord,
 } from "../../../engine/contracts/types/prompt-presets";
 import type { PromptPresetInput } from "../../../engine/prompt-presets/prompt-preset-actions";
@@ -159,9 +158,9 @@ export function updatePromptPresetChoiceBlock(
   if (!currentBlock) return draft;
 
   const nextBlock = update(currentBlock);
-  const validDefaults = (
-    ownRecordValue(draft.defaultOptionIdsByBlockId, blockId) ?? []
-  ).filter((optionId) => nextBlock.options.some((option) => option.id === optionId));
+  const validDefaults = (ownRecordValue(draft.defaultOptionIdsByBlockId, blockId) ?? []).filter(
+    (optionId) => nextBlock.options.some((option) => option.id === optionId),
+  );
   const repairedDefaults =
     validDefaults.length > 0
       ? nextBlock.multiSelect

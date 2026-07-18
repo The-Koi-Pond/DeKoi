@@ -185,6 +185,13 @@ compatibility name. Marinara's `gamePrompt` may be recognized while decoding but
 is intentionally discarded: DeKoi has no Game mode or native owner for it.
 Native records and DeKoi-owned packages reject that field.
 
+One policy-driven decoder handles DeKoi-v2 and Marinara-v1 packages. It validates
+the exact envelope, preset, and nested row fields through the shared nested
+schema and rejects the whole package when required data is malformed, unknown
+fields are present, or any nested row is lost. Marinara scalar generation
+parameters are not converted into native per-field `{ send, value }` entries;
+that wire conversion remains future work.
+
 This early-development contract intentionally does not migrate native v1, the
 discarded recipe-shaped v2, scalar-parameter, `enabledParameters`, or `sampling`
 shapes. Delete the local
@@ -213,9 +220,10 @@ These resets intentionally destroy local prompt presets. On the next load,
 to the restored starter.
 
 Choice blocks carry stable block IDs, unique variable names, optional questions,
-options with stable IDs and optional descriptions, reusable defaults,
-multi-select separators, display and sort modes, optional ordering/timestamp
-metadata and preset linkage. Choice blocks are always visible and independent.
+options with stable IDs and optional descriptions, multi-select separators,
+display and sort modes, optional ordering/timestamp metadata and preset linkage.
+Preset-level `defaultChoices` is the sole persisted default authority. Choice
+blocks are always visible and independent.
 Blank optional question,
 description, and separator text is omitted when the catalog saves. The catalog
 uses the `choiceBlocks` array as the displayed choice order.
@@ -230,13 +238,13 @@ Switching or clearing the active preset retains each preset's independent
 history. On load, malformed histories are normalized and the removed legacy
 `presetChoiceSelections` field is migrated into the active preset's history when
 that history is absent. For a history whose preset still exists, an invalid
-confirmed choice is repaired to the preset default, then the block default or
-first valid option; a block with no prior answer is not materialized. Unknown
+confirmed choice is repaired to the preset default or first valid option; a
+block with no prior answer is not materialized. Unknown
 blocks are removed, histories for missing presets are retained, and affected
 thread collections are queued for rewrite. DeKoi does not create aliases or
 tombstones for renamed or removed IDs.
 Messenger uses the selected preset's flat `messengerPrompt` as the Prompt
-Source when present, then falls back to the built-in Messenger prompt. The
+Source when present, then falls back to the built-in Messenger prompt.
 Conversation-level arbitrary prompts are not part of the native branch
 contract. Messenger does not consume prompt preset sections for prompt assembly.
 In Roleplay, a selected prompt preset supplies generation and narration or
@@ -258,8 +266,10 @@ Messenger and Roleplay threads resolve the active preset's entry in
 `presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
 `variableValues`, defaults, and multi-select separators into
 request-local macro variables before prompt assembly.
-Every normalized choice block resolves independently. Choice blocks never choose
-random options; use random variable macros when prompt randomness is required.
+Every normalized choice block resolves independently. `randomPick` metadata is
+preserved, but choice execution is deterministic until per-generation random
+selection is implemented; use random variable macros for active prompt
+randomness.
 Changing or clearing a thread's selected prompt preset preserves its stored
 choice histories; selecting a preset again restores its confirmed choices.
 

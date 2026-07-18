@@ -283,13 +283,13 @@ Likely relationships:
 Current implementation:
 
 - Prompt presets are `schemaVersion: 2` catalog records with a name, optional
-  description, a flat native `messengerPrompt` string, a
-  nullable metadata and provider-neutral parameters,
-  static variable values, ordered Roleplay
+  description, a flat native `messengerPrompt` string, optional metadata and
+  provider-neutral parameters, static variable values, ordered Roleplay
   sections/groups, and choice blocks. Each optional outbound parameter stores
   an independent Send state and value; local prompt-assembly controls remain
   separate from provider request fields. Native records retain
-  stable empty arrays/maps and empty flat prompt strings when prompt content is absent.
+  stable empty arrays/maps and an empty flat prompt string when Messenger prompt
+  content is absent.
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
   sections, section roles, enabled state, wrapping, depth placement, choice
   blocks, options, reusable defaults, questions, option descriptions,
@@ -299,10 +299,9 @@ Current implementation:
   native Messenger prompt.
 - The Presets catalog imports one compatible prompt-preset package as a fresh
   native record and exports one selected saved record as a stable DeKoi-owned
-  `.json` package. Marinara preset-v1 import maps its wire-level
-  `conversationPrompt` to native `messengerPrompt`; the compatibility name is
-  not accepted in native records. Standalone preset files are not full storage
-  bundles.
+  `.json` package. Package versions, boundary mappings, and validation rules live
+  in [docs/storage-model.md](./docs/storage-model.md). Standalone preset files
+  are not full storage bundles.
 - New Messenger and Roleplay threads select the current app default prompt
   preset. Each thread can later select one prompt preset. Messenger uses
   the selected preset's flat `messengerPrompt` and falls back to built-in

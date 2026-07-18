@@ -269,10 +269,7 @@ function nativeStringRecordIsValid(value: unknown): value is Record<string, stri
     isRecord(value) &&
     Object.entries(value).every(
       ([key, item]) =>
-        key.length > 0 &&
-        key === key.trim() &&
-        typeof item === "string" &&
-        item === item.trim(),
+        key.length > 0 && key === key.trim() && typeof item === "string" && item === item.trim(),
     )
   );
 }
@@ -873,10 +870,7 @@ export function resolvePromptPresetChoiceControls({
       block,
       ownRecordValue(normalizedSelections, block.id),
     ),
-    selectedValues: choiceSelectionValues(
-      block,
-      ownRecordValue(normalizedSelections, block.id),
-    ),
+    selectedValues: choiceSelectionValues(block, ownRecordValue(normalizedSelections, block.id)),
     options: choiceControlOptions(block),
   }));
 }

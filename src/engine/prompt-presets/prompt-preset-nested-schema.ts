@@ -102,11 +102,7 @@ function readNullableNestedIdentifier(value: unknown, format: PromptPresetNested
     : INVALID_NESTED_IDENTIFIER;
 }
 
-function readCanonicalText(
-  value: unknown,
-  format: PromptPresetNestedFormat,
-  allowEmpty: boolean,
-) {
+function readCanonicalText(value: unknown, format: PromptPresetNestedFormat, allowEmpty: boolean) {
   if (typeof value !== "string") return INVALID_TEXT;
   const text = value.trim();
   if ((!allowEmpty && !text) || (format === "native" && value !== text)) return INVALID_TEXT;
@@ -429,9 +425,7 @@ export function readPromptPresetNestedRecords(
   return records;
 }
 
-function exactOptionSelection(
-  value: unknown,
-): value is { kind: "option"; optionId: string } {
+function exactOptionSelection(value: unknown): value is { kind: "option"; optionId: string } {
   return (
     isRecord(value) &&
     Object.keys(value).length === 2 &&
