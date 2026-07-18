@@ -563,7 +563,7 @@ those fields; the choice-block array is the displayed order. Choice
 evaluation is deterministic and does not support `randomPick`; every normalized
 choice is visible and independent.
 Remote runtimes should expose native prompt preset records in storage. Packaged
-`dekoi_preset` or compatible `marinara_preset` version 1 envelopes are
+`dekoi_preset` version 2 or compatible `marinara_preset` version 1 envelopes are
 normalized only at DeKoi's bundle and standalone preset-file import boundaries;
 they are not remote storage record shapes.
 

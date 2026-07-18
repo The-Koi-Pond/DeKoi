@@ -497,6 +497,57 @@ describe("normalizePromptPresetRecord", () => {
     ).toBeNull();
   });
 
+  it.each([
+    [
+      "section",
+      {
+        sections: [
+          {
+            id: " section ",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    ["group", { groups: [{ id: " group ", name: "Group" }] }],
+    [
+      "choice block",
+      {
+        choiceBlocks: [
+          {
+            id: " choice-tone ",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+    [
+      "choice option",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [
+              { id: "warm", label: "Warm", value: "warm" },
+              { id: " warm ", label: "Also warm", value: "warm-2" },
+            ],
+          },
+        ],
+      },
+    ],
+  ])("rejects whitespace-padded native %s IDs", (_label, nested) => {
+    expect(validPromptPresetRecord(nested)).toBeNull();
+  });
+
   it("removes whitespace-only choice separators", () => {
     const record = validPromptPresetRecord({
       id: "preset-whitespace-separator",

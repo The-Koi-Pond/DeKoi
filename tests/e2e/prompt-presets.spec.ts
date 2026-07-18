@@ -275,7 +275,7 @@ test("prompt preset choice definitions can be authored and saved", async ({ page
   await page.getByRole("button", { name: "＋ Preset" }).click();
 
   await page.getByLabel("Name").fill("Choice Editor Proof");
-  await page.getByLabel("System Prompt").fill("Stay in character.");
+  await page.getByLabel("Messenger Prompt").fill("Stay in character.");
 
   const choiceEditor = page.getByRole("region", { name: "Choice Definitions" });
   await expect(choiceEditor).toBeVisible();
@@ -313,15 +313,15 @@ test("promptless prompt presets can be created and reopened", async ({ page }) =
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
   await page.getByLabel("Name").fill("Promptless Catalog Proof");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   await page.getByRole("button", { name: "Create" }).click();
 
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   await page.getByRole("button", { name: "Back to Pond" }).click();
   await page.getByRole("button", { name: "Promptless Catalog Proof" }).click();
   await expect(page.getByLabel("Name")).toHaveValue("Promptless Catalog Proof");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   expect(pageErrors).toEqual([]);
 });
 
@@ -336,11 +336,11 @@ test("failed prompt preset create retains the draft and retry persists", async (
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
   await page.getByLabel("Name").fill("Retry Draft");
-  await page.getByLabel("System Prompt").fill("Keep this exact text.");
+  await page.getByLabel("Messenger Prompt").fill("Keep this exact text.");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("alert")).toContainText("Simulated prompt-presets replace failure.");
   await expect(page.getByLabel("Name")).toHaveValue("Retry Draft");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("Keep this exact text.");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("Keep this exact text.");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
   await expect(page.getByLabel("Name")).toHaveValue("Retry Draft");

@@ -7,6 +7,7 @@ export type PromptPresetNestedKind = "sections" | "groups" | "choiceBlocks";
 const MAX_CHOICE_OPTIONS = 1_000;
 const MAX_DEFAULT_SELECTIONS = 1_000;
 const INVALID_BOOLEAN = Symbol("invalid prompt preset boolean");
+const INVALID_NESTED_ID = Symbol("invalid prompt preset nested id");
 
 const SECTION_KEYS = new Set([
   "id",
@@ -83,6 +84,21 @@ function hasOnlyKeys(record: Record<string, unknown>, allowed: Set<string>) {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNestedId(value: unknown, format: PromptPresetNestedFormat): value is string {
+  return isNonEmptyString(value) && (format !== "native" || value === value.trim());
+}
+
+function readNestedId(value: string, format: PromptPresetNestedFormat) {
+  return format === "native" ? value : value.trim();
+}
+
+function readNullableNestedId(value: unknown, format: PromptPresetNestedFormat) {
+  if (value === undefined || value === null) return value;
+  return typeof value === "string" && (format !== "native" || value === value.trim())
+    ? readNestedId(value, format)
+    : INVALID_NESTED_ID;
 }
 
 function isNullableString(value: unknown) {
@@ -183,21 +199,23 @@ function readSection(
   row: Record<string, unknown>,
   format: PromptPresetNestedFormat,
 ): Record<string, unknown> | null {
+  const presetId = readNullableNestedId(row.presetId, format);
+  const groupId = readNullableNestedId(row.groupId, format);
   const enabled = readRequiredBoolean(row.enabled, format);
   const isMarker = readRequiredBoolean(row.isMarker, format);
   const wrapInXml = readOptionalBoolean(row.wrapInXml, format);
   const forbidOverrides = readOptionalBoolean(row.forbidOverrides, format);
   if (
     !hasOnlyKeys(row, SECTION_KEYS) ||
-    !isNonEmptyString(row.id) ||
+    !isNestedId(row.id, format) ||
     !isNonEmptyString(row.identifier) ||
     !isNonEmptyString(row.name) ||
     typeof row.content !== "string" ||
     (row.role !== "system" && row.role !== "user" && row.role !== "assistant") ||
     enabled === INVALID_BOOLEAN ||
     isMarker === INVALID_BOOLEAN ||
-    (row.presetId !== undefined && !isNullableString(row.presetId)) ||
-    (row.groupId !== undefined && !isNullableString(row.groupId)) ||
+    presetId === INVALID_NESTED_ID ||
+    groupId === INVALID_NESTED_ID ||
     (row.injectionPosition !== undefined && !isNullableString(row.injectionPosition)) ||
     !isNullableNumberWithin(
       row.injectionDepth,
@@ -213,7 +231,14 @@ function readSection(
   )
     return null;
 
-  const section: Record<string, unknown> = { ...row, enabled, isMarker };
+  const section: Record<string, unknown> = {
+    ...row,
+    id: readNestedId(row.id, format),
+    enabled,
+    isMarker,
+  };
+  if (presetId !== undefined) section.presetId = presetId;
+  if (groupId !== undefined) section.groupId = groupId;
   if (wrapInXml === undefined) delete section.wrapInXml;
   else section.wrapInXml = wrapInXml;
   if (forbidOverrides === undefined) delete section.forbidOverrides;
@@ -227,19 +252,23 @@ function readGroup(
   row: Record<string, unknown>,
   format: PromptPresetNestedFormat,
 ): Record<string, unknown> | null {
+  const presetId = readNullableNestedId(row.presetId, format);
+  const parentGroupId = readNullableNestedId(row.parentGroupId, format);
   const enabled = readOptionalBoolean(row.enabled, format);
   if (
     !hasOnlyKeys(row, GROUP_KEYS) ||
-    !isNonEmptyString(row.id) ||
+    !isNestedId(row.id, format) ||
     !isNonEmptyString(row.name) ||
-    (row.presetId !== undefined && !isNullableString(row.presetId)) ||
-    (row.parentGroupId !== undefined && !isNullableString(row.parentGroupId)) ||
+    presetId === INVALID_NESTED_ID ||
+    parentGroupId === INVALID_NESTED_ID ||
     !isNullableNumberWithin(row.order, PROMPT_PRESET_NUMERIC_CONSTRAINTS.groupOrder) ||
     enabled === INVALID_BOOLEAN ||
     (row.createdAt !== undefined && !isNullableString(row.createdAt))
   )
     return null;
-  const group = { ...row };
+  const group: Record<string, unknown> = { ...row, id: readNestedId(row.id, format) };
+  if (presetId !== undefined) group.presetId = presetId;
+  if (parentGroupId !== undefined) group.parentGroupId = parentGroupId;
   if (enabled === undefined) delete group.enabled;
   else group.enabled = enabled;
   return group;
@@ -255,14 +284,17 @@ function readOptions(value: unknown, format: PromptPresetNestedFormat) {
       (option) =>
         isRecord(option) &&
         hasOnlyKeys(option, allowed) &&
-        isNonEmptyString(option.id) &&
+        isNestedId(option.id, format) &&
         isNonEmptyString(option.label) &&
         typeof option.value === "string" &&
         (option.description === undefined || isNullableString(option.description)),
     )
   )
     return null;
-  return source;
+  return source.map((option) => ({
+    ...option,
+    id: readNestedId(option.id as string, format),
+  }));
 }
 
 function readChoiceBlock(
@@ -271,15 +303,16 @@ function readChoiceBlock(
 ): Record<string, unknown> | null {
   const allowed =
     format === "marinara_preset" ? MARINARA_CHOICE_BLOCK_KEYS : DEKOI_CHOICE_BLOCK_KEYS;
+  const presetId = readNullableNestedId(row.presetId, format);
   const options = readOptions(row.options, format);
   const multiSelect = readOptionalBoolean(row.multiSelect, format);
   const randomPick = readOptionalBoolean(row.randomPick, format);
   if (
     !hasOnlyKeys(row, allowed) ||
-    !isNonEmptyString(row.id) ||
+    !isNestedId(row.id, format) ||
     !isNonEmptyString(row.variableName) ||
     options === null ||
-    (row.presetId !== undefined && !isNullableString(row.presetId)) ||
+    presetId === INVALID_NESTED_ID ||
     (row.question !== undefined && !isNullableString(row.question)) ||
     (format !== "marinara_preset" && !isNonEmptyString(row.label)) ||
     multiSelect === INVALID_BOOLEAN ||
@@ -300,11 +333,13 @@ function readChoiceBlock(
     return null;
   const block: Record<string, unknown> = {
     ...row,
+    id: readNestedId(row.id, format),
     ...(format === "marinara_preset"
       ? { label: (typeof row.question === "string" && row.question.trim()) || row.variableName }
       : {}),
     options,
   };
+  if (presetId !== undefined) block.presetId = presetId;
   if (multiSelect === undefined) delete block.multiSelect;
   else block.multiSelect = multiSelect;
   if (randomPick === undefined) delete block.randomPick;
