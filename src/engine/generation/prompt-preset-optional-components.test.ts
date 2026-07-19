@@ -33,17 +33,18 @@ function companion() {
   });
 }
 
-function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPresetRecord {
+type PromptPresetFixtureInput = Partial<PromptPresetRecord>;
+
+function promptPreset(input: PromptPresetFixtureInput = {}): PromptPresetRecord {
+  const { messengerPrompt, ...recordInput } = input;
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Optional component preset",
-    systemPrompt: "",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Optional component preset",
+    messengerPrompt: messengerPrompt ?? "",
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
@@ -52,13 +53,13 @@ function promptPreset(input: Partial<PromptPresetRecord> = {}): PromptPresetReco
     choiceBlocks: [],
     createdAt: now,
     updatedAt: now,
-    ...input,
+    ...recordInput,
   };
 }
 
-function roleplaySections(systemPrompt = "") {
+function roleplaySections(messengerPrompt = "") {
   return promptPreset({
-    systemPrompt,
+    messengerPrompt,
     sectionOrder: ["section-role"],
     sections: [
       {
@@ -142,7 +143,7 @@ describe("optional prompt preset generation components", () => {
     },
     {
       name: "shared-prompt-only",
-      preset: promptPreset({ systemPrompt: "Shared prompt for {{char}}." }),
+      preset: promptPreset({ messengerPrompt: "Shared prompt for {{char}}." }),
       expected: "Shared prompt for Mara.",
     },
     {
@@ -184,10 +185,10 @@ describe("optional prompt preset generation components", () => {
       excluded: "MESSENGER_ONLY",
     },
     {
-      name: "shared-prompt-only",
-      preset: promptPreset({ systemPrompt: "Shared Roleplay prompt for {{char}}." }),
-      expected: "Shared Roleplay prompt for Mara.",
-      excluded: "MESSENGER_ONLY",
+      name: "flat-Messenger-only",
+      preset: promptPreset({ messengerPrompt: "Shared Roleplay prompt for {{char}}." }),
+      expected: "You are Mara, writing the next in-character turn",
+      excluded: "Shared Roleplay prompt for Mara.",
     },
     {
       name: "Roleplay-sections-only",
@@ -252,13 +253,14 @@ describe("optional prompt preset generation components", () => {
   it("keeps a native sections-only package mode-safe after import normalization", () => {
     const importedPreset = normalizePromptPresetImportRecord({
       type: "dekoi_preset",
-      version: 1,
+      version: 2,
       exportedAt: now,
       data: {
         preset: {
           id: "preset-1",
+          schemaVersion: 2,
           name: "Native sections-only preset",
-          systemPrompt: "",
+          messengerPrompt: "",
           sectionOrder: ["section-role"],
           createdAt: now,
           updatedAt: now,
@@ -296,7 +298,7 @@ describe("optional prompt preset generation components", () => {
     });
     const messengerText = promptText(messengerAssembly.request.promptMessages);
 
-    expect(importedPreset.systemPrompt).toBe("");
+    expect(importedPreset.messengerPrompt).toBe("");
     expect(messengerText).toContain("texting privately with the user in a casual DM conversation");
     expect(messengerText).not.toContain("IMPORTED_ROLEPLAY_SECTION");
 

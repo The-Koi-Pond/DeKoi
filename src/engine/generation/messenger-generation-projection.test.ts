@@ -98,7 +98,7 @@ describe("Messenger generation user message projection", () => {
     };
     const projectedContext: MessengerGenerationContext = {
       ...context,
-      promptPreset: { systemPrompt: "{{input}}" } as PromptPresetRecord,
+      promptPreset: { messengerPrompt: "{{input}}" } as PromptPresetRecord,
       requestThread: thread,
     };
     const supplied: ModeMessage = {

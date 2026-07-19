@@ -105,15 +105,13 @@ function messengerCharacterMessage(
 function messengerPreset(messengerPrompt: string): PromptPresetRecord {
   return {
     id: "preset-1",
-    schemaVersion: 1,
-    title: "Messenger test",
-    summary: null,
-    systemPrompt: "Fallback",
+    schemaVersion: 2,
+    name: "Messenger test",
+    description: null,
     messengerPrompt,
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},

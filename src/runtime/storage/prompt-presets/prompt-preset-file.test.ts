@@ -8,24 +8,21 @@ const now = "2026-07-11T00:00:00.000Z";
 function promptPreset(): PromptPresetRecord {
   return {
     id: "prompt-preset-file-proof",
-    schemaVersion: 1,
-    title: "Portable: Preset / Proof",
-    summary: "Standalone package proof.",
-    systemPrompt: "Write the next response.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: "Portable: Preset / Proof",
+    description: "Standalone package proof.",
+    messengerPrompt: "Write the next response.",
     parameters: {
       temperature: { send: true, value: 0.7 },
       maxTokens: { send: true, value: 1024 },
     },
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
     author: null,
-    folderId: null,
     sections: [],
     groups: [],
     choiceBlocks: [],
@@ -35,13 +32,13 @@ function promptPreset(): PromptPresetRecord {
 }
 
 describe("standalone prompt preset files", () => {
-  it("creates a portable export with a safe title-based .json filename", () => {
+  it("creates a portable export with a safe name-based .json filename", () => {
     const result = createPromptPresetFileExport(promptPreset(), now);
 
     expect(result.filename).toBe("Portable- Preset - Proof.json");
     expect(result.packageValue).toMatchObject({
       type: "dekoi_preset",
-      version: 1,
+      version: 2,
       exportedAt: now,
       data: { preset: { name: "Portable: Preset / Proof" } },
     });
@@ -50,10 +47,10 @@ describe("standalone prompt preset files", () => {
   it("prefixes Windows reserved device names in export filenames", () => {
     const preset = promptPreset();
 
-    expect(createPromptPresetFileExport({ ...preset, title: "CON" }, now).filename).toBe(
+    expect(createPromptPresetFileExport({ ...preset, name: "CON" }, now).filename).toBe(
       "prompt-preset-CON.json",
     );
-    expect(createPromptPresetFileExport({ ...preset, title: "lpt1.txt" }, now).filename).toBe(
+    expect(createPromptPresetFileExport({ ...preset, name: "lpt1.txt" }, now).filename).toBe(
       "prompt-preset-lpt1.txt.json",
     );
   });

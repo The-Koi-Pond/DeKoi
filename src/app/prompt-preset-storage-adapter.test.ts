@@ -29,7 +29,7 @@ describe("runPromptPresetStorageAdapter", () => {
         kind: "create",
         id: "preset-1",
         now: "2026-07-14T00:00:00.000Z",
-        input: { title: "New preset", systemPrompt: "Hello" },
+        input: { name: "New preset", messengerPrompt: "Hello" },
       },
       {
         storageReady: true,

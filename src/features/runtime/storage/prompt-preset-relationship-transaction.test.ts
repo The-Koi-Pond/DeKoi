@@ -10,12 +10,11 @@ import { createStorageTransactionCoordinator } from "./storage-transaction-coord
 
 const preset = {
   id: "preset-default",
-  schemaVersion: 1 as const,
-  title: "Default",
-  systemPrompt: "Use it.",
+  schemaVersion: 2 as const,
+  name: "Default",
+  messengerPrompt: "Use it.",
   sectionOrder: [],
   groupOrder: [],
-  variableOrder: [],
   variableGroups: [],
   variableValues: {},
   defaultChoices: {},
@@ -25,7 +24,7 @@ const preset = {
   createdAt: "2026-01-01",
   updatedAt: "2026-01-01",
 };
-const deletedPreset = { ...preset, id: "preset-delete", title: "Delete" };
+const deletedPreset = { ...preset, id: "preset-delete", name: "Delete" };
 
 function snapshot(): AppStorageRecords {
   return {

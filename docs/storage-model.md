@@ -145,13 +145,14 @@ records instead of migrating them. Pre-v2 lorebook records were
 development-only; revisit this before DeKoi has supported user data that
 requires compatibility.
 
-Prompt presets use `schemaVersion: 1`. Each record stores title, optional
-summary, required string `systemPrompt` (which may be empty), optional
-`messengerPrompt`, optional normalized provider-neutral `parameters`,
+Prompt presets use `schemaVersion: 2`. Each record stores name, optional
+description, a required flat native `messengerPrompt` string,
+optional normalized provider-neutral `parameters`,
 section/group ordering fields, `sections`, `groups`, `choiceBlocks`,
-static `variableValues`, `defaultChoices`, and optional author/folder metadata.
-Native preset records do not store a default flag;
-`AppSettings.defaultPromptPresetId` is the sole native default authority. The `parameters`
+static `variableValues`, `defaultChoices`, and optional author metadata.
+`AppSettings.defaultPromptPresetId` remains the sole native global default
+authority for the current thread-creation path.
+The `parameters`
 object gives each optional outbound field an explicit `{ send, value }` entry.
 `send: true` contributes the value to the provider-neutral generation request;
 `send: false` deliberately omits it and prevents an app default from silently
@@ -177,8 +178,23 @@ recorded in app settings, but it does not suppress empty-collection recovery.
 Ordinary deletion cannot empty the collection because the default and last
 preset cannot be deleted.
 
-This early-development contract intentionally does not migrate the removed
-scalar-parameter, `enabledParameters`, or `sampling` shapes. Delete the local
+Marinara preset-v1 packages expose the flat Messenger prompt as
+`conversationPrompt`. The package decoder maps that wire field to native
+`messengerPrompt`; native records and DeKoi-owned packages do not retain the
+compatibility name. Marinara's `gamePrompt` may be recognized while decoding but
+is intentionally discarded: DeKoi has no Game mode or native owner for it.
+Native records and DeKoi-owned packages reject that field.
+
+One policy-driven decoder handles DeKoi-v2 and Marinara-v1 packages. It validates
+the exact envelope, preset, and nested row fields through the shared nested
+schema and rejects the whole package when required data is malformed, unknown
+fields are present, or any nested row is lost. Marinara scalar generation
+parameters are not converted into native per-field `{ send, value }` entries;
+that wire conversion remains future work.
+
+This early-development contract intentionally does not migrate native v1, the
+discarded recipe-shaped v2, scalar-parameter, `enabledParameters`, or `sampling`
+shapes. Delete the local
 prompt-preset collection and restart, or re-export presets with the current
 build, when old development data was created against those shapes.
 
@@ -204,14 +220,13 @@ These resets intentionally destroy local prompt presets. On the next load,
 to the restored starter.
 
 Choice blocks carry stable block IDs, unique variable names, optional questions,
-options with stable IDs and optional descriptions, reusable defaults,
-multi-select separators, display and sort modes, optional ordering/timestamp
-metadata and preset linkage. Choice blocks are always visible and independent.
+options with stable IDs and optional descriptions, multi-select separators,
+display and sort modes, optional ordering/timestamp metadata and preset linkage.
+Preset-level `defaultChoices` is the sole persisted default authority. Choice
+blocks are always visible and independent.
 Blank optional question,
 description, and separator text is omitted when the catalog saves. The catalog
-uses `variableOrder` for displayed choice order while preserving compatible
-non-choice slots in their existing positions as choices move, appear, or are
-removed.
+uses the `choiceBlocks` array as the displayed choice order.
 Prompt preset `defaultChoices` remain compatible package data keyed by variable
 name and may use option values or IDs. Native branches store
 `presetChoiceSelectionsByPresetId`, a map from preset ID to a deliberately
@@ -223,17 +238,17 @@ Switching or clearing the active preset retains each preset's independent
 history. On load, malformed histories are normalized and the removed legacy
 `presetChoiceSelections` field is migrated into the active preset's history when
 that history is absent. For a history whose preset still exists, an invalid
-confirmed choice is repaired to the preset default, then the block default or
-first valid option; a block with no prior answer is not materialized. Unknown
+confirmed choice is repaired to the preset default or first valid option; a
+block with no prior answer is not materialized. Unknown
 blocks are removed, histories for missing presets are retained, and affected
 thread collections are queued for rewrite. DeKoi does not create aliases or
 tombstones for renamed or removed IDs.
-Messenger uses the selected preset's `messengerPrompt` as the Prompt Source
-when present, then falls back to `systemPrompt` and the built-in Messenger
-prompt. Conversation-level arbitrary prompts are not part of the native branch
+Messenger uses the selected preset's flat `messengerPrompt` as the Prompt
+Source when present, then falls back to the built-in Messenger prompt.
+Conversation-level arbitrary prompts are not part of the native branch
 contract. Messenger does not consume prompt preset sections for prompt assembly.
-In Roleplay, a selected prompt preset can replace the system prelude, generation
-and narration or other-character output behavior. If the preset has
+In Roleplay, a selected prompt preset supplies generation and narration or
+other-character output behavior through its structured rows. If the preset has
 sections, Roleplay assembles provider messages from enabled sections and
 adjacent enabled groups instead of the fallback system prelude. Marker sections
 expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
@@ -242,8 +257,8 @@ expand Roleplay context for `chat_summary`, `lorebook`, `world_info_before`,
 enabled `chat_history` marker. Depth sections insert around the `chat_history`
 marker when present, or around the sectioned prompt message stream by depth from
 the newest item. If a sectioned preset leaves no materialized messages after
-enabled/group/content filtering, Roleplay falls back to the selected system
-prompt without automatically replaying transcript history. DeKoi still appends
+enabled/group/content filtering, Roleplay falls back to its built-in prelude
+without automatically replaying transcript history. DeKoi still appends
 a Roleplay post-history contract that keeps the target
 companion primary, protects the user's dialogue and agency, and leaves narration
 and other-character output behavior to the selected preset.
@@ -251,8 +266,10 @@ Messenger and Roleplay threads resolve the active preset's entry in
 `presetChoiceSelectionsByPresetId`. Choice selections resolve with preset
 `variableValues`, defaults, and multi-select separators into
 request-local macro variables before prompt assembly.
-Every normalized choice block resolves independently. Choice blocks never choose
-random options; use random variable macros when prompt randomness is required.
+Every normalized choice block resolves independently. `randomPick` metadata is
+preserved, but choice execution is deterministic until per-generation random
+selection is implemented; use random variable macros for active prompt
+randomness.
 Changing or clearing a thread's selected prompt preset preserves its stored
 choice histories; selecting a preset again restores its confirmed choices.
 
@@ -720,20 +737,24 @@ DeKoi-native bundle schema version 2 is the durable interchange path. It should:
   bundles. Exported records stay DeKoi-native with their IDs; bundle
   import may also normalize packaged prompt preset envelopes with
   `data.preset`, `sections`, `groups`, and `choiceBlocks` into native records.
-  Packaged `name`/`description` become `title`/`summary`, `conversationPrompt`
-  becomes `messengerPrompt`, and enabled non-marker sections can supply the
-  native `systemPrompt`. Packaged `author` and `folderId` metadata are preserved
-  when present; packaged `isDefault` is not native authority and is discarded.
+  Packaged `name`/`description` map directly to native `name`/`description`; the flat conversation
+  prompt becomes native `messengerPrompt`, and sections/groups remain Roleplay
+  structure. A Marinara `gamePrompt` is not retained.
+  Packaged `author` is preserved by the native record. Marinara
+  global-default metadata is recognized but discarded while
+  `AppSettings.defaultPromptPresetId` remains the sole authority; standalone
+  additive import does not change that default.
   An empty or unusable imported preset collection is repaired with the bundled
   starter. A missing default is repaired to the first usable imported preset,
   and dangling active thread references are reassigned to it without erasing
   per-preset histories. Source envelope fields do not survive on the native
   record.
 - Keep standalone prompt preset files separate from full storage bundles. The
-  Presets catalog exports one saved record as a `dekoi_preset` version 1 package
-  named from its title with a normal `.json` extension. Standalone import is
-  content-driven: supported `dekoi_preset` and compatible `marinara_preset`
-  version 1 envelopes may use `.json` or `.marinara.json` filenames. A valid
+  Presets catalog exports one saved record as a `dekoi_preset` version 2 package
+  named from its name with a normal `.json` extension. Standalone import is
+  content-driven: supported `dekoi_preset` version 2 and compatible
+  `marinara_preset` version 1 envelopes may use `.json` or `.marinara.json`
+  filenames. A valid
   import keeps supported parameters, sections, groups, choices, variables,
   ordering, and metadata, then creates one fresh native preset ID and rewrites
   nested preset ownership to that ID. It never changes the app default. Parse

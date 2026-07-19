@@ -25,7 +25,7 @@ function promptPresetPackage(id: string, name: string) {
         id,
         name,
         description: "Imported by content.",
-        systemPrompt: "Write the next response.",
+        conversationPrompt: "Write the next response.",
         parameters: { temperature: { send: true, value: 0.65 } },
         createdAt: "2026-07-11T00:00:00.000Z",
         updatedAt: "2026-07-11T00:00:00.000Z",
@@ -37,27 +37,30 @@ function promptPresetPackage(id: string, name: string) {
   };
 }
 
-function promptPresetFile(name: string, id: string, title: string) {
+function promptPresetFile(name: string, id: string, presetName: string) {
   return {
     name,
     mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(promptPresetPackage(id, title))),
+    buffer: Buffer.from(JSON.stringify(promptPresetPackage(id, presetName))),
   };
 }
 
-function promptlessNativePresetFile(name: string, id: string, title: string) {
+function promptlessNativePresetFile(name: string, id: string, presetName: string) {
   return {
     name,
     mimeType: "application/json",
     buffer: Buffer.from(
       JSON.stringify({
         type: "dekoi_preset",
-        version: 1,
+        version: 2,
         exportedAt: "2026-07-11T00:00:00.000Z",
         data: {
           preset: {
             id,
-            name: title,
+            schemaVersion: 2,
+            name: presetName,
+            description: null,
+            messengerPrompt: "",
             createdAt: "2026-07-11T00:00:00.000Z",
             updatedAt: "2026-07-11T00:00:00.000Z",
           },
@@ -122,7 +125,7 @@ test("prompt preset parameter Send controls retain values and show invalid input
   await openPromptPresetCatalog(page);
   await page.getByRole("button", { name: "＋ Preset" }).click();
 
-  await page.getByLabel("Title").fill("Parameter Send Proof");
+  await page.locator("#preset-name").fill("Parameter Send Proof");
   const temperature = page.getByLabel("Temperature", { exact: true });
   const sendTemperature = page.getByRole("checkbox", { name: "Send Temperature" });
   await temperature.fill("0.65");
@@ -189,7 +192,7 @@ test("restoring the starter prompt preset opens a fresh record", async ({ page }
   ).toHaveLength(beforeReplaceCount + 1);
   runtime.releaseDeferredReplace();
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
-  await expect(page.getByLabel("Title")).not.toHaveValue("");
+  await expect(page.locator("#preset-name")).not.toHaveValue("");
 });
 
 test("repeated starter restores add distinct records", async ({ page }) => {
@@ -271,8 +274,8 @@ test("prompt preset choice definitions can be authored and saved", async ({ page
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
 
-  await page.getByLabel("Title").fill("Choice Editor Proof");
-  await page.getByLabel("System Prompt").fill("Stay in character.");
+  await page.locator("#preset-name").fill("Choice Editor Proof");
+  await page.getByLabel("Messenger Prompt").fill("Stay in character.");
 
   const choiceEditor = page.getByRole("region", { name: "Choice Definitions" });
   await expect(choiceEditor).toBeVisible();
@@ -309,16 +312,16 @@ test("promptless prompt presets can be created and reopened", async ({ page }) =
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Promptless Catalog Proof");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await page.locator("#preset-name").fill("Promptless Catalog Proof");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   await page.getByRole("button", { name: "Create" }).click();
 
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   await page.getByRole("button", { name: "Back to Pond" }).click();
   await page.getByRole("button", { name: "Promptless Catalog Proof" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Promptless Catalog Proof");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("");
+  await expect(page.locator("#preset-name")).toHaveValue("Promptless Catalog Proof");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("");
   expect(pageErrors).toEqual([]);
 });
 
@@ -332,15 +335,15 @@ test("failed prompt preset create retains the draft and retry persists", async (
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Retry Draft");
-  await page.getByLabel("System Prompt").fill("Keep this exact text.");
+  await page.locator("#preset-name").fill("Retry Draft");
+  await page.getByLabel("Messenger Prompt").fill("Keep this exact text.");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("alert")).toContainText("Simulated prompt-presets replace failure.");
-  await expect(page.getByLabel("Title")).toHaveValue("Retry Draft");
-  await expect(page.getByLabel("System Prompt")).toHaveValue("Keep this exact text.");
+  await expect(page.locator("#preset-name")).toHaveValue("Retry Draft");
+  await expect(page.getByLabel("Messenger Prompt")).toHaveValue("Keep this exact text.");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
-  await expect(page.getByLabel("Title")).toHaveValue("Retry Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Retry Draft");
 });
 
 test("deferred prompt preset save blocks duplicate clicks and route changes", async ({ page }) => {
@@ -353,13 +356,13 @@ test("deferred prompt preset save blocks duplicate clicks and route changes", as
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Deferred Draft");
+  await page.locator("#preset-name").fill("Deferred Draft");
   const save = page.getByRole("button", { name: "Create" });
   await save.click();
   await runtime.waitForDeferredReplace;
   await expect(save).toBeDisabled();
-  await expect(page.getByLabel("Title")).toBeDisabled();
-  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  await expect(page.locator("#preset-name")).toBeDisabled();
+  await expect(page.locator("#preset-name")).toHaveValue("Deferred Draft");
   const unloadAllowedWhileSaving = await page.evaluate(() => {
     const event = new Event("beforeunload", { cancelable: true });
     return window.dispatchEvent(event);
@@ -367,12 +370,12 @@ test("deferred prompt preset save blocks duplicate clicks and route changes", as
   expect(unloadAllowedWhileSaving).toBe(false);
   await save.click({ force: true });
   await page.getByRole("button", { name: "Back to Pond" }).click({ force: true });
-  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Deferred Draft");
   await page.locator(".settings-button").click();
   await page.getByRole("tab", { name: /Data & Backup/ }).click();
   await page.getByLabel("Remote Runtime URL").fill("http://127.0.0.1:7342");
   await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Deferred Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Deferred Draft");
   await page.getByRole("button", { name: "Close Settings" }).click();
   runtime.releaseDeferredReplace();
   await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
@@ -387,10 +390,10 @@ test("dirty prompt preset back can cancel or accept discard", async ({ page }) =
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Unsaved Draft");
+  await page.locator("#preset-name").fill("Unsaved Draft");
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "Back to Pond" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Unsaved Draft");
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Back to Pond" }).click();
   await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
@@ -405,10 +408,10 @@ test("dirty prompt preset route switch can cancel or accept discard", async ({ p
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Unsaved Route Draft");
+  await page.locator("#preset-name").fill("Unsaved Route Draft");
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "Go to Home" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Route Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Unsaved Route Draft");
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Go to Home" }).click();
   await expect(page.getByRole("heading", { name: "DeKoi" })).toBeVisible();
@@ -423,7 +426,7 @@ test("dirty prompt preset storage target switch can cancel or accept discard", a
   await page.getByRole("button", { name: "Go to Home" }).click();
   await page.getByRole("button", { name: "Presets", exact: true }).click();
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Unsaved Target Draft");
+  await page.locator("#preset-name").fill("Unsaved Target Draft");
   await page.locator(".settings-button").click();
   await page.getByRole("tab", { name: /Data & Backup/ }).click();
   let noOpDialogCount = 0;
@@ -433,16 +436,16 @@ test("dirty prompt preset storage target switch can cancel or accept discard", a
   };
   page.on("dialog", dismissUnexpectedNoOpDialog);
   await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Target Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Unsaved Target Draft");
   expect(noOpDialogCount).toBe(0);
   page.off("dialog", dismissUnexpectedNoOpDialog);
   await page.getByLabel("Remote Runtime URL").fill("http://127.0.0.1:7342");
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByLabel("Title")).toHaveValue("Unsaved Target Draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Unsaved Target Draft");
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator("form.runtime-panel").getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByLabel("Title")).toHaveCount(0);
+  await expect(page.locator("#preset-name")).toHaveCount(0);
 });
 
 test("standalone prompt preset files reject bad content and round-trip a fresh native copy", async ({
@@ -488,17 +491,17 @@ test("standalone prompt preset files reject bad content and round-trip a fresh n
     promptlessNativePresetFile("Portable Proof.json", "preset-portable-source", "Portable Proof"),
   );
 
-  await expect(page.getByLabel("Title")).toHaveValue("Portable Proof");
+  await expect(page.locator("#preset-name")).toHaveValue("Portable Proof");
   await expect(page.getByRole("status")).toHaveText(
     "Imported Portable Proof from Portable Proof.json. Storage is unavailable; this imported preset exists only for this session.",
   );
   await expect(page.getByRole("button", { name: "Import JSON" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Export JSON" })).toBeVisible();
 
-  await page.getByLabel("Title").fill("Portable Proof draft");
+  await page.locator("#preset-name").fill("Portable Proof draft");
   await expect(page.getByRole("button", { name: "Export JSON" })).toBeDisabled();
   await expect(page.getByText("Save changes before exporting this preset.")).toBeVisible();
-  await page.getByLabel("Title").fill("Portable Proof");
+  await page.locator("#preset-name").fill("Portable Proof");
   await expect(page.getByRole("button", { name: "Export JSON" })).toBeEnabled();
 
   const downloadPromise = page.waitForEvent("download");
@@ -515,8 +518,8 @@ test("standalone prompt preset files reject bad content and round-trip a fresh n
   };
   expect(exportedPackage).toMatchObject({
     type: "dekoi_preset",
-    version: 1,
-    data: { preset: { name: "Portable Proof", systemPrompt: "" } },
+    version: 2,
+    data: { preset: { name: "Portable Proof", messengerPrompt: "" } },
   });
   expect(exportedPackage.data.preset.id).not.toBe("preset-portable-source");
   expect(pageErrors).toEqual([]);
@@ -538,7 +541,7 @@ test("delayed prompt preset import opens while its Presets rail remains current"
   await waitForDelayedPromptPresetRead(page);
   await releaseDelayedPromptPresetRead(page);
 
-  await expect(page.getByLabel("Title")).toHaveValue("Delayed Current");
+  await expect(page.locator("#preset-name")).toHaveValue("Delayed Current");
   await expect(page.getByRole("status")).toContainText(
     "Imported Delayed Current from Delayed Current.marinara.json.",
   );
@@ -559,13 +562,13 @@ test("delayed prompt preset import preserves a newer preset draft", async ({ pag
   await waitForDelayedPromptPresetRead(page);
 
   await page.getByRole("button", { name: "＋ Preset" }).click();
-  await page.getByLabel("Title").fill("Keep this draft");
+  await page.locator("#preset-name").fill("Keep this draft");
   await releaseDelayedPromptPresetRead(page);
 
   await expect(page.getByRole("status")).toContainText(
     "Imported Delayed Draft from Delayed Draft.marinara.json.",
   );
-  await expect(page.getByLabel("Title")).toHaveValue("Keep this draft");
+  await expect(page.locator("#preset-name")).toHaveValue("Keep this draft");
   await expect(page.getByRole("button", { name: /Delayed Draft/ })).toBeVisible();
   expect(pageErrors).toEqual([]);
 });

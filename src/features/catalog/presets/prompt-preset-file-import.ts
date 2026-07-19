@@ -2,7 +2,7 @@ import type { NavPromptPresetFileImportResult } from "../../navigation";
 
 function importStatus(result: NavPromptPresetFileImportResult): string {
   if (result.ok) {
-    return `Imported ${result.preset.title}${result.sourceName ? ` from ${result.sourceName}` : ""}.${result.storageWarning ? ` ${result.storageWarning}` : ""}`;
+    return `Imported ${result.preset.name}${result.sourceName ? ` from ${result.sourceName}` : ""}.${result.storageWarning ? ` ${result.storageWarning}` : ""}`;
   }
   return result.cancelled ? "Import cancelled." : `Import failed: ${result.error}`;
 }

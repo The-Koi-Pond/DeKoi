@@ -28,6 +28,11 @@ import {
   promptPresetParametersAreValid,
   type PromptPresetNumericConstraint,
 } from "./prompt-preset-parameter-contract";
+import {
+  promptPresetChoiceSelectionRecordIsValid,
+  readPromptPresetMarkerConfig,
+  readPromptPresetNestedRecords,
+} from "./prompt-preset-nested-schema";
 
 function cleanNullableNumber(value: unknown, constraint: PromptPresetNumericConstraint) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -97,6 +102,14 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function createPrototypeSafeRecord<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
+}
+
+function ownRecordValue<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
+}
+
 export function parseJsonIfString(value: unknown): unknown {
   if (typeof value !== "string") return value;
 
@@ -131,11 +144,6 @@ function readTrimmedString(value: unknown) {
   return readString(value).trim();
 }
 
-function readTimestamp(value: unknown, fallback: string) {
-  const timestamp = readString(value).trim();
-  return timestamp && !Number.isNaN(Date.parse(timestamp)) ? timestamp : fallback;
-}
-
 export function normalizeStringArray(value: unknown): string[] {
   const source = parseJsonIfString(value);
   if (!Array.isArray(source)) return [];
@@ -151,9 +159,9 @@ export function normalizeStringArray(value: unknown): string[] {
 
 export function normalizeStringRecord(value: unknown): Record<string, string> {
   const source = parseJsonIfString(value);
-  if (!isRecord(source)) return {};
+  if (!isRecord(source)) return createPrototypeSafeRecord();
 
-  const record: Record<string, string> = {};
+  const record = createPrototypeSafeRecord<string>();
   for (const [rawKey, rawValue] of Object.entries(source)) {
     const key = rawKey.trim();
     if (!key || typeof rawValue !== "string") continue;
@@ -206,14 +214,14 @@ function normalizeChoiceSelection(value: unknown): PromptPresetChoiceSelection |
     selections.push(selection);
   }
 
-  return selections.length > 0 ? selections : null;
+  return selections;
 }
 
 export function normalizeChoiceSelectionRecord(value: unknown): PromptPresetChoiceSelections {
   const source = parseJsonIfString(value);
-  if (!isRecord(source)) return {};
+  if (!isRecord(source)) return createPrototypeSafeRecord();
 
-  const record: PromptPresetChoiceSelections = {};
+  const record = createPrototypeSafeRecord<PromptPresetChoiceSelection>();
   for (const [rawKey, rawValue] of Object.entries(source)) {
     const key = rawKey.trim();
     const selection = normalizeChoiceSelection(rawValue);
@@ -226,6 +234,160 @@ export function normalizeChoiceSelectionRecord(value: unknown): PromptPresetChoi
 export function normalizeUnknownArray(value: unknown): unknown[] {
   const source = parseJsonIfString(value);
   return Array.isArray(source) ? [...source] : [];
+}
+
+function promptPresetNativeNestedRecordsAreValid(value: Record<string, unknown>) {
+  return (
+    readPromptPresetNestedRecords(value.sections, "sections", "native") !== null &&
+    readPromptPresetNestedRecords(value.groups, "groups", "native") !== null &&
+    readPromptPresetNestedRecords(value.choiceBlocks, "choiceBlocks", "native") !== null &&
+    promptPresetChoiceSelectionRecordIsValid(value.defaultChoices, false) &&
+    nativeChoiceSelectionRecordIsValid(value.defaultChoices)
+  );
+}
+
+function nativeChoiceSelectionRecordIsValid(value: unknown) {
+  if (!isRecord(value)) return false;
+  return Object.entries(value).every(([key, selection]) => {
+    if (!key.trim() || key !== key.trim()) return false;
+    const selectionIsValid = (item: unknown) =>
+      (typeof item === "string" && item.length > 0 && item === item.trim()) ||
+      (isRecord(item) &&
+        Object.keys(item).length === 2 &&
+        item.kind === "option" &&
+        typeof item.optionId === "string" &&
+        item.optionId.length > 0 &&
+        item.optionId === item.optionId.trim());
+    return Array.isArray(selection)
+      ? selection.every((item) => !Array.isArray(item) && selectionIsValid(item))
+      : selectionIsValid(selection);
+  });
+}
+
+function nativeStringRecordIsValid(value: unknown): value is Record<string, string> {
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(
+      ([key, item]) =>
+        key.length > 0 && key === key.trim() && typeof item === "string" && item === item.trim(),
+    )
+  );
+}
+
+function nativeTimestampIsValid(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.trim() === value &&
+    value.length > 0 &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function nativeStringArrayIsValid(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === "string" && item.length > 0 && item.trim() === item) &&
+    new Set(value).size === value.length
+  );
+}
+
+function nativeOptionalStringIsValid(value: unknown) {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.length > 0 && value.trim() === value)
+  );
+}
+
+function nativeParameterTextIsValid(value: unknown) {
+  if (value === undefined || value === null) return true;
+  if (!isRecord(value)) return false;
+  return (
+    nativeOptionalStringIsValid(value.assistantPrefill) &&
+    nativeOptionalStringIsValid(value.customThinkingTags)
+  );
+}
+
+function nativeNestedReferencesAreValid(
+  presetId: string,
+  sections: Record<string, unknown>[],
+  groups: Record<string, unknown>[],
+  choiceBlocks: Record<string, unknown>[],
+  sectionOrder: string[],
+  groupOrder: string[],
+  defaultChoices: Record<string, unknown>,
+) {
+  const sectionIds = new Set<string>();
+  const groupIds = new Set<string>();
+  const choiceBlockIds = new Set<string>();
+  const variableNames = new Set<string>();
+  for (const section of sections) {
+    if (sectionIds.has(String(section.id))) return false;
+    sectionIds.add(String(section.id));
+    if (
+      section.presetId !== undefined &&
+      section.presetId !== null &&
+      section.presetId !== presetId
+    )
+      return false;
+    if (
+      section.groupId !== undefined &&
+      section.groupId !== null &&
+      typeof section.groupId !== "string"
+    )
+      return false;
+  }
+  for (const group of groups) {
+    if (groupIds.has(String(group.id))) return false;
+    groupIds.add(String(group.id));
+    if (group.presetId !== undefined && group.presetId !== null && group.presetId !== presetId)
+      return false;
+  }
+  for (const section of sections) {
+    if (typeof section.groupId === "string" && !groupIds.has(section.groupId)) return false;
+  }
+  for (const group of groups) {
+    if (typeof group.parentGroupId === "string" && !groupIds.has(group.parentGroupId)) return false;
+    if (group.parentGroupId === group.id) return false;
+  }
+  if (
+    !sectionOrder.every((id) => sectionIds.has(id)) ||
+    !groupOrder.every((id) => groupIds.has(id))
+  )
+    return false;
+  for (const block of choiceBlocks) {
+    const id = String(block.id);
+    const variableName = String(block.variableName);
+    if (choiceBlockIds.has(id)) return false;
+    choiceBlockIds.add(id);
+    if (variableNames.has(variableName)) return false;
+    variableNames.add(variableName);
+    if (block.presetId !== undefined && block.presetId !== null && block.presetId !== presetId)
+      return false;
+    const options = Array.isArray(block.options) ? block.options : [];
+    const optionIds = new Set(
+      options.map((option) => String((option as Record<string, unknown>).id)),
+    );
+    if (optionIds.size !== options.length) return false;
+    const selection = ownRecordValue(defaultChoices, variableName);
+    if (selection === undefined) continue;
+    if (Array.isArray(selection) && selection.length === 0 && block.multiSelect !== true) {
+      return false;
+    }
+    const values = Array.isArray(selection) ? selection : [selection];
+    if (
+      !values.every((item) => {
+        const optionId = isRecord(item) ? item.optionId : item;
+        return (
+          typeof optionId === "string" &&
+          (optionIds.has(optionId) ||
+            options.some((option) => (option as Record<string, unknown>).value === optionId))
+        );
+      })
+    )
+      return false;
+  }
+  return Object.keys(defaultChoices).every((name) => variableNames.has(name));
 }
 
 function normalizeChoiceOptions(value: unknown): PromptPresetChoiceBlock["options"] {
@@ -292,10 +454,7 @@ function findChoiceSelectionOption(
   return optionIndex.optionsById.get(trimmed) ?? null;
 }
 
-export function normalizePromptPresetChoiceBlocks(
-  value: unknown,
-  defaultChoices: PromptPresetChoiceSelections = {},
-): PromptPresetChoiceBlock[] {
+export function normalizePromptPresetChoiceBlocks(value: unknown): PromptPresetChoiceBlock[] {
   if (!Array.isArray(value)) return [];
 
   const seenBlockIds = new Set<string>();
@@ -313,20 +472,6 @@ export function normalizePromptPresetChoiceBlocks(
 
     const options = normalizeChoiceOptions(item.options);
     if (options.length === 0) continue;
-    const optionIndex = createChoiceOptionIndex(options);
-
-    const defaultChoiceValue = defaultChoices[variableName];
-    const firstDefaultChoice = Array.isArray(defaultChoiceValue)
-      ? defaultChoiceValue[0]
-      : defaultChoiceValue;
-    const defaultOptionByChoice =
-      firstDefaultChoice !== undefined
-        ? findChoiceSelectionOption(optionIndex, firstDefaultChoice)
-        : null;
-    const defaultOptionId = defaultOptionByChoice?.id ?? readTrimmedString(item.defaultOptionId);
-    const normalizedDefaultOptionId = optionIndex.optionsById.has(defaultOptionId)
-      ? defaultOptionId
-      : options[0]?.id;
 
     seenBlockIds.add(id);
     seenVariableNames.add(variableName);
@@ -356,11 +501,13 @@ export function normalizePromptPresetChoiceBlocks(
 
     if (presetId !== null) block.presetId = presetId;
     if (question !== null) block.question = question;
-    if (normalizedDefaultOptionId) block.defaultOptionId = normalizedDefaultOptionId;
     if (typeof item.multiSelect === "boolean" || typeof item.multiSelect === "string") {
       block.multiSelect = readBooleanLike(item.multiSelect, false);
     }
     if (separator !== null) block.separator = separator;
+    if (typeof item.randomPick === "boolean" || typeof item.randomPick === "string") {
+      block.randomPick = readBooleanLike(item.randomPick, false);
+    }
     if (displayMode !== null) block.displayMode = displayMode;
     if (optionSort !== null) block.optionSort = optionSort;
     if (sortOrder !== null) block.sortOrder = sortOrder;
@@ -385,24 +532,33 @@ export function prunePromptPresetDefaultChoices(
 ): PromptPresetChoiceSelections {
   const blocksByVariableName = new Map(
     choiceBlocks.map(
-      (block) => [block.variableName, createChoiceOptionIndex(block.options)] as const,
+      (block) =>
+        [
+          block.variableName,
+          {
+            index: createChoiceOptionIndex(block.options),
+            multiSelect: block.multiSelect === true,
+          },
+        ] as const,
     ),
   );
-  const prunedChoices: PromptPresetChoiceSelections = {};
+  const prunedChoices = createPrototypeSafeRecord<PromptPresetChoiceSelection>();
 
   for (const [variableName, selection] of Object.entries(defaultChoices)) {
-    const optionIndex = blocksByVariableName.get(variableName);
-    if (!optionIndex) continue;
+    const block = blocksByVariableName.get(variableName);
+    if (!block) continue;
 
     if (Array.isArray(selection)) {
       const validSelections = selection.filter((value) =>
-        choiceSelectionIsValid(optionIndex, value),
+        choiceSelectionIsValid(block.index, value),
       );
-      if (validSelections.length > 0) prunedChoices[variableName] = validSelections;
+      if (validSelections.length > 0 || (selection.length === 0 && block.multiSelect)) {
+        prunedChoices[variableName] = validSelections;
+      }
       continue;
     }
 
-    if (choiceSelectionIsValid(optionIndex, selection)) {
+    if (choiceSelectionIsValid(block.index, selection)) {
       prunedChoices[variableName] = selection;
     }
   }
@@ -475,7 +631,10 @@ export function normalizePromptPresetThreadChoiceSelectionsWithChange(value: unk
 } {
   const source = parseJsonIfString(value);
   if (!isRecord(source)) {
-    return { selections: {}, changed: value !== undefined };
+    return {
+      selections: createPrototypeSafeRecord<PromptPresetThreadChoiceSelection>(),
+      changed: value !== undefined,
+    };
   }
 
   const selections: PromptPresetThreadChoiceSelections = Object.create(null);
@@ -499,7 +658,7 @@ export function prunePromptPresetThreadChoiceSelections(
   const pruned: PromptPresetThreadChoiceSelections = Object.create(null);
 
   for (const block of preset.choiceBlocks) {
-    const selection = selections[block.id];
+    const selection = ownRecordValue(selections, block.id);
     const candidates = selection ? (Array.isArray(selection) ? selection : [selection]) : [];
     const validOptionIds = new Set(block.options.map((option) => option.id));
     const validSelections = candidates.filter((candidate) =>
@@ -513,7 +672,7 @@ export function prunePromptPresetThreadChoiceSelections(
   return pruned;
 }
 
-/** Materializes the stable thread selection shape using preset default, block default, or first option. */
+/** Materializes the stable thread selection shape using the preset default or first option. */
 export function materializePromptPresetThreadChoiceSelections(
   preset: PromptPresetRecord,
   value: unknown,
@@ -525,9 +684,8 @@ export function materializePromptPresetThreadChoiceSelections(
   );
   for (const block of preset.choiceBlocks) {
     if (Object.prototype.hasOwnProperty.call(materialized, block.id)) continue;
-    const configured = preset.defaultChoices[block.variableName];
-    const candidates =
-      configured === undefined ? (block.defaultOptionId ?? block.options[0]?.id) : configured;
+    const configured = ownRecordValue(preset.defaultChoices, block.variableName);
+    const candidates = configured === undefined ? block.options[0]?.id : configured;
     const values = Array.isArray(candidates) ? candidates : [candidates];
     const optionIds = values
       .map((candidate) => {
@@ -606,17 +764,6 @@ function choiceControlOptions(block: PromptPresetChoiceBlock) {
   );
 }
 
-function getPromptPresetChoiceBlocksInOrder(preset: PromptPresetRecord) {
-  if (preset.variableOrder.length === 0) return preset.choiceBlocks;
-
-  const orderByBlockId = new Map(preset.variableOrder.map((blockId, index) => [blockId, index]));
-  return [...preset.choiceBlocks].sort((left, right) => {
-    const leftOrder = orderByBlockId.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-    const rightOrder = orderByBlockId.get(right.id) ?? Number.MAX_SAFE_INTEGER;
-    return leftOrder - rightOrder;
-  });
-}
-
 function choiceSelectionOptions(
   block: PromptPresetChoiceBlock,
   selection: PromptPresetChoiceSelection | null | undefined,
@@ -669,9 +816,8 @@ function defaultChoiceSelection(
   preset: PromptPresetRecord,
   block: PromptPresetChoiceBlock,
 ): PromptPresetChoiceSelection | null {
-  const presetDefault = preset.defaultChoices[block.variableName];
+  const presetDefault = ownRecordValue(preset.defaultChoices, block.variableName);
   if (presetDefault !== undefined) return presetDefault;
-  if (block.defaultOptionId) return createPromptPresetChoiceOptionSelection(block.defaultOptionId);
   return block.options[0]?.value ?? null;
 }
 
@@ -712,7 +858,7 @@ export function resolvePromptPresetChoiceControls({
   if (!preset) return [];
 
   const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
-  return getPromptPresetChoiceBlocksInOrder(preset).map((block) => ({
+  return preset.choiceBlocks.map((block) => ({
     id: block.id,
     variableName: block.variableName,
     label: block.label,
@@ -720,8 +866,11 @@ export function resolvePromptPresetChoiceControls({
     multiSelect: block.multiSelect === true,
     displayMode: block.displayMode ?? "auto",
     defaultLabel: defaultChoiceLabel(preset, block),
-    selectedOptionIds: choiceSelectionOptionIds(block, normalizedSelections[block.id]),
-    selectedValues: choiceSelectionValues(block, normalizedSelections[block.id]),
+    selectedOptionIds: choiceSelectionOptionIds(
+      block,
+      ownRecordValue(normalizedSelections, block.id),
+    ),
+    selectedValues: choiceSelectionValues(block, ownRecordValue(normalizedSelections, block.id)),
     options: choiceControlOptions(block),
   }));
 }
@@ -747,14 +896,6 @@ function normalizeSectionRole(value: unknown): PromptPresetSectionRole {
   return value === "user" || value === "assistant" || value === "system" ? value : "system";
 }
 
-function normalizeMarkerConfig(value: unknown) {
-  const source = parseJsonIfString(value);
-  if (!isRecord(source)) return null;
-
-  const type = readTrimmedString(source.type);
-  return type ? { type } : null;
-}
-
 export function normalizePromptPresetSections(value: unknown): PromptPresetSection[] {
   if (!Array.isArray(value)) return [];
 
@@ -778,7 +919,7 @@ export function normalizePromptPresetSections(value: unknown): PromptPresetSecti
     };
     const presetId = readNullableString(item.presetId);
     const groupId = readNullableString(item.groupId);
-    const markerConfig = normalizeMarkerConfig(item.markerConfig);
+    const markerConfig = readPromptPresetMarkerConfig(item.markerConfig, "native");
     const injectionPosition = readNullableString(item.injectionPosition);
     const injectionDepth = cleanNullableNumber(
       item.injectionDepth,
@@ -848,82 +989,6 @@ export function normalizePromptPresetGroups(value: unknown): PromptPresetGroup[]
   return groups;
 }
 
-function normalizePromptPresetRecordFromParts({
-  choiceBlocks,
-  createdAt,
-  defaultChoices,
-  folderId = null,
-  groupOrder,
-  groups,
-  id,
-  parameters,
-  schemaVersion = 1,
-  sectionOrder,
-  sections,
-  summary,
-  systemPrompt,
-  title,
-  updatedAt,
-  variableGroups,
-  variableOrder,
-  variableValues,
-  wrapFormat = null,
-  author = null,
-  messengerPrompt = null,
-}: {
-  id: string;
-  schemaVersion?: 1;
-  title: string;
-  summary?: string | null;
-  systemPrompt: string;
-  messengerPrompt?: string | null;
-  parameters?: PromptPresetParameters | null;
-  sectionOrder: string[];
-  groupOrder: string[];
-  variableOrder: string[];
-  variableGroups: unknown[];
-  variableValues: Record<string, string>;
-  defaultChoices: PromptPresetChoiceSelections;
-  wrapFormat?: string | null;
-  author?: string | null;
-  folderId?: string | null;
-  sections: PromptPresetSection[];
-  groups: PromptPresetGroup[];
-  choiceBlocks: PromptPresetChoiceBlock[];
-  createdAt: string;
-  updatedAt: string;
-}): PromptPresetRecord | null {
-  if (!id) return null;
-
-  const normalizedParameters = parameters ?? null;
-  const resolvedMessengerPrompt = messengerPrompt?.trim() || null;
-  const resolvedSystemPrompt = systemPrompt.trim();
-
-  return {
-    id,
-    schemaVersion,
-    title: title.trim(),
-    summary: summary?.trim() || null,
-    systemPrompt: resolvedSystemPrompt,
-    messengerPrompt: resolvedMessengerPrompt,
-    parameters: normalizedParameters,
-    sectionOrder,
-    groupOrder,
-    variableOrder,
-    variableGroups,
-    variableValues,
-    defaultChoices,
-    wrapFormat,
-    author,
-    folderId,
-    sections,
-    groups,
-    choiceBlocks,
-    createdAt,
-    updatedAt,
-  };
-}
-
 export function resolvePromptPresetChoiceVariables({
   preset,
   selections,
@@ -931,17 +996,20 @@ export function resolvePromptPresetChoiceVariables({
   preset: PromptPresetRecord | null | undefined;
   selections?: PromptPresetThreadChoiceSelections | null;
 }) {
-  const variables: Record<string, string> = { ...(preset?.variableValues ?? {}) };
+  const variables = Object.assign(
+    createPrototypeSafeRecord<string>(),
+    preset?.variableValues ?? {},
+  );
   const variableNames: string[] = [];
   if (!preset) return { variables, variableNames };
 
   variableNames.push(...Object.keys(preset.variableValues));
   const normalizedSelections = prunePromptPresetThreadChoiceSelections(preset, selections);
-  for (const block of getPromptPresetChoiceBlocksInOrder(preset)) {
+  for (const block of preset.choiceBlocks) {
     const selectedValues = resolvePromptPresetChoiceValues({
       block,
       preset,
-      selection: normalizedSelections[block.id],
+      selection: ownRecordValue(normalizedSelections, block.id),
     });
     if (selectedValues.length === 0) continue;
 
@@ -957,8 +1025,28 @@ export function resolvePromptPresetChoiceVariables({
 export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord | null {
   if (!isRecord(value)) return null;
 
-  if (value.schemaVersion !== 1) return null;
-  if (Object.prototype.hasOwnProperty.call(value, "sampling")) return null;
+  if (value.schemaVersion !== 2) return null;
+  const allowedFields = new Set([
+    "id",
+    "schemaVersion",
+    "name",
+    "description",
+    "messengerPrompt",
+    "parameters",
+    "sectionOrder",
+    "groupOrder",
+    "variableGroups",
+    "variableValues",
+    "defaultChoices",
+    "wrapFormat",
+    "author",
+    "sections",
+    "groups",
+    "choiceBlocks",
+    "createdAt",
+    "updatedAt",
+  ]);
+  if (Object.keys(value).some((field) => !allowedFields.has(field))) return null;
   if (
     value.parameters !== undefined &&
     value.parameters !== null &&
@@ -967,62 +1055,92 @@ export function normalizePromptPresetRecord(value: unknown): PromptPresetRecord 
     return null;
   }
 
+  if (!promptPresetNativeNestedRecordsAreValid(value)) return null;
+
   if (
-    value.systemPrompt !== undefined &&
-    value.systemPrompt !== null &&
-    typeof value.systemPrompt !== "string"
+    typeof value.messengerPrompt !== "string" ||
+    value.messengerPrompt !== value.messengerPrompt.trim()
   ) {
     return null;
   }
 
-  const id = readString(value.id).trim();
-  const systemPrompt = readString(value.systemPrompt).trim();
-  const title = readString(value.title).trim();
-  if (!id || !title) return null;
+  const id = readString(value.id);
+  const name = readString(value.name);
+  if (!id || id !== id.trim() || !name || name !== name.trim()) return null;
 
   if (
-    [value.sections, value.groups, value.choiceBlocks].some(
-      (collection) => collection !== undefined && !Array.isArray(collection),
+    !Array.isArray(value.sections) ||
+    !Array.isArray(value.groups) ||
+    !Array.isArray(value.choiceBlocks) ||
+    !nativeStringArrayIsValid(value.sectionOrder) ||
+    !nativeStringArrayIsValid(value.groupOrder) ||
+    !Array.isArray(value.variableGroups) ||
+    !isRecord(value.variableValues) ||
+    !nativeStringRecordIsValid(value.variableValues) ||
+    !isRecord(value.defaultChoices) ||
+    !nativeParameterTextIsValid(value.parameters) ||
+    !nativeOptionalStringIsValid(value.description) ||
+    !nativeOptionalStringIsValid(value.wrapFormat) ||
+    !nativeOptionalStringIsValid(value.author) ||
+    !nativeTimestampIsValid(value.createdAt) ||
+    !nativeTimestampIsValid(value.updatedAt)
+  ) {
+    return null;
+  }
+
+  const nestedSections = readPromptPresetNestedRecords(value.sections, "sections", "native");
+  const nestedGroups = readPromptPresetNestedRecords(value.groups, "groups", "native");
+  const nestedChoiceBlocks = readPromptPresetNestedRecords(
+    value.choiceBlocks,
+    "choiceBlocks",
+    "native",
+  );
+  if (
+    !nestedSections ||
+    !nestedGroups ||
+    !nestedChoiceBlocks ||
+    !nativeNestedReferencesAreValid(
+      id,
+      nestedSections,
+      nestedGroups,
+      nestedChoiceBlocks,
+      value.sectionOrder,
+      value.groupOrder,
+      value.defaultChoices,
     )
   ) {
     return null;
   }
 
-  const now = new Date().toISOString();
   const parameters = normalizePromptPresetParameters(value.parameters);
   const sectionOrder = normalizeStringArray(value.sectionOrder);
   const groupOrder = normalizeStringArray(value.groupOrder);
-  const variableOrder = normalizeStringArray(value.variableOrder);
   const variableGroups = normalizeUnknownArray(value.variableGroups);
   const variableValues = normalizeStringRecord(value.variableValues);
   const rawDefaultChoices = normalizeChoiceSelectionRecord(value.defaultChoices);
   const sections = normalizePromptPresetSections(value.sections);
   const groups = normalizePromptPresetGroups(value.groups);
-  const messengerPrompt = readNullableString(value.messengerPrompt);
-  const choiceBlocks = normalizePromptPresetChoiceBlocks(value.choiceBlocks, rawDefaultChoices);
+  const choiceBlocks = normalizePromptPresetChoiceBlocks(value.choiceBlocks);
   const defaultChoices = prunePromptPresetDefaultChoices(rawDefaultChoices, choiceBlocks);
 
-  return normalizePromptPresetRecordFromParts({
+  return {
     id,
-    schemaVersion: 1,
-    title,
-    summary: readNullableString(value.summary),
-    systemPrompt,
-    messengerPrompt,
+    schemaVersion: 2,
+    name,
+    description: readNullableString(value.description),
+    messengerPrompt: value.messengerPrompt,
     parameters,
     sectionOrder,
     groupOrder,
-    variableOrder,
     variableGroups,
     variableValues,
     defaultChoices,
     wrapFormat: readNullableString(value.wrapFormat),
     author: readNullableString(value.author),
-    folderId: readNullableString(value.folderId),
     sections,
     groups,
     choiceBlocks,
-    createdAt: readTimestamp(value.createdAt, now),
-    updatedAt: readTimestamp(value.updatedAt, now),
-  });
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+  };
 }

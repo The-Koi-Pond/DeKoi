@@ -78,7 +78,7 @@ export function getChatSettingsViewModel({
       ? ((activeThread.presetChoiceSelectionsByPresetId ?? {})[activeThread.presetId] ?? {})
       : {},
     presetDrawerSummary: selectedPreset
-      ? selectedPreset.title
+      ? selectedPreset.name
       : missingPresetId
         ? "Missing preset"
         : "No preset",

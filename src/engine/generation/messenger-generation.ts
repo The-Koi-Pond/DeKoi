@@ -14,10 +14,7 @@ import type { ActivatedLoreEntry } from "../generation-core/lorebook-activation"
 import type { LorebookScanSource } from "../generation-core/lorebook-matching";
 import { getNextMessengerCompanion } from "../modes/messenger/messenger-actions";
 import type { PersonaRecord } from "../contracts/types/persona";
-import {
-  resolvePromptPresetMessengerPrompt,
-  type PromptPresetRecord,
-} from "../contracts/types/prompt-presets";
+import type { PromptPresetRecord } from "../contracts/types/prompt-presets";
 import { resolvePromptPresetChoiceVariables } from "../prompt-presets/prompt-preset-normalization";
 import type { ProviderConnectionRecord } from "../contracts/types/provider-connection";
 import {
@@ -175,12 +172,6 @@ function messengerLoreScanSources(thread: MessengerModeThread): LorebookScanSour
   }));
 }
 
-function messengerSelectedPromptSource(promptPreset: PromptPresetRecord | null) {
-  return (
-    resolvePromptPresetMessengerPrompt(promptPreset)?.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT
-  );
-}
-
 function buildSystemPrompt({
   activePersona,
   activatedLoreEntries,
@@ -303,7 +294,7 @@ function createMessengerPromptAssembly({
   });
   resolveGenerationMacroVariableValues(macroContext, variableNames ?? []);
   const selectedPrompt = resolveGenerationMacros(
-    messengerSelectedPromptSource(promptPreset),
+    promptPreset?.messengerPrompt.trim() || DEFAULT_MESSENGER_SYSTEM_PROMPT,
     macroContext,
   );
   const loreActivation = activateLoreGenerationEntriesWithWarnings(lorebookSources, {

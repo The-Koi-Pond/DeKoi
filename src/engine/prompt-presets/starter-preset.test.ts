@@ -42,11 +42,8 @@ describe("Universal V2 starter prompt preset", () => {
     const choiceBlocksByVariable = new Map(
       STARTER_PROMPT_PRESET.choiceBlocks.map((block) => [block.variableName, block]),
     );
-    const choiceBlockIds = new Set(STARTER_PROMPT_PRESET.choiceBlocks.map(({ id }) => id));
-
     expect(STARTER_PROMPT_PRESET.sectionOrder.every((id) => sectionIds.has(id))).toBe(true);
     expect(STARTER_PROMPT_PRESET.groupOrder.every((id) => groupIds.has(id))).toBe(true);
-    expect(STARTER_PROMPT_PRESET.variableOrder.every((id) => choiceBlockIds.has(id))).toBe(true);
 
     for (const [variable, selection] of Object.entries(STARTER_PROMPT_PRESET.defaultChoices)) {
       const block = choiceBlocksByVariable.get(variable);

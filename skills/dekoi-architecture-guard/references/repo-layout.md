@@ -83,10 +83,13 @@ src/engine/generation/generation.ts
 
 src/engine/prompt-presets/prompt-preset-actions.ts
 src/engine/prompt-presets/prompt-preset-normalization.ts
+src/engine/prompt-presets/prompt-preset-package.ts
+src/engine/prompt-presets/prompt-preset-package-schema.ts
+src/engine/prompt-presets/prompt-preset-nested-schema.ts
 src/engine/prompt-presets/prompt-preset-assembler.ts
 src/engine/prompt-presets/starter-preset.ts
-  Prompt preset actions, normalization, starter records, and provider-message
-  assembly helpers.
+  Prompt preset actions, strict native/package normalization with one shared
+  nested-schema owner, starter records, and provider-message assembly helpers.
 
 src/engine/shared/errors.ts
 src/engine/shared/text.ts

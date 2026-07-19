@@ -16,8 +16,8 @@ function replaceInvalidFilenameCharacters(value: string) {
   ).join("");
 }
 
-function promptPresetFilename(title: string) {
-  const safeTitle = replaceInvalidFilenameCharacters(title.trim())
+function promptPresetFilename(name: string) {
+  const safeTitle = replaceInvalidFilenameCharacters(name.trim())
     .replace(TRAILING_WINDOWS_FILENAME_CHARACTERS, "")
     .trim();
 
@@ -33,7 +33,7 @@ function promptPresetFilename(title: string) {
 
 export function createPromptPresetFileExport(record: PromptPresetRecord, exportedAt: string) {
   return {
-    filename: promptPresetFilename(record.title),
+    filename: promptPresetFilename(record.name),
     packageValue: createPromptPresetPackage(record, exportedAt),
   };
 }

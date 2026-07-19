@@ -18,6 +18,7 @@ import {
   now,
   promptPreset,
   providerConnection,
+  roleplayPromptSection,
 } from "./prompt-preset-generation.fixtures";
 
 const createMessengerThread = (
@@ -140,7 +141,6 @@ describe("prompt preset generation", () => {
       }),
     };
     const preset = promptPreset({
-      systemPrompt: "Roleplay-only preset for {{char}}.",
       messengerPrompt: "Messenger preset for {{char}}.",
       parameters: {
         maxTokens: { send: true, value: 8192 },
@@ -195,7 +195,6 @@ describe("prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Roleplay-only preset for {{char}}.",
           messengerPrompt: "Messenger prompt for {{char}}.",
           sections: [
             {
@@ -389,7 +388,9 @@ describe("prompt preset generation", () => {
       characters: [companion()],
       lorebooks: [],
       personas: [],
-      promptPresets: [promptPreset({ systemPrompt: "Roleplay preset for {{char}}." })],
+      promptPresets: [
+        promptPreset({ sections: [roleplayPromptSection("Roleplay preset for {{char}}.")] }),
+      ],
       thread,
     });
     const assembly = createRoleplayGenerationRequestAssembly({
@@ -424,14 +425,16 @@ describe("prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Use {{pacing}} and {{getvar::tone}}.",
           messengerPrompt: "Legacy Messenger prompt {{pacing}}.",
+          defaultChoices: {
+            pacing: { kind: "option", optionId: "fast" },
+            tone: { kind: "option", optionId: "warm" },
+          },
           choiceBlocks: [
             {
               id: "choice-pacing",
               variableName: "pacing",
               label: "Pacing",
-              defaultOptionId: "fast",
               options: [
                 { id: "fast", label: "Fast", value: "fast pacing" },
                 { id: "slow", label: "Slow", value: "slow pacing" },
@@ -441,7 +444,6 @@ describe("prompt preset generation", () => {
               id: "choice-tone",
               variableName: "tone",
               label: "Tone",
-              defaultOptionId: "warm",
               options: [
                 {
                   id: "warm",
@@ -497,13 +499,16 @@ describe("prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt: "Use {{pacing}} and {{tone}}.",
+          sections: [roleplayPromptSection("Use {{pacing}} and {{tone}}.")],
+          defaultChoices: {
+            pacing: { kind: "option", optionId: "fast" },
+            tone: { kind: "option", optionId: "warm" },
+          },
           choiceBlocks: [
             {
               id: "choice-pacing",
               variableName: "pacing",
               label: "Pacing",
-              defaultOptionId: "fast",
               options: [
                 { id: "fast", label: "Fast", value: "fast pacing" },
                 { id: "slow", label: "Slow", value: "slow pacing" },
@@ -513,7 +518,6 @@ describe("prompt preset generation", () => {
               id: "choice-tone",
               variableName: "tone",
               label: "Tone",
-              defaultOptionId: "warm",
               options: [{ id: "warm", label: "Warm", value: "warm tone" }],
             },
           ],
@@ -552,8 +556,11 @@ describe("prompt preset generation", () => {
       personas: [],
       promptPresets: [
         promptPreset({
-          systemPrompt:
-            "Roleplay preset for {{char}}. Write the whole scene beat and include unknown relevant non-user character.",
+          sections: [
+            roleplayPromptSection(
+              "Roleplay preset for {{char}}. Write the whole scene beat and include unknown relevant non-user character.",
+            ),
+          ],
         }),
       ],
       thread,

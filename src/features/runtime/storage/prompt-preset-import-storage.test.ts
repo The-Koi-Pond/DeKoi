@@ -15,21 +15,18 @@ type PromptPresetRecord = AppStorageRecords["promptPresets"][number];
 function promptPreset(id: string): PromptPresetRecord {
   return {
     id,
-    schemaVersion: 1,
-    title: id,
-    summary: null,
-    systemPrompt: "Write the next response.",
-    messengerPrompt: null,
+    schemaVersion: 2,
+    name: id,
+    description: null,
+    messengerPrompt: "Write the next response.",
     parameters: null,
     sectionOrder: [],
     groupOrder: [],
-    variableOrder: [],
     variableGroups: [],
     variableValues: {},
     defaultChoices: {},
     wrapFormat: null,
     author: null,
-    folderId: null,
     sections: [],
     groups: [],
     choiceBlocks: [],
@@ -66,7 +63,7 @@ describe("saveStagedPromptPresetToStorage", () => {
   it("keeps edits that land while a staged snapshot is being persisted dirty", () => {
     const persisted = appStorageRecords([promptPreset("prompt-preset-existing")]);
     const current = appStorageRecords([
-      { ...persisted.promptPresets[0]!, title: "Edited during import" },
+      { ...persisted.promptPresets[0]!, name: "Edited during import" },
     ]);
 
     expect(promptPresetPersistenceSignatures(persisted, current)).toMatchObject({
@@ -102,7 +99,7 @@ describe("saveStagedPromptPresetToStorage", () => {
 
   it("force-restores the live catalog when a committed write reports an error", async () => {
     const existingPreset = promptPreset("prompt-preset-existing");
-    const editedPreset = { ...existingPreset, title: "Edited during import" };
+    const editedPreset = { ...existingPreset, name: "Edited during import" };
     const importedPreset = promptPreset("prompt-preset-imported");
     const liveSnapshot = appStorageRecords([existingPreset]);
     let persistedPromptPresets: PromptPresetRecord[] = [];
@@ -139,7 +136,7 @@ describe("saveStagedPromptPresetToStorage", () => {
 
   it("restores the latest original-target edits when the target changes", async () => {
     const existingPreset = promptPreset("prompt-preset-existing");
-    const editedPreset = { ...existingPreset, title: "Edited during import" };
+    const editedPreset = { ...existingPreset, name: "Edited during import" };
     const importedPreset = promptPreset("prompt-preset-imported");
     const initialSnapshot = appStorageRecords([existingPreset]);
     const rollbackSnapshot = appStorageRecords([editedPreset]);
@@ -367,7 +364,7 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
   it("rolls back the latest original-target snapshot when the target changes during save", async () => {
     const existingPreset = promptPreset("prompt-preset-existing");
-    const editedSnapshot = appStorageRecords([{ ...existingPreset, title: "Concurrent edit" }]);
+    const editedSnapshot = appStorageRecords([{ ...existingPreset, name: "Concurrent edit" }]);
     const harness = transactionHarness(appStorageRecords([existingPreset]));
     const savedSnapshots: AppStorageRecords[] = [];
     const saveCollection = vi.fn(async (snapshot: AppStorageRecords) => {
@@ -395,7 +392,7 @@ describe("runPromptPresetImportStorageTransaction", () => {
 
   it("keeps a concurrent catalog edit dirty after the staged preset is persisted", async () => {
     const existingPreset = promptPreset("prompt-preset-existing");
-    const editedSnapshot = appStorageRecords([{ ...existingPreset, title: "Concurrent edit" }]);
+    const editedSnapshot = appStorageRecords([{ ...existingPreset, name: "Concurrent edit" }]);
     const harness = transactionHarness(appStorageRecords([existingPreset]));
     const saveCollection = vi.fn(async () => {
       harness.currentSnapshot = editedSnapshot;

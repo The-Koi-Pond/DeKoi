@@ -35,7 +35,6 @@ describe("structured Roleplay prompt preset provider policy", () => {
         personas: [],
         promptPresets: [
           promptPreset({
-            systemPrompt: "Fallback prompt.",
             sectionOrder: ["section-history", "section-depth"],
             sections: [
               {
@@ -98,7 +97,6 @@ describe("structured Roleplay prompt preset provider policy", () => {
         personas: [],
         promptPresets: [
           promptPreset({
-            systemPrompt: "Fallback prompt.",
             sectionOrder: ["section-role", "section-history", "section-output"],
             sections: [
               {
@@ -175,7 +173,6 @@ describe("structured Roleplay prompt preset provider policy", () => {
           parameters: {
             singleUserMessage: true,
           },
-          systemPrompt: "Fallback prompt.",
           sectionOrder: ["section-role", "section-history"],
           sections: [
             {
@@ -242,7 +239,6 @@ describe("structured Roleplay prompt preset provider policy", () => {
             parameters: {
               singleUserMessage: true,
             },
-            systemPrompt: "Fallback prompt.",
             sectionOrder: ["section-role", "section-history", "section-depth", "section-output"],
             sections: [
               {

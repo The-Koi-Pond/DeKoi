@@ -13,10 +13,9 @@ const exportedAt = "2026-07-11T00:00:00.000Z";
 function richPromptPreset(): PromptPresetRecord {
   return {
     id: "prompt-preset-rich",
-    schemaVersion: 1,
-    title: "Rich Preset",
-    summary: "Exercises the portable prompt-preset contract.",
-    systemPrompt: "Write the next response.",
+    schemaVersion: 2,
+    name: "Rich Preset",
+    description: "Exercises the portable prompt-preset contract.",
     messengerPrompt: "Reply like a private message.",
     parameters: {
       maxTokens: { send: true, value: 2048 },
@@ -42,13 +41,11 @@ function richPromptPreset(): PromptPresetRecord {
     },
     sectionOrder: ["section-system", "section-history"],
     groupOrder: ["group-core"],
-    variableOrder: ["register", "tone", "compatibility-slot"],
     variableGroups: [{ id: "variables-style", label: "Style" }],
     variableValues: { register: "plain" },
     defaultChoices: { tone: { kind: "option", optionId: "tone-warm" } },
     wrapFormat: "<prompt>{{prompt}}</prompt>",
     author: "DeKoi",
-    folderId: "folder-roleplay",
     sections: [
       {
         id: "section-system",
@@ -105,7 +102,6 @@ function richPromptPreset(): PromptPresetRecord {
             description: "Use a warm tone.",
           },
         ],
-        defaultOptionId: "tone-warm",
         multiSelect: false,
         separator: ", ",
         displayMode: "buttons",
@@ -120,7 +116,6 @@ function richPromptPreset(): PromptPresetRecord {
         question: "Which register?",
         label: "Register",
         options: [{ id: "register-plain", label: "Plain", value: "plain" }],
-        defaultOptionId: "register-plain",
         multiSelect: false,
         separator: ", ",
         displayMode: "buttons",
@@ -139,20 +134,17 @@ describe("prompt preset packages", () => {
     const promptless = {
       ...richPromptPreset(),
       id: "prompt-preset-empty",
-      title: "Promptless Preset",
-      summary: null,
-      systemPrompt: "",
-      messengerPrompt: null,
+      name: "Promptless Preset",
+      description: null,
+      messengerPrompt: "",
       parameters: null,
       sectionOrder: [],
       groupOrder: [],
-      variableOrder: [],
       variableGroups: [],
       variableValues: {},
       defaultChoices: {},
       wrapFormat: null,
       author: null,
-      folderId: null,
       sections: [],
       groups: [],
       choiceBlocks: [],
@@ -167,12 +159,14 @@ describe("prompt preset packages", () => {
   it("normalizes omitted optional recipe arrays in a minimal promptless package", () => {
     const record = normalizePromptPresetImportRecord({
       type: "dekoi_preset",
-      version: 1,
+      version: 2,
       exportedAt,
       data: {
         preset: {
           id: "prompt-preset-minimal",
+          schemaVersion: 2,
           name: "Minimal Promptless",
+          messengerPrompt: "",
           createdAt,
           updatedAt: createdAt,
         },
@@ -181,8 +175,8 @@ describe("prompt preset packages", () => {
 
     expect(record).toMatchObject({
       id: "prompt-preset-minimal",
-      title: "Minimal Promptless",
-      systemPrompt: "",
+      name: "Minimal Promptless",
+      messengerPrompt: "",
       sections: [],
       groups: [],
       choiceBlocks: [],
@@ -190,17 +184,19 @@ describe("prompt preset packages", () => {
   });
 
   it.each([{}, { name: null }, { name: "   " }])(
-    "rejects a promptless package without a nonblank title",
-    (titleFields) => {
+    "rejects a promptless package without a nonblank name",
+    (nameFields) => {
       expect(
         normalizePromptPresetImportRecord({
           type: "dekoi_preset",
-          version: 1,
+          version: 2,
           exportedAt,
           data: {
             preset: {
-              id: "prompt-preset-missing-title",
-              ...titleFields,
+              id: "prompt-preset-missing-name",
+              schemaVersion: 2,
+              messengerPrompt: "",
+              ...nameFields,
               createdAt,
               updatedAt: createdAt,
             },
@@ -217,26 +213,65 @@ describe("prompt preset packages", () => {
 
     expect(packageValue).toMatchObject({
       type: "dekoi_preset",
-      version: 1,
+      version: 2,
       exportedAt,
       data: {
         preset: {
           id: preset.id,
-          name: preset.title,
-          description: preset.summary,
-          systemPrompt: preset.systemPrompt,
+          name: preset.name,
+          description: preset.description,
           messengerPrompt: preset.messengerPrompt,
         },
       },
     });
+    expect(packageValue.data.preset).not.toHaveProperty("conversationPrompt");
+    expect(packageValue.data.preset).not.toHaveProperty("gamePrompt");
+    expect(packageValue.data.preset).not.toHaveProperty("isDefault");
     expect(packageValue.data.preset).not.toHaveProperty("sampling");
     expect(packageValue.data.preset.parameters).not.toHaveProperty("enabledParameters");
     const serializedPackage = JSON.parse(JSON.stringify(packageValue)) as unknown;
     expect(normalizePromptPresetImportRecord(serializedPackage)).toEqual(preset);
   });
 
-  it("resolves whitespace-wrapped compatible default values after canonical trimming", () => {
+  it("rejects unknown fields in DeKoi packages", () => {
+    const native = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    expect(
+      normalizePromptPresetImportRecord({
+        ...native,
+        data: {
+          ...native.data,
+          preset: { ...native.data.preset, unknownField: true },
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects unknown package data fields in DeKoi packages", () => {
+    const native = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    expect(
+      normalizePromptPresetImportRecord({
+        ...native,
+        data: { ...native.data, unknownPayload: true },
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects the removed native default field in DeKoi packages", () => {
     const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    expect(
+      normalizePromptPresetImportRecord({
+        ...packageValue,
+        data: {
+          ...packageValue.data,
+          preset: { ...packageValue.data.preset, isDefault: false },
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("canonicalizes compatible package text and identifiers", () => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const [firstSection, ...remainingSections] = packageValue.data.sections;
     const [firstBlock, ...remainingBlocks] = packageValue.data.choiceBlocks;
     const [firstOption, ...remainingOptions] = firstBlock.options;
 
@@ -246,12 +281,37 @@ describe("prompt preset packages", () => {
         ...packageValue.data,
         preset: {
           ...packageValue.data.preset,
+          description: " Portable prompt preset. ",
+          messengerPrompt: " Reply like a private message. ",
+          parameters: {
+            ...packageValue.data.preset.parameters,
+            assistantPrefill: " <reply> ",
+            customThinkingTags: " <think></think> ",
+          },
+          variableValues: { " register ": " plain " },
           defaultChoices: { tone: " warm " },
         },
+        sections: [
+          { ...firstSection, name: " System ", content: " Write carefully. " },
+          ...remainingSections,
+        ],
         choiceBlocks: [
           {
             ...firstBlock,
-            options: [{ ...firstOption, value: " warm " }, ...remainingOptions],
+            id: ` ${firstBlock.id} `,
+            variableName: ` ${firstBlock.variableName} `,
+            question: " Which tone? ",
+            label: " Tone ",
+            options: [
+              {
+                ...firstOption,
+                id: ` ${firstOption.id} `,
+                label: " Warm ",
+                value: " warm ",
+                description: " Use a warm tone. ",
+              },
+              ...remainingOptions,
+            ],
           },
           ...remainingBlocks,
         ],
@@ -259,7 +319,88 @@ describe("prompt preset packages", () => {
     });
 
     expect(record?.defaultChoices).toEqual({ tone: "warm" });
+    expect(record?.description).toBe("Portable prompt preset.");
+    expect(record?.messengerPrompt).toBe("Reply like a private message.");
+    expect(record?.parameters).toMatchObject({
+      assistantPrefill: "<reply>",
+      customThinkingTags: "<think></think>",
+    });
+    expect(record?.variableValues).toEqual({ register: "plain" });
+    expect(record?.sections[0]).toMatchObject({ name: "System", content: "Write carefully." });
+    expect(record?.choiceBlocks[0]?.id).toBe(firstBlock.id);
+    expect(record?.choiceBlocks[0]?.variableName).toBe(firstBlock.variableName);
+    expect(record?.choiceBlocks[0]).toMatchObject({ question: "Which tone?", label: "Tone" });
+    expect(record?.choiceBlocks[0]?.options[0]?.id).toBe(firstOption.id);
+    expect(record?.choiceBlocks[0]?.options[0]?.label).toBe("Warm");
     expect(record?.choiceBlocks[0]?.options[0]?.value).toBe("warm");
+    expect(record?.choiceBlocks[0]?.options[0]?.description).toBe("Use a warm tone.");
+  });
+
+  it("round-trips empty multi-select defaults and rejects single-select empties", () => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const withEmptyDefault = {
+      ...packageValue,
+      data: {
+        ...packageValue.data,
+        preset: { ...packageValue.data.preset, defaultChoices: { tone: [] } },
+        choiceBlocks: packageValue.data.choiceBlocks.map((block, index) =>
+          index === 0 ? { ...block, multiSelect: true } : block,
+        ),
+      },
+    };
+
+    expect(normalizePromptPresetPackage(withEmptyDefault)?.defaultChoices).toEqual({ tone: [] });
+    expect(
+      normalizePromptPresetPackage({
+        ...withEmptyDefault,
+        data: {
+          ...withEmptyDefault.data,
+          choiceBlocks: withEmptyDefault.data.choiceBlocks.map((block, index) =>
+            index === 0 ? { ...block, multiSelect: false } : block,
+          ),
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it.each([
+    ["default choice", { defaultChoices: { tone: "warm", " tone ": "tone-warm" } }],
+    ["static variable", { variableValues: { register: "plain", " register ": "formal" } }],
+  ])("rejects colliding canonical package %s keys", (_label, presetFields) => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+
+    expect(
+      normalizePromptPresetPackage({
+        ...packageValue,
+        data: {
+          ...packageValue.data,
+          preset: { ...packageValue.data.preset, ...presetFields },
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it.each([
+    ["values", ["warm", " warm "]],
+    [
+      "option IDs",
+      [
+        { kind: "option", optionId: "tone-warm" },
+        { kind: "option", optionId: " tone-warm " },
+      ],
+    ],
+  ])("rejects colliding canonical package default %s", (_label, tone) => {
+    const packageValue = createPromptPresetPackage(richPromptPreset(), exportedAt);
+
+    expect(
+      normalizePromptPresetPackage({
+        ...packageValue,
+        data: {
+          ...packageValue.data,
+          preset: { ...packageValue.data.preset, defaultChoices: { tone } },
+        },
+      }),
+    ).toBeNull();
   });
 
   it("accepts default selections by value, id, and option object", () => {
@@ -281,54 +422,6 @@ describe("prompt preset packages", () => {
     ).not.toBeNull();
   });
 
-  it("imports compatible package sections without copying them into the shared prompt", () => {
-    const record = normalizePromptPresetImportRecord({
-      type: "marinara_preset",
-      version: 1,
-      exportedAt,
-      data: {
-        preset: {
-          id: "preset-compatible",
-          name: "Compatible Preset",
-          sectionOrder: ["section-role", "section-history"],
-          createdAt,
-          updatedAt: createdAt,
-        },
-        sections: [
-          {
-            id: "section-role",
-            presetId: "preset-compatible",
-            identifier: "role",
-            name: "Role",
-            content: "Write in character.",
-            role: "system",
-            enabled: true,
-            isMarker: false,
-          },
-          {
-            id: "section-history",
-            presetId: "preset-compatible",
-            identifier: "history",
-            name: "History",
-            content: "",
-            role: "user",
-            enabled: true,
-            isMarker: true,
-            markerConfig: { type: "chat_history" },
-          },
-        ],
-        groups: [],
-        choiceBlocks: [],
-      },
-    });
-
-    expect(record?.systemPrompt).toBe("");
-    expect(record?.sections.map((section) => section.presetId)).toEqual([
-      "preset-compatible",
-      "preset-compatible",
-    ]);
-  });
-
   it.each([
     {
       label: "prefers the packaged preset id",
@@ -346,13 +439,14 @@ describe("prompt preset packages", () => {
     const record = normalizePromptPresetImportRecord({
       id: envelopeId,
       type: "dekoi_preset",
-      version: 1,
+      version: 2,
       exportedAt,
       data: {
         preset: {
           id: presetId,
+          schemaVersion: 2,
           name: "Identity Preset",
-          systemPrompt: "Write the next response.",
+          messengerPrompt: "Write the next response.",
           createdAt,
           updatedAt: createdAt,
         },
@@ -388,14 +482,14 @@ describe("prompt preset packages", () => {
   });
 
   it("round-trips native sections without copying them into a blank shared prompt", () => {
-    const preset = { ...richPromptPreset(), systemPrompt: "" };
+    const preset = { ...richPromptPreset(), messengerPrompt: "" };
     const packageValue = createPromptPresetPackage(preset, exportedAt);
 
     const record = normalizePromptPresetImportRecord(
       JSON.parse(JSON.stringify(packageValue)) as unknown,
     );
 
-    expect(record?.systemPrompt).toBe("");
+    expect(record?.messengerPrompt).toBe("");
     expect(record?.sections).toEqual(preset.sections);
   });
 
@@ -403,16 +497,53 @@ describe("prompt preset packages", () => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
 
     expect(normalizePromptPresetImportRecord({ ...validPackage, type: "dekoi_bundle" })).toBeNull();
-    expect(normalizePromptPresetImportRecord({ ...validPackage, version: 2 })).toBeNull();
+    expect(normalizePromptPresetImportRecord({ ...validPackage, version: 1 })).toBeNull();
+    expect(
+      normalizePromptPresetImportRecord({
+        ...validPackage,
+        data: {
+          ...validPackage.data,
+          preset: {
+            ...validPackage.data.preset,
+            conversationPrompt: "obsolete DeKoi package field",
+          },
+        },
+      }),
+    ).toBeNull();
+    for (const field of ["conversationPrompt", "gamePrompt"]) {
+      expect(
+        normalizePromptPresetImportRecord({
+          ...validPackage,
+          data: {
+            ...validPackage.data,
+            preset: { ...validPackage.data.preset, [field]: JSON.stringify("foreign field") },
+          },
+        }),
+      ).toBeNull();
+    }
+    expect(
+      normalizePromptPresetImportRecord({
+        ...validPackage,
+        data: {
+          ...validPackage.data,
+          preset: {
+            ...validPackage.data.preset,
+            gamePrompt: "unsupported DeKoi package field",
+          },
+        },
+      }),
+    ).toBeNull();
     expect(
       normalizePromptPresetImportRecord({
         type: "dekoi_preset",
-        version: 1,
+        version: 2,
         exportedAt,
         data: {
           preset: {
             id: "preset-empty",
+            schemaVersion: 2,
             name: "Empty Preset",
+            messengerPrompt: "",
             createdAt,
             updatedAt: createdAt,
           },
@@ -420,38 +551,7 @@ describe("prompt preset packages", () => {
           groups: [],
           choiceBlocks: [],
         },
-      })?.systemPrompt,
-    ).toBe("");
-    expect(
-      normalizePromptPresetImportRecord({
-        type: "dekoi_preset",
-        version: 1,
-        exportedAt,
-        data: {
-          preset: {
-            id: "preset-marker-only",
-            name: "Marker-only Preset",
-            systemPrompt: "   ",
-            sectionOrder: ["section-history"],
-            createdAt,
-            updatedAt: createdAt,
-          },
-          sections: [
-            {
-              id: "section-history",
-              identifier: "history",
-              name: "History",
-              content: "",
-              role: "user",
-              enabled: true,
-              isMarker: true,
-              markerConfig: { type: "chat_history" },
-            },
-          ],
-          groups: [],
-          choiceBlocks: [],
-        },
-      })?.systemPrompt,
+      })?.messengerPrompt,
     ).toBe("");
   });
 
@@ -489,18 +589,6 @@ describe("prompt preset packages", () => {
             ...validPackage.data.preset,
             defaultChoices: { tone: { kind: "option", optionId: "missing" } },
           },
-        },
-      }),
-    ],
-    [
-      "a choice block default for an unknown option",
-      (validPackage: ReturnType<typeof createPromptPresetPackage>) => ({
-        ...validPackage,
-        data: {
-          ...validPackage.data,
-          choiceBlocks: validPackage.data.choiceBlocks.map((block, index) =>
-            index === 0 ? { ...block, defaultOptionId: "missing" } : block,
-          ),
         },
       }),
     ],
@@ -573,9 +661,7 @@ describe("prompt preset packages", () => {
             defaultChoices: { tone: defaultChoices },
           },
           choiceBlocks: validPackage.data.choiceBlocks.map((block, index) =>
-            index === 0
-              ? { ...block, options, defaultOptionId: "option-0", multiSelect: true }
-              : block,
+            index === 0 ? { ...block, options, multiSelect: true } : block,
           ),
         },
       }),
@@ -630,7 +716,7 @@ describe("prompt preset packages", () => {
     ).toBeNull();
   });
 
-  it("retains JSON-string compatibility for nested choice-block options", () => {
+  it("rejects JSON-string choice-block options in native DeKoi packages", () => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
     const [firstBlock, ...remainingBlocks] = validPackage.data.choiceBlocks;
 
@@ -645,8 +731,44 @@ describe("prompt preset packages", () => {
           ],
         },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
   });
+
+  it("rejects a JSON-string marker config in native DeKoi packages", () => {
+    const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
+    const [firstSection, ...remainingSections] = validPackage.data.sections;
+
+    expect(
+      normalizePromptPresetPackage({
+        ...validPackage,
+        data: {
+          ...validPackage.data,
+          sections: [
+            { ...firstSection, markerConfig: JSON.stringify({ type: "chat_history" }) },
+            ...remainingSections,
+          ],
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it.each(["sectionOrder", "groupOrder", "variableGroups", "variableValues", "defaultChoices"])(
+    "rejects JSON-string preset column %s in native DeKoi packages",
+    (field) => {
+      const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
+      const value = validPackage.data.preset[field as keyof typeof validPackage.data.preset];
+
+      expect(
+        normalizePromptPresetPackage({
+          ...validPackage,
+          data: {
+            ...validPackage.data,
+            preset: { ...validPackage.data.preset, [field]: JSON.stringify(value) },
+          },
+        }),
+      ).toBeNull();
+    },
+  );
 
   it("rejects malformed required section fields that survive row-count checks", () => {
     const validPackage = createPromptPresetPackage(richPromptPreset(), exportedAt);
@@ -748,7 +870,7 @@ describe("prompt preset packages", () => {
           ...validPackage,
           data: {
             ...validPackage.data,
-            groups: [{ ...firstGroup, enabled: "yes" }, ...remainingGroups],
+            groups: [{ ...firstGroup, enabled: "true" }, ...remainingGroups],
           },
         },
       ],

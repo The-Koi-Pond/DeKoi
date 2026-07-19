@@ -5,7 +5,7 @@ import {
   createImportedPromptPresetRecord,
   duplicatePromptPresetRecord,
   materializePromptPresetThreadChoiceSelections,
-  normalizePromptPresetRecord,
+  normalizePromptPresetRecord as normalizePromptPresetRecordRaw,
   normalizePromptPresetThreadChoiceSelections,
   normalizePromptPresetThreadChoiceSelectionsWithChange,
   prunePromptPresetThreadChoiceSelections,
@@ -17,35 +17,63 @@ import {
 
 const now = "2026-07-08T00:00:00.000Z";
 
+function validPromptPresetRecord(input: Record<string, unknown>) {
+  return normalizePromptPresetRecordRaw({
+    id: "preset-test",
+    schemaVersion: 2,
+    name: "Test preset",
+    messengerPrompt: "",
+    sectionOrder: [],
+    groupOrder: [],
+    variableGroups: [],
+    variableValues: {},
+    defaultChoices: {},
+    sections: [],
+    groups: [],
+    choiceBlocks: [],
+    createdAt: now,
+    updatedAt: now,
+    ...input,
+  });
+}
+
 describe("normalizePromptPresetRecord", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it.each([
-    ["omitted", {}],
-    ["null", { systemPrompt: null }],
-    ["blank", { systemPrompt: "   " }],
-  ])("normalizes a %s prompt to a blank persisted prompt", (_label, promptField) => {
-    const record = normalizePromptPresetRecord({
-      id: "promptless",
-      schemaVersion: 1,
-      title: "Promptless",
-      ...promptField,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record?.systemPrompt).toBe("");
+  it("rejects obsolete native v1 and unknown fields", () => {
+    expect(normalizePromptPresetRecordRaw({ schemaVersion: 1 })).toBeNull();
+    expect(normalizePromptPresetRecordRaw({ unknownField: "unsupported field" })).toBeNull();
   });
 
-  it.each([42, {}, [], true])("rejects malformed prompt value %j", (systemPrompt) => {
+  it("rejects an omitted required Messenger prompt", () => {
     expect(
-      normalizePromptPresetRecord({
+      normalizePromptPresetRecordRaw({
+        id: "promptless",
+        schemaVersion: 2,
+        name: "Promptless",
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects a whitespace-only native Messenger prompt", () => {
+    expect(validPromptPresetRecord({ messengerPrompt: "   " })).toBeNull();
+  });
+
+  it("rejects a null flat Messenger prompt", () => {
+    expect(validPromptPresetRecord({ messengerPrompt: null })).toBeNull();
+  });
+
+  it.each([42, {}, [], true])("rejects malformed prompt value %j", (messengerPrompt) => {
+    expect(
+      validPromptPresetRecord({
         id: "malformed-prompt",
-        schemaVersion: 1,
-        title: "Malformed Prompt",
-        systemPrompt,
+        schemaVersion: 2,
+        name: "Malformed Prompt",
+        messengerPrompt,
         createdAt: now,
         updatedAt: now,
       }),
@@ -54,10 +82,10 @@ describe("normalizePromptPresetRecord", () => {
 
   it("rejects the removed sampling source instead of silently erasing it", () => {
     expect(
-      normalizePromptPresetRecord({
+      validPromptPresetRecord({
         id: "removed-sampling",
-        schemaVersion: 1,
-        title: "Removed Sampling",
+        schemaVersion: 2,
+        name: "Removed Sampling",
         sampling: { temperature: 0.7 },
         createdAt: now,
         updatedAt: now,
@@ -70,12 +98,13 @@ describe("normalizePromptPresetRecord", () => {
     ["removed enabledParameters", { enabledParameters: { temperature: true } }],
     ["JSON-string standard entry", { temperature: '{"send":true,"value":0.7}' }],
     ["noncanonical stop value", { stopSequences: { send: true, value: ["  END  "] } }],
+    ["noncanonical assistant prefill", { assistantPrefill: " <reply> " }],
   ])("rejects malformed native %s", (_label, parameters) => {
     expect(
-      normalizePromptPresetRecord({
+      validPromptPresetRecord({
         id: "malformed-parameters",
-        schemaVersion: 1,
-        title: "Malformed Parameters",
+        schemaVersion: 2,
+        name: "Malformed Parameters",
         parameters,
         createdAt: now,
         updatedAt: now,
@@ -86,40 +115,36 @@ describe("normalizePromptPresetRecord", () => {
   it.each([[undefined], [null]])("accepts omitted or null parameters: %j", (parameters) => {
     const value: Record<string, unknown> = {
       id: "empty-parameters",
-      schemaVersion: 1,
-      title: "Empty Parameters",
+      schemaVersion: 2,
+      name: "Empty Parameters",
       createdAt: now,
       updatedAt: now,
     };
     if (parameters !== undefined) value.parameters = parameters;
 
-    expect(normalizePromptPresetRecord(value)?.parameters).toBeNull();
+    expect(validPromptPresetRecord(value)?.parameters).toBeNull();
   });
 
-  it("normalizes omitted recipe arrays to empty arrays", () => {
-    const record = normalizePromptPresetRecord({
+  it("rejects omitted required recipe arrays", () => {
+    const record = normalizePromptPresetRecordRaw({
       id: "minimal-promptless",
-      schemaVersion: 1,
-      title: "Minimal Promptless",
+      schemaVersion: 2,
+      name: "Minimal Promptless",
       createdAt: now,
       updatedAt: now,
     });
 
-    expect(record).toMatchObject({
-      sections: [],
-      groups: [],
-      choiceBlocks: [],
-    });
+    expect(record).toBeNull();
   });
 
   it.each(["sections", "groups", "choiceBlocks"])(
     "rejects an explicitly malformed %s collection",
     (field) => {
       expect(
-        normalizePromptPresetRecord({
+        validPromptPresetRecord({
           id: "malformed-recipe",
-          schemaVersion: 1,
-          title: "Malformed Recipe",
+          schemaVersion: 2,
+          name: "Malformed Recipe",
           [field]: {},
           createdAt: now,
           updatedAt: now,
@@ -128,77 +153,623 @@ describe("normalizePromptPresetRecord", () => {
     },
   );
 
-  it.each([undefined, null, "", "   "])("rejects missing or blank title %j", (title) => {
+  it.each([
+    [
+      "section",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+            unexpected: true,
+          },
+        ],
+      }),
+    ],
+    [
+      "group",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        groups: [{ id: "group", name: "Group", unexpected: true }],
+      }),
+    ],
+    [
+      "choice block",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        choiceBlocks: [
+          {
+            id: "choice",
+            variableName: "tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+            unexpected: true,
+          },
+        ],
+      }),
+    ],
+    [
+      "choice option",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        choiceBlocks: [
+          {
+            id: "choice",
+            variableName: "tone",
+            options: [{ id: "warm", label: "Warm", value: "warm", unexpected: true }],
+          },
+        ],
+      }),
+    ],
+    [
+      "marker config",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: true,
+            markerConfig: { type: "chat_history", unexpected: true },
+          },
+        ],
+      }),
+    ],
+    [
+      "default option selection",
+      (base: Record<string, unknown>) => ({
+        ...base,
+        defaultChoices: { tone: { kind: "option", optionId: "warm", unexpected: true } },
+        choiceBlocks: [
+          {
+            id: "choice",
+            variableName: "tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      }),
+    ],
+  ])("rejects unknown nested %s fields", (_label, mutate) => {
+    const base: Record<string, unknown> = {
+      id: "nested-unknown",
+      schemaVersion: 2,
+      name: "Nested Unknown",
+      messengerPrompt: "",
+      sectionOrder: [],
+      groupOrder: [],
+      variableGroups: [],
+      variableValues: {},
+      defaultChoices: {},
+      sections: [],
+      groups: [],
+      choiceBlocks: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    expect(validPromptPresetRecord(mutate(base))).toBeNull();
+  });
+
+  it.each([
+    [
+      "section role",
+      {
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "narrator",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    [
+      "marker configuration",
+      {
+        sections: [
+          {
+            id: "section",
+            identifier: "history",
+            name: "History",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: true,
+            markerConfig: {
+              type: "chat_history",
+              chatHistoryOptions: { includeSystemMessages: "true" },
+            },
+          },
+        ],
+      },
+    ],
+    [
+      "section boolean",
+      {
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: "true",
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    [
+      "choice option",
+      {
+        choiceBlocks: [
+          {
+            id: "choice",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: 42 }],
+          },
+        ],
+      },
+    ],
+    [
+      "default option selection",
+      {
+        defaultChoices: { tone: { kind: "option", optionId: "" } },
+      },
+    ],
+    [
+      "blank nullable relationship ID",
+      {
+        groups: [{ id: "group", presetId: "", name: "Group" }],
+      },
+    ],
+    [
+      "noncanonical marker character field",
+      {
+        sections: [
+          {
+            id: "marker",
+            identifier: "character",
+            name: "Character",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: true,
+            markerConfig: { type: "character", characterFields: [" name "] },
+          },
+        ],
+      },
+    ],
+  ])("rejects malformed native nested %s values", (_label, nested) => {
+    expect(validPromptPresetRecord(nested)).toBeNull();
+  });
+
+  it("preserves the full marker config shape", () => {
+    const record = validPromptPresetRecord({
+      sections: [
+        {
+          id: "marker",
+          identifier: "marker",
+          name: "Marker",
+          content: "",
+          role: "system",
+          enabled: true,
+          isMarker: true,
+          markerConfig: {
+            type: "chat_history",
+            characterFields: ["name"],
+            lorebookFormat: "full",
+            chatHistoryOptions: { maxMessages: 12, includeSystemMessages: true },
+            agentType: "npc",
+          },
+        },
+      ],
+    });
+    expect(record?.sections[0]?.markerConfig).toEqual({
+      type: "chat_history",
+      characterFields: ["name"],
+      lorebookFormat: "full",
+      chatHistoryOptions: { maxMessages: 12, includeSystemMessages: true },
+      agentType: "npc",
+    });
+  });
+
+  it.each([undefined, null, "", "   "])("rejects missing or blank name %j", (name) => {
+    const base = validPromptPresetRecord({ id: "missing-name" });
+    expect(normalizePromptPresetRecordRaw({ ...base, name })).toBeNull();
+  });
+
+  it.each([
+    ["preset ID", { id: " preset-test " }],
+    ["preset name", { name: " Test preset " }],
+    ["static variable key collision", { variableValues: { tone: "warm", " tone ": "cool" } }],
+    ["static variable value", { variableValues: { tone: " warm " } }],
+    ["description", { description: " description " }],
+    ["Messenger prompt", { messengerPrompt: " prompt " }],
+  ])("rejects noncanonical native %s", (_label, invalid) => {
+    expect(validPromptPresetRecord(invalid)).toBeNull();
+  });
+
+  it("preserves prototype-named defaults, selections, and variables as own properties", () => {
+    const record = validPromptPresetRecord({
+      variableValues: Object.fromEntries([["constructor", "static"]]),
+      defaultChoices: Object.fromEntries([
+        ["__proto__", { kind: "option", optionId: "proto-default" }],
+      ]),
+      choiceBlocks: [
+        {
+          id: "toString",
+          variableName: "toString",
+          label: "String form",
+          options: [
+            { id: "string-default", label: "Default", value: "default" },
+            { id: "string-selected", label: "Selected", value: "selected" },
+          ],
+        },
+        {
+          id: "__proto__",
+          variableName: "__proto__",
+          label: "Prototype",
+          options: [{ id: "proto-default", label: "Prototype", value: "prototype" }],
+        },
+      ],
+    });
+
+    expect(record).not.toBeNull();
+    if (!record) return;
+    expect(Object.prototype.hasOwnProperty.call(record.defaultChoices, "__proto__")).toBe(true);
+    expect(JSON.parse(JSON.stringify(record.defaultChoices))["__proto__"]).toEqual({
+      kind: "option",
+      optionId: "proto-default",
+    });
+
+    const selections = materializePromptPresetThreadChoiceSelections(
+      record,
+      Object.fromEntries([["toString", { kind: "option", optionId: "string-selected" }]]),
+    );
+    expect(Object.prototype.hasOwnProperty.call(selections, "toString")).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(selections, "__proto__")).toBe(true);
+
+    const { variables } = resolvePromptPresetChoiceVariables({ preset: record, selections });
+    expect(variables["constructor"]).toBe("static");
+    expect(variables["toString"]).toBe("selected");
+    expect(variables["__proto__"]).toBe("prototype");
+    expect(Object.prototype.hasOwnProperty.call(variables, "__proto__")).toBe(true);
+  });
+
+  it("creates and updates promptless records without injecting fallback text", () => {
+    const created = createPromptPresetRecord({
+      id: "promptless",
+      input: { name: "Promptless" },
+      now,
+    });
+
+    expect(created.messengerPrompt).toBe("");
     expect(
-      normalizePromptPresetRecord({
-        id: "missing-title",
-        schemaVersion: 1,
-        title,
+      updatePromptPresetRecord(created, { name: "Promptless", messengerPrompt: "" }, now)
+        .messengerPrompt,
+    ).toBe("");
+  });
+
+  it("rejects malformed prompt preset timestamps", () => {
+    const record = validPromptPresetRecord({
+      id: "preset-1",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Write the next response.",
+      createdAt: "not-a-date",
+      updatedAt: "also-not-a-date",
+    });
+
+    expect(record).toBeNull();
+  });
+
+  it("rejects native references that normalization would otherwise drop", () => {
+    expect(
+      validPromptPresetRecord({
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+            groupId: "missing-group",
+          },
+        ],
+      }),
+    ).toBeNull();
+    expect(validPromptPresetRecord({ sectionOrder: ["missing-section"] })).toBeNull();
+  });
+
+  it.each([
+    ["non-string variable value", { variableValues: { tone: 42 } }],
+    [
+      "duplicate choice block id",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+          {
+            id: "choice-tone",
+            variableName: "tone-copy",
+            label: "Tone copy",
+            options: [{ id: "cool", label: "Cool", value: "cool" }],
+          },
+        ],
+      },
+    ],
+    [
+      "nested default selection array",
+      {
+        defaultChoices: { tone: [["warm"]] },
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+    [
+      "duplicate default selections",
+      {
+        defaultChoices: { tone: ["warm", "warm"] },
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            multiSelect: true,
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+  ])("rejects native %s", (_label, invalid) => {
+    expect(validPromptPresetRecord(invalid)).toBeNull();
+  });
+
+  it("rejects more than 1,000 native default selections", () => {
+    const options = Array.from({ length: 1_000 }, (_, index) => ({
+      id: `option-${index}`,
+      label: `Option ${index}`,
+      value: `value-${index}`,
+    }));
+    const defaultChoices = [
+      ...options.map((option) => ({ kind: "option", optionId: option.id })),
+      "value-0",
+    ];
+
+    expect(
+      validPromptPresetRecord({
+        defaultChoices: { tones: defaultChoices },
+        choiceBlocks: [
+          {
+            id: "choice-tones",
+            variableName: "tones",
+            label: "Tones",
+            multiSelect: true,
+            options,
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts an intentionally empty top-level multi-select default", () => {
+    const record = validPromptPresetRecord({
+      defaultChoices: { tones: [] },
+      choiceBlocks: [
+        {
+          id: "choice-tones",
+          variableName: "tones",
+          label: "Tones",
+          multiSelect: true,
+          options: [{ id: "warm", label: "Warm", value: "warm" }],
+        },
+      ],
+    });
+    expect(record?.defaultChoices).toEqual({ tones: [] });
+  });
+
+  it("rejects an empty top-level single-select default", () => {
+    expect(
+      validPromptPresetRecord({
+        defaultChoices: { tone: [] },
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            multiSelect: false,
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects duplicate native choice option IDs", () => {
+    expect(
+      validPromptPresetRecord({
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [
+              { id: "warm", label: "Warm", value: "warm" },
+              { id: "warm", label: "Also warm", value: "warm-2" },
+            ],
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it.each([
+    [
+      "section",
+      {
+        sections: [
+          {
+            id: " section ",
+            identifier: "section",
+            name: "Section",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    ["group", { groups: [{ id: " group ", name: "Group" }] }],
+    ["group name", { groups: [{ id: "group", name: " Group " }] }],
+    [
+      "choice block",
+      {
+        choiceBlocks: [
+          {
+            id: " choice-tone ",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+    [
+      "choice option",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [
+              { id: "warm", label: "Warm", value: "warm" },
+              { id: " warm ", label: "Also warm", value: "warm-2" },
+            ],
+          },
+        ],
+      },
+    ],
+    [
+      "section content",
+      {
+        sections: [
+          {
+            id: "section",
+            identifier: "section",
+            name: "Section",
+            content: " content ",
+            role: "system",
+            enabled: true,
+            isMarker: false,
+          },
+        ],
+      },
+    ],
+    [
+      "choice label",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: " Tone ",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+        ],
+      },
+    ],
+    [
+      "choice option text",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: " Warm ", value: " warm " }],
+          },
+        ],
+      },
+    ],
+    [
+      "choice variable name collision",
+      {
+        choiceBlocks: [
+          {
+            id: "choice-tone",
+            variableName: "tone",
+            label: "Tone",
+            options: [{ id: "warm", label: "Warm", value: "warm" }],
+          },
+          {
+            id: "choice-tone-copy",
+            variableName: " tone ",
+            label: "Tone copy",
+            options: [{ id: "cool", label: "Cool", value: "cool" }],
+          },
+        ],
+      },
+    ],
+  ])("rejects whitespace-padded native %s", (_label, nested) => {
+    expect(validPromptPresetRecord(nested)).toBeNull();
+  });
+
+  it("rejects a whitespace-only native choice separator", () => {
+    expect(
+      validPromptPresetRecord({
+        id: "preset-whitespace-separator",
+        schemaVersion: 2,
+        name: "Whitespace separator",
+        messengerPrompt: "Write the next response.",
+        choiceBlocks: [
+          {
+            id: "choice-tags",
+            variableName: "tags",
+            label: "Tags",
+            options: [{ id: "tag-vivid", label: "Vivid", value: "vivid" }],
+            separator: "   ",
+          },
+        ],
         createdAt: now,
         updatedAt: now,
       }),
     ).toBeNull();
   });
 
-  it("creates and updates promptless records without injecting fallback text", () => {
-    const created = createPromptPresetRecord({
-      id: "promptless",
-      input: { title: "Promptless" },
-      now,
-    });
-
-    expect(created.systemPrompt).toBe("");
-    expect(
-      updatePromptPresetRecord(created, { title: "Promptless", systemPrompt: "" }, now)
-        .systemPrompt,
-    ).toBe("");
-  });
-
-  it("falls back when prompt preset timestamps are malformed", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(now));
-
-    const record = normalizePromptPresetRecord({
-      id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Write the next response.",
-      createdAt: "not-a-date",
-      updatedAt: "also-not-a-date",
-    });
-
-    expect(record?.createdAt).toBe(now);
-    expect(record?.updatedAt).toBe(now);
-  });
-
-  it("removes whitespace-only choice separators", () => {
-    const record = normalizePromptPresetRecord({
-      id: "preset-whitespace-separator",
-      schemaVersion: 1,
-      title: "Whitespace separator",
-      systemPrompt: "Write the next response.",
-      choiceBlocks: [
-        {
-          id: "choice-tags",
-          variableName: "tags",
-          label: "Tags",
-          options: [{ id: "tag-vivid", label: "Vivid", value: "vivid" }],
-          separator: "   ",
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    expect(record?.choiceBlocks[0]).not.toHaveProperty("separator");
-  });
-
   it("normalizes XML tag names only for non-marker sections", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Write the next response.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Write the next response.",
       sections: [
         {
           id: "section-marker",
@@ -230,61 +801,43 @@ describe("normalizePromptPresetRecord", () => {
     expect(record?.sections[1]?.xmlTagName).toBe("role_tag");
   });
 
-  it("normalizes choice blocks and falls back to the first valid option as default", () => {
-    const record = normalizePromptPresetRecord({
+  it("rejects duplicate choice options", () => {
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Write with {{pacing}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Write with {{pacing}}.",
       choiceBlocks: [
         {
           id: "choice-pacing",
           variableName: "pacing",
           label: "Pacing",
-          defaultOptionId: "missing",
           options: [
             { id: "slow", label: "Slow", value: "slow burn" },
             { id: "fast", label: "Fast", value: "snappy" },
             { id: "fast", label: "Duplicate", value: "ignored" },
           ],
         },
-        {
-          id: "invalid",
-          variableName: "",
-          label: "Invalid",
-          options: [{ id: "x", label: "X", value: "x" }],
-        },
       ],
       createdAt: now,
       updatedAt: now,
     });
 
-    expect(record?.choiceBlocks).toEqual([
-      {
-        id: "choice-pacing",
-        variableName: "pacing",
-        label: "Pacing",
-        defaultOptionId: "slow",
-        options: [
-          { id: "slow", label: "Slow", value: "slow burn" },
-          { id: "fast", label: "Fast", value: "snappy" },
-        ],
-      },
-    ]);
+    expect(record).toBeNull();
   });
 
   it("resolves default and selected choice values by variable name", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Write with {{pacing}} and {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Write with {{pacing}} and {{tone}}.",
+      defaultChoices: { pacing: { kind: "option", optionId: "fast" } },
       choiceBlocks: [
         {
           id: "choice-pacing",
           variableName: "pacing",
           label: "Pacing",
-          defaultOptionId: "fast",
           options: [
             { id: "fast", label: "Fast", value: "snappy" },
             { id: "slow", label: "Slow", value: "slow burn" },
@@ -294,7 +847,6 @@ describe("normalizePromptPresetRecord", () => {
           id: "choice-tone",
           variableName: "tone",
           label: "Tone",
-          defaultOptionId: "warm",
           options: [{ id: "warm", label: "Warm", value: "warm" }],
         },
       ],
@@ -319,12 +871,12 @@ describe("normalizePromptPresetRecord", () => {
     });
   });
 
-  it("drops default choices for skipped blocks and invalid option values", () => {
-    const record = normalizePromptPresetRecord({
+  it("rejects default choices that normalization would otherwise prune", () => {
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Write with {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Write with {{tone}}.",
       defaultChoices: {
         skipped: "ghost",
         tone: ["warm prose", "missing", "tone-cold"],
@@ -339,28 +891,20 @@ describe("normalizePromptPresetRecord", () => {
             { id: "tone-cold", label: "Cold", value: "cold prose" },
           ],
         },
-        {
-          id: "choice-skipped",
-          variableName: "skipped",
-          label: "Skipped",
-          options: [],
-        },
       ],
       createdAt: now,
       updatedAt: now,
     });
 
-    expect(record?.defaultChoices).toEqual({
-      tone: ["warm prose", "tone-cold"],
-    });
+    expect(record).toBeNull();
   });
 
   it("resolves preset variables and multi-select choice values", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{baseTone}} and {{motifs}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{baseTone}} and {{motifs}}.",
       variableValues: {
         baseTone: "grounded",
       },
@@ -401,31 +945,21 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("builds ordered visible choice controls for thread settings UI", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{boundary}} and {{motifs}}.",
-      variableOrder: ["choice-hidden", "choice-motifs", "choice-boundary"],
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{boundary}} and {{motifs}}.",
       defaultChoices: {
+        boundary: "sfw",
+        hiddenTone: "soft",
         motifs: ["rain", "neon"],
       },
       choiceBlocks: [
         {
-          id: "choice-boundary",
-          variableName: "boundary",
-          label: "Boundary",
-          defaultOptionId: "sfw",
-          options: [
-            { id: "sfw", label: "SFW", value: "SFW" },
-            { id: "adult", label: "Adult", value: "Adult" },
-          ],
-        },
-        {
           id: "choice-hidden",
           variableName: "hiddenTone",
           label: "Hidden tone",
-          defaultOptionId: "soft",
           options: [
             { id: "soft", label: "Soft", value: "soft" },
             { id: "direct", label: "Direct", value: "direct" },
@@ -441,6 +975,15 @@ describe("normalizePromptPresetRecord", () => {
             { id: "static", label: "Static", value: "static" },
           ],
           multiSelect: true,
+        },
+        {
+          id: "choice-boundary",
+          variableName: "boundary",
+          label: "Boundary",
+          options: [
+            { id: "sfw", label: "SFW", value: "SFW" },
+            { id: "adult", label: "Adult", value: "Adult" },
+          ],
         },
       ],
       createdAt: now,
@@ -540,17 +1083,17 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("keeps option identity when a selected choice value is empty", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{tone}}.",
+      defaultChoices: { tone: { kind: "option", optionId: "none" } },
       choiceBlocks: [
         {
           id: "choice-tone",
           variableName: "tone",
           label: "Tone",
-          defaultOptionId: "loud",
           options: [
             { id: "none", label: "None", value: "" },
             { id: "loud", label: "Loud", value: "loud" },
@@ -576,7 +1119,7 @@ describe("normalizePromptPresetRecord", () => {
         label: "Tone",
         multiSelect: false,
         displayMode: "auto",
-        defaultLabel: "Preset default: Loud",
+        defaultLabel: "Preset default: None",
         selectedOptionIds: ["none"],
         selectedValues: [""],
         options: [
@@ -604,11 +1147,12 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("projects choice display mode and alphabetical option order without changing identity", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{tone}}.",
+      defaultChoices: { tone: { kind: "option", optionId: "alpha" } },
       choiceBlocks: [
         {
           id: "choice-tone",
@@ -641,11 +1185,11 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("resolves non-empty value-based selections before option ids", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{tone}}.",
       choiceBlocks: [
         {
           id: "choice-tone",
@@ -679,17 +1223,16 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("resolves control selections as option ids", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tone}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{tone}}.",
       choiceBlocks: [
         {
           id: "choice-tone",
           variableName: "tone",
           label: "Tone",
-          defaultOptionId: "loud",
           options: [
             { id: "none", label: "None", value: "" },
             { id: "loud", label: "Loud", value: "loud" },
@@ -722,11 +1265,11 @@ describe("normalizePromptPresetRecord", () => {
   });
 
   it("deduplicates generated values without collapsing selected option ids", () => {
-    const record = normalizePromptPresetRecord({
+    const record = validPromptPresetRecord({
       id: "preset-1",
-      schemaVersion: 1,
-      title: "Preset One",
-      systemPrompt: "Use {{tags}}.",
+      schemaVersion: 2,
+      name: "Preset One",
+      messengerPrompt: "Use {{tags}}.",
       choiceBlocks: [
         {
           id: "choice-tags",
@@ -779,8 +1322,8 @@ describe("normalizePromptPresetRecord", () => {
       id: "preset-selections",
       now,
       input: {
-        title: "Selections",
-        systemPrompt: "Use choices.",
+        name: "Selections",
+        messengerPrompt: "Use choices.",
         choiceBlocks: [
           {
             id: "choice-tone",
@@ -843,9 +1386,9 @@ describe("updatePromptPresetRecord", () => {
       id: "preset-1",
       now,
       input: {
-        title: "Preset One",
-        summary: "Rich preset",
-        systemPrompt: "Write the next response.",
+        name: "Preset One",
+        description: "Rich preset",
+        messengerPrompt: "Write the next response.",
         parameters: {
           maxTokens: { send: true, value: 400 },
           temperature: { send: false, value: 0.8 },
@@ -861,9 +1404,9 @@ describe("updatePromptPresetRecord", () => {
     const updated = updatePromptPresetRecord(
       record,
       {
-        title: record.title,
-        summary: record.summary,
-        systemPrompt: record.systemPrompt,
+        name: record.name,
+        description: record.description,
+        messengerPrompt: record.messengerPrompt,
       },
       "2026-07-08T01:00:00.000Z",
     );
@@ -884,8 +1427,8 @@ describe("updatePromptPresetRecord", () => {
       id: "preset-1",
       now,
       input: {
-        title: "Preset One",
-        systemPrompt: "Write the next response.",
+        name: "Preset One",
+        messengerPrompt: "Write the next response.",
         parameters: {
           temperature: { send: true, value: 0.8 },
           topK: { send: true, value: 42 },
@@ -897,9 +1440,9 @@ describe("updatePromptPresetRecord", () => {
     const updated = updatePromptPresetRecord(
       record,
       {
-        title: record.title,
-        summary: record.summary,
-        systemPrompt: record.systemPrompt,
+        name: record.name,
+        description: record.description,
+        messengerPrompt: record.messengerPrompt,
         parameters: {
           temperature: { send: false, value: 1.1 },
         },
@@ -919,8 +1462,8 @@ describe("duplicatePromptPresetRecord", () => {
       id: "preset-original",
       now,
       input: {
-        title: "Preset One",
-        systemPrompt: "Write the next response.",
+        name: "Preset One",
+        messengerPrompt: "Write the next response.",
         sections: [
           {
             id: "section-system",
@@ -977,8 +1520,8 @@ describe("createImportedPromptPresetRecord", () => {
       id: "preset-package-id",
       now,
       input: {
-        title: "Portable Preset",
-        systemPrompt: "Write the next response.",
+        name: "Portable Preset",
+        messengerPrompt: "Write the next response.",
         sections: [
           {
             id: "section-system",
@@ -1012,7 +1555,7 @@ describe("createImportedPromptPresetRecord", () => {
 
     expect(imported).toMatchObject({
       id: "prompt-preset-imported",
-      title: "Portable Preset",
+      name: "Portable Preset",
       createdAt: "2026-07-11T01:00:00.000Z",
       updatedAt: "2026-07-11T01:00:00.000Z",
     });
@@ -1037,14 +1580,17 @@ describe("native thread prompt preset choices", () => {
       id: "preset-default-copy",
       now,
       input: {
-        title: "Default copy",
-        systemPrompt: "Use {{tone}} and {{pace}}.",
+        name: "Default copy",
+        messengerPrompt: "Use {{tone}} and {{pace}}.",
+        defaultChoices: {
+          tone: { kind: "option", optionId: "tone-warm" },
+          pace: { kind: "option", optionId: "pace-slow" },
+        },
         choiceBlocks: [
           {
             id: "choice-tone",
             variableName: "tone",
             label: "Tone",
-            defaultOptionId: "tone-warm",
             options: [
               { id: "tone-warm", label: "Warm", value: "warm" },
               { id: "tone-dry", label: "Dry", value: "dry" },
@@ -1054,7 +1600,6 @@ describe("native thread prompt preset choices", () => {
             id: "choice-pace",
             variableName: "pace",
             label: "Pace",
-            defaultOptionId: "pace-slow",
             options: [
               { id: "pace-slow", label: "Slow", value: "slow" },
               { id: "pace-fast", label: "Fast", value: "fast" },
@@ -1070,9 +1615,10 @@ describe("native thread prompt preset choices", () => {
       preset,
       {
         ...preset,
-        choiceBlocks: preset.choiceBlocks.map((block) =>
-          block.id === "choice-pace" ? { ...block, defaultOptionId: "pace-fast" } : block,
-        ),
+        defaultChoices: {
+          ...preset.defaultChoices,
+          pace: { kind: "option", optionId: "pace-fast" },
+        },
       },
       "2026-07-08T01:00:00.000Z",
     );
@@ -1106,8 +1652,8 @@ describe("native thread prompt preset choices", () => {
       id: "preset-native-choices",
       now,
       input: {
-        title: "Native choices",
-        systemPrompt: "Use the selected choices.",
+        name: "Native choices",
+        messengerPrompt: "Use the selected choices.",
         choiceBlocks: [
           {
             id: "choice-tone",

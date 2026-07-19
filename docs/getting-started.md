@@ -158,9 +158,9 @@ Focused checks for narrow changes are mapped to change types in
   Invalid sent values stay in the editor with an inline error, and Save Changes
   remains unavailable until you correct the value or turn Send off.
   After editing, select a prompt preset from thread settings. New threads start
-  with the current app default. A title is enough to create and save a preset;
+  with the current app default. A name is enough to create and save a preset;
   prompt text, variables, metadata, parameters, and structured recipe rows may
-  all be absent. A blank System Prompt stays blank in storage rather than
+  all be absent. A blank Messenger Prompt stays blank in storage rather than
   receiving a built-in prompt. The bundled Universal V2 starter is an ordinary
   native preset that can be edited or duplicated. **Restore Starter Preset**,
   available in the Presets rail and the empty Presets surface, adds a fresh copy
@@ -182,10 +182,10 @@ Focused checks for narrow changes are mapped to change types in
   including conversation history through an enabled Chat History marker.
   Messenger ordinary conversation settings select a prompt preset and its
   preset-authored Variables. Generation uses the selected preset's
-  `messengerPrompt`, then shared `systemPrompt`, and falls back to the built-in
+  `messengerPrompt`, falling back to the built-in
   `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable selected preset prompt exists;
-  Roleplay uses usable sections, then the shared prompt, then its built-in
-  prelude. Roleplay sections never become Messenger's shared prompt. These
+  Roleplay uses usable sections, then its built-in prelude. Roleplay sections
+  never become Messenger's prompt. These
   built-in fallbacks are assembled only for generation. A selected Roleplay
   preset retains its narration and other-character output behavior through the
   fallback chain; only no-preset, single-character Roleplay uses the
@@ -194,7 +194,7 @@ Focused checks for narrow changes are mapped to change types in
   choice blocks and options; edit defaults, questions, option descriptions,
   multi-select separators, manual or alphabetical option order, and
   button/list/automatic presentation. Choice questions are always visible.
-  Compatible data may carry static variables, richer parameters, and metadata
+  Compatible data may carry static variables, richer parameters, and optional author metadata
   that the catalog preserves even when those fields do not have visible editors
   yet. Roleplay generation consumes usable saved section/group structure. Both
   Messenger and Roleplay generation consume stored stable-ID choices and retain

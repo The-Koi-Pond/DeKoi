@@ -25,9 +25,9 @@ export interface PromptPresetChoiceBlock {
   question?: string | null;
   label: string;
   options: PromptPresetChoiceOption[];
-  defaultOptionId?: string | null;
   multiSelect?: boolean;
   separator?: string | null;
+  randomPick?: boolean;
   displayMode?: "auto" | "buttons" | "listbox" | null;
   optionSort?: "manual" | "alphabetical" | null;
   sortOrder?: number | null;
@@ -61,6 +61,13 @@ export type PromptPresetSectionRole = "system" | "user" | "assistant";
 
 interface PromptPresetMarkerConfig {
   type: string;
+  characterFields?: string[];
+  lorebookFormat?: "full" | "worldbook_only" | "character_only";
+  chatHistoryOptions?: {
+    maxMessages?: number;
+    includeSystemMessages?: boolean;
+  };
+  agentType?: string;
 }
 
 export interface PromptPresetSection {
@@ -94,29 +101,21 @@ export interface PromptPresetGroup {
 
 export interface PromptPresetRecord {
   id: string;
-  schemaVersion: 1;
-  title: string;
-  summary?: string | null;
-  systemPrompt: string;
-  messengerPrompt?: string | null;
+  schemaVersion: 2;
+  name: string;
+  description?: string | null;
+  messengerPrompt: string;
   parameters?: PromptPresetParameters | null;
   sectionOrder: string[];
   groupOrder: string[];
-  variableOrder: string[];
   variableGroups: unknown[];
   variableValues: Record<string, string>;
   defaultChoices: PromptPresetChoiceSelections;
   wrapFormat?: string | null;
   author?: string | null;
-  folderId?: string | null;
   sections: PromptPresetSection[];
   groups: PromptPresetGroup[];
   choiceBlocks: PromptPresetChoiceBlock[];
   createdAt: string;
   updatedAt: string;
-}
-
-export function resolvePromptPresetMessengerPrompt(preset: PromptPresetRecord | null | undefined) {
-  const messengerPrompt = preset?.messengerPrompt?.trim();
-  return messengerPrompt || preset?.systemPrompt.trim() || null;
 }

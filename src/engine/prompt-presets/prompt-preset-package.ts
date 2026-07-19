@@ -14,14 +14,64 @@ import {
 } from "./prompt-preset-package-schema";
 
 const DEKOI_PROMPT_PRESET_PACKAGE_TYPE = "dekoi_preset";
-const DEKOI_PROMPT_PRESET_PACKAGE_VERSION = 1;
+const DEKOI_PROMPT_PRESET_PACKAGE_VERSION = 2;
+const MARINARA_PROMPT_PRESET_PACKAGE_TYPE = "marinara_preset";
+const MARINARA_PROMPT_PRESET_PACKAGE_VERSION = 1;
 const COMPATIBLE_PROMPT_PRESET_PACKAGE_TYPES = new Set([
   DEKOI_PROMPT_PRESET_PACKAGE_TYPE,
-  "marinara_preset",
+  MARINARA_PROMPT_PRESET_PACKAGE_TYPE,
 ]);
 
 function stampPresetIdOnRows(rows: Record<string, unknown>[], presetId: string) {
   return rows.map((row) => ({ ...row, presetId }));
+}
+
+function readPackageArray(value: unknown): unknown[] {
+  const parsed = parseJsonIfString(value);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function readPackageRecord(value: unknown): Record<string, unknown> {
+  const parsed = parseJsonIfString(value);
+  return isRecord(parsed) ? parsed : {};
+}
+
+function canonicalizePackageRecord(
+  value: unknown,
+  canonicalizeValue: (entry: unknown) => unknown = (entry) => entry,
+): Record<string, unknown> | null {
+  const entries: [string, unknown][] = [];
+  const seenKeys = new Set<string>();
+  for (const [rawKey, entry] of Object.entries(readPackageRecord(value))) {
+    const key = rawKey.trim();
+    if (!key || seenKeys.has(key)) return null;
+    seenKeys.add(key);
+    entries.push([key, canonicalizeValue(entry)]);
+  }
+  return Object.fromEntries(entries);
+}
+
+function trimPackageChoiceSelection(value: unknown): unknown {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) return value.map(trimPackageChoiceSelection);
+  if (isRecord(value) && value.kind === "option" && typeof value.optionId === "string") {
+    return { ...value, optionId: value.optionId.trim() };
+  }
+  return value;
+}
+
+function canonicalizePackageParameters(value: unknown) {
+  const parameters = parseJsonIfString(value);
+  if (!isRecord(parameters)) return value;
+  return {
+    ...parameters,
+    ...(typeof parameters.assistantPrefill === "string"
+      ? { assistantPrefill: readNullableString(parameters.assistantPrefill) }
+      : {}),
+    ...(typeof parameters.customThinkingTags === "string"
+      ? { customThinkingTags: readNullableString(parameters.customThinkingTags) }
+      : {}),
+  };
 }
 
 function packageRowsWerePreserved(rows: PromptPresetPackageRows, normalized: PromptPresetRecord) {
@@ -49,39 +99,52 @@ function packageRowsWerePreserved(rows: PromptPresetPackageRows, normalized: Pro
 function normalizePromptPresetPackageRecord(
   value: Record<string, unknown>,
 ): PromptPresetRecord | null {
-  if (
-    !COMPATIBLE_PROMPT_PRESET_PACKAGE_TYPES.has(readString(value.type)) ||
-    value.version !== DEKOI_PROMPT_PRESET_PACKAGE_VERSION ||
-    !isRecord(value.data) ||
-    !promptPresetPackageEnvelopeIsValid(value)
-  ) {
+  const packageType = readString(value.type);
+  const supportedVersion =
+    (packageType === DEKOI_PROMPT_PRESET_PACKAGE_TYPE &&
+      value.version === DEKOI_PROMPT_PRESET_PACKAGE_VERSION) ||
+    (packageType === MARINARA_PROMPT_PRESET_PACKAGE_TYPE &&
+      value.version === MARINARA_PROMPT_PRESET_PACKAGE_VERSION);
+  if (!supportedVersion || !isRecord(value.data) || !promptPresetPackageEnvelopeIsValid(value)) {
     return null;
   }
 
-  const packageData = readPromptPresetPackageData(value.data);
+  const packageData = readPromptPresetPackageData(value.data, packageType);
   if (!packageData) return null;
 
   const preset = packageData.preset;
+  if (
+    packageType === DEKOI_PROMPT_PRESET_PACKAGE_TYPE &&
+    (preset.schemaVersion !== 2 || typeof preset.messengerPrompt !== "string")
+  ) {
+    return null;
+  }
   const id = readString(preset.id).trim() || readString(value.id).trim();
-  const systemPrompt = readString(preset.systemPrompt).trim();
+  const variableValues = canonicalizePackageRecord(preset.variableValues, (entry) =>
+    typeof entry === "string" ? entry.trim() : entry,
+  );
+  const defaultChoices = canonicalizePackageRecord(
+    preset.defaultChoices,
+    trimPackageChoiceSelection,
+  );
+  if (!variableValues || !defaultChoices) return null;
   const normalized = normalizePromptPresetRecord({
     id,
-    schemaVersion: 1,
-    title: readString(preset.name).trim() || readString(preset.title).trim(),
-    summary: readNullableString(preset.description) ?? readNullableString(preset.summary),
-    systemPrompt,
+    schemaVersion: 2,
+    name: readString(preset.name).trim(),
+    description: readNullableString(preset.description),
     messengerPrompt:
-      readNullableString(preset.messengerPrompt) ?? readNullableString(preset.conversationPrompt),
-    parameters: preset.parameters,
-    sectionOrder: preset.sectionOrder,
-    groupOrder: preset.groupOrder,
-    variableOrder: preset.variableOrder,
-    variableGroups: preset.variableGroups,
-    variableValues: preset.variableValues,
-    defaultChoices: preset.defaultChoices,
+      packageType === MARINARA_PROMPT_PRESET_PACKAGE_TYPE
+        ? readString(preset.conversationPrompt).trim()
+        : readString(preset.messengerPrompt).trim(),
+    parameters: canonicalizePackageParameters(preset.parameters),
+    sectionOrder: readPackageArray(preset.sectionOrder),
+    groupOrder: readPackageArray(preset.groupOrder),
+    variableGroups: readPackageArray(preset.variableGroups),
+    variableValues,
+    defaultChoices,
     wrapFormat: readNullableString(preset.wrapFormat),
     author: readNullableString(preset.author),
-    folderId: readNullableString(preset.folderId),
     sections: stampPresetIdOnRows(packageData.sections, id),
     groups: stampPresetIdOnRows(packageData.groups, id),
     choiceBlocks: stampPresetIdOnRows(packageData.choiceBlocks, id),
@@ -106,20 +169,17 @@ export function createPromptPresetPackage(record: PromptPresetRecord, exportedAt
       preset: {
         id: record.id,
         schemaVersion: record.schemaVersion,
-        name: record.title,
-        description: record.summary,
-        systemPrompt: record.systemPrompt,
+        name: record.name,
+        description: record.description,
         messengerPrompt: record.messengerPrompt,
         parameters: record.parameters,
         sectionOrder: record.sectionOrder,
         groupOrder: record.groupOrder,
-        variableOrder: record.variableOrder,
         variableGroups: record.variableGroups,
         variableValues: record.variableValues,
         defaultChoices: record.defaultChoices,
         wrapFormat: record.wrapFormat,
         author: record.author,
-        folderId: record.folderId,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
       },
@@ -139,5 +199,5 @@ export function normalizePromptPresetImportRecord(value: unknown): PromptPresetR
   if (COMPATIBLE_PROMPT_PRESET_PACKAGE_TYPES.has(readString(value.type))) {
     return normalizePromptPresetPackageRecord(value);
   }
-  return normalizePromptPresetPackageRecord(value) ?? normalizePromptPresetRecord(value);
+  return normalizePromptPresetRecord(value);
 }

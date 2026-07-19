@@ -99,11 +99,6 @@ function PromptPresetEditor({
     savingRef.current = saving;
   }, [dirty, saving]);
   const canSave = canSavePromptPresetDraft(draft);
-  const systemPromptHint =
-    draft.sections.length > 0
-      ? "Roleplay uses its sections first. System Prompt is next, followed by the built-in Roleplay prelude when neither has usable text."
-      : "Roleplay uses System Prompt first, followed by the built-in Roleplay prelude when it has no usable text. Messenger uses Messenger Prompt Source first, then System Prompt, then its built-in prelude when neither has usable text.";
-
   const leavePolicy = useCallback(() => {
     if (allowNextNavigationRef.current) {
       allowNextNavigationRef.current = false;
@@ -172,8 +167,8 @@ function PromptPresetEditor({
         saveDisabled={!canSave || !dirty || saving}
         saveLabel={editingId ? "Save Changes" : "Create"}
         saveState={dirty ? "pending" : "clean"}
-        subtitle={draft.summary || "Prompt preset"}
-        title={draft.title || "New Preset"}
+        subtitle={draft.description || "Prompt preset"}
+        title={draft.name || "New Preset"}
       />
       {error && (
         <p role="alert" className="catalog-surface-error">
@@ -186,52 +181,37 @@ function PromptPresetEditor({
             <h4 id="preset-core-heading">Preset</h4>
             <div className="catalog-editor-grid">
               <div className="catalog-editor-field">
-                <label htmlFor="preset-title">Title</label>
+                <label htmlFor="preset-name">Name</label>
                 <input
-                  id="preset-title"
+                  id="preset-name"
                   className="pondinput"
                   type="text"
-                  value={draft.title}
-                  onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                  value={draft.name}
+                  onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                   placeholder="e.g. Cinematic Roleplay"
                 />
               </div>
               <div className="catalog-editor-field">
-                <label htmlFor="preset-summary">Summary</label>
+                <label htmlFor="preset-description">Description</label>
                 <input
-                  id="preset-summary"
+                  id="preset-description"
                   className="pondinput"
                   type="text"
-                  value={draft.summary}
-                  onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
+                  value={draft.description}
+                  onChange={(event) => setDraft({ ...draft, description: event.target.value })}
                   placeholder="Optional"
                 />
               </div>
             </div>
             <div className="catalog-editor-field">
-              <label htmlFor="preset-system-prompt">System Prompt</label>
+              <label htmlFor="preset-conversation-prompt">Messenger Prompt</label>
               <CatalogMacroTextarea
-                id="preset-system-prompt"
-                aria-describedby="preset-system-prompt-hint"
+                id="preset-conversation-prompt"
                 className="pondinput pondtextarea"
                 rows={16}
-                value={draft.systemPrompt}
-                onValueChange={(systemPrompt) => setDraft({ ...draft, systemPrompt })}
-                placeholder="System prompt used when this preset is selected."
-              />
-              <p className="catalog-field-hint" id="preset-system-prompt-hint">
-                {systemPromptHint}
-              </p>
-            </div>
-            <div className="catalog-editor-field">
-              <label htmlFor="preset-messenger-prompt">Messenger Prompt Source</label>
-              <CatalogMacroTextarea
-                id="preset-messenger-prompt"
-                className="pondinput pondtextarea"
-                rows={12}
                 value={draft.messengerPrompt}
                 onValueChange={(messengerPrompt) => setDraft({ ...draft, messengerPrompt })}
-                placeholder="Optional Messenger-specific prompt source. Empty uses System Prompt."
+                placeholder="Flat prompt used by Messenger. Empty uses Messenger's built-in prompt."
               />
             </div>
           </section>

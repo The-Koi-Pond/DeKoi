@@ -4,8 +4,8 @@ Status: Slice 7 dynamic variable persistence, Slice 9a active-macro editor
 metadata, and the Slice 9b catalog live-preview pass are implemented.
 Generation prompt assembly now uses the Slice 1/2/4/6 resolver and Slice 7
 persistence flow for system prompts, Roleplay scene setup, character and persona
-context fields, selected prompt preset system prompts, selected Messenger
-preset prompt sources, selected Roleplay prompt preset sections and markers,
+context fields, selected Messenger preset prompts, selected Roleplay prompt
+preset sections and markers,
 prompt-preset static and choice variables, post-history instructions, lorebook
 summaries, activated lore entry bodies, at-depth lore messages, and example
 dialogue.
@@ -41,8 +41,7 @@ implements them.
 Catalog multiline text editors expose a Macros browser for the macro-resolved
 text areas wired in this slice: Companion and Persona descriptive fields, system
 prompts, post-history instructions, notes, Companion example dialogue, Prompt
-Preset system prompts, Prompt Preset Messenger Prompt Sources, and Lorebook
-entry bodies. Companion first-message,
+Preset Messenger Prompts, and Lorebook entry bodies. Companion first-message,
 alternate-greeting, and group-only greeting fields remain plain text today. The
 browser searches supported syntax, category labels, and descriptions, then
 inserts the selected macro text at the current textarea selection. Companion and
@@ -52,10 +51,9 @@ supplies a local macro context. Companion previews resolve the draft companion
 identity and character fields. Persona previews resolve the draft persona
 identity and generic `{{char}}` selected-companion fallback, but do not
 fabricate target-companion field values; blank persona drafts preserve
-`{{persona}}` literally until a display name exists. Prompt Preset system
-prompts, Messenger Prompt Sources, and Lorebook entry bodies still expose
-insertion only in catalog because they need an active generation context to
-preview accurately.
+`{{persona}}` literally until a display name exists. Prompt Preset Messenger
+Prompts and Lorebook entry bodies still expose insertion only in catalog because
+they need an active generation context to preview accurately.
 
 The resolver does not read storage, call providers, or touch runtime adapters.
 Variable macros can mutate `context.variables` and optionally append to
@@ -328,13 +326,12 @@ transcript history only when that marker is enabled. Known Roleplay markers
 expand scene, lore, persona, character, and example-dialogue blocks. Sectioned
 presets that omit a non-depth lore marker do not emit that lore text, so no
 prompt mutations from the omitted text commit. If enabled section/group
-filtering leaves no materialized messages, Roleplay falls back to the selected
-shared system prompt and then the built-in Roleplay prelude, without transcript
-history. A selected preset still owns narration and other-character output
-behavior through either fallback; only no-preset, single-character Roleplay uses
+filtering leaves no materialized messages, Roleplay uses the built-in Roleplay
+prelude, without transcript history. A selected preset still owns narration and
+other-character output behavior through this fallback; only no-preset, single-character Roleplay uses
 the one-character output contract. Messenger does not consume preset sections.
-Messenger resolves the selected preset's `messengerPrompt`, then its shared
-`systemPrompt`, then the built-in Messenger fallback. Built-in fallbacks are
+Messenger resolves the selected preset's `messengerPrompt`, then the built-in
+Messenger fallback. Built-in fallbacks are
 assembled at request time rather than persisted into blank presets. Native
 branches do not own arbitrary prompt text.
 
@@ -358,8 +355,9 @@ Prompt-preset choices are deterministic. Native branch selections use stable
 choice-block and option IDs, preserve multi-select order, and join resolved
 values with the block separator. Every choice block is always visible and
 resolved independently before applying branch overrides and preset defaults.
-Choice blocks do not support
-`randomPick`; random and roll macros are the only prompt randomness mechanism.
+Choice blocks preserve `randomPick` metadata, but current choice execution is
+deterministic. Per-generation `randomPick` execution remains future work; random
+and roll macros are the only active prompt randomness mechanism.
 Mode generation commits macro mutations only after provider generation succeeds
 and only while the originating user input still exists. Mutated keys update the
 scope that supplied them at generation start: branch keys stay branch-scoped,

@@ -41,8 +41,8 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   per-entry probability, inclusion groups, group weight, insertion-order group
   resolution, per-entry recursion and timed-effect controls, regex-key hints,
   and at-depth depth/role.
-- Presets catalog controls expose prompt preset title, summary, optional system
-  prompt, Messenger Prompt Source, supported optional generation parameters with
+- Presets catalog controls expose prompt preset name, description, Messenger
+  Prompt Source, supported optional generation parameters with
   independent Send controls, Roleplay section groups, ordered sections, markers,
   section roles, enabled state, wrapping, and depth placement, with create, edit,
   duplicate, delete, and Restore Starter Preset actions. Restore adds a fresh
@@ -50,7 +50,7 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   catalog also imports standalone compatible `.json` or `.marinara.json`
   packages as fresh native copies and exports one selected saved preset through
   browser or desktop file workflows.
-  A title-only preset can be created and saved, and promptless presets can be
+  A name-only preset can be created and saved, and promptless presets can be
   imported, reopened, and exported without persisting built-in fallback text.
   Create, update, and starter restore stage the complete prompt-preset collection
   and publish the catalog or navigate only after durable storage succeeds. Failed
@@ -74,11 +74,11 @@ DeKoi is an early seed for a private-first story and character engine. The curre
   the supported dropdown, checkbox, button, and list presentations. Invalid live
   histories repair to valid defaults with a notice. Messenger ordinary
   conversation settings select a prompt preset and its preset-authored
-  Variables; generation uses `messengerPrompt`, shared `systemPrompt`, and built-in
-  `DEFAULT_MESSENGER_SYSTEM_PROMPT` in that order. Ordinary settings expose no
+  Variables; generation uses `messengerPrompt` and built-in
+  `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable prompt is present. Ordinary settings expose no
   arbitrary prompt or model-parameter override, and native branches store no
   arbitrary prompt text. Roleplay uses usable sections,
-  then the shared prompt, then its built-in prelude; Roleplay sections do not
+  then its built-in prelude; Roleplay sections do not
   become Messenger prompt text.
 - App settings own the default prompt preset. New Messenger and Roleplay branches
   start with it, and each branch retains independent confirmed-choice history per

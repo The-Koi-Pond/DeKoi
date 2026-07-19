@@ -282,35 +282,37 @@ Likely relationships:
 
 Current implementation:
 
-- Prompt presets are `schemaVersion: 1` catalog records with a title, optional
-  summary, optional system and Messenger Prompt Source text, nullable metadata
-  and provider-neutral parameters, static variable values, ordered
+- Prompt presets are `schemaVersion: 2` catalog records with a name, optional
+  description, a flat native `messengerPrompt` string, optional metadata and
+  provider-neutral parameters, static variable values, ordered Roleplay
   sections/groups, and choice blocks. Each optional outbound parameter stores
   an independent Send state and value; local prompt-assembly controls remain
   separate from provider request fields. Native records retain
-  stable empty arrays/maps and `systemPrompt: ""` when optional parts are absent.
+  stable empty arrays/maps and an empty flat prompt string when Messenger prompt
+  content is absent.
 - The Presets catalog edits Roleplay section groups, ordered sections, marker
   sections, section roles, enabled state, wrapping, depth placement, choice
   blocks, options, reusable defaults, questions, option descriptions,
   presentation, and ordering. Choice questions are always visible and
   independent. Its edit flow preserves
-  static variable values, richer parameters, folder/author metadata,
-  compatibility-only variable-order slots, and Messenger Prompt Source even
-  where dedicated controls are not exposed.
+  static variable values, richer parameters, optional author metadata, and the
+  native Messenger prompt.
 - The Presets catalog imports one compatible prompt-preset package as a fresh
   native record and exports one selected saved record as a stable DeKoi-owned
-  `.json` package. Standalone preset files are not full storage bundles.
+  `.json` package. Package versions, boundary mappings, and validation rules live
+  in [docs/storage-model.md](./docs/storage-model.md). Standalone preset files
+  are not full storage bundles.
 - New Messenger and Roleplay threads select the current app default prompt
   preset. Each thread can later select one prompt preset. Messenger uses
-  the selected preset's `messengerPrompt`, then its shared `systemPrompt`, and
-  falls back to built-in `DEFAULT_MESSENGER_SYSTEM_PROMPT` when no usable
-  selected preset prompt exists. A blank preset does not store that built-in
+  the selected preset's flat `messengerPrompt` and falls back to built-in
+  `DEFAULT_MESSENGER_SYSTEM_PROMPT` when it is blank or no preset is selected.
+  A blank preset does not store that built-in
   fallback text. Ordinary Messenger settings have no
   conversation-owned arbitrary prompt or model-parameter override. Messenger
   does not consume preset sections. Roleplay uses sections and groups when the
-  selected preset has usable sections; otherwise it uses the selected preset
-  system prompt, then the built-in Roleplay prelude when neither has usable
-  text. Either form preserves the preset's narration and other-NPC output
+  selected preset has usable sections; otherwise it uses the built-in Roleplay
+  prelude. The flat Messenger field never becomes a Roleplay fallback prompt.
+  Either form preserves the preset's narration and other-NPC output
   behavior. Only no-preset,
   single-character Roleplay uses the Roleplay-owned one-character output
   contract.
@@ -628,8 +630,8 @@ provider's API shape.
 
 ### Prompt Preset Relationships
 
-`AppSettings.defaultPromptPresetId` is the single native default authority;
-`PromptPresetRecord` does not carry a default flag. Messenger and Roleplay
+`AppSettings.defaultPromptPresetId` is the sole temporary global default
+authority used by thread creation and relationship transactions. Messenger and Roleplay
 branches keep confirmed variable choices in
 `presetChoiceSelectionsByPresetId`, retaining history when switching presets
 or when a deleted preset ID remains in history. New thread branches use the
@@ -637,11 +639,11 @@ current default. The default and last preset cannot be deleted; deleting another
 preset reassigns every branch using it to the default without erasing history.
 
 Snapshot/bundle normalization restores the exact bundled starter when no usable
-preset remains, repairs a missing default to the first usable preset, and
+preset remains, repairs a missing default pointer to the first usable preset, and
 reassigns dangling active references to that default while preserving imported
 IDs. Standalone preset-file import restamps the imported preset and does not
 change the app default.
 
-Development data written with the removed native fields may be reset through
-storage repair/reload; the legacy single-history field is accepted only as a
-one-way normalization into the history map.
+Development data written with obsolete Prompt Preset schemas is rejected. Reset
+the disposable prompt-preset collection and restart to reseed it; native Prompt
+Preset records are not migrated or rewritten into schema v2.
