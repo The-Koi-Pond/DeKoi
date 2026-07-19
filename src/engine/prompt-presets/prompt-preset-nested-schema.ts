@@ -99,7 +99,7 @@ function readNullableNestedIdentifier(value: unknown, format: PromptPresetNested
   if (value === undefined || value === null) return value;
   if (typeof value !== "string") return INVALID_NESTED_IDENTIFIER;
   const identifier = value.trim();
-  if (!identifier) return format === "native" ? INVALID_NESTED_IDENTIFIER : null;
+  if (!identifier) return format === "native" ? INVALID_NESTED_IDENTIFIER : undefined;
   return format === "native" && value !== identifier ? INVALID_NESTED_IDENTIFIER : identifier;
 }
 
@@ -269,8 +269,10 @@ function readSection(
     enabled,
     isMarker,
   };
-  if (presetId !== undefined) section.presetId = presetId;
-  if (groupId !== undefined) section.groupId = groupId;
+  if (presetId === undefined) delete section.presetId;
+  else section.presetId = presetId;
+  if (groupId === undefined) delete section.groupId;
+  else section.groupId = groupId;
   if (injectionPosition !== undefined) section.injectionPosition = injectionPosition;
   if (xmlTagName !== undefined) section.xmlTagName = xmlTagName;
   if (wrapInXml === undefined) delete section.wrapInXml;
@@ -307,8 +309,10 @@ function readGroup(
     id: readNestedIdentifier(row.id, format),
     name,
   };
-  if (presetId !== undefined) group.presetId = presetId;
-  if (parentGroupId !== undefined) group.parentGroupId = parentGroupId;
+  if (presetId === undefined) delete group.presetId;
+  else group.presetId = presetId;
+  if (parentGroupId === undefined) delete group.parentGroupId;
+  else group.parentGroupId = parentGroupId;
   if (createdAt !== undefined) group.createdAt = createdAt;
   if (enabled === undefined) delete group.enabled;
   else group.enabled = enabled;
@@ -396,7 +400,8 @@ function readChoiceBlock(
     label,
     options,
   };
-  if (presetId !== undefined) block.presetId = presetId;
+  if (presetId === undefined) delete block.presetId;
+  else block.presetId = presetId;
   if (question !== undefined) block.question = question;
   if (separator !== undefined) block.separator = separator;
   if (createdAt !== undefined) block.createdAt = createdAt;
