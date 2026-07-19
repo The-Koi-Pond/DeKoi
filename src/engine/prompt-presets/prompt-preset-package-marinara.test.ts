@@ -262,6 +262,32 @@ describe("Marinara prompt preset packages", () => {
     expect(record?.sections[0]?.markerConfig).toEqual(markerConfig);
   });
 
+  it("canonicalizes compatible nullable relationships and marker field identifiers", () => {
+    const record = normalizePromptPresetImportRecord(
+      marinaraPackage(
+        {},
+        {
+          sections: [
+            {
+              id: "section-character",
+              groupId: " ",
+              identifier: "character",
+              name: "Character",
+              content: "",
+              role: "system",
+              enabled: true,
+              isMarker: true,
+              markerConfig: { type: "character", characterFields: [" name "] },
+            },
+          ],
+        },
+      ),
+    );
+
+    expect(record?.sections[0]).not.toHaveProperty("groupId");
+    expect(record?.sections[0]?.markerConfig?.characterFields).toEqual(["name"]);
+  });
+
   it("decodes Marinara JSON columns for marker configuration and choice options", () => {
     const record = normalizePromptPresetImportRecord(
       marinaraPackage(

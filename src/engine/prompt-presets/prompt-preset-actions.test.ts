@@ -330,6 +330,29 @@ describe("normalizePromptPresetRecord", () => {
         defaultChoices: { tone: { kind: "option", optionId: "" } },
       },
     ],
+    [
+      "blank nullable relationship ID",
+      {
+        groups: [{ id: "group", presetId: "", name: "Group" }],
+      },
+    ],
+    [
+      "noncanonical marker character field",
+      {
+        sections: [
+          {
+            id: "marker",
+            identifier: "character",
+            name: "Character",
+            content: "",
+            role: "system",
+            enabled: true,
+            isMarker: true,
+            markerConfig: { type: "character", characterFields: [" name "] },
+          },
+        ],
+      },
+    ],
   ])("rejects malformed native nested %s values", (_label, nested) => {
     expect(validPromptPresetRecord(nested)).toBeNull();
   });

@@ -97,9 +97,10 @@ function readNestedIdentifier(value: string, format: PromptPresetNestedFormat) {
 
 function readNullableNestedIdentifier(value: unknown, format: PromptPresetNestedFormat) {
   if (value === undefined || value === null) return value;
-  return typeof value === "string" && (format !== "native" || value === value.trim())
-    ? readNestedIdentifier(value, format)
-    : INVALID_NESTED_IDENTIFIER;
+  if (typeof value !== "string") return INVALID_NESTED_IDENTIFIER;
+  const identifier = value.trim();
+  if (!identifier) return format === "native" ? INVALID_NESTED_IDENTIFIER : null;
+  return format === "native" && value !== identifier ? INVALID_NESTED_IDENTIFIER : identifier;
 }
 
 function readCanonicalText(value: unknown, format: PromptPresetNestedFormat, allowEmpty: boolean) {
@@ -161,7 +162,8 @@ export function readPromptPresetMarkerConfig(
   if (type === INVALID_TEXT) return null;
   if (
     source.characterFields !== undefined &&
-    (!Array.isArray(source.characterFields) || !source.characterFields.every(isNonEmptyString))
+    (!Array.isArray(source.characterFields) ||
+      !source.characterFields.every((field) => isNestedIdentifier(field, format)))
   )
     return null;
   if (
@@ -192,7 +194,9 @@ export function readPromptPresetMarkerConfig(
     type,
   };
   if (Array.isArray(source.characterFields)) {
-    markerConfig.characterFields = source.characterFields;
+    markerConfig.characterFields = source.characterFields.map((field) =>
+      readNestedIdentifier(field, format),
+    );
   }
   if (
     source.lorebookFormat === "full" ||
