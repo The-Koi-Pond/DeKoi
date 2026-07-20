@@ -98,7 +98,7 @@ jobs:
           git fetch --force origin "pull/$PR_NUM/head:refs/remotes/bunny-review/pr-$PR_NUM"
           git checkout --detach "$PR_HEAD_SHA"
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
