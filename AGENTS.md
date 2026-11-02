@@ -88,7 +88,7 @@ when a durable validation command changes.
 
 ## Follow-Up Register
 
-Use `scratch/TODO.md` only for real out-of-scope follow-up. At task start, search
+Use `TODO.md` (repo root, local and git-ignored) only for real out-of-scope follow-up. At task start, search
 it by touched owner, path, feature, or risk keyword with `rg`; read only matching
 items. Before finishing, update or remove matching items that the work addressed
 or invalidated. Do not use the register to defer a current-scope bug.

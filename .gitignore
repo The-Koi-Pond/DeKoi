@@ -20,6 +20,9 @@ dist-ssr
 __pycache__/
 *.py[cod]
 
+# Local follow-up register (see AGENTS.md "Follow-Up Register")
+/TODO.md
+
 # Local scratch / dev screenshots
 /scratch/
 /screenshot.png

@@ -191,7 +191,7 @@ updates, and untyped shared API drift.
   before asking one focused question.
 - Durable product or architecture decisions belong in relevant docs, an issue,
   or a PR—not an ad hoc status ledger.
-- Search `scratch/TODO.md` by owner/path/feature/risk and update only matching
+- Search `TODO.md` by owner/path/feature/risk and update only matching
   items. Do not broadly load the register or widen the current task merely
   because a matching follow-up exists.
 - Draft public issue or PR text for approval unless asked to post it.
